@@ -14,8 +14,9 @@
 #
 
 #
-    # Some functions to use for processing the ANOVA results
-    # from GDSC drug sensitivity screening.
+    # filtering features accross samples and fractions
+    # to find those relevant ones 
+    # belonging to LTP bound lipids
 #
 
 import os
