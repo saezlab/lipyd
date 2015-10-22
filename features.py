@@ -68,10 +68,46 @@ class MolWeight():
         return -1 * self.weight
     
     def __add__(self, other):
-        return other + self.weight
+        return float(other) + self.weight
+    
+    def __radd__(self, other):
+        return self.__add__(other)
+    
+    def __iadd__(self, other):
+        self.weight += float(other)
+    
+    def __sub__(self, other):
+        return self.weight - float(other)
+    
+    def __rsub__(self, other):
+        return float(other) - self.weight
+    
+    def __isub__(self, other):
+        self.weight += float(other)
+    
+    def __truediv__(self, other):
+        return self.weight / float(other)
+    
+    def __rtruediv__(self, other):
+        return float(other) / self.weight
+    
+    def __itruediv__(self, other):
+        self.weight /= float(other)
+    
+    def __mul__(self, other):
+        return self.weight * float(other)
+    
+    def __rmul__(self, other):
+        return self.__mul__(other)
+    
+    def __imul__(self, other):
+        self.weight *= float(other)
     
     def __float__(self):
         return self.weight
+    
+    def __eq__(self, other):
+        return abs(self.weight - float(other)) <= 0.01
     
     def calc_weight(self):
         atoms = self.reform.findall(self.formula)
