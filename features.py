@@ -33,6 +33,9 @@ import xlrd
 from xlrd.biffh import XLRDError
 import numpy as np
 from scipy import stats
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 import mass
 import progress
@@ -58,6 +61,9 @@ class MolWeight():
         '''
             **kwargs: elements & counts, e.g. c = 6, h = 12, o = 6...
         '''
+        if not hasattr(mass, 'massFirstIso'):
+            mass.getMassFirstIso()
+        self.mass = mass.massFirstIso
         self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
         if formula is None:
             formula = ''.join('%s%u'%(elem.upper(), num) for elem, num in kwargs.iteritems())
@@ -114,14 +120,15 @@ class MolWeight():
         w = 0.0
         for element, count in atoms:
             count = int(count or '1')
-            w += mass.mass[element] * count
+            w += self.mass[element] * count
         self.weight = w
 
 class Mz():
     
-    def __init__(self, mz, z = 1, tolerance = 0.01):
+    def __init__(self, mz, z = 1, sign = None, tolerance = 0.01):
         self.mz = mz
         self.z = z
+        self.sign = sign
         self.tol = tolerance
     
     def __eq__(self, other):
@@ -133,48 +140,48 @@ class Mz():
         return 'm/z = %f' % self.mz
     
     def adduct(self, m):
-        return self.mz + float(m) / self.z
+        return (self.mz * self.z + float(m)) / abs(self.z)
     
     def weight(self):
         return self.mz * self.z
     
     def remove_h(self):
-        return self.adduct(-mass.mass['proton'])
+        return self.adduct(-mass.proton)
     
     def remove_ac(self):
         m = MolWeight('H3C2O2')
-        return self.adduct(-m)
+        return self.adduct(-m - mass.electron)
     
     def remove_fo(self):
         m = MolWeight('HCO2')
-        return self.adduct(-m)
+        return self.adduct(-m - mass.electron)
     
     def remove_nh4(self):
-        m = MolWeight('NH3')
-        return self.adduct(-m)
+        m = MolWeight('NH4')
+        return self.adduct(-m + mass.electron)
     
     def remove_oh(self):
         m = MolWeight('OH')
-        return self.adduct(-m)
+        return self.adduct(-m - mass.electron)
     
     def add_h(self):
-        return self.adduct(mass.mass['proton'])
+        return self.adduct(mass.proton)
     
     def add_oh(self):
         m = MolWeight('OH')
-        return self.adduct(m)
+        return self.adduct(m + mass.electron)
     
     def add_fo(self):
         m = MolWeight('HCO2')
-        return self.adduct(m)
+        return self.adduct(m + mass.electron)
     
     def add_ac(self):
         m = MolWeight('H3C2O2')
-        return self.adduct(m)
+        return self.adduct(m + mass.electron)
     
     def add_nh4(self):
-        m = MolWeight('NH3')
-        return self.adduct(m)
+        m = MolWeight('NH4')
+        return self.adduct(m - mass.electron)
 
 #
 # obtaining lipid data from SwissLipids
@@ -230,14 +237,15 @@ def get_swisslipids(swisslipids_url, adducts = None,
     negatives = np.array(negatives, dtype = np.object)
     return positives, negatives
 
-def adduct_lookup(mz, adducts, tolerance = 0.02):
+def adduct_lookup(mz, adducts, levels, tolerance = 0.02):
     result = []
     iu = adducts[:,-1].searchsorted(mz)
     if adducts.shape[0] > iu:
         u = 0
         while True:
             if adducts[iu + u,-1] - mz <= tolerance:
-                result.append(adducts[iu + u,:])
+                if adducts[iu + u,1] in levels:
+                    result.append(adducts[iu + u,:])
                 u += 1
             else:
                 break
@@ -245,7 +253,8 @@ def adduct_lookup(mz, adducts, tolerance = 0.02):
         l = 1
         while True:
             if iu - l >= 0 and mz - adducts[iu - l,-1] <= tolerance:
-                result.append(adducts[iu - l,:])
+                if adducts[iu - l,1] in levels:
+                    result.append(adducts[iu - l,:])
                 l += 1
             else:
                 break
@@ -547,6 +556,11 @@ def read_data(fnames, samples):
             data[ltp][p]['lip'] = data[ltp][p]['mes'][:,
                 np.array([x == 1 for x in samples[ltp]] * \
                     (data[ltp][p]['mes'].shape[1] / 6))]
+            # all samples except blank control:
+            data[ltp][p]['smp'] = data[ltp][p]['mes'][:,
+                np.array([False] + [x is not None \
+                    for x in samples[ltp][1:]] * \
+                    (data[ltp][p]['mes'].shape[1] / 6))]
     prg.terminate()
     return data
 
@@ -579,9 +593,13 @@ def peaksize_filter(data, peak = 2.0):
                 #tbl['pks'][i] = bool(sum(max(ss/cc >= peak for cc in c) for ss in s))
     prg.terminate()
 
-def profile_filter(data, pprops, samples):
+def cprofile_filter(data, pprops, samples):
+    profile_filter(data, pprops, samples, prfx = 'c')
+
+def profile_filter(data, pprops, samples, prfx = ''):
     frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
     notf = []
+    cols = 'smp' if prfx == 'c' else 'lip'
     prg = progress.Progress(len(data) * 2, 'Profile filter', 1, percent = False)
     for ltp, d in data.iteritems():
         for pn, tbl in d.iteritems():
@@ -589,24 +607,27 @@ def profile_filter(data, pprops, samples):
             if ltp.upper() not in pprops:
                 notf.append(ltp)
                 continue
+            # i != 0 : we always drop the blank control
             ppr = np.array([pprops[ltp.upper()][frs[i]] \
-                for i, fr in enumerate(samples[ltp]) if fr == 1])
-            ppr = norm_profile(ppr)
+                for i, fr in enumerate(samples[ltp]) if fr == 1 and i != 0])
+            ppr = norm_profile(ppr).astype(np.float64)
             prr = stats.rankdata(ppr)
             pranks = sorted((i for i, x in enumerate(prr)), 
                 key = lambda x: x, reverse = True)
-            if tbl['lip'].shape[1] > 1:
+            if tbl[cols][0,:].count() > 1:
                 flatp = ppr[pranks[0]] - ppr[pranks[1]] < \
                     ppr[pranks[0]] * 0.1
-            tbl['prf'] = np.apply_along_axis(
+            # 0 if have only one fraction in sample
+            tbl['%sprf'%prfx] = np.apply_along_axis(
                 lambda x: diff_profiles(ppr, norm_profile(x)), 
-                    axis = 1, arr = tbl['lip'])
-            tbl['rpr'] = np.array([True] * tbl['lip'].shape[0]) \
-                if tbl['lip'].shape[1] == 1 else \
+                    axis = 1, arr = tbl[cols])
+            # all True if have only one fraction in sample
+            tbl['%srpr'%prfx] = np.array([True] * tbl[cols].shape[0]) \
+                if tbl[cols].shape[1] == 1 else \
                 np.apply_along_axis(
                 lambda x: comp_profiles(ppr, 
                     norm_profile(x), prr, flatp),
-                    axis = 1, arr = tbl['lip'])
+                    axis = 1, arr = tbl[cols])
     prg.terminate()
     sys.stdout.write('No protein profiles found for %s\n\n' % ', '.join(notf))
     sys.stdout.flush()
@@ -614,7 +635,10 @@ def profile_filter(data, pprops, samples):
 def diff_profiles(p1, p2):
     # profiles are numpy arrays
     # of equal length
-    return np.abs(np.nan_to_num(p1) - np.nan_to_num(p2)).sum()
+    if len(p1) > 1:
+        return np.nansum(np.abs(p1 - p2))
+    else:
+        return 1.0
 
 def comp_profiles(p1, p2, p1r = False, flatp = False):
     highest = False
@@ -635,9 +659,9 @@ def comp_profiles(p1, p2, p1r = False, flatp = False):
     return not hollow and (highest or flat)
 
 def norm_profile(profile):
-    return profile / np.max(profile)
+    return (profile - np.nanmin(profile.astype(np.float64))) / np.nanmax(profile)
 
-def ubiquity_filter_old(data, proximity = 0.02):
+def ubiquity_filter_old(data, proximity = 0.02, only_valid = True):
     prg = progress.Progress(len(data)**2, 'Ubiquity filter', 1)
     ltps = sorted(data.keys())
     for pn in ['pos', 'neg']:
@@ -671,7 +695,8 @@ def ubiquity_filter_old(data, proximity = 0.02):
                                 ltp2s.add(i2u - 1)
     prg.terminate()
 
-def ubiquity_filter(data, proximity = 0.02):
+def ubiquity_filter(data, proximity = 0.02, only_valid = True):
+    attr = 'ubi' if only_valid else 'uby'
     prg = progress.Progress(len(data)**2, 'Ubiquity filter', 1)
     ltps = sorted(data.keys())
     for pn in ['pos', 'neg']:
@@ -683,23 +708,23 @@ def ubiquity_filter(data, proximity = 0.02):
                 if pn in data[ltp1] and pn in data[ltp2]:
                     ltp1t = data[ltp1][pn]
                     ltp2t = data[ltp2][pn]
-                    if 'ubi' not in ltp1t:
-                        ltp1t['ubi'] = np.zeros([ltp1t['raw'].shape[0], 1], dtype = np.int8)
-                    if 'ubi' not in ltp2t:
-                        ltp2t['ubi'] = np.zeros([ltp2t['raw'].shape[0], 1], dtype = np.int8)
+                    if 'uby' not in ltp1t:
+                        ltp1t['uby'] = np.zeros([ltp1t['raw'].shape[0], 1], dtype = np.int8)
+                    if 'uby' not in ltp2t:
+                        ltp2t['uby'] = np.zeros([ltp2t['raw'].shape[0], 1], dtype = np.int8)
                     for i1, mz1 in np.ndenumerate(ltp1t['raw'][:,1]):
-                        if ltp1t['vld'][i1]:
+                        if ltp1t['vld'][i1] or not only_valid:
                             i2u = ltp2t['raw'][:,1].searchsorted(mz1)
                             u = 0
                             while True:
                                 if i2u + u < ltp2t['raw'].shape[0] and \
                                     ltp2t['raw'][i2u + u,1] - mz1 <= proximity:
-                                    if ltp2t['vld'][i2u + u]:
+                                    if ltp2t['vld'][i2u + u] or not only_valid:
                                         if i1 not in ltp1s:
-                                            ltp1t['ubi'][i1] += 1
+                                            ltp1t['uby'][i1] += 1
                                             ltp1s.add(i1)
                                         if i2u + u not in ltp2s:
-                                            ltp2t['ubi'][i2u + u] += 1
+                                            ltp2t['uby'][i2u + u] += 1
                                             ltp2s.add(i2u + u)
                                     u += 1
                                 else:
@@ -708,12 +733,12 @@ def ubiquity_filter(data, proximity = 0.02):
                             while True:
                                 if i2u - l >= 0 and \
                                     mz1 - ltp2t['raw'][i2u - l,1] <= proximity:
-                                    if ltp2t['vld'][i2u - l]:
+                                    if ltp2t['vld'][i2u - l] or not only_valid:
                                         if i1 not in ltp1s:
-                                            ltp1t['ubi'][i1] += 1
+                                            ltp1t['uby'][i1] += 1
                                             ltp1s.add(i1)
                                         if i2u - l not in ltp2s:
-                                            ltp2t['ubi'][i2u - l] += 1
+                                            ltp2t['uby'][i2u - l] += 1
                                             ltp2s.add(i2u - l)
                                     l += 1
                                 else:
@@ -738,7 +763,8 @@ class get_hits(object):
                 #try:
                 result[ltp][pn] = self.fun(tbl, **kwargs)
                 if result[ltp][pn] is None:
-                    sys.stdout.write('No profile info for %s\n' % ltp)
+                    sys.stdout.write('No profile info for %s, %s, %s()\n' % \
+                        (ltp, pn, self.fun.__name__))
                 #except:
                 #    pass
         return result
@@ -774,14 +800,17 @@ class count_hits(object):
         return hits, phits
 
 @get_hits
-def val_ubi_prf_rpr_hits(tbl, ubiquity = 7, treshold = 0.15, profile_best = False):
-    if 'prf' not in tbl:
+def val_ubi_prf_rpr_hits(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, profile_best = False):
+    prf = 'cprf' if tbl['lip'][1,:].count() == 1 else 'prf'
+    _treshold = (treshold, tresholdB)
+    if prf not in tbl:
         return None
     # dict of profile matching score values and their indices
     selected = np.logical_and(np.logical_and(np.logical_and(np.logical_and(np.logical_and(np.logical_and(
             tbl['qly'], tbl['crg']), tbl['are']), tbl['pks']), tbl['rpr']),
-            tbl['ubi'][:,0] <= ubiquity), np.logical_not(np.isnan(tbl['prf'])))
-    prf_values = dict(zip(list(np.where(selected)[0]), list(tbl['prf'][selected])))
+            tbl['ubi'][:,0] <= ubiquity), 
+            np.logical_or(np.logical_not(np.isnan(tbl['prf'])), np.logical_not(np.isnan(tbl['cprf']))))
+    prf_values = dict(zip(np.where(selected)[0], zip(tbl['prf'][selected], tbl['cprf'][selected])))
     if profile_best:
         # select the best scoring records
         prf_values = sorted(prf_values.items(), key = lambda x: x[1])
@@ -795,8 +824,33 @@ def val_ubi_prf_rpr_hits(tbl, ubiquity = 7, treshold = 0.15, profile_best = Fals
             filter(lambda x: x[1] <= score_treshold, prf_values))))
     else:
         # or select the records with profile match less then or equal to treshold
-        indices = np.array(sorted((i for i, v in prf_values.iteritems() if v <= treshold)))
-    return tbl['raw'][indices,:]
+        indices = np.array(sorted((i for i, v in prf_values.iteritems() if v <= _treshold)))
+    return (tbl['raw'][indices,:], tbl['prf'][indices], tbl['cprf'][indices], tbl['qly'][indices], tbl['are'][indices], tbl['pks'][indices])
+
+@get_hits
+def pass_through(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, profile_best = False):
+    prf = 'cprf' if tbl['lip'][1,:].count() == 1 else 'prf'
+    _treshold = (treshold, tresholdB)
+    if prf not in tbl:
+        return None
+    # dict of profile matching score values and their indices
+    selected = np.logical_or(np.logical_not(np.isnan(tbl['prf'])), np.logical_not(np.isnan(tbl['cprf'])))
+    prf_values = dict(zip(np.where(selected)[0], zip(tbl['prf'][selected], tbl['cprf'][selected])))
+    if profile_best:
+        # select the best scoring records
+        prf_values = sorted(prf_values.items(), key = lambda x: x[1])
+        try:
+            score_treshold = prf_values[min(profile_best - 1, len(prf_values) - 1)][1]
+        except IndexError:
+            print prf_values
+            return None
+        # comments?
+        indices = np.array(sorted(map(lambda x: x[0], \
+            filter(lambda x: x[1] <= score_treshold, prf_values))))
+    else:
+        # or select the records with profile match less then or equal to treshold
+        indices = np.array(sorted((i for i, v in prf_values.iteritems() if v <= _treshold)))
+    return (tbl['raw'][indices,:], tbl['prf'][indices], tbl['cprf'][indices], tbl['rpr'][indices], tbl['ubi'][indices])
 
 @combine_filters
 def validity_filter(tbl):
@@ -852,6 +906,7 @@ def eval_filter(data, filtr, param = {}, runtime = True, repeat = 3, number = 10
             'area': 'are',
             'profile': 'prf',
             'rprofile': 'rpr',
+            'cprofile': 'cprf',
             'validity': 'vld',
             'val_ubi': 'vub',
             'val_prf': 'vpr',
@@ -899,19 +954,26 @@ def save(fnames, samples, pprops, basedir, fname = 'save.pickle'):
 def load(basedir, fname = 'save.pickle'):
     return pickle.load(open(os.path.join(basedir, fname), 'rb'))
 
-def find_lipids(hits, pAdducts, nAdducts):
+def find_lipids(hits, pAdducts, nAdducts, levels = ['Species'], tolerance = 0.02):
+    # levels: 'Structural subspecies', 'Isomeric subspecies', 
+    # 'Species', 'Molecular subspecies'
+    levels = levels if type(levels) is set \
+        else set(levels) if type(levels) is list \
+        else set([levels])
     lipids = dict((ltp.upper(), {}) for ltp in hits.keys())
     for ltp, d in hits.iteritems():
         for pn, tbl in d.iteritems():
             adducts = pAdducts if pn == 'pos' else nAdducts
             result = []
-            if tbl is not None:
-                for feature in tbl:
-                    swlipids = adduct_lookup(feature[1], adducts)
+            if tbl[0] is not None:
+                for i in xrange(tbl[0].shape[0]):
+                    swlipids = adduct_lookup(tbl[0][i,1], adducts, levels, tolerance)
                     if swlipids is not None:
                         for lip in swlipids:
                             result.append(np.concatenate(
-                                (np.array([ltp.upper(), feature[1]], dtype = np.object), lip), axis = 0))
+                                # tbl[1] and tbl[2] are the profile and cprofile scores
+                                (np.array([ltp.upper(), tbl[0][i,1], tbl[1][i], tbl[2][i]], 
+                                    dtype = np.object), lip), axis = 0))
                 lipids[ltp.upper()][pn] = np.vstack(sorted(result, key = lambda x: x[1]))
     return lipids
 
@@ -920,62 +982,192 @@ def negative_positive(lipids, tolerance = 0.02):
     prg = progress.Progress(len(result), 'Matching positive & negative', 1, percent = False)
     for ltp, tbl in lipids.iteritems():
         prg.step()
-        for neg in tbl['neg']:
-            add = neg[6]
-            if add == '[M-H]-':
-                poshmz = Mz(Mz(neg[1]).add_h()).add_h()
-                posnh3mz = Mz(Mz(neg[1]).add_h()).add_nh4()
-            elif add == '[M+Fo]-':
-                poshmz = Mz(Mz(neg[1]).remove_fo()).add_h()
-                posnh3mz = Mz(Mz(neg[1]).remove_fo()).add_nh4()
-            else:
-                continue
-            iu = tbl['pos'][:,1].searchsorted(poshmz)
-            u = 0
-            if iu < len(tbl['pos']):
-                while True:
-                    if tbl['pos'][iu + u,1] - poshmz <= tolerance:
-                        if tbl['pos'][iu + u,2] == neg[2] and tbl['pos'][iu + u,6] == '[M+H]+':
-                            result[ltp].append(np.concatenate(
-                                (tbl['pos'][iu + u,1:], neg[1:]), axis = 0))
-                        u += 1
-                    else:
-                        break
-            if iu > 0:
-                l = 1
-                while iu >= l:
-                    if poshmz - tbl['pos'][iu - l,1] <= tolerance:
-                        if tbl['pos'][iu - l,2] == neg[2] and tbl['pos'][iu - l,6] == '[M+H]+':
-                            result[ltp].append(np.concatenate(
-                                (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
-                        l += 1
-                    else:
-                        break
-            iu = tbl['pos'][:,1].searchsorted(posnh3mz)
-            u = 0
-            if iu < len(tbl['pos']):
-                while True:
-                    if tbl['pos'][iu + u,1] - posnh3mz <= tolerance:
-                        if tbl['pos'][iu + u,2] == neg[2] and tbl['pos'][iu + u,6] == '[M+NH4]+':
-                            result[ltp].append(np.concatenate(
-                                (tbl['pos'][iu + u,1:], neg[1:]), axis = 0))
-                        u += 1
-                    else:
-                        break
-            if iu > 0:
-                l = 1
-                while iu >= l:
-                    if posnh3mz - tbl['pos'][iu - l,1] <= tolerance:
-                        if tbl['pos'][iu - l,2] == neg[2] and tbl['pos'][iu - l,6] == '[M+NH4]+':
-                            result[ltp].append(np.concatenate(
-                                (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
-                        l += 1
-                    else:
-                        break
-        if len(result[ltp]) > 0:
-            result[ltp] = np.vstack(result[ltp])
+        if 'neg' in tbl and 'pos' in tbl:
+            for neg in tbl['neg']:
+                add = neg[8]
+                if add == '[M-H]-':
+                    poshmz = Mz(Mz(neg[1]).add_h()).add_h()
+                    posnh3mz = Mz(Mz(neg[1]).add_h()).add_nh4()
+                elif add == '[M+Fo]-':
+                    poshmz = Mz(Mz(neg[1]).remove_fo()).add_h()
+                    posnh3mz = Mz(Mz(neg[1]).remove_fo()).add_nh4()
+                else:
+                    continue
+                iu = tbl['pos'][:,1].searchsorted(poshmz)
+                u = 0
+                if iu < len(tbl['pos']):
+                    while True:
+                        if tbl['pos'][iu + u,1] - poshmz <= tolerance:
+                            if tbl['pos'][iu + u,4] == neg[4] and \
+                                tbl['pos'][iu + u,8] == '[M+H]+':
+                                result[ltp].append(np.concatenate(
+                                    (tbl['pos'][iu + u,1:], neg[1:]), axis = 0))
+                            u += 1
+                        else:
+                            break
+                if iu > 0:
+                    l = 1
+                    while iu >= l:
+                        if poshmz - tbl['pos'][iu - l,1] <= tolerance:
+                            if tbl['pos'][iu - l,4] == neg[4] and \
+                                tbl['pos'][iu - l,8] == '[M+H]+':
+                                result[ltp].append(np.concatenate(
+                                    (tbl['pos'][iu - l,1:], neg[1:], ), axis = 0))
+                            l += 1
+                        else:
+                            break
+                iu = tbl['pos'][:,1].searchsorted(posnh3mz)
+                u = 0
+                if iu < len(tbl['pos']):
+                    while True:
+                        if tbl['pos'][iu + u,1] - posnh3mz <= tolerance:
+                            if tbl['pos'][iu + u,4] == neg[4] and \
+                                tbl['pos'][iu + u,8] == '[M+NH4]+':
+                                result[ltp].append(np.concatenate(
+                                    (tbl['pos'][iu + u,1:], neg[1:]), axis = 0))
+                            u += 1
+                        else:
+                            break
+                if iu > 0:
+                    l = 1
+                    while iu >= l:
+                        if posnh3mz - tbl['pos'][iu - l,1] <= tolerance:
+                            if tbl['pos'][iu - l,4] == neg[4] and \
+                                tbl['pos'][iu - l,8] == '[M+NH4]+':
+                                result[ltp].append(np.concatenate(
+                                    (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
+                            l += 1
+                        else:
+                            break
+            if len(result[ltp]) > 0:
+                result[ltp] = np.vstack(result[ltp])
     prg.terminate()
     return result
+
+## functions for MS2
+
+# from Toby Hodges:
+def read_metabolite_lines(fname):
+    Metabolites = []
+    with open(fname, 'r') as Handle:
+        for Line in Handle.readlines():
+            Line = Line.strip()
+            MetabMass, MetabType, MetabCharge = Line.split('\t')
+            Metabolites.append([to_float(MetabMass), MetabType, MetabCharge])
+            if '+' not in MetabCharge and '-' not in MetabCharge and 'NL' not in MetabCharge:
+                sys.stdout.write('WARNING: fragment %s has no valid charge information!\n' % metabolites[metabolite][1])
+    return np.array(Metabolites, dtype = np.object)
+
+pFragments = read_metabolite_lines('lipid_fragments_positive_mode.txt')
+nFragments = read_metabolite_lines('lipid_fragments_negative_mode.txt')
+
+def ms2_filenames(ltpdirs):
+    '''
+    Files are placed in 2 root directories, in specific subdirectories,
+    positive and negative MS mode in separate files.
+    This function collects all the file paths and returns them 
+    in a dict of dicts. Keys are LTP names, and 'pos'/'neg'.
+    '''
+    redirname = re.compile(r'(^[0-9a-zA-Z]+)[ _](pos|neg)')
+    refractio = re.compile(r'.*_([AB][0-9]{1,2}).*')
+    fnames = {}
+    for d in ltpdirs:
+        ltpdd = os.listdir(d)
+        ltpdd = [i for i in ltpdd if os.path.isdir(os.path.join(d, i))]
+        if len(ltpdd) == 0:
+            sys.stdout.write('\t:: Please mount the shared folder!\n')
+            return fnames
+        for ltpd in ltpdd:
+            try:
+                ltpname, pos = redirname.findall(ltpd)[0]
+            except:
+                # other dirs are irrelevant:
+                continue
+            fpath = [ltpd, 'Results']
+            if os.path.isdir(os.path.join(d, *fpath)):
+                for f in os.listdir(os.path.join(d, *fpath)):
+                    if f.endswith('mgf') and 'buffer' not in f:
+                        try:
+                            fr = refractio.match(f).groups()[0]
+                        except AttributeError:
+                            sys.stdout.write('could not determine fraction number: %s'%f)
+                        if ltpname not in fnames:
+                            fnames[ltpname] = {}
+                        if pos not in fnames[ltpname] or ltpd.endswith('update'):
+                            fnames[ltpname][pos] = {}
+                        fnames[ltpname][pos][fr] = os.path.join(*([d] + fpath + [f]))
+        return fnames
+
+ms2files = ms2_filenames(ltpdirs)
+
+def ms2_map(ms2files):
+    stRrtinseconds = 'RTINSECONDS'
+    stRtitle = 'TITLE'
+    stRbe = 'BE'
+    stRen = 'EN'
+    stRch = 'CH'
+    stRpepmass = 'PEPMASS'
+    stRpos = 'pos'
+    stRneg = 'neg'
+    stRcharge = 'CHARGE'
+    stRempty = ''
+    reln = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
+    redgt = re.compile(r'[AB]([\d]+)$')
+    result = dict((ltp.upper(), {'pos': None, 'neg': None, 
+            'ms2files': {'pos': {}, 'neg': {}}}) \
+        for ltp, d in ms2files.iteritems())
+    for ltp, d in ms2files.iteritems():
+        pFeatures = []
+        nFeatures = []
+        ultp = ltp.upper()
+        for pn, files in d.iteritems():
+            features = pFeatures if pn == stRpos else nFeatures
+            #fractions = set([])
+            for fr, fl in files.iteritems():
+                fr = int(redgt.match(fr).groups()[0])
+                #fractions.add(fr)
+                offset = 0
+                with open(fl, 'r') as f:
+                    for l in f:
+                        if not l[0].isdigit() and not l[:2] == stRch and \
+                            not l[:2] == stRbe and not l[:2] == stRen:
+                            try:
+                                m = reln.match(l).groups()
+                            except:
+                                print fl, l
+                                continue
+                            if m[0] == stRtitle:
+                                scan = float(m[1])
+                            if m[0] == stRrtinseconds:
+                                rtime = float(m[1])
+                            if m[0] == stRpepmass:
+                                pepmass = float(m[1])
+                                intensity = 0.0 if m[2] == stRempty else float(m[2])
+                                features.append([pepmass, intensity,
+                                    rtime, scan, offset + len(l), fr])
+                                scan = None
+                                rtime = None
+                                intensity = None
+                                pepmass = None
+                        offset += len(l)
+                result[ultp]['ms2files'][pn][int(fr)] = fl
+        pFeatures = np.array(sorted(pFeatures, key = lambda x: x[0]), dtype = np.float64)
+        nFeatures = np.array(sorted(nFeatures, key = lambda x: x[0]), dtype = np.float64)
+        result[ultp]['pos'] = pFeatures
+        result[ultp]['neg'] = pFeatures
+    return result
+
+def ms2_main(ms2map, ms1matches, pFragments, nFragments):
+    result = dict((ltp, {}) for ltp in ms1matches.keys())
+    return result
+
+def ms2_lookup(ms2map, ms1mz, fragments):
+    pass
+
+def ms2_collect(ms1mz, fragments):
+    pass
+
+ms2map = ms2_map(ms2files)
 
 # ## ## ## ## ## ## ## ## #
 # The pipeline   ## ## ## #
@@ -995,28 +1187,44 @@ fnames, samples, pprops = load(basedir)
 #save_data(data, basedir)
 data = load_data(basedir)
 
+csamples = dict((k, np.array([1 if x is not None else None for x in v])) for k, v in samples.iteritems())
+
 # running and analysing filters
 
 apply_filters(data)
 validity_filter(data)
 profile_filter(data, pprops, samples)
+profile_filter(data, pprops, csamples, prfx = 'c')
 
-t, hits, phits, hitn, hitp = eval_filter(data, 'quality')
-t, hits, phits, hitn, hitp = eval_filter(data, 'charge')
-t, hits, phits, hitn, hitp = eval_filter(data, 'area')
-t, hits, phits, hitn, hitp = eval_filter(data, 'peaksize')
-t, hits, phits, hitn, hitp = eval_filter(data, 'validity')
 
-t, hits, phits, hitn, hitp = eval_filter(data, 'ubiquity', 
-    runtime = False, repeat = 1, number = 1, 
+filtr_results = {}
+for f in ['quality', 'charge', 'area', 'peaksize', 'validity']:
+    filtr_results[f] = eval_filter(data, f)
+
+filtr_results['ubiquity'] = eval_filter(data, 'ubiquity', 
+    param = {'only_valid': False},
+    runtime = True, repeat = 1, number = 1, 
     hit = lambda x: x < 7)
 
-t, hits, phits, hitn, hitp = eval_filter(data, 'val_ubi', param = {'ubiquity': 7})
-t, hits, phits, hitn, hitp = eval_filter(data, 'val_ubi', param = {'ubiquity': 7})
+ubiquity_filter(data, only_valid = False)
 
-t, hits, phits, hitn, hitp = eval_filter(data, 'profile', 
+filtr_results['val_ubi'] = eval_filter(data, 'val_ubi', param = {'ubiquity': 7})
+
+filtr_results['profile025'] = eval_filter(data, 'profile', 
+    param = {'pprops': pprops, 'samples': samples, 'prfx': ''},
+    runtime = True, repeat = 1, number = 1, 
+    hit = lambda x: x <= 0.25)
+
+filtr_results['cprofile025']
+
+t, hits, phits, hitn, hitp = eval_filter(data, 'cprofile', 
+    param = {'pprops': pprops, 'samples': csamples},
+    runtime = True, repeat = 1, number = 1, 
+    hit = lambda x: x <= 0.25)
+
+t1, hits1, phits1, hitn1, hitp1 = eval_filter(data, 'profile', 
     param = {'pprops': pprops, 'samples': samples},
-    runtime = False, repeat = 1, number = 1, 
+    runtime = True, repeat = 1, number = 1, 
     hit = lambda x: x <= 0.25)
 
 t, hits, phits, hitn, hitp = eval_filter(data, 'profile', 
@@ -1024,23 +1232,149 @@ t, hits, phits, hitn, hitp = eval_filter(data, 'profile',
     runtime = False, repeat = 1, number = 1, 
     hit = lambda x: x <= 0.25)
 
-t, hits, phits, hitn, hitp = eval_filter(data, 'rprofile', runtime = False)
-t, hits, phits, hitn, hitp = eval_filter(data, 'val_prf', param = {'treshold': 0.25})
-t, hits, phits, hitn, hitp = eval_filter(data, 'val_rpr')
-t, hits, phits, hitn, hitp = eval_filter(data, 'val_ubi_prf', param = {'treshold': 0.25, 'ubiquity': 7})
-t, hits, phits, hitn, hitp = eval_filter(data, 'val_ubi_prf_rprf', param = {'treshold': 0.25, 'ubiquity': 7})
+filtr_results['rprofile'] = eval_filter(data, 'rprofile', runtime = True)
+filtr_results['val_prf'] = eval_filter(data, 'val_prf', param = {'treshold': 0.25})
+filtr_results['val_rpr'] = eval_filter(data, 'val_rpr')
+filtr_results['val_ubi_prf'] = eval_filter(data, 'val_ubi_prf', param = {'treshold': 0.25, 'ubiquity': 7})
+filtr_results['val_ubi_prf_rprf'] = eval_filter(data, 'val_ubi_prf_rprf', param = {'treshold': 0.25, 'ubiquity': 7})
 
 # selecting (predicted) positive features
 
-final_hits = val_ubi_prf_rpr_hits(data, ubiquity = 7, profile_best = 30)
-[v.shape[0] if v is not None else None for vv in final_hits.values() for v in vv.values()]
+final_hits2 = val_ubi_prf_rpr_hits(data, ubiquity = 70, profile_best = 1000)
+[v[0].shape[0] if v is not None else None for vv in final_hits2.values() for v in vv.values()]
+final_hits_upper = dict((l.upper(), {'pos': None, 'neg': None}) for l in final_hits.keys())
+for l, d in final_hits.iteritems():
+    for pn, tbl in d.iteritems():
+        if final_hits_upper[l.upper()][pn] is None:
+            final_hits_upper[l.upper()][pn] = tbl
+
+final_hits = final_hits_upper
+
+final_hits2_upper = dict((l.upper(), {'pos': None, 'neg': None}) for l in final_hits2.keys())
+for l, d in final_hits2.iteritems():
+    for pn, tbl in d.iteritems():
+        if final_hits2_upper[l.upper()][pn] is None:
+            final_hits2_upper[l.upper()][pn] = tbl
+
+final_hits2 = final_hits2_upper
+
+samples_upper = dict((l.upper(), s) for l, s in samples.iteritems())
+
+# number of hits:
+# [len(j) if j is not None else (l, p) for l, i in final_hits.iteritems() for p, j in i.iteritems()]
 
 # obtaining full SwissLipids data
 pAdducts, nAdducts = get_swisslipids(swisslipids_url, 
     adducts = ['[M+H]+', '[M+NH4]+', '[M-H]-'], formiate = True)
 
-lipids = find_lipids(final_hits, pAdducts, nAdducts)
-pnmatched = timeit.timeit(negative_positive(lipids)
+fliptime = timeit.timeit('find_lipids(final_hits, pAdducts, nAdducts)', 
+    setup = 'from __main__ import find_lipids, final_hits, pAdducts, nAdducts', number = 1)
+lipids = find_lipids(final_hits2, pAdducts, nAdducts)
+
+# number of lipids:
+# [len(j) if j is not None else (l, p) for l, i in lipids.iteritems() for p, j in i.iteritems()]
+
+pntime = timeit.timeit('negative_positive(lipids)', setup = 'from __main__ import negative_positive, lipids', number = 1)
+pnmatched = negative_positive(lipids)
+
+# number of matching lipids:
+# [(p, len(l)) for p, l in pnmatched.iteritems()]
+
+[(l.upper(), p, len(j), len(pnmatched[l.upper()])) if j is not None else (l.upper(), p, 0, 0) for l, i in lipids.iteritems() for p, j in i.iteritems()]
+# LTP, num of lipid hits (min), num of positive-negative matching, 
+# num of selected features [neg, pos], num of fractions in sample
+filtered_matched = [(
+        l.upper(), 
+        [len(i['neg']), len(i['pos'])], 
+        len(pnmatched[l.upper()]), 
+        [len(final_hits2[l]['neg'][0]), len(final_hits2[l]['pos'][0])], 
+        np.nansum([x for x in samples_upper[l] if x is not None])
+    ) if len(i.values()) > 0 \
+    else (
+        l.upper(), 0, 0, 0, np.nansum([x for x in samples_upper[l] if x is not None])
+    ) \
+    for l, i in lipids.iteritems()]
+
+[sys.stdout.write(str(i) + '\n') for i in filtered_matched]
+sum([i[2] > 0 for i in filtered_matched])
+
+pnum = 'e'
+
+font_family = 'Helvetica Neue LT Std'
+sns.set(font = font_family)
+fig, ax = plt.subplots()
+color = ['#FCCC06', '#6EA945', '#007B7F']
+for f in [1, 2, 3]:
+    x1 = [i[1][0] for i in filtered_matched if i[-1] == f]
+    x2 = [i[1][1] for i in filtered_matched if i[-1] == f]
+    y = [i[2] for i in filtered_matched if i[-1] == f]
+    p = plt.scatter(x1, y, marker = 's', c = color[f - 1], edgecolors = 'none', alpha = .5)
+    p = plt.scatter(x2, y, marker = 'o', c = color[f - 1], edgecolors = 'none', alpha = .5)
+    for xa, xb, yy in zip(x1, x2, y):
+        p = plt.plot([xa, xb], [yy, yy], lw = .3, c = '#CCCCCC')
+
+plt.xlabel('Lipids (square: --; dot: +)')
+plt.ylabel('Lipids matching (square: -; dot: +)')
+fig.tight_layout()
+fig.savefig('hits-1-1000-%s.pdf'%pnum)
+plt.close()
+
+fig, ax = plt.subplots()
+color = ['#FCCC06', '#6EA945', '#007B7F']
+for f in [1, 2, 3]:
+    x1 = [i[3][0] for i in filtered_matched if i[-1] == f]
+    y1 = [i[1][0] for i in filtered_matched if i[-1] == f]
+    x2 = [i[3][1] for i in filtered_matched if i[-1] == f]
+    y2 = [i[1][1] for i in filtered_matched if i[-1] == f]
+    p = plt.scatter(x1, y1, marker = 's', c = color[f - 1], edgecolors = 'none', alpha = .5)
+    p = plt.scatter(x2, y2, marker = 'o', c = color[f - 1], edgecolors = 'none', alpha = .5)
+    for xa, xb, ya, yb in zip(x1, x2, y1, y2):
+        p = plt.plot([xa, xb], [ya, yb], lw = .3, c = '#CCCCCC')
+
+plt.xlabel('Num of m/z`s (green: --; yellow: +)')
+plt.ylabel('Lipids (green: --; yellow: +)')
+fig.tight_layout()
+fig.savefig('hits-2-1000-%s.pdf'%pnum)
+plt.close()
+
+
+fig, ax = plt.subplots()
+color = ['#FCCC06', '#6EA945', '#007B7F']
+for f in [1, 2, 3]:
+    x1 = [i[3][0] for i in filtered_matched if i[-1] == f]
+    x2 = [i[3][1] for i in filtered_matched if i[-1] == f]
+    y = [i[2] for i in filtered_matched if i[-1] == f]
+    p = plt.scatter(x1, y, marker = 's', c = color[f - 1], edgecolors = 'none', alpha = .5)
+    p = plt.scatter(x2, y, marker = 'o', c = color[f - 1], edgecolors = 'none', alpha = .5)
+    for xa, xb, yy in zip(x1, x2, y):
+        p = plt.plot([xa, xb], [yy, yy], lw = .3, c = '#CCCCCC')
+
+plt.xlabel('Num of m/z`s (square: --; dot: +)')
+plt.ylabel('Lipids matching (square: -; dot: +)')
+fig.tight_layout()
+fig.savefig('hits-5-1000-%s.pdf'%pnum)
+plt.close()
+
+
+fig, ax = plt.subplots()
+y = flatList([i[3] for i in filtered_matched if type(i[3]) is not int])
+x = flatList([[i[4]]*2 for i in filtered_matched if type(i[3]) is not int])
+p = plt.scatter(x, y, c = '#6ea945', edgecolors = 'none')
+plt.xlabel('Fractions in sample')
+plt.ylabel('M/z min(pos, neg)')
+fig.tight_layout()
+fig.savefig('hits-3-150-%s.pdf'%pnum)
+plt.close()
+
+fig, ax = plt.subplots()
+y = [i[2] for i in filtered_matched]
+x = [i[4] for i in filtered_matched]
+p = plt.scatter(x, y, c = '#6ea945', edgecolors = 'none', alpha = .2)
+plt.xlabel('Fractions in sample')
+plt.ylabel('Lipids matched (pos, neg)')
+fig.tight_layout()
+fig.savefig('hits-4-1000-%s.pdf'%pnum)
+plt.close()
 
 with open('lipids_matched.csv', 'w') as f:
     hdr = ['LTP',
@@ -1052,8 +1386,3 @@ with open('lipids_matched.csv', 'w') as f:
         for l in tbl:
             f.write('\t'.join([ltp, str(l[0]), str(l[6]), l[5], str(l[7]), 
                 str(l[13]), l[12], l[1], l[4], l[3]]) + '\n')
-
-t = timeit.timeit('find_lipids(final_hits, pAdducts, nAdducts)', 
-    setup = 'from __main__ import find_lipids, final_hits, pAdducts, nAdducts', number = 1)
-
-t = timeit.timeit('negative_positive(lipids)', setup = 'from __main__ import negative_positive, lipids', number = 1)

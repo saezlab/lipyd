@@ -1,5 +1,86 @@
 #!/usr/bin/python2
+# -*- coding: utf-8 -*-
 
+import urllib2
+import bs4
+import re
+
+urlMasses = 'http://www.ciaaw.org/atomic-masses.htm'
+urlWeights = 'http://www.ciaaw.org/atomic-weights.htm'
+urlAbundances = 'http://www.ciaaw.org/isotopic-abundances.htm'
+reNonDigit = re.compile(r'[^\d.]+')
+
+proton = 1.00727646677
+electron = 0.00054857990924
+
+# ##
+def getMasses(url):
+    reqMasses = urllib2.urlopen(url)
+    soupMasses = bs4.BeautifulSoup(reqMasses.read())
+
+    mass = {}
+    symbol = None
+    a = None
+
+    for tr in soupMasses.find_all('tr'):
+        tr = [td for td in tr.find_all('td')]
+        if len(tr) == 5:
+            symbol = tr[1].text.strip()
+            mass[symbol] = {}
+        try:
+            a = int(tr[-2].text.strip())
+            m = [float(reNonDigit.sub('', i)) for i in tr[-1].text.split(',')]
+            m = sum(m) / len(m)
+            mass[symbol][a] = m
+        except (ValueError, IndexError):
+            continue
+    mass['proton'] = 1.00727646677
+    mass['electron'] = 0.00054857990924
+    return mass
+
+def getMassMonoIso():
+    globals()['massMonoIso'] = getMasses(urlMasses)
+
+def getMassFirstIso():
+    if 'massMonoIso' not in globals():
+        getMassMonoIso()
+    if 'freqIso' not in globals():
+        getFreqIso()
+    firstIso = {}
+    for symbol, isos in massMonoIso.iteritems():
+        if symbol in freqIso:
+            try:
+                firstIso[symbol] = \
+                    isos[max(freqIso[symbol].items(), key = lambda i: i[1])[0]]
+            except:
+                continue
+    globals()['massFirstIso'] = firstIso
+
+def getWeightStd():
+    globals()['weightsStd'] = getMasses(urlWeights)
+
+def getFreqIso():
+    reqAbundances = urllib2.urlopen(urlAbundances)
+    soupAbundances = bs4.BeautifulSoup(reqAbundances.read())
+
+    freqIso = {}
+    symbol = None
+    a = None
+
+    for tr in soupAbundances.find_all('tr'):
+        tr = [td for td in tr.find_all('td')]
+        if len(tr) == 6:
+            symbol = tr[1].text.strip()
+            freqIso[symbol] = {}
+        ai = -3 if len(tr) == 6 else -2
+        try:
+            a = int(tr[ai].text.strip())
+            p = [float(reNonDigit.sub('', i)) for i in tr[ai + 1].text.split(',')]
+            p = sum(p) / len(p)
+            freqIso[symbol][a] = p
+        except (ValueError, IndexError, KeyError):
+            continue
+    globals()['freqIso'] = freqIso
 
 mass = {
   "proton": 1.00727646677,
@@ -9,7 +90,7 @@ mass = {
   "Li": 6.941,
   "Be": 9.012182,
   "B":  10.811,
-  "C":  12.011,
+  "C":  12.0107,
   "N":  14.00674,
   "O":  15.9994,
   "F":  18.9984032,
