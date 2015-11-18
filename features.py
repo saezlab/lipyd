@@ -1278,7 +1278,8 @@ def ms2_main(ms2map, ms1matches, pFragments, nFragments):
     for ltp, tbl in ms1matches.iteritems():
         for i in xrange(tbl.shape[0]):
             posMz = tbl[i,0]
-            negMz = tbl[i,
+            # not ready from this point!
+            negMz = tbl[i,foobar]
     return result
 
 def ms2_lookup(ms2map, ms1mz, fragments):
@@ -1308,239 +1309,246 @@ def write_out(matches, fname):
                 f.write('\t'.join([ltp, '%08f'%l[0], '%08f'%l[11], l[10], '%08f'%l[12], 
                     '%08f'%l[23], l[22], l[6], l[9], str(l[8])]) + '\n')
 
-write_out(pnmatched_best, 'lipid_matches_best10.csv')
+def samples_with_controls(samples):
+    return dict((k, np.array([1 if x is not None else None for x in v])) \
+        for k, v in samples.iteritems())
+
+def upper_samples(samples):
+    return dict((l.upper(), s) for l, s in samples.iteritems())
+
+def init_from_scratch(basedir, ltpdirs, pptablef, samplesf):
+    '''
+    Does all the initial preprocessing.
+    Saves intermediate data, so it can be loaded faster 
+    for next sessions.
+    '''
+    fnames = dict(get_filenames(ltpdirs[0]).items() + get_filenames(ltpdirs[1]).items())
+    samples = read_samples(samplesf)
+    # at first run, after reading from saved textfile
+    pprops = protein_profiles(ppsecdir, ppfracf)
+    write_pptable(pprops, pptablef)
+    del fnames['ctrl']
+    save(fnames, samples, pprops, basedir)
+    csamples = samples_with_controls(samples)
+    samples_upper = upper_samples(samples)
+    data = read_data(fnames, samples)
+    save_data(data, basedir)
+    return data, fnames, samples, csamples, samples_upper, pprops
+
+def init_reinit(basedir):
+    '''
+    Initializing from preprocessed and dumped data.
+    '''
+    fnames, samples, pprops = load(basedir)
+    data = load_data(basedir)
+    csamples = samples_with_controls(samples)
+    samples_upper = upper_samples(samples)
+    return data, fnames, samples, csamples, samples_upper, pprops
+
+def basic_filters(data, pprops, samples, 
+    profile_treshold = 0.25, ubiquity_treshold = 7):
+    apply_filters(data)
+    validity_filter(data)
+    profile_filter(data, pprops, samples)
+    profile_filter(data, pprops, csamples, prfx = 'c')
+    ubiquity_filter(data, only_valid = False)
+    val_ubi_filter(data, ubiquity = ubiquity_treshold)
+    rprofile_filter(data)
+    val_prf_filter(data, treshold = profile_treshold)
+    val_rpr_filter(data)
+    val_ubi_prf_filter(data, treshold = profile_treshold, ubiquity = ubiquity_treshold)
+    val_ubi_prf_rprf_filter(data, treshold = profile_treshold, ubiquity = ubiquity_treshold)
+
+def basic_filters_with_evaluation(data, pprops, samples, 
+    profile_treshold = 0.25, ubiquity_treshold = 7):
+    filtr_results = {}
+    for f in ['quality', 'charge', 'area', 'peaksize', 'validity']:
+        filtr_results[f] = eval_filter(data, f)
+    filtr_results['ubiquity'] = eval_filter(data, 'ubiquity', 
+    param = {'only_valid': False},
+    runtime = True, repeat = 1, number = 1, 
+    hit = lambda x: x < ubiquity_treshold)
+    filtr_results['val_ubi'] = eval_filter(data, 'val_ubi',
+        param = {'ubiquity': ubiquity_treshold})
+    filtr_results['profile025'] = eval_filter(data, 'profile', 
+        param = {'pprops': pprops, 'samples': samples, 'prfx': ''},
+        runtime = True, repeat = 1, number = 1, 
+        hit = lambda x: x <= profile_treshold)
+    filtr_results['cprofile025'] = eval_filter(data, 'cprofile', 
+        param = {'pprops': pprops, 'samples': csamples},
+        runtime = True, repeat = 1, number = 1, 
+        hit = lambda x: x <= profile_treshold)
+    filtr_results['rprofile'] = eval_filter(data, 'rprofile', runtime = True)
+    filtr_results['val_prf'] = eval_filter(data, 'val_prf', 
+        param = {'treshold': profile_treshold})
+    filtr_results['val_rpr'] = eval_filter(data, 'val_rpr')
+    filtr_results['val_ubi_prf'] = eval_filter(data, 'val_ubi_prf',
+        param = {'treshold': profile_treshold, 'ubiquity': ubiquity_treshold})
+    filtr_results['val_ubi_prf_rprf'] = eval_filter(data, 'val_ubi_prf_rprf',
+        param = {'treshold': profile_treshold, 'ubiquity': ubiquity_treshold})
+    return filtr_results
+
+def positive_negative_runtime():
+    return timeit.timeit('negative_positive(lipids)', 
+        setup = 'from __main__ import negative_positive, lipids', number = 1)
+
+def get_scored_hits(data):
+    hits = val_ubi_prf_rpr_hits(data, ubiquity = 70, profile_best = 1000)
+    [v[0].shape[0] if v is not None else None for vv in hits.values() for v in vv.values()]
+    hits_upper = dict((l.upper(), {'pos': None, 'neg': None}) for l in hits.keys())
+    for l, d in hits.iteritems():
+        for pn, tbl in d.iteritems():
+            if hits_upper[l.upper()][pn] is None:
+                hits_upper[l.upper()][pn] = tbl
+    return hits_upper
+
+def lipid_lookup(stage0, runtime = None):
+    # obtaining full SwissLipids data
+    pAdducts, nAdducts = get_swisslipids(swisslipids_url, 
+        adducts = ['[M+H]+', '[M+NH4]+', '[M-H]-'], formiate = True)
+    lipids = find_lipids(stage0, pAdducts, nAdducts)
+    if runtime:
+        runtime = timeit.timeit('find_lipids(final_hits, pAdducts, nAdducts)',
+            setup = 'from __main__ import find_lipids, final_hits, 
+            pAdducts, nAdducts', number = 1)
+    return pAdducts, nAdducts, lipids, runtime
+
+def evaluate_results(stage0, stage2, samples_upper, letter = 'e'):
+    '''
+    Tracks the number of features/lipids along stages.
+    Does some plotting.
+    '''
+    stage3 = [(
+            l.upper(), 
+            [len(i['neg']), len(i['pos'])], 
+            len(stage2[l.upper()]), 
+            [len(stage0[l]['neg'][0]), len(stage0[l]['pos'][0])], 
+            np.nansum([x for x in samples_upper[l] if x is not None])
+        ) if len(i.values()) > 0 \
+        else (
+            l.upper(), 0, 0, 0, np.nansum([x for x in samples_upper[l] if x is not None])
+        ) \
+        for l, i in lipids.iteritems()]
+    #
+    [sys.stdout.write(str(i) + '\n') for i in stage3]
+    sum([i[2] > 0 for i in stage3])
+    #
+    font_family = 'Helvetica Neue LT Std'
+    sns.set(font = font_family)
+    fig, ax = plt.subplots()
+    color = ['#FCCC06', '#6EA945', '#007B7F']
+    for f in [1, 2, 3]:
+        x1 = [i[1][0] for i in stage3 if i[-1] == f]
+        x2 = [i[1][1] for i in stage3 if i[-1] == f]
+        y = [i[2] for i in stage3 if i[-1] == f]
+        p = plt.scatter(x1, y, marker = 's', c = color[f - 1], edgecolors = 'none', alpha = .5)
+        p = plt.scatter(x2, y, marker = 'o', c = color[f - 1], edgecolors = 'none', alpha = .5)
+        for xa, xb, yy in zip(x1, x2, y):
+            p = plt.plot([xa, xb], [yy, yy], lw = .3, c = '#CCCCCC')
+    plt.xlabel('Lipids (square: --; dot: +)')
+    plt.ylabel('Lipids matching (square: -; dot: +)')
+    fig.tight_layout()
+    fig.savefig('hits-1-1000-%s.pdf'%letter)
+    plt.close()
+    #
+    fig, ax = plt.subplots()
+    color = ['#FCCC06', '#6EA945', '#007B7F']
+    for f in [1, 2, 3]:
+        x1 = [i[3][0] for i in stage3 if i[-1] == f]
+        y1 = [i[1][0] for i in stage3 if i[-1] == f]
+        x2 = [i[3][1] for i in stage3 if i[-1] == f]
+        y2 = [i[1][1] for i in stage3 if i[-1] == f]
+        p = plt.scatter(x1, y1, marker = 's', c = color[f - 1], edgecolors = 'none', alpha = .5)
+        p = plt.scatter(x2, y2, marker = 'o', c = color[f - 1], edgecolors = 'none', alpha = .5)
+        for xa, xb, ya, yb in zip(x1, x2, y1, y2):
+            p = plt.plot([xa, xb], [ya, yb], lw = .3, c = '#CCCCCC')
+
+    plt.xlabel('Num of m/z`s (green: --; yellow: +)')
+    plt.ylabel('Lipids (green: --; yellow: +)')
+    fig.tight_layout()
+    fig.savefig('hits-2-1000-%s.pdf'%letter)
+    plt.close()
+    # 
+    fig, ax = plt.subplots()
+    color = ['#FCCC06', '#6EA945', '#007B7F']
+    for f in [1, 2, 3]:
+        x1 = [i[3][0] for i in stage3 if i[-1] == f]
+        x2 = [i[3][1] for i in stage3 if i[-1] == f]
+        y = [i[2] for i in stage3 if i[-1] == f]
+        p = plt.scatter(x1, y, marker = 's', c = color[f - 1], edgecolors = 'none', alpha = .5)
+        p = plt.scatter(x2, y, marker = 'o', c = color[f - 1], edgecolors = 'none', alpha = .5)
+        for xa, xb, yy in zip(x1, x2, y):
+            p = plt.plot([xa, xb], [yy, yy], lw = .3, c = '#CCCCCC')
+    plt.xlabel('Num of m/z`s (square: --; dot: +)')
+    plt.ylabel('Lipids matching (square: -; dot: +)')
+    fig.tight_layout()
+    fig.savefig('hits-5-1000-%s.pdf'%letter)
+    plt.close()
+    #
+    fig, ax = plt.subplots()
+    y = flatList([i[3] for i in stage3 if type(i[3]) is not int])
+    x = flatList([[i[4]]*2 for i in stage3 if type(i[3]) is not int])
+    p = plt.scatter(x, y, c = '#6ea945', edgecolors = 'none')
+    plt.xlabel('Fractions in sample')
+    plt.ylabel('M/z min(pos, neg)')
+    fig.tight_layout()
+    fig.savefig('hits-3-150-%s.pdf'%letter)
+    plt.close()
+    #
+    fig, ax = plt.subplots()
+    y = [i[2] for i in stage3]
+    x = [i[4] for i in stage3]
+    p = plt.scatter(x, y, c = '#6ea945', edgecolors = 'none', alpha = .2)
+    plt.xlabel('Fractions in sample')
+    plt.ylabel('Lipids matched (pos, neg)')
+    fig.tight_layout()
+    fig.savefig('hits-4-1000-%s.pdf'%letter)
+    plt.close()
+    #
+    fig, ax = plt.subplots()
+    p = plt.bar(xrange(len(stage3)), 
+        [i[2] for i in sorted(stage3, key = lambda x: x[2], reverse = True)], 
+        0.5, color = '#6EA945', edgecolor = 'none')
+    plt.xlabel('Lipid transfer protein')
+    plt.ylabel('Number of valid lipid matches\n(with no filtering based on profiles)')
+    ax.set_xticks(np.arange(len(stage3)) + .25)
+    ax.set_xticklabels([i[0] for i in sorted(stage3, key = lambda x: x[2], reverse = True)], 
+        rotation = 90, fontsize = 5)
+    fig.tight_layout()
+    fig.savefig('lipid-matches-3000-%s.pdf'%letter)
+    plt.close()
 
 # ## ## ## ## ## ## ## ## #
 # The pipeline   ## ## ## #
 # ## ## ## ## ## ## ## ## #
 
-#fnames = dict(get_filenames(ltpdirs[0]).items() + get_filenames(ltpdirs[1]).items())
-#samples = read_samples(samplesf)
-# at first run, after reading from saved textfile
-#pprops = protein_profiles(ppsecdir, ppfracf)
-#write_pptable(pprops, pptablef)
-#pprops = read_pptable(pptablef)
-#del fnames['ctrl']
-#save(fnames, samples, pprops, basedir)
-fnames, samples, pprops = load(basedir)
-# at first run, after loading from pickle
-#data = read_data(fnames, samples)
-#save_data(data, basedir)
-data = load_data(basedir)
-
-csamples = dict((k, np.array([1 if x is not None else None for x in v])) for k, v in samples.iteritems())
-
-# running and analysing filters
-
-apply_filters(data)
-validity_filter(data)
-profile_filter(data, pprops, samples)
-profile_filter(data, pprops, csamples, prfx = 'c')
-
-
-filtr_results = {}
-for f in ['quality', 'charge', 'area', 'peaksize', 'validity']:
-    filtr_results[f] = eval_filter(data, f)
-
-filtr_results['ubiquity'] = eval_filter(data, 'ubiquity', 
-    param = {'only_valid': False},
-    runtime = True, repeat = 1, number = 1, 
-    hit = lambda x: x < 7)
-
-ubiquity_filter(data, only_valid = False)
-
-filtr_results['val_ubi'] = eval_filter(data, 'val_ubi', param = {'ubiquity': 7})
-
-filtr_results['profile025'] = eval_filter(data, 'profile', 
-    param = {'pprops': pprops, 'samples': samples, 'prfx': ''},
-    runtime = True, repeat = 1, number = 1, 
-    hit = lambda x: x <= 0.25)
-
-filtr_results['cprofile025']
-
-t, hits, phits, hitn, hitp = eval_filter(data, 'cprofile', 
-    param = {'pprops': pprops, 'samples': csamples},
-    runtime = True, repeat = 1, number = 1, 
-    hit = lambda x: x <= 0.25)
-
-t1, hits1, phits1, hitn1, hitp1 = eval_filter(data, 'profile', 
-    param = {'pprops': pprops, 'samples': samples},
-    runtime = True, repeat = 1, number = 1, 
-    hit = lambda x: x <= 0.25)
-
-t, hits, phits, hitn, hitp = eval_filter(data, 'profile', 
-    param = {'pprops': pprops, 'samples': samples},
-    runtime = False, repeat = 1, number = 1, 
-    hit = lambda x: x <= 0.25)
-
-filtr_results['rprofile'] = eval_filter(data, 'rprofile', runtime = True)
-filtr_results['val_prf'] = eval_filter(data, 'val_prf', param = {'treshold': 0.25})
-filtr_results['val_rpr'] = eval_filter(data, 'val_rpr')
-filtr_results['val_ubi_prf'] = eval_filter(data, 'val_ubi_prf', param = {'treshold': 0.25, 'ubiquity': 7})
-filtr_results['val_ubi_prf_rprf'] = eval_filter(data, 'val_ubi_prf_rprf', param = {'treshold': 0.25, 'ubiquity': 7})
-
-# selecting (predicted) positive features
-
-final_hits2 = val_ubi_prf_rpr_hits(data, ubiquity = 70, profile_best = 1000)
-[v[0].shape[0] if v is not None else None for vv in final_hits2.values() for v in vv.values()]
-final_hits_upper = dict((l.upper(), {'pos': None, 'neg': None}) for l in final_hits.keys())
-for l, d in final_hits.iteritems():
-    for pn, tbl in d.iteritems():
-        if final_hits_upper[l.upper()][pn] is None:
-            final_hits_upper[l.upper()][pn] = tbl
-
-final_hits = final_hits_upper
-
-final_hits2_upper = dict((l.upper(), {'pos': None, 'neg': None}) for l in final_hits2.keys())
-for l, d in final_hits2.iteritems():
-    for pn, tbl in d.iteritems():
-        if final_hits2_upper[l.upper()][pn] is None:
-            final_hits2_upper[l.upper()][pn] = tbl
-
-final_hits2 = final_hits2_upper
-
-samples_upper = dict((l.upper(), s) for l, s in samples.iteritems())
-
-# number of hits:
-# [len(j) if j is not None else (l, p) for l, i in final_hits.iteritems() for p, j in i.iteritems()]
-
-# obtaining full SwissLipids data
-pAdducts, nAdducts = get_swisslipids(swisslipids_url, 
-    adducts = ['[M+H]+', '[M+NH4]+', '[M-H]-'], formiate = True)
-
-fliptime = timeit.timeit('find_lipids(final_hits, pAdducts, nAdducts)', 
-    setup = 'from __main__ import find_lipids, final_hits, pAdducts, nAdducts', number = 1)
-lipids = find_lipids(final_hits2, pAdducts, nAdducts)
-
-# number of lipids:
-# [len(j) if j is not None else (l, p) for l, i in lipids.iteritems() for p, j in i.iteritems()]
-
-pntime = timeit.timeit('negative_positive(lipids)', setup = 'from __main__ import negative_positive, lipids', number = 1)
-pnmatched = negative_positive(lipids)
-
-pnmatched_best = best_matches(pnmatched, minimum = 10)
-
-# number of matching lipids:
-# [(p, len(l)) for p, l in pnmatched.iteritems()]
-
-[(l.upper(), p, len(j), len(pnmatched[l.upper()])) if j is not None else (l.upper(), p, 0, 0) for l, i in lipids.iteritems() for p, j in i.iteritems()]
+#data, fnames, samples, csamples, pprops = \
+#    init_from_scratch(basedir, ltpdirs, pptablef, samplesf)
+data, fnames, samples, csamples, pprops = init_reinit(basedir)
+basic_filters(data, pprops, samples)
+# stage0 :: feature filtering
+stage0 = get_scored_hits(data)
+# stage1 :: lipids
+pAdducts, nAdducts, lipids, runtime = lipid_lookup(stage0, pAdducts, nAdducts)
+# stage2 :: positive-negative
+stage2 = negative_positive(lipids)
+stage2_best = best_matches(stage2, minimum = 10)
+# output
+write_out(pnmatched_best, 'lipid_matches_best10.csv')
+# evaluation
+evaluate_results()
 # LTP, num of lipid hits (min), num of positive-negative matching, 
 # num of selected features [neg, pos], num of fractions in sample
-filtered_matched = [(
-        l.upper(), 
-        [len(i['neg']), len(i['pos'])], 
-        len(pnmatched[l.upper()]), 
-        [len(final_hits2[l]['neg'][0]), len(final_hits2[l]['pos'][0])], 
-        np.nansum([x for x in samples_upper[l] if x is not None])
-    ) if len(i.values()) > 0 \
-    else (
-        l.upper(), 0, 0, 0, np.nansum([x for x in samples_upper[l] if x is not None])
-    ) \
-    for l, i in lipids.iteritems()]
-
-[sys.stdout.write(str(i) + '\n') for i in filtered_matched]
-sum([i[2] > 0 for i in filtered_matched])
-
-pnum = 'e'
-
-font_family = 'Helvetica Neue LT Std'
-sns.set(font = font_family)
-fig, ax = plt.subplots()
-color = ['#FCCC06', '#6EA945', '#007B7F']
-for f in [1, 2, 3]:
-    x1 = [i[1][0] for i in filtered_matched if i[-1] == f]
-    x2 = [i[1][1] for i in filtered_matched if i[-1] == f]
-    y = [i[2] for i in filtered_matched if i[-1] == f]
-    p = plt.scatter(x1, y, marker = 's', c = color[f - 1], edgecolors = 'none', alpha = .5)
-    p = plt.scatter(x2, y, marker = 'o', c = color[f - 1], edgecolors = 'none', alpha = .5)
-    for xa, xb, yy in zip(x1, x2, y):
-        p = plt.plot([xa, xb], [yy, yy], lw = .3, c = '#CCCCCC')
-
-plt.xlabel('Lipids (square: --; dot: +)')
-plt.ylabel('Lipids matching (square: -; dot: +)')
-fig.tight_layout()
-fig.savefig('hits-1-1000-%s.pdf'%pnum)
-plt.close()
-
-fig, ax = plt.subplots()
-color = ['#FCCC06', '#6EA945', '#007B7F']
-for f in [1, 2, 3]:
-    x1 = [i[3][0] for i in filtered_matched if i[-1] == f]
-    y1 = [i[1][0] for i in filtered_matched if i[-1] == f]
-    x2 = [i[3][1] for i in filtered_matched if i[-1] == f]
-    y2 = [i[1][1] for i in filtered_matched if i[-1] == f]
-    p = plt.scatter(x1, y1, marker = 's', c = color[f - 1], edgecolors = 'none', alpha = .5)
-    p = plt.scatter(x2, y2, marker = 'o', c = color[f - 1], edgecolors = 'none', alpha = .5)
-    for xa, xb, ya, yb in zip(x1, x2, y1, y2):
-        p = plt.plot([xa, xb], [ya, yb], lw = .3, c = '#CCCCCC')
-
-plt.xlabel('Num of m/z`s (green: --; yellow: +)')
-plt.ylabel('Lipids (green: --; yellow: +)')
-fig.tight_layout()
-fig.savefig('hits-2-1000-%s.pdf'%pnum)
-plt.close()
-
-
-fig, ax = plt.subplots()
-color = ['#FCCC06', '#6EA945', '#007B7F']
-for f in [1, 2, 3]:
-    x1 = [i[3][0] for i in filtered_matched if i[-1] == f]
-    x2 = [i[3][1] for i in filtered_matched if i[-1] == f]
-    y = [i[2] for i in filtered_matched if i[-1] == f]
-    p = plt.scatter(x1, y, marker = 's', c = color[f - 1], edgecolors = 'none', alpha = .5)
-    p = plt.scatter(x2, y, marker = 'o', c = color[f - 1], edgecolors = 'none', alpha = .5)
-    for xa, xb, yy in zip(x1, x2, y):
-        p = plt.plot([xa, xb], [yy, yy], lw = .3, c = '#CCCCCC')
-
-plt.xlabel('Num of m/z`s (square: --; dot: +)')
-plt.ylabel('Lipids matching (square: -; dot: +)')
-fig.tight_layout()
-fig.savefig('hits-5-1000-%s.pdf'%pnum)
-plt.close()
-
-
-fig, ax = plt.subplots()
-y = flatList([i[3] for i in filtered_matched if type(i[3]) is not int])
-x = flatList([[i[4]]*2 for i in filtered_matched if type(i[3]) is not int])
-p = plt.scatter(x, y, c = '#6ea945', edgecolors = 'none')
-plt.xlabel('Fractions in sample')
-plt.ylabel('M/z min(pos, neg)')
-fig.tight_layout()
-fig.savefig('hits-3-150-%s.pdf'%pnum)
-plt.close()
-
-fig, ax = plt.subplots()
-y = [i[2] for i in filtered_matched]
-x = [i[4] for i in filtered_matched]
-p = plt.scatter(x, y, c = '#6ea945', edgecolors = 'none', alpha = .2)
-plt.xlabel('Fractions in sample')
-plt.ylabel('Lipids matched (pos, neg)')
-fig.tight_layout()
-fig.savefig('hits-4-1000-%s.pdf'%pnum)
-plt.close()
-
-fig, ax = plt.subplots()
-p = plt.bar(xrange(len(filtered_matched)), 
-    [i[2] for i in sorted(filtered_matched, key = lambda x: x[2], reverse = True)], 
-    0.5, color = '#6EA945', edgecolor = 'none')
-
-plt.xlabel('Lipid transfer protein')
-plt.ylabel('Number of valid lipid matches\n(with no filtering based on profiles)')
-ax.set_xticks(np.arange(len(filtered_matched)) + .25)
-ax.set_xticklabels([i[0] for i in sorted(filtered_matched, key = lambda x: x[2], reverse = True)], 
-    rotation = 90, fontsize = 5)
-
-fig.tight_layout()
-fig.savefig('lipid-matches-3000-%s.pdf'%pnum)
-plt.close()
-
-## looking up MS2 fragments ##
-
+[(l.upper(), p, len(j), len(stage2[l.upper()])) if j is not None else (l.upper(), p, 0, 0) \
+    for l, i in lipids.iteritems() for p, j in i.iteritems()]
+# processing MS2
 pFragments = read_metabolite_lines('lipid_fragments_positive_mode.txt')
 nFragments = read_metabolite_lines('lipid_fragments_negative_mode.txt')
-
 ms2map = ms2_map(ms2files)
 
+### ## ## ##
+### E N D ##
+### ## ## ##
 
 swnames = set(i[2].split('(')[0].strip() for i in pAdducts if i[1] == 'Species')
 
@@ -1563,4 +1571,43 @@ lipidnames = {
 #'SLM:000335981', 'Structural subspecies',
 #       'Monoacylglycerol (20:0/0:0/0:0)', 'C23H46O4', '[M+H]+', 387.346893]
 
-set(['Lysophosphatidylcholine ', 'Ganglioside GT2 ', 'Sulfohexosyl ceramide ', 'hexacosatetraenoate', 'tetracosahexaenoate', 'fatty acid ', 'docosatrienoate', 'decanoate', 'triacontapentaenoate', 'Phosphatidylinositol monophosphate ', 'Ceramide phosphate ', 'hexadecanol', 'Ganglioside GA1 ', 'Diacylglycerol ', 'Triacylglycerol ', 'eicosatrienoate', 'Lysophosphatidate ', 'hexadecanoate', 'Ganglioside GM4 ', 'octadecatetraenoate', 'octanoate', 'dotriacontatetraenoate', 'Ganglioside GM2 ', 'tridecanol', 'Dihexosyl ceramide ', 'hexacosahexaenoate', 'tetracosanoate', 'eicosapentaenoate', 'octadecenol', 'Monoalkyldiacylglycerol ', 'octatriacontatetraenoate', 'Ganglioside GD1 ', 'hexadecenoate', 'Ganglioside GD2 ', 'Ceramide ', 'Phosphatidylglycerophosphate ', 'Ganglioside GM3 ', 'octacosapentaenoate', 'eicosanol', 'Ganglioside GQ1 ', 'octadecatrienoate', 'Ganglioside GM1 ', 'hexacosenoate', 'docosanoate', 'octadecadienol', 'docosatetraenoate', 'heptadecanoate', 'octadecanoate', 'Phosphatidylinositol bisphosphate ', 'docosenol', 'tetracosatetraenoate', 'hexadecadienoate', 'hexacosapentaenoate', 'Phosphatidylinositol ', 'Ganglioside GD3 ', 'dotriacontahexaenoate', 'docosapentaenoate', 'triacontanoate', 'tetradecanoate', 'pentadecanol', 'octacosanoate', 'Monoalkylglycerol ', 'eicosatetraenoate', 'Phosphatidylethanolamine ', 'eicosenol', 'Phosphatidylinositol trisphosphate ', 'tetracosanol', 'docosadienoate', 'tetracosenoate', 'tetratriacontapentaenoate', 'octacosatetraenoate', 'Lysophosphatidylethanolamine ', 'tetradecenoate', 'Lysophosphatidylglycerol ', 'docosenoate', 'octadecanol', 'Sulfodihexosyl ceramide ', 'Ganglioside Gb3 ', 'Phosphatidylglycerol ', 'octacosanol', 'eicosenoate', 'Ganglioside GT1 ', 'octadecenoate', 'hexacosanol', 'triacontatetraenoate', 'octatriacontapentaenoate', 'tridecanoate', 'dotriacontapentaenoate', 'Monoalkylmonoacylglycerol ', 'Hexosyl ceramide ', 'Lysophosphatidylserine ', 'heneicosanoate', 'octadecadienoate', 'Ganglioside GA2 ', 'tetratriacontahexaenoate', 'Phosphatidylcholine ', 'tetracosapentaenoate', 'hexacosanoate', 'Bismonoacylglycerolphosphate ', 'Sphingomyelin ', 'octacosahexaenoate', 'Ganglioside GP1 ', 'heptadecanol', 'Phosphatidylserine ', 'tetratriacontatetraenoate', 'docosanol', 'nonadecanoate', 'Ganglioside GT3 ', 'dodecanoate', 'hexatriacontapentaenoate', 'Lysophosphatidylinositol ', 'hexatriacontahexaenoate', 'eicosanoate', 'Ceramide phosphoethanolamine ', 'triacontanol', 'pentadecanoate', 'tetradecanol', 'triacontahexaenoate', 'Phosphatidate ', 'hexanoate', 'eicosadienoate', 'Monoacylglycerol ', 'docosahexaenoate', 'hexatriacontatetraenoate'])
+'''
+All lipid species names in SwissLipids:
+
+set(['Lysophosphatidylcholine', 'Ganglioside GT2', 'Sulfohexosyl ceramide', 
+'hexacosatetraenoate', 'tetracosahexaenoate', 'fatty acid', 'docosatrienoate', 
+'decanoate', 'triacontapentaenoate', 'Phosphatidylinositol monophosphate', 
+'Ceramide phosphate', 'hexadecanol', 'Ganglioside GA1', 'Diacylglycerol', 
+'Triacylglycerol', 'eicosatrienoate', 'Lysophosphatidate', 'hexadecanoate', 
+'Ganglioside GM4', 'octadecatetraenoate', 'octanoate', 
+'dotriacontatetraenoate', 'Ganglioside GM2', 'tridecanol', 'Dihexosyl ceramide', 
+'hexacosahexaenoate', 'tetracosanoate', 'eicosapentaenoate', 'octadecenol', 
+'Monoalkyldiacylglycerol', 'octatriacontatetraenoate', 'Ganglioside GD1', 
+'hexadecenoate', 'Ganglioside GD2', 'Ceramide', 'Phosphatidylglycerophosphate',
+'Ganglioside GM3', 'octacosapentaenoate', 'eicosanol', 'Ganglioside GQ1', 
+'octadecatrienoate', 'Ganglioside GM1', 'hexacosenoate', 'docosanoate', 
+'octadecadienol', 'docosatetraenoate', 'heptadecanoate', 'octadecanoate', 
+'Phosphatidylinositol bisphosphate', 'docosenol', 'tetracosatetraenoate', 
+'hexadecadienoate', 'hexacosapentaenoate', 'Phosphatidylinositol', 'Ganglioside 
+GD3', 'dotriacontahexaenoate', 'docosapentaenoate', 'triacontanoate', 
+'tetradecanoate', 'pentadecanol', 'octacosanoate', 'Monoalkylglycerol', 
+'eicosatetraenoate', 'Phosphatidylethanolamine', 'eicosenol', 
+'Phosphatidylinositol trisphosphate', 'tetracosanol', 'docosadienoate', 
+'tetracosenoate', 'tetratriacontapentaenoate', 'octacosatetraenoate', 
+'Lysophosphatidylethanolamine', 'tetradecenoate', 'Lysophosphatidylglycerol', 
+'docosenoate', 'octadecanol', 'Sulfodihexosyl ceramide', 'Ganglioside Gb3', 
+'Phosphatidylglycerol', 'octacosanol', 'eicosenoate', 'Ganglioside GT1', 
+'octadecenoate', 'hexacosanol', 'triacontatetraenoate', 
+'octatriacontapentaenoate', 'tridecanoate', 'dotriacontapentaenoate', 
+'Monoalkylmonoacylglycerol', 'Hexosyl ceramide', 'Lysophosphatidylserine', 
+'heneicosanoate', 'octadecadienoate', 'Ganglioside GA2', 
+'tetratriacontahexaenoate', 'Phosphatidylcholine', 'tetracosapentaenoate', 
+'hexacosanoate', 'Bismonoacylglycerolphosphate', 'Sphingomyelin', 
+'octacosahexaenoate', 'Ganglioside GP1', 'heptadecanol', 'Phosphatidylserine', 
+'tetratriacontatetraenoate', 'docosanol', 'nonadecanoate', 'Ganglioside GT3', 
+'dodecanoate', 'hexatriacontapentaenoate', 'Lysophosphatidylinositol', 
+'hexatriacontahexaenoate', 'eicosanoate', 'Ceramide phosphoethanolamine', 
+'triacontanol', 'pentadecanoate', 'tetradecanol', 'triacontahexaenoate', 
+'Phosphatidate', 'hexanoate', 'eicosadienoate', 'Monoacylglycerol', 
+'docosahexaenoate', 'hexatriacontatetraenoate'])
+'''
