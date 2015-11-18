@@ -193,6 +193,53 @@ def get_id(dct, value):
         dct[value] = i
     return dct[value]
 
+def get_lipidmaps(lipidmaps_url = 
+    'http://www.lipidmaps.org/resources/downloads/LMSDFDownload28Jun15.tar.gz',
+    fname = 'LMSDFDownload28Jun15/LMSDFDownload28Jun15FinalAll.sdf'):
+    lipidmaps = []
+    fields = ['lm_id', 'systematic_name', 'synonyms', 'category', 'main_class', 
+        'exact_mass', 'formula', 'inchi_key', 'pubchem_sid', 'pubchem_cid']
+    record = {}
+    expect = False
+    lmapsf = _curl.curl(lipidmaps_url, large = True, silent = False, files_needed = [fname])
+    for l in lmapsf.values()[0]:
+        if expect:
+            record[expect] = l.strip() if expect != 'exact_mass' else float(l.strip())
+            expect = False
+        elif l[0] == '>':
+            label = l.strip()[3:-1].lower()
+            if label in fields:
+                expect = label
+        elif l[0] == '$':
+            lipidmaps.append([record[label] if label in record else None \
+                for label in fields])
+            record = {}
+    return lipidmaps
+
+def lipidmaps_adducts(lipidmaps = None, pAdducts = None, nAdducts = None):
+    _nAdducts = []
+    _pAdducts = []
+    lipidmaps = lipidmaps if lipidmaps is not None else get_lipidmaps()
+    for l in lipidmaps:
+        if l[5] is not None:
+            _pAdducts.append([l[0], 'Species', l[1], l[6], '[M+H]+', Mz(l[5]).add_h()])
+            _pAdducts.append([l[0], 'Species', l[1], l[6], '[M+NH4]+', Mz(l[5]).add_nh4()])
+            _nAdducts.append([l[0], 'Species', l[1], l[6], '[M-H]-', Mz(l[5]).remove_h()])
+            _nAdducts.append([l[0], 'Species', l[1], l[6], '[M+Fo]-', Mz(l[5]).add_fo()])
+    _pAdducts = np.array(sorted(_pAdducts, key = lambda x: x[-1]), dtype = np.object)
+    _nAdducts = np.array(sorted(_nAdducts, key = lambda x: x[-1]), dtype = np.object)
+    if pAdducts is not None:
+        _pAdducts = np.vstack((pAdducts, _pAdducts))
+        del pAdducts
+        _pAdducts = _pAdducts[_pAdducts[:,-1].argsort()]
+    if nAdducts is not None:
+        _nAdducts = np.vstack((nAdducts, _nAdducts))
+        del nAdducts
+        _nAdducts = _nAdducts[_nAdducts[:,-1].argsort()]
+    return _pAdducts, _nAdducts
+
+pAdducts, nAdducts = lipidmaps_adducts(pAdducts = pAdducts, nAdducts = nAdducts)
+
 def get_swisslipids(swisslipids_url, adducts = None, 
     formiate = True, exact_mass = False):
     if type(adducts) is list:
@@ -467,6 +514,8 @@ def read_file_np(fname, read_vars = ['Normalized Area']):
     '''
     Reads one MS file, returns numpy masked array, 
     with void mask.
+    Column order:
+    quality, m/z, rt-min, rt-max, charge, control, a9, a10, a11, a12, b1
     '''
     # typos in the headers what need to be fixed
     typos = {
@@ -659,7 +708,8 @@ def comp_profiles(p1, p2, p1r = False, flatp = False):
     return not hollow and (highest or flat)
 
 def norm_profile(profile):
-    return (profile - np.nanmin(profile.astype(np.float64))) / np.nanmax(profile)
+    return (profile - np.nanmin(profile.astype(np.float64))) / \
+        (np.nanmax(profile) - np.nanmin(profile))
 
 def ubiquity_filter_old(data, proximity = 0.02, only_valid = True):
     prg = progress.Progress(len(data)**2, 'Ubiquity filter', 1)
@@ -759,6 +809,7 @@ class get_hits(object):
     def __call__(self, data, **kwargs):
         result = empty_dict(data)
         for ltp in data.keys():
+            print ltp
             for pn, tbl in data[ltp].iteritems():
                 #try:
                 result[ltp][pn] = self.fun(tbl, **kwargs)
@@ -801,6 +852,11 @@ class count_hits(object):
 
 @get_hits
 def val_ubi_prf_rpr_hits(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, profile_best = False):
+    '''
+    Column order:
+    quality, m/z, rt_min, rt_max, charge, control, a9, a10, a11, a12, b1, 
+    profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score
+    '''
     prf = 'cprf' if tbl['lip'][1,:].count() == 1 else 'prf'
     _treshold = (treshold, tresholdB)
     if prf not in tbl:
@@ -825,10 +881,16 @@ def val_ubi_prf_rpr_hits(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, p
     else:
         # or select the records with profile match less then or equal to treshold
         indices = np.array(sorted((i for i, v in prf_values.iteritems() if v <= _treshold)))
-    return (tbl['raw'][indices,:], tbl['prf'][indices], tbl['cprf'][indices], tbl['qly'][indices], tbl['are'][indices], tbl['pks'][indices])
+    return (tbl['raw'][indices,:], tbl['prf'][indices], tbl['cprf'][indices], 
+        tbl['rpr'][indices], tbl['ubi'][indices],    , tbl['uby'][indices] if 'uby' in tbl else np.zeros(len(indices)))
 
 @get_hits
 def pass_through(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, profile_best = False):
+    '''
+    Column order:
+    quality, m/z, rt_min, rt_max, charge, control, a9, a10, a11, a12, b1, 
+    profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score
+    '''
     prf = 'cprf' if tbl['lip'][1,:].count() == 1 else 'prf'
     _treshold = (treshold, tresholdB)
     if prf not in tbl:
@@ -850,7 +912,10 @@ def pass_through(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, profile_b
     else:
         # or select the records with profile match less then or equal to treshold
         indices = np.array(sorted((i for i, v in prf_values.iteritems() if v <= _treshold)))
-    return (tbl['raw'][indices,:], tbl['prf'][indices], tbl['cprf'][indices], tbl['rpr'][indices], tbl['ubi'][indices])
+    print 'Selected: ', np.nansum(tbl['cprf'][indices])
+    print 'Total: ', np.nansum(tbl['cprf'])
+    return (tbl['raw'][indices,:], tbl['prf'][indices], tbl['cprf'][indices], 
+        tbl['rpr'][indices], tbl['ubi'][indices], tbl['uby'][indices] if 'uby' in tbl else np.zeros(len(indices)))
 
 @combine_filters
 def validity_filter(tbl):
@@ -955,6 +1020,22 @@ def load(basedir, fname = 'save.pickle'):
     return pickle.load(open(os.path.join(basedir, fname), 'rb'))
 
 def find_lipids(hits, pAdducts, nAdducts, levels = ['Species'], tolerance = 0.02):
+    '''
+    Column order:
+    
+    in:
+    [0] quality, m/z, rt_min, rt_max, charge, control, a9, a10, a11, a12, b1
+    [1] profile_score
+    [2] control_profile_score
+    [3] rank_profile_boolean
+    [4] ubiquity_score
+    [5] ubiquity_score
+    
+    out:
+    ltp_name, m/z, 
+    profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score,
+    swisslipids_ac, level, lipid_name, lipid_formula, adduct, adduct_m/z
+    '''
     # levels: 'Structural subspecies', 'Isomeric subspecies', 
     # 'Species', 'Molecular subspecies'
     levels = levels if type(levels) is set \
@@ -972,34 +1053,50 @@ def find_lipids(hits, pAdducts, nAdducts, levels = ['Species'], tolerance = 0.02
                         for lip in swlipids:
                             result.append(np.concatenate(
                                 # tbl[1] and tbl[2] are the profile and cprofile scores
-                                (np.array([ltp.upper(), tbl[0][i,1], tbl[1][i], tbl[2][i]], 
-                                    dtype = np.object), lip), axis = 0))
+                                (np.array([ltp.upper(), tbl[0][i,1], tbl[1][i], tbl[2][i], 
+                                    tbl[3][i], tbl[4][i], tbl[5][i]], dtype = np.object), lip), axis = 0))
                 lipids[ltp.upper()][pn] = np.vstack(sorted(result, key = lambda x: x[1]))
     return lipids
 
-def negative_positive(lipids, tolerance = 0.02):
+def negative_positive(lipids, tolerance = 0.02, add_col = 11, mz_col = 1, swl_col = 7):
+    '''
+    Column order:
+    
+    in:
+    ltp_name, m/z,
+    profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score,
+    swisslipids_ac, level, lipid_name, lipid_formula, adduct, adduct_m/z
+    
+    out:
+    [0] pos_m/z, pos_profile_score, pos_control_profile_score, pos_rank_profile_boolean, 
+    [4] pos_ubiquity_score, pos_ubiquity_score, pos_swisslipids_ac, pos_level, 
+    [8] pos_lipid_name, pos_lipid_formula, pos_adduct, pos_adduct_m/z
+    [12] neg_m/z, neg_profile_score, neg_control_profile_score, neg_rank_profile_boolean, 
+    [16] neg_ubiquity_score, neg_ubiquity_score, neg_swisslipids_ac, neg_level, 
+    [20] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z
+    '''
     result = dict((ltp.upper(), []) for ltp in lipids.keys())
     prg = progress.Progress(len(result), 'Matching positive & negative', 1, percent = False)
     for ltp, tbl in lipids.iteritems():
         prg.step()
         if 'neg' in tbl and 'pos' in tbl:
             for neg in tbl['neg']:
-                add = neg[8]
+                add = neg[add_col]
                 if add == '[M-H]-':
-                    poshmz = Mz(Mz(neg[1]).add_h()).add_h()
-                    posnh3mz = Mz(Mz(neg[1]).add_h()).add_nh4()
+                    poshmz = Mz(Mz(neg[mz_col]).add_h()).add_h()
+                    posnh3mz = Mz(Mz(neg[mz_col]).add_h()).add_nh4()
                 elif add == '[M+Fo]-':
-                    poshmz = Mz(Mz(neg[1]).remove_fo()).add_h()
-                    posnh3mz = Mz(Mz(neg[1]).remove_fo()).add_nh4()
+                    poshmz = Mz(Mz(neg[mz_col]).remove_fo()).add_h()
+                    posnh3mz = Mz(Mz(neg[mz_col]).remove_fo()).add_nh4()
                 else:
                     continue
-                iu = tbl['pos'][:,1].searchsorted(poshmz)
+                iu = tbl['pos'][:,mz_col].searchsorted(poshmz)
                 u = 0
                 if iu < len(tbl['pos']):
-                    while True:
-                        if tbl['pos'][iu + u,1] - poshmz <= tolerance:
-                            if tbl['pos'][iu + u,4] == neg[4] and \
-                                tbl['pos'][iu + u,8] == '[M+H]+':
+                    while iu + u < len(tbl['pos']):
+                        if tbl['pos'][iu + u,mz_col] - poshmz <= tolerance:
+                            if tbl['pos'][iu + u,swl_col] == neg[swl_col] and \
+                                tbl['pos'][iu + u,add_col] == '[M+H]+':
                                 result[ltp].append(np.concatenate(
                                     (tbl['pos'][iu + u,1:], neg[1:]), axis = 0))
                             u += 1
@@ -1008,21 +1105,21 @@ def negative_positive(lipids, tolerance = 0.02):
                 if iu > 0:
                     l = 1
                     while iu >= l:
-                        if poshmz - tbl['pos'][iu - l,1] <= tolerance:
-                            if tbl['pos'][iu - l,4] == neg[4] and \
-                                tbl['pos'][iu - l,8] == '[M+H]+':
+                        if poshmz - tbl['pos'][iu - l,mz_col] <= tolerance:
+                            if tbl['pos'][iu - l,swl_col] == neg[swl_col] and \
+                                tbl['pos'][iu - l,add_col] == '[M+H]+':
                                 result[ltp].append(np.concatenate(
-                                    (tbl['pos'][iu - l,1:], neg[1:], ), axis = 0))
+                                    (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
                             l += 1
                         else:
                             break
                 iu = tbl['pos'][:,1].searchsorted(posnh3mz)
                 u = 0
                 if iu < len(tbl['pos']):
-                    while True:
-                        if tbl['pos'][iu + u,1] - posnh3mz <= tolerance:
-                            if tbl['pos'][iu + u,4] == neg[4] and \
-                                tbl['pos'][iu + u,8] == '[M+NH4]+':
+                    while iu + u < len(tbl['pos']):
+                        if tbl['pos'][iu + u,mz_col] - posnh3mz <= tolerance:
+                            if tbl['pos'][iu + u,swl_col] == neg[swl_col] and \
+                                tbl['pos'][iu + u,add_col] == '[M+NH4]+':
                                 result[ltp].append(np.concatenate(
                                     (tbl['pos'][iu + u,1:], neg[1:]), axis = 0))
                             u += 1
@@ -1031,9 +1128,9 @@ def negative_positive(lipids, tolerance = 0.02):
                 if iu > 0:
                     l = 1
                     while iu >= l:
-                        if posnh3mz - tbl['pos'][iu - l,1] <= tolerance:
-                            if tbl['pos'][iu - l,4] == neg[4] and \
-                                tbl['pos'][iu - l,8] == '[M+NH4]+':
+                        if posnh3mz - tbl['pos'][iu - l,mz_col] <= tolerance:
+                            if tbl['pos'][iu - l,swl_col] == neg[swl_col] and \
+                                tbl['pos'][iu - l,add_col] == '[M+NH4]+':
                                 result[ltp].append(np.concatenate(
                                     (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
                             l += 1
@@ -1043,6 +1140,28 @@ def negative_positive(lipids, tolerance = 0.02):
                 result[ltp] = np.vstack(result[ltp])
     prg.terminate()
     return result
+
+def best_matches(matches, minimum = 2):
+    result = dict((ltp, {}) for ltp in matches.keys())
+    for ltp, tbl in matches.iteritems():
+        result[ltp] = _best_matches(tbl, minimum)
+    return result
+
+def _best_matches(tbl, minimum = 2):
+    if len(tbl) == 0:
+        return tbl
+    key = lambda x: ((x[3] + x[15]), (x[1] + x[13]), (x[2] + x[14]), (x[4] + x[16]))
+    tbl = sorted(tbl, key = key)
+    # print type(tbl), len(tbl)
+    tbl = np.vstack(tbl)
+    k = None
+    for i in xrange(tbl.shape[0]):
+        if i > minimum - 1:
+            thisKey = key(tbl[i,:])
+            if k is not None and thisKey > k:
+                break
+            k = thisKey
+    return tbl[:i,:]
 
 ## functions for MS2
 
@@ -1057,9 +1176,6 @@ def read_metabolite_lines(fname):
             if '+' not in MetabCharge and '-' not in MetabCharge and 'NL' not in MetabCharge:
                 sys.stdout.write('WARNING: fragment %s has no valid charge information!\n' % metabolites[metabolite][1])
     return np.array(Metabolites, dtype = np.object)
-
-pFragments = read_metabolite_lines('lipid_fragments_positive_mode.txt')
-nFragments = read_metabolite_lines('lipid_fragments_negative_mode.txt')
 
 def ms2_filenames(ltpdirs):
     '''
@@ -1127,7 +1243,7 @@ def ms2_map(ms2files):
                 fr = int(redgt.match(fr).groups()[0])
                 #fractions.add(fr)
                 offset = 0
-                with open(fl, 'r') as f:
+                with open(fl, 'r', 8192) as f:
                     for l in f:
                         if not l[0].isdigit() and not l[:2] == stRch and \
                             not l[:2] == stRbe and not l[:2] == stRen:
@@ -1159,6 +1275,10 @@ def ms2_map(ms2files):
 
 def ms2_main(ms2map, ms1matches, pFragments, nFragments):
     result = dict((ltp, {}) for ltp in ms1matches.keys())
+    for ltp, tbl in ms1matches.iteritems():
+        for i in xrange(tbl.shape[0]):
+            posMz = tbl[i,0]
+            negMz = tbl[i,
     return result
 
 def ms2_lookup(ms2map, ms1mz, fragments):
@@ -1167,7 +1287,28 @@ def ms2_lookup(ms2map, ms1mz, fragments):
 def ms2_collect(ms1mz, fragments):
     pass
 
-ms2map = ms2_map(ms2files)
+def write_out(matches, fname):
+    '''
+    In:
+    [0] pos_m/z, pos_profile_score, pos_control_profile_score, pos_rank_profile_boolean, 
+    [4] pos_ubiquity_score, pos_ubiquity_score, pos_swisslipids_ac, pos_level, 
+    [8] pos_lipid_name, pos_lipid_formula, pos_adduct, pos_adduct_m/z
+    [12] neg_m/z, neg_profile_score, neg_control_profile_score, neg_rank_profile_boolean, 
+    [16] neg_ubiquity_score, neg_ubiquity_score, neg_swisslipids_ac, neg_level, 
+    [20] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z
+    '''
+    with open(fname, 'w') as f:
+        hdr = ['LTP',
+            'Positive_m/z', 'Positive_m/z_in_SwissLipids', 'Positive_adduct',
+            'Negative_m/z', 'Negative_m/z_in_SwissLipids', 'Negative_adduct',
+            'SwissLipids_AC', 'SwissLipids_formula', 'SwissLipids_name']
+        f.write('\t'.join(hdr) + '\n')
+        for ltp, tbl in matches.iteritems():
+            for l in tbl:
+                f.write('\t'.join([ltp, '%08f'%l[0], '%08f'%l[11], l[10], '%08f'%l[12], 
+                    '%08f'%l[23], l[22], l[6], l[9], str(l[8])]) + '\n')
+
+write_out(pnmatched_best, 'lipid_matches_best10.csv')
 
 # ## ## ## ## ## ## ## ## #
 # The pipeline   ## ## ## #
@@ -1277,6 +1418,8 @@ lipids = find_lipids(final_hits2, pAdducts, nAdducts)
 pntime = timeit.timeit('negative_positive(lipids)', setup = 'from __main__ import negative_positive, lipids', number = 1)
 pnmatched = negative_positive(lipids)
 
+pnmatched_best = best_matches(pnmatched, minimum = 10)
+
 # number of matching lipids:
 # [(p, len(l)) for p, l in pnmatched.iteritems()]
 
@@ -1376,13 +1519,48 @@ fig.tight_layout()
 fig.savefig('hits-4-1000-%s.pdf'%pnum)
 plt.close()
 
-with open('lipids_matched.csv', 'w') as f:
-    hdr = ['LTP',
-        'Positive_m/z', 'Positive_m/z_in_SwissLipids', 'Positive_adduct',
-        'Negative_m/z', 'Negative_m/z_in_SwissLipids', 'Negative_adduct',
-        'SwissLipids_AC', 'SwissLipids_formula', 'SwissLipids_name']
-    f.write('\t'.join(hdr) + '\n')
-    for ltp, tbl in pnmatched.iteritems():
-        for l in tbl:
-            f.write('\t'.join([ltp, str(l[0]), str(l[6]), l[5], str(l[7]), 
-                str(l[13]), l[12], l[1], l[4], l[3]]) + '\n')
+fig, ax = plt.subplots()
+p = plt.bar(xrange(len(filtered_matched)), 
+    [i[2] for i in sorted(filtered_matched, key = lambda x: x[2], reverse = True)], 
+    0.5, color = '#6EA945', edgecolor = 'none')
+
+plt.xlabel('Lipid transfer protein')
+plt.ylabel('Number of valid lipid matches\n(with no filtering based on profiles)')
+ax.set_xticks(np.arange(len(filtered_matched)) + .25)
+ax.set_xticklabels([i[0] for i in sorted(filtered_matched, key = lambda x: x[2], reverse = True)], 
+    rotation = 90, fontsize = 5)
+
+fig.tight_layout()
+fig.savefig('lipid-matches-3000-%s.pdf'%pnum)
+plt.close()
+
+## looking up MS2 fragments ##
+
+pFragments = read_metabolite_lines('lipid_fragments_positive_mode.txt')
+nFragments = read_metabolite_lines('lipid_fragments_negative_mode.txt')
+
+ms2map = ms2_map(ms2files)
+
+
+swnames = set(i[2].split('(')[0].strip() for i in pAdducts if i[1] == 'Species')
+
+sorted(list(swnames), key = lambda x: x.lower())
+
+lipidnames = {
+    'PC': 'Phosphatidylcholine',
+    'PE': 'Phosphatidylethanolamine',
+    'Ceramide': 'Ceramide',
+    'PI': 'Phosphatidylinositol',
+    'PS': 'Phosphatidylserine',
+    'Palmitate': 'fatty acid',
+    'Oleate': 'fatty acid',
+    'Laurate': 'fatty acid',
+    'Stearate': 'fatty acid',
+    'Arachidonate': 'fatty acid',
+    'Sphingomyelin': ''
+}
+
+#'SLM:000335981', 'Structural subspecies',
+#       'Monoacylglycerol (20:0/0:0/0:0)', 'C23H46O4', '[M+H]+', 387.346893]
+
+set(['Lysophosphatidylcholine ', 'Ganglioside GT2 ', 'Sulfohexosyl ceramide ', 'hexacosatetraenoate', 'tetracosahexaenoate', 'fatty acid ', 'docosatrienoate', 'decanoate', 'triacontapentaenoate', 'Phosphatidylinositol monophosphate ', 'Ceramide phosphate ', 'hexadecanol', 'Ganglioside GA1 ', 'Diacylglycerol ', 'Triacylglycerol ', 'eicosatrienoate', 'Lysophosphatidate ', 'hexadecanoate', 'Ganglioside GM4 ', 'octadecatetraenoate', 'octanoate', 'dotriacontatetraenoate', 'Ganglioside GM2 ', 'tridecanol', 'Dihexosyl ceramide ', 'hexacosahexaenoate', 'tetracosanoate', 'eicosapentaenoate', 'octadecenol', 'Monoalkyldiacylglycerol ', 'octatriacontatetraenoate', 'Ganglioside GD1 ', 'hexadecenoate', 'Ganglioside GD2 ', 'Ceramide ', 'Phosphatidylglycerophosphate ', 'Ganglioside GM3 ', 'octacosapentaenoate', 'eicosanol', 'Ganglioside GQ1 ', 'octadecatrienoate', 'Ganglioside GM1 ', 'hexacosenoate', 'docosanoate', 'octadecadienol', 'docosatetraenoate', 'heptadecanoate', 'octadecanoate', 'Phosphatidylinositol bisphosphate ', 'docosenol', 'tetracosatetraenoate', 'hexadecadienoate', 'hexacosapentaenoate', 'Phosphatidylinositol ', 'Ganglioside GD3 ', 'dotriacontahexaenoate', 'docosapentaenoate', 'triacontanoate', 'tetradecanoate', 'pentadecanol', 'octacosanoate', 'Monoalkylglycerol ', 'eicosatetraenoate', 'Phosphatidylethanolamine ', 'eicosenol', 'Phosphatidylinositol trisphosphate ', 'tetracosanol', 'docosadienoate', 'tetracosenoate', 'tetratriacontapentaenoate', 'octacosatetraenoate', 'Lysophosphatidylethanolamine ', 'tetradecenoate', 'Lysophosphatidylglycerol ', 'docosenoate', 'octadecanol', 'Sulfodihexosyl ceramide ', 'Ganglioside Gb3 ', 'Phosphatidylglycerol ', 'octacosanol', 'eicosenoate', 'Ganglioside GT1 ', 'octadecenoate', 'hexacosanol', 'triacontatetraenoate', 'octatriacontapentaenoate', 'tridecanoate', 'dotriacontapentaenoate', 'Monoalkylmonoacylglycerol ', 'Hexosyl ceramide ', 'Lysophosphatidylserine ', 'heneicosanoate', 'octadecadienoate', 'Ganglioside GA2 ', 'tetratriacontahexaenoate', 'Phosphatidylcholine ', 'tetracosapentaenoate', 'hexacosanoate', 'Bismonoacylglycerolphosphate ', 'Sphingomyelin ', 'octacosahexaenoate', 'Ganglioside GP1 ', 'heptadecanol', 'Phosphatidylserine ', 'tetratriacontatetraenoate', 'docosanol', 'nonadecanoate', 'Ganglioside GT3 ', 'dodecanoate', 'hexatriacontapentaenoate', 'Lysophosphatidylinositol ', 'hexatriacontahexaenoate', 'eicosanoate', 'Ceramide phosphoethanolamine ', 'triacontanol', 'pentadecanoate', 'tetradecanol', 'triacontahexaenoate', 'Phosphatidate ', 'hexanoate', 'eicosadienoate', 'Monoacylglycerol ', 'docosahexaenoate', 'hexatriacontatetraenoate'])

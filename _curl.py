@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 import pycurl
@@ -242,7 +243,8 @@ def curl(url, silent = True, post = None, req_headers = None, cache = True,
                     else:
                         results[m.name] = this_file.read()
                         this_file.close()
-            res.close()
+            if not large:
+                res.close()
         elif url.endswith('gz') or compr == 'gz':
             res = gzip.GzipFile(fileobj=result, mode='rb')
             if not large:
