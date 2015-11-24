@@ -40,6 +40,7 @@ import seaborn as sns
 import mass
 import progress
 import _curl
+from common import *
 
 path_root = '/'
 basedir = os.path.join(path_root, 'home', 'denes', 'Dokumentumok' , 'ltp')
@@ -238,14 +239,38 @@ def lipidmaps_adducts(lipidmaps = None, pAdducts = None, nAdducts = None):
         _nAdducts = _nAdducts[_nAdducts[:,-1].argsort()]
     return _pAdducts, _nAdducts
 
-pAdducts, nAdducts = lipidmaps_adducts(pAdducts = pAdducts, nAdducts = nAdducts)
+def lipidmaps_exact(lipidmaps = None, exacts = None):
+    _exacts = []
+    lipidmaps = lipidmaps if lipidmaps is not None else get_lipidmaps()
+    for l in lipidmaps:
+        if l[5] is not None:
+            _exacts.append([l[0], 'Species', l[1], l[6], '', l[5]])
+    _exactd = np.array(sorted(_exacts, key = lambda x: x[-1]), dtype = np.object)
+    if exacts is not None:
+        _exacts = np.vstack((exacts, _exacts))
+        del exacts
+        _exacts = _exacts[_exacts[:,-1].argsort()]
+    return _exacts
 
-def get_swisslipids(swisslipids_url, adducts = None, 
-    formiate = True, exact_mass = False):
+def get_swisslipids(swisslipids_url, adducts = None, exact_mass = False):
+    '''
+    Downloads the total SwissLipids lipids dataset.
+    Returns numpy array with all queried adducts and optionally exact masses,
+    calculates the formate adduct m/z's on demand.
+    Please note, for a number of lipids some adduct m/z's are missing from SL,
+    while the exact masses are given for all the lipids. Also storing masses of 
+    many adducts of the same lipid in an array results extensive memory usage
+    (couple of hundreds MB).
+    '''
+    adduct_method = {
+        '[M+OAc]-': 'add_ac',
+        '[M+H]+': 'add_h',
+        '[M-H]-': 'remove_h',
+        '[M+Fo]-': 'add_fo',
+        '[M+NH4]+': 'add_nh4'
+    }
     if type(adducts) is list:
         adducts = set(adducts)
-        if formiate:
-            adducts.add('[M+OAc]+')
     readd = re.compile(r'.*(\[.*)')
     swl = _curl.curl(swisslipids_url, silent = False, compr = 'gz', large = True)
     swl.fileobj.seek(-4, 2)
@@ -284,28 +309,31 @@ def get_swisslipids(swisslipids_url, adducts = None,
     negatives = np.array(negatives, dtype = np.object)
     return positives, negatives
 
-def adduct_lookup(mz, adducts, levels, tolerance = 0.02):
-    result = []
-    iu = adducts[:,-1].searchsorted(mz)
-    if adducts.shape[0] > iu:
-        u = 0
-        while True:
-            if adducts[iu + u,-1] - mz <= tolerance:
-                if adducts[iu + u,1] in levels:
-                    result.append(adducts[iu + u,:])
-                u += 1
-            else:
-                break
-    if iu > 0:
-        l = 1
-        while True:
-            if iu - l >= 0 and mz - adducts[iu - l,-1] <= tolerance:
-                if adducts[iu - l,1] in levels:
-                    result.append(adducts[iu - l,:])
-                l += 1
-            else:
-                break
-    return None if len(result) == 0 else np.vstack(result)
+def get_swisslipids_exact(swisslipids_url):
+    '''
+    Downloads the total SwissLipids lipids dataset.
+    Returns numpy array with only exact mass values.
+    '''
+    readd = re.compile(r'.*(\[.*)')
+    swl = _curl.curl(swisslipids_url, silent = False, compr = 'gz', large = True)
+    swl.fileobj.seek(-4, 2)
+    ucsize = struct.unpack('I', swl.fileobj.read(4))[0]
+    swl.fileobj.seek(0)
+    hdr = swl.readline().split('\t')
+    exact_masses = []
+    prg = progress.Progress(ucsize, 'Processing SwissLipids', 101)
+    for l in swl:
+        prg.step(len(l))
+        l = l.split('\t')
+        if len(l) > 22:
+            mz = to_float(l[13])
+            add = ''
+            exact_masses.append([l[0], l[1], l[2], l[10], add, mz])
+    prg.terminate()
+    swl.close()
+    exact_masses = sorted(exact_masses, key = lambda x: x[-1])
+    exact_masses = np.array(exact_masses, dtype = np.object)
+    return exact_masses
 
 #
 # reading the SEC absorption values and calculating the protein 
@@ -440,34 +468,6 @@ def get_filenames(loc):
             if pos not in fnames[ltpname] or ltpd.endswith('update'):
                 fnames[ltpname][pos] = os.path.join(loc, *fpath)
     return fnames
-
-def to_float(num):
-    '''
-    Extracts float from string, or returns None.
-    '''
-    renum = re.compile(r'([-]?[0-9]*[\.]?[0-9]+[eE]?[-]?[0-9]*)')
-    num = renum.match(num.strip())
-    if num:
-        return float(num.groups(0)[0])
-    else:
-        return num
-
-def to_int(num):
-    '''
-    Extracts int from string or returns None.
-    '''
-    renum = re.compile(r'([-]?[0-9]+[\.]?[0-9]*)')
-    num = renum.match(num.strip())
-    if num:
-        return int(num.groups(0)[0])
-    else:
-        return num
-
-def float_lst(l):
-    '''
-    Converts elements of a list to floats.
-    '''
-    return [to_float(x) for x in l]
 
 def read_file(fname):
     '''
@@ -612,6 +612,42 @@ def read_data(fnames, samples):
                     (data[ltp][p]['mes'].shape[1] / 6))]
     prg.terminate()
     return data
+
+#
+# Generic helper functions
+#
+
+def to_float(num):
+    '''
+    Extracts float from string, or returns None.
+    '''
+    renum = re.compile(r'([-]?[0-9]*[\.]?[0-9]+[eE]?[-]?[0-9]*)')
+    num = renum.match(num.strip())
+    if num:
+        return float(num.groups(0)[0])
+    else:
+        return num
+
+def to_int(num):
+    '''
+    Extracts int from string or returns None.
+    '''
+    renum = re.compile(r'([-]?[0-9]+[\.]?[0-9]*)')
+    num = renum.match(num.strip())
+    if num:
+        return int(num.groups(0)[0])
+    else:
+        return num
+
+def float_lst(l):
+    '''
+    Converts elements of a list to floats.
+    '''
+    return [to_float(x) for x in l]
+
+#
+# Filtering functions
+#
 
 def quality_filter(data, threshold = 0.2):
     for ltp, d in data.iteritems():
@@ -758,10 +794,10 @@ def ubiquity_filter(data, proximity = 0.02, only_valid = True):
                 if pn in data[ltp1] and pn in data[ltp2]:
                     ltp1t = data[ltp1][pn]
                     ltp2t = data[ltp2][pn]
-                    if 'uby' not in ltp1t:
-                        ltp1t['uby'] = np.zeros([ltp1t['raw'].shape[0], 1], dtype = np.int8)
-                    if 'uby' not in ltp2t:
-                        ltp2t['uby'] = np.zeros([ltp2t['raw'].shape[0], 1], dtype = np.int8)
+                    if attr not in ltp1t:
+                        ltp1t[attr] = np.zeros(ltp1t['raw'].shape[0], dtype = np.int8)
+                    if attr not in ltp2t:
+                        ltp2t[attr] = np.zeros(ltp2t['raw'].shape[0], dtype = np.int8)
                     for i1, mz1 in np.ndenumerate(ltp1t['raw'][:,1]):
                         if ltp1t['vld'][i1] or not only_valid:
                             i2u = ltp2t['raw'][:,1].searchsorted(mz1)
@@ -771,10 +807,10 @@ def ubiquity_filter(data, proximity = 0.02, only_valid = True):
                                     ltp2t['raw'][i2u + u,1] - mz1 <= proximity:
                                     if ltp2t['vld'][i2u + u] or not only_valid:
                                         if i1 not in ltp1s:
-                                            ltp1t['uby'][i1] += 1
+                                            ltp1t[attr][i1] += 1
                                             ltp1s.add(i1)
                                         if i2u + u not in ltp2s:
-                                            ltp2t['uby'][i2u + u] += 1
+                                            ltp2t[attr][i2u + u] += 1
                                             ltp2s.add(i2u + u)
                                     u += 1
                                 else:
@@ -785,15 +821,21 @@ def ubiquity_filter(data, proximity = 0.02, only_valid = True):
                                     mz1 - ltp2t['raw'][i2u - l,1] <= proximity:
                                     if ltp2t['vld'][i2u - l] or not only_valid:
                                         if i1 not in ltp1s:
-                                            ltp1t['uby'][i1] += 1
+                                            ltp1t[attr][i1] += 1
                                             ltp1s.add(i1)
                                         if i2u - l not in ltp2s:
-                                            ltp2t['uby'][i2u - l] += 1
+                                            ltp2t[attr][i2u - l] += 1
                                             ltp2s.add(i2u - l)
                                     l += 1
                                 else:
                                     break
     prg.terminate()
+
+def remove_filter(data, attr_name):
+    for ltp, d in data.iteritems():
+        for pn, tbl in d.iteritems():
+            if attr_name in tbl:
+                del tbl[attr_name]
 
 def rprofile_filter(data):
     '''
@@ -864,7 +906,7 @@ def val_ubi_prf_rpr_hits(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, p
     # dict of profile matching score values and their indices
     selected = np.logical_and(np.logical_and(np.logical_and(np.logical_and(np.logical_and(np.logical_and(
             tbl['qly'], tbl['crg']), tbl['are']), tbl['pks']), tbl['rpr']),
-            tbl['ubi'][:,0] <= ubiquity), 
+            tbl['ubi'] <= ubiquity), 
             np.logical_or(np.logical_not(np.isnan(tbl['prf'])), np.logical_not(np.isnan(tbl['cprf']))))
     prf_values = dict(zip(np.where(selected)[0], zip(tbl['prf'][selected], tbl['cprf'][selected])))
     if profile_best:
@@ -882,7 +924,7 @@ def val_ubi_prf_rpr_hits(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, p
         # or select the records with profile match less then or equal to treshold
         indices = np.array(sorted((i for i, v in prf_values.iteritems() if v <= _treshold)))
     return (tbl['raw'][indices,:], tbl['prf'][indices], tbl['cprf'][indices], 
-        tbl['rpr'][indices], tbl['ubi'][indices],    , tbl['uby'][indices] if 'uby' in tbl else np.zeros(len(indices)))
+        tbl['rpr'][indices], tbl['ubi'][indices], tbl['uby'][indices] if 'uby' in tbl else np.zeros(len(indices)))
 
 @get_hits
 def pass_through(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, profile_best = False):
@@ -1058,6 +1100,115 @@ def find_lipids(hits, pAdducts, nAdducts, levels = ['Species'], tolerance = 0.02
                 lipids[ltp.upper()][pn] = np.vstack(sorted(result, key = lambda x: x[1]))
     return lipids
 
+def find_lipids_exact(hits, exacts, levels = ['Species'], tolerance = 0.02):
+    '''
+    Column order:
+    
+    in:
+    [0] quality, m/z, rt_min, rt_max, charge, control, a9, a10, a11, a12, b1
+    [1] profile_score
+    [2] control_profile_score
+    [3] rank_profile_boolean
+    [4] ubiquity_score
+    [5] ubiquity_score
+    
+    out:
+    ltp_name, m/z, 
+    profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score,
+    swisslipids_ac, level, lipid_name, lipid_formula, adduct, adduct_m/z
+    '''
+    # levels: 'Structural subspecies', 'Isomeric subspecies', 
+    # 'Species', 'Molecular subspecies'
+    adducts = {
+        'pos': {
+            '[M+H]+': 'remove_h',
+            '[M+NH4]+': 'remove_nh4'
+        },
+        'neg': {
+            '[M-H]-': 'add_h',
+            '[M+Fo]-': 'remove_fo'
+        }
+    }
+    levels = levels if type(levels) is set \
+        else set(levels) if type(levels) is list \
+        else set([levels])
+    lipids = dict((ltp.upper(), {}) for ltp in hits.keys())
+    for ltp, d in hits.iteritems():
+        for pn, tbl in d.iteritems():
+            result = []
+            if tbl[0] is not None:
+                for i in xrange(tbl[0].shape[0]):
+                    lipid_matches = adduct_lookup_exact(tbl[0][i,1], exacts, levels, adducts[pn], tolerance)
+                    if lipid_matches is not None:
+                        for lip in lipid_matches:
+                            result.append(np.concatenate(
+                                # tbl[1] and tbl[2] are the profile and cprofile scores
+                                (np.array([ltp.upper(), tbl[0][i,1], tbl[1][i], tbl[2][i], 
+                                    tbl[3][i], tbl[4][i], tbl[5][i]], dtype = np.object), lip), axis = 0))
+                lipids[ltp.upper()][pn] = np.vstack(sorted(result, key = lambda x: x[1]))
+    return lipids
+
+def adduct_lookup(mz, adducts, levels, tolerance = 0.02):
+    '''
+    Looks up m/z values in the table containing the reference database
+    already converted to a pool of all possible adducts.
+    (Does not convert the m/z to other adducts.)
+    '''
+    result = []
+    iu = adducts[:,-1].searchsorted(mz)
+    if adducts.shape[0] > iu:
+        u = 0
+        while True:
+            if adducts[iu + u,-1] - mz <= tolerance:
+                if adducts[iu + u,1] in levels:
+                    result.append(adducts[iu + u,:])
+                u += 1
+            else:
+                break
+    if iu > 0:
+        l = 1
+        while True:
+            if iu - l >= 0 and mz - adducts[iu - l,-1] <= tolerance:
+                if adducts[iu - l,1] in levels:
+                    result.append(adducts[iu - l,:])
+                l += 1
+            else:
+                break
+    return None if len(result) == 0 else np.vstack(result)
+
+def adduct_lookup_exact(mz, exacts, levels, adducts, tolerance = 0.02):
+    '''
+    Looks up m/z values in the table containing the reference database
+    casting the m/z to specific adducts.
+    '''
+    result = []
+    for addName, addFun in adducts.iteritems():
+        addMz = getattr(Mz(mz), addFun)()
+        iu = exacts[:,-1].searchsorted(addMz)
+        if exacts.shape[0] > iu:
+            u = 0
+            while True:
+                if exacts[iu + u,-1] - addMz <= tolerance:
+                    if exacts[iu + u,1] in levels:
+                        match = np.append(exacts[iu + u,:], addMz)
+                        match[4] = addName
+                        result.append(match)
+                    u += 1
+                else:
+                    break
+        if iu > 0:
+            l = 1
+            while True:
+                if iu - l >= 0 and addMz - exacts[iu - l,-1] <= tolerance:
+                    if exacts[iu - l,1] in levels:
+                        match = np.append(exacts[iu - l,:], addMz)
+                        match[4] = addName
+                        result.append(match)
+                    l += 1
+                else:
+                    break
+    return None if len(result) == 0 else np.vstack(result)
+
 def negative_positive(lipids, tolerance = 0.02, add_col = 11, mz_col = 1, swl_col = 7):
     '''
     Column order:
@@ -1141,19 +1292,24 @@ def negative_positive(lipids, tolerance = 0.02, add_col = 11, mz_col = 1, swl_co
     prg.terminate()
     return result
 
-def best_matches(matches, minimum = 2):
-    result = dict((ltp, {}) for ltp in matches.keys())
+def best_matches(lipids, matches, minimum = 2):
+    result = dict((ltp, {'pos': None, 'neg': None, 'both': None}) for ltp in lipids.keys())
+    sort_lipids(lipids, by_mz = True)
     for ltp, tbl in matches.iteritems():
-        result[ltp] = _best_matches(tbl, minimum)
+        result[ltp]['both'] = _best_matches(tbl, minimum)
+    sort_lipids(lipids)
+    for ltp, d in lipids.iteritems():
+        for pn, tbl in d.iteritems():
+            result[ltp][pn] = _best_lipids(tbl, minimum)
     return result
 
-def _best_matches(tbl, minimum = 2):
-    if len(tbl) == 0:
+def _best_lipids(tbl, minimum = 2):
+    key = lambda x: (x[4], x[3], x[5])
+    return _best(tbl, key, minimum)
+
+def _best(tbl, key, minimum):
+    if minimum is None:
         return tbl
-    key = lambda x: ((x[3] + x[15]), (x[1] + x[13]), (x[2] + x[14]), (x[4] + x[16]))
-    tbl = sorted(tbl, key = key)
-    # print type(tbl), len(tbl)
-    tbl = np.vstack(tbl)
     k = None
     for i in xrange(tbl.shape[0]):
         if i > minimum - 1:
@@ -1163,7 +1319,30 @@ def _best_matches(tbl, minimum = 2):
             k = thisKey
     return tbl[:i,:]
 
-## functions for MS2
+def _best_matches(tbl, minimum = 2):
+    if len(tbl) == 0:
+        return tbl
+    # sorting: rprf, prf, cprf, ubi
+    # key = lambda x: ((x[3] + x[15]), (x[1] + x[13]), (x[2] + x[14]), (x[4] + x[16]))
+    key = lambda x: ((x[3] + x[15]), (x[2] + x[14]), (x[4] + x[16]))
+    tbl = sorted(tbl, key = key)
+    # print type(tbl), len(tbl)
+    tbl = np.vstack(tbl)
+    return _best(tbl, key, minimum)
+
+def sort_lipids(lipids, by_mz = False):
+    result = dict((ltp, {'pos': None, 'neg': None}) for ltp in lipids.keys())
+    if by_mz:
+        key = lambda x: x[1]
+    else:
+        key = lambda x: (x[4], x[3], x[5])
+    for ltp, d in lipids.iteritems():
+        for pn, tbl in d.iteritems():
+            lipids[ltp][pn] = np.vstack(sorted(tbl, key = key))
+
+#
+# functions for MS2
+#
 
 # from Toby Hodges:
 def read_metabolite_lines(fname):
@@ -1196,6 +1375,10 @@ def ms2_filenames(ltpdirs):
         for ltpd in ltpdd:
             try:
                 ltpname, pos = redirname.findall(ltpd)[0]
+                if ltpname not in fnames:
+                    fnames[ltpname] = {}
+                if pos not in fnames[ltpname] or ltpd.endswith('update'):
+                    fnames[ltpname][pos] = {}
             except:
                 # other dirs are irrelevant:
                 continue
@@ -1207,14 +1390,8 @@ def ms2_filenames(ltpdirs):
                             fr = refractio.match(f).groups()[0]
                         except AttributeError:
                             sys.stdout.write('could not determine fraction number: %s'%f)
-                        if ltpname not in fnames:
-                            fnames[ltpname] = {}
-                        if pos not in fnames[ltpname] or ltpd.endswith('update'):
-                            fnames[ltpname][pos] = {}
                         fnames[ltpname][pos][fr] = os.path.join(*([d] + fpath + [f]))
-        return fnames
-
-ms2files = ms2_filenames(ltpdirs)
+    return fnames
 
 def ms2_map(ms2files):
     stRrtinseconds = 'RTINSECONDS'
@@ -1232,7 +1409,9 @@ def ms2_map(ms2files):
     result = dict((ltp.upper(), {'pos': None, 'neg': None, 
             'ms2files': {'pos': {}, 'neg': {}}}) \
         for ltp, d in ms2files.iteritems())
+    prg = progress.Progress(len(ms2files), 'Indexing MS2 data', 1, percent = False)
     for ltp, d in ms2files.iteritems():
+        prg.step()
         pFeatures = []
         nFeatures = []
         ultp = ltp.upper()
@@ -1271,22 +1450,158 @@ def ms2_map(ms2files):
         nFeatures = np.array(sorted(nFeatures, key = lambda x: x[0]), dtype = np.float64)
         result[ultp]['pos'] = pFeatures
         result[ultp]['neg'] = pFeatures
+    prg.terminate()
     return result
 
-def ms2_main(ms2map, ms1matches, pFragments, nFragments):
-    result = dict((ltp, {}) for ltp in ms1matches.keys())
-    for ltp, tbl in ms1matches.iteritems():
-        for i in xrange(tbl.shape[0]):
-            posMz = tbl[i,0]
-            # not ready from this point!
-            negMz = tbl[i,foobar]
+ms2_main(ms2map, {'STARD10': stage2_best['STARD10']}, pFragments, nFragments)
+
+def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01):
+    # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
+    for ltp, d in ms1matches.iteritems():
+        if d['pos'].shape[1] == 14:
+            for pn in ['pos', 'neg', 'both']:
+                if len(d[pn]) > 0:
+                    plusCols = 2 if pn == 'both' else 1
+                    ms1matchesPlus = np.zeros((d[pn].shape[0], d[pn].shape[1] + plusCols), dtype = np.object)
+                    ms1matchesPlus[:,:-plusCols] = d[pn]
+                    d[pn] = ms1matchesPlus
+                    del ms1matchesPlus
+        posMzs = []
+        negMzs = []
+        for pn, tbl in d.iteritems():
+            if pn == 'both' and len(tbl) > 0:
+                posMzs += list(tbl[:,0])
+                negMzs += list(tbl[:,12])
+            elif pn == 'pos':
+                posMzs += list(tbl[:,1])
+            elif pn == 'neg':
+                negMzs += list(tbl[:,1])
+        posMzs = uniqList(posMzs)
+        negMzs = uniqList(negMzs)
+        pos_matches = []
+        neg_matches = []
+        for posMz in posMzs:
+            ms2tbl = ms2map[ltp]['pos']
+            iu = ms2tbl[:,0].searchsorted(posMz)
+            u = 0
+            if iu < ms2tbl.shape[0]:
+                while iu + u < ms2tbl.shape[0]:
+                    if ms2tbl[iu + u,0] - posMz <= tolerance:
+                        pos_matches.append((posMz, iu + u))
+                        u += 1
+                    else:
+                        break
+            l = 1
+            if iu > 0:
+                while iu >= l:
+                    if posMz - ms2tbl[iu - l,0] <= tolerance:
+                        pos_matches.append((posMz, iu - l))
+                        l += 1
+                    else:
+                        break
+        pos_matches = sorted(uniqList(pos_matches), key = lambda x: x[0])
+        ms2matches = ms2_lookup(ms2tbl, pos_matches, ms2map[ltp]['ms2files']['pos'], pFragments)
+        ms1mz = None
+        for i in xrange(ms2matches.shape[0]):
+            if ms1mz == ms2matches[i,0]:
+                continue
+            ms1mz = ms2matches[i,0]
+            ms2res = ms2_collect(ms2matches, ms1mz)
+            for ms1line in d['pos'][d['pos'][:,1] == ms1mz]:
+                ms1line[-1] = ms2res
+            for ms1line in d['both'][d['both'][:,1] == ms1mz]:
+                ms1line[-2] = ms2res
+        for negMz in negMzs:
+            ms2tbl = ms2map[ltp]['neg']
+            iu = ms2tbl[:,0].searchsorted(posMz)
+            u = 0
+            if iu < ms2tbl.shape[0]:
+                while iu + u < ms2tbl.shape[0]:
+                    if ms2tbl[iu + u,0] - negMz <= tolerance:
+                        neg_matches.append((negMz, iu + u))
+                        u += 1
+                    else:
+                        break
+            l = 1
+            if iu > 0:
+                while iu >= l:
+                    if negMz - ms2tbl[iu - l,0] <= tolerance:
+                        neg_matches.append((negMz, iu - l))
+                        l += 1
+                    else:
+                        break
+        neg_matches = sorted(uniqList(neg_matches), key = lambda x: x[0])
+        ms2matches = ms2_lookup(ms2tbl, neg_matches, ms2map[ltp]['ms2files']['neg'], nFragments)
+        ms1mz = None
+        for i in xrange(ms2matches.shape[0]):
+            if ms1mz == ms2matches[i,0]:
+                continue
+            ms1mz = ms2matches[i,0]
+            ms2res = ms2_collect(ms2matches, ms1mz)
+            for ms1line in d['neg'][d['neg'][:,1] == ms1mz]:
+                ms1line[-1] = ms2res
+            for ms1line in d['both'][d['both'][:,1] == ms1mz]:
+                ms1line[-1] = ms2res
+
+def ms2_lookup(ms2map, ms1matches, ms2files, fragments):
+    files = dict((fr, open(fname, 'r')) for fr, fname in ms2files.iteritems())
+    ms2matches = []
+    for ms1mz, ms2i in ms1matches:
+        ms2item = ms2map[ms2i,:]
+        fr = int(ms2item[5])
+        if fr in files:
+            f = files[fr]
+            f.seek(ms2item[4])
+            charge = f.readline().strip()
+            for l in f:
+                if not l[0].isdigit():
+                    break
+                else:
+                    mass, intensity = l.strip().split()
+                    mass = float(mass)
+                    intensity = float(intensity)
+                    ms2hit1 = ms2_identify(mass, fragments, compl = False)
+                    ms2hit2 = ms2_identify(ms2item[0] - mass, fragments, compl = True)
+                    if ms2hit1:
+                        ms2matches.append(np.concatenate((np.array([ms1mz, mass, intensity, ms2i, 0, fr]), ms2hit1, ms2item)))
+                    if ms2hit2:
+                        ms2matches.append(np.concatenate((np.array([ms1mz, mass, intensity, ms2i, 1, fr]), ms2hit2, ms2item)))
+                    if ms2hit1 is None and ms2hit2 is None:
+                        ms2matches.append(np.concatenate((np.array([ms1mz, mass, intensity, ms2i, 0, fr]), np.array([None, 'Unknown', '']), ms2item)))
+    for f in files.values():
+        f.close()
+    if len(ms2matches) > 0:
+        ms2matches = np.vstack(sorted(ms2matches, key = lambda x: x[0]))
+    return ms2matches
+
+def ms2_identify(mass, fragments, compl, tolerance = 0.01):
+    iu = fragments[:,0].searchsorted(mass)
+    if iu < len(fragments):
+        if compl and 'NL' in fragments[iu,2] or \
+            not compl and ('+' in fragments[iu,2] or '-' in fragments[iu,2]):
+            if fragments[iu,0] - mass <= tolerance:
+                return fragments[iu,:]
+            elif iu > 0 and mass - fragments[iu - 1,0] <= tolerance:
+                return fragments[iu - 1,:]
+    return None
+
+def ms2_collect(ms2matches, ms1mz, unknown = False):
+    result = []
+    fragments = ms2matches[ms2matches[:,0] == ms1mz,:]
+    for frag in uniqList(fragments[:,7]):
+        if frag != 'Unknown':
+            thisFrag = ms2matches[fragments[:,7] == frag,:]
+            maxInt = thisFrag[:,2].max()
+            thisFragMass = thisFrag[0,1]
+            result.append((frag, maxInt, thisFragMass))
+    if unknown:
+        unknowns = fragments[fragments[:,7] == 'Unknown',:]
+        result += [('Unknown', l[2], l[1]) for l in unknowns]
     return result
 
-def ms2_lookup(ms2map, ms1mz, fragments):
-    pass
-
-def ms2_collect(ms1mz, fragments):
-    pass
+#
+# Pipeline elements
+#
 
 def write_out(matches, fname):
     '''
@@ -1345,13 +1660,13 @@ def init_reinit(basedir):
     samples_upper = upper_samples(samples)
     return data, fnames, samples, csamples, samples_upper, pprops
 
-def basic_filters(data, pprops, samples, 
+def basic_filters(data, pprops, samples, csamples, 
     profile_treshold = 0.25, ubiquity_treshold = 7):
     apply_filters(data)
     validity_filter(data)
     profile_filter(data, pprops, samples)
     profile_filter(data, pprops, csamples, prfx = 'c')
-    ubiquity_filter(data, only_valid = False)
+    ubiquity_filter(data)
     val_ubi_filter(data, ubiquity = ubiquity_treshold)
     rprofile_filter(data)
     val_prf_filter(data, treshold = profile_treshold)
@@ -1409,11 +1724,21 @@ def lipid_lookup(stage0, runtime = None):
     lipids = find_lipids(stage0, pAdducts, nAdducts)
     if runtime:
         runtime = timeit.timeit('find_lipids(final_hits, pAdducts, nAdducts)',
-            setup = 'from __main__ import find_lipids, final_hits, 
-            pAdducts, nAdducts', number = 1)
+            setup = 'from __main__ import find_lipids, final_hits,'\
+            'pAdducts, nAdducts', number = 1)
     return pAdducts, nAdducts, lipids, runtime
 
-def evaluate_results(stage0, stage2, samples_upper, letter = 'e'):
+def lipid_lookup_exact(stage0, swisslipids_url, runtime = None):
+    # obtaining full SwissLipids data
+    la5Exacts = get_swisslipids_exact(swisslipids_url)
+    la5Exacts = lipidmaps_exact(exacts = la5Exacts)
+    lipids = find_lipids_exact(stage0, exacts)
+    if runtime:
+        runtime = timeit.timeit('find_lipids(stage0, la5Exacts)',
+            setup = 'from __main__ import find_lipids, stage0, la5Exacts', number = 1)
+    return la5Exacts, lipids, runtime
+
+def evaluate_results(stage0, stage2, lipids, samples_upper, letter = 'e'):
     '''
     Tracks the number of features/lipids along stages.
     Does some plotting.
@@ -1462,7 +1787,7 @@ def evaluate_results(stage0, stage2, samples_upper, letter = 'e'):
         p = plt.scatter(x2, y2, marker = 'o', c = color[f - 1], edgecolors = 'none', alpha = .5)
         for xa, xb, ya, yb in zip(x1, x2, y1, y2):
             p = plt.plot([xa, xb], [ya, yb], lw = .3, c = '#CCCCCC')
-
+    #
     plt.xlabel('Num of m/z`s (green: --; yellow: +)')
     plt.ylabel('Lipids (green: --; yellow: +)')
     fig.tight_layout()
@@ -1522,51 +1847,54 @@ def evaluate_results(stage0, stage2, samples_upper, letter = 'e'):
 # The pipeline   ## ## ## #
 # ## ## ## ## ## ## ## ## #
 
-#data, fnames, samples, csamples, pprops = \
-#    init_from_scratch(basedir, ltpdirs, pptablef, samplesf)
-data, fnames, samples, csamples, pprops = init_reinit(basedir)
-basic_filters(data, pprops, samples)
-# stage0 :: feature filtering
-stage0 = get_scored_hits(data)
-# stage1 :: lipids
-pAdducts, nAdducts, lipids, runtime = lipid_lookup(stage0, pAdducts, nAdducts)
-# stage2 :: positive-negative
-stage2 = negative_positive(lipids)
-stage2_best = best_matches(stage2, minimum = 10)
-# output
-write_out(pnmatched_best, 'lipid_matches_best10.csv')
-# evaluation
-evaluate_results()
-# LTP, num of lipid hits (min), num of positive-negative matching, 
-# num of selected features [neg, pos], num of fractions in sample
-[(l.upper(), p, len(j), len(stage2[l.upper()])) if j is not None else (l.upper(), p, 0, 0) \
-    for l, i in lipids.iteritems() for p, j in i.iteritems()]
-# processing MS2
-pFragments = read_metabolite_lines('lipid_fragments_positive_mode.txt')
-nFragments = read_metabolite_lines('lipid_fragments_negative_mode.txt')
-ms2map = ms2_map(ms2files)
+if __name__ == '__main__':
+    #data, fnames, samples, csamples, pprops = \
+    #    init_from_scratch(basedir, ltpdirs, pptablef, samplesf)
+    data, fnames, samples, csamples, samples_upper, pprops = init_reinit(basedir)
+    basic_filters(data, pprops, samples, csamples)
+    # stage0 :: feature filtering
+    stage0 = get_scored_hits(data)
+    # stage1 :: lipids
+    #pAdducts, nAdducts, lipids, runtime = lipid_lookup(stage0, pAdducts, nAdducts)
+    exacts, lipids, runtime = lipid_lookup_exact(stage0, swisslipids_url)
+    # stage2 :: positive-negative
+    stage2 = negative_positive(lipids)
+    stage2_best = best_matches(lipids, stage2, minimum = 10)
+    # output
+    write_out(pnmatched_best, 'lipid_matches_best10.csv')
+    # evaluation
+    evaluate_results(stage0, stage2, lipids, samples_upper, 'f')
+    # LTP, num of lipid hits (min), num of positive-negative matching, 
+    # num of selected features [neg, pos], num of fractions in sample
+    [(l.upper(), p, len(j), len(stage2[l.upper()])) if j is not None else (l.upper(), p, 0, 0) \
+        for l, i in lipids.iteritems() for p, j in i.iteritems()]
+    # processing MS2
+    pFragments = read_metabolite_lines('lipid_fragments_positive_mode.txt')
+    nFragments = read_metabolite_lines('lipid_fragments_negative_mode.txt')
+    ms2files = ms2_filenames(ltpdirs)
+    ms2map = ms2_map(ms2files)
 
 ### ## ## ##
 ### E N D ##
 ### ## ## ##
 
-swnames = set(i[2].split('(')[0].strip() for i in pAdducts if i[1] == 'Species')
+    #swnames = set(i[2].split('(')[0].strip() for i in pAdducts if i[1] == 'Species')
 
-sorted(list(swnames), key = lambda x: x.lower())
+    #sorted(list(swnames), key = lambda x: x.lower())
 
-lipidnames = {
-    'PC': 'Phosphatidylcholine',
-    'PE': 'Phosphatidylethanolamine',
-    'Ceramide': 'Ceramide',
-    'PI': 'Phosphatidylinositol',
-    'PS': 'Phosphatidylserine',
-    'Palmitate': 'fatty acid',
-    'Oleate': 'fatty acid',
-    'Laurate': 'fatty acid',
-    'Stearate': 'fatty acid',
-    'Arachidonate': 'fatty acid',
-    'Sphingomyelin': ''
-}
+    #lipidnames = {
+        #'PC': 'Phosphatidylcholine',
+        #'PE': 'Phosphatidylethanolamine',
+        #'Ceramide': 'Ceramide',
+        #'PI': 'Phosphatidylinositol',
+        #'PS': 'Phosphatidylserine',
+        #'Palmitate': 'fatty acid',
+        #'Oleate': 'fatty acid',
+        #'Laurate': 'fatty acid',
+        #'Stearate': 'fatty acid',
+        #'Arachidonate': 'fatty acid',
+        #'Sphingomyelin': ''
+    #}
 
 #'SLM:000335981', 'Structural subspecies',
 #       'Monoacylglycerol (20:0/0:0/0:0)', 'C23H46O4', '[M+H]+', 387.346893]
