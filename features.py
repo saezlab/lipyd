@@ -1375,6 +1375,7 @@ def ms2_filenames(ltpdirs):
         for ltpd in ltpdd:
             try:
                 ltpname, pos = redirname.findall(ltpd)[0]
+                ltpname = ltpname.upper()
                 if ltpname not in fnames:
                     fnames[ltpname] = {}
                 if pos not in fnames[ltpname] or ltpd.endswith('update'):
@@ -1453,11 +1454,13 @@ def ms2_map(ms2files):
     prg.terminate()
     return result
 
-ms2_main(ms2map, {'STARD10': stage2_best['STARD10']}, pFragments, nFragments)
+ms2_main(ms2map, stage2_best, pFragments, nFragments)
 
 def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01):
     # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
+    prg = progress.Progress(len(ms1matches), 'Looking up MS2 fragments', 1, percent = False)
     for ltp, d in ms1matches.iteritems():
+        prg.step()
         if d['pos'].shape[1] == 14:
             for pn in ['pos', 'neg', 'both']:
                 if len(d[pn]) > 0:
@@ -1482,7 +1485,11 @@ def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01):
         neg_matches = []
         for posMz in posMzs:
             ms2tbl = ms2map[ltp]['pos']
-            iu = ms2tbl[:,0].searchsorted(posMz)
+            # if error comes here, probably MS2 files are missing
+            try:
+                iu = ms2tbl[:,0].searchsorted(posMz)
+            except IndexError:
+                print ltp, pn
             u = 0
             if iu < ms2tbl.shape[0]:
                 while iu + u < ms2tbl.shape[0]:
@@ -1502,15 +1509,18 @@ def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01):
         pos_matches = sorted(uniqList(pos_matches), key = lambda x: x[0])
         ms2matches = ms2_lookup(ms2tbl, pos_matches, ms2map[ltp]['ms2files']['pos'], pFragments)
         ms1mz = None
-        for i in xrange(ms2matches.shape[0]):
+        for i in xrange(len(ms2matches)):
             if ms1mz == ms2matches[i,0]:
                 continue
             ms1mz = ms2matches[i,0]
             ms2res = ms2_collect(ms2matches, ms1mz)
+            print '%s positive: %u' % (ltp, len(ms2res))
+            print ms2res
             for ms1line in d['pos'][d['pos'][:,1] == ms1mz]:
                 ms1line[-1] = ms2res
-            for ms1line in d['both'][d['both'][:,1] == ms1mz]:
-                ms1line[-2] = ms2res
+            if len(d['both']) > 0:
+                for ms1line in d['both'][d['both'][:,0] == ms1mz]:
+                    ms1line[-2] = ms2res
         for negMz in negMzs:
             ms2tbl = ms2map[ltp]['neg']
             iu = ms2tbl[:,0].searchsorted(posMz)
@@ -1533,17 +1543,23 @@ def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01):
         neg_matches = sorted(uniqList(neg_matches), key = lambda x: x[0])
         ms2matches = ms2_lookup(ms2tbl, neg_matches, ms2map[ltp]['ms2files']['neg'], nFragments)
         ms1mz = None
-        for i in xrange(ms2matches.shape[0]):
+        for i in xrange(len(ms2matches)):
+            # every single ms1 m/z only once
             if ms1mz == ms2matches[i,0]:
                 continue
             ms1mz = ms2matches[i,0]
             ms2res = ms2_collect(ms2matches, ms1mz)
-            for ms1line in d['neg'][d['neg'][:,1] == ms1mz]:
+            print '%s negative: %u' % (ltp, len(ms2res))
+            print ms2res
+            for ms1line in d['neg'][d['neg'][:,1] == ms1mz,:]:
                 ms1line[-1] = ms2res
-            for ms1line in d['both'][d['both'][:,1] == ms1mz]:
-                ms1line[-1] = ms2res
+            if len(d['both']) > 0:
+                for ms1line in d['both'][d['both'][:,12] == ms1mz,:]:
+                    ms1line[-1] = ms2res
+    prg.terminate()
 
 def ms2_lookup(ms2map, ms1matches, ms2files, fragments):
+    #print 'ms2_lookup() starts'
     files = dict((fr, open(fname, 'r')) for fr, fname in ms2files.iteritems())
     ms2matches = []
     for ms1mz, ms2i in ms1matches:
@@ -1562,9 +1578,9 @@ def ms2_lookup(ms2map, ms1matches, ms2files, fragments):
                     intensity = float(intensity)
                     ms2hit1 = ms2_identify(mass, fragments, compl = False)
                     ms2hit2 = ms2_identify(ms2item[0] - mass, fragments, compl = True)
-                    if ms2hit1:
+                    if ms2hit1 is not None:
                         ms2matches.append(np.concatenate((np.array([ms1mz, mass, intensity, ms2i, 0, fr]), ms2hit1, ms2item)))
-                    if ms2hit2:
+                    if ms2hit2 is not None:
                         ms2matches.append(np.concatenate((np.array([ms1mz, mass, intensity, ms2i, 1, fr]), ms2hit2, ms2item)))
                     if ms2hit1 is None and ms2hit2 is None:
                         ms2matches.append(np.concatenate((np.array([ms1mz, mass, intensity, ms2i, 0, fr]), np.array([None, 'Unknown', '']), ms2item)))
@@ -1572,31 +1588,38 @@ def ms2_lookup(ms2map, ms1matches, ms2files, fragments):
         f.close()
     if len(ms2matches) > 0:
         ms2matches = np.vstack(sorted(ms2matches, key = lambda x: x[0]))
+    #print 'ms2_lookup() ends'
     return ms2matches
 
 def ms2_identify(mass, fragments, compl, tolerance = 0.01):
+    #print 'ms2_indentify() starts'
     iu = fragments[:,0].searchsorted(mass)
     if iu < len(fragments):
         if compl and 'NL' in fragments[iu,2] or \
             not compl and ('+' in fragments[iu,2] or '-' in fragments[iu,2]):
             if fragments[iu,0] - mass <= tolerance:
+                #print 'ms2_identify() returns result'
                 return fragments[iu,:]
             elif iu > 0 and mass - fragments[iu - 1,0] <= tolerance:
+                #print 'ms2_identify() returns result'
                 return fragments[iu - 1,:]
+    #print 'ms2_identify() returns None'
     return None
 
 def ms2_collect(ms2matches, ms1mz, unknown = False):
+    #print 'ms2_collect() starts'
     result = []
     fragments = ms2matches[ms2matches[:,0] == ms1mz,:]
     for frag in uniqList(fragments[:,7]):
         if frag != 'Unknown':
-            thisFrag = ms2matches[fragments[:,7] == frag,:]
+            thisFrag = fragments[fragments[:,7] == frag,:]
             maxInt = thisFrag[:,2].max()
             thisFragMass = thisFrag[0,1]
             result.append((frag, maxInt, thisFragMass))
     if unknown:
         unknowns = fragments[fragments[:,7] == 'Unknown',:]
         result += [('Unknown', l[2], l[1]) for l in unknowns]
+    #print 'ms2_collect() ends'
     return result
 
 #
