@@ -27,6 +27,9 @@ try:
 except:
     import pickle
 
+import warnings
+warnings.filterwarnings('error')
+
 import re
 import timeit
 import xlrd
@@ -1454,9 +1457,9 @@ def ms2_map(ms2files):
     prg.terminate()
     return result
 
-ms2_main(ms2map, stage2_best, pFragments, nFragments)
+# ms2_main(ms2map, stage2_best, pFragments, nFragments)
 
-def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01):
+def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01, verbose = False):
     # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
     prg = progress.Progress(len(ms1matches), 'Looking up MS2 fragments', 1, percent = False)
     for ltp, d in ms1matches.iteritems():
@@ -1481,82 +1484,73 @@ def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01):
                 negMzs += list(tbl[:,1])
         posMzs = uniqList(posMzs)
         negMzs = uniqList(negMzs)
-        pos_matches = []
-        neg_matches = []
-        for posMz in posMzs:
-            ms2tbl = ms2map[ltp]['pos']
-            # if error comes here, probably MS2 files are missing
-            try:
-                iu = ms2tbl[:,0].searchsorted(posMz)
-            except IndexError:
-                print ltp, pn
-            u = 0
-            if iu < ms2tbl.shape[0]:
-                while iu + u < ms2tbl.shape[0]:
-                    if ms2tbl[iu + u,0] - posMz <= tolerance:
-                        pos_matches.append((posMz, iu + u))
-                        u += 1
-                    else:
-                        break
-            l = 1
-            if iu > 0:
-                while iu >= l:
-                    if posMz - ms2tbl[iu - l,0] <= tolerance:
-                        pos_matches.append((posMz, iu - l))
-                        l += 1
-                    else:
-                        break
-        pos_matches = sorted(uniqList(pos_matches), key = lambda x: x[0])
-        ms2matches = ms2_lookup(ms2tbl, pos_matches, ms2map[ltp]['ms2files']['pos'], pFragments)
-        ms1mz = None
-        for i in xrange(len(ms2matches)):
-            if ms1mz == ms2matches[i,0]:
-                continue
-            ms1mz = ms2matches[i,0]
-            ms2res = ms2_collect(ms2matches, ms1mz)
-            print '%s positive: %u' % (ltp, len(ms2res))
-            print ms2res
-            for ms1line in d['pos'][d['pos'][:,1] == ms1mz]:
-                ms1line[-1] = ms2res
-            if len(d['both']) > 0:
-                for ms1line in d['both'][d['both'][:,0] == ms1mz]:
-                    ms1line[-2] = ms2res
-        for negMz in negMzs:
-            ms2tbl = ms2map[ltp]['neg']
-            iu = ms2tbl[:,0].searchsorted(posMz)
-            u = 0
-            if iu < ms2tbl.shape[0]:
-                while iu + u < ms2tbl.shape[0]:
-                    if ms2tbl[iu + u,0] - negMz <= tolerance:
-                        neg_matches.append((negMz, iu + u))
-                        u += 1
-                    else:
-                        break
-            l = 1
-            if iu > 0:
-                while iu >= l:
-                    if negMz - ms2tbl[iu - l,0] <= tolerance:
-                        neg_matches.append((negMz, iu - l))
-                        l += 1
-                    else:
-                        break
-        neg_matches = sorted(uniqList(neg_matches), key = lambda x: x[0])
-        ms2matches = ms2_lookup(ms2tbl, neg_matches, ms2map[ltp]['ms2files']['neg'], nFragments)
-        ms1mz = None
-        for i in xrange(len(ms2matches)):
-            # every single ms1 m/z only once
-            if ms1mz == ms2matches[i,0]:
-                continue
-            ms1mz = ms2matches[i,0]
-            ms2res = ms2_collect(ms2matches, ms1mz)
-            print '%s negative: %u' % (ltp, len(ms2res))
-            print ms2res
-            for ms1line in d['neg'][d['neg'][:,1] == ms1mz,:]:
-                ms1line[-1] = ms2res
-            if len(d['both']) > 0:
-                for ms1line in d['both'][d['both'][:,12] == ms1mz,:]:
-                    ms1line[-1] = ms2res
+        pos_matches = ms2_match(posMzs, ms2map, ltp, 'pos', tolerance)
+        ms2matches = ms2_lookup(ms2map[ltp]['pos'], pos_matches, ms2map[ltp]['ms2files']['pos'], pFragments)
+        ms2_results(ms2matches, d, 'pos')
+        #print sum(d['pos'][:,-1] != 0)
+        #print sum(d['both'][:,-2] != 0)
+        neg_matches = ms2_match(negMzs, ms2map, ltp, 'neg', tolerance)
+        ms2matches = ms2_lookup(ms2map[ltp]['neg'], neg_matches, ms2map[ltp]['ms2files']['neg'], nFragments)
+        ms2_results(ms2matches, d, 'neg')
+        #print sum(d['neg'][:,-1] != 0)
+        #print sum(d['both'][:,-1] != 0)
+        if verbose:
+            print '\n'
+            print 'number of positive mzs:', len(posMzs)
+            print 'negative matching:', len(pos_matches)
+            print 'number of negative mzs:', len(negMzs)
+            print 'negative matching:', len(neg_matches)
     prg.terminate()
+
+def ms2_results(ms2matches, tbl, pos):
+    bothCol = 0 if pos == 'pos' else 12
+    bothMs2Col = -2 if pos == 'pos' else -1
+    ms1mz = None
+    written1 = 0
+    written2 = 0
+    for i in xrange(len(ms2matches)):
+        if ms1mz == ms2matches[i,0]:
+            continue
+        ms1mz = ms2matches[i,0]
+        ms2res = ms2_collect(ms2matches, ms1mz)
+        #print 'positive: %u' % (len(ms2res))
+        #print ms2res
+        for ms1i in np.flatnonzero(tbl[pos][:,1] == ms1mz):
+            tbl[pos][ms1i,-1] = ms2res
+            written1 += 1
+        if len(tbl['both']) > 0:
+            for ms1i in np.flatnonzero(tbl['both'][:,bothCol] == ms1mz):
+                tbl['both'][ms1i,-bothMs2Col] = ms2res
+                written2 += 1
+    #print '\nintended to write %u and %u values' % (written1, written2)
+    #print '%u and %u have been written' % (sum(tbl[pos][:,-1] != 0), sum(tbl['both'][:,-bothMs2Col] != 0))
+
+def ms2_match(ms1Mzs, ms2map, ltp, pos, tolerance = 0.01):
+    matches = []
+    ms2tbl = ms2map[ltp][pos]
+    for ms1Mz in ms1Mzs:
+        # if error comes here, probably MS2 files are missing
+        try:
+            iu = ms2tbl[:,0].searchsorted(ms1Mz)
+        except IndexError:
+            sys.stdout.write('\nMissing MS2 files for %s-%s?\n' % (ltp, pos))
+        u = 0
+        if iu < ms2tbl.shape[0]:
+            while iu + u < ms2tbl.shape[0]:
+                if ms2tbl[iu + u,0] - ms1Mz <= tolerance:
+                    matches.append((ms1Mz, iu + u))
+                    u += 1
+                else:
+                    break
+        l = 1
+        if iu > 0:
+            while iu >= l:
+                if ms1Mz - ms2tbl[iu - l,0] <= tolerance:
+                    matches.append((ms1Mz, iu - l))
+                    l += 1
+                else:
+                    break
+    return sorted(uniqList(matches), key = lambda x: x[0])
 
 def ms2_lookup(ms2map, ms1matches, ms2files, fragments):
     #print 'ms2_lookup() starts'
@@ -1755,7 +1749,7 @@ def lipid_lookup_exact(stage0, swisslipids_url, runtime = None):
     # obtaining full SwissLipids data
     la5Exacts = get_swisslipids_exact(swisslipids_url)
     la5Exacts = lipidmaps_exact(exacts = la5Exacts)
-    lipids = find_lipids_exact(stage0, exacts)
+    lipids = find_lipids_exact(stage0, la5Exacts)
     if runtime:
         runtime = timeit.timeit('find_lipids(stage0, la5Exacts)',
             setup = 'from __main__ import find_lipids, stage0, la5Exacts', number = 1)
@@ -1882,7 +1876,7 @@ if __name__ == '__main__':
     exacts, lipids, runtime = lipid_lookup_exact(stage0, swisslipids_url)
     # stage2 :: positive-negative
     stage2 = negative_positive(lipids)
-    stage2_best = best_matches(lipids, stage2, minimum = 10)
+    stage2_best = best_matches(lipids, stage2, minimum = 100000)
     # output
     write_out(pnmatched_best, 'lipid_matches_best10.csv')
     # evaluation
