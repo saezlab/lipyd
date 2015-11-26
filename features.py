@@ -28,8 +28,6 @@ except:
     import pickle
 
 import warnings
-warnings.filterwarnings('error')
-
 import re
 import timeit
 import xlrd
@@ -44,6 +42,9 @@ import mass
 import progress
 import _curl
 from common import *
+
+warnings.filterwarnings('error')
+warnings.filterwarnings('default')
 
 path_root = '/'
 basedir = os.path.join(path_root, 'home', 'denes', 'Dokumentumok' , 'ltp')
@@ -1105,7 +1106,7 @@ def find_lipids(hits, pAdducts, nAdducts, levels = ['Species'], tolerance = 0.02
     return lipids
 
 def find_lipids_exact(hits, exacts, levels = ['Species'], 
-    tolerance = 0.02, unkown = True):
+    tolerance = 0.02, unknown = True):
     '''
     Column order:
     
@@ -1152,12 +1153,12 @@ def find_lipids_exact(hits, exacts, levels = ['Species'],
                             result.append(np.concatenate(
                                 # tbl[1] and tbl[2] are the profile and cprofile scores
                                 (np.array([ltp.upper(), tbl[0][i,1], tbl[1][i], tbl[2][i], 
-                                    tbl[3][i], tbl[4][i], tbl[5][i], tbl[6][i], dtype = np.object), lip), axis = 0))
+                                    tbl[3][i], tbl[4][i], tbl[5][i], tbl[6][i]], dtype = np.object), lip), axis = 0))
                     else:
                         result_unknown.append(np.concatenate(
                                 # tbl[1] and tbl[2] are the profile and cprofile scores
                                 (np.array([ltp.upper(), tbl[0][i,1], tbl[1][i], tbl[2][i], 
-                                    tbl[3][i], tbl[4][i], tbl[5][i], tbl[6][i], dtype = np.object), 
+                                    tbl[3][i], tbl[4][i], tbl[5][i], tbl[6][i]], dtype = np.object), 
                                     np.array(['Unknown'] * 6)), axis = 0))
                 lipids[ltp.upper()][pn] = np.vstack(sorted(result, key = lambda x: x[1]))
                 if unknown:
@@ -1278,7 +1279,7 @@ def negative_positive(lipids, tolerance = 0.02, add_col = 12, mz_col = 1, swl_co
                             if poshmz - tbl['pos'][iu - l,mz_col] <= tolerance:
                                 if tbl['pos'][iu - l,swl_col] == neg[swl_col] and \
                                     tbl['pos'][iu - l,add_col] == '[M+H]+' or \
-                                    tbl['pos'][iu + u,add_col] == 'Unknown':
+                                    tbl['pos'][iu - l,add_col] == 'Unknown':
                                     result[ltp].append(np.concatenate(
                                         (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
                                 l += 1
@@ -1303,7 +1304,7 @@ def negative_positive(lipids, tolerance = 0.02, add_col = 12, mz_col = 1, swl_co
                             if posnh3mz - tbl['pos'][iu - l,mz_col] <= tolerance:
                                 if tbl['pos'][iu - l,swl_col] == neg[swl_col] and \
                                     tbl['pos'][iu - l,add_col] == '[M+NH4]+' or \
-                                    #tbl['pos'][iu + u,add_col] == 'Unknown':
+                                    tbl['pos'][iu - l,add_col] == 'Unknown':
                                     result[ltp].append(np.concatenate(
                                         (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
                                 l += 1
@@ -1314,12 +1315,17 @@ def negative_positive(lipids, tolerance = 0.02, add_col = 12, mz_col = 1, swl_co
     prg.terminate()
     return result
 
-def best_matches(lipids, matches, minimum = 2):
+def best_matches(lipids, matches, minimum = 2, unknowns = None, unknown_matches = None):
     result = dict((ltp, {'pos': None, 'neg': None, 'both': None}) for ltp in lipids.keys())
     sort_lipids(lipids, by_mz = True)
+    if unknowns is not None:
+        sort_lipids(unknowns, by_mz = True)
     for ltp, tbl in matches.iteritems():
-        result[ltp]['both'] = _best_matches(tbl, minimum)
+        utbl = unknown_matches[ltp] if unknown_matches is not None else None
+        result[ltp]['both'] = _best_matches(tbl, minimum, utbl)
     sort_lipids(lipids)
+    if unknowns is not None:
+        sort_lipids(unknowns)
     for ltp, d in lipids.iteritems():
         for pn, tbl in d.iteritems():
             result[ltp][pn] = _best_lipids(tbl, minimum)
@@ -1341,18 +1347,23 @@ def _best(tbl, key, minimum):
             k = thisKey
     return tbl[:i,:]
 
-def _best_matches(tbl, minimum = 2):
-    if len(tbl) == 0:
+def _best_matches(tbl, minimum = 2, utbl = None):
+    if len(tbl) == 0 and utbl is None:
         return tbl
+    if utbl is not None:
+        if len(tbl) == 0:
+            tbl = utbl
+        else:
+            tbl = np.vstack((tbl, utbl))
     # sorting: rprf, prf, cprf, ubi
     # key = lambda x: ((x[3] + x[16]), (x[1] + x[14]), (x[2] + x[15]), (x[4] + x[17]))
     key = lambda x: ((x[3] + x[16]), (x[2] + x[15]), (x[4] + x[17]))
     tbl = sorted(tbl, key = key)
     # print type(tbl), len(tbl)
     tbl = np.vstack(tbl)
-    return _best(tbl, key, minimum)
+    return _best(tbl, key, minimum, utbl)
 
-def sort_lipids(lipids, by_mz = False):
+def sort_lipids(lipids, by_mz = False, unknowns = None):
     result = dict((ltp, {'pos': None, 'neg': None}) for ltp in lipids.keys())
     if by_mz:
         key = lambda x: x[1]
@@ -1360,6 +1371,8 @@ def sort_lipids(lipids, by_mz = False):
         key = lambda x: (x[4], x[3], x[5])
     for ltp, d in lipids.iteritems():
         for pn, tbl in d.iteritems():
+            if unknowns is not None:
+                tbl = 
             lipids[ltp][pn] = np.vstack(sorted(tbl, key = key))
 
 #
@@ -1658,6 +1671,13 @@ def write_out(matches, fname):
                 f.write('\t'.join([ltp, '%08f'%l[0], '%08f'%l[12], l[11], '%08f'%l[13], 
                     '%08f'%l[25], l[24], l[7], l[10], str(l[9])]) + '\n')
 
+def counts_redundancy_table(lipids, unknowns):
+    with open('unique_features_counts.csv', 'w') as f:
+        f.write('\n'.join('%s\t%u\t%u\t%u'%i for i in zip(['%s-%s'%(b,a) for b in unknowns.keys() for a in unknowns[b].keys()],
+            [len(uniqList(list(a[:,7]))) for b in lipids.values() for a in b.values()], 
+            [len(uniqList(list(a[:,7]))) for b in unknowns.values() for a in b.values()],
+            [len(list(a[:,7])) for b in lipids.values() for a in b.values()])))
+
 def samples_with_controls(samples):
     return dict((k, np.array([1 if x is not None else None for x in v])) \
         for k, v in samples.iteritems())
@@ -1896,8 +1916,10 @@ if __name__ == '__main__':
     stage2_unknown = negative_positive(unknowns)
     stage2_best = best_matches(lipids, stage2, minimum = 100000)
     stage2_best_unknown = best_matches(unknowns, stage2_unknown, minimum = 100000)
+    stage2_best_all = best_matches((lipids, unknowns), (stage2, stage2_unknown), minimum = 100000)
     # output
-    write_out(stage2_best, 'lipid_matches_best_nov25.csv')
+    write_out(stage2_best, 'lipid_matches_nov25.csv')
+    write_out(np.vstack(stage2_best, stage2_unknown, 'all_sorted_nov25.csv')
     # evaluation
     evaluate_results(stage0, stage2, lipids, samples_upper, 'f')
     # LTP, num of lipid hits (min), num of positive-negative matching, 
