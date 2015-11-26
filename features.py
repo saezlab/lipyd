@@ -900,7 +900,8 @@ def val_ubi_prf_rpr_hits(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, p
     '''
     Column order:
     quality, m/z, rt_min, rt_max, charge, control, a9, a10, a11, a12, b1, 
-    profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score
+    profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score, 
+    original_index
     '''
     prf = 'cprf' if tbl['lip'][1,:].count() == 1 else 'prf'
     _treshold = (treshold, tresholdB)
@@ -927,7 +928,7 @@ def val_ubi_prf_rpr_hits(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, p
         # or select the records with profile match less then or equal to treshold
         indices = np.array(sorted((i for i, v in prf_values.iteritems() if v <= _treshold)))
     return (tbl['raw'][indices,:], tbl['prf'][indices], tbl['cprf'][indices], 
-        tbl['rpr'][indices], tbl['ubi'][indices], tbl['uby'][indices] if 'uby' in tbl else np.zeros(len(indices)))
+        tbl['rpr'][indices], tbl['ubi'][indices], tbl['uby'][indices] if 'uby' in tbl else np.zeros(len(indices)), indices)
 
 @get_hits
 def pass_through(tbl, ubiquity = 7, treshold = 0.15, tresholdB = 0.25, profile_best = False):
@@ -1103,7 +1104,8 @@ def find_lipids(hits, pAdducts, nAdducts, levels = ['Species'], tolerance = 0.02
                 lipids[ltp.upper()][pn] = np.vstack(sorted(result, key = lambda x: x[1]))
     return lipids
 
-def find_lipids_exact(hits, exacts, levels = ['Species'], tolerance = 0.02):
+def find_lipids_exact(hits, exacts, levels = ['Species'], 
+    tolerance = 0.02, unkown = True):
     '''
     Column order:
     
@@ -1114,10 +1116,11 @@ def find_lipids_exact(hits, exacts, levels = ['Species'], tolerance = 0.02):
     [3] rank_profile_boolean
     [4] ubiquity_score
     [5] ubiquity_score
+    [6] original_index
     
     out:
     ltp_name, m/z, 
-    profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score,
+    profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score, original_index,
     swisslipids_ac, level, lipid_name, lipid_formula, adduct, adduct_m/z
     '''
     # levels: 'Structural subspecies', 'Isomeric subspecies', 
@@ -1136,9 +1139,11 @@ def find_lipids_exact(hits, exacts, levels = ['Species'], tolerance = 0.02):
         else set(levels) if type(levels) is list \
         else set([levels])
     lipids = dict((ltp.upper(), {}) for ltp in hits.keys())
+    unknowns = dict((ltp.upper(), {}) for ltp in hits.keys())
     for ltp, d in hits.iteritems():
         for pn, tbl in d.iteritems():
             result = []
+            result_unknown = []
             if tbl[0] is not None:
                 for i in xrange(tbl[0].shape[0]):
                     lipid_matches = adduct_lookup_exact(tbl[0][i,1], exacts, levels, adducts[pn], tolerance)
@@ -1147,9 +1152,17 @@ def find_lipids_exact(hits, exacts, levels = ['Species'], tolerance = 0.02):
                             result.append(np.concatenate(
                                 # tbl[1] and tbl[2] are the profile and cprofile scores
                                 (np.array([ltp.upper(), tbl[0][i,1], tbl[1][i], tbl[2][i], 
-                                    tbl[3][i], tbl[4][i], tbl[5][i]], dtype = np.object), lip), axis = 0))
+                                    tbl[3][i], tbl[4][i], tbl[5][i], tbl[6][i], dtype = np.object), lip), axis = 0))
+                    else:
+                        result_unknown.append(np.concatenate(
+                                # tbl[1] and tbl[2] are the profile and cprofile scores
+                                (np.array([ltp.upper(), tbl[0][i,1], tbl[1][i], tbl[2][i], 
+                                    tbl[3][i], tbl[4][i], tbl[5][i], tbl[6][i], dtype = np.object), 
+                                    np.array(['Unknown'] * 6)), axis = 0))
                 lipids[ltp.upper()][pn] = np.vstack(sorted(result, key = lambda x: x[1]))
-    return lipids
+                if unknown:
+                    unknowns[ltp.upper()][pn] = np.vstack(sorted(result_unknown, key = lambda x: x[1]))
+    return lipids, unknowns
 
 def adduct_lookup(mz, adducts, levels, tolerance = 0.02):
     '''
@@ -1212,22 +1225,23 @@ def adduct_lookup_exact(mz, exacts, levels, adducts, tolerance = 0.02):
                     break
     return None if len(result) == 0 else np.vstack(result)
 
-def negative_positive(lipids, tolerance = 0.02, add_col = 11, mz_col = 1, swl_col = 7):
+def negative_positive(lipids, tolerance = 0.02, add_col = 12, mz_col = 1, swl_col = 8):
     '''
     Column order:
     
     in:
     ltp_name, m/z,
     profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score,
+    original_index, 
     swisslipids_ac, level, lipid_name, lipid_formula, adduct, adduct_m/z
     
     out:
     [0] pos_m/z, pos_profile_score, pos_control_profile_score, pos_rank_profile_boolean, 
-    [4] pos_ubiquity_score, pos_ubiquity_score, pos_swisslipids_ac, pos_level, 
-    [8] pos_lipid_name, pos_lipid_formula, pos_adduct, pos_adduct_m/z
-    [12] neg_m/z, neg_profile_score, neg_control_profile_score, neg_rank_profile_boolean, 
-    [16] neg_ubiquity_score, neg_ubiquity_score, neg_swisslipids_ac, neg_level, 
-    [20] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z
+    [4] pos_ubiquity_score, pos_ubiquity_score, pos_original_index, pos_swisslipids_ac, pos_level, 
+    [9] pos_lipid_name, pos_lipid_formula, pos_adduct, pos_adduct_m/z
+    [13] neg_m/z, neg_profile_score, neg_control_profile_score, neg_rank_profile_boolean, 
+    [17] neg_ubiquity_score, neg_ubiquity_score, neg_original_index, neg_swisslipids_ac, neg_level, 
+    [22] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z
     '''
     result = dict((ltp.upper(), []) for ltp in lipids.keys())
     prg = progress.Progress(len(result), 'Matching positive & negative', 1, percent = False)
@@ -1235,61 +1249,66 @@ def negative_positive(lipids, tolerance = 0.02, add_col = 11, mz_col = 1, swl_co
         prg.step()
         if 'neg' in tbl and 'pos' in tbl:
             for neg in tbl['neg']:
-                add = neg[add_col]
-                if add == '[M-H]-':
-                    poshmz = Mz(Mz(neg[mz_col]).add_h()).add_h()
-                    posnh3mz = Mz(Mz(neg[mz_col]).add_h()).add_nh4()
-                elif add == '[M+Fo]-':
-                    poshmz = Mz(Mz(neg[mz_col]).remove_fo()).add_h()
-                    posnh3mz = Mz(Mz(neg[mz_col]).remove_fo()).add_nh4()
-                else:
-                    continue
-                iu = tbl['pos'][:,mz_col].searchsorted(poshmz)
-                u = 0
-                if iu < len(tbl['pos']):
-                    while iu + u < len(tbl['pos']):
-                        if tbl['pos'][iu + u,mz_col] - poshmz <= tolerance:
-                            if tbl['pos'][iu + u,swl_col] == neg[swl_col] and \
-                                tbl['pos'][iu + u,add_col] == '[M+H]+':
-                                result[ltp].append(np.concatenate(
-                                    (tbl['pos'][iu + u,1:], neg[1:]), axis = 0))
-                            u += 1
-                        else:
-                            break
-                if iu > 0:
-                    l = 1
-                    while iu >= l:
-                        if poshmz - tbl['pos'][iu - l,mz_col] <= tolerance:
-                            if tbl['pos'][iu - l,swl_col] == neg[swl_col] and \
-                                tbl['pos'][iu - l,add_col] == '[M+H]+':
-                                result[ltp].append(np.concatenate(
-                                    (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
-                            l += 1
-                        else:
-                            break
-                iu = tbl['pos'][:,1].searchsorted(posnh3mz)
-                u = 0
-                if iu < len(tbl['pos']):
-                    while iu + u < len(tbl['pos']):
-                        if tbl['pos'][iu + u,mz_col] - posnh3mz <= tolerance:
-                            if tbl['pos'][iu + u,swl_col] == neg[swl_col] and \
-                                tbl['pos'][iu + u,add_col] == '[M+NH4]+':
-                                result[ltp].append(np.concatenate(
-                                    (tbl['pos'][iu + u,1:], neg[1:]), axis = 0))
-                            u += 1
-                        else:
-                            break
-                if iu > 0:
-                    l = 1
-                    while iu >= l:
-                        if posnh3mz - tbl['pos'][iu - l,mz_col] <= tolerance:
-                            if tbl['pos'][iu - l,swl_col] == neg[swl_col] and \
-                                tbl['pos'][iu - l,add_col] == '[M+NH4]+':
-                                result[ltp].append(np.concatenate(
-                                    (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
-                            l += 1
-                        else:
-                            break
+                adds = [neg[add_col]] if neg[add_col] != 'Unknown' else ['[M-H]-', '[M+Fo]-']
+                for add in adds:
+                    if add == '[M-H]-':
+                        poshmz = Mz(Mz(neg[mz_col]).add_h()).add_h()
+                        posnh3mz = Mz(Mz(neg[mz_col]).add_h()).add_nh4()
+                    elif add == '[M+Fo]-':
+                        poshmz = Mz(Mz(neg[mz_col]).remove_fo()).add_h()
+                        posnh3mz = Mz(Mz(neg[mz_col]).remove_fo()).add_nh4()
+                    else:
+                        continue
+                    iu = tbl['pos'][:,mz_col].searchsorted(poshmz)
+                    u = 0
+                    if iu < len(tbl['pos']):
+                        while iu + u < len(tbl['pos']):
+                            if tbl['pos'][iu + u,mz_col] - poshmz <= tolerance:
+                                if tbl['pos'][iu + u,swl_col] == neg[swl_col] and \
+                                    tbl['pos'][iu + u,add_col] == '[M+H]+' or \
+                                    tbl['pos'][iu + u,add_col] == 'Unknown':
+                                    result[ltp].append(np.concatenate(
+                                        (tbl['pos'][iu + u,1:], neg[1:]), axis = 0))
+                                u += 1
+                            else:
+                                break
+                    if iu > 0:
+                        l = 1
+                        while iu >= l:
+                            if poshmz - tbl['pos'][iu - l,mz_col] <= tolerance:
+                                if tbl['pos'][iu - l,swl_col] == neg[swl_col] and \
+                                    tbl['pos'][iu - l,add_col] == '[M+H]+' or \
+                                    tbl['pos'][iu + u,add_col] == 'Unknown':
+                                    result[ltp].append(np.concatenate(
+                                        (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
+                                l += 1
+                            else:
+                                break
+                    iu = tbl['pos'][:,1].searchsorted(posnh3mz)
+                    u = 0
+                    if iu < len(tbl['pos']):
+                        while iu + u < len(tbl['pos']):
+                            if tbl['pos'][iu + u,mz_col] - posnh3mz <= tolerance:
+                                if tbl['pos'][iu + u,swl_col] == neg[swl_col] and \
+                                    tbl['pos'][iu + u,add_col] == '[M+NH4]+' or \
+                                    tbl['pos'][iu + u,add_col] == 'Unknown':
+                                    result[ltp].append(np.concatenate(
+                                        (tbl['pos'][iu + u,1:], neg[1:]), axis = 0))
+                                u += 1
+                            else:
+                                break
+                    if iu > 0:
+                        l = 1
+                        while iu >= l:
+                            if posnh3mz - tbl['pos'][iu - l,mz_col] <= tolerance:
+                                if tbl['pos'][iu - l,swl_col] == neg[swl_col] and \
+                                    tbl['pos'][iu - l,add_col] == '[M+NH4]+' or \
+                                    #tbl['pos'][iu + u,add_col] == 'Unknown':
+                                    result[ltp].append(np.concatenate(
+                                        (tbl['pos'][iu - l,1:], neg[1:]), axis = 0))
+                                l += 1
+                            else:
+                                break
             if len(result[ltp]) > 0:
                 result[ltp] = np.vstack(result[ltp])
     prg.terminate()
@@ -1326,8 +1345,8 @@ def _best_matches(tbl, minimum = 2):
     if len(tbl) == 0:
         return tbl
     # sorting: rprf, prf, cprf, ubi
-    # key = lambda x: ((x[3] + x[15]), (x[1] + x[13]), (x[2] + x[14]), (x[4] + x[16]))
-    key = lambda x: ((x[3] + x[15]), (x[2] + x[14]), (x[4] + x[16]))
+    # key = lambda x: ((x[3] + x[16]), (x[1] + x[14]), (x[2] + x[15]), (x[4] + x[17]))
+    key = lambda x: ((x[3] + x[16]), (x[2] + x[15]), (x[4] + x[17]))
     tbl = sorted(tbl, key = key)
     # print type(tbl), len(tbl)
     tbl = np.vstack(tbl)
@@ -1457,14 +1476,12 @@ def ms2_map(ms2files):
     prg.terminate()
     return result
 
-# ms2_main(ms2map, stage2_best, pFragments, nFragments)
-
 def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01, verbose = False):
     # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
     prg = progress.Progress(len(ms1matches), 'Looking up MS2 fragments', 1, percent = False)
     for ltp, d in ms1matches.iteritems():
         prg.step()
-        if d['pos'].shape[1] == 14:
+        if d['pos'].shape[1] == 15:
             for pn in ['pos', 'neg', 'both']:
                 if len(d[pn]) > 0:
                     plusCols = 2 if pn == 'both' else 1
@@ -1477,7 +1494,7 @@ def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01, verbo
         for pn, tbl in d.iteritems():
             if pn == 'both' and len(tbl) > 0:
                 posMzs += list(tbl[:,0])
-                negMzs += list(tbl[:,12])
+                negMzs += list(tbl[:,13])
             elif pn == 'pos':
                 posMzs += list(tbl[:,1])
             elif pn == 'neg':
@@ -1624,11 +1641,11 @@ def write_out(matches, fname):
     '''
     In:
     [0] pos_m/z, pos_profile_score, pos_control_profile_score, pos_rank_profile_boolean, 
-    [4] pos_ubiquity_score, pos_ubiquity_score, pos_swisslipids_ac, pos_level, 
-    [8] pos_lipid_name, pos_lipid_formula, pos_adduct, pos_adduct_m/z
-    [12] neg_m/z, neg_profile_score, neg_control_profile_score, neg_rank_profile_boolean, 
-    [16] neg_ubiquity_score, neg_ubiquity_score, neg_swisslipids_ac, neg_level, 
-    [20] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z
+    [4] pos_ubiquity_score, pos_ubiquity_score, pos_original_index, pos_swisslipids_ac, pos_level, 
+    [9] pos_lipid_name, pos_lipid_formula, pos_adduct, pos_adduct_m/z
+    [13] neg_m/z, neg_profile_score, neg_control_profile_score, neg_rank_profile_boolean, 
+    [17] neg_ubiquity_score, neg_ubiquity_score, neg_original_index, neg_swisslipids_ac, neg_level, 
+    [22] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z
     '''
     with open(fname, 'w') as f:
         hdr = ['LTP',
@@ -1638,8 +1655,8 @@ def write_out(matches, fname):
         f.write('\t'.join(hdr) + '\n')
         for ltp, tbl in matches.iteritems():
             for l in tbl:
-                f.write('\t'.join([ltp, '%08f'%l[0], '%08f'%l[11], l[10], '%08f'%l[12], 
-                    '%08f'%l[23], l[22], l[6], l[9], str(l[8])]) + '\n')
+                f.write('\t'.join([ltp, '%08f'%l[0], '%08f'%l[12], l[11], '%08f'%l[13], 
+                    '%08f'%l[25], l[24], l[7], l[10], str(l[9])]) + '\n')
 
 def samples_with_controls(samples):
     return dict((k, np.array([1 if x is not None else None for x in v])) \
@@ -1749,11 +1766,11 @@ def lipid_lookup_exact(stage0, swisslipids_url, runtime = None):
     # obtaining full SwissLipids data
     la5Exacts = get_swisslipids_exact(swisslipids_url)
     la5Exacts = lipidmaps_exact(exacts = la5Exacts)
-    lipids = find_lipids_exact(stage0, la5Exacts)
+    lipids, unknowns = find_lipids_exact(stage0, la5Exacts, unknown = True)
     if runtime:
         runtime = timeit.timeit('find_lipids(stage0, la5Exacts)',
             setup = 'from __main__ import find_lipids, stage0, la5Exacts', number = 1)
-    return la5Exacts, lipids, runtime
+    return la5Exacts, lipids, unknowns, runtime
 
 def evaluate_results(stage0, stage2, lipids, samples_upper, letter = 'e'):
     '''
@@ -1873,12 +1890,14 @@ if __name__ == '__main__':
     stage0 = get_scored_hits(data)
     # stage1 :: lipids
     #pAdducts, nAdducts, lipids, runtime = lipid_lookup(stage0, pAdducts, nAdducts)
-    exacts, lipids, runtime = lipid_lookup_exact(stage0, swisslipids_url)
+    exacts, lipids, unknowns, runtime = lipid_lookup_exact(stage0, swisslipids_url)
     # stage2 :: positive-negative
     stage2 = negative_positive(lipids)
+    stage2_unknown = negative_positive(unknowns)
     stage2_best = best_matches(lipids, stage2, minimum = 100000)
+    stage2_best_unknown = best_matches(unknowns, stage2_unknown, minimum = 100000)
     # output
-    write_out(pnmatched_best, 'lipid_matches_best10.csv')
+    write_out(stage2_best, 'lipid_matches_best_nov25.csv')
     # evaluation
     evaluate_results(stage0, stage2, lipids, samples_upper, 'f')
     # LTP, num of lipid hits (min), num of positive-negative matching, 
@@ -1890,6 +1909,8 @@ if __name__ == '__main__':
     nFragments = read_metabolite_lines('lipid_fragments_negative_mode.txt')
     ms2files = ms2_filenames(ltpdirs)
     ms2map = ms2_map(ms2files)
+    ms2_main(ms2map, stage2_best, pFragments, nFragments)
+    ms2_main(ms2map, stage2_best_unknown, pFragments, nFragments)
 
 ### ## ## ##
 ### E N D ##
