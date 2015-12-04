@@ -33,15 +33,25 @@ import timeit
 import xlrd
 from xlrd.biffh import XLRDError
 import numpy as np
+import scipy as sp
 from scipy import stats
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
+import rpy2.robjects.packages as rpackages
+rvcd = rpackages.importr('vcdExtra')
+rbase = rpackages.importr('base')
+rutils = rpackages.importr('utils')
+rstats = rpackages.importr('stats')
+rococo = rpackages.importr('rococo')
 
 import mass
 import progress
 import _curl
 from common import *
+
+import rlcompleter, readline
+readline.parse_and_bind('tab:complete')
 
 warnings.filterwarnings('error')
 warnings.filterwarnings('default')
@@ -55,6 +65,16 @@ ppfracf = os.path.join(ltpdirs[0], 'fractions.csv')
 ppsecdir = os.path.join(ltpdirs[0], 'SEC_profiles')
 pptablef = os.path.join(basedir, 'proteins_by_fraction.csv')
 swisslipids_url = 'http://www.swisslipids.org/php/export.php?action=get&file=lipids.csv'
+
+metrics = [
+        ('Kendall\'s tau', 'ktv', False),
+        ('Spearman corr.', 'spv', False),
+        ('Pearson corr.', 'pev', False),
+        ('Euclidean dist.', 'euv', True),
+        ('Robust corr.', 'rcv', False),
+        ('Goodman-Kruskal\'s gamma', 'gkv', False),
+        ('Difference', 'dfv', True)
+    ]
 
 class MolWeight():
     
@@ -426,6 +446,10 @@ def read_xls(xls_file, sheet = '', csv_file = None, return_table = True):
 #
 
 def read_samples(fname):
+    '''
+    Reads from file sample/control annotations 
+    for each proteins.
+    '''
     data = {}
     with open(fname, 'r') as f:
         null = f.readline()
@@ -721,43 +745,21 @@ def profile_filter(data, pprops, samples, prfx = ''):
     sys.stdout.write('No protein profiles found for %s\n\n' % ', '.join(notf))
     sys.stdout.flush()
 
-def spearman_filter(data, pprops, samples):
-    frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
-    notf = []
-    prg = progress.Progress(len(data) * 2, 'Profile filter', 1, percent = False)
-    for ltp, d in data.iteritems():
-        for pn, tbl in d.iteritems():
-            prg.step()
-            if ltp.upper() not in pprops:
-                notf.append(ltp)
-                continue
-            # i != 0 : we always drop the blank control
-            ppr = np.array([pprops[ltp.upper()][frs[i]] \
-                for i, fr in enumerate(samples[ltp]) if fr == 1 and i != 0])
-            ppr = norm_profile(ppr).astype(np.float64)
-            prr = stats.rankdata(ppr)
-            pranks = sorted((i for i, x in enumerate(prr)), 
-                key = lambda x: x, reverse = True)
-            ntbl = norm_profiles(tbl['lip'])
-            if tbl['lip'][0,:].count() > 1:
-                flatp = ppr[pranks[0]] - ppr[pranks[1]] < \
-                    ppr[pranks[0]] * 0.1
-            # 0 if have only one fraction in sample
-            tbl['spr'] = np.apply_along_axis(
-                lambda x: diff_profiles(ppr, norm_profile(x)), 
-                    axis = 1, arr = tbl['lip'])
-    prg.terminate()
-    sys.stdout.write('No protein profiles found for %s\n\n' % ', '.join(notf))
-    sys.stdout.flush()
-
-
 def diff_profiles(p1, p2):
     # profiles are numpy arrays
     # of equal length
     if len(p1) > 1:
         return np.nansum(np.abs(p1 - p2))
     else:
-        return 1.0
+        return 1.0 * len(p2)
+
+def _comp_profiles(p1, p2):
+    p1r = stats.rankdata(p1)
+    pranks = sorted((i for i, x in enumerate(p1r)), 
+        key = lambda x: x, reverse = True)
+    flatp = p1r[pranks[0]] - p1r[pranks[1]] < \
+        p1r[pranks[0]] * 0.1
+    return comp_profiles(p1, p2, p1r, flatp), 0.0
 
 def comp_profiles(p1, p2, p1r = False, flatp = False):
     highest = False
@@ -782,6 +784,8 @@ def norm_profile(profile):
         (np.nanmax(profile) - np.nanmin(profile))
 
 def norm_profiles(tbl):
+    if type(tbl) == np.ma.core.MaskedArray:
+        tbl = tbl.data
     return (tbl - tbl.min(axis = 1, keepdims = True)) / tbl.max(axis = 1, keepdims = True)
 
 def ubiquity_filter_old(data, proximity = 0.02, only_valid = True):
@@ -818,36 +822,35 @@ def ubiquity_filter_old(data, proximity = 0.02, only_valid = True):
                                 ltp2s.add(i2u - 1)
     prg.terminate()
 
-def ubiquity_filter(data, proximity = 0.02, only_valid = True):
-    attr = 'ubi' if only_valid else 'uby'
-    prg = progress.Progress(len(data)**2, 'Ubiquity filter', 1)
-    ltps = sorted(data.keys())
+def ubiquity_filter(valids, proximity = 0.02, only_valid = True):
+    prg = progress.Progress(len(valids)**2, 'Ubiquity filter', 1)
+    ltps = sorted(valids.keys())
     for pn in ['pos', 'neg']:
         for i, ltp1 in enumerate(ltps):
             for ltp2 in ltps[i+1:]:
                 ltp1s = set([])
                 ltp2s = set([])
                 prg.step()
-                if pn in data[ltp1] and pn in data[ltp2]:
-                    ltp1t = data[ltp1][pn]
-                    ltp2t = data[ltp2][pn]
-                    if attr not in ltp1t:
-                        ltp1t[attr] = np.zeros(ltp1t['raw'].shape[0], dtype = np.int8)
-                    if attr not in ltp2t:
-                        ltp2t[attr] = np.zeros(ltp2t['raw'].shape[0], dtype = np.int8)
-                    for i1, mz1 in np.ndenumerate(ltp1t['raw'][:,1]):
-                        if ltp1t['vld'][i1] or not only_valid:
-                            i2u = ltp2t['raw'][:,1].searchsorted(mz1)
+                if pn in valids[ltp1] and pn in valids[ltp2]:
+                    ltp1t = valids[ltp1][pn]
+                    ltp2t = valids[ltp2][pn]
+                    if 'ubi' not in ltp1t:
+                        ltp1t['ubi'] = np.zeros(ltp1t['mz'].shape[0], dtype = np.int8)
+                    if 'ubi' not in ltp2t:
+                        ltp2t['ubi'] = np.zeros(ltp2t['mz'].shape[0], dtype = np.int8)
+                    for i1, mz1 in np.ndenumerate(ltp1t['mz']):
+                        if ltp1t['cpv'][i1] or not only_valid:
+                            i2u = ltp2t['mz'].searchsorted(mz1)
                             u = 0
                             while True:
-                                if i2u + u < ltp2t['raw'].shape[0] and \
-                                    ltp2t['raw'][i2u + u,1] - mz1 <= proximity:
-                                    if ltp2t['vld'][i2u + u] or not only_valid:
+                                if i2u + u < ltp2t['mz'].shape[0] and \
+                                    ltp2t['mz'][i2u + u] - mz1 <= proximity:
+                                    if ltp2t['cpv'][i2u + u] or not only_valid:
                                         if i1 not in ltp1s:
-                                            ltp1t[attr][i1] += 1
+                                            ltp1t['ubi'][i1] += 1
                                             ltp1s.add(i1)
                                         if i2u + u not in ltp2s:
-                                            ltp2t[attr][i2u + u] += 1
+                                            ltp2t['ubi'][i2u + u] += 1
                                             ltp2s.add(i2u + u)
                                     u += 1
                                 else:
@@ -855,13 +858,13 @@ def ubiquity_filter(data, proximity = 0.02, only_valid = True):
                             l = 1
                             while True:
                                 if i2u - l >= 0 and \
-                                    mz1 - ltp2t['raw'][i2u - l,1] <= proximity:
-                                    if ltp2t['vld'][i2u - l] or not only_valid:
+                                    mz1 - ltp2t['mz'][i2u - l] <= proximity:
+                                    if ltp2t['cpv'][i2u - l] or not only_valid:
                                         if i1 not in ltp1s:
-                                            ltp1t[attr][i1] += 1
+                                            ltp1t['ubi'][i1] += 1
                                             ltp1s.add(i1)
                                         if i2u - l not in ltp2s:
-                                            ltp2t[attr][i2u - l] += 1
+                                            ltp2t['ubi'][i2u - l] += 1
                                             ltp2s.add(i2u - l)
                                     l += 1
                                 else:
@@ -1138,27 +1141,12 @@ def find_lipids(hits, pAdducts, nAdducts, levels = ['Species'], tolerance = 0.02
                 lipids[ltp.upper()][pn] = np.vstack(sorted(result, key = lambda x: x[1]))
     return lipids
 
-def find_lipids_exact(hits, exacts, levels = ['Species'], 
-    tolerance = 0.02, unknown = True):
+def find_lipids_exact(valids, exacts, levels = ['Species'], tolerance = 0.02):
     '''
-    Column order:
-    
-    in:
-    [0] quality, m/z, rt_min, rt_max, charge, control, a9, a10, a11, a12, b1
-    [1] profile_score
-    [2] control_profile_score
-    [3] rank_profile_boolean
-    [4] ubiquity_score
-    [5] ubiquity_score
-    [6] original_index
-    
-    out:
-    ltp_name, m/z, 
-    profile_score, control_profile_score, rank_profile_boolean, ubiquity_score, ubiquity_score, original_index,
-    swisslipids_ac, level, lipid_name, lipid_formula, adduct, adduct_m/z
+    Looks up lipids by m/z among database entries in
+    `exacts`, and stores the result in dict under key
+    `lip`, where keys are the original indices (`i`).
     '''
-    # levels: 'Structural subspecies', 'Isomeric subspecies', 
-    # 'Species', 'Molecular subspecies'
     adducts = {
         'pos': {
             '[M+H]+': 'remove_h',
@@ -1172,31 +1160,11 @@ def find_lipids_exact(hits, exacts, levels = ['Species'],
     levels = levels if type(levels) is set \
         else set(levels) if type(levels) is list \
         else set([levels])
-    lipids = dict((ltp.upper(), {}) for ltp in hits.keys())
-    unknowns = dict((ltp.upper(), {}) for ltp in hits.keys())
-    for ltp, d in hits.iteritems():
+    for ltp, d in valids.iteritems():
         for pn, tbl in d.iteritems():
-            result = []
-            result_unknown = []
-            if tbl[0] is not None:
-                for i in xrange(tbl[0].shape[0]):
-                    lipid_matches = adduct_lookup_exact(tbl[0][i,1], exacts, levels, adducts[pn], tolerance)
-                    if lipid_matches is not None:
-                        for lip in lipid_matches:
-                            result.append(np.concatenate(
-                                # tbl[1] and tbl[2] are the profile and cprofile scores
-                                (np.array([ltp.upper(), tbl[0][i,1], tbl[1][i], tbl[2][i], 
-                                    tbl[3][i], tbl[4][i], tbl[5][i], tbl[6][i]], dtype = np.object), lip), axis = 0))
-                    else:
-                        result_unknown.append(np.concatenate(
-                                # tbl[1] and tbl[2] are the profile and cprofile scores
-                                (np.array([ltp.upper(), tbl[0][i,1], tbl[1][i], tbl[2][i], 
-                                    tbl[3][i], tbl[4][i], tbl[5][i], tbl[6][i]], dtype = np.object), 
-                                    np.array(['Unknown'] * 6)), axis = 0))
-                lipids[ltp.upper()][pn] = np.vstack(sorted(result, key = lambda x: x[1]))
-                if unknown:
-                    unknowns[ltp.upper()][pn] = np.vstack(sorted(result_unknown, key = lambda x: x[1]))
-    return lipids, unknowns
+            tbl['lip'] = {}
+            for i in xrange(tbl['mz'].shape[0]):
+                tbl['lip'][tbl['i'][i]] = adduct_lookup_exact(tbl['mz'][i], exacts, levels, adducts[pn], tolerance)
 
 def adduct_lookup(mz, adducts, levels, tolerance = 0.02):
     '''
@@ -1352,10 +1320,10 @@ def best_matches(lipids, matches, minimum = 2, unknowns = None, unknown_matches 
     result = dict((ltp, {'pos': None, 'neg': None, 'both': None}) for ltp in lipids.keys())
     sort_lipids(lipids, by_mz = True)
     # returns a new array, or only lipids sorted
-    alll = sort_lipids(lipids, by_mz = True, unknowns = unknowns) \
+    alll = sort_lipids(lipids, by_mz = True, unknowns = unknowns)
     for ltp, tbl in matches.iteritems():
         utbl = unknown_matches[ltp] if unknown_matches is not None else None
-        result[ltp]['both'] = _best_matches(tbl, minim     um, utbl)
+        result[ltp]['both'] = _best_matches(tbl, minimum, utbl)
     if unknown is None:
         sort_lipids(lipids)
     for ltp, d in lipids.iteritems():
@@ -1415,8 +1383,11 @@ def sort_lipids(lipids, by_mz = False, unknowns = None):
 # functions for MS2
 #
 
-# from Toby Hodges:
 def read_metabolite_lines(fname):
+    '''
+    From Toby Hodges.
+    Reads metabolite fragments data.
+    '''
     Metabolites = []
     with open(fname, 'r') as Handle:
         for Line in Handle.readlines():
@@ -1720,6 +1691,10 @@ def samples_with_controls(samples):
         for k, v in samples.iteritems())
 
 def upper_samples(samples):
+    '''
+    Returns the dict of samples with
+    uppercase LTP names.
+    '''
     return dict((l.upper(), s) for l, s in samples.iteritems())
 
 def init_from_scratch(basedir, ltpdirs, pptablef, samplesf):
@@ -1744,6 +1719,7 @@ def init_from_scratch(basedir, ltpdirs, pptablef, samplesf):
 def init_reinit(basedir):
     '''
     Initializing from preprocessed and dumped data.
+    Pickle file has a 2.0GB size.
     '''
     fnames, samples, pprops = load(basedir)
     data = load_data(basedir)
@@ -1751,8 +1727,27 @@ def init_reinit(basedir):
     samples_upper = upper_samples(samples)
     return data, fnames, samples, csamples, samples_upper, pprops
 
+def stage0_filters(data, pprops, samples, csamples):
+    '''
+    Deprecated with new data structure.
+    '''
+    apply_filters(data)
+    validity_filter(data)
+    profile_filter(data, pprops, samples)
+    profile_filter(data, pprops, csamples, prfx = 'c')
+    ubiquity_filter(data)
+    val_ubi_filter(data, ubiquity = ubiquity_treshold)
+    rprofile_filter(data)
+    val_prf_filter(data, treshold = profile_treshold)
+    val_rpr_filter(data)
+    val_ubi_prf_filter(data, treshold = profile_treshold, ubiquity = ubiquity_treshold)
+    val_ubi_prf_rprf_filter(data, treshold = profile_treshold, ubiquity = ubiquity_treshold)
+
 def basic_filters(data, pprops, samples, csamples, 
     profile_treshold = 0.25, ubiquity_treshold = 7):
+    '''
+    Deprecated with new data structure.
+    '''
     apply_filters(data)
     validity_filter(data)
     profile_filter(data, pprops, samples)
@@ -1767,6 +1762,9 @@ def basic_filters(data, pprops, samples, csamples,
 
 def basic_filters_with_evaluation(data, pprops, samples, 
     profile_treshold = 0.25, ubiquity_treshold = 7):
+    '''
+    Deprecated with new data structure.
+    '''
     filtr_results = {}
     for f in ['quality', 'charge', 'area', 'peaksize', 'validity']:
         filtr_results[f] = eval_filter(data, f)
@@ -1798,6 +1796,388 @@ def positive_negative_runtime():
     return timeit.timeit('negative_positive(lipids)', 
         setup = 'from __main__ import negative_positive, lipids', number = 1)
 
+def valid_features(data):
+    '''
+    Creates new dict of arrays with only valid features.
+    Keys:
+        'fe': features
+        'mz': m/z values
+        'i': original index
+    '''
+    apply_filters(data)
+    validity_filter(data)
+    valids = dict((ltp.upper(), {'pos': {}, 'neg': {}}) for ltp in data.keys())
+    for ltp, d in data.iteritems():
+        for pn, tbl in d.iteritems():
+            valids[ltp.upper()][pn]['fe'] = np.array(tbl['smp'][tbl['vld']])
+            valids[ltp.upper()][pn]['mz'] = np.array(tbl['raw'][tbl['vld'], 1])
+            valids[ltp.upper()][pn]['i'] = np.where(tbl['vld'])[0]
+    return valids
+
+def norm_all(valids):
+    '''
+    Creates table with all the profiles normalized
+    Keys:
+        'no': normalized profiles
+    '''
+    for ltp, d in valids.iteritems():
+        for pn, tbl in d.iteritems():
+            tbl['no'] = norm_profiles(tbl['fe'])
+
+def profiles_corr(valids, pprops, samples, metric, prfx):
+    '''
+    Calculates spearman's rank correlation
+    between each feature and the protein profile.
+    '''
+    frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
+    for ltp, d in valids.iteritems():
+        ppr = np.array([pprops[ltp.upper()][frs[i]] \
+            for i, fr in enumerate(samples[ltp]) if fr is not None and i != 0])
+        ppr = norm_profile(ppr).astype(np.float64)
+        for pn, tbl in d.iteritems():
+            tbl['%sv'%prfx] = np.zeros((tbl['no'].shape[0],), dtype = np.float64)
+            tbl['%sp'%prfx] = np.zeros((tbl['no'].shape[0],), dtype = np.float64)
+            for i, fe in enumerate(tbl['no']):
+                vp = metric(fe, ppr)
+                tbl['%sv'%prfx][i] = vp[0]
+                tbl['%sp'%prfx][i] = vp[1]
+
+def gkgamma(x, y):
+    '''
+    Calls Goodman-Kruskal's gamma from vcdExtra
+    R package.
+    '''
+    gkg = rvcd.GKgamma(rbase.matrix(rbase.c(*(list(x) + list(y))), nrow = 2))
+    # gamma, 0.0, C, D, sigma, CIlevel, CI
+    return tuple([gkg[0][0], 0.0] + [i[0] for i in gkg[1:]])
+
+def roco(x, y):
+    '''
+    Calls R function robust correlation coefficient
+    with test from rococo R package.
+    '''
+    x = rbase.c(*x)
+    y = rbase.c(*y)
+    rt = rococo.rococo_test( \
+        rbase.as_vector(rstats.na_omit(x.rx( \
+            rbase.c(*list(np.where(map(lambda i: not i, list(rbase.is_na(y))))[0] + 1))))), \
+        rbase.as_vector(rstats.na_omit(y.rx( \
+            rbase.c(*list(np.where(map(lambda i: not i, list(rbase.is_na(x))))[0] + 1))))))
+    return rt.slots['sample.gamma'][0], rt.slots['p.value'][0]
+
+def _diff_profiles(x, y):
+    '''
+    Wrapper for diff_profiles() to return a tuple.
+    '''
+    return diff_profiles(x, y), 0.0
+
+def euclidean_dist(x, y):
+    _x = x[np.where(~np.logical_or(np.isnan(x), np.isnan(y)))]
+    _y = y[np.where(~np.logical_or(np.isnan(x), np.isnan(y)))]
+    return (sp.spatial.distance.euclidean(_x, _y), 0.0) \
+        if len(_x) > 0 else (np.inf, 0.0)
+
+def profiles_corrs(valids, pprops, samples):
+    '''
+    Calculates an array of similarity/correlation
+    metrics between each MS intensity profile and 
+    the corresponding protein concentration profile.
+    '''
+    metrics = [
+        (stats.spearmanr, 'sp'),
+        (stats.kendalltau, 'kt'),
+        (_diff_profiles, 'df'),
+        (gkgamma, 'gk'),
+        (roco, 'rc'),
+        (euclidean_dist, 'eu'),
+        (stats.pearsonr, 'pe'),
+        (_comp_profiles, 'cp')
+    ]
+    for metric, prfx in metrics:
+        sys.stdout.write('Calculating %s\n' % metric.__name__)
+        profiles_corr(valids, pprops, samples, metric, prfx)
+
+def read_positives(basedir, fname = 'manual_positive.csv'):
+    '''
+    Reads manually annotated positive hits
+    from file.
+    '''
+    with open(os.path.join(basedir, fname), 'r') as f:
+        _result = [[c.strip() for c in l.split('\t')] for l in f.read().split('\n')]
+    result = dict((ltp, []) for ltp in uniqList([x[0] for x in _result if x[0] != '']))
+    for l in _result:
+        if l[0] != '':
+            result[l[0]].append(l)
+    return result
+
+def spec_sens(valids, ltp, pos, metric, asc):
+    '''
+    Calculates specificity, sensitivity, precision,
+    false discovery rate as a function of critical
+    values of a score, for one LTP for one mode.
+    Returns dict of lists.
+    '''
+    result = {'spec': [], 'sens': [], 'prec': [], 'fdr': [], 'cutoff': [], 'n': 0}
+    tbl = valids[ltp][pos]
+    ioffset = 0 if pos == 'pos' else 6
+    if len(tbl['std']) > 0:
+        sort_all(tbl, metric, asc)
+        p = len(tbl['std'])
+        for i, cutoff in enumerate(tbl[metric]):
+            tp = sum([1 for oi in tbl['i'][:i + 1] if oi in tbl['std']])
+            fp = sum([1 for oi in tbl['i'][:i + 1] if oi not in tbl['std']])
+            fn = sum([1 for oi in tbl['i'][i + 1:] if oi in tbl['std']])
+            tn = sum([1 for oi in tbl['i'][i + 1:] if oi not in tbl['std']])
+            result['cutoff'].append(cutoff)
+            result['spec'].append(tn / float(tn + fp))
+            result['sens'].append(tp / float(tp + fn))
+            result['prec'].append(tp / float(tp + fp))
+            result['fdr'].append(fp / float(tp + fp))
+        result['n'] = p
+    return result
+
+def evaluate_scores(valids, stdltps):
+    '''
+    Calculates specificity, sensitivity, precision,
+    false discovery rate as a function of critical
+    values of each scores, for all LTPs with manual
+    positive annotations, for all modes.
+    Returns 4x embedded dicts of
+    LTPs/modes/metrics/performance metrics.
+    E.g. result['STARD10']['pos']['ktv']['sens']
+    '''
+    result = dict((ltp, {'pos': {}, 'neg': {}}) for ltp in stdltps)
+    metrics = [
+        ('Kendall\'s tau', 'ktv', False),
+        ('Spearman corr.', 'spv', False),
+        ('Pearson corr.', 'pev', False),
+        ('Euclidean dist.', 'euv', True),
+        ('Robust corr.', 'rcv', False),
+        ('Goodman-Kruskal\'s gamma', 'gkv', False),
+        ('Difference', 'dfv', True)
+    ]
+    for ltp in stdltps:
+        for pos in ['pos', 'neg']:
+            tbl = valids[ltp][pos]
+            for m in metrics:
+                result[ltp][pos][m[1]] = spec_sens(valids, ltp, pos, m[1], m[2])
+    return result
+
+def plot_score_performance(perf):
+    metrics = [
+        ('Kendall\'s tau', 'ktv', False),
+        ('Spearman corr.', 'spv', False),
+        ('Pearson corr.', 'pev', False),
+        ('Euclidean dist.', 'euv', True),
+        ('Robust corr.', 'rcv', False),
+        ('Goodman-Kruskal\'s gamma', 'gkv', False),
+        ('Difference', 'dfv', True)
+    ]
+    perfmetrics = [
+        ('sens', '#6EA945', 'Sensitivity'),
+        ('spec', '#FCCC06', 'Specificity'),
+        ('prec', '#DA0025', 'Precision'),
+        ('fdr', '#007B7F', 'FDR')
+    ]
+    font_family = 'Helvetica Neue LT Std'
+    sns.set(font = font_family)
+    # plt.gca().set_color_cycle(['red', 'green', 'blue', 'yellow'])
+    for ltp, d1 in perf.iteritems():
+        for pos, d2 in d1.iteritems():
+            fig, axs = plt.subplots(len(metrics), figsize = (10, 20), sharex = False)
+            plt.suptitle('Performance of scores :: %s, %s'%(ltp, pos), size = 16)
+            for i, m in enumerate(metrics):
+                for pm in perfmetrics:
+                    axs[i].plot(d2[m[1]]['cutoff'], d2[m[1]][pm[0]], 
+                        '-', linewidth = 0.33, color = pm[1], label = pm[2])
+                leg = axs[i].legend()
+                axs[i].set_ylabel('Performance\nmetrics')
+                axs[i].set_xlabel('%s value'%m[0])
+                axs[i].set_title(m[0])
+                if m[2]:
+                    axs[i].set_xlim(axs[i].get_xlim()[::-1])
+            fig.tight_layout()
+            plt.subplots_adjust(top = 0.95)
+            fig.savefig('score_performance_%s-%s.pdf'%(ltp, pos))
+            plt.close(fig)
+
+def plot_roc(perf):
+    metrics = [
+        ('Kendall\'s tau', 'ktv', False),
+        ('Spearman corr.', 'spv', False),
+        ('Pearson corr.', 'pev', False),
+        ('Euclidean dist.', 'euv', True),
+        ('Robust corr.', 'rcv', False),
+        ('Goodman-Kruskal\'s gamma', 'gkv', False),
+        ('Difference', 'dfv', True)
+    ]
+    def colors():
+        _colors = ['#6EA945', '#FCCC06', '#DA0025', '#007B7F', '#454447', '#996A44']
+        for c in _colors:
+            yield c
+    font_family = 'Helvetica Neue LT Std'
+    sns.set(font = font_family)
+    # plt.gca().set_color_cycle(['red', 'green', 'blue', 'yellow'])
+    fig, axs = plt.subplots((len(metrics) + len(metrics) % 2) / 2, 2,
+        figsize = (10, 20), sharex = False, sharey = False)
+    plt.suptitle('Reciever operating characteristics', size = 16)
+    for i, m in enumerate(metrics):
+        c = colors()
+        ax = axs[i/2][i%2]
+        for ltp, d1 in perf.iteritems():
+            for pos, d2 in d1.iteritems():
+                ax.plot(1 - np.array(d2[m[1]]['spec']), np.array(d2[m[1]]['sens']), 
+                    '-', linewidth = 0.33, color = c.next(), 
+                    label = '%s-%s n = %u' % (ltp, pos, d2[m[1]]['n']))
+        ax.plot([0,1], [0,1], '--', linewidth = 0.33, color = '#777777')
+        leg = ax.legend(loc = 4)
+        ax.set_ylabel('Sensitivity')
+        ax.set_xlabel('1 - Specificity')
+        ax.set_title('ROC :: %s'%m[0])
+    fig.tight_layout()
+    plt.subplots_adjust(top = 0.95)
+    fig.savefig('roc.pdf')
+    plt.close(fig)
+
+def best_combined(valids, scores, best = 10, ubiquity_treshold = 5):
+    for ltp, d in valids.iteritems():
+        for pn, tbl in d.iteritems():
+            sorted_scores = []
+            for sc in scores:
+                oi_sorted = np.copy(tbl['i'][tbl[sc[0]].argsort()])
+                if sc[1]:
+                    sorted_scores.append(oi_sorted)
+                else:
+                    sorted_scores.append(oi_sorted[::-1])
+            all_ranks = np.empty((len(scores), len(tbl['i'])))
+            for j, oi in enumerate(tbl['i']):
+                for i, scs in enumerate(sorted_scores):
+                    for si, sc in enumerate(scs):
+                        if oi == sc:
+                            if tbl['cpv'][j] < 1.0 or \
+                                np.isnan(np.sum([tbl[s[0]][j] for s in scores])) or \
+                                ('ubi' in tbl and tbl['ubi'][j] > ubiquity_treshold):
+                                all_ranks[i,j] = np.inf
+                            else:
+                                all_ranks[i,j] = si
+            combined_ranks = np.sum(all_ranks, axis = 0)
+            best_oi = tbl['i'][np.argsort(combined_ranks)][:best]
+            tbl['best%u'%best] = best_oi
+
+def best_gk_eu(valids, best = 10):
+    best_combined(valids, [('gkv', False), ('euv', True)], best = best)
+
+def best_table(valids, fname, pos, best = 10):
+    hdr = ['LTP', 'm/z', 'Database_ID', 'Level', 'Full_name', 'Formula', 'Adduct', 'Database_m/z', 'Adduct_m/z']
+    sort_alll(valids, 'mz')
+    with open(fname, 'w') as f:
+        f.write('\t'.join(hdr) + '\n')
+        for ltp, d in valids.iteritems():
+            tbl = d[pos]
+            for oi in tbl['best%u'%best]:
+                i = np.where(tbl['i'] == oi)[0]
+                mz = tbl['mz'][i]
+                if tbl['lip'][oi] is not None:
+                    for lip in tbl['lip'][oi]:
+                        f.write('\t'.join([ltp, '%.08f'%mz] + [str(x) for x in list(lip)]) + '\n')
+                else:
+                    f.write('\t'.join([ltp, '%.08f'%mz] + ['unknown']*6) + '\n')
+
+def true_positives(valids, stdpos, ltp, pos = 'pos', tolerance = 0.02):
+    '''
+    For one LTP having known binders looks up these
+    among the valid features either in positive OR
+    negative mode. (So you need to run twice, once
+    for +, once for -.)
+    '''
+    ioffset = 0 if pos == 'pos' else 6
+    valids[ltp][pos]['std'] = {}
+    for fe in stdpos[ltp]:
+        if fe[4 + ioffset] != '':
+            mz = float(fe[ioffset + 4])
+            iu = valids[ltp][pos]['mz'].searchsorted(mz)
+            idx = []
+            if iu < len(valids[ltp][pos]['mz']):
+                u = 0
+                while valids[ltp][pos]['mz'][iu + u] - mz <= tolerance:
+                    idx.append(iu + u)
+                    u += 1
+            if iu > 0:
+                l = 1
+                while mz - valids[ltp][pos]['mz'][iu -l] <= tolerance:
+                    idx.append(iu - l)
+                    l += 1
+            for i in idx:
+                identify_feature(valids[ltp][pos], fe, i, ioffset)
+
+def identify_feature(tbl, fe, i, ioffset):
+    '''
+    For one feature looks up if the lipid database ID
+    and the adduct do match.
+    Adds the matching record from the gold standard
+    to lists in the `std` dict. There can be accessed
+    by the original index.
+    '''
+    result = []
+    oi = tbl['i'][i]
+    if len(np.logical_and(tbl['lip'][oi][:,0] == fe[1 + ioffset], \
+        tbl['lip'][oi][:,4] == fe[5 + ioffset])) > 0:
+        if oi not in tbl['std']:
+            tbl['std'][oi] = []
+        tbl['std'][oi].append(fe)
+    else:
+        sys.stdout.write('Feature %.05f matched, lipid ID hasn\'t been found: %s' % \
+            (fe[4 + ioffset], fe[1 + ioffset]))
+        sys.stdout.flush()
+
+def sortby_score(tbl, attr, asc = True):
+    '''
+    Returns sorted views of normalized features,
+    m/z's and the attribute the sorting carried
+    out by.
+    '''
+    sorted_no = tbl['no'][np.argsort(tbl[attr]),:]
+    sorted_mz = tbl['mz'][np.argsort(tbl[attr])]
+    sorted_attr = np.sort(tbl[attr])
+    if asc:
+        return sorted_no, sorted_mz, sorted_attr
+    else:
+        return sorted_no[::-1], sorted_mz[::-1], sorted_attr[::-1]
+
+def sort_all(tbl, attr, asc = True):
+    '''
+    Sorts all arrays in one table by one specified 
+    attribute.
+    Either ascending or descending.
+    '''
+    ind = tbl[attr].argsort()
+    dim = tbl[attr].shape[0]
+    for k, a in tbl.iteritems():
+        if k != attr and type(tbl[k]) == np.ndarray and tbl[k].shape[0] == dim:
+            if len(a.shape) == 1:
+                if asc:
+                    tbl[k] = tbl[k][ind]
+                else:
+                    tbl[k] = tbl[k][ind][::-1]
+            else:
+                if asc:
+                    tbl[k] = tbl[k][ind,:]
+                else:
+                    tbl[k] = tbl[k][ind,:][::-1]
+    tbl[attr].sort()
+    if not asc:
+        tbl[attr] = tbl[attr][::-1]
+
+def sort_alll(valids ,attr, asc = True):
+    '''
+    Sorts all arrays in all tables by one specified 
+    attribute.
+    Either ascending or descending.
+    '''
+    for d in valids.values():
+        for tbl in d.values():
+            sort_all(tbl, attr, asc)
+
 def get_scored_hits(data):
     hits = val_ubi_prf_rpr_hits(data, ubiquity = 70, profile_best = 50000)
     [v[0].shape[0] if v is not None else None for vv in hits.values() for v in vv.values()]
@@ -1809,7 +2189,9 @@ def get_scored_hits(data):
     return hits_upper
 
 def lipid_lookup(stage0, runtime = None):
-    # obtaining full SwissLipids data
+    '''
+    Obtains full SwissLipids data
+    '''
     pAdducts, nAdducts = get_swisslipids(swisslipids_url, 
         adducts = ['[M+H]+', '[M+NH4]+', '[M-H]-'], formiate = True)
     lipids = find_lipids(stage0, pAdducts, nAdducts)
@@ -1819,15 +2201,27 @@ def lipid_lookup(stage0, runtime = None):
             'pAdducts, nAdducts', number = 1)
     return pAdducts, nAdducts, lipids, runtime
 
-def lipid_lookup_exact(stage0, swisslipids_url, runtime = None):
-    # obtaining full SwissLipids data
-    la5Exacts = get_swisslipids_exact(swisslipids_url)
-    la5Exacts = lipidmaps_exact(exacts = la5Exacts)
-    lipids, unknowns = find_lipids_exact(stage0, la5Exacts, unknown = True)
+def lipid_lookup_exact(valids, swisslipids_url, exacts = None, runtime = None):
+    '''
+    Fetches data from SwissLipids and LipidMaps
+    if not given.
+    Looks up lipids based on exact masses (but
+    taking into account the adducts).
+    Writes hits into arrays in `lip` dict, having
+    original indices as keys.
+    Returns an array of lipid databases with exact
+    masses.
+    '''
+    if exacts is None:
+        la5Exacts = get_swisslipids_exact(swisslipids_url)
+        la5Exacts = lipidmaps_exact(exacts = la5Exacts)
+    else:
+        la5Exacts = exacts
+    find_lipids_exact(valids, la5Exacts)
     if runtime:
-        runtime = timeit.timeit('find_lipids(stage0, la5Exacts)',
-            setup = 'from __main__ import find_lipids, stage0, la5Exacts', number = 1)
-    return la5Exacts, lipids, unknowns, runtime
+        runtime = timeit.timeit('find_lipids(valids, la5Exacts)',
+            setup = 'from __main__ import find_lipids, valids, la5Exacts', number = 1)
+    return la5Exacts, runtime
 
 def evaluate_results(stage0, stage2, lipids, samples_upper, letter = 'e'):
     '''
@@ -1956,7 +2350,7 @@ if __name__ == '__main__':
     stage2_best_all = best_matches((lipids, unknowns), (stage2, stage2_unknown), minimum = 100000)
     # output
     write_out(stage2_best, 'lipid_matches_nov25.csv')
-    write_out(np.vstack(stage2_best, stage2_unknown, 'all_sorted_nov25.csv')
+    write_out(np.vstack((stage2_best, stage2_unknown)), 'all_sorted_nov25.csv')
     # evaluation
     evaluate_results(stage0, stage2, lipids, samples_upper, 'f')
     # LTP, num of lipid hits (min), num of positive-negative matching, 

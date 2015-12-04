@@ -33,6 +33,7 @@ import timeit
 import xlrd
 from xlrd.biffh import XLRDError
 import numpy as np
+import pandas as pd
 from scipy import stats
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -574,6 +575,70 @@ def read_file_np(fname, read_vars = ['Normalized Area']):
     data.sort(key = lambda x: x[1])
     return np.ma.masked_array(data, dtype = 'float64')
 
+def read_file_pd(fname, read_vars = ['Normalized Area']):
+    '''
+    Reads one MS file, returns numpy masked array, 
+    with void mask.
+    Column order:
+    quality, m/z, rt-min, rt-max, charge, control, a9, a10, a11, a12, b1
+    '''
+    dfHdr = ['quality', 'mz', 'rtmin', 'rtmax', 'charge', \
+        'c', 'a9', 'a10', 'a11', 'a12', 'b1']
+    # typos in the headers what need to be fixed
+    typos = {
+        'Sample 5': '',
+        'Sample 6': '',
+        '_ ': '_'
+    }
+    rehdr = re.compile(r'([_0-9a-zA-Z]+)[_\s]([/0-9a-zA-Z\s]+)')
+    refra = re.compile(r'.*_[ab]{1,2}([0-9]{,2}).*')
+    retyp = re.compile(r'(' + '|'.join(typos.keys()) + r')')
+    # order of samples (fractions)
+    sname = [0, 9, 10, 11, 12, 1]
+    # variable names
+    vname = {
+        'm/z': 0,
+        'RT mean': 1,
+        'Normalized Area': 2
+    }
+    data = []
+    # col nums for each variable, for each fraction
+    scols = dict([(var, dict([(i, None) for i in sname])) for var in vname.keys()])
+    with open(fname, 'r') as f:
+        hdr = retyp.sub(lambda x: typos[x.group()], f.readline()).split(',')[1:]
+        cols = [tuple([i] + [x.strip() for x in list(rehdr.match(h).groups(0))]) \
+            for i, h in enumerate(hdr[6:-7])]
+        # testing if order of columns is always 
+        # m/z, RT, norm area; all files passed
+        for c in cols:
+            if c[0] % 3 != vname[c[2]]:
+                sys.stdout.write('erroneous column order: col %u with header %s'\
+                    '\n\tin file %s\n' % (c[0], c[2], fname))
+            fnum = 0 if 'ctrl' in c[1] or 'ctlr' in c[1] \
+                    else int(refra.match(c[1]).groups(0)[0])
+            # assigning columns to variable->fraction slots
+            # col offsets from 6
+            scols[c[2]][fnum] = c
+        for l in f:
+            l = [i.strip() for i in l.split(',')][1:]
+            vals = [to_float(l[0]), to_float(l[2])] + \
+                [to_float(i.strip()) for i in l[3].split('-')] + \
+                [to_float(l[4])]
+            for var, scol in scols.iteritems():
+                # number of columns depends on which variables we need
+                if var in read_vars:
+                    for s in sname:
+                        if scol[s] is None:
+                            vals.append(None)
+                        else:
+                            # col offset is 6 !
+                            vals.append(to_float(l[scol[s][0] + 6]))
+            data.append(vals)
+    data.sort(key = lambda x: x[1])
+    data = pd.DataFrame(data)
+    # data[
+    return data
+
 def read_data(fnames, samples):
     '''
     Iterates through dict of dicts with file paths, reads
@@ -721,36 +786,6 @@ def profile_filter(data, pprops, samples, prfx = ''):
     sys.stdout.write('No protein profiles found for %s\n\n' % ', '.join(notf))
     sys.stdout.flush()
 
-def spearman_filter(data, pprops, samples):
-    frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
-    notf = []
-    prg = progress.Progress(len(data) * 2, 'Profile filter', 1, percent = False)
-    for ltp, d in data.iteritems():
-        for pn, tbl in d.iteritems():
-            prg.step()
-            if ltp.upper() not in pprops:
-                notf.append(ltp)
-                continue
-            # i != 0 : we always drop the blank control
-            ppr = np.array([pprops[ltp.upper()][frs[i]] \
-                for i, fr in enumerate(samples[ltp]) if fr == 1 and i != 0])
-            ppr = norm_profile(ppr).astype(np.float64)
-            prr = stats.rankdata(ppr)
-            pranks = sorted((i for i, x in enumerate(prr)), 
-                key = lambda x: x, reverse = True)
-            ntbl = norm_profiles(tbl['lip'])
-            if tbl['lip'][0,:].count() > 1:
-                flatp = ppr[pranks[0]] - ppr[pranks[1]] < \
-                    ppr[pranks[0]] * 0.1
-            # 0 if have only one fraction in sample
-            tbl['spr'] = np.apply_along_axis(
-                lambda x: diff_profiles(ppr, norm_profile(x)), 
-                    axis = 1, arr = tbl['lip'])
-    prg.terminate()
-    sys.stdout.write('No protein profiles found for %s\n\n' % ', '.join(notf))
-    sys.stdout.flush()
-
-
 def diff_profiles(p1, p2):
     # profiles are numpy arrays
     # of equal length
@@ -780,9 +815,6 @@ def comp_profiles(p1, p2, p1r = False, flatp = False):
 def norm_profile(profile):
     return (profile - np.nanmin(profile.astype(np.float64))) / \
         (np.nanmax(profile) - np.nanmin(profile))
-
-def norm_profiles(tbl):
-    return (tbl - tbl.min(axis = 1, keepdims = True)) / tbl.max(axis = 1, keepdims = True)
 
 def ubiquity_filter_old(data, proximity = 0.02, only_valid = True):
     prg = progress.Progress(len(data)**2, 'Ubiquity filter', 1)
@@ -1799,7 +1831,7 @@ def positive_negative_runtime():
         setup = 'from __main__ import negative_positive, lipids', number = 1)
 
 def get_scored_hits(data):
-    hits = val_ubi_prf_rpr_hits(data, ubiquity = 70, profile_best = 50000)
+    hits = val_ubi_prf_rpr_hits(data, ubiquity = 70, profile_best = 1000)
     [v[0].shape[0] if v is not None else None for vv in hits.values() for v in vv.values()]
     hits_upper = dict((l.upper(), {'pos': None, 'neg': None}) for l in hits.keys())
     for l, d in hits.iteritems():
