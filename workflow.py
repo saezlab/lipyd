@@ -27,36 +27,103 @@ import sys
 from common import *
 from ltp import *
 
-#data, fnames, samples, csamples, pprops = \
+'''
+Initializing from the beginning.
+'''
+#data, fnames, samples, csamples, pprofs = \
 #    init_from_scratch(basedir, ltpdirs, pptablef, samplesf)
-data, fnames, samples, csamples, samples_upper, pprops = ltp.init_reinit(ltp.basedir)
+
+'''
+Here we reload the workspace including all the data from the pickle:
+'''
+data, fnames, samples, csamples, samples_upper, pprofs = ltp.init_reinit(ltp.basedir)
+
+'''
+Setting the protein concentrations to zero in controls
+out of protein profiles.
+'''
+ltp.zero_controls(samples_upper, pprofs)
+
+'''
+Reloading profiles to know the original values.
+'''
+pprofs_original = ltp.protein_profiles(ltp.ppsecdir, ltp.ppfracf)
+
+'''
+Plotting barcharts of protein profiles.
+'''
+ltp.fractions_barplot(samples_upper, pprofs, pprofs_original)
+
+'''
+Apply basic filters, and obtaining the valid features.
+'''
 ltp.apply_filters(data)
 ltp.validity_filter(data)
 valids = ltp.valid_features(data)
+
+'''
+Normalizing all the features.
+'''
 ltp.norm_all(valids)
-ltp.profiles_corrs(valids, pprops, samples_upper)
+
+'''
+Correlation and similarity metrics between features and
+protein concentration profile.
+'''
+ltp.profiles_corrs(valids, pprofs, samples_upper)
+
+'''
+Calculating ubiquity.
+'''
 ltp.sort_alll(valids, 'mz')
 ltp.ubiquity_filter(valids)
+
+'''
+Lookup lipids for all the valid features.
+'''
 exacts, runtime = ltp.lipid_lookup_exact(valids, ltp.swisslipids_url)
+
+'''
+Looking up gold standard.
+'''
 stdpos = ltp.read_positives(ltp.basedir)
 ltp.sort_alll(valids, 'mz')
 for ltpname in stdpos.keys():
     ltp.true_positives(valids, stdpos, ltpname, 'pos')
     ltp.true_positives(valids, stdpos, ltpname, 'neg')
 
+'''
+Sensitivity, specificity and ROC curve
+'''
 score_perf = ltp.evaluate_scores(valids, stdpos.keys())
 ltp.plot_score_performance(score_perf)
 ltp.plot_roc(score_perf)
+
+'''
+Best hits according to combined Euclidean distance
+and Goodman-Kruskal's gamma.
+'''
 ltp.best_gk_eu(valids)
+
+'''
+Exporting lists of 10 best features per LTP.
+'''
 ltp.best_table(valids, 'best10_positive.csv', 'pos')
 ltp.best_table(valids, 'best10_negative.csv', 'neg')
+
+pFragments = ltp.read_metabolite_lines('lipid_fragments_positive_mode.txt')
+nFragments = ltp.read_metabolite_lines('lipid_fragments_negative_mode.txt')
+ms2files = ltp.ms2_filenames(ltp.ltpdirs)
+ms2map = ltp.ms2_map(ms2files)
+ltp.ms2_main(valids, samples_upper, ms2map, pFragments, nFragments)
+
 #################################################################
 #########################################################
 ###############################
 ################
 ######
 ####
-ltp.basic_filters(data, pprops, samples, csamples)
+ltp.basic_filters(data, pprofs, samples, csamples)
 # stage0 :: feature filtering
 stage0 = ltp.get_scored_hits(data)
 # stage1 :: lipids
@@ -80,7 +147,7 @@ evaluate_results(stage0, stage2, lipids, samples_upper, 'f')
 # processing MS2
 pFragments = read_metabolite_lines('lipid_fragments_positive_mode.txt')
 nFragments = read_metabolite_lines('lipid_fragments_negative_mode.txt')
-ms2files = ms2_filenames(ltpdirs)
+ms2files = ltp.ms2_filenames(ltp.ltpdirs)
 ms2map = ms2_map(ms2files)
 ms2_main(ms2map, stage2_best, pFragments, nFragments)
 ms2_main(ms2map, stage2_best_unknown, pFragments, nFragments)

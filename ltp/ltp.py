@@ -380,9 +380,13 @@ def protein_profiles(basedir, ppfracf):
         frac_abs = dict((i[2], []) for i in frac)
         gfrac = (i for i in frac)
         fr = gfrac.next()
-        tbl = read_xls(os.path.join(basedir, fname))[3:]
+        try:
+            tbl = read_xls(os.path.join(basedir, fname))[3:]
+        except xlrd.biffh.XLRDError:
+            sys.stdout.write('Error reading XLS:\n\t%s\n'%os.path.join(basedir, fname))
         minabs = min(0.0, min(to_float(l[5]) for l in tbl))
         for l in tbl:
+            # l[4]: volume (ml)
             ml = to_float(l[4])
             if ml < fr[0]:
                 continue
@@ -391,22 +395,30 @@ def protein_profiles(basedir, ppfracf):
                     fr = gfrac.next()
                 except StopIteration:
                     break
+            # l[5] mAU UV3 215nm
             frac_abs[fr[2]].append(to_float(l[5]) - minabs)
         result[ltpname] = dict((fnum, np.mean(a)) for fnum, a in frac_abs.iteritems())
     return result
 
-def write_pptable(pprops, pptablef):
+def zero_controls(samples, pprofs):
+    fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
+    for ltpname, sample in samples.iteritems():
+        for i, fr in enumerate(fracs):
+            if sample[i + 1] == 0:
+                pprofs[ltpname][fr] = 0.0
+
+def write_pptable(pprofs, pptablef):
     '''
     Writes protein profiles in a table, so we don't need to read
     all the 60 XLS files every time.
     '''
     with open(pptablef, 'w') as f:
-        f.write('\t%s%s' % ('\t'.join(sorted(pprops.values()[0].keys(), 
+        f.write('\t%s%s' % ('\t'.join(sorted(pprofs.values()[0].keys(), 
             key = lambda x: (x[0], int(x[1:])))), '\n'))
         f.write('\n'.join('%s\t%s' % (ltp, 
                 '\t'.join('%.20f'%d[fr] for fr in sorted(d.keys(), 
                     key = lambda x: (x[0], int(x[1:]))))) \
-            for ltp, d in pprops.iteritems()))
+            for ltp, d in pprofs.iteritems()))
 
 def read_pptable(pptablef):
     '''
@@ -706,10 +718,10 @@ def peaksize_filter(data, peak = 2.0):
                 #tbl['pks'][i] = bool(sum(max(ss/cc >= peak for cc in c) for ss in s))
     prg.terminate()
 
-def cprofile_filter(data, pprops, samples):
-    profile_filter(data, pprops, samples, prfx = 'c')
+def cprofile_filter(data, pprofs, samples):
+    profile_filter(data, pprofs, samples, prfx = 'c')
 
-def profile_filter(data, pprops, samples, prfx = ''):
+def profile_filter(data, pprofs, samples, prfx = ''):
     frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
     notf = []
     cols = 'smp' if prfx == 'c' else 'lip'
@@ -717,11 +729,11 @@ def profile_filter(data, pprops, samples, prfx = ''):
     for ltp, d in data.iteritems():
         for pn, tbl in d.iteritems():
             prg.step()
-            if ltp.upper() not in pprops:
+            if ltp.upper() not in pprofs:
                 notf.append(ltp)
                 continue
             # i != 0 : we always drop the blank control
-            ppr = np.array([pprops[ltp.upper()][frs[i]] \
+            ppr = np.array([pprofs[ltp.upper()][frs[i]] \
                 for i, fr in enumerate(samples[ltp]) if fr == 1 and i != 0])
             ppr = norm_profile(ppr).astype(np.float64)
             prr = stats.rankdata(ppr)
@@ -1096,8 +1108,8 @@ def save_data(data, basedir, fname = 'features.pickle'):
 def load_data(basedir, fname = 'features.pickle'):
     return pickle.load(open(os.path.join(basedir, fname), 'rb'))
 
-def save(fnames, samples, pprops, basedir, fname = 'save.pickle'):
-    pickle.dump((fnames, samples, pprops), open(os.path.join(basedir, fname), 'wb'))
+def save(fnames, samples, pprofs, basedir, fname = 'save.pickle'):
+    pickle.dump((fnames, samples, pprofs), open(os.path.join(basedir, fname), 'wb'))
 
 def load(basedir, fname = 'save.pickle'):
     return pickle.load(open(os.path.join(basedir, fname), 'rb'))
@@ -1395,7 +1407,8 @@ def read_metabolite_lines(fname):
             MetabMass, MetabType, MetabCharge = Line.split('\t')
             Metabolites.append([to_float(MetabMass), MetabType, MetabCharge])
             if '+' not in MetabCharge and '-' not in MetabCharge and 'NL' not in MetabCharge:
-                sys.stdout.write('WARNING: fragment %s has no valid charge information!\n' % metabolites[metabolite][1])
+                sys.stdout.write('WARNING: fragment %s has no valid charge information!\n' % \
+                    metabolites[metabolite][1])
     return np.array(Metabolites, dtype = np.object)
 
 def ms2_filenames(ltpdirs):
@@ -1452,13 +1465,13 @@ def ms2_map(ms2files):
     result = dict((ltp.upper(), {'pos': None, 'neg': None, 
             'ms2files': {'pos': {}, 'neg': {}}}) \
         for ltp, d in ms2files.iteritems())
-    prg = progress.Progress(len(ms2files), 'Indexing MS2 data', 1, percent = False)
+    prg = progress.Progress(len(ms2files) * 2, 'Indexing MS2 data', 1, percent = False)
     for ltp, d in ms2files.iteritems():
-        prg.step()
         pFeatures = []
         nFeatures = []
         ultp = ltp.upper()
         for pn, files in d.iteritems():
+            prg.step()
             features = pFeatures if pn == stRpos else nFeatures
             #fractions = set([])
             for fr, fl in files.iteritems():
@@ -1496,76 +1509,54 @@ def ms2_map(ms2files):
     prg.terminate()
     return result
 
-def ms2_main(ms2map, ms1matches, pFragments, nFragments, tolerance = 0.01, verbose = False):
+def ms2_main(valids, samples, ms2map, pFragments, nFragments, 
+    tolerance = 0.01, verbose = False):
+    '''
+    For all LTPs and modes obtains the MS2 data from original files.
+    '''
     # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
-    prg = progress.Progress(len(ms1matches), 'Looking up MS2 fragments', 1, percent = False)
-    for ltp, d in ms1matches.iteritems():
-        prg.step()
-        if d['pos'].shape[1] == 15:
-            for pn in ['pos', 'neg', 'both']:
-                if len(d[pn]) > 0:
-                    plusCols = 2 if pn == 'both' else 1
-                    ms1matchesPlus = np.zeros((d[pn].shape[0], d[pn].shape[1] + plusCols), dtype = np.object)
-                    ms1matchesPlus[:,:-plusCols] = d[pn]
-                    d[pn] = ms1matchesPlus
-                    del ms1matchesPlus
-        posMzs = []
-        negMzs = []
+    prg = progress.Progress(len(valids) * 2, 'Looking up MS2 fragments', 1, 
+        percent = False)
+    for ltp, d in valids.iteritems():
         for pn, tbl in d.iteritems():
-            if pn == 'both' and len(tbl) > 0:
-                posMzs += list(tbl[:,0])
-                negMzs += list(tbl[:,13])
-            elif pn == 'pos':
-                posMzs += list(tbl[:,1])
-            elif pn == 'neg':
-                negMzs += list(tbl[:,1])
-        posMzs = uniqList(posMzs)
-        negMzs = uniqList(negMzs)
-        pos_matches = ms2_match(posMzs, ms2map, ltp, 'pos', tolerance)
-        ms2matches = ms2_lookup(ms2map[ltp]['pos'], pos_matches, ms2map[ltp]['ms2files']['pos'], pFragments)
-        ms2_results(ms2matches, d, 'pos')
-        #print sum(d['pos'][:,-1] != 0)
-        #print sum(d['both'][:,-2] != 0)
-        neg_matches = ms2_match(negMzs, ms2map, ltp, 'neg', tolerance)
-        ms2matches = ms2_lookup(ms2map[ltp]['neg'], neg_matches, ms2map[ltp]['ms2files']['neg'], nFragments)
-        ms2_results(ms2matches, d, 'neg')
-        #print sum(d['neg'][:,-1] != 0)
-        #print sum(d['both'][:,-1] != 0)
-        if verbose:
-            print '\n'
-            print 'number of positive mzs:', len(posMzs)
-            print 'negative matching:', len(pos_matches)
-            print 'number of negative mzs:', len(negMzs)
-            print 'negative matching:', len(neg_matches)
+            prg.step()
+            fragments = pFragments if pn == 'pos' else nFragments
+            ms2matches = ms2_match(tbl['mz'], tbl['rt'], tbl['i'], ms2map, 
+                ltp, pn, tolerance)
+            # this already returns final result, from protein containing
+            # fractions and with the relevant retention times
+            tbl['ms2'] = ms2_lookup(ms2map[ltp][pn], ms2matches, samples[ltp], 
+                ms2map[ltp]['ms2files'][pn], fragments)
+            tbl['ms2r'] = ms2_result(tbl['ms2'])
+            if verbose:
+                print '\n'
+                print 'number of positive mzs:', len(posMzs)
+                print 'negative matching:', len(pos_matches)
+                print 'number of negative mzs:', len(negMzs)
+                print 'negative matching:', len(neg_matches)
     prg.terminate()
 
-def ms2_results(ms2matches, tbl, pos):
-    bothCol = 0 if pos == 'pos' else 12
-    bothMs2Col = -2 if pos == 'pos' else -1
-    ms1mz = None
-    written1 = 0
-    written2 = 0
-    for i in xrange(len(ms2matches)):
-        if ms1mz == ms2matches[i,0]:
-            continue
-        ms1mz = ms2matches[i,0]
-        ms2res = ms2_collect(ms2matches, ms1mz)
-        #print 'positive: %u' % (len(ms2res))
-        #print ms2res
-        for ms1i in np.flatnonzero(tbl[pos][:,1] == ms1mz):
-            tbl[pos][ms1i,-1] = ms2res
-            written1 += 1
-        if len(tbl['both']) > 0:
-            for ms1i in np.flatnonzero(tbl['both'][:,bothCol] == ms1mz):
-                tbl['both'][ms1i,-bothMs2Col] = ms2res
-                written2 += 1
-    #print '\nintended to write %u and %u values' % (written1, written2)
-    #print '%u and %u have been written' % (sum(tbl[pos][:,-1] != 0), sum(tbl['both'][:,-bothMs2Col] != 0))
+def ms2_result(ms2matches):
+    '''
+    Extracts the most relevant information from the MS2
+    result arrays, throwing away the rest.
+    '''
+    result = dict((oi, []) for oi in ms2matches.keys())
+    for oi, ms2s in ms2matches.iteritems():
+        # columns: MS2 fragment name, MS2 adduct name, MS2 m/z, MS2 intensity
+        result[oi].append([ms2s[7], ms2s[8], ms2s[1], ms2s[2]])
+    for oi, ms2s in result.iteritems():
+        result[oi] = np.vstack(ms2s)
+    return result
 
-def ms2_match(ms1Mzs, ms2map, ltp, pos, tolerance = 0.01):
+def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.01):
+    '''
+    Looks up matching pepmasses for a list of MS1 m/z's.
+    '''
     matches = []
     ms2tbl = ms2map[ltp][pos]
-    for ms1Mz in ms1Mzs:
+    # iterating over MS1 m/z, MS1 original index, and retention time
+    for ms1Mz, ms1i, rt in zip(ms1Mzs, ms1is, ms1Rts):
         # if error comes here, probably MS2 files are missing
         try:
             iu = ms2tbl[:,0].searchsorted(ms1Mz)
@@ -1575,51 +1566,93 @@ def ms2_match(ms1Mzs, ms2map, ltp, pos, tolerance = 0.01):
         if iu < ms2tbl.shape[0]:
             while iu + u < ms2tbl.shape[0]:
                 if ms2tbl[iu + u,0] - ms1Mz <= tolerance:
-                    matches.append((ms1Mz, iu + u))
-                    u += 1
+                    # checking retention time
+                    if ms2tbl[iu + u, 2] >= rt[0] and ms2tbl[iu + u, 2] <= rt[1]:
+                        matches.append((ms1Mz, iu + u, ms1i))
+                        u += 1
                 else:
                     break
         l = 1
         if iu > 0:
             while iu >= l:
                 if ms1Mz - ms2tbl[iu - l,0] <= tolerance:
-                    matches.append((ms1Mz, iu - l))
-                    l += 1
+                    # checking retention time
+                    if ms2tbl[iu - l, 2] >= rt[0] and ms2tbl[iu - l, 2] <= rt[1]:
+                        matches.append((ms1Mz, iu - l, ms1i))
+                        l += 1
                 else:
                     break
     return sorted(uniqList(matches), key = lambda x: x[0])
 
-def ms2_lookup(ms2map, ms1matches, ms2files, fragments):
-    #print 'ms2_lookup() starts'
+def ms2_lookup(ms2map, ms1matches, samples, ms2files, fragments):
+    '''
+    For the matching MS2 m/z's given, reads and identifies
+    the list of fragments.
+    '''
+    # indices of fraction numbers
+    sample_i = {
+        9: 1, 10: 2, 11: 3, 12: 4, 1: 5
+    }
+    stRcharge = 'CHARGE'
+    # opening all files to have file pointers ready
     files = dict((fr, open(fname, 'r')) for fr, fname in ms2files.iteritems())
-    ms2matches = []
-    for ms1mz, ms2i in ms1matches:
+    # Initializing dict with original indices
+    ms2matches = dict((m[2], []) for m in ms1matches)
+    # iterating over MS1 m/z, MS2 table index, MS1 original index
+    for ms1mz, ms2i, ms1oi in ms1matches:
+        # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
         ms2item = ms2map[ms2i,:]
         fr = int(ms2item[5])
-        if fr in files:
+        # only samples with the LTP
+        if samples[sample_i[fr]] == 1 and fr in files:
             f = files[fr]
+            # jumping to offset
             f.seek(ms2item[4])
-            charge = f.readline().strip()
+            # zero means no clue about charge
+            charge = 0
             for l in f:
+                if l[:6] == stRcharge:
+                    # one chance to obtain the charge
+                    charge = int(l[-1])
+                    continue
                 if not l[0].isdigit():
+                    # finish at next section
                     break
                 else:
+                    # reading fragment masses
                     mass, intensity = l.strip().split()
                     mass = float(mass)
                     intensity = float(intensity)
+                    # matching fragment --- direct
                     ms2hit1 = ms2_identify(mass, fragments, compl = False)
+                    # matching fragment --- inverted
                     ms2hit2 = ms2_identify(ms2item[0] - mass, fragments, compl = True)
+                    # matched fragment --- direct
+                    # columns (14): 
+                    # MS1 m/z, MS2 fragment m/z, MS2 fragment intensity, 
+                    # MS2 table index, direct/inverted match, fraction number, 
+                    # MS2 fragment m/z in annotation, MS2 fragment name,
+                    # MS2 adduct name, 
+                    # MS1 pepmass, MS1 intensity, rtime, MS2 scan, 
+                    # MS2 file offset, fraction number
                     if ms2hit1 is not None:
-                        ms2matches.append(np.concatenate((np.array([ms1mz, mass, intensity, ms2i, 0, fr]), ms2hit1, ms2item)))
+                        ms2matches[oi].append(np.concatenate((np.array([ms1mz, mass, 
+                            intensity, ms2i, 0, fr]), ms2hit1, ms2item)))
+                    # matched fragment --- inverted
                     if ms2hit2 is not None:
-                        ms2matches.append(np.concatenate((np.array([ms1mz, mass, intensity, ms2i, 1, fr]), ms2hit2, ms2item)))
+                        ms2matches[oi].append(np.concatenate((np.array([ms1mz, mass, 
+                            intensity, ms2i, 1, fr]), ms2hit2, ms2item)))
+                    # no fragment matched --- unknown fragment
                     if ms2hit1 is None and ms2hit2 is None:
-                        ms2matches.append(np.concatenate((np.array([ms1mz, mass, intensity, ms2i, 0, fr]), np.array([None, 'Unknown', '']), ms2item)))
+                        ms2matches[oi].append(np.concatenate((np.array([ms1mz, mass, 
+                            intensity, ms2i, 0, fr]), 
+                            np.array([None, 'unknown', 'unknown']), 
+                            ms2item)))
+    # removing file pointers
     for f in files.values():
         f.close()
-    if len(ms2matches) > 0:
-        ms2matches = np.vstack(sorted(ms2matches, key = lambda x: x[0]))
-    #print 'ms2_lookup() ends'
+    for oi, ms2match in ms2matches.iteritems():
+        ms2matches[oi] = np.vstack(ms2match)
     return ms2matches
 
 def ms2_identify(mass, fragments, compl, tolerance = 0.01):
@@ -1706,35 +1739,35 @@ def init_from_scratch(basedir, ltpdirs, pptablef, samplesf):
     fnames = dict(get_filenames(ltpdirs[0]).items() + get_filenames(ltpdirs[1]).items())
     samples = read_samples(samplesf)
     # at first run, after reading from saved textfile
-    pprops = protein_profiles(ppsecdir, ppfracf)
-    write_pptable(pprops, pptablef)
+    pprofs = protein_profiles(ppsecdir, ppfracf)
+    write_pptable(pprofs, pptablef)
     del fnames['ctrl']
-    save(fnames, samples, pprops, basedir)
+    save(fnames, samples, pprofs, basedir)
     csamples = samples_with_controls(samples)
     samples_upper = upper_samples(samples)
     data = read_data(fnames, samples)
     save_data(data, basedir)
-    return data, fnames, samples, csamples, samples_upper, pprops
+    return data, fnames, samples, csamples, samples_upper, pprofs
 
 def init_reinit(basedir):
     '''
     Initializing from preprocessed and dumped data.
     Pickle file has a 2.0GB size.
     '''
-    fnames, samples, pprops = load(basedir)
+    fnames, samples, pprofs = load(basedir)
     data = load_data(basedir)
     csamples = samples_with_controls(samples)
     samples_upper = upper_samples(samples)
-    return data, fnames, samples, csamples, samples_upper, pprops
+    return data, fnames, samples, csamples, samples_upper, pprofs
 
-def stage0_filters(data, pprops, samples, csamples):
+def stage0_filters(data, pprofs, samples, csamples):
     '''
     Deprecated with new data structure.
     '''
     apply_filters(data)
     validity_filter(data)
-    profile_filter(data, pprops, samples)
-    profile_filter(data, pprops, csamples, prfx = 'c')
+    profile_filter(data, pprofs, samples)
+    profile_filter(data, pprofs, csamples, prfx = 'c')
     ubiquity_filter(data)
     val_ubi_filter(data, ubiquity = ubiquity_treshold)
     rprofile_filter(data)
@@ -1743,15 +1776,15 @@ def stage0_filters(data, pprops, samples, csamples):
     val_ubi_prf_filter(data, treshold = profile_treshold, ubiquity = ubiquity_treshold)
     val_ubi_prf_rprf_filter(data, treshold = profile_treshold, ubiquity = ubiquity_treshold)
 
-def basic_filters(data, pprops, samples, csamples, 
+def basic_filters(data, pprofs, samples, csamples, 
     profile_treshold = 0.25, ubiquity_treshold = 7):
     '''
     Deprecated with new data structure.
     '''
     apply_filters(data)
     validity_filter(data)
-    profile_filter(data, pprops, samples)
-    profile_filter(data, pprops, csamples, prfx = 'c')
+    profile_filter(data, pprofs, samples)
+    profile_filter(data, pprofs, csamples, prfx = 'c')
     ubiquity_filter(data)
     val_ubi_filter(data, ubiquity = ubiquity_treshold)
     rprofile_filter(data)
@@ -1760,7 +1793,7 @@ def basic_filters(data, pprops, samples, csamples,
     val_ubi_prf_filter(data, treshold = profile_treshold, ubiquity = ubiquity_treshold)
     val_ubi_prf_rprf_filter(data, treshold = profile_treshold, ubiquity = ubiquity_treshold)
 
-def basic_filters_with_evaluation(data, pprops, samples, 
+def basic_filters_with_evaluation(data, pprofs, samples, 
     profile_treshold = 0.25, ubiquity_treshold = 7):
     '''
     Deprecated with new data structure.
@@ -1775,11 +1808,11 @@ def basic_filters_with_evaluation(data, pprops, samples,
     filtr_results['val_ubi'] = eval_filter(data, 'val_ubi',
         param = {'ubiquity': ubiquity_treshold})
     filtr_results['profile025'] = eval_filter(data, 'profile', 
-        param = {'pprops': pprops, 'samples': samples, 'prfx': ''},
+        param = {'pprofs': pprofs, 'samples': samples, 'prfx': ''},
         runtime = True, repeat = 1, number = 1, 
         hit = lambda x: x <= profile_treshold)
     filtr_results['cprofile025'] = eval_filter(data, 'cprofile', 
-        param = {'pprops': pprops, 'samples': csamples},
+        param = {'pprofs': pprofs, 'samples': csamples},
         runtime = True, repeat = 1, number = 1, 
         hit = lambda x: x <= profile_treshold)
     filtr_results['rprofile'] = eval_filter(data, 'rprofile', runtime = True)
@@ -1811,6 +1844,7 @@ def valid_features(data):
         for pn, tbl in d.iteritems():
             valids[ltp.upper()][pn]['fe'] = np.array(tbl['smp'][tbl['vld']])
             valids[ltp.upper()][pn]['mz'] = np.array(tbl['raw'][tbl['vld'], 1])
+            valids[ltp.upper()][pn]['rt'] = np.array(tbl['raw'][tbl['vld'], 2:4])
             valids[ltp.upper()][pn]['i'] = np.where(tbl['vld'])[0]
     return valids
 
@@ -1824,14 +1858,14 @@ def norm_all(valids):
         for pn, tbl in d.iteritems():
             tbl['no'] = norm_profiles(tbl['fe'])
 
-def profiles_corr(valids, pprops, samples, metric, prfx):
+def profiles_corr(valids, pprofs, samples, metric, prfx):
     '''
     Calculates spearman's rank correlation
     between each feature and the protein profile.
     '''
     frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
     for ltp, d in valids.iteritems():
-        ppr = np.array([pprops[ltp.upper()][frs[i]] \
+        ppr = np.array([pprofs[ltp.upper()][frs[i]] \
             for i, fr in enumerate(samples[ltp]) if fr is not None and i != 0])
         ppr = norm_profile(ppr).astype(np.float64)
         for pn, tbl in d.iteritems():
@@ -1877,7 +1911,7 @@ def euclidean_dist(x, y):
     return (sp.spatial.distance.euclidean(_x, _y), 0.0) \
         if len(_x) > 0 else (np.inf, 0.0)
 
-def profiles_corrs(valids, pprops, samples):
+def profiles_corrs(valids, pprofs, samples):
     '''
     Calculates an array of similarity/correlation
     metrics between each MS intensity profile and 
@@ -1895,7 +1929,39 @@ def profiles_corrs(valids, pprops, samples):
     ]
     for metric, prfx in metrics:
         sys.stdout.write('Calculating %s\n' % metric.__name__)
-        profiles_corr(valids, pprops, samples, metric, prfx)
+        profiles_corr(valids, pprofs, samples, metric, prfx)
+
+def distance_matrix(valids, metrics = ['eu']):
+    _metrics = {
+        'eu': ('Euclidean distance', euclidean_dist)
+    }
+    for m in metrics:
+        sys.stdout.write('Calculating %s\n'%_metrics[m][0])
+        for ltp, d in valids.iteritems():
+            for pn, tbl in d.iteritems():
+                fnum = tbl['no'].shape[0]
+                tbl['%sd'%m] = np.empty((fnum, fnum))
+                # to keep track the order accross sorting
+                tbl['%so'%m] = np.copy(tbl['i'])
+                for i in xrange(fnum - 1):
+                    for j in xrange(i, fnum):
+                        tbl['%sd'%m][i,j] = \
+                            _metrics[m][1](tbl['no'][i,:], tbl['no'][j,:])
+
+def kmeans(valids, pprofs, samples):
+    frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
+    prg = progress.Progress(len(valids) * 2, 'Calculating k-means', 1, percent = False)
+    for ltp, d in valids.iteritems():
+        ppr = np.array([pprofs[ltp.upper()][frs[i]] \
+            for i, fr in enumerate(samples[ltp]) if fr == 1 and i != 0])
+        ppr = norm_profile(ppr).astype(np.float64)
+        for pn, tbl in d.iteritems():
+            prg.step()
+            with_protein = np.vstack(tbl['no'], ppr)
+            whitened = sp.cluster.vq.whiten(with_protein)
+            code_book = sp.cluster.vq.kmeans(whitened, 2)
+            # tbl['km'] = 
+    prg.terminate()
 
 def read_positives(basedir, fname = 'manual_positive.csv'):
     '''
@@ -1962,6 +2028,33 @@ def evaluate_scores(valids, stdltps):
             for m in metrics:
                 result[ltp][pos][m[1]] = spec_sens(valids, ltp, pos, m[1], m[2])
     return result
+
+def fractions_barplot(samples, pprofs, pprofs_original):
+    fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
+    font_family = 'Helvetica Neue LT Std'
+    sns.set(font = font_family)
+    fig, axs = plt.subplots(8, 8, figsize = (20, 20))
+    ltps = sorted(samples.keys())
+    for i in xrange(len(ltps)):
+        ax = axs[i / 8, i % 8]
+        ltpname = ltps[i]
+        ppr = [pprofs[ltpname][fr] for fr in fracs]
+        ppr_o = [pprofs_original[ltpname][fr] for fr in fracs]
+        #B6B7B9 gray
+        #6EA945 mantis
+        #007B7F teal
+        col = ['#6EA945' if s == 1 else '#B6B7B9' if s is None else '#007B7F'\
+            for s in samples[ltpname][1:]]
+        ax.bar(np.arange(len(ppr)), ppr_o, color = col, alpha = 0.1, edgecolor = 'none')
+        ax.bar(np.arange(len(ppr)), ppr, color = col, edgecolor = 'none')
+        ax.set_xticks(np.arange(len(ppr)) + 0.4)
+        ax.set_xticklabels(fracs)
+        ax.set_title('%s protein conc.'%ltpname)
+    fig.tight_layout()
+    fig.savefig('protein_profiles.pdf')
+
+# ltp.fractions_barplot(samples_upper, pprofs)
+
 
 def plot_score_performance(perf):
     metrics = [
@@ -2333,10 +2426,10 @@ def evaluate_results(stage0, stage2, lipids, samples_upper, letter = 'e'):
 # ## ## ## ## ## ## ## ## #
 
 if __name__ == '__main__':
-    #data, fnames, samples, csamples, pprops = \
+    #data, fnames, samples, csamples, pprofs = \
     #    init_from_scratch(basedir, ltpdirs, pptablef, samplesf)
-    data, fnames, samples, csamples, samples_upper, pprops = init_reinit(basedir)
-    basic_filters(data, pprops, samples, csamples)
+    data, fnames, samples, csamples, samples_upper, pprofs = init_reinit(basedir)
+    basic_filters(data, pprofs, samples, csamples)
     # stage0 :: feature filtering
     stage0 = get_scored_hits(data)
     # stage1 :: lipids
