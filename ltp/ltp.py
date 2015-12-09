@@ -1409,7 +1409,7 @@ def read_metabolite_lines(fname):
             if '+' not in MetabCharge and '-' not in MetabCharge and 'NL' not in MetabCharge:
                 sys.stdout.write('WARNING: fragment %s has no valid charge information!\n' % \
                     metabolites[metabolite][1])
-    return np.array(Metabolites, dtype = np.object)
+    return np.array(sorted(Metabolites, key = lambda x: x[0]), dtype = np.object)
 
 def ms2_filenames(ltpdirs):
     '''
@@ -1450,17 +1450,8 @@ def ms2_filenames(ltpdirs):
     return fnames
 
 def ms2_map(ms2files):
-    stRrtinseconds = 'RTINSECONDS'
-    stRtitle = 'TITLE'
-    stRbe = 'BE'
-    stRen = 'EN'
-    stRch = 'CH'
-    stRpepmass = 'PEPMASS'
     stRpos = 'pos'
     stRneg = 'neg'
-    stRcharge = 'CHARGE'
-    stRempty = ''
-    reln = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
     redgt = re.compile(r'[AB]([\d]+)$')
     result = dict((ltp.upper(), {'pos': None, 'neg': None, 
             'ms2files': {'pos': {}, 'neg': {}}}) \
@@ -1477,37 +1468,53 @@ def ms2_map(ms2files):
             for fr, fl in files.iteritems():
                 fr = int(redgt.match(fr).groups()[0])
                 #fractions.add(fr)
-                offset = 0
-                with open(fl, 'r', 8192) as f:
-                    for l in f:
-                        if not l[0].isdigit() and not l[:2] == stRch and \
-                            not l[:2] == stRbe and not l[:2] == stRen:
-                            try:
-                                m = reln.match(l).groups()
-                            except:
-                                print fl, l
-                                continue
-                            if m[0] == stRtitle:
-                                scan = float(m[1])
-                            if m[0] == stRrtinseconds:
-                                rtime = float(m[1])
-                            if m[0] == stRpepmass:
-                                pepmass = float(m[1])
-                                intensity = 0.0 if m[2] == stRempty else float(m[2])
-                                features.append([pepmass, intensity,
-                                    rtime, scan, offset + len(l), fr])
-                                scan = None
-                                rtime = None
-                                intensity = None
-                                pepmass = None
-                        offset += len(l)
+                mm = ms2_index(fl, fr)
+                m = np.vstack(mm)
+                features.extend(mm)
                 result[ultp]['ms2files'][pn][int(fr)] = fl
         pFeatures = np.array(sorted(pFeatures, key = lambda x: x[0]), dtype = np.float64)
         nFeatures = np.array(sorted(nFeatures, key = lambda x: x[0]), dtype = np.float64)
         result[ultp]['pos'] = pFeatures
-        result[ultp]['neg'] = pFeatures
+        result[ultp]['neg'] = nFeatures
     prg.terminate()
     return result
+
+def ms2_index(fl, fr):
+    stRrtinseconds = 'RTINSECONDS'
+    stRtitle = 'TITLE'
+    stRbe = 'BE'
+    stRen = 'EN'
+    stRch = 'CH'
+    stRpepmass = 'PEPMASS'
+    stRcharge = 'CHARGE'
+    stRempty = ''
+    reln = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
+    features = []
+    offset = 0
+    with open(fl, 'rb', 8192) as f:
+        for l in f:
+            if not l[0].isdigit() and not l[:2] == stRch and \
+                not l[:2] == stRbe and not l[:2] == stRen:
+                try:
+                    m = reln.match(l).groups()
+                except:
+                    print fl, l
+                    continue
+                if m[0] == stRtitle:
+                    scan = float(m[1]) / 60.0
+                if m[0] == stRrtinseconds:
+                    rtime = float(m[1]) / 60.0
+                if m[0] == stRpepmass:
+                    pepmass = float(m[1])
+                    intensity = 0.0 if m[2] == stRempty else float(m[2])
+                    features.append([pepmass, intensity,
+                        rtime, scan, offset + len(l), fr])
+                    scan = None
+                    rtime = None
+                    intensity = None
+                    pepmass = None
+            offset += len(l)
+    return features
 
 def ms2_main(valids, samples, ms2map, pFragments, nFragments, 
     tolerance = 0.01, verbose = False):
@@ -1543,13 +1550,13 @@ def ms2_result(ms2matches):
     '''
     result = dict((oi, []) for oi in ms2matches.keys())
     for oi, ms2s in ms2matches.iteritems():
-        # columns: MS2 fragment name, MS2 adduct name, MS2 m/z, MS2 intensity
-        result[oi].append([ms2s[7], ms2s[8], ms2s[1], ms2s[2]])
+        for ms2i in ms2s:
+            result[oi].append(np.array([ms2i[7], ms2i[8], ms2i[1], ms2i[2]], dtype = np.object))
     for oi, ms2s in result.iteritems():
-        result[oi] = np.vstack(ms2s)
+        result[oi] = np.vstack(ms2s) if len(ms2s) > 0 else np.array([])
     return result
 
-def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.01):
+def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02):
     '''
     Looks up matching pepmasses for a list of MS1 m/z's.
     '''
@@ -1569,7 +1576,7 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.01):
                     # checking retention time
                     if ms2tbl[iu + u, 2] >= rt[0] and ms2tbl[iu + u, 2] <= rt[1]:
                         matches.append((ms1Mz, iu + u, ms1i))
-                        u += 1
+                    u += 1
                 else:
                     break
         l = 1
@@ -1579,7 +1586,7 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.01):
                     # checking retention time
                     if ms2tbl[iu - l, 2] >= rt[0] and ms2tbl[iu - l, 2] <= rt[1]:
                         matches.append((ms1Mz, iu - l, ms1i))
-                        l += 1
+                    l += 1
                 else:
                     break
     return sorted(uniqList(matches), key = lambda x: x[0])
@@ -1607,22 +1614,35 @@ def ms2_lookup(ms2map, ms1matches, samples, ms2files, fragments):
         if samples[sample_i[fr]] == 1 and fr in files:
             f = files[fr]
             # jumping to offset
-            f.seek(ms2item[4])
+            f.seek(int(ms2item[4]), 0)
             # zero means no clue about charge
             charge = 0
             for l in f:
                 if l[:6] == stRcharge:
                     # one chance to obtain the charge
-                    charge = int(l[-1])
+                    charge = int(l.strip()[-2])
                     continue
                 if not l[0].isdigit():
                     # finish at next section
                     break
                 else:
                     # reading fragment masses
-                    mass, intensity = l.strip().split()
-                    mass = float(mass)
-                    intensity = float(intensity)
+                    mi = l.strip().split()
+                    try:
+                        mass = float(mi[0])
+                    except ValueError:
+                        print '\n:::\n'
+                        print l[0].isdigit()
+                        print prevp
+                        print prevl
+                        print f.tell()
+                        print l
+                        f.seek(f.tell(), 0)
+                        print f.read(10)
+                        f.seek(prevp, 0)
+                        print f.read(10)
+                        print ':::\n'
+                    intensity = float(mi[1]) if len(mi) > 1 else np.nan
                     # matching fragment --- direct
                     ms2hit1 = ms2_identify(mass, fragments, compl = False)
                     # matching fragment --- inverted
@@ -1636,26 +1656,28 @@ def ms2_lookup(ms2map, ms1matches, samples, ms2files, fragments):
                     # MS1 pepmass, MS1 intensity, rtime, MS2 scan, 
                     # MS2 file offset, fraction number
                     if ms2hit1 is not None:
-                        ms2matches[oi].append(np.concatenate((np.array([ms1mz, mass, 
+                        ms2matches[ms1oi].append(np.concatenate((np.array([ms1mz, mass, 
                             intensity, ms2i, 0, fr]), ms2hit1, ms2item)))
                     # matched fragment --- inverted
                     if ms2hit2 is not None:
-                        ms2matches[oi].append(np.concatenate((np.array([ms1mz, mass, 
+                        ms2matches[ms1oi].append(np.concatenate((np.array([ms1mz, mass, 
                             intensity, ms2i, 1, fr]), ms2hit2, ms2item)))
                     # no fragment matched --- unknown fragment
                     if ms2hit1 is None and ms2hit2 is None:
-                        ms2matches[oi].append(np.concatenate((np.array([ms1mz, mass, 
-                            intensity, ms2i, 0, fr]), 
-                            np.array([None, 'unknown', 'unknown']), 
+                        ms2matches[ms1oi].append(np.concatenate((np.array([ms1mz, mass, 
+                            intensity, ms2i, 0, fr], dtype = np.object), 
+                            np.array([None, 'unknown', 'unknown'], dtype = np.object), 
                             ms2item)))
+                prevl = l
+                prevp = f.tell()
     # removing file pointers
     for f in files.values():
         f.close()
     for oi, ms2match in ms2matches.iteritems():
-        ms2matches[oi] = np.vstack(ms2match)
+        ms2matches[oi] = np.vstack(ms2match) if len(ms2match) > 0 else np.array([])
     return ms2matches
 
-def ms2_identify(mass, fragments, compl, tolerance = 0.01):
+def ms2_identify(mass, fragments, compl, tolerance = 0.02):
     #print 'ms2_indentify() starts'
     iu = fragments[:,0].searchsorted(mass)
     if iu < len(fragments):
