@@ -312,7 +312,8 @@ def get_swisslipids(swisslipids_url, adducts = None, exact_mass = False):
             for i in xrange(13, 23):
                 if len(l[i]) > 0:
                     add = '' if i == 13 else readd.findall(hdr[i])[0]
-                    if not adducts or add in adducts or i == 13 and exact_mass or formiate and i == 13:
+                    if not adducts or add in adducts or i == 13 and \
+                        exact_mass or formiate and i == 13:
                         mz = to_float(l[i])
                         if i == 13:
                             if formiate:
@@ -1480,6 +1481,9 @@ def ms2_map(ms2files):
     return result
 
 def ms2_index(fl, fr):
+    '''
+    Looking up offsets in one MS2 mgf file.
+    '''
     stRrtinseconds = 'RTINSECONDS'
     stRtitle = 'TITLE'
     stRbe = 'BE'
@@ -1678,22 +1682,31 @@ def ms2_lookup(ms2map, ms1matches, samples, ms2files, fragments):
     return ms2matches
 
 def ms2_identify(mass, fragments, compl, tolerance = 0.02):
-    #print 'ms2_indentify() starts'
+    '''
+    Looks up one MS2 m/z value in list of known fragments masses.
+    Either with matching between MS2 m/z and fragment m/z within
+    a given tolerance, or between the fragment mass and the
+    residual mass after substracting MS2 m/z from MS1 m/z.
+    Returns the fragment's mass, name and adduct type, or None
+    in case of no match.
+    '''
     iu = fragments[:,0].searchsorted(mass)
-    if iu < len(fragments):
-        if compl and 'NL' in fragments[iu,2] or \
-            not compl and ('+' in fragments[iu,2] or '-' in fragments[iu,2]):
-            if fragments[iu,0] - mass <= tolerance:
-                #print 'ms2_identify() returns result'
-                return fragments[iu,:]
-            elif iu > 0 and mass - fragments[iu - 1,0] <= tolerance:
-                #print 'ms2_identify() returns result'
-                return fragments[iu - 1,:]
-    #print 'ms2_identify() returns None'
+    if iu < len(fragments) and \
+        (compl and 'NL' in fragments[iu,2] or \
+        not compl and ('+' in fragments[iu,2] or '-' in fragments[iu,2])) and \
+        fragments[iu,0] - mass <= tolerance:
+        return fragments[iu,:]
+    elif iu > 0 and \
+        (compl and 'NL' in fragments[iu - 1,2] or \
+        not compl and ('+' in fragments[iu - 1,2] or '-' in fragments[iu - 1,2])) and \
+        mass - fragments[iu - 1,0] <= tolerance:
+        return fragments[iu - 1,:]
     return None
 
 def ms2_collect(ms2matches, ms1mz, unknown = False):
-    #print 'ms2_collect() starts'
+    '''
+    Deprecated.
+    '''
     result = []
     fragments = ms2matches[ms2matches[:,0] == ms1mz,:]
     for frag in uniqList(fragments[:,7]):
@@ -1705,7 +1718,6 @@ def ms2_collect(ms2matches, ms1mz, unknown = False):
     if unknown:
         unknowns = fragments[fragments[:,7] == 'Unknown',:]
         result += [('Unknown', l[2], l[1]) for l in unknowns]
-    #print 'ms2_collect() ends'
     return result
 
 #
