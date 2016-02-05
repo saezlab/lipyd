@@ -23,6 +23,8 @@ import numpy as np
 import scipy as sp
 import os
 import sys
+import copy
+import cPickle as pickle
 
 from common import *
 from ltp import *
@@ -37,6 +39,10 @@ Initializing from the beginning.
 Here we reload the workspace including all the data from the pickle:
 '''
 data, fnames, samples, csamples, samples_upper, pprofs = ltp.init_reinit(ltp.basedir)
+pprofs_original = copy.deepcopy(pprofs)
+singles = ltp.one_sample(samples_upper)
+
+lipnames = ltp.read_lipid_names(ltp.lipnamesf)
 
 '''
 Setting the protein concentrations to zero in controls
@@ -47,18 +53,15 @@ ltp.zero_controls(samples_upper, pprofs)
 '''
 Reloading profiles to know the original values.
 '''
-pprofs_original = ltp.protein_profiles(ltp.ppsecdir, ltp.ppfracf)
-
-'''
-Plotting barcharts of protein profiles.
-'''
-ltp.fractions_barplot(samples_upper, pprofs, pprofs_original)
+# pprofs_original = ltp.protein_profiles(ltp.ppsecdir, ltp.ppfracf, fnames)
 
 '''
 Apply basic filters, and obtaining the valid features.
 '''
-ltp.apply_filters(data)
-ltp.validity_filter(data)
+if data is not None:
+    ltp.apply_filters(data)
+    ltp.validity_filter(data)
+
 valids = ltp.valid_features(data)
 
 '''
@@ -72,16 +75,122 @@ protein concentration profile.
 '''
 ltp.profiles_corrs(valids, pprofs, samples_upper)
 
+ltp.count_threshold_filter(valids, 'euv', threshold = 3.3, count = 10)
+ltp.count_threshold_filter(valids, 'env', threshold = 0.01, threshold_type = 'best_fraction', count = 10)
+
+ltp.count_threshold_filter(valids, 'env', threshold = 0.33, threshold_type = 'median_relative', count = 1000)
+
+ltp.scores_plot(valids, score = 'env', singles = singles, pdfname = 'scores_median_33pct.pdf')
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'bool_env',
+    highlight2 = False,
+    all_features = True,
+    pdfname = 'protein_profiles_features_all_median_33pct.pdf')
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'bool_env',
+    highlight2 = False,
+    all_features = False,
+    pdfname = 'protein_profiles_features_median_33pct.pdf')
+
+ltp.count_threshold_filter(valids, 'env', threshold = 0.33, threshold_type = 'mean_relative', count = 1000)
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'bool_env',
+    highlight2 = False,
+    all_features = True,
+    pdfname = 'protein_profiles_features_all_mean_33pct.pdf')
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'bool_env',
+    highlight2 = False,
+    all_features = False,
+    pdfname = 'protein_profiles_features_mean_33pct.pdf')
+
+ltp.count_threshold_filter(valids, 'env', threshold = 0.050, threshold_type = 'fix', count = 100)
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'bool_env',
+    highlight2 = False,
+    all_features = True,
+    pdfname = 'protein_profiles_features_all_fix_0.05.pdf')
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'bool_env',
+    highlight2 = False,
+    all_features = False,
+    pdfname = 'protein_profiles_features_fix_0.05.pdf')
+
+ltp.count_threshold_filter(valids, 'env', threshold = 0.10, threshold_type = 'fix', count = 100)
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'bool_env',
+    highlight2 = False,
+    all_features = True,
+    pdfname = 'protein_profiles_features_all_fix_0.1.pdf')
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'bool_env',
+    highlight2 = False,
+    all_features = False,
+    pdfname = 'protein_profiles_features_fix_0.1.pdf')
+
+# ## ## ##
+
+#pn_ratios = {}
+#p_counts = {}
+#n_counts = {}
+#for l, d in valids.iteritems():
+    #pn_ratios[l] = sum(d['pos']['bool_env']) / float(sum(d['neg']['bool_env']))
+    #p_counts[l] = sum(d['pos']['bool_env'])
+    #n_counts[l] = sum(d['neg']['bool_env'])
+    #print l, sum(d['pos']['bool_env']), sum(d['neg']['bool_env'])
+
+#for l, d in valids.iteritems():
+    #for pn, tbl in d.iteritems():
+        #tbl['env30'] = np.array([True] * 30 + [False] * (len(tbl['env']) - 20))
+
+
 '''
-Calculating ubiquity.
+Plotting barcharts of protein profiles.
+'''
+ltp.fractions_barplot(samples_upper, pprofs, pprofs_original)
+ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = False, valids = valids)
+
+'''
+Calculating ubiquity. (variable name: `ubi`)
 '''
 ltp.sort_alll(valids, 'mz')
 ltp.ubiquity_filter(valids)
+timeit.timeit('ltp.ubiquity_filter(valids)', 
+    setup = 'from __main__ import ltp, valids', number = 1)
+
 
 '''
-Lookup lipids for all the valid features.
+Lookup lipids for all the valid features. (variable name: `lip`)
 '''
-exacts, runtime = ltp.lipid_lookup_exact(valids, ltp.swisslipids_url)
+exacts = None
+exacts, runtime = ltp.lipid_lookup_exact(valids, ltp.swisslipids_url, exacts = exacts, lipnames = lipnames)
+ltp.negative_positive2(valids, lipnames)
+ms1tab_coln, ms1tab = ltp.ms1_table(valids, lipnames)
+ltp.ms1_headgroups(valids)
+ltp.headgroups_negative_positive(valids, 'ms1')
+
+ltp.ms1_table_html(valids, lipnames)
+ltp.ms1_table_html_simple(valids, lipnames)
+ltp.ms2_table_html_simple(valids, lipnames)
+
+## THIS IS NOT NEEDED ANY MORE ##
 
 '''
 Looking up gold standard.
@@ -111,11 +220,15 @@ Exporting lists of 10 best features per LTP.
 ltp.best_table(valids, 'best10_positive.csv', 'pos')
 ltp.best_table(valids, 'best10_negative.csv', 'neg')
 
-pFragments = ltp.read_metabolite_lines('lipid_fragments_positive_mode.txt')
-nFragments = ltp.read_metabolite_lines('lipid_fragments_negative_mode.txt')
+## UNTIL HERE ##
+
+pFragments, pHgfrags, pHeadgroups = ltp.read_metabolite_lines('lipid_fragments_positive_mode.txt')
+nFragments, nHgfrags, nHeadgroups = ltp.read_metabolite_lines('lipid_fragments_negative_mode.txt')
 ms2files = ltp.ms2_filenames(ltp.ltpdirs)
 ms2map = ltp.ms2_map(ms2files)
 ltp.ms2_main(valids, samples_upper, ms2map, pFragments, nFragments)
+ltp.ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups)
+ltp.headgroups_negative_positive(valids, 'ms2')
 
 #################################################################
 #########################################################

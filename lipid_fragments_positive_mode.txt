@@ -1,12 +1,12 @@
-86.096425	PC/SM choline (86.0964)	[M+H]+
-115.003447	PA headgroup+NH3 (NL 115.0034)	NL positive mode
-141.019097	PE headgroup (NL 141.0191)	NL positive mode
-184.073323	PC/SM headgroup (cholin+phosphate) (184.0733)	[M+H]+
-189.040227	PG headgroup+NH3 (NL 189.0402)	NL positive mode
-252.268575	Cer sphingosine(d18:1)-carbon-2xH2O (252.2686)	[M+H]+
-264.268575	Cer sphingosine(d18:1)-2xH2O (264.2686)	[M+H]+
-282.27914	Cer/SM sphingosine(d18:1)-H2O (282.2791)	[M+H]+
-369.351576	CE headgroup (369.3516)	[M+H]+
+86.096425	PC/SM choline (86.0964)	[M+H]+	PC;SM
+115.003447	PA headgroup+NH3 (NL 115.0034)	NL positive mode	PA
+141.019097	PE headgroup (NL 141.0191)	NL positive mode	PE
+184.073323	PC/SM headgroup (cholin+phosphate) (184.0733)	[M+H]+	PC;SM
+189.040227	PG headgroup+NH3 (NL 189.0402)	NL positive mode	PG;BMP
+252.268575	Cer sphingosine(d18:1)-carbon-2xH2O (252.2686)	[M+H]+	Cer;SPH
+264.268575	Cer sphingosine(d18:1)-2xH2O (264.2686)	[M+H]+	Cer;SM;SPH
+282.27914	Cer/SM sphingosine(d18:1)-H2O (282.2791)	[M+H]+	Cer;SM;SPH
+369.351576	CE headgroup (369.3516)	[M+H]+	CE
 77.047679	NL FA C2:0 + NH3	NL positive mode
 91.063329	NL FA C3:0 + NH3	NL positive mode
 105.078979	NL FA C4:0 + NH3	NL positive mode
