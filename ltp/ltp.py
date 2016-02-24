@@ -23,6 +23,7 @@ import os
 import sys
 import struct
 import time
+import datetime
 try:
     import cPickle as pickle
 except:
@@ -40,8 +41,6 @@ import scipy.cluster.hierarchy as hc
 import fastcluster
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-import matplotlib.gridspec as gridspec
 import seaborn as sns
 import rpy2.robjects.packages as rpackages
 rvcd = rpackages.importr('vcdExtra')
@@ -2444,7 +2443,7 @@ def plot_heatmaps_dendrograms(valids, dist = 'en',
     '''
     t0 = time.time()
     cmap = plt.get_cmap('inferno') if cmap is None else cmap
-    with PdfPages(fname) as pdf:
+    with mpl.backends.backend_pdf.PdfPages(fname) as pdf:
         prg = progress.Progress(len(valids)*2 if ltps is None else len(ltps)*2,
             'Plotting heatmaps with dendrograms', 1, percent = False)
         for ltp, d in valids.iteritems():
@@ -2455,12 +2454,13 @@ def plot_heatmaps_dendrograms(valids, dist = 'en',
                     _link_colors = _get_link_colors(tbl, dist, cmap)
                     mpl.rcParams['lines.linewidth'] = 0.1
                     mpl.rcParams['font.family'] = 'Helvetica Neue LT Std'
-                    fig = plt.figure(figsize = (8, 8))
-                    gs = gridspec.GridSpec(2, 2, 
+                    fig = mpl.figure.Figure(figsize = (8, 8))
+                    cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
+                    gs = mpl.gridspec.GridSpec(2, 2, 
                         height_ratios=[2, 8], width_ratios = [2, 8])
-                    # fig, axs = plt.subplots(2, 2, figsize = (8, 8))
-                    # ax1 = fig.add_axes([0.09, 0.1, 0.2, 0.6])
-                    ax1 = plt.subplot(gs[1,0])
+                    
+                    # First dendrogram
+                    ax1 = fig.add_subplot(gs[1,0])
                     Z1 = hc.dendrogram(tbl['%sc'%dist], orientation = 'left',
                         labels = labels,
                         leaf_rotation = 0, ax = ax1,
@@ -2474,8 +2474,7 @@ def plot_heatmaps_dendrograms(valids, dist = 'en',
                         for tl in ax1.get_yticklabels() if tl._text == ltp]
                     
                     # Compute and plot second dendrogram.
-                    #ax2 = fig.add_axes([0.3, 0.71, 0.6, 0.2])
-                    ax2 = plt.subplot(gs[0,1])
+                    ax2 = fig.add_subplot(gs[0,1])
                     Z2 = hc.dendrogram(tbl['%sc'%dist], 
                         labels = labels,
                         leaf_rotation = 90, ax = ax2,
@@ -2489,15 +2488,13 @@ def plot_heatmaps_dendrograms(valids, dist = 'en',
                         for tl in ax2.get_xticklabels() if tl._text == ltp]
                     
                     # Plot distance matrix.
-                    #axmatrix = fig.add_axes([0.3, 0.1, 0.6, 0.6])
-                    ax3 = plt.subplot(gs[1,1])
+                    ax3 = fig.add_subplot(gs[1,1])
                     idx1 = Z1['leaves']
                     idx2 = Z2['leaves']
                     D = tbl['%sd'%dist][idx1,:]
                     D = D[:,idx2]
-                    plt.sca(ax3)
                     im = ax3.matshow(D, aspect = 'auto', origin = 'lower',
-                        cmap = plt.cm.Blues)
+                        cmap = mpl.cm.get_cmap('Blues'))
                     ax3.xaxis.grid(False)
                     ax3.yaxis.grid(False)
                     ax3.set_xticklabels([])
@@ -2506,11 +2503,20 @@ def plot_heatmaps_dendrograms(valids, dist = 'en',
                     fig.suptitle('%s :: %s mode\nclustering valid features' %\
                         (ltp, pn))
                     
-                    #fig.tight_layout()
-                    plt.subplots_adjust(top = 0.90)
+                    cvs.draw()
+                    fig.tight_layout()
+                    fig.subplots_adjust(top = 0.90)
                     
-                    pdf.savefig(fig)
-                    plt.close('all')
+                    cvs.print_figure(pdf)
+                    fig.clf()
+        pdfinf = pdf.infodict()
+        pdfinf['Title'] = 'Features clustering'
+        pdfinf['Author'] = 'Dénes Türei'.decode('utf-8')
+        pdfinf['Subject'] = 'Clustering MS1 features based on Euclidean distances'
+        pdfinf['Keywords'] = 'lipid transfer protein, LTP, lipidomics, mass spectrometry'
+        pdfinf['CreationDate'] = datetime.datetime(2016, 02, 22)
+        pdfinf['ModDate'] = datetime.datetime.today()
+
     prg.terminate()
     sys.stdout.write('\t:: Time elapsed: %us\n'%(time.time() - t0))
 

@@ -85,7 +85,8 @@ ltp.distance_matrix(valids, metrics = ['en'], with_pprof = True,
 ltp.features_clustering(valids)
 ltp.distance_corr(valids)
 
-ltp.plot_heatmaps_dendrograms(valids, ltps = ['STARD10'])
+reload(ltp)
+ltp.plot_heatmaps_dendrograms(valids, ltps = ['STARD10'], fname = 'features_clustering_STARD10.pdf')
 
 ltp.plot_heatmaps_dendrograms(valids)
 
