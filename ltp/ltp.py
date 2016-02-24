@@ -22,6 +22,7 @@
 import os
 import sys
 import struct
+import time
 try:
     import cPickle as pickle
 except:
@@ -35,8 +36,12 @@ from xlrd.biffh import XLRDError
 import numpy as np
 import scipy as sp
 from scipy import stats
+import scipy.cluster.hierarchy as hc
+import fastcluster
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.gridspec as gridspec
 import seaborn as sns
 import rpy2.robjects.packages as rpackages
 rvcd = rpackages.importr('vcdExtra')
@@ -410,6 +415,12 @@ def get_swisslipids_exact(swisslipids_url):
     exact_masses = sorted(exact_masses, key = lambda x: x[-1])
     exact_masses = np.array(exact_masses, dtype = np.object)
     return exact_masses
+
+def theoretical_positives(valids, exacts, swisslipids = True, lipidmaps = True):
+    result = dict(map(lambda (ltp, d): 
+        (ltp, dict(map(lambda pn: 
+            (pn, ), d.keys()))), 
+        valids.iteritems()))
 
 def database_set(exacts, names, levels = ['Species']):
     levels = [levels] if type(levels) in [str, unicode] else levels
@@ -2221,7 +2232,7 @@ def norm_all(valids):
 
 def profiles_corr(valids, pprofs, samples, metric, prfx):
     '''
-    Calculates spearman's rank correlation
+    Calculates custom correlation metric
     between each feature and the protein profile.
     '''
     frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
@@ -2296,7 +2307,7 @@ def euclidean_dist_norm(x, y):
     _x = x[np.where(~np.logical_or(np.isnan(x), np.isnan(y)))]
     _y = y[np.where(~np.logical_or(np.isnan(x), np.isnan(y)))]
     return (sp.spatial.distance.euclidean(_x, _y) / len(_x), 0.0) \
-        if len(_x) > 0 else (np.inf, 0.0)
+        if len(_x) > 0 else (1.0, 0.0)
 
 def profiles_corrs(valids, pprofs, samples):
     '''
@@ -2319,27 +2330,194 @@ def profiles_corrs(valids, pprofs, samples):
         sys.stdout.write('Calculating %s\n' % metric.__name__)
         profiles_corr(valids, pprofs, samples, metric, prfx)
 
-def distance_matrix(valids, metrics = ['eu']):
+def distance_matrix(valids, metrics = ['eu'], with_pprof = False, 
+    pprofs = None, samples = None, ltps = None):
     _metrics = {
-        'eu': ('Euclidean distance', euclidean_dist),
-        'en': ('Normalized euclidean distance', euclidean_dist_norm)
+        'eu': ('euclidean distance', euclidean_dist),
+        'en': ('normalized euclidean distance', euclidean_dist_norm)
     }
+    frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
+    if pprofs is None and samples is None:
+        with_pprof = True
+    t0 = time.time()
     for m in metrics:
-        sys.stdout.write('Calculating %s\n'%_metrics[m][0])
+        prg = progress.Progress(len(valids)*2 if ltps is None else len(ltps)*2,
+            'Calculating %s'%_metrics[m][0], 1, percent = False)
         for ltp, d in valids.iteritems():
+            if ltps is None or ltp in ltps:
+                if with_pprof:
+                    ppr = np.array([pprofs[ltp.upper()][frs[i]] \
+                        for i, fr in enumerate(samples[ltp]) \
+                            if i != 0 and fr is not None])
+                    ppr = norm_profile(ppr).astype(np.float64)
+                for pn, tbl in d.iteritems():
+                    prg.step()
+                    fnum = tbl['no'].shape[0]
+                    # square shape matrix of all features vs all features
+                    if with_pprof:
+                        tbl['%sd'%m] = np.empty((fnum, fnum))
+                    else:
+                        tbl['%sd'%m] = np.empty((fnum + 1 , fnum + 1))
+                    # to keep track the order accross sorting
+                    tbl['%so'%m] = np.copy(tbl['i'])
+                    for i in xrange(fnum):
+                        for j in xrange(fnum):
+                            tbl['%sd'%m][i,j] = \
+                                _metrics[m][1](tbl['no'][i,:], tbl['no'][j,:])[0]
+                    if with_pprof:
+                        for i in xrange(fnum):
+                            ppr_dist = _metrics[m][1](tbl['no'][i,:], ppr)[0]
+                            tbl['%sd'%m][i,-1] = ppr_dist
+                            tbl['%sd'%m][-1,i] = ppr_dist
+                        tbl['%sd'%m][-1,-1] = _metrics[m][1](ppr, ppr)[0]
+    prg.terminate()
+    sys.stdout.write('\t:: Time elapsed: %us\n'%(time.time() - t0))
+
+def features_clustering(valids, dist = 'en', method = 'ward', ltps = None):
+    '''
+    Using the distance matrices calculated by
+    `distance_matrix()`, builds clusters using
+    the linkage method given by `method` arg.
+    '''
+    prg = progress.Progress(len(valids)*2 if ltps is None else len(ltps)*2,
+        'Calculating clusters', 1, percent = False)
+    for ltp, d in valids.iteritems():
+        if ltps is None or ltp in ltps:
             for pn, tbl in d.iteritems():
-                fnum = tbl['no'].shape[0]
-                tbl['%sd'%m] = np.empty((fnum, fnum))
-                # to keep track the order accross sorting
-                tbl['%so'%m] = np.copy(tbl['i'])
-                for i in xrange(fnum - 1):
-                    for j in xrange(i, fnum):
-                        tbl['%sd'%m][i,j] = \
-                            _metrics[m][1](tbl['no'][i,:], tbl['no'][j,:])
+                prg.step()
+                tbl['%sc'%dist] = fastcluster.linkage(tbl['%sd'%dist], 
+                    method = method, metric = 'euclidean', preserve_input = True)
+    prg.terminate()
+
+def distance_corr(valids, dist = 'end'):
+    for ltp, d in valids.iteritems():
+        for pn, tbl in d.iteritems():
+            tbl['%sc'%dist] = np.array([
+                sp.stats.pearsonr(tbl[dist][:,i], tbl[dist][:,-1])[0] \
+                for i in xrange(tbl[dist].shape[1])])
+
+def nodes_in_cluster(lin, i):
+    n = lin.shape[0]
+    nodes = map(int, lin[i,:2])
+    singletons = set(filter(lambda x: x <= n, nodes))
+    upper_levels = set(nodes) - singletons
+    for u in upper_levels:
+        singletons = singletons | nodes_in_cluster(lin, u - n - 1)
+    return singletons
+
+def _get_link_colors(tbl, dist, cmap):
+    return dict(zip(
+        xrange(tbl['%sc'%dist].shape[0] + 1, tbl['%sc'%dist].shape[0]*2 + 2), # 180
+        map(lambda col:
+            '#%s' % ''.join(map(lambda cc: '%02X'%(cc*255), col[:3])) \
+                if type(col) is tuple else col,
+            map(lambda c:
+                # color from correlation value:
+                #'#%s%s00' % ('%02X'%(c*255), '%02X'%(c*255)) \
+                cmap(c) if c > 0.0 else '#000000', # '#FEFE00'
+                map(lambda x:
+                    # minimum of these correlations
+                    # for each link:
+                    min(map(lambda xx:
+                        # correlation of distances for one link:
+                        tbl['%sdc'%dist][xx], # 0.9999928, 0.9999871
+                        # nodes for each link:
+                        list(nodes_in_cluster(tbl['%sc'%dist], x)) # 51, 105
+                    )), # 0.9999871
+                    # all links (rows in linkage matrix):
+                    xrange(tbl['%sc'%dist].shape[0]) # 45
+                ) + \
+                # this is for the root:
+                [min(tbl['%sdc'%dist])]
+            )
+        )
+    ))
+
+def plot_heatmaps_dendrograms_gradient(*args, **kwargs):
+    pass
+
+def plot_heatmaps_dendrograms(valids, dist = 'en', 
+    fname = 'features_clustering.pdf', ltps = None, cmap = None):
+    '''
+    For each LTP plots heatmaps and dendrograms.
+    Thanks to http://stackoverflow.com/a/3011894/854988
+    '''
+    t0 = time.time()
+    cmap = plt.get_cmap('inferno') if cmap is None else cmap
+    with PdfPages(fname) as pdf:
+        prg = progress.Progress(len(valids)*2 if ltps is None else len(ltps)*2,
+            'Plotting heatmaps with dendrograms', 1, percent = False)
+        for ltp, d in valids.iteritems():
+            if ltps is None or ltp in ltps:
+                for pn, tbl in d.iteritems():
+                    prg.step()
+                    labels = ['%u'%(f) for f in tbl['%so'%dist]] + [ltp]
+                    _link_colors = _get_link_colors(tbl, dist, cmap)
+                    mpl.rcParams['lines.linewidth'] = 0.1
+                    mpl.rcParams['font.family'] = 'Helvetica Neue LT Std'
+                    fig = plt.figure(figsize = (8, 8))
+                    gs = gridspec.GridSpec(2, 2, 
+                        height_ratios=[2, 8], width_ratios = [2, 8])
+                    # fig, axs = plt.subplots(2, 2, figsize = (8, 8))
+                    # ax1 = fig.add_axes([0.09, 0.1, 0.2, 0.6])
+                    ax1 = plt.subplot(gs[1,0])
+                    Z1 = hc.dendrogram(tbl['%sc'%dist], orientation = 'left',
+                        labels = labels,
+                        leaf_rotation = 0, ax = ax1,
+                        link_color_func = lambda i: _link_colors[i])
+                    ax1.yaxis.grid(False)
+                    ax1.set_xscale('symlog')
+                    null = [tl.set_fontsize(1.5) for tl in ax1.get_yticklabels()]
+                    null = [(tl.set_color('#FFAA00'), 
+                             tl.set_fontweight('bold'),
+                             tl.set_fontsize(4)) \
+                        for tl in ax1.get_yticklabels() if tl._text == ltp]
+                    
+                    # Compute and plot second dendrogram.
+                    #ax2 = fig.add_axes([0.3, 0.71, 0.6, 0.2])
+                    ax2 = plt.subplot(gs[0,1])
+                    Z2 = hc.dendrogram(tbl['%sc'%dist], 
+                        labels = labels,
+                        leaf_rotation = 90, ax = ax2,
+                        link_color_func = lambda i: _link_colors[i])
+                    ax2.xaxis.grid(False)
+                    ax2.set_yscale('symlog')
+                    null = [tl.set_fontsize(1.5) for tl in ax2.get_xticklabels()]
+                    null = [(tl.set_color('#FFAA00'), 
+                             tl.set_fontweight('bold'),
+                             tl.set_fontsize(4)) \
+                        for tl in ax2.get_xticklabels() if tl._text == ltp]
+                    
+                    # Plot distance matrix.
+                    #axmatrix = fig.add_axes([0.3, 0.1, 0.6, 0.6])
+                    ax3 = plt.subplot(gs[1,1])
+                    idx1 = Z1['leaves']
+                    idx2 = Z2['leaves']
+                    D = tbl['%sd'%dist][idx1,:]
+                    D = D[:,idx2]
+                    plt.sca(ax3)
+                    im = ax3.matshow(D, aspect = 'auto', origin = 'lower',
+                        cmap = plt.cm.Blues)
+                    ax3.xaxis.grid(False)
+                    ax3.yaxis.grid(False)
+                    ax3.set_xticklabels([])
+                    ax3.set_yticklabels([])
+                    
+                    fig.suptitle('%s :: %s mode\nclustering valid features' %\
+                        (ltp, pn))
+                    
+                    #fig.tight_layout()
+                    plt.subplots_adjust(top = 0.90)
+                    
+                    pdf.savefig(fig)
+                    plt.close('all')
+    prg.terminate()
+    sys.stdout.write('\t:: Time elapsed: %us\n'%(time.time() - t0))
 
 def kmeans(valids, pprofs, samples):
     frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
-    prg = progress.Progress(len(valids) * 2, 'Calculating k-means', 1, percent = False)
+    prg = progress.Progress(len(valids) * 2, 
+        'Calculating k-means', 1, percent = False)
     for ltp, d in valids.iteritems():
         ppr = np.array([pprofs[ltp.upper()][frs[i]] \
             for i, fr in enumerate(samples[ltp]) if fr == 1 and i != 0])
@@ -2376,7 +2554,7 @@ def spec_sens(valids, ltp, pos, metric, asc):
     tbl = valids[ltp][pos]
     ioffset = 0 if pos == 'pos' else 6
     if len(tbl['std']) > 0:
-        sort_all(tbl, metric, asc)
+        _sort_all(tbl, metric, asc)
         p = len(tbl['std'])
         for i, cutoff in enumerate(tbl[metric]):
             tp = sum([1 for oi in tbl['i'][:i + 1] if oi in tbl['std']])
@@ -2554,9 +2732,9 @@ def fractions_barplot(samples, pprofs, pprofs_original, features = False,
         if features:
             ppmax = np.nanmax(ppr_o)
             ppmin = np.nanmin(ppr_o)
-            ppr = (ppr - ppmin) / ppmax
+            ppr = (ppr - ppmin) / (ppmax - ppmin)
             ppr[ppr < 0.0] = 0.0
-            ppr_o = (ppr_o - ppmin) / ppmax
+            ppr_o = (ppr_o - ppmin) / (ppmax - ppmin)
         #B6B7B9 gray (not measured)
         #6EA945 mantis (protein sample)
         #007B7F teal (control/void)
@@ -2789,7 +2967,7 @@ def sortby_score(tbl, attr, asc = True):
     else:
         return sorted_no[::-1], sorted_mz[::-1], sorted_attr[::-1]
 
-def sort_all(tbl, attr, asc = True):
+def _sort_all(tbl, attr, asc = True):
     '''
     Sorts all arrays in one table by one specified 
     attribute.
@@ -2821,7 +2999,7 @@ def sort_alll(valids, attr, asc = True):
     '''
     for d in valids.values():
         for tbl in d.values():
-            sort_all(tbl, attr, asc)
+            _sort_all(tbl, attr, asc)
 
 def get_scored_hits(data):
     hits = val_ubi_prf_rpr_hits(data, ubiquity = 70, profile_best = 50000)

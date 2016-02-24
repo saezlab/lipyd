@@ -21,6 +21,7 @@
 
 import numpy as np
 import scipy as sp
+import time
 import os
 import sys
 import copy
@@ -74,6 +75,23 @@ Correlation and similarity metrics between features and
 protein concentration profile.
 '''
 ltp.profiles_corrs(valids, pprofs, samples_upper)
+
+'''
+Clustering features based on euclidean distance
+'''
+ltp.distance_matrix(valids, metrics = ['en'], with_pprof = True, 
+    pprofs = pprofs, samples = samples_upper)
+
+ltp.features_clustering(valids)
+ltp.distance_corr(valids)
+
+ltp.plot_heatmaps_dendrograms(valids, ltps = ['STARD10'])
+
+ltp.plot_heatmaps_dendrograms(valids)
+
+ltp.plot_heatmaps_dendrograms(valids, fname = 'features_clustering_0.98.pdf',
+    cmap = lambda x: '#FFAA00' if x >= 0.98 else '#000000')
+
 
 ltp.count_threshold_filter(valids, 'euv', threshold = 3.3, count = 10)
 ltp.count_threshold_filter(valids, 'env', threshold = 0.01, threshold_type = 'best_fraction', count = 10)
@@ -129,6 +147,9 @@ bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
     pdfname = 'protein_profiles_features_fix_0.05.pdf')
 
 ltp.count_threshold_filter(valids, 'env', threshold = 0.10, threshold_type = 'fix', count = 100)
+
+# relative to min
+ltp.count_threshold_filter(valids, 'env', threshold = 10, threshold_type = 'relative', count = 100)
 
 bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
     features = True, valids = valids, 
