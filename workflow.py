@@ -88,6 +88,16 @@ ltp.distance_corr(valids)
 reload(ltp)
 ltp.plot_heatmaps_dendrograms(valids, ltps = ['STARD10'], fname = 'features_clustering_STARD10.pdf')
 
+ltp.plot_heatmaps_dendrograms(valids, ltps = ['STARD10'], 
+    threshold = 0.033, threshold_type = 'percent', coloring = 'dist')
+
+
+ltp.plot_heatmaps_dendrograms(valids, singles, ltps = ['STARD10'], 
+    threshold = None, threshold_type = 'clsize', coloring = 'dist')
+
+ltp.plot_heatmaps_dendrograms(valids, singles, 
+    threshold = None, threshold_type = 'clsize', coloring = 'dist')
+
 ltp.plot_heatmaps_dendrograms(valids)
 
 ltp.plot_heatmaps_dendrograms(valids, fname = 'features_clustering_0.98.pdf',

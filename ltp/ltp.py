@@ -24,6 +24,7 @@ import sys
 import struct
 import time
 import datetime
+import collections
 try:
     import cPickle as pickle
 except:
@@ -2395,6 +2396,10 @@ def distance_corr(valids, dist = 'end'):
                 sp.stats.pearsonr(tbl[dist][:,i], tbl[dist][:,-1])[0] \
                 for i in xrange(tbl[dist].shape[1])])
 
+def fcluster_with_protein(lin, t):
+    fc = sp.cluster.hierarchy.fcluster(lin, t, criterion = 'distance')
+    return np.where(fc == fc[-1])[0]
+
 def nodes_in_cluster(lin, i):
     n = lin.shape[0]
     nodes = map(int, lin[i,:2])
@@ -2404,7 +2409,21 @@ def nodes_in_cluster(lin, i):
         singletons = singletons | nodes_in_cluster(lin, u - n - 1)
     return singletons
 
-def _get_link_colors(tbl, dist, cmap):
+def _get_link_colors_dist(tbl, dist, threshold, highlight_color, base_color):
+    protein_fc = set(fcluster_with_protein(tbl['%sc'%dist], threshold))
+    return dict(zip(
+        xrange(tbl['%sc'%dist].shape[0] + 1, tbl['%sc'%dist].shape[0]*2 + 2), 
+        map(lambda x: 
+            highlight_color \
+                if set(nodes_in_cluster(tbl['%sc'%dist], x)) <= protein_fc \
+            else base_color,
+        xrange(tbl['%sc'%dist].shape[0])) + \
+            [highlight_color \
+                if len(protein_fc) == tbl['%sd'%dist].shape[0] \
+                else base_color]
+    ))
+
+def _get_link_colors_corr(tbl, dist, cmap, threshold, highlight_color, base_color):
     return dict(zip(
         xrange(tbl['%sc'%dist].shape[0] + 1, tbl['%sc'%dist].shape[0]*2 + 2), # 180
         map(lambda col:
@@ -2413,7 +2432,7 @@ def _get_link_colors(tbl, dist, cmap):
             map(lambda c:
                 # color from correlation value:
                 #'#%s%s00' % ('%02X'%(c*255), '%02X'%(c*255)) \
-                cmap(c) if c > 0.0 else '#000000', # '#FEFE00'
+                cmap(c) if c > 0.0 else base_color, # '#FEFE00'
                 map(lambda x:
                     # minimum of these correlations
                     # for each link:
@@ -2432,17 +2451,76 @@ def _get_link_colors(tbl, dist, cmap):
         )
     ))
 
+def _get_dendrogram_cmap(cmap, threshold, highlight_color, base_color):
+    if cmap is None:
+        if thershold is None:
+            _cmap = 'inferno'
+        else:
+            _cmap = lambda x: \
+                highlight_color if x >= threshold else base_color
+    elif type(cmap) is str and hasattr(mpl.cm, cmap):
+            _cmap = mpl.cm.get_cmap(cmap)
+    return _cmap
+
+def _cluster_size_threshold(tbl, dist, threshold):
+    dist_values = tbl['%sc'%dist][:,2]
+    dist_values = dist_values[np.where(dist_values > 0.0)]
+    if threshold is None:
+        threshold = len(dist_values) * 0.1
+    _max = np.max(dist_values)
+    _min = np.min(dist_values)
+    _lower = _min
+    _upper = _max
+    _conv = 9999
+    _dconvs = []
+    while True:
+        _threshold = (_lower + _upper) / 2.0
+        cls = sp.cluster.hierarchy.fcluster(tbl['%sc'%dist], _threshold)
+        mean_size = np.mean(collections.Counter(cls).values())
+        _over = mean_size > threshold
+        if mean_size > threshold:
+            _upper = max(_upper - (_upper - _lower) / 2.0, 0.0)
+        elif mean_size < threshold:
+            _lower = max(_lower + (_upper - _lower) / 2.0, 0.0)
+        if _lower >= _upper:
+            _upper += (_upper - _lower) / 4.0
+        _dconvs.append(_conv - abs(mean_size - threshold))
+        _conv = abs(threshold - mean_size)
+        if len(_dconvs) > 10 and abs(np.mean(_dconvs[-10:]) - _dconvs[-1]) < 0.005:
+            return _threshold
+
+def _dendrogram_get_threshold(tbl, dist, threshold, threshold_type):
+    dist_values = tbl['%sc'%dist][:,2]
+    if threshold_type == 'percent':
+        # _threshold = dist_values.max() * threshold / tbl['%sc'%dist].shape[0]
+        _threshold = 10**(np.log10(dist_values.max()) * threshold)
+    elif threshold_type == 'quantile':
+        _threshold = 10**(np.percentile(
+            np.log10(dist_values)[np.where(dist_values > 0.0)], threshold))
+    elif threshold_type == 'clsize':
+        _threshold = _cluster_size_threshold(tbl, dist, threshold)
+    return _threshold
+
 def plot_heatmaps_dendrograms_gradient(*args, **kwargs):
     pass
 
-def plot_heatmaps_dendrograms(valids, dist = 'en', 
-    fname = 'features_clustering.pdf', ltps = None, cmap = None):
+def plot_heatmaps_dendrograms(valids, singles, dist = 'en', 
+    fname = None, ltps = None, cmap = None,
+    highlight_color = '#FFAA00', base_color = '#000000',
+    coloring = 'corr', threshold = None,
+    threshold_type = 'percent'):
     '''
     For each LTP plots heatmaps and dendrograms.
     Thanks to http://stackoverflow.com/a/3011894/854988
     '''
     t0 = time.time()
-    cmap = plt.get_cmap('inferno') if cmap is None else cmap
+    fname = 'features_clustering-%s%s%s.pdf' % \
+            (coloring, 
+            '-%s'%threshold_type if threshold is not None else '',
+            '-%02f'%threshold if threshold is not None else '') \
+        if fname is None else fname
+    if coloring == 'corr':
+        _cmap = _get_dendrogram_cmap(cmap, threshold, highlight_color, base_color)
     with mpl.backends.backend_pdf.PdfPages(fname) as pdf:
         prg = progress.Progress(len(valids)*2 if ltps is None else len(ltps)*2,
             'Plotting heatmaps with dendrograms', 1, percent = False)
@@ -2450,8 +2528,18 @@ def plot_heatmaps_dendrograms(valids, dist = 'en',
             if ltps is None or ltp in ltps:
                 for pn, tbl in d.iteritems():
                     prg.step()
+                    if coloring == 'dist':
+                        _threshold = _dendrogram_get_threshold(tbl, dist, 
+                            threshold, threshold_type)
                     labels = ['%u'%(f) for f in tbl['%so'%dist]] + [ltp]
-                    _link_colors = _get_link_colors(tbl, dist, cmap)
+                    if coloring == 'corr':
+                        _link_colors = _get_link_colors_corr(tbl, dist, _cmap, 
+                            threshold, highlight_color, base_color)
+                    elif coloring == 'dist':
+                        _link_colors = _get_link_colors_dist(tbl, dist, 
+                            _threshold, highlight_color, base_color)
+                    protein_fc = set(fcluster_with_protein(tbl['%sc'%dist], 
+                        _threshold))
                     mpl.rcParams['lines.linewidth'] = 0.1
                     mpl.rcParams['font.family'] = 'Helvetica Neue LT Std'
                     fig = mpl.figure.Figure(figsize = (8, 8))
@@ -2468,24 +2556,29 @@ def plot_heatmaps_dendrograms(valids, dist = 'en',
                     ax1.yaxis.grid(False)
                     ax1.set_xscale('symlog')
                     null = [tl.set_fontsize(1.5) for tl in ax1.get_yticklabels()]
-                    null = [(tl.set_color('#FFAA00'), 
+                    null = [(tl.set_color(highlight_color), 
                              tl.set_fontweight('bold'),
                              tl.set_fontsize(4)) \
                         for tl in ax1.get_yticklabels() if tl._text == ltp]
+                    if _threshold is not None:
+                        ax1.axvline(x = _threshold, c = '#FFAA00', alpha = 0.5)
                     
                     # Compute and plot second dendrogram.
                     ax2 = fig.add_subplot(gs[0,1])
                     Z2 = hc.dendrogram(tbl['%sc'%dist], 
                         labels = labels,
                         leaf_rotation = 90, ax = ax2,
+                        #color_threshold = _threshold)
                         link_color_func = lambda i: _link_colors[i])
                     ax2.xaxis.grid(False)
                     ax2.set_yscale('symlog')
                     null = [tl.set_fontsize(1.5) for tl in ax2.get_xticklabels()]
-                    null = [(tl.set_color('#FFAA00'), 
+                    null = [(tl.set_color(highlight_color), 
                              tl.set_fontweight('bold'),
                              tl.set_fontsize(4)) \
                         for tl in ax2.get_xticklabels() if tl._text == ltp]
+                    if _threshold is not None:
+                        ax2.axhline(y = _threshold, c = '#FFAA00', alpha = 0.5)
                     
                     # Plot distance matrix.
                     ax3 = fig.add_subplot(gs[1,1])
@@ -2500,8 +2593,10 @@ def plot_heatmaps_dendrograms(valids, dist = 'en',
                     ax3.set_xticklabels([])
                     ax3.set_yticklabels([])
                     
-                    fig.suptitle('%s :: %s mode\nclustering valid features' %\
-                        (ltp, pn))
+                    fig.suptitle('%s :: %s mode\nclustering valid features; '\
+                        'features in highlighted cluster: %u' % \
+                        (ltp, pn, len(protein_fc) - 1), 
+                        color = '#AA0000' if ltp in singles else '#000000')
                     
                     cvs.draw()
                     fig.tight_layout()
@@ -2516,9 +2611,11 @@ def plot_heatmaps_dendrograms(valids, dist = 'en',
         pdfinf['Keywords'] = 'lipid transfer protein, LTP, lipidomics, mass spectrometry'
         pdfinf['CreationDate'] = datetime.datetime(2016, 02, 22)
         pdfinf['ModDate'] = datetime.datetime.today()
-
+    
     prg.terminate()
     sys.stdout.write('\t:: Time elapsed: %us\n'%(time.time() - t0))
+    sys.stdout.write('\t:: Plots saved to %s\n'%fname)
+    sys.stdout.flush()
 
 def kmeans(valids, pprofs, samples):
     frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
