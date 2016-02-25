@@ -2489,6 +2489,28 @@ def _cluster_size_threshold(tbl, dist, threshold):
         if len(_dconvs) > 10 and abs(np.mean(_dconvs[-10:]) - _dconvs[-1]) < 0.005:
             return _threshold
 
+def _inconsistency_threshold(tbl, dist, threshold):
+    n = tbl['%sd'%dist].shape[0]
+    if threshold is None:
+        threshold = n/20
+    clustering = tbl['%sc'%dist]
+    incons = sp.cluster.hierarchy.inconsistent(clustering)
+    maxincons = sp.cluster.hierarchy.maxinconsts(clustering, incons)
+    fc = sp.cluster.hierarchy.fcluster(clustering, threshold, 
+        criterion = 'maxclust_monocrit', monocrit = maxincons)
+    nodes = set(np.where(fc == fc[-1])[0])
+    print 'nodes in same cluster as protein: %u' % len(nodes)
+    _threshold = max(
+        map(lambda i: 
+            clustering[i,2],
+            filter(lambda i: 
+                nodes_in_cluster(clustering, i) <= nodes,
+                xrange(n - 1)
+            )
+        )
+    )
+    return _threshold
+
 def _dendrogram_get_threshold(tbl, dist, threshold, threshold_type):
     dist_values = tbl['%sc'%dist][:,2]
     if threshold_type == 'percent':
@@ -2499,6 +2521,8 @@ def _dendrogram_get_threshold(tbl, dist, threshold, threshold_type):
             np.log10(dist_values)[np.where(dist_values > 0.0)], threshold))
     elif threshold_type == 'clsize':
         _threshold = _cluster_size_threshold(tbl, dist, threshold)
+    elif threshold_type == 'incons':
+        _threshold = _inconsistency_threshold(tbl, dist, threshold)
     return _threshold
 
 def plot_heatmaps_dendrograms_gradient(*args, **kwargs):
@@ -2508,7 +2532,8 @@ def plot_heatmaps_dendrograms(valids, singles, dist = 'en',
     fname = None, ltps = None, cmap = None,
     highlight_color = '#FFAA00', base_color = '#000000',
     coloring = 'corr', threshold = None,
-    threshold_type = 'percent'):
+    threshold_type = 'percent',
+    save_selection = None):
     '''
     For each LTP plots heatmaps and dendrograms.
     Thanks to http://stackoverflow.com/a/3011894/854988
@@ -2540,6 +2565,15 @@ def plot_heatmaps_dendrograms(valids, singles, dist = 'en',
                             _threshold, highlight_color, base_color)
                     protein_fc = set(fcluster_with_protein(tbl['%sc'%dist], 
                         _threshold))
+                    if save_selection is not None:
+                        oi2i = dict(zip(labels[:-1], xrange(len(labels) - 1)))
+                        tbl[save_selection] = np.array(
+                            map(lambda oi:
+                                oi2i['%u'%oi] in protein_fc,
+                                tbl['i']
+                            )
+                        )
+                    
                     mpl.rcParams['lines.linewidth'] = 0.1
                     mpl.rcParams['font.family'] = 'Helvetica Neue LT Std'
                     fig = mpl.figure.Figure(figsize = (8, 8))

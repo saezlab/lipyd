@@ -88,15 +88,41 @@ ltp.distance_corr(valids)
 reload(ltp)
 ltp.plot_heatmaps_dendrograms(valids, ltps = ['STARD10'], fname = 'features_clustering_STARD10.pdf')
 
-ltp.plot_heatmaps_dendrograms(valids, ltps = ['STARD10'], 
-    threshold = 0.033, threshold_type = 'percent', coloring = 'dist')
+ltp.plot_heatmaps_dendrograms(valids, singles, ltps = ['STARD10'], 
+    threshold = 0.05, threshold_type = 'percent', coloring = 'dist')
 
 
 ltp.plot_heatmaps_dendrograms(valids, singles, ltps = ['STARD10'], 
     threshold = None, threshold_type = 'clsize', coloring = 'dist')
 
-ltp.plot_heatmaps_dendrograms(valids, singles, 
-    threshold = None, threshold_type = 'clsize', coloring = 'dist')
+
+ltp.plot_heatmaps_dendrograms(valids, singles, ltps = ['STARD10'], 
+    threshold = 30, threshold_type = 'incons', coloring = 'dist')
+
+# run all with clsize
+ltp.plot_heatmaps_dendrograms(valids, singles,
+    threshold = None, threshold_type = 'clsize', coloring = 'dist',
+    save_selection = 'clcs10pct')
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'clcs10pct',
+    highlight2 = False,
+    all_features = False,
+    pdfname = 'protein_profiles_features_cl_csize_10pct.pdf')
+
+# run for all with 5% threshold
+ltp.plot_heatmaps_dendrograms(valids, singles,
+    threshold = 0.05, threshold_type = 'percent', coloring = 'dist',
+    save_selection = 'cl5pct')
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'cl5pct',
+    highlight2 = False,
+    all_features = False,
+    pdfname = 'protein_profiles_features_cl_maxdist_5pct.pdf')
+
 
 ltp.plot_heatmaps_dendrograms(valids)
 
