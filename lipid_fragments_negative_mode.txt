@@ -1,6 +1,6 @@
 60.02113	SM CH3+COOH (NL 60.0211)	NL negative mode	SM
-78.95905658	Cer1P/PIP/PL metaphosphate (78.9591)	[M-H]-	CerP;PIP;PC;PE;PS;PG
-96.96962158	Cer1P/PIP phosphate (96.9696)	[M-H]-	CerP;PIP
+78.95905658	Cer1P/PIP/PL metaphosphate (78.9591)	[M-H]-	CerP;PI;PC;PE;PS;PG
+96.96962158	Cer1P/PIP phosphate (96.9696)	[M-H]-	CerP;PI
 140.0118206	PE headgroup (140.0118)	[M-H]-	PE
 152.9958366	PG/PA/PS partial headgroup (152.9958)	[M-H]-	PG;PA;PS
 168.0431206	PC/SM PO4+choline-CH3 (168.0431)	[M-H]-	PC;SM

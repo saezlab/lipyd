@@ -114,7 +114,7 @@ bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
     pdfname = 'protein_profiles_features_cl_csize_10pct.pdf')
 
 # run for all with 5% threshold
-ltp.plot_heatmaps_dendrograms(valids, singles,
+ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper, 
     threshold = 0.05, threshold_type = 'percent', coloring = 'dist',
     save_selection = 'cl5pct')
 
@@ -127,6 +127,33 @@ bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
 
 # ##
 
+'''
+Calculating ubiquity. (variable name: `ubi`)
+'''
+ltp.sort_alll(valids, 'mz')
+ltp.ubiquity_filter(valids)
+timeit.timeit('ltp.ubiquity_filter(valids)', 
+    setup = 'from __main__ import ltp, valids', number = 1)
+
+'''
+Lookup lipids for all the valid features. (variable name: `lip`)
+'''
+exacts = None
+exacts, runtime = ltp.lipid_lookup_exact(valids, ltp.swisslipids_url, exacts = exacts, lipnames = lipnames)
+ltp.negative_positive2(valids, lipnames)
+
+ltp.ms1_headgroups(valids)
+
+ltp.headgroups_negative_positive(valids, 'ms1')
+
+ms1tab_coln, ms1tab = ltp.ms1_table(valids, lipnames)
+
+
+ltp.ms1_table_html(valids, lipnames)
+ltp.ms1_table_html_simple(valids, lipnames)
+ltp.ms2_table_html_simple(valids, lipnames)
+
+## THIS IS NOT NEEDED ANY MORE ##
 
 ltp.count_threshold_filter(valids, 'euv', threshold = 3.3, count = 10)
 ltp.count_threshold_filter(valids, 'env', threshold = 0.01, threshold_type = 'best_fraction', count = 10)
@@ -223,28 +250,6 @@ ltp.fractions_barplot(samples_upper, pprofs, pprofs_original)
 ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
     features = False, valids = valids)
 
-'''
-Calculating ubiquity. (variable name: `ubi`)
-'''
-ltp.sort_alll(valids, 'mz')
-ltp.ubiquity_filter(valids)
-timeit.timeit('ltp.ubiquity_filter(valids)', 
-    setup = 'from __main__ import ltp, valids', number = 1)
-
-
-'''
-Lookup lipids for all the valid features. (variable name: `lip`)
-'''
-exacts = None
-exacts, runtime = ltp.lipid_lookup_exact(valids, ltp.swisslipids_url, exacts = exacts, lipnames = lipnames)
-ltp.negative_positive2(valids, lipnames)
-ms1tab_coln, ms1tab = ltp.ms1_table(valids, lipnames)
-ltp.ms1_headgroups(valids)
-ltp.headgroups_negative_positive(valids, 'ms1')
-
-ltp.ms1_table_html(valids, lipnames)
-ltp.ms1_table_html_simple(valids, lipnames)
-ltp.ms2_table_html_simple(valids, lipnames)
 
 ## THIS IS NOT NEEDED ANY MORE ##
 

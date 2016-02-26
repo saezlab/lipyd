@@ -1,3 +1,4 @@
+
 #!/usr/bin/python2
 # -*- coding: utf-8 -*-
 
@@ -16,7 +17,7 @@ electron = 0.00054857990924
 # ##
 def getMasses(url):
     reqMasses = urllib2.urlopen(url)
-    soupMasses = bs4.BeautifulSoup(reqMasses.read())
+    soupMasses = bs4.BeautifulSoup(reqMasses.read(), 'lxml')
 
     mass = {}
     symbol = None
@@ -61,7 +62,7 @@ def getWeightStd():
 
 def getFreqIso():
     reqAbundances = urllib2.urlopen(urlAbundances)
-    soupAbundances = bs4.BeautifulSoup(reqAbundances.read())
+    soupAbundances = bs4.BeautifulSoup(reqAbundances.read(), 'lxml')
 
     freqIso = {}
     symbol = None

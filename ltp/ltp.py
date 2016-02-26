@@ -1289,6 +1289,10 @@ def find_lipids(hits, pAdducts, nAdducts, lipnames,
     return lipids
 
 def headgroup_from_lipid_name(lip, lipnames):
+    '''
+    For one database record attempts to identify the lipid class
+    by looking up keywords.
+    '''
     db = 'lmp' if lip[0][0] == 'L' else 'swl'
     for shortname, spec in lipnames.iteritems():
         matched = [kw in lip[2] for kw in spec['%s_pos_kwds' % db]]
@@ -3424,7 +3428,7 @@ def evaluate_results(stage0, stage2, lipids, samples_upper, letter = 'e'):
     fig.savefig('lipid-matches-3000-%s.pdf'%letter)
     plt.close()
 
-def ms1_headgroups(valids):
+def ms1_headgroups(valids, lipnames):
     for ltp, d in valids.iteritems():
         for pn, tbl in d.iteritems():
             tbl['ms1hg'] = {}
@@ -3432,7 +3436,7 @@ def ms1_headgroups(valids):
                 tbl['ms1hg'][oi] = set([])
                 if lips is not None:
                     for lip in lips:
-                        if lip[7] is not None:
+                        if lip[7] is not None and :
                             tbl['ms1hg'][oi].add(lip[7])
 
 def ms1_table(valids, lipnames, include = 'bool_env'):
