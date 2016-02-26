@@ -39,8 +39,10 @@ import numpy as np
 import scipy as sp
 from scipy import stats
 import scipy.cluster.hierarchy as hc
+import sklearn.decomposition
 import fastcluster
 import matplotlib as mpl
+import matplotlib.backends.backend_pdf
 import matplotlib.pyplot as plt
 import seaborn as sns
 import rpy2.robjects.packages as rpackages
@@ -790,9 +792,9 @@ def float_lst(l):
     '''
     return [to_float(x) for x in l]
 
-#
-# Filtering functions
-#
+'''
+Filtering functions
+'''
 
 def quality_filter(data, threshold = 0.2):
     for ltp, d in data.iteritems():
@@ -1212,6 +1214,10 @@ def combined_hits(data, profile = 0.15, ubiquity = 20, verbose = True):
             sys.stdout.write('\n')
     return hits
 
+'''
+Save and reload functions
+'''
+
 def save_data(data, basedir, fname = 'features.pickle'):
     pickle.dump(data, open(os.path.join(basedir, fname), 'wb'))
 
@@ -1223,6 +1229,14 @@ def save(fnames, samples, pprofs, basedir, fname = 'save.pickle'):
 
 def load(basedir, fname = 'save.pickle'):
     return pickle.load(open(os.path.join(basedir, fname), 'rb'))
+
+'''
+END: save & reload
+'''
+
+'''
+Lipid databases lookup functions
+'''
 
 def find_lipids(hits, pAdducts, nAdducts, lipnames, 
     levels = ['Species'], tolerance = 0.02):
@@ -1657,9 +1671,13 @@ def sort_lipids(lipids, by_mz = False, unknowns = None):
                 result[ltp][pn] = np.vstack(sorted(_tbl, key = key))
     return lipids if in_place else result
 
-#
-# functions for MS2
-#
+'''
+END: lipid databases lookup
+'''
+
+'''
+Functions for MS2
+'''
 
 def read_metabolite_lines(fname):
     '''
@@ -2050,9 +2068,14 @@ def headgroups_negative_positive(valids, ms):
 def ms2_fattya(ms2r):
     return None
 
-#
-# Pipeline elements
-#
+'''
+END: MS2 functions
+'''
+
+
+'''
+Pipeline elements
+'''
 
 def write_out(matches, fname):
     '''
@@ -2230,6 +2253,14 @@ def norm_all(valids):
         for pn, tbl in d.iteritems():
             tbl['no'] = norm_profiles(tbl['fe'])
 
+'''
+END: pipeline elements
+'''
+
+'''
+Distance metrics
+'''
+
 def profiles_corr(valids, pprofs, samples, metric, prfx):
     '''
     Calculates custom correlation metric
@@ -2330,6 +2361,34 @@ def profiles_corrs(valids, pprofs, samples):
         sys.stdout.write('Calculating %s\n' % metric.__name__)
         profiles_corr(valids, pprofs, samples, metric, prfx)
 
+def inconsistent(valids, metric = 'en'):
+    attr = '%sv'%metric
+    target = '%si'%metric
+    sort_alll(valids, attr)
+    for ltp, d in valids.iteritems():
+        for pn, tbl in d.iteritems():
+            vals = tbl[attr]
+            incs = np.diff(vals)
+            inco = np.array(
+                [0.0] * 3 + \
+                map(lambda i:
+                    incs[i] - np.mean(incs[:i]) / np.std(incs[:i]),
+                    xrange(2, len(incs))
+                )
+            )
+            tbl['%sde'%metric] = np.concatenate((np.array([0.0]), incs), axis = 0)
+            tbl['%sdde'%metric] = np.concatenate((np.array([0.0]), 
+                np.diff(tbl['%sde'%metric])), axis = 0)
+            tbl[target] = inco
+
+'''
+END: disctance metrics
+'''
+
+'''
+Functions for clustering
+'''
+
 def distance_matrix(valids, metrics = ['eu'], with_pprof = False, 
     pprofs = None, samples = None, ltps = None):
     _metrics = {
@@ -2355,23 +2414,24 @@ def distance_matrix(valids, metrics = ['eu'], with_pprof = False,
                     fnum = tbl['no'].shape[0]
                     # square shape matrix of all features vs all features
                     if with_pprof:
-                        tbl['%sd'%m] = np.empty((fnum, fnum))
+                        tbl['_%sd'%m] = np.empty((fnum + 1, fnum + 1))
                     else:
-                        tbl['%sd'%m] = np.empty((fnum + 1 , fnum + 1))
+                        tbl['_%sd'%m] = np.empty((fnum, fnum))
                     # to keep track the order accross sorting
-                    tbl['%so'%m] = np.copy(tbl['i'])
+                    tbl['_%so'%m] = np.copy(tbl['i'])
                     for i in xrange(fnum):
                         for j in xrange(fnum):
-                            tbl['%sd'%m][i,j] = \
+                            tbl['_%sd'%m][i,j] = \
                                 _metrics[m][1](tbl['no'][i,:], tbl['no'][j,:])[0]
                     if with_pprof:
                         for i in xrange(fnum):
                             ppr_dist = _metrics[m][1](tbl['no'][i,:], ppr)[0]
-                            tbl['%sd'%m][i,-1] = ppr_dist
-                            tbl['%sd'%m][-1,i] = ppr_dist
-                        tbl['%sd'%m][-1,-1] = _metrics[m][1](ppr, ppr)[0]
+                            tbl['_%sd'%m][i,-1] = ppr_dist
+                            tbl['_%sd'%m][-1,i] = ppr_dist
+                        tbl['_%sd'%m][-1,-1] = _metrics[m][1](ppr, ppr)[0]
     prg.terminate()
     sys.stdout.write('\t:: Time elapsed: %us\n'%(time.time() - t0))
+    sys.stdout.flush()
 
 def features_clustering(valids, dist = 'en', method = 'ward', ltps = None):
     '''
@@ -2385,16 +2445,17 @@ def features_clustering(valids, dist = 'en', method = 'ward', ltps = None):
         if ltps is None or ltp in ltps:
             for pn, tbl in d.iteritems():
                 prg.step()
-                tbl['%sc'%dist] = fastcluster.linkage(tbl['%sd'%dist], 
+                tbl['_%sc'%dist] = fastcluster.linkage(tbl['_%sd'%dist], 
                     method = method, metric = 'euclidean', preserve_input = True)
     prg.terminate()
 
-def distance_corr(valids, dist = 'end'):
+def distance_corr(valids, dist = 'en'):
     for ltp, d in valids.iteritems():
         for pn, tbl in d.iteritems():
-            tbl['%sc'%dist] = np.array([
-                sp.stats.pearsonr(tbl[dist][:,i], tbl[dist][:,-1])[0] \
-                for i in xrange(tbl[dist].shape[1])])
+            tbl['_%sdc'%dist] = np.array([
+                    sp.stats.pearsonr(tbl['_%sd'%dist][:,i],
+                        tbl['_%sd'%dist][:,-1])[0] \
+                for i in xrange(tbl['_%sd'%dist].shape[1])])
 
 def fcluster_with_protein(lin, t):
     fc = sp.cluster.hierarchy.fcluster(lin, t, criterion = 'distance')
@@ -2410,22 +2471,22 @@ def nodes_in_cluster(lin, i):
     return singletons
 
 def _get_link_colors_dist(tbl, dist, threshold, highlight_color, base_color):
-    protein_fc = set(fcluster_with_protein(tbl['%sc'%dist], threshold))
+    protein_fc = set(fcluster_with_protein(tbl['_%sc'%dist], threshold))
     return dict(zip(
-        xrange(tbl['%sc'%dist].shape[0] + 1, tbl['%sc'%dist].shape[0]*2 + 2), 
+        xrange(tbl['_%sc'%dist].shape[0] + 1, tbl['_%sc'%dist].shape[0]*2 + 2), 
         map(lambda x: 
             highlight_color \
-                if set(nodes_in_cluster(tbl['%sc'%dist], x)) <= protein_fc \
+                if set(nodes_in_cluster(tbl['_%sc'%dist], x)) <= protein_fc \
             else base_color,
-        xrange(tbl['%sc'%dist].shape[0])) + \
+        xrange(tbl['_%sc'%dist].shape[0])) + \
             [highlight_color \
-                if len(protein_fc) == tbl['%sd'%dist].shape[0] \
+                if len(protein_fc) == tbl['_%sd'%dist].shape[0] \
                 else base_color]
     ))
 
 def _get_link_colors_corr(tbl, dist, cmap, threshold, highlight_color, base_color):
     return dict(zip(
-        xrange(tbl['%sc'%dist].shape[0] + 1, tbl['%sc'%dist].shape[0]*2 + 2), # 180
+        xrange(tbl['_%sc'%dist].shape[0] + 1, tbl['_%sc'%dist].shape[0]*2 + 2), # 180
         map(lambda col:
             '#%s' % ''.join(map(lambda cc: '%02X'%(cc*255), col[:3])) \
                 if type(col) is tuple else col,
@@ -2438,15 +2499,15 @@ def _get_link_colors_corr(tbl, dist, cmap, threshold, highlight_color, base_colo
                     # for each link:
                     min(map(lambda xx:
                         # correlation of distances for one link:
-                        tbl['%sdc'%dist][xx], # 0.9999928, 0.9999871
+                        tbl['_%sdc'%dist][xx], # 0.9999928, 0.9999871
                         # nodes for each link:
-                        list(nodes_in_cluster(tbl['%sc'%dist], x)) # 51, 105
+                        list(nodes_in_cluster(tbl['_%sc'%dist], x)) # 51, 105
                     )), # 0.9999871
                     # all links (rows in linkage matrix):
-                    xrange(tbl['%sc'%dist].shape[0]) # 45
+                    xrange(tbl['_%sc'%dist].shape[0]) # 45
                 ) + \
                 # this is for the root:
-                [min(tbl['%sdc'%dist])]
+                [min(tbl['_%sdc'%dist])]
             )
         )
     ))
@@ -2463,7 +2524,7 @@ def _get_dendrogram_cmap(cmap, threshold, highlight_color, base_color):
     return _cmap
 
 def _cluster_size_threshold(tbl, dist, threshold):
-    dist_values = tbl['%sc'%dist][:,2]
+    dist_values = tbl['_%sc'%dist][:,2]
     dist_values = dist_values[np.where(dist_values > 0.0)]
     if threshold is None:
         threshold = len(dist_values) * 0.1
@@ -2475,7 +2536,7 @@ def _cluster_size_threshold(tbl, dist, threshold):
     _dconvs = []
     while True:
         _threshold = (_lower + _upper) / 2.0
-        cls = sp.cluster.hierarchy.fcluster(tbl['%sc'%dist], _threshold)
+        cls = sp.cluster.hierarchy.fcluster(tbl['_%sc'%dist], _threshold)
         mean_size = np.mean(collections.Counter(cls).values())
         _over = mean_size > threshold
         if mean_size > threshold:
@@ -2490,10 +2551,10 @@ def _cluster_size_threshold(tbl, dist, threshold):
             return _threshold
 
 def _inconsistency_threshold(tbl, dist, threshold):
-    n = tbl['%sd'%dist].shape[0]
+    n = tbl['_%sd'%dist].shape[0]
     if threshold is None:
         threshold = n/20
-    clustering = tbl['%sc'%dist]
+    clustering = tbl['_%sc'%dist]
     incons = sp.cluster.hierarchy.inconsistent(clustering)
     maxincons = sp.cluster.hierarchy.maxinconsts(clustering, incons)
     fc = sp.cluster.hierarchy.fcluster(clustering, threshold, 
@@ -2512,7 +2573,7 @@ def _inconsistency_threshold(tbl, dist, threshold):
     return _threshold
 
 def _dendrogram_get_threshold(tbl, dist, threshold, threshold_type):
-    dist_values = tbl['%sc'%dist][:,2]
+    dist_values = tbl['_%sc'%dist][:,2]
     if threshold_type == 'percent':
         # _threshold = dist_values.max() * threshold / tbl['%sc'%dist].shape[0]
         _threshold = 10**(np.log10(dist_values.max()) * threshold)
@@ -2528,7 +2589,8 @@ def _dendrogram_get_threshold(tbl, dist, threshold, threshold_type):
 def plot_heatmaps_dendrograms_gradient(*args, **kwargs):
     pass
 
-def plot_heatmaps_dendrograms(valids, singles, dist = 'en', 
+def plot_heatmaps_dendrograms(valids, singles, 
+    pprofs, samples, dist = 'en', 
     fname = None, ltps = None, cmap = None,
     highlight_color = '#FFAA00', base_color = '#000000',
     coloring = 'corr', threshold = None,
@@ -2546,24 +2608,29 @@ def plot_heatmaps_dendrograms(valids, singles, dist = 'en',
         if fname is None else fname
     if coloring == 'corr':
         _cmap = _get_dendrogram_cmap(cmap, threshold, highlight_color, base_color)
+    frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
     with mpl.backends.backend_pdf.PdfPages(fname) as pdf:
         prg = progress.Progress(len(valids)*2 if ltps is None else len(ltps)*2,
             'Plotting heatmaps with dendrograms', 1, percent = False)
         for ltp, d in valids.iteritems():
             if ltps is None or ltp in ltps:
+                ppr = np.array([pprofs[ltp.upper()][frs[i]] \
+                    for i, fr in enumerate(samples[ltp]) \
+                        if i != 0 and fr is not None])
+                ppr = norm_profile(ppr).astype(np.float64)
                 for pn, tbl in d.iteritems():
                     prg.step()
                     if coloring == 'dist':
                         _threshold = _dendrogram_get_threshold(tbl, dist, 
                             threshold, threshold_type)
-                    labels = ['%u'%(f) for f in tbl['%so'%dist]] + [ltp]
+                    labels = ['%u'%(f) for f in tbl['_%so'%dist]] + [ltp]
                     if coloring == 'corr':
                         _link_colors = _get_link_colors_corr(tbl, dist, _cmap, 
                             threshold, highlight_color, base_color)
                     elif coloring == 'dist':
                         _link_colors = _get_link_colors_dist(tbl, dist, 
                             _threshold, highlight_color, base_color)
-                    protein_fc = set(fcluster_with_protein(tbl['%sc'%dist], 
+                    protein_fc = set(fcluster_with_protein(tbl['_%sc'%dist], 
                         _threshold))
                     if save_selection is not None:
                         oi2i = dict(zip(labels[:-1], xrange(len(labels) - 1)))
@@ -2583,7 +2650,7 @@ def plot_heatmaps_dendrograms(valids, singles, dist = 'en',
                     
                     # First dendrogram
                     ax1 = fig.add_subplot(gs[1,0])
-                    Z1 = hc.dendrogram(tbl['%sc'%dist], orientation = 'left',
+                    Z1 = hc.dendrogram(tbl['_%sc'%dist], orientation = 'left',
                         labels = labels,
                         leaf_rotation = 0, ax = ax1,
                         link_color_func = lambda i: _link_colors[i])
@@ -2599,7 +2666,7 @@ def plot_heatmaps_dendrograms(valids, singles, dist = 'en',
                     
                     # Compute and plot second dendrogram.
                     ax2 = fig.add_subplot(gs[0,1])
-                    Z2 = hc.dendrogram(tbl['%sc'%dist], 
+                    Z2 = hc.dendrogram(tbl['_%sc'%dist], 
                         labels = labels,
                         leaf_rotation = 90, ax = ax2,
                         #color_threshold = _threshold)
@@ -2618,7 +2685,7 @@ def plot_heatmaps_dendrograms(valids, singles, dist = 'en',
                     ax3 = fig.add_subplot(gs[1,1])
                     idx1 = Z1['leaves']
                     idx2 = Z2['leaves']
-                    D = tbl['%sd'%dist][idx1,:]
+                    D = tbl['_%sd'%dist][idx1,:]
                     D = D[:,idx2]
                     im = ax3.matshow(D, aspect = 'auto', origin = 'lower',
                         cmap = mpl.cm.get_cmap('Blues'))
@@ -2638,6 +2705,33 @@ def plot_heatmaps_dendrograms(valids, singles, dist = 'en',
                     
                     cvs.print_figure(pdf)
                     fig.clf()
+                    
+                    #lab2i = dict(zip(labels[:-1], xrange(len(labels) - 1)))
+                    #i2oi = dict(xrange(len(labels) - 1)), zip(labels[:-1])
+                    oi2i = dict(zip(tbl['i'], xrange(tbl['no'].shape[0])))
+                    pca = sklearn.decomposition.PCA(n_components = 2)
+                    fe = np.vstack((tbl['no'][map(lambda oi:
+                            oi2i[int(oi)],
+                            labels[:-1]
+                        ),:], ppr))
+                    col = map(lambda i:
+                        highlight_color if i in protein_fc else base_color, 
+                        xrange(len(labels) - 1)
+                    ) + ['#3383BE']
+                    fe[np.where(np.isnan(fe))] = 0.0
+                    pca = pca.fit(fe)
+                    coo = pca.transform(fe)
+                    fig = mpl.figure.Figure(figsize = (8, 8))
+                    cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
+                    ax = fig.gca()
+                    ax.scatter(coo[:,0], coo[:,1], c = col, linewidth = 0.0, alpha = 0.7)
+                    ax.set_title('%s :: %s mode :: PCA' % (ltp, pn),
+                        color = '#AA0000' if ltp in singles else '#000000')
+                    cvs.draw()
+                    fig.tight_layout()
+                    cvs.print_figure(pdf)
+                    fig.clf()
+                    
         pdfinf = pdf.infodict()
         pdfinf['Title'] = 'Features clustering'
         pdfinf['Author'] = 'Dénes Türei'.decode('utf-8')
@@ -2650,6 +2744,42 @@ def plot_heatmaps_dendrograms(valids, singles, dist = 'en',
     sys.stdout.write('\t:: Time elapsed: %us\n'%(time.time() - t0))
     sys.stdout.write('\t:: Plots saved to %s\n'%fname)
     sys.stdout.flush()
+
+'''
+END: Clustering
+'''
+
+def plot_increment(valids, singles, metric = 'en', fname = 'increments.pdf'):
+    with mpl.backends.backend_pdf.PdfPages(fname) as pdf:
+        for ltp, d in valids.iteritems():
+            for pn, tbl in d.iteritems():
+                fig = mpl.figure.Figure(figsize = (8,8))
+                cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
+                ax = fig.gca()
+                ax.plot(xrange(tbl['%si'%metric].shape[0]), 
+                    tbl['%si'%metric], c = '#FCCC06', label = 'Inconsistency')
+                ax.plot(xrange(tbl['%sde'%metric].shape[0]), 
+                    tbl['%sde'%metric] * 100, c = '#007B7F', label = '1st derivate',
+                    lw = 2, alpha = 0.5)
+                ax.plot(xrange(tbl['%sde'%metric].shape[0]), 
+                    tbl['%sdde'%metric] * 100, c = '#6EA945', label = '2nd derivate',
+                    lw = 2, alpha = 0.5)
+                handles, labels = ax.get_legend_handles_labels()
+                ax.legend(handles, labels)
+                ax.set_title('%s :: %s mode :: distance increments' % \
+                    (ltp, pn),
+                    color = '#AA0000' if ltp in singles else '#000000')
+                ax.set_xlim([3.0, 50.0])
+                cvs.print_figure(pdf)
+                fig.clf()
+        
+        pdfinf = pdf.infodict()
+        pdfinf['Title'] = 'Features distance increment'
+        pdfinf['Author'] = 'Dénes Türei'.decode('utf-8')
+        pdfinf['Subject'] = 'Features distance increment'
+        pdfinf['Keywords'] = 'lipid transfer protein, LTP, lipidomics, mass spectrometry'
+        pdfinf['CreationDate'] = datetime.datetime(2016, 02, 22)
+        pdfinf['ModDate'] = datetime.datetime.today()
 
 def kmeans(valids, pprofs, samples):
     frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
@@ -3113,7 +3243,8 @@ def _sort_all(tbl, attr, asc = True):
     ind = tbl[attr].argsort()
     dim = tbl[attr].shape[0]
     for k, a in tbl.iteritems():
-        if k != attr and type(tbl[k]) == np.ndarray and tbl[k].shape[0] == dim:
+        if k != attr and type(tbl[k]) == np.ndarray and \
+            tbl[k].shape[0] == dim and not k.startswith('_'):
             if len(a.shape) == 1:
                 if asc:
                     tbl[k] = tbl[k][ind]
@@ -3147,6 +3278,10 @@ def get_scored_hits(data):
             if hits_upper[l.upper()][pn] is None:
                 hits_upper[l.upper()][pn] = tbl
     return hits_upper
+
+'''
+MS1 lipid identification
+'''
 
 def lipid_lookup(stage0, runtime = None):
     '''
@@ -3420,6 +3555,10 @@ def ms1_table_html_simple(valids, lipnames, filename = 'ms1headgroups.html', inc
         table += tablerow % row
     with open(filename, 'w') as f:
         f.write(html_table_template % (title, title, table))
+
+'''
+END: MS1 lipid identification
+'''
 
 def ms2_table_html_simple(valids, lipnames, filename = 'ms2headgroups.html', include = 'bool_env'):
     title = 'Binding specificities of LTPs by headgroups detected in MS2'

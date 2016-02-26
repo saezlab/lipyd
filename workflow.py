@@ -86,7 +86,9 @@ ltp.features_clustering(valids)
 ltp.distance_corr(valids)
 
 reload(ltp)
-ltp.plot_heatmaps_dendrograms(valids, ltps = ['STARD10'], fname = 'features_clustering_STARD10.pdf')
+ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper,
+    threshold = 0.05, threshold_type = 'percent', coloring = 'dist',
+    ltps = ['STARD10'], fname = 'features_clustering_STARD10.pdf')
 
 ltp.plot_heatmaps_dendrograms(valids, singles, ltps = ['STARD10'], 
     threshold = 0.05, threshold_type = 'percent', coloring = 'dist')
@@ -100,7 +102,7 @@ ltp.plot_heatmaps_dendrograms(valids, singles, ltps = ['STARD10'],
     threshold = 30, threshold_type = 'incons', coloring = 'dist')
 
 # run all with clsize
-ltp.plot_heatmaps_dendrograms(valids, singles,
+ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper,
     threshold = None, threshold_type = 'clsize', coloring = 'dist',
     save_selection = 'clcs10pct')
 
@@ -123,11 +125,7 @@ bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
     all_features = False,
     pdfname = 'protein_profiles_features_cl_maxdist_5pct.pdf')
 
-
-ltp.plot_heatmaps_dendrograms(valids)
-
-ltp.plot_heatmaps_dendrograms(valids, fname = 'features_clustering_0.98.pdf',
-    cmap = lambda x: '#FFAA00' if x >= 0.98 else '#000000')
+# ##
 
 
 ltp.count_threshold_filter(valids, 'euv', threshold = 3.3, count = 10)
