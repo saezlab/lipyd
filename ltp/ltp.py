@@ -3428,7 +3428,7 @@ def evaluate_results(stage0, stage2, lipids, samples_upper, letter = 'e'):
     fig.savefig('lipid-matches-3000-%s.pdf'%letter)
     plt.close()
 
-def ms1_headgroups(valids, lipnames):
+def ms1_headgroups(valids, lipnames, verbose = False):
     for ltp, d in valids.iteritems():
         for pn, tbl in d.iteritems():
             tbl['ms1hg'] = {}
@@ -3436,8 +3436,26 @@ def ms1_headgroups(valids, lipnames):
                 tbl['ms1hg'][oi] = set([])
                 if lips is not None:
                     for lip in lips:
-                        if lip[7] is not None and :
-                            tbl['ms1hg'][oi].add(lip[7])
+                        if lip[7] is not None:
+                            if verbose:
+                                print '\t:: %s-%s: found %s' % (ltp, pn, lip[7])
+                            posAdd = lipnames[lip[7]]['pos_adduct']
+                            negAdd = lipnames[lip[7]]['neg_adduct']
+                            thisModeAdd = lipnames[lip[7]]['%s_adduct'%pn]
+                            if posAdd is None and negAdd is None or \
+                                thisModeAdd == lip[4]:
+                                if verbose:
+                                    print '\t\taccepting %s-%s for %s-%s' % \
+                                        (lip[7], lip[4], ltp, pn)
+                                tbl['ms1hg'][oi].add(lip[7])
+                            else:
+                                if verbose:
+                                    print '\t\tdiscarding %s-%s for %s, %s'\
+                                        ' in %s mode' % (lip[7], lip[4], ltp, 
+                                            '%s is the main adduct'%thisModeAdd \
+                                                if thisModeAdd is not None \
+                                                else '%s does not ionize'%lip[4], 
+                                            pn)
 
 def ms1_table(valids, lipnames, include = 'bool_env'):
     ltps = sorted(valids.keys())

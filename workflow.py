@@ -142,7 +142,7 @@ exacts = None
 exacts, runtime = ltp.lipid_lookup_exact(valids, ltp.swisslipids_url, exacts = exacts, lipnames = lipnames)
 ltp.negative_positive2(valids, lipnames)
 
-ltp.ms1_headgroups(valids)
+ltp.ms1_headgroups(valids, lipnames, verbose = True)
 
 ltp.headgroups_negative_positive(valids, 'ms1')
 
