@@ -154,6 +154,13 @@ ltp.ms1_table_html(valids, lipnames)
 ltp.ms1_table_html_simple(valids, lipnames, include = 'cl5pct')
 ltp.ms2_table_html_simple(valids, lipnames, include = 'cl5pct')
 
+idlevels = {
+    'All': ltp.identification_levels(valids, 'STARD10', 'PC'),
+    'Best': ltp.identification_levels(valids, 'STARD10', 'PC', classif = 'cl5pct')
+}
+
+ltp.plot_identification_levels(idlevels, 'STARD10', 'PC')
+
 ## THIS IS NOT NEEDED ANY MORE ##
 
 ltp.count_threshold_filter(valids, 'euv', threshold = 3.3, count = 10)

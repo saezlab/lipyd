@@ -3898,10 +3898,7 @@ def enrichment_barplot(valids, classif = 'cl5pct',
     cvs.print_figure(outf)
     fig.clf()
 
-def stard10_pc(valids, stard10 = 'STARD10', pc = 'PC', 
-    plot = '%s-%s-classes.pdf'):
-    plot = plot % (stard10, pc)
-    w = 0.8
+def identification_levels(valids, ltp = 'STARD10', hg = 'PC', classif = None):
     visited = {'neg': set([]), 'pos': set([])}
     labels = ['MS1 & MS2 both +/-', 
         'MS1 & MS2 only +', 'MS1 & MS2 only -',
@@ -3910,7 +3907,7 @@ def stard10_pc(valids, stard10 = 'STARD10', pc = 'PC',
         'Only MS1 +', 'Only MS1 -', 'Only MS2 +', 'Only MS2 -', 
         'MS1 both +/-, MS2 +', 'MS1 both +/-, MS2 -',
         'MS1 +, MS2 both +/-', 'MS1 -, MS2 both +/-',
-        'Nothing', 'Non %s'%pc,
+        'Nothing', 'Non %s'%hg,
         'Total', '+/- Total', 'Only + Total', 'Only - Total']
     values = dict(zip(labels, [0] * len(labels)))
     modes = {'pos': '+', 'neg': '-'}
@@ -3933,43 +3930,87 @@ def stard10_pc(valids, stard10 = 'STARD10', pc = 'PC',
         (False, True, True, True): 'MS1 -, MS2 both +/-'
     }
     for mode, opp_mod in [('pos', 'neg'), ('neg', 'pos')]:
-        tbl = valids[stard10][mode]
-        opp_tbl = valids[stard10][opp_mod]
-        for oi in tbl['i']:
-            if oi not in visited[mode]:
+        tbl = valids[ltp][mode]
+        opp_tbl = valids[ltp][opp_mod]
+        for i, oi in enumerate(tbl['i']):
+            if oi not in visited[mode] and (classif is None or tbl[classif][i]):
                 visited[mode].add(oi)
                 values['Total'] += 1
-                if len(tbl[opp_mod][oi]) > 0:
+                opp_indices = map(lambda opp_oi:
+                    np.where(opp_tbl['i'] == opp_oi)[0][0],
+                    tbl[opp_mod][oi].keys()
+                )
+                opp_class = classif is None or len(opp_indices) == 0 or \
+                    sum(opp_tbl[classif][opp_indices]) > 0
+                if len(tbl[opp_mod][oi]) > 0 and opp_class:
                     values['+/- Total'] += 1
                     for opp_oi in tbl[opp_mod][oi].keys():
-                        visited[opp_mod].add(opp_oi)
+                        if classif is None or \
+                        any(opp_tbl[classif][opp_indices]):
+                            visited[opp_mod].add(opp_oi)
                 else:
                     values['Only %s Total'%modes[mode]] += 1
-                if pc not in tbl['identity'][oi]:
-                    if len(tbl['identity'][oi]) > 0:
-                        values['Non %s'%pc] += 1
+                if hg not in tbl['identity'][oi] or (\
+                    hg in tbl['identity'][oi] and \
+                    not tbl['identity'][oi][hg]['ms1_%s'%mode] and \
+                    not tbl['identity'][oi][hg]['ms2_%s'%mode]):
+                    if len(set(tbl['identity'][oi]) - set([hg])) > 0:
+                        values['Non %s'%hg] += 1
                     else:
                         values['Nothing'] += 1
                 else:
-                    comb = tuple(map(lambda k: 
-                        tbl['identity'][oi][pc][k], 
+                    comb = map(lambda k: 
+                        tbl['identity'][oi][hg][k], 
                         keys
-                    ))
+                    )
+                    if not opp_class:
+                        if opp_mod == 'neg':
+                            comb[2] = False
+                            comb[3] = False
+                        else:
+                            comb[0] = False
+                            comb[1] = False
+                    comb = tuple(comb)
                     values[combinations[comb]] += 1
+    return values
+
+'''
+{'MS1 both +/-, MS2 +': 7, 'Only MS2 -': 0, 'MS1 - and MS2 +': 2, 'MS1 both +/-, MS2 -': 1, 'MS1 +, MS2 both +/-': 0, '+/- Total': 46, 'MS2 both +/-, no MS1': 0, 'Non PC': 79, 'Nothing': 221, 'MS1 & MS2 only +': 12, 'MS1 & MS2 both +/-': 8, 'MS1 & MS2 only -': 0, 'Only + Total': 298, 'Only MS1 -': 9, 'MS1 + and MS2 -': 0, 'MS1 both +/-, no MS2': 17, 'MS1 -, MS2 both +/-': 1, 'Total': 448, 'Only - Total': 104, 'Only MS1 +': 68, 'Only MS2 +': 23}
+'''
+
+def plot_identification_levels(idlevels, ltp, hg, fname = '%s-%s-classes.pdf'):
+    fname = fname % (ltp, hg)
+    w = 0.8 / len(idlevels)
+    cols = ['#97BE73', '#49969A', '#996A44', '#FDD73F']
+    labels = ['MS1 & MS2 both +/-', 
+        'MS1 & MS2 only +', 'MS1 & MS2 only -',
+        'MS1 both +/-, no MS2', 'MS2 both +/-, no MS1', 
+        'MS1 + and MS2 -', 'MS1 - and MS2 +',
+        'Only MS1 +', 'Only MS1 -', 'Only MS2 +', 'Only MS2 -', 
+        'MS1 both +/-, MS2 +', 'MS1 both +/-, MS2 -',
+        'MS1 +, MS2 both +/-', 'MS1 -, MS2 both +/-',
+        'Nothing', 'Non %s'%hg,
+        'Total', '+/- Total', 'Only + Total', 'Only - Total']
     fig = mpl.figure.Figure(figsize = (8, 4))
     cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
     ax = fig.gca()
-    ax.bar(np.arange(len(labels)), map(lambda l: values[l], labels), 
-        w, color = '#97BE73', lw = 0.0)
-    ax.set_xticks(np.arange(len(labels)) + w / 2.0)
+    i = 0
+    for lab in sorted(idlevels.keys()):
+        ax.bar(np.arange(len(labels)) + i * w, 
+            map(lambda l: idlevels[lab][l], labels), 
+            w, color = cols[i], lw = 0.0)
+        i += 1
+    lhandles = map(lambda (i, lab): mpl.patches.Patch(color=cols[i], label=lab),
+        enumerate(sorted(idlevels.keys())))
+    leg = ax.legend(handles = lhandles)
+    ax.set_xticks(np.arange(len(labels)) + w * i / 2.0)
     ax.set_xticklabels(labels, rotation = 90)
     ax.set_xlabel('Identification levels')
     ax.set_ylabel('Number of features')
     cvs.draw()
     fig.tight_layout()
-    cvs.print_figure(plot)
+    cvs.print_figure(fname)
     fig.clf()
-    return values
 
 # ## ## ## ## ## ## ## ## #
 # The pipeline   ## ## ## #
