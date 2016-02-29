@@ -72,6 +72,7 @@ ppfracf = os.path.join(basedir, 'fractions.csv')
 ppsecdir = os.path.join(ltpdirs[0], 'SEC_profiles')
 pptablef = os.path.join(basedir, 'proteins_by_fraction.csv')
 lipnamesf = os.path.join(basedir, 'lipid_names.csv')
+bindpropf = os.path.join(basedir, 'binding_properties.csv')
 swisslipids_url = 'http://www.swisslipids.org/php/export.php?action=get&file=lipids.csv'
 
 metrics = [
@@ -111,6 +112,11 @@ html_table_template = '''<!DOCTYPE html>
             .matching {
                 background-color: #03928C;
                 color: #FFFFFF;
+            }
+            .nothing {
+                background-color: #FFFFFF;
+                color: #000000;
+                font-weight: normal;
             }
             td, th {
                 border: 1px solid #CCCCCC;
@@ -456,6 +462,27 @@ def read_lipid_names(lipnamesf):
                 'pos_adduct': l[4] if l[4] != 'ND' else None,
                 'neg_adduct': l[5] if l[5] != 'ND' else None
             }
+    return result
+
+def read_binding_properties(bindpropf):
+    result = {}
+    with open(bindpropf, 'r') as f:
+        data = map(lambda l:
+            l.strip('\n').split('\t'),
+            filter(lambda l:
+                len(l),
+                f
+            )[1:]
+        )
+    for l in data:
+        if l[2] not in result:
+            result[l[2]] = set([])
+        try:
+            for lip in l[6].split(';'):
+                if lip != 'ND' and lip != '':
+                    result[l[2]].add(lip)
+        except IndexError:
+            print l
     return result
 
 #
@@ -3662,6 +3689,287 @@ def ms2_table_html_simple(valids, lipnames, filename = 'ms2headgroups.html', inc
         table += tablerow % row
     with open(filename, 'w') as f:
         f.write(html_table_template % (title, title, table))
+
+def feature_identity_table(valids):
+    sort_alll(valids, 'mz')
+    for ltp, d in valids.iteritems():
+        for pn, tbl in d.iteritems():
+            opp_mode = 'neg' if pn == 'pos' else 'pos'
+            tbl['identity'] = {}
+            for oi in tbl['i']:
+                tbl['identity'][oi] = {}
+                ms1 = set([]) if tbl['ms1hg'][oi] is None else tbl['ms1hg'][oi]
+                ms2 = set([]) \
+                    if oi not in tbl['ms2hg'] or tbl['ms2hg'][oi] is None \
+                    else tbl['ms2hg'][oi]
+                ms1_opp = set([])
+                ms2_opp = set([])
+                if oi in tbl['ms1hg_%s'%opp_mode]:
+                    for hgs in tbl['ms1hg_%s'%opp_mode][oi].values():
+                        ms1_opp = ms1_opp | hgs
+                if oi in tbl['ms2hg_%s'%opp_mode]:
+                    for hgs in tbl['ms2hg_%s'%opp_mode][oi].values():
+                        ms2_opp = ms1_opp | hgs
+                hg_all = ms1 | ms2 | ms1_opp | ms2_opp
+                for hg in hg_all:
+                    tbl['identity'][oi][hg] = {
+                        'ms1_%s'%pn: hg in ms1,
+                        'ms2_%s'%pn: hg in ms2,
+                        'ms1_%s'%opp_mode: hg in ms1_opp,
+                        'ms2_%s'%opp_mode: hg in ms2_opp
+                    }
+
+def feature_identity_html_table(valids, bindprop, fits_pprop = 'cl5pct',
+    outf = 'identities.html'):
+    hdr = ['LTP', 'm/z', 'mode', 'fits protein +', 'fits protein -', 
+        'headgroup', 'MS1+', 'MS2+', 'MS1-', 'MS2-']
+    title = 'Identities for all features'
+    table = ''
+    tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
+    tablehcell = '\t\t\t<th>\n\t\t\t\t%s\n\t\t\t</th>\n'
+    tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s\n\t\t\t</td>\n'
+    hrow = ''
+    for coln in hdr:
+        hrow += tablehcell % coln
+    hrow = tablerow % hrow
+    table = hrow
+    empty_ids = {'': {'ms1_pos': False, 'ms2_pos': False, 
+        'ms1_neg': False, 'ms2_neg': False}}
+    for ltp, d in valids.iteritems():
+        for pn, tbl in d.iteritems():
+            _np = 'pos' if pn == 'neg' else 'neg'
+            for i, oi in enumerate(tbl['i']):
+                for hg, ids in (tbl['identity'][oi].iteritems() \
+                    if len(tbl['identity'][oi]) > 0 else empty_ids.iteritems()):
+                    this_row = ''
+                    this_row += tablecell % ('rowname', '', ltp)
+                    this_row += tablecell % ('nothing', '', '%.05f'%tbl['mz'][i])
+                    this_row += tablecell % ('nothing', '', 
+                        '+' if pn == 'pos' else '-')
+                    fits_pos = tbl[fits_pprop][i] if pn == 'pos' else \
+                        bool(sum(map(lambda (i, v): v,
+                                filter(lambda (i, v): 
+                                    d['pos']['i'][i] in tbl['pos'][oi], 
+                                    enumerate(d['pos'][fits_pprop])
+                                )
+                            )
+                        ))
+                    fits_neg = tbl[fits_pprop][i] if pn == 'neg' else \
+                        bool(sum(map(lambda (i, v): v,
+                                filter(lambda (i, v): 
+                                    d['neg']['i'][i] in tbl['neg'][oi], 
+                                    enumerate(d['neg'][fits_pprop])
+                                )
+                            )
+                        ))
+                    this_row += tablecell % (
+                        'positive' if fits_pos else 'nothing',
+                        'Positive mode fits well on protein profile' if fits_pos \
+                            else 'Positive mode does not fit well on'\
+                                ' protein profile or not available',
+                        '')
+                    this_row += tablecell % (
+                        'positive' if fits_neg else 'nothing',
+                        'Negative mode fits well on protein profile' if fits_neg \
+                            else 'Negative mode does not fit well on'\
+                                ' protein profile or not available',
+                        '')
+                    this_row += tablecell % (
+                        'positive' if hg in bindprop[ltp] else 'nothing',
+                        '%s is known binder of %s'%(hg, ltp) if hg in bindprop[ltp] \
+                            else 'No literature data about %s binding %s'%(ltp, hg),
+                        hg)
+                    this_row += tablecell % (
+                        'positive' if ids['ms1_pos'] else 'nothing',
+                        'Identified in MS1 positive mode' if ids['ms1_pos'] \
+                            else 'Not identified in MS1 positive mode',
+                        '')
+                    this_row += tablecell % (
+                        'positive' if ids['ms2_pos'] else 'nothing',
+                        'Identified in MS2 positive mode' if ids['ms2_pos'] \
+                            else 'Not identified in MS2 positive mode',
+                        '')
+                    this_row += tablecell % (
+                        'positive' if ids['ms1_neg'] else 'nothing',
+                        'Identified in MS1 negative mode' if ids['ms1_neg'] \
+                            else 'Not identified in MS1 negative mode',
+                        '')
+                    this_row += tablecell % (
+                        'positive' if ids['ms2_neg'] else 'nothing',
+                        'Identified in MS2 negative mode' if ids['ms2_neg'] \
+                            else 'Not identified in MS2 negative mode',
+                        '')
+                    this_row = tablerow % this_row
+                    table += this_row
+    with open(outf, 'w') as f:
+        f.write(html_table_template % (title, title, table))
+
+def known_binders_enrichment(valids, bindprop, classif = 'cl5pct'):
+    for ltp, d in valids.iteritems():
+        for pn, tbl in d.iteritems():
+            if 'enr' not in tbl:
+                tbl['enr'] = {}
+            if classif not in tbl['enr']:
+                tbl['enr'][classif] = {}
+            tbl['enr'][classif]['tp'] = len(
+                filter(lambda (i, oi):
+                    tbl[classif][i] and \
+                        len(bindprop[ltp] & \
+                            set(tbl['identity'][oi].keys())) > 0,
+                    enumerate(tbl['i'])
+                )
+            )
+            tbl['enr'][classif]['fp'] = len(
+                filter(lambda (i, oi):
+                    tbl[classif][i] and \
+                        len(bindprop[ltp] & \
+                            set(tbl['identity'][oi].keys())) == 0,
+                    enumerate(tbl['i'])
+                )
+            )
+            tbl['enr'][classif]['tn'] = len(
+                filter(lambda (i, oi):
+                    not tbl[classif][i] and \
+                        len(bindprop[ltp] & \
+                            set(tbl['identity'][oi].keys())) == 0,
+                    enumerate(tbl['i'])
+                )
+            )
+            tbl['enr'][classif]['fn'] = len(
+                filter(lambda (i, oi):
+                    not tbl[classif][i] and \
+                        len(bindprop[ltp] & \
+                            set(tbl['identity'][oi].keys())) > 0,
+                    enumerate(tbl['i'])
+                )
+            )
+            try:
+                tbl['enr'][classif]['or'] = \
+                    float(tbl['enr'][classif]['tp'] * \
+                    tbl['enr'][classif]['tn']) / \
+                    float(tbl['enr'][classif]['fp'] * \
+                    tbl['enr'][classif]['fn'])
+            except ZeroDivisionError:
+                tbl['enr'][classif]['or'] = np.inf
+            tbl['enr'][classif]['contab'] = np.array([
+                [tbl['enr'][classif]['tp'], tbl['enr'][classif]['fp']],
+                [tbl['enr'][classif]['fn'], tbl['enr'][classif]['tn']]])
+            tbl['enr'][classif]['fisher'] = \
+                sp.stats.fisher_exact(tbl['enr'][classif]['contab'])
+
+def enrichment_barplot(valids, classif = 'cl5pct', 
+    outf = 'known_binders_enrichment.pdf'):
+    w = 0.45
+    labels = sorted(filter(lambda ltp:
+        valids[ltp]['pos']['enr'][classif]['tp'] + \
+            valids[ltp]['pos']['enr'][classif]['fn'] > 0 or \
+        valids[ltp]['neg']['enr'][classif]['tp'] + \
+            valids[ltp]['neg']['enr'][classif]['fn'] > 0,
+        valids.keys()
+    ))
+    ppvals = map(lambda ltp:
+        '%.03f' % valids[ltp]['pos']['enr'][classif]['fisher'][1],
+        labels
+    )
+    npvals = map(lambda ltp:
+        '%.03f' % valids[ltp]['neg']['enr'][classif]['fisher'][1],
+        labels
+    )
+    pors = map(lambda ltp:
+        '%.03f' % valids[ltp]['pos']['enr'][classif]['fisher'][0],
+        labels
+    )
+    nors = map(lambda ltp:
+        '%.03f' % valids[ltp]['neg']['enr'][classif]['fisher'][0],
+        labels
+    )
+    fig = mpl.figure.Figure(figsize = (8, 4))
+    cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
+    ax = fig.gca()
+    ax.bar(np.arange(len(labels)), pors, w, color = '#97BE73', lw = 0.0)
+    ax.bar(np.arange(len(labels)) + w, nors, w, color = '#49969A', lw = 0.0)
+    ax.set_yscale('symlog')
+    ax.set_xticks(np.arange(len(labels)) + w)
+    ax.set_xticklabels(labels, rotation = 90)
+    ax.set_xlabel('LTPs')
+    ax.set_ylabel('Enrichment (odds ratio)')
+    cvs.draw()
+    fig.tight_layout()
+    cvs.print_figure(outf)
+    fig.clf()
+
+def stard10_pc(valids, stard10 = 'STARD10', pc = 'PC', 
+    plot = '%s-%s-classes.pdf'):
+    plot = plot % (stard10, pc)
+    w = 0.8
+    visited = {'neg': set([]), 'pos': set([])}
+    labels = ['MS1 & MS2 both +/-', 
+        'MS1 & MS2 only +', 'MS1 & MS2 only -',
+        'MS1 both +/-, no MS2', 'MS2 both +/-, no MS1', 
+        'MS1 + and MS2 -', 'MS1 - and MS2 +',
+        'Only MS1 +', 'Only MS1 -', 'Only MS2 +', 'Only MS2 -', 
+        'MS1 both +/-, MS2 +', 'MS1 both +/-, MS2 -',
+        'MS1 +, MS2 both +/-', 'MS1 -, MS2 both +/-',
+        'Nothing', 'Non %s'%pc,
+        'Total', '+/- Total', 'Only + Total', 'Only - Total']
+    values = dict(zip(labels, [0] * len(labels)))
+    modes = {'pos': '+', 'neg': '-'}
+    keys = ['ms1_pos', 'ms2_pos', 'ms1_neg', 'ms2_neg']
+    combinations = {
+        (True, True, True, True): 'MS1 & MS2 both +/-',
+        (True, True, False, False): 'MS1 & MS2 only +',
+        (False, False, True, True): 'MS1 & MS2 only -',
+        (True, False, True, False): 'MS1 both +/-, no MS2',
+        (False, True, False, True): 'MS2 both +/-, no MS1',
+        (True, False, False, True): 'MS1 + and MS2 -',
+        (False, True, True, False): 'MS1 - and MS2 +',
+        (True, False, False, False): 'Only MS1 +',
+        (False, False, True, False): 'Only MS1 -',
+        (False, True, False, False): 'Only MS2 +',
+        (False, False, False, True): 'Only MS2 -',
+        (True, True, True, False): 'MS1 both +/-, MS2 +',
+        (True, False, True, True): 'MS1 both +/-, MS2 -',
+        (True, True, False, True): 'MS1 +, MS2 both +/-',
+        (False, True, True, True): 'MS1 -, MS2 both +/-'
+    }
+    for mode, opp_mod in [('pos', 'neg'), ('neg', 'pos')]:
+        tbl = valids[stard10][mode]
+        opp_tbl = valids[stard10][opp_mod]
+        for oi in tbl['i']:
+            if oi not in visited[mode]:
+                visited[mode].add(oi)
+                values['Total'] += 1
+                if len(tbl[opp_mod][oi]) > 0:
+                    values['+/- Total'] += 1
+                    for opp_oi in tbl[opp_mod][oi].keys():
+                        visited[opp_mod].add(opp_oi)
+                else:
+                    values['Only %s Total'%modes[mode]] += 1
+                if pc not in tbl['identity'][oi]:
+                    if len(tbl['identity'][oi]) > 0:
+                        values['Non %s'%pc] += 1
+                    else:
+                        values['Nothing'] += 1
+                else:
+                    comb = tuple(map(lambda k: 
+                        tbl['identity'][oi][pc][k], 
+                        keys
+                    ))
+                    values[combinations[comb]] += 1
+    fig = mpl.figure.Figure(figsize = (8, 4))
+    cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
+    ax = fig.gca()
+    ax.bar(np.arange(len(labels)), map(lambda l: values[l], labels), 
+        w, color = '#97BE73', lw = 0.0)
+    ax.set_xticks(np.arange(len(labels)) + w / 2.0)
+    ax.set_xticklabels(labels, rotation = 90)
+    ax.set_xlabel('Identification levels')
+    ax.set_ylabel('Number of features')
+    cvs.draw()
+    fig.tight_layout()
+    cvs.print_figure(plot)
+    fig.clf()
+    return values
 
 # ## ## ## ## ## ## ## ## #
 # The pipeline   ## ## ## #

@@ -44,6 +44,7 @@ pprofs_original = copy.deepcopy(pprofs)
 singles = ltp.one_sample(samples_upper)
 
 lipnames = ltp.read_lipid_names(ltp.lipnamesf)
+bindprop = ltp.read_binding_properties(ltp.bindpropf)
 
 '''
 Setting the protein concentrations to zero in controls
@@ -150,8 +151,8 @@ ms1tab_coln, ms1tab = ltp.ms1_table(valids, lipnames)
 
 
 ltp.ms1_table_html(valids, lipnames)
-ltp.ms1_table_html_simple(valids, lipnames)
-ltp.ms2_table_html_simple(valids, lipnames)
+ltp.ms1_table_html_simple(valids, lipnames, include = 'cl5pct')
+ltp.ms2_table_html_simple(valids, lipnames, include = 'cl5pct')
 
 ## THIS IS NOT NEEDED ANY MORE ##
 
