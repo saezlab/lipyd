@@ -437,7 +437,7 @@ def get_swisslipids_exact(swisslipids_url):
         prg.step(len(l))
         l = l.split('\t')
         if len(l) > 22:
-            mz = to_float(l[13])
+            mz = to_float(l[14])
             add = ''
             exact_masses.append([l[0], l[1], l[2], l[10], add, mz])
     prg.terminate()
@@ -1370,7 +1370,9 @@ def fattyacid_from_lipid_name(lip, _sum = True):
     return _fa
 
 def find_lipids_exact(valids, exacts, lipnames, 
-    levels = ['Species'], tolerance = 0.02):
+    levels = ['Species'], tolerance = 0.02,
+    verbose = False, outfile = None, 
+    ltps = None):
     '''
     Looks up lipids by m/z among database entries in
     `exacts`, and stores the result in dict under key
@@ -1389,12 +1391,18 @@ def find_lipids_exact(valids, exacts, lipnames,
     levels = levels if type(levels) is set \
         else set(levels) if type(levels) is list \
         else set([levels])
+    if verbose:
+        outfile = sys.stdout if outfile is None else open(outfile, 'w')
     for ltp, d in valids.iteritems():
-        for pn, tbl in d.iteritems():
-            tbl['lip'] = {}
-            for i in xrange(tbl['mz'].shape[0]):
-                tbl['lip'][tbl['i'][i]] = adduct_lookup_exact(tbl['mz'][i], 
-                    exacts, levels, adducts[pn], lipnames, tolerance)
+        if ltps is None or ltp in ltps:
+            for pn, tbl in d.iteritems():
+                tbl['lip'] = {}
+                for i in xrange(tbl['mz'].shape[0]):
+                    tbl['lip'][tbl['i'][i]] = adduct_lookup_exact(tbl['mz'][i],
+                        exacts, levels, adducts[pn], lipnames, tolerance,
+                        verbose, outfile)
+    if type(outfile) is file and outfile != sys.stdout:
+        outfile.close()
 
 def adduct_lookup(mz, adducts, levels, tolerance = 0.02):
     '''
@@ -1425,14 +1433,21 @@ def adduct_lookup(mz, adducts, levels, tolerance = 0.02):
     return None if len(result) == 0 else np.vstack(result)
 
 def adduct_lookup_exact(mz, exacts, levels, adducts, lipnames, 
-    tolerance = 0.02):
+    tolerance = 0.02, verbose = False, outfile = None):
     '''
     Looks up m/z values in the table containing the reference database
     casting the m/z to specific adducts.
     '''
+    if verbose and outfile is None:
+        outfile = sys.stdout
     result = []
     for addName, addFun in adducts.iteritems():
         addMz = getattr(Mz(mz), addFun)()
+        if verbose:
+            outfile.write('\t:: Searching for %s adducts.\n\t '\
+                '-- Adduct mass (measured): '\
+                '%.08f, exact mass (calculated): %.08f.\n' % \
+                (addName, mz, addMz))
         iu = exacts[:,-1].searchsorted(addMz)
         if exacts.shape[0] > iu:
             u = 0
@@ -1447,6 +1462,8 @@ def adduct_lookup_exact(mz, exacts, levels, adducts, lipnames,
                             np.array([addMz, hg, fa], dtype = np.object)),
                             axis = 0)
                         lip[4] = addName
+                        if verbose:
+                            outfile.write('\t -- Found: %s\n' % str(list(lip)))
                         result.append(lip)
                     u += 1
                 else:
@@ -1466,6 +1483,8 @@ def adduct_lookup_exact(mz, exacts, levels, adducts, lipnames,
                             np.array([addMz, hg, fa], dtype = np.object)),
                             axis = 0)
                         lip[4] = addName
+                        if verbose:
+                            outfile.write('\t -- Found: %s\n' % str(list(lip)))
                         result.append(lip)
                     l += 1
                 else:
@@ -1830,6 +1849,14 @@ def ms2_map(ms2files):
 def ms2_index(fl, fr):
     '''
     Looking up offsets in one MS2 mgf file.
+    
+    Columns:
+        -- pepmass
+        -- intensity
+        -- retention time
+        -- scan num
+        -- offset in file
+        -- fraction num
     '''
     stRrtinseconds = 'RTINSECONDS'
     stRtitle = 'TITLE'
@@ -1907,10 +1934,12 @@ def ms2_result(ms2matches):
         result[oi] = np.vstack(ms2s) if len(ms2s) > 0 else np.array([])
     return result
 
-def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02):
+def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
+    verbose = False, outfile = None):
     '''
     Looks up matching pepmasses for a list of MS1 m/z's.
     '''
+    outfile = sys.stdout if outfile is None else open(outfile, 'w')
     matches = []
     ms2tbl = ms2map[ltp][pos]
     # iterating over MS1 m/z, MS1 original index, and retention time
@@ -1920,10 +1949,29 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02):
             iu = ms2tbl[:,0].searchsorted(ms1Mz)
         except IndexError:
             sys.stdout.write('\nMissing MS2 files for %s-%s?\n' % (ltp, pos))
+        if verbose:
+            outfile.write('\t:: Looking up MS1 m/z %.08f. '\
+                'Closest values found: %.08f and %.08f\n' % (
+                ms1Mz,
+                ms2tbl[iu - 1, 0] if iu > 0 else 0.0,
+                ms2tbl[iu, 0] if iu < ms2tbl.shape[0] else 0.0))
         u = 0
         if iu < ms2tbl.shape[0]:
             while iu + u < ms2tbl.shape[0]:
                 if ms2tbl[iu + u,0] - ms1Mz <= tolerance:
+                    if verbose:
+                        outfile.write('\t -- Next value withing '\
+                            'range of tolerance: %.08f\n' % ms2tbl[iu + u, 0])
+                        if ms2tbl[iu + u, 2] >= rt[0] \
+                            and ms2tbl[iu + u, 2] <= rt[1]:
+                            outfile.write('\t -- Retention time OK, '\
+                                'include this match\n')
+                        else:
+                            outfile.write('\t -- Retention time is %.02f'\
+                                ', should be in range %.02f-%.02f to'\
+                                ' match.\n' % (ms2tbl[iu + u, 2], rt[0], rt[1]))
+                            outfile.write('\t -- Retention time not OK, '\
+                                'drop this match\n')
                     # checking retention time
                     if ms2tbl[iu + u, 2] >= rt[0] and ms2tbl[iu + u, 2] <= rt[1]:
                         matches.append((ms1Mz, iu + u, ms1i))
@@ -1935,12 +1983,33 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02):
             while iu >= l:
                 if ms1Mz - ms2tbl[iu - l,0] <= tolerance:
                     # checking retention time
+                    if verbose:
+                        outfile.write('\t -- Next value withing '\
+                            'range of tolerance: %.08f\n' % ms2tbl[iu - l, 0])
+                        if ms2tbl[iu - l, 2] >= rt[0] \
+                            and ms2tbl[iu - l, 2] <= rt[1]:
+                            outfile.write('\t -- Retention time OK, '\
+                                'include this match\n')
+                        else:
+                            outfile.write('\t -- Retention time is %.02f'\
+                                ', should be in range %.02f-%.02f to'\
+                                ' match.\n' % (ms2tbl[iu - l, 2], rt[0], rt[1]))
+                            outfile.write('\t -- Retention time not OK, '\
+                                'drop this match\n')
                     if ms2tbl[iu - l, 2] >= rt[0] and ms2tbl[iu - l, 2] <= rt[1]:
                         matches.append((ms1Mz, iu - l, ms1i))
                     l += 1
                 else:
                     break
+    if type(outfile) is file and outfile != sys.stdout:
+        outfile.close()
     return sorted(uniqList(matches), key = lambda x: x[0])
+
+def ms2_verbose(valids, ltp, mode, ms2map, tolerance = 0.02, outfile = None):
+    tbl = valids[ltp][mode]
+    ms2_match(tbl['mz'], tbl['rt'], tbl['i'], 
+            ms2map, ltp, mode, tolerance, verbose = True, 
+            outfile = outfile)
 
 def ms2_lookup(ms2map, ms1matches, samples, ms2files, fragments):
     '''
@@ -3382,7 +3451,8 @@ def lipid_lookup(stage0, runtime = None):
     return pAdducts, nAdducts, lipids, runtime
 
 def lipid_lookup_exact(valids, swisslipids_url, 
-    lipnames, exacts = None, runtime = None):
+    lipnames, exacts = None, runtime = None,
+    verbose = False, outfile = None):
     '''
     Fetches data from SwissLipids and LipidMaps
     if not given.
@@ -3398,7 +3468,8 @@ def lipid_lookup_exact(valids, swisslipids_url,
         la5Exacts = lipidmaps_exact(exacts = la5Exacts)
     else:
         la5Exacts = exacts
-    find_lipids_exact(valids, la5Exacts, lipnames)
+    find_lipids_exact(valids, la5Exacts, lipnames, 
+        verbose = verbose, outfile = outfile)
     if runtime:
         runtime = timeit.timeit('find_lipids(valids, la5Exacts)',
             setup = 'from __main__ import find_lipids, valids, la5Exacts', number = 1)
@@ -3829,7 +3900,7 @@ def ms1_ms2_table_html_simple(valids, lipnames,
                                         pos_neg = True
                                         if sum(map(lambda (_hg, this_hg):
                                                 _hg != hg and this_hg['ms1_pos'] and \
-                                                    this_hg['ms2_pois'],
+                                                    this_hg['ms2_pos'],
                                                 valids[ltp]['pos']['identity'][noi].iteritems()
                                             )) == 0:
                                             pos_neg_same_unambig = True
@@ -3844,28 +3915,28 @@ def ms1_ms2_table_html_simple(valids, lipnames,
                 unambig = 'UA' if pos_neg_same_unambig else 'A'
                 unambig2 = '\nUnambiguous at least once' if pos_neg_same_unambig \
                     else '\nOnly ambiguous'
-                row += tablecell % ('matching', 'Detected in Positive &'\
+                row += tablecell % ('matching', '%s detected in Positive &'\
                     ' Negative modes,\nat same exact mass%s'%\
-                    unambig2, unambig)
+                    (hg, unambig2), unambig)
             elif pos_neg:
                 unambig = 'UA' if pos_neg_unambig else 'A'
                 unambig2 = '\nUnambiguous at least once' if pos_neg_unambig \
                     else '\nOnly ambiguous'
-                row += tablecell % ('both', 'Detected in Positive &'\
+                row += tablecell % ('both', '%s detected in Positive &'\
                     ' Negative modes,\nat different exact mass%s'%\
-                    unambig2, unambig)
+                    (hg, unambig2), unambig)
             elif pos:
                 unambig2 = '\nUnambiguous at least once' if pos_unambig \
                     else '\nOnly ambiguous'
                 unambig = 'UA' if pos_unambig else 'A'
-                row += tablecell % ('positive', 'Detected in Positive mode%s'%\
-                    unambig2, unambig)
+                row += tablecell % ('positive', '%s detected in Positive mode%s'%\
+                    (hg, unambig2), unambig)
             elif neg:
                 unambig2 = '\nUnambiguous at least once' if neg_unambig \
                     else '\nOnly ambiguous'
                 unambig = 'UA' if neg_unambig else 'A'
-                row += tablecell % ('negative', 'Detected in Negative mode%s'%\
-                    unambig2, unambig)
+                row += tablecell % ('negative', '%s detected in Negative mode%s'%\
+                    (hg, unambig2), unambig)
             else:
                 row += tablecell % ('empty', 'Not detected', '')
         table += tablerow % row

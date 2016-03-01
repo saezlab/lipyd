@@ -116,15 +116,15 @@ bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
 
 # run for all with 5% threshold
 ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper, 
-    threshold = 0.50, threshold_type = 'percent', coloring = 'dist',
-    save_selection = 'cl50pct')
+    threshold = 0.70, threshold_type = 'percent', coloring = 'dist',
+    save_selection = 'cl70pct')
 
 bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
     features = True, valids = valids, 
-    highlight = 'cl33pct',
+    highlight = 'cl50pct',
     highlight2 = False,
     all_features = False,
-    pdfname = 'protein_profiles_features_cl_maxdist_33pct.pdf')
+    pdfname = 'protein_profiles_features_cl_maxdist_50pct.pdf')
 
 # ##
 
@@ -143,9 +143,21 @@ exacts = None
 exacts, runtime = ltp.lipid_lookup_exact(valids, ltp.swisslipids_url, exacts = exacts, lipnames = lipnames)
 ltp.negative_positive2(valids, lipnames)
 
-ltp.ms1_headgroups(valids, lipnames, verbose = True)
+ltp.ms1_headgroups(valids, lipnames, verbose = False)
 
 ltp.headgroups_negative_positive(valids, 'ms1')
+
+# the MS2 part
+pFragments, pHgfrags, pHeadgroups = ltp.read_metabolite_lines('lipid_fragments_positive_mode.txt')
+nFragments, nHgfrags, nHeadgroups = ltp.read_metabolite_lines('lipid_fragments_negative_mode.txt')
+ms2files = ltp.ms2_filenames(ltp.ltpdirs)
+ms2map = ltp.ms2_map(ms2files)
+ltp.ms2_main(valids, samples_upper, ms2map, pFragments, nFragments)
+ltp.ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups)
+ltp.headgroups_negative_positive(valids, 'ms2')
+#
+
+ltp.feature_identity_table(valids)
 
 ms1tab_coln, ms1tab = ltp.ms1_table(valids, lipnames)
 
@@ -153,6 +165,8 @@ ms1tab_coln, ms1tab = ltp.ms1_table(valids, lipnames)
 ltp.ms1_table_html(valids, lipnames)
 ltp.ms1_table_html_simple(valids, lipnames, include = 'cl5pct')
 ltp.ms2_table_html_simple(valids, lipnames, include = 'cl5pct')
+
+ltp.ms1_ms2_table_html_simple(valids, lipnames, include = 'cl70pct')
 
 idlevels = {
     'All': ltp.identification_levels(valids, 'STARD10', 'PC'),
@@ -305,13 +319,7 @@ ltp.best_table(valids, 'best10_negative.csv', 'neg')
 
 ## UNTIL HERE ##
 
-pFragments, pHgfrags, pHeadgroups = ltp.read_metabolite_lines('lipid_fragments_positive_mode.txt')
-nFragments, nHgfrags, nHeadgroups = ltp.read_metabolite_lines('lipid_fragments_negative_mode.txt')
-ms2files = ltp.ms2_filenames(ltp.ltpdirs)
-ms2map = ltp.ms2_map(ms2files)
-ltp.ms2_main(valids, samples_upper, ms2map, pFragments, nFragments)
-ltp.ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups)
-ltp.headgroups_negative_positive(valids, 'ms2')
+
 
 #################################################################
 #########################################################
