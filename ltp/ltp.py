@@ -1346,7 +1346,7 @@ def headgroup_from_lipid_name(lip, lipnames):
     for shortname, spec in lipnames.iteritems():
         matched = [kw in lip[2] for kw in spec['%s_pos_kwds' % db]]
         if sum(matched) == len(spec['%s_pos_kwds' % db]) and sum(matched) > 0:
-            matched = [kw not in lip[2] for kw in spec['%s_neg_kwds' % db]]
+            matched = [kw in lip[2] for kw in spec['%s_neg_kwds' % db]]
             if sum(matched) == 0:
                 return shortname, spec['pos_adduct'], spec['neg_adduct']
     return None, None, None
@@ -1457,6 +1457,8 @@ def adduct_lookup_exact(mz, exacts, levels, adducts, lipnames,
                 if iu - l >= 0 and addMz - exacts[iu - l,-1] <= tolerance:
                     if exacts[iu - l,1] in levels:
                         lip = exacts[iu - l,:]
+                        # headgroup and fatty acid guess from lipid name
+                        # happens here!
                         hg, p_add, n_add = \
                             headgroup_from_lipid_name(lip, lipnames)
                         fa = fattyacid_from_lipid_name(lip)
