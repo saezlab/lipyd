@@ -116,15 +116,15 @@ bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
 
 # run for all with 5% threshold
 ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper, 
-    threshold = 0.05, threshold_type = 'percent', coloring = 'dist',
-    save_selection = 'cl5pct')
+    threshold = 0.50, threshold_type = 'percent', coloring = 'dist',
+    save_selection = 'cl50pct')
 
 bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
     features = True, valids = valids, 
-    highlight = 'cl5pct',
+    highlight = 'cl33pct',
     highlight2 = False,
     all_features = False,
-    pdfname = 'protein_profiles_features_cl_maxdist_5pct.pdf')
+    pdfname = 'protein_profiles_features_cl_maxdist_33pct.pdf')
 
 # ##
 
@@ -156,10 +156,24 @@ ltp.ms2_table_html_simple(valids, lipnames, include = 'cl5pct')
 
 idlevels = {
     'All': ltp.identification_levels(valids, 'STARD10', 'PC'),
-    'Best': ltp.identification_levels(valids, 'STARD10', 'PC', classif = 'cl5pct')
+    'Best': ltp.identification_levels(valids, 'STARD10', 'PC', classif = 'cl50pct')
 }
 
 ltp.plot_identification_levels(idlevels, 'STARD10', 'PC')
+
+idlevels = {
+    'All': ltp.identification_levels(valids, 'LCN1', 'PC'),
+    'Best': ltp.identification_levels(valids, 'LCN1', 'PC', classif = 'cl50pct')
+}
+
+ltp.plot_identification_levels(idlevels, 'LCN1', 'PC')
+
+idlevels = {
+    'All': ltp.identification_levels(valids, 'STARD2', 'PC'),
+    'Best': ltp.identification_levels(valids, 'STARD2', 'PC', classif = 'cl50pct')
+}
+
+ltp.plot_identification_levels(idlevels, 'STARD2', 'PC')
 
 ## THIS IS NOT NEEDED ANY MORE ##
 

@@ -131,6 +131,28 @@ html_table_template = '''<!DOCTYPE html>
     </body>
     </html>'''
 
+colors = [
+    '#B81466', # blue maguerite
+    '#C441B3', # slate blue
+    '#D6708B', # pale violet red
+    '#69B3D6', # viking
+    '#3A7AB3', # chetwode blue
+    '#608784', # gothic
+    '#03928C', # java
+    '#CF5836', # mandy
+    '#B3443D', # blush
+    '#65B9B9', # seagull
+    '#009BB9', # pelorous
+    '#D88776', # my pink
+    '#755987', # kimberly
+    '#6F3940', # sanguine brown
+    '#A09255', # teak
+    '#7C997B', # avocado
+    '#582E5E', # minsk
+    '#224A7A', # fun blue
+    '#FE2E08'  # orange red
+]
+
 class MolWeight():
     
     # 
@@ -2626,11 +2648,21 @@ def plot_heatmaps_dendrograms(valids, singles,
     highlight_color = '#FFAA00', base_color = '#000000',
     coloring = 'corr', threshold = None,
     threshold_type = 'percent',
-    save_selection = None):
+    save_selection = None, pca = False):
     '''
     For each LTP plots heatmaps and dendrograms.
     Thanks to http://stackoverflow.com/a/3011894/854988
     '''
+    all_hgs = set()
+    for ltp, d in valids.iteritems():
+        for pn, tbl in d.iteritems():
+            for ids in tbl['identity'].values():
+                for hg in ids.keys():
+                    all_hgs.add(hg)
+    hg_cols = dict(map(lambda (i, hg): 
+        (hg, colors[i]),
+        enumerate(sorted(list(all_hgs)))
+    ))
     t0 = time.time()
     fname = 'features_clustering-%s%s%s.pdf' % \
             (coloring, 
@@ -2655,6 +2687,18 @@ def plot_heatmaps_dendrograms(valids, singles,
                         _threshold = _dendrogram_get_threshold(tbl, dist, 
                             threshold, threshold_type)
                     labels = ['%u'%(f) for f in tbl['_%so'%dist]] + [ltp]
+                    names = map(lambda oi:
+                        ', '.join(sorted(map(lambda (hg, m):
+                            hg,
+                            filter(lambda (hg, m):
+                                m['ms1_%s'%pn] and m['ms2_%s'%pn],
+                                tbl['identity'][int(oi)].iteritems()
+                            )
+                        ))) or oi,
+                        labels[:-1]
+                    ) + [ltp]
+                    
+                    
                     if coloring == 'corr':
                         _link_colors = _get_link_colors_corr(tbl, dist, _cmap, 
                             threshold, highlight_color, base_color)
@@ -2682,12 +2726,15 @@ def plot_heatmaps_dendrograms(valids, singles,
                     # First dendrogram
                     ax1 = fig.add_subplot(gs[1,0])
                     Z1 = hc.dendrogram(tbl['_%sc'%dist], orientation = 'left',
-                        labels = labels,
+                        labels = names,
                         leaf_rotation = 0, ax = ax1,
                         link_color_func = lambda i: _link_colors[i])
                     ax1.yaxis.grid(False)
                     ax1.set_xscale('symlog')
                     null = [tl.set_fontsize(1.5) for tl in ax1.get_yticklabels()]
+                    null = [(tl.set_color(hg_cols[tl._text]), 
+                             tl.set_fontweight('bold')) \
+                        for tl in ax1.get_yticklabels() if tl._text in hg_cols]
                     null = [(tl.set_color(highlight_color), 
                              tl.set_fontweight('bold'),
                              tl.set_fontsize(4)) \
@@ -2698,13 +2745,16 @@ def plot_heatmaps_dendrograms(valids, singles,
                     # Compute and plot second dendrogram.
                     ax2 = fig.add_subplot(gs[0,1])
                     Z2 = hc.dendrogram(tbl['_%sc'%dist], 
-                        labels = labels,
+                        labels = names,
                         leaf_rotation = 90, ax = ax2,
                         #color_threshold = _threshold)
                         link_color_func = lambda i: _link_colors[i])
                     ax2.xaxis.grid(False)
                     ax2.set_yscale('symlog')
                     null = [tl.set_fontsize(1.5) for tl in ax2.get_xticklabels()]
+                    null = [(tl.set_color(hg_cols[tl._text]), 
+                             tl.set_fontweight('bold')) \
+                        for tl in ax2.get_xticklabels() if tl._text in hg_cols]
                     null = [(tl.set_color(highlight_color), 
                              tl.set_fontweight('bold'),
                              tl.set_fontsize(4)) \
@@ -2737,31 +2787,33 @@ def plot_heatmaps_dendrograms(valids, singles,
                     cvs.print_figure(pdf)
                     fig.clf()
                     
-                    #lab2i = dict(zip(labels[:-1], xrange(len(labels) - 1)))
-                    #i2oi = dict(xrange(len(labels) - 1)), zip(labels[:-1])
-                    oi2i = dict(zip(tbl['i'], xrange(tbl['no'].shape[0])))
-                    pca = sklearn.decomposition.PCA(n_components = 2)
-                    fe = np.vstack((tbl['no'][map(lambda oi:
-                            oi2i[int(oi)],
-                            labels[:-1]
-                        ),:], ppr))
-                    col = map(lambda i:
-                        highlight_color if i in protein_fc else base_color, 
-                        xrange(len(labels) - 1)
-                    ) + ['#3383BE']
-                    fe[np.where(np.isnan(fe))] = 0.0
-                    pca = pca.fit(fe)
-                    coo = pca.transform(fe)
-                    fig = mpl.figure.Figure(figsize = (8, 8))
-                    cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
-                    ax = fig.gca()
-                    ax.scatter(coo[:,0], coo[:,1], c = col, linewidth = 0.0, alpha = 0.7)
-                    ax.set_title('%s :: %s mode :: PCA' % (ltp, pn),
-                        color = '#AA0000' if ltp in singles else '#000000')
-                    cvs.draw()
-                    fig.tight_layout()
-                    cvs.print_figure(pdf)
-                    fig.clf()
+                    if pca:
+                        #lab2i = dict(zip(labels[:-1], xrange(len(labels) - 1)))
+                        #i2oi = dict(xrange(len(labels) - 1)), zip(labels[:-1])
+                        oi2i = dict(zip(tbl['i'], xrange(tbl['no'].shape[0])))
+                        pca = sklearn.decomposition.PCA(n_components = 2)
+                        fe = np.vstack((tbl['no'][map(lambda oi:
+                                oi2i[int(oi)],
+                                labels[:-1]
+                            ),:], ppr))
+                        col = map(lambda i:
+                            highlight_color if i in protein_fc else base_color,
+                            xrange(len(labels) - 1)
+                        ) + ['#3383BE']
+                        fe[np.where(np.isnan(fe))] = 0.0
+                        pca = pca.fit(fe)
+                        coo = pca.transform(fe)
+                        fig = mpl.figure.Figure(figsize = (8, 8))
+                        cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
+                        ax = fig.gca()
+                        ax.scatter(coo[:,0], coo[:,1], c = col, 
+                            linewidth = 0.0, alpha = 0.7)
+                        ax.set_title('%s :: %s mode :: PCA' % (ltp, pn),
+                            color = '#AA0000' if ltp in singles else '#000000')
+                        cvs.draw()
+                        fig.tight_layout()
+                        cvs.print_figure(pdf)
+                        fig.clf()
                     
         pdfinf = pdf.infodict()
         pdfinf['Title'] = 'Features clustering'
@@ -3566,6 +3618,10 @@ def ms1_table_html(valids, lipnames, filename = 'ms1.html', include = 'bool_env'
         f.write(html_table_template % (title, title, table))
 
 def ms1_table_html_simple(valids, lipnames, filename = 'ms1headgroups.html', include = 'bool_env'):
+    '''
+    Outputs a HTML table LTPs vs lipid classes (headgroups)
+    based on MS1 identifications.
+    '''
     colnames, ms1tab = ms1_table(valids, lipnames, include = include)
     title = 'Binding specificities of LTPs by headgroups detected in MS1'
     table = ''
@@ -3609,7 +3665,12 @@ def ms1_table_html_simple(valids, lipnames, filename = 'ms1headgroups.html', inc
 END: MS1 lipid identification
 '''
 
-def ms2_table_html_simple(valids, lipnames, filename = 'ms2headgroups.html', include = 'bool_env'):
+def ms2_table_html_simple(valids, lipnames, filename = 'ms2headgroups.html',
+    include = 'bool_env'):
+    '''
+    Outputs a HTML table LTPs vs lipid classes (headgroups)
+    based on MS2 identifications.
+    '''
     title = 'Binding specificities of LTPs by headgroups detected in MS2'
     table = ''
     tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
@@ -3689,6 +3750,126 @@ def ms2_table_html_simple(valids, lipnames, filename = 'ms2headgroups.html', inc
         table += tablerow % row
     with open(filename, 'w') as f:
         f.write(html_table_template % (title, title, table))
+
+def ms1_ms2_table_html_simple(valids, lipnames, 
+    filename = 'ms1ms2headgroups.html', include = 'cl50pct'):
+    '''
+    Outputs a HTML table LTPs vs lipid classes (headgroups)
+    based on MS1 and MS2 identifications.
+    '''
+    title = 'Binding specificities of LTPs by headgroups'\
+        ' detected in MS1 and MS2'
+    table = ''
+    tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
+    tablehcell = '\t\t\t<th>\n\t\t\t\t%s\n\t\t\t</th>\n'
+    tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s\n\t\t\t</td>\n'
+    th1 = tablehcell % 'LTP'
+    colnames = set([])
+    for ltp, d in valids.iteritems():
+        for pn, tbl in d.iteritems():
+            for hgs in tbl['identity'].values():
+                for hg in hgs.keys():
+                    if hg is not None:
+                        colnames.add(hg)
+    colnames = sorted(list(colnames))
+    # header row (lipid species)
+    for hg in colnames:
+        th1 += tablehcell % hg
+    table += tablerow % th1
+    # rows by LTP
+    for ltp in sorted(valids.keys()):
+        row = tablecell % ('rowname', ltp, ltp)
+        for hg in colnames:
+            pos = False
+            neg = False
+            pos_neg = False
+            pos_unambig = False
+            neg_unambig = False
+            pos_neg_same_unambig = False
+            pos_neg_unambig = False
+            pos_neg_same = False
+            tbl = valids[ltp]['pos']
+            for oi in tbl['i'][np.where(tbl[include])[0]]:
+                if hg in tbl['identity'][oi]:
+                    this_hg = tbl['identity'][oi][hg]
+                    if this_hg['ms1_pos'] and this_hg['ms2_pos']:
+                        pos = True
+                        if this_hg['ms1_neg'] and this_hg['ms2_neg']:
+                            pos_neg_same = True
+                            for noi in tbl['neg'][oi].keys():
+                                if hg in valids[ltp]['neg']['identity'][noi]:
+                                    if valids[ltp]['neg']['identity'][noi][hg]['ms1_neg'] and \
+                                        valids[ltp]['neg']['identity'][noi][hg]['ms2_neg']:
+                                        pos_neg = True
+                                        if sum(map(lambda (_hg, this_hg):
+                                                _hg != hg and this_hg['ms1_neg'] and \
+                                                    this_hg['ms2_neg'],
+                                                valids[ltp]['neg']['identity'][noi].iteritems()
+                                            )) == 0:
+                                            pos_neg_same_unambig = True
+                        if sum(map(lambda (_hg, this_hg):
+                                _hg != hg and this_hg['ms1_pos'] and this_hg['ms2_pos'],
+                                tbl['identity'][oi].iteritems()
+                            )) == 0:
+                            pos_unambig = True
+            tbl = valids[ltp]['neg']
+            for oi in tbl['i'][np.where(tbl[include])[0]]:
+                if hg in tbl['identity'][oi]:
+                    this_hg = tbl['identity'][oi][hg]
+                    if this_hg['ms1_neg'] and this_hg['ms2_neg']:
+                        neg = True
+                        if this_hg['ms1_pos'] and this_hg['ms2_pos']:
+                            pos_neg_same = True
+                            for noi in tbl['pos'][oi].keys():
+                                if hg in valids[ltp]['pos']['identity'][noi]:
+                                    if valids[ltp]['pos']['identity'][noi][hg]['ms1_pos'] and \
+                                        valids[ltp]['pos']['identity'][noi][hg]['ms2_pos']:
+                                        pos_neg = True
+                                        if sum(map(lambda (_hg, this_hg):
+                                                _hg != hg and this_hg['ms1_pos'] and \
+                                                    this_hg['ms2_pois'],
+                                                valids[ltp]['pos']['identity'][noi].iteritems()
+                                            )) == 0:
+                                            pos_neg_same_unambig = True
+                        if sum(map(lambda (_hg, this_hg):
+                                _hg != hg and this_hg['ms1_neg'] and this_hg['ms2_neg'],
+                                tbl['identity'][oi].iteritems()
+                            )) == 0:
+                            neg_unambig = True
+            if pos_unambig and neg_unambig:
+                pos_neg_unambig = True
+            if pos_neg_same:
+                unambig = 'UA' if pos_neg_same_unambig else 'A'
+                unambig2 = '\nUnambiguous at least once' if pos_neg_same_unambig \
+                    else '\nOnly ambiguous'
+                row += tablecell % ('matching', 'Detected in Positive &'\
+                    ' Negative modes,\nat same exact mass%s'%\
+                    unambig2, unambig)
+            elif pos_neg:
+                unambig = 'UA' if pos_neg_unambig else 'A'
+                unambig2 = '\nUnambiguous at least once' if pos_neg_unambig \
+                    else '\nOnly ambiguous'
+                row += tablecell % ('both', 'Detected in Positive &'\
+                    ' Negative modes,\nat different exact mass%s'%\
+                    unambig2, unambig)
+            elif pos:
+                unambig2 = '\nUnambiguous at least once' if pos_unambig \
+                    else '\nOnly ambiguous'
+                unambig = 'UA' if pos_unambig else 'A'
+                row += tablecell % ('positive', 'Detected in Positive mode%s'%\
+                    unambig2, unambig)
+            elif neg:
+                unambig2 = '\nUnambiguous at least once' if neg_unambig \
+                    else '\nOnly ambiguous'
+                unambig = 'UA' if neg_unambig else 'A'
+                row += tablecell % ('negative', 'Detected in Negative mode%s'%\
+                    unambig2, unambig)
+            else:
+                row += tablecell % ('empty', 'Not detected', '')
+        table += tablerow % row
+    with open(filename, 'w') as f:
+        f.write(html_table_template % (title, title, table))
+
 
 def feature_identity_table(valids):
     sort_alll(valids, 'mz')
@@ -4011,6 +4192,25 @@ def plot_identification_levels(idlevels, ltp, hg, fname = '%s-%s-classes.pdf'):
     fig.tight_layout()
     cvs.print_figure(fname)
     fig.clf()
+
+def mz_report(valids, ltp, mode, mz):
+    sort_alll(valids, 'mz')
+    tbl = valids[ltp][mode]
+    ui = tbl['mz'].searchsorted(mz)
+    i = ui if tbl['mz'][ui] - mz < mz - tbl['mz'][ui - 1] else ui - 1
+    oi = tbl['i'][i]
+    sys.stdout.write('\n\t:: Looking up %.08f\n'\
+        '\t -- The closest m/z found is %.08f\n'\
+        '\t -- Current index is %u\n'\
+        '\t -- Original index is %u\n'\
+        '\t -- MS1 headgroups identified: %s\n'\
+        '\t -- MS2 headgroups identified: %s\n\n' % \
+        (mz, tbl['mz'][i], i, oi, 
+        ', '.join(sorted(list(tbl['ms1hg'][oi]))),
+        ', '.join(sorted(list(tbl['ms2hg'][oi]))) \
+            if oi in tbl['ms2hg'] and type(tbl['ms2hg'][oi]) is set else ''
+        )
+    )
 
 # ## ## ## ## ## ## ## ## #
 # The pipeline   ## ## ## #
