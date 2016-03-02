@@ -2137,6 +2137,11 @@ def ms2_collect(ms2matches, ms1mz, unknown = False):
     return result
 
 def ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups):
+    '''
+    Creates dictionaries named ms2hg having the
+    original IDs as keys and the sets of the
+    identified possible headgroups as values.
+    '''
     for ltp, d in valids.iteritems():
         for pn, tbl in d.iteritems():
             tbl['ms2hg'] = {}
@@ -2151,6 +2156,12 @@ def ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups):
                 tbl['ms2fa'][oi] = fattya
 
 def ms2_headgroup(ms2r, hgfrags, headgroups):
+    '''
+    Identifies headgroups from MS2 results for one
+    feature, based on dictionary of fragments and
+    the characteristic combinations of fragments
+    identifying headgroups.
+    '''
     hgroups = None
     frags = set([])
     for ms2item in ms2r:
@@ -2168,6 +2179,16 @@ def ms2_headgroup(ms2r, hgfrags, headgroups):
     return hgroups
 
 def headgroups_negative_positive(valids, ms):
+    '''
+    Creates dictionaries named ms1hg_pos, ms1hg_neg,
+    ms2hg_pos or ms2hg_neg with the original
+    IDs of the given mode as keys, with dicts as
+    values having the original IDs of the other mode
+    as keys and the combined set of headgroups as 
+    values. The combined set is the intersection of
+    those detected in the 2 modes, or the union, if
+    there is no intersection.
+    '''
     for ltp, d in valids.iteritems():
         d['pos']['%shg_neg'%ms] = {}
         d['neg']['%shg_pos'%ms] = {}
@@ -3841,10 +3862,11 @@ def ms1_ms2_table_html_simple(valids, lipnames,
     for ltp, d in valids.iteritems():
         for pn, tbl in d.iteritems():
             for hgs in tbl['identity'].values():
-                for hg in hgs.keys():
-                    if hg is not None:
+                for hg, ids in hgs.iteritems():
+                    if hg is not None and (ids['ms2_pos'] or ids['ms2_neg']):
                         colnames.add(hg)
     colnames = sorted(list(colnames))
+    print colnames
     # header row (lipid species)
     for hg in colnames:
         th1 += tablehcell % hg
@@ -3938,13 +3960,19 @@ def ms1_ms2_table_html_simple(valids, lipnames,
                 row += tablecell % ('negative', '%s detected in Negative mode%s'%\
                     (hg, unambig2), unambig)
             else:
-                row += tablecell % ('empty', 'Not detected', '')
+                row += tablecell % ('empty', '%s not detected'%hg, '')
         table += tablerow % row
     with open(filename, 'w') as f:
         f.write(html_table_template % (title, title, table))
 
 
 def feature_identity_table(valids):
+    '''
+    Creates dictionaries named `identity`, having
+    original IDs as keys and 4 element dictionaries
+    as values with keys ms1_pos, ms2_pos, ms1_neg, ms2_neg,
+    each having a boolean value.
+    '''
     sort_alll(valids, 'mz')
     for ltp, d in valids.iteritems():
         for pn, tbl in d.iteritems():
@@ -3958,12 +3986,12 @@ def feature_identity_table(valids):
                     else tbl['ms2hg'][oi]
                 ms1_opp = set([])
                 ms2_opp = set([])
-                if oi in tbl['ms1hg_%s'%opp_mode]:
-                    for hgs in tbl['ms1hg_%s'%opp_mode][oi].values():
-                        ms1_opp = ms1_opp | hgs
-                if oi in tbl['ms2hg_%s'%opp_mode]:
-                    for hgs in tbl['ms2hg_%s'%opp_mode][oi].values():
-                        ms2_opp = ms1_opp | hgs
+                for opp_oi in tbl[opp_mode][oi].keys():
+                    if opp_oi in d[opp_mode]['ms1hg']:
+                        ms1_opp = ms1_opp | d[opp_mode]['ms1hg'][opp_oi]
+                    if opp_oi in d[opp_mode]['ms2hg'] and \
+                        d[opp_mode]['ms2hg'][opp_oi] is not None:
+                        ms2_opp = ms2_opp | d[opp_mode]['ms2hg'][opp_oi]
                 hg_all = ms1 | ms2 | ms1_opp | ms2_opp
                 for hg in hg_all:
                     tbl['identity'][oi][hg] = {
