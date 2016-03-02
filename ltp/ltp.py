@@ -150,7 +150,11 @@ colors = [
     '#7C997B', # avocado
     '#582E5E', # minsk
     '#224A7A', # fun blue
-    '#FE2E08'  # orange red
+    '#FE2E08', # orange red
+    '#2D16E2', # medium blue
+    '#CBE216', # fuego
+    '#14B866', # medium sea green
+    '#987B99'  # london hue
 ]
 
 class MolWeight():
