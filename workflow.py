@@ -121,10 +121,10 @@ ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper,
 
 bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
     features = True, valids = valids, 
-    highlight = 'cl50pct',
+    highlight = 'cl70pct',
     highlight2 = False,
     all_features = False,
-    pdfname = 'protein_profiles_features_cl_maxdist_50pct.pdf')
+    pdfname = 'protein_profiles_features_cl_maxdist_70pct.pdf')
 
 # ##
 

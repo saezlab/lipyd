@@ -1964,12 +1964,12 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
             while iu + u < ms2tbl.shape[0]:
                 if ms2tbl[iu + u,0] - ms1Mz <= tolerance:
                     if verbose:
-                        outfile.write('\t -- Next value withing '\
+                        outfile.write('\t -- Next value within '\
                             'range of tolerance: %.08f\n' % ms2tbl[iu + u, 0])
                         if ms2tbl[iu + u, 2] >= rt[0] \
                             and ms2tbl[iu + u, 2] <= rt[1]:
                             outfile.write('\t -- Retention time OK, '\
-                                'include this match\n')
+                                'accept this match\n')
                         else:
                             outfile.write('\t -- Retention time is %.02f'\
                                 ', should be in range %.02f-%.02f to'\
@@ -1988,12 +1988,12 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
                 if ms1Mz - ms2tbl[iu - l,0] <= tolerance:
                     # checking retention time
                     if verbose:
-                        outfile.write('\t -- Next value withing '\
+                        outfile.write('\t -- Next value within '\
                             'range of tolerance: %.08f\n' % ms2tbl[iu - l, 0])
                         if ms2tbl[iu - l, 2] >= rt[0] \
                             and ms2tbl[iu - l, 2] <= rt[1]:
                             outfile.write('\t -- Retention time OK, '\
-                                'include this match\n')
+                                'accept this match\n')
                         else:
                             outfile.write('\t -- Retention time is %.02f'\
                                 ', should be in range %.02f-%.02f to'\
@@ -3634,7 +3634,7 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                                                 else '%s does not ionize'%lip[4], 
                                             pn)
 
-def ms1_table(valids, lipnames, include = 'bool_env'):
+def ms1_table(valids, lipnames, include = 'cl70pct'):
     ltps = sorted(valids.keys())
     # collecting primary and secondary column names
     # and cell values
@@ -3660,12 +3660,14 @@ def ms1_table(valids, lipnames, include = 'bool_env'):
                                 if hg not in result[ltp]:
                                     result[ltp][hg] = {}
                                 if fa not in result[ltp][hg]:
+                                    # 3 bool values: +, -,
+                                    # both + & - at same exact mass
                                     result[ltp][hg][fa] = [False, False, False]
                                 # cell values
                                 if pn == 'pos':
                                     result[ltp][hg][fa][0] = True
                                 elif pn == 'neg':
-                                    result[ltp][hg][fa][0] = True
+                                    result[ltp][hg][fa][1] = True
                                 for _oi, pnlips in tbl['%s_lip'%_np][oi].iteritems():
                                     if not result[ltp][hg][fa][2] and pnlips is not None:
                                         for pnlip in pnlips:
@@ -3679,7 +3681,7 @@ def ms1_table(valids, lipnames, include = 'bool_env'):
                                                 break
     return colnames, result
 
-def ms1_table_html(valids, lipnames, filename = 'ms1.html', include = 'bool_env'):
+def ms1_table_html(valids, lipnames, filename = 'ms1.html', include = 'cl70pct'):
     colnames, ms1tab = ms1_table(valids, lipnames, include = include)
     title = 'Binding specificities of LTPs detected in MS1'
     table = ''
@@ -3701,21 +3703,29 @@ def ms1_table_html(valids, lipnames, filename = 'ms1.html', include = 'bool_env'
             for fa in sorted(colnames[hg]):
                 if hg in ms1tab[ltp] and fa in ms1tab[ltp][hg]:
                     if ms1tab[ltp][hg][fa][2]:
-                        row += tablecell % ('matching', 'Detected in Positive & Negative modes', '')
+                        row += tablecell % ('matching', '%s (%s) detected in '\
+                            'Positive & Negative modes at %s' % (hg, fa, ltp),
+                            '')
                     elif ms1tab[ltp][hg][fa][0] and \
                         ms1tab[ltp][hg][fa][1]:
-                        row += tablecell % ('both', 'Detected in Positive & Negative modes', '')
+                        row += tablecell % ('both', '%s (%s) detected in '\
+                            'Positive & Negative modes at %s' % (hg, fa, ltp),
+                            '')
                     elif ms1tab[ltp][hg][fa][0]:
-                        row += tablecell % ('positive', 'Detected in Positive mode', '')
+                        row += tablecell % ('positive', '%s (%s) detected '\
+                            'in Positive mode at %s' % (hg, fa, ltp), '')
                     elif ms1tab[ltp][hg][fa][1]:
-                        row += tablecell % ('negative', 'Detected in Negative mode', '')
+                        row += tablecell % ('negative', '%s (%s) detected '\
+                            'in Negative mode at %s' % (hg, fa, ltp), '')
                 else:
-                    row += tablecell % ('empty', 'Not detected', '')
+                    row += tablecell % ('empty', '%s (%s) not detected at %s' \
+                        % (hg, fa, ltp), '')
         table += tablerow % row
     with open(filename, 'w') as f:
         f.write(html_table_template % (title, title, table))
 
-def ms1_table_html_simple(valids, lipnames, filename = 'ms1headgroups.html', include = 'bool_env'):
+def ms1_table_html_simple(valids, lipnames, filename = 'ms1headgroups.html',
+    include = 'cl70pct'):
     '''
     Outputs a HTML table LTPs vs lipid classes (headgroups)
     based on MS1 identifications.
@@ -3748,13 +3758,16 @@ def ms1_table_html_simple(valids, lipnames, filename = 'ms1headgroups.html', inc
                     elif ms1tab[ltp][hg][fa][1]:
                         neg = True
             if pos_neg:
-                row += tablecell % ('matching', 'Detected in Positive & Negative modes', '')
+                row += tablecell % ('matching', '%s detected in Positive & '\
+                    'Negative modes' % hg, '')
             elif pos:
-                row += tablecell % ('positive', 'Detected in Positive mode', '')
+                row += tablecell % ('positive', '%s detected in Positive '\
+                    'mode' % hg, '')
             elif neg:
-                row += tablecell % ('negative', 'Detected in Negative mode', '')
+                row += tablecell % ('negative', '%s detected in Negative '\
+                    'mode' % hg, '')
             else:
-                row += tablecell % ('empty', 'Not detected', '')
+                row += tablecell % ('empty', '%s not detected' % hg, '')
         table += tablerow % row
     with open(filename, 'w') as f:
         f.write(html_table_template % (title, title, table))
