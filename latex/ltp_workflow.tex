@@ -1,0 +1,107 @@
+% % % % % % % % % % % % % % % % % % % % % % % % %
+%  
+%  Workflow of mass spectrometry data analysis
+%  of lipid binding properties of human
+%  lipid transfer proteins
+%
+%  Copyright (c) 2015-2016 - EMBL-EBI
+%
+%  File author(s): 
+%    Dénes Türei (denes@ebi.ac.uk)
+%
+%  This file is not intended for public use.
+%  Please do not use and do not redistribute it.
+%  
+%  Website: http://www.ebi.ac.uk/~denes
+%
+%  Tested with XeTeX, Version 3.14159265-2.6-0.99992
+%  (TeX Live 2015/Arch Linux)
+%
+% % % % % % % % % % % % % % % % % % % % % % % % %
+
+\documentclass[11pt, a4paper]{article}
+\usepackage[no-math]{fontspec}
+\usepackage{xunicode}
+\usepackage{polyglossia}
+\setdefaultlanguage{english}
+\usepackage{xltxtra}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=emblpetrol, citecolor=emblpetrol, filecolor=emblpetrol, urlcolor=emblpetrol, 
+    pdftitle='Mass spectrometry analysis of lipid binding properties of human lipid transfer proteins', 
+    pdfauthor={Dénes Türei}, 
+    pdfborder={0, 0, 0},
+    breaklinks=true, pdfpagemode=UseNone, pageanchor=true, pdfpagemode=UseOutlines,
+    hypertexnames=true, pdfhighlight=/O, pdfstartpage=1, pdfstartview=FitV, linktocpage=false,
+    pdfsubject={Mass spectrometry analysis of lipid binding properties of human lipid transfer proteins},
+    pdfkeywords={lipid, human, lipid transfer protein, LTP, mass spectrometry, MS1, MS2, AP-MS},
+    pdfcreator={XeTeX}}
+
+\title{Mass spectrometry analysis of lipid binding properties of human lipid transfer proteins}
+\author{Dénes Türei}
+\date{\today}
+
+\usepackage{microtype}
+\usepackage{graphicx}
+
+\usepackage{xcolor}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage{units}
+\usepackage{textcomp}
+
+\usepackage{tikz}
+
+\newfontface{\sentinel}[Path=fonts/]{Sentinel-Book.otf}
+\newfontface{\sentinelitalic}[Path=fonts/]{Sentinel-BookItalic.otf}
+\newfontface{\sentinelbold}[Path=fonts/]{Sentinel-Bold.otf}
+\newfontface{\sentinelsemibold}[Path=fonts/]{Sentinel-Semibold.otf}
+\newfontface{\helveticalight}[Path=fonts/]{HelveticaNeueLTStd-Lt.otf}
+
+\setmainfont{Sentinel-Book.otf}[Path=fonts/, BoldFont=Sentinel-Semibold.otf, ItalicFont=Sentinel-BookItalic.otf]
+\setsansfont{HelveticaNeueLTStd-Lt.otf}[Path=fonts/, BoldFont=HelveticaNeueLTStd-Bd.otf]
+
+% kerning of this font is not perfect...
+\spaceskip=1.5\fontdimen2\font plus 1.5\fontdimen3\font
+minus 1.5\fontdimen4\font
+
+% now seems to be standard in english typography:
+\frenchspacing
+
+% EMBL colors
+\definecolor{emblpetrol}{RGB}{0, 102, 102}
+\definecolor{emblgreen}{RGB}{115, 179, 96}
+\definecolor{embltwilight}{RGB}{239, 244, 233}
+\definecolor{emblzircon}{RGB}{228, 236, 236}
+\definecolor{emblyellow}{RGB}{250, 183, 0}
+\definecolor{emblred}{RGB}{227, 62, 62}
+\definecolor{emblgray1}{gray}{0.875}
+\definecolor{emblgray8}{gray}{0.125}
+\definecolor{emblgray75}{gray}{0.25}
+%
+\definecolor{glacier}{RGB}{134, 173, 194}
+\definecolor{spindle}{RGB}{186, 189, 213}
+\definecolor{kobi}{RGB}{186, 189, 213}
+\definecolor{chathams}{RGB}{157, 203, 162}
+%
+
+
+\newcommand{\fknbox}[1]{
+    \vspace*{0.5\baselineskip}
+    \begin{tikzpicture}
+    \node[anchor=north west, text width=\textwidth-1.1cm,inner sep=5mm,thin,draw=glacier,fill=spindle] (txtbox) at (0,0) {
+        \texttt{#1}
+    };
+    \draw[line width=2mm,glacier] (txtbox.north west) -- (txtbox.south west);
+    \end{tikzpicture}
+}
+
+% % % % % % % % % % % % % % % % % % % % % % % % %
+
+\begin{document}
+    \maketitle
+    
+    %
+\end{document}
