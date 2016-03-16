@@ -34,7 +34,6 @@ import warnings
 import re
 import timeit
 import xlrd
-from xlrd.biffh import XLRDError
 import numpy as np
 import scipy as sp
 from scipy import stats
@@ -73,6 +72,7 @@ ppsecdir = os.path.join(ltpdirs[0], 'SEC_profiles')
 pptablef = os.path.join(basedir, 'proteins_by_fraction.csv')
 lipnamesf = os.path.join(basedir, 'lipid_names.csv')
 bindpropf = os.path.join(basedir, 'binding_properties.csv')
+metabsf = os.path.join(basedir, 'Metabolites.xlsx')
 swisslipids_url = 'http://www.swisslipids.org/php/export.php?action=get&file=lipids.csv'
 
 metrics = [
@@ -288,6 +288,45 @@ class Mz():
     def add_nh4(self):
         m = MolWeight('NH4')
         return self.adduct(m - mass.electron)
+
+#
+# read standards data
+#
+
+def standards_theoretic_masses(metabsf):
+    '''
+    Reads the exact masses and most abundant ion masses of
+    the lipid standards.
+    '''
+    result = {}
+    tbl = read_xls(metabsf, 9)
+    hdr = tbl[0]
+    for pn in [('pos', 1, 6), ('neg', 8, 16)]:
+        hdr = tbl[pn[1] - 1]
+        result[pn[0]] = dict(
+            map(lambda line:
+                (
+                    line[0],
+                    {
+                        'exact': float(line[1]),
+                        'ion': float(line[2]),
+                        ''.join(filter(lambda c: c.isdigit(), hdr[3])):
+                            to_float(line[3]),
+                        ''.join(filter(lambda c: c.isdigit(), hdr[4])):
+                            to_float(line[4]),
+                        ''.join(filter(lambda c: c.isdigit(), hdr[5])):
+                            to_float(line[5])
+                    }
+                ),
+                tbl[pn[1]:pn[2]]
+            )
+        )
+    for pn, dd in result.iteritems():
+        for lstd, d in dd.iteritems():
+            for k in d.keys():
+                if k.isdigit():
+                    d['diff_%s'%k] = d['ion'] - d[k] if type(d[k]) is float else np.nan
+    return result
 
 #
 # obtaining lipid data from SwissLipids
@@ -589,7 +628,7 @@ def read_pptable(pptablef):
         return dict((ll[0], dict(zip(header, float_lst(ll[1:])))) \
             for ll in (l.split('\t') for l in f.read().split('\n')))
 
-def read_xls(xls_file, sheet = '', csv_file = None, return_table = True):
+def read_xls(xls_file, sheet = 0, csv_file = None, return_table = True):
     '''
     Generic function to read MS Excel XLS file, and convert one sheet
     to CSV, or return as a list of lists
@@ -597,8 +636,11 @@ def read_xls(xls_file, sheet = '', csv_file = None, return_table = True):
     try:
         book = xlrd.open_workbook(xls_file, on_demand = True)
         try:
-            sheet = book.sheet_by_name(sheet)
-        except XLRDError:
+            if type(sheet) is int:
+                sheet = book.sheet_by_index(sheet)
+            else:
+                sheet = book.sheet_by_name(sheet)
+        except xlrd.biffh.XLRDError:
             sheet = book.sheet_by_index(0)
         table = [[str(c.value) for c in sheet.row(i)] for i in xrange(sheet.nrows)]
         if csv_file:
