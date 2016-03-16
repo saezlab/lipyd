@@ -130,7 +130,11 @@ minus 1.5\fontdimen4\font
             
         \subsection{Time of measurements}
             
-            \todobox{\textbf{TODO:} Read the time of each measurement from a file provided by Marco. Read the lipid standard masses from \textit{Metabolites.xlsx.} Read the features from all measurements of the standard.}
+            Theoretic masses of lipids in the standard we read from \textit{Metabolites.xlsx.} From the same sheet, measured masses of the most abundant ions are read, so we calculated drift values by day.
+            
+            \fknbox{ltp.standards\_theoretic\_masses()}
+            
+            \todobox{\textbf{TODO:} Read the time of each measurement from a file provided by Marco. Read the features from all measurements of the standard.}
             
         \subsection{LTP containing samples}
             The file \texttt{control\_sample.csv} for each LTP and for each fraction contains 0/1 values telling whether a fraction contains the LTP or not based on SDS pages. This file has been manually compiled by Antonella. Missing values are non-measured fractions (those will have \textit{None} values later in Python, so can be distinguished from zeros).\par
