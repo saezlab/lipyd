@@ -66,7 +66,7 @@ path_root = '/'
 basedir = os.path.join(path_root, 'home', 'denes', 'Documents' , 'ltp')
 ltpdirs = [os.path.join(basedir, 'share'),
     os.path.join(basedir, 'share', '2015_06_Popeye')]
-samplesf = os.path.join(ltpdirs[0], 'control_sample.csv')
+samplesf = os.path.join(basedir, 'control_sample.csv')
 ppfracf = os.path.join(basedir, 'fractions.csv')
 ppsecdir = os.path.join(ltpdirs[0], 'SEC_profiles')
 pptablef = os.path.join(basedir, 'proteins_by_fraction.csv')
@@ -118,10 +118,22 @@ html_table_template = '''<!DOCTYPE html>
                 color: #000000;
                 font-weight: normal;
             }
+            .clickable {
+                cursor: pointer;
+            }
             td, th {
                 border: 1px solid #CCCCCC;
             }
         </style>
+        <script type="text/javascript">
+            function showTooltip(e) {
+                e = e || window.event;
+                var targ = e.target || e.srcElement;
+                if (targ.nodeType == 3) targ = targ.parentNode;
+                text = targ.getAttribute('title')
+                if (text !== undefined) alert(text);
+            }
+        </script>
     </head>
     <body>
         <h1>%s</h1>
@@ -1314,16 +1326,32 @@ Save and reload functions
 '''
 
 def save_data(data, basedir, fname = 'features.pickle'):
-    pickle.dump(data, open(os.path.join(basedir, fname), 'wb'))
+    fname = os.path.join(basedir, fname)
+    sys.stdout.write('\t:: Saving data to %s ...\n' % fname)
+    sys.stdout.flush()
+    pickle.dump(data, open(fname, 'wb'))
+    sys.stdout.write('\t:: Data has been saved to %s.\n' % fname)
+    sys.stdout.flush()
 
 def load_data(basedir, fname = 'features.pickle'):
-    return pickle.load(open(os.path.join(basedir, fname), 'rb'))
+    fname = os.path.join(basedir, fname)
+    sys.stdout.write('\t:: Loading data from data to %s ...\n' % fname)
+    sys.stdout.flush()
+    return pickle.load(open(fname, 'rb'))
 
 def save(fnames, samples, pprofs, basedir, fname = 'save.pickle'):
+    fname = os.path.join(basedir, fname)
+    sys.stdout.write('\t:: Saving auxiliary data to %s ...\n' % fname)
+    sys.stdout.flush()
     pickle.dump((fnames, samples, pprofs), open(os.path.join(basedir, fname), 'wb'))
+    sys.stdout.write('\t:: Data has been saved to %s.\n' % fname)
+    sys.stdout.flush()
 
 def load(basedir, fname = 'save.pickle'):
-    return pickle.load(open(os.path.join(basedir, fname), 'rb'))
+    fname = os.path.join(basedir, fname)
+    sys.stdout.write('\t:: Loading auxiliary data from data to %s ...\n' % fname)
+    sys.stdout.flush()
+    return pickle.load(open(fname, 'rb'))
 
 '''
 END: save & reload
@@ -2320,7 +2348,7 @@ def init_from_scratch(basedir, ltpdirs, pptablef, samplesf):
     fnames = dict(get_filenames(ltpdirs[0]).items() + get_filenames(ltpdirs[1]).items())
     samples = read_samples(samplesf)
     # at first run, after reading from saved textfile
-    pprofs = protein_profiles(ppsecdir, ppfracf)
+    pprofs = protein_profiles(ppsecdir, ppfracf, fnames)
     write_pptable(pprofs, pptablef)
     del fnames['ctrl']
     save(fnames, samples, pprofs, basedir)
@@ -4371,6 +4399,120 @@ def mz_report(valids, ltp, mode, mz):
             if oi in tbl['ms2hg'] and type(tbl['ms2hg'][oi]) is set else ''
         )
     )
+
+def _database_details_list(lip):
+    if lip is None: lip = []
+    return '\n'.join(map(lambda l:
+        '⚫ %s\t%.04f\t%s' % (l[4], l[5], l[2]),
+        lip
+    ))
+
+def _fragment_details_list(ms2r):
+    if ms2r is None: ms2r = []
+    return '\n'.join(map(lambda l:
+        '⚫ %s (%.02f)' % (l[0], l[3]),
+        filter(lambda l:
+            l[0] != 'unknown',
+            ms2r
+        )
+    ))
+
+def _features_table_row(ltp, mod, tbl, oi, i, fits_profile):
+    tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s\n\t\t\t</td>\n'
+    tableccell = '\t\t\t<td class="%s" title="%s" onclick="showTooltip(event);">'\
+        '\n\t\t\t\t%s\n\t\t\t</td>\n'
+    row = []
+    row.append(tablecell % \
+        ('nothing', 'm/z measured; %s, %s mode' % \
+            (ltp, 'negative' if mod == 'neg' else 'positive'), 
+        '%.04f' % tbl['mz'][i]))
+    row.append(tableccell % (
+        ('nothing clickable',
+            _database_details_list(tbl['lip'][oi]), 'see DB records') \
+                if tbl['lip'][oi] is not None and len(tbl['lip'][oi]) > 0 else \
+        ('nothing', 'Lookup of this m/z resulted no records', 'No DB records')
+    ))
+    row.append(tablecell % \
+        ('nothing', 'Possible headgroups based on database records',
+        ', '.join(tbl['ms1hg'][oi])))
+    row.append(tableccell % (
+        ('nothing clickable',
+            _fragment_details_list(tbl['ms2r'][oi]), 'see MS2 frags.') \
+                if oi in tbl['ms2r'] else \
+        ('nothing', 'No MS2 results for this feature', 'No MS2')
+    ))
+    row.append(tablecell % \
+        ('nothing', 'Possible MS2 headgroups based on fragmets lookup',
+        ', '.join(tbl['ms2hg'][oi] \
+            if oi in tbl['ms2hg'] and tbl['ms2hg'][oi] is not None else '')))
+    row.append(tablecell % (
+        'positive' if tbl[fits_profile][i] else 'nothing',
+        'Fits protein profile' if tbl[fits_profile][i] \
+            else 'Does not fit protein profile',
+        'Yes' if tbl[fits_profile][i] else 'No'
+    ))
+    return row
+
+def features_table(valids, filename = 'identities_details.html', fits_profile = 'cl70pct'):
+    visited = {'pos': set([]), 'neg': set([])}
+    hdr = ['+m/z', '+Database', '+MS1 headgroups',
+        '+MS2 fragments', '+MS2 headgroups', '+Fits protein',
+        '-m/z', '-Database', '-MS1 headgroups',
+        '-MS2 fragments', '-MS2 headgroups', '-Fits protein']
+    title = 'Identities for all features, detailed'
+    table = ''
+    tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
+    tablehcell = '\t\t\t<th>\n\t\t\t\t%s\n\t\t\t</th>\n'
+    tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s\n\t\t\t</td>\n'
+    hrow = ''
+    for coln in hdr:
+        hrow += tablehcell % coln
+    hrow = tablerow % hrow
+    table = hrow
+    for ltp, d in valids.iteritems():
+        thisRow = []
+        thisRow.append(tablecell % ('rowname', ltp, ltp))
+        thisRow += map(lambda i: 
+            tablecell % ('nothing', '', ''), 
+            xrange(len(hdr) - 1)
+        )
+        table += (tablerow % '\n'.join(thisRow))
+        for mod, tbl in d.iteritems():
+            opp_mod = 'neg' if mod == 'pos' else 'pos'
+            for i, oi in enumerate(tbl['i']):
+                if oi not in visited[mod]:
+                    thisRow = {'pos': [], 'neg': []}
+                    visited[mod].add(oi)
+                    thisRow[mod].append(
+                        _features_table_row(ltp, mod, tbl, 
+                            oi, i, fits_profile))
+                    try:
+                        if len(tbl[opp_mod][oi]) == 0:
+                            thisRow[opp_mod] = [map(lambda i:
+                                tablecell % ('nothing', '', ''),
+                                xrange(len(hdr) / 2)
+                            )]
+                        else:
+                            for opp_oi in tbl[opp_mod][oi].keys():
+                                opp_row = []
+                                visited[opp_mod].add(opp_oi)
+                                opp_i = np.where(d[opp_mod]['i'] == opp_oi)\
+                                    [0][0]
+                                thisRow[opp_mod].append(_features_table_row(
+                                    ltp, opp_mod, d[opp_mod], 
+                                    opp_oi, opp_i, fits_profile))
+                    except KeyError:
+                        print ltp, mod, opp_mod
+                    for pos_row in thisRow['pos']:
+                        for neg_row in thisRow['neg']:
+                            try:
+                                table += tablerow % ('\n%s\n%s\n' % \
+                                    ('\n'.join(pos_row), '\n'.join(neg_row)))
+                            except TypeError:
+                                print pos_row
+                                print neg_row
+    with open(filename, 'w') as f:
+        f.write(html_table_template % (title, title, table))
 
 # ## ## ## ## ## ## ## ## #
 # The pipeline   ## ## ## #

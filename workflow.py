@@ -33,8 +33,8 @@ from ltp import *
 '''
 Initializing from the beginning.
 '''
-#data, fnames, samples, csamples, pprofs = \
-#    init_from_scratch(basedir, ltpdirs, pptablef, samplesf)
+data, fnames, samples, csamples, pprofs = \
+    ltp.init_from_scratch(ltp.basedir, ltp.ltpdirs, ltp.pptablef, ltp.samplesf)
 
 '''
 Here we reload the workspace including all the data from the pickle:
@@ -124,7 +124,7 @@ bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
     highlight = 'cl70pct',
     highlight2 = False,
     all_features = False,
-    pdfname = 'protein_profiles_features_cl_maxdist_70pct.pdf')
+    pdfname = 'protein_profiles_features_cl_maxdist_70pct-b.pdf')
 
 # ##
 
@@ -166,7 +166,7 @@ ltp.ms1_table_html(valids, lipnames)
 ltp.ms1_table_html_simple(valids, lipnames, include = 'cl5pct')
 ltp.ms2_table_html_simple(valids, lipnames, include = 'cl5pct')
 
-ltp.ms1_ms2_table_html_simple(valids, lipnames, include = 'cl70pct')
+ltp.ms1_ms2_table_html_simple(valids, lipnames, include = 'cl70pct', filename = 'ms1ms2headgroups2.html')
 
 idlevels = {
     'All': ltp.identification_levels(valids, 'STARD10', 'PC'),
