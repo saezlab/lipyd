@@ -2220,14 +2220,16 @@ def ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups):
         for pn, tbl in d.iteritems():
             tbl['ms2hg'] = {}
             tbl['ms2fa'] = {}
+            tbl['ms2fai'] = {}
             hgfrags = pHgfrags if pn == 'pos' else nHgfrags
             headgroups = pHeadgroups if pn == 'pos' else nHeadgroups
             result = {}
             for oi, ms2r in tbl['ms2r'].iteritems():
-                hgroups = ms2_headgroup(ms2r, hgfrags, headgroups)
-                fattya = ms2_fattya(ms2r)
+                hgroups = ms2_headgroup2(ms2r, hgfrags, headgroups)
+                ms2fa, ms2fai = ms2_fattya(ms2r)
                 tbl['ms2hg'][oi] = hgroups
-                tbl['ms2fa'][oi] = fattya
+                tbl['ms2fa'][oi] = ms2fa
+                tbl['ms2fai'][oi] = ms2fai
 
 def ms2_headgroup(ms2r, hgfrags, headgroups):
     '''
@@ -2320,10 +2322,30 @@ def headgroups_negative_positive(valids, ms):
                                 d['pos']['%shg_neg'%ms][poi][noi] = combined
                                 d['neg']['%shg_pos'%ms][noi][poi] = combined
 
-def ms2_fattya(ms2r):
+def ms2_fattya(ms2r, highest = 2):
+    '''
+    Identifies the fatty acids with highest intensities.
+    Returns only number of `highest` fatty acids.
+    '''
+    recnum = re.compile(r'.*[^0-9]([0-9]+:[0-9]+).*')
     # reverse sort by intensities
+    ms2fa = set([])
+    ms2fai = []
     ms2r = ms2r[ms2r[:,3].argsort()[::-1],:]
-    
+    fanum = 0
+    for ms2f in ms2ri:
+        if 'FA' in ms2f:
+            fa = recnum.match(ms2f[0])
+            if fa not in ms2fa:
+                # a set with fatty std formulas
+                # [carbon count]:[unsaturated count]
+                ms2fa.add(fa)
+                # a list with intensities decreasing
+                ms2fai.append((fa, ms2f[3]))
+                fanum += 1
+        if fanum == highest:
+            break
+    return ms2fa, ms2fai
 
 '''
 END: MS2 functions
