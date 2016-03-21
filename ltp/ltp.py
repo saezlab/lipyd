@@ -2221,6 +2221,7 @@ def ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups):
             tbl['ms2hg'] = {}
             tbl['ms2fa'] = {}
             tbl['ms2fai'] = {}
+            tbl['ms2fas'] = {}
             hgfrags = pHgfrags if pn == 'pos' else nHgfrags
             headgroups = pHeadgroups if pn == 'pos' else nHeadgroups
             result = {}
