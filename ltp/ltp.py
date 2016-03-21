@@ -4555,11 +4555,25 @@ def mz_report(valids, ltp, mode, mz):
         '\t -- Current index is %u\n'\
         '\t -- Original index is %u\n'\
         '\t -- MS1 headgroups identified: %s\n'\
-        '\t -- MS2 headgroups identified: %s\n\n' % \
+        '\t -- MS2 headgroups identified: %s\n'\
+        '\t -- MS1 fatty acids identified: %s\n'\
+        '\t -- MS2 fatty acids identified: %s\n'\
+        '\t -- Headgroups based on fatty acids: %s\n'\
+        '\t -- Combined identity: %s\n'\
+        '\n' % \
         (mz, tbl['mz'][i], i, oi, 
         ', '.join(sorted(list(tbl['ms1hg'][oi]))),
         ', '.join(sorted(list(tbl['ms2hg'][oi]))) \
-            if oi in tbl['ms2hg'] and type(tbl['ms2hg'][oi]) is set else ''
+            if oi in tbl['ms2hg'] and type(tbl['ms2hg'][oi]) is set else '',
+        ', '.join(map(lambda (hg, fa): 
+                '%s: %s' % (hg, ', '.join(list(fa))), 
+                tbl['ms1fa'][oi].iteritems()
+            )
+        ),
+        ', '.join(list(tbl['ms2fa'][oi])) \
+            if oi in tbl['ms2fa'] else '',
+        ', '.join(list(tbl['hgfa'][oi])),
+        ', '.join(list(tbl['combined_hg'][oi]))
         )
     )
 
