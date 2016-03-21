@@ -4612,16 +4612,36 @@ def _features_table_row(ltp, mod, tbl, oi, i, fits_profile):
     row.append(tablecell % \
         ('nothing', 'Possible headgroups based on database records',
         ', '.join(tbl['ms1hg'][oi])))
-    row.append(tableccell % (
-        ('nothing clickable',
+    row.append(tableccell % \
+        (('nothing clickable',
             _fragment_details_list(tbl['ms2r'][oi]), 'see MS2 frags.') \
                 if oi in tbl['ms2r'] else \
-        ('nothing', 'No MS2 results for this feature', 'No MS2')
-    ))
+        ('nothing', 'No MS2 results for this feature', 'No MS2'))
+    )
     row.append(tablecell % \
         ('nothing', 'Possible MS2 headgroups based on fragmets lookup',
         ', '.join(tbl['ms2hg'][oi] \
-            if oi in tbl['ms2hg'] and tbl['ms2hg'][oi] is not None else '')))
+            if oi in tbl['ms2hg'] and tbl['ms2hg'][oi] is not None else '')
+    ))
+    row.append(tablecell % \
+        ('nothing',
+        'Possible fatty acids based on database records',
+        '; '.join(map(lambda (hg, fa):
+            '%s: %s' % (hg, ', '.join(list(fa))),
+            tbl['ms1fa'][oi].iteritems()
+        )) if len(tbl['ms1fa'][oi]) else 'N/A')
+    )
+    row.append(tablecell % \
+        ('nothing',
+        'Fatty acids identified in MS2',
+        ', '.join(list(tbl['ms2fa'][oi])) \
+            if oi in tbl['ms2fa'] and len(tbl['ms2fa'][oi]) else 'N/A')
+    )
+    row.append(tablecell % \
+        ('nothing',
+        'Combined identity (MS1, MS2, fatty acids)',
+        ', '.join(list(tbl['combined_hg'][oi])) if len(tbl['combined_hg'][oi]) else 'N/A')
+    )
     row.append(tablecell % (
         'positive' if tbl[fits_profile][i] else 'nothing',
         'Fits protein profile' if tbl[fits_profile][i] \
@@ -4632,9 +4652,15 @@ def _features_table_row(ltp, mod, tbl, oi, i, fits_profile):
 
 def features_table(valids, filename = 'identities_details.html', fits_profile = 'cl70pct'):
     hdr = ['+m/z', '+Database', '+MS1 headgroups',
-        '+MS2 fragments', '+MS2 headgroups', '+Fits protein',
+        '+MS2 fragments', '+MS2 headgroups', 
+        '+MS1 fattya.', '+MS2 fattya.',
+        '+Combined',
+        '+Fits protein',
         '-m/z', '-Database', '-MS1 headgroups',
-        '-MS2 fragments', '-MS2 headgroups', '-Fits protein']
+        '-MS2 fragments', '-MS2 headgroups', 
+        '-MS1 fattya.', '-MS2 fattya.',
+        '-Combined',
+        '-Fits protein']
     title = 'Identities for all features, detailed'
     table = ''
     tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
@@ -4682,12 +4708,12 @@ def features_table(valids, filename = 'identities_details.html', fits_profile = 
                         print ltp, mod, opp_mod
                     for pos_row in thisRow['pos']:
                         for neg_row in thisRow['neg']:
-                            try:
-                                table += tablerow % ('\n%s\n%s\n' % \
-                                    ('\n'.join(pos_row), '\n'.join(neg_row)))
-                            except TypeError:
-                                print pos_row
-                                print neg_row
+                            #try:
+                            table += tablerow % ('\n%s\n%s\n' % \
+                                ('\n'.join(pos_row), '\n'.join(neg_row)))
+                            #except TypeError:
+                                #print pos_row
+                                #print neg_row
     with open(filename, 'w') as f:
         f.write(html_table_template % (title, title, table))
 
