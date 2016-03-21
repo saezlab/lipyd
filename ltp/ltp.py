@@ -3736,9 +3736,14 @@ def evaluate_results(stage0, stage2, lipids, samples_upper, letter = 'e'):
     plt.close()
 
 def ms1_headgroups(valids, lipnames, verbose = False):
+    '''
+    Identifies headgroups by keywords and fatty acids
+    from database record names.
+    '''
     for ltp, d in valids.iteritems():
         for pn, tbl in d.iteritems():
             tbl['ms1hg'] = {}
+            tbl['ms1fa'] = {}
             for oi, lips in tbl['lip'].iteritems():
                 tbl['ms1hg'][oi] = set([])
                 if lips is not None:
@@ -3749,12 +3754,19 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                             posAdd = lipnames[lip[7]]['pos_adduct']
                             negAdd = lipnames[lip[7]]['neg_adduct']
                             thisModeAdd = lipnames[lip[7]]['%s_adduct'%pn]
+                            hg = lip[7]
+                            fa = '%u:%u' % (lip[8][0], lip[8][1]) \
+                                if lip[8] is not None else None
                             if posAdd is None and negAdd is None or \
                                 thisModeAdd == lip[4]:
                                 if verbose:
                                     print '\t\taccepting %s-%s for %s-%s' % \
-                                        (lip[7], lip[4], ltp, pn)
-                                tbl['ms1hg'][oi].add(lip[7])
+                                        (hg, lip[4], ltp, pn)
+                                tbl['ms1hg'][oi].add(hg)
+                                if fa is not None:
+                                    if hg  not in tbl['ms2fa']:
+                                        tbl['ms2fa'][hg] = set([])
+                                    tb['ms2fa'][hg].add(fa)
                             else:
                                 if verbose:
                                     print '\t\tdiscarding %s-%s for %s, %s'\
