@@ -89,6 +89,7 @@ ms2files = ltp.ms2_filenames(ltp.ltpdirs)
 ms2map = ltp.ms2_map(ms2files)
 ltp.ms2_main(valids, samples_upper, ms2map, pFragments, nFragments)
 ltp.ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups)
+ltp.headgroups_by_fattya(valids)
 ltp.headgroups_negative_positive(valids, 'ms2')
 #
 

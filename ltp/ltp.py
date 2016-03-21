@@ -3763,7 +3763,8 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                     for lip in lips:
                         if lip[7] is not None:
                             if verbose:
-                                print '\t:: %s-%s: found %s' % (ltp, pn, lip[7])
+                                sys.stdout.write('\t:: %s-%s: found %s\n' % (ltp, pn, lip[7]))
+                                sys.stdout.flush()
                             posAdd = lipnames[lip[7]]['pos_adduct']
                             negAdd = lipnames[lip[7]]['neg_adduct']
                             thisModeAdd = lipnames[lip[7]]['%s_adduct'%pn]
@@ -3773,8 +3774,9 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                             if posAdd is None and negAdd is None or \
                                 thisModeAdd == lip[4]:
                                 if verbose:
-                                    print '\t\taccepting %s-%s for %s-%s' % \
-                                        (hg, lip[4], ltp, pn)
+                                    sys.stdout.write('\t\taccepting %s-%s for %s-%s\n' % \
+                                        (hg, lip[4], ltp, pn))
+                                    sys.stdout.flush()
                                 tbl['ms1hg'][oi].add(hg)
                                 if fa is not None:
                                     if hg  not in tbl['ms1fa']:
@@ -3782,12 +3784,13 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                                     tbl['ms1fa'][hg].add(fa)
                             else:
                                 if verbose:
-                                    print '\t\tdiscarding %s-%s for %s, %s'\
+                                    sys.stdout.write('\t\tdiscarding %s-%s for %s, %s\n'\
                                         ' in %s mode' % (lip[7], lip[4], ltp, 
                                             '%s is the main adduct'%thisModeAdd \
                                                 if thisModeAdd is not None \
                                                 else '%s does not ionize'%lip[4], 
-                                            pn)
+                                            pn))
+                                    sys.stdout.flush()
 
 def headgroups_by_fattya(valids):
     '''
@@ -3804,6 +3807,41 @@ def headgroups_by_fattya(valids):
                     for hg, ms1fa in tbl['ms1fa'].iteritems():
                         if ms2fa in ms1fa:
                             tbl['hgfa'][oi].add(hg)
+
+def identity_combined(valids):
+    '''
+    Combined identification based on MS1 database lookup,
+    MS2 headgroup fragments and MS2 fatty acids.
+    Creates dicts `combined_hg` and `combined_fa`.
+    '''
+    for ltp, d in valids.iteritems():
+        for mod, tbl in d.iteritems():
+            tbl['combined_hg'] = {}
+            tbl['combined_fa'] = {}
+            for oi in tbl['i']:
+                hgs = set([])
+                tbl['combined_fa'][oi] = {}
+                if oi not in tbl['ms2hg'] or tbl['ms2hg'][oi] is None:
+                    hgs = tbl['ms1hg'][oi]
+                else:
+                    if len(tbl['ms1hg'][oi] & tbl['ms2hg'][oi]):
+                        hgs = tbl['ms1hg'][oi] & tbl['ms2hg'][oi]
+                    else:
+                        hgs = tbl['ms1hg'][oi] | tbl['ms2hg'][oi]
+                if len(tbl['hgfa'][oi]) and len(hgs & tbl['hgfa'][oi])
+                    hgs = hgs & tbl['hgfa'][oi]
+                else:
+                    hgs = tbl['hgfa'][oi]
+                tbl['combined_hg'][oi] = hgs
+                for hg in hgs:
+                    if hg in tbl['ms1fa'][oi] and \
+                        tbl['ms2fas'][oi] is not None and \
+                        tbl['ms2fas'][oi] in tbl['ms1fa'][oi][hg]:
+                        if hg not in tbl['combined_fa'][oi]:
+                            tbl['combined_fa'][oi][hg] = set([])
+                        # currently only the most certain cases:
+                        tbl['combined_fa'][oi][hg].add(tbl['ms2fas'][oi])
+                        # maybe later we need those with less evidence
 
 def ms1_table(valids, lipnames, include = 'cl70pct'):
     ltps = sorted(valids.keys())
