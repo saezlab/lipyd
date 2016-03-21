@@ -3777,9 +3777,9 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                                         (hg, lip[4], ltp, pn)
                                 tbl['ms1hg'][oi].add(hg)
                                 if fa is not None:
-                                    if hg  not in tbl['ms2fa']:
-                                        tbl['ms2fa'][hg] = set([])
-                                    tb['ms2fa'][hg].add(fa)
+                                    if hg  not in tbl['ms1fa']:
+                                        tbl['ms1fa'][hg] = set([])
+                                    tbl['ms1fa'][hg].add(fa)
                             else:
                                 if verbose:
                                     print '\t\tdiscarding %s-%s for %s, %s'\
@@ -3788,6 +3788,22 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                                                 if thisModeAdd is not None \
                                                 else '%s does not ionize'%lip[4], 
                                             pn)
+
+def headgroups_by_fattya(valids):
+    '''
+    Limits the number of possible headgroups based on detected MS2 fatty acids.
+    Creates dict `hgfa`.
+    '''
+    for ltp, d in valids.iteritems():
+        for mod, tbl in d.iteritems():
+            tbl['hgfa'] = {}
+            for oi in tbl['i']:
+                tbl['hgfa'][oi] = set([])
+                if oi in tbl['ms2fas'] and tbl['ms2fas'][oi] is not None:
+                    ms2fa = tbl['ms2fas'][oi]
+                    for hg, ms1fa in tbl['ms1fa'].iteritems():
+                        if ms2fa in ms1fa:
+                            tbl['hgfa'][oi].add(hg)
 
 def ms1_table(valids, lipnames, include = 'cl70pct'):
     ltps = sorted(valids.keys())
