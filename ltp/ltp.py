@@ -2334,30 +2334,32 @@ def ms2_fattya(ms2r, highest = 2):
     ms2fa = set([])
     ms2fai = []
     ms2fas = None
-    ms2r = ms2r[ms2r[:,3].argsort()[::-1],:]
-    fanum = 0
-    for ms2f in ms2ri:
-        if 'FA' in ms2f:
-            fa = recnum.match(ms2f[0])
-            fa = fa.groups()[0]
-            if fa not in ms2fa:
-                # a set with fatty std formulas
-                # [carbon count]:[unsaturated count]
-                ms2fa.add(fa)
-                # a list with intensities decreasing
-                ms2fai.append((fa, ms2f[3]))
-                fanum += 1
-        if fanum == highest:
-            break
-    # sum formula
-    if len(ms2fa) == highest:
-        carbs = 0
-        unsats = 0
-        for fa in ms2fa:
-            carb, unsat = map(int, fa.split(':'))
-            carbs += carb
-            unsats = unsat
-        ms2fas = '%u:%u' % (carbs, unsats)
+    # if we have MS2 data at all:
+    if ms2r.shape[0] > 0:
+        ms2r = ms2r[ms2r[:,3].argsort()[::-1],:]
+        fanum = 0
+        for ms2f in ms2r:
+            if 'FA' in ms2f[0]:
+                fa = recnum.match(ms2f[0])
+                fa = fa.groups()[0]
+                if fa not in ms2fa:
+                    # a set with fatty std formulas
+                    # [carbon count]:[unsaturated count]
+                    ms2fa.add(fa)
+                    # a list with intensities decreasing
+                    ms2fai.append((fa, ms2f[3]))
+                    fanum += 1
+            if fanum == highest:
+                break
+        # sum formula
+        if len(ms2fa) == highest:
+            carbs = 0
+            unsats = 0
+            for fa in ms2fa:
+                carb, unsat = map(int, fa.split(':'))
+                carbs += carb
+                unsats = unsat
+            ms2fas = '%u:%u' % (carbs, unsats)
     return ms2fa, ms2fai, ms2fas
 
 '''
@@ -3759,6 +3761,7 @@ def ms1_headgroups(valids, lipnames, verbose = False):
             tbl['ms1fa'] = {}
             for oi, lips in tbl['lip'].iteritems():
                 tbl['ms1hg'][oi] = set([])
+                tbl['ms1fa'][oi] = {}
                 if lips is not None:
                     for lip in lips:
                         if lip[7] is not None:
@@ -3780,19 +3783,19 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                                 tbl['ms1hg'][oi].add(hg)
                                 if fa is not None:
                                     if hg  not in tbl['ms1fa']:
-                                        tbl['ms1fa'][hg] = set([])
-                                    tbl['ms1fa'][hg].add(fa)
+                                        tbl['ms1fa'][oi][hg] = set([])
+                                    tbl['ms1fa'][oi][hg].add(fa)
                             else:
                                 if verbose:
                                     sys.stdout.write('\t\tdiscarding %s-%s for %s, %s\n'\
                                         ' in %s mode' % (lip[7], lip[4], ltp, 
                                             '%s is the main adduct'%thisModeAdd \
                                                 if thisModeAdd is not None \
-                                                else '%s does not ionize'%lip[4], 
+                                                else '%s does not ionize'%lip[4],
                                             pn))
                                     sys.stdout.flush()
 
-def headgroups_by_fattya(valids):
+def headgroups_by_fattya(valids, verbose = False):
     '''
     Limits the number of possible headgroups based on detected MS2 fatty acids.
     Creates dict `hgfa`.
@@ -3804,9 +3807,22 @@ def headgroups_by_fattya(valids):
                 tbl['hgfa'][oi] = set([])
                 if oi in tbl['ms2fas'] and tbl['ms2fas'][oi] is not None:
                     ms2fa = tbl['ms2fas'][oi]
-                    for hg, ms1fa in tbl['ms1fa'].iteritems():
+                    for hg, ms1fa in tbl['ms1fa'][oi].iteritems():
                         if ms2fa in ms1fa:
                             tbl['hgfa'][oi].add(hg)
+                            if verbose:
+                                sys.stdout.write('\t%s is among possible fat'\
+                                    'ty acids (%s) for %s based on MS1, '\
+                                    'for feature %u at %s-%s \n' % \
+                                    (ms2fa, ', '.join(list(ms1fa)), 
+                                        hg, oi, ltp, mod))
+                        else:
+                            if verbose:
+                                sys.stdout.write('\t%s not among possible fat'\
+                                    'ty acids (%s) for %s based on MS1, '\
+                                    'for feature %u at %s-%s \n' % \
+                                    (ms2fa, ', '.join(list(ms1fa)), 
+                                        hg, oi, ltp, mod))
 
 def identity_combined(valids):
     '''
@@ -3828,7 +3844,7 @@ def identity_combined(valids):
                         hgs = tbl['ms1hg'][oi] & tbl['ms2hg'][oi]
                     else:
                         hgs = tbl['ms1hg'][oi] | tbl['ms2hg'][oi]
-                if len(tbl['hgfa'][oi]) and len(hgs & tbl['hgfa'][oi])
+                if len(tbl['hgfa'][oi]) and len(hgs & tbl['hgfa'][oi]):
                     hgs = hgs & tbl['hgfa'][oi]
                 else:
                     hgs = tbl['hgfa'][oi]
