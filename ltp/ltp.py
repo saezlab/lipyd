@@ -2238,11 +2238,15 @@ def ms2_headgroup(ms2r, hgfrags, headgroups):
     '''
     hgroups = None
     frags = set([])
+    # collecting all possible headgroups for
+    # each fragment into `hgroups` and all
+    # fragments into `frags`
     for ms2item in ms2r:
         if ms2item[0] in hgfrags:
             hgroups = hgfrags[ms2item[0]] if hgroups is None \
                 else hgroups & hgfrags[ms2item[0]]
             frags.add(ms2item[0])
+    # if any headgroup related fragment found
     if hgroups is not None and len(hgroups) > 0:
         missingFrags = set([])
         for hg in hgroups:
@@ -2250,6 +2254,38 @@ def ms2_headgroup(ms2r, hgfrags, headgroups):
                 missingFrags.add(hg)
         hgroups = hgroups - missingFrags if \
             len(hgroups - missingFrags) > 0 else hgroups
+    return hgroups
+
+def ms2_headgroup2(ms2r, hgfrags, headgroups):
+    '''
+    Identifies headgroups from MS2 results for one
+    feature, based on dictionary of fragments and
+    the characteristic combinations of fragments
+    identifying headgroups.
+    '''
+    _hgroups = []
+    _hgroups2 = []
+    hgroups = set([])
+    frags = set([])
+    # collecting all possible headgroups for
+    # each fragment into `hgroups` and all
+    # fragments into `frags`
+    for ms2item in ms2r:
+        if ms2item[0] in hgfrags:
+            _hgroups.append(hgfrags[ms2item[0]])
+            frags.add(ms2item[0])
+    # if any headgroup related fragment found
+    if len(_hgroups) > 0:
+        for hgs in _hgroups:
+            added = False
+            for i, hgs2 in enumerate(_hgroups2):
+                if len(hgs & hgs2) > 0:
+                    _hgroups2[i] = hgs & hgs2
+                    added = True
+            if not added:
+                _hgroups2.append(hgs)
+    for hgs in _hgroups2:
+        hgroups = hgroups | hgs
     return hgroups
 
 def headgroups_negative_positive(valids, ms):
@@ -2285,7 +2321,9 @@ def headgroups_negative_positive(valids, ms):
                                 d['neg']['%shg_pos'%ms][noi][poi] = combined
 
 def ms2_fattya(ms2r):
-    return None
+    # reverse sort by intensities
+    ms2r = ms2r[ms2r[:,3].argsort()[::-1],:]
+    
 
 '''
 END: MS2 functions
@@ -3953,7 +3991,6 @@ def ms1_ms2_table_html_simple(valids, lipnames,
                     if hg is not None and (ids['ms2_pos'] or ids['ms2_neg']):
                         colnames.add(hg)
     colnames = sorted(list(colnames))
-    print colnames
     # header row (lipid species)
     for hg in colnames:
         th1 += tablehcell % hg
@@ -3971,6 +4008,8 @@ def ms1_ms2_table_html_simple(valids, lipnames,
             pos_neg_unambig = False
             pos_neg_same = False
             tbl = valids[ltp]['pos']
+            if ltp == 'ORP4' and hg == 'PC':
+                print 'pos before = ', pos
             for oi in tbl['i'][np.where(tbl[include])[0]]:
                 if hg in tbl['identity'][oi]:
                     this_hg = tbl['identity'][oi][hg]
@@ -3994,6 +4033,11 @@ def ms1_ms2_table_html_simple(valids, lipnames,
                                 tbl['identity'][oi].iteritems()
                             )) == 0:
                             pos_unambig = True
+                if ltp == 'ORP4' and hg == 'PC' and pos:
+                    print 'pos after = ', pos
+                    print oi
+                    print ltp, hg, tbl['identity'][oi]
+                    print hg in tbl['identity'][oi]
             tbl = valids[ltp]['neg']
             for oi in tbl['i'][np.where(tbl[include])[0]]:
                 if hg in tbl['identity'][oi]:
@@ -4035,6 +4079,8 @@ def ms1_ms2_table_html_simple(valids, lipnames,
                     ' Negative modes,\nat different exact mass%s'%\
                     (hg, unambig2), unambig)
             elif pos:
+                if ltp == 'ORP4':
+                    print 'foo bar'
                 unambig2 = '\nUnambiguous at least once' if pos_unambig \
                     else '\nOnly ambiguous'
                 unambig = 'UA' if pos_unambig else 'A'
@@ -4454,7 +4500,6 @@ def _features_table_row(ltp, mod, tbl, oi, i, fits_profile):
     return row
 
 def features_table(valids, filename = 'identities_details.html', fits_profile = 'cl70pct'):
-    visited = {'pos': set([]), 'neg': set([])}
     hdr = ['+m/z', '+Database', '+MS1 headgroups',
         '+MS2 fragments', '+MS2 headgroups', '+Fits protein',
         '-m/z', '-Database', '-MS1 headgroups',
@@ -4470,6 +4515,7 @@ def features_table(valids, filename = 'identities_details.html', fits_profile = 
     hrow = tablerow % hrow
     table = hrow
     for ltp, d in valids.iteritems():
+        visited = {'pos': set([]), 'neg': set([])}
         thisRow = []
         thisRow.append(tablecell % ('rowname', ltp, ltp))
         thisRow += map(lambda i: 

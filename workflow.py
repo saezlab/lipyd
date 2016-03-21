@@ -72,6 +72,30 @@ Normalizing all the features.
 ltp.norm_all(valids)
 
 '''
+Lookup lipids for all the valid features. (variable name: `lip`)
+'''
+exacts = None
+exacts, runtime = ltp.lipid_lookup_exact(valids, ltp.swisslipids_url, exacts = exacts, lipnames = lipnames)
+ltp.negative_positive2(valids, lipnames)
+
+ltp.ms1_headgroups(valids, lipnames, verbose = False)
+
+ltp.headgroups_negative_positive(valids, 'ms1')
+
+# the MS2 part
+pFragments, pHgfrags, pHeadgroups = ltp.read_metabolite_lines('lipid_fragments_positive_mode.txt')
+nFragments, nHgfrags, nHeadgroups = ltp.read_metabolite_lines('lipid_fragments_negative_mode.txt')
+ms2files = ltp.ms2_filenames(ltp.ltpdirs)
+ms2map = ltp.ms2_map(ms2files)
+ltp.ms2_main(valids, samples_upper, ms2map, pFragments, nFragments)
+ltp.ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups)
+ltp.headgroups_negative_positive(valids, 'ms2')
+#
+
+ltp.feature_identity_table(valids)
+
+
+'''
 Correlation and similarity metrics between features and
 protein concentration profile.
 '''
@@ -85,6 +109,50 @@ ltp.distance_matrix(valids, metrics = ['en'], with_pprof = True,
 
 ltp.features_clustering(valids)
 ltp.distance_corr(valids)
+
+### playing with GLTPD1 proportions
+
+pprofs_gltpd1_eq = copy.deepcopy(pprofs)
+eq = (pprofs['GLTPD1']['a11'] + pprofs['GLTPD1']['a12']) / 2.0
+pprofs_gltpd1_eq['GLTPD1']['a11'] = eq
+pprofs_gltpd1_eq['GLTPD1']['a12'] = eq
+
+pprofs_gltpd1_inv = copy.deepcopy(pprofs)
+pprofs_gltpd1_inv['GLTPD1']['a11'] = pprofs['GLTPD1']['a12']
+pprofs_gltpd1_inv['GLTPD1']['a12'] = pprofs['GLTPD1']['a11']
+
+ltp.distance_matrix(valids, metrics = ['en'], with_pprof = True,
+    pprofs = pprofs_gltpd1_eq, samples = samples_upper, ltps = ['GLTPD1'])
+
+ltp.features_clustering(valids, ltps = ['GLTPD1'])
+
+ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper, 
+    threshold = 0.70, threshold_type = 'percent', coloring = 'dist',
+    save_selection = 'cl70pct', ltps = ['GLTPD1'],
+    fname = 'features_clustering_GLTPD1eq.pdf')
+
+ltp.distance_matrix(valids, metrics = ['en'], with_pprof = True,
+    pprofs = pprofs_gltpd1_inv, samples = samples_upper, ltps = ['GLTPD1'],)
+
+ltp.features_clustering(valids, ltps = ['GLTPD1'])
+
+ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper, 
+    threshold = 0.70, threshold_type = 'percent', coloring = 'dist',
+    save_selection = 'cl70pct', ltps = ['GLTPD1'],
+    fname = 'features_clustering_GLTPD1inv.pdf')
+
+ltp.distance_matrix(valids, metrics = ['en'], with_pprof = True,
+    pprofs = pprofs, samples = samples_upper, ltps = ['GLTPD1'])
+
+ltp.features_clustering(valids, ltps = ['GLTPD1'])
+
+ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper, 
+    threshold = 0.70, threshold_type = 'percent', coloring = 'dist',
+    save_selection = 'cl70pct', ltps = ['GLTPD1'],
+    fname = 'features_clustering_GLTPD1orig.pdf')
+
+###
+
 
 reload(ltp)
 ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper,
@@ -136,28 +204,6 @@ ltp.ubiquity_filter(valids)
 timeit.timeit('ltp.ubiquity_filter(valids)', 
     setup = 'from __main__ import ltp, valids', number = 1)
 
-'''
-Lookup lipids for all the valid features. (variable name: `lip`)
-'''
-exacts = None
-exacts, runtime = ltp.lipid_lookup_exact(valids, ltp.swisslipids_url, exacts = exacts, lipnames = lipnames)
-ltp.negative_positive2(valids, lipnames)
-
-ltp.ms1_headgroups(valids, lipnames, verbose = False)
-
-ltp.headgroups_negative_positive(valids, 'ms1')
-
-# the MS2 part
-pFragments, pHgfrags, pHeadgroups = ltp.read_metabolite_lines('lipid_fragments_positive_mode.txt')
-nFragments, nHgfrags, nHeadgroups = ltp.read_metabolite_lines('lipid_fragments_negative_mode.txt')
-ms2files = ltp.ms2_filenames(ltp.ltpdirs)
-ms2map = ltp.ms2_map(ms2files)
-ltp.ms2_main(valids, samples_upper, ms2map, pFragments, nFragments)
-ltp.ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups)
-ltp.headgroups_negative_positive(valids, 'ms2')
-#
-
-ltp.feature_identity_table(valids)
 
 ms1tab_coln, ms1tab = ltp.ms1_table(valids, lipnames)
 
@@ -167,6 +213,8 @@ ltp.ms1_table_html_simple(valids, lipnames, include = 'cl5pct')
 ltp.ms2_table_html_simple(valids, lipnames, include = 'cl5pct')
 
 ltp.ms1_ms2_table_html_simple(valids, lipnames, include = 'cl70pct', filename = 'ms1ms2headgroups2.html')
+
+ltp.features_table(valids)
 
 idlevels = {
     'All': ltp.identification_levels(valids, 'STARD10', 'PC'),
