@@ -2226,10 +2226,11 @@ def ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups):
             result = {}
             for oi, ms2r in tbl['ms2r'].iteritems():
                 hgroups = ms2_headgroup2(ms2r, hgfrags, headgroups)
-                ms2fa, ms2fai = ms2_fattya(ms2r)
+                ms2fa, ms2fai, ms2fas = ms2_fattya(ms2r)
                 tbl['ms2hg'][oi] = hgroups
                 tbl['ms2fa'][oi] = ms2fa
                 tbl['ms2fai'][oi] = ms2fai
+                tbl['ms2fas'][oi] = ms2fas
 
 def ms2_headgroup(ms2r, hgfrags, headgroups):
     '''
@@ -2331,11 +2332,13 @@ def ms2_fattya(ms2r, highest = 2):
     # reverse sort by intensities
     ms2fa = set([])
     ms2fai = []
+    ms2fas = None
     ms2r = ms2r[ms2r[:,3].argsort()[::-1],:]
     fanum = 0
     for ms2f in ms2ri:
         if 'FA' in ms2f:
             fa = recnum.match(ms2f[0])
+            fa = fa.groups()[0]
             if fa not in ms2fa:
                 # a set with fatty std formulas
                 # [carbon count]:[unsaturated count]
@@ -2345,7 +2348,16 @@ def ms2_fattya(ms2r, highest = 2):
                 fanum += 1
         if fanum == highest:
             break
-    return ms2fa, ms2fai
+    # sum formula
+    if len(ms2fa) == highest:
+        carbs = 0
+        unsats = 0
+        for fa in ms2fa:
+            carb, unsat = map(int, fa.split(':'))
+            carbs += carb
+            unsats = unsat
+        ms2fas = '%u:%u' % (carbs, unsats)
+    return ms2fa, ms2fai, ms2fas
 
 '''
 END: MS2 functions
