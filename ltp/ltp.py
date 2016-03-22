@@ -4125,8 +4125,6 @@ def ms1_ms2_table_html_simple(valids, lipnames,
             pos_neg_unambig = False
             pos_neg_same = False
             tbl = valids[ltp]['pos']
-            if ltp == 'ORP4' and hg == 'PC':
-                print 'pos before = ', pos
             for oi in tbl['i'][np.where(tbl[include])[0]]:
                 if hg in tbl['identity'][oi]:
                     this_hg = tbl['identity'][oi][hg]
@@ -4150,11 +4148,6 @@ def ms1_ms2_table_html_simple(valids, lipnames,
                                 tbl['identity'][oi].iteritems()
                             )) == 0:
                             pos_unambig = True
-                if ltp == 'ORP4' and hg == 'PC' and pos:
-                    print 'pos after = ', pos
-                    print oi
-                    print ltp, hg, tbl['identity'][oi]
-                    print hg in tbl['identity'][oi]
             tbl = valids[ltp]['neg']
             for oi in tbl['i'][np.where(tbl[include])[0]]:
                 if hg in tbl['identity'][oi]:
@@ -4196,8 +4189,6 @@ def ms1_ms2_table_html_simple(valids, lipnames,
                     ' Negative modes,\nat different exact mass%s'%\
                     (hg, unambig2), unambig)
             elif pos:
-                if ltp == 'ORP4':
-                    print 'foo bar'
                 unambig2 = '\nUnambiguous at least once' if pos_unambig \
                     else '\nOnly ambiguous'
                 unambig = 'UA' if pos_unambig else 'A'

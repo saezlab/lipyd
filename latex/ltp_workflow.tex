@@ -278,10 +278,13 @@ minus 1.5\fontdimen4\font
             
         \subsection{From MS2 data}
             We identified the headgroups as the intersection of the sets of possible headgroups for all the detected headgroup fragments. If the intersection is empty, then we kept the union of all possible headgroups. If the intersection was of size one, then the identification is unambiguous.\par
+            With identification of the fatty acids in MS2, we limited the possible headgroups to those with these fatty acids might give the detected total mass.
+            To achieve this, we compared the sum of the carbon count and unsaturated bound count of the fatty acids detected in MS2 with the same numbers extracted from the database records.\par
             
-            \fknbox{ltp.ms2\_headgroups()}
-            
-            \todobox{\textbf{TODO: } With proper identification of fatty acids from MS2 data, and comparing with those in the MS1 records, exclude headgroups which are incompatible.}
+            \fknbox{ltp.ms2\_headgroups()\\
+                ltp.headgroups\_by\_fattya()\\
+                ltp.identity\_combined()\\
+                ltp.combined\_table()}
             
             \todobox{\textbf{TODO: } Distinguish PG and BMP based on intensities of different fragments.}
             
@@ -297,9 +300,8 @@ minus 1.5\fontdimen4\font
             \fknbox{ltp.fattyacid\_from\_lipid\_name()}
             
         \subsection{From MS2 data}
-            Among MS2 fragments we looked up the known fatty acid fragment masses.\par
+            Among MS2 fragments we looked up the known fatty acid fragment masses and selected the two with the highest intensities.\par
             
-            \todobox{\textbf{TODO:} Take the one or two most intensive fragments for each feature.}
-            
+            \fknbox{ltp.ms2\_fattya()}
     %
 \end{document}
