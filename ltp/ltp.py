@@ -2358,7 +2358,7 @@ def ms2_fattya(ms2r, highest = 2):
             for fa in ms2fa:
                 carb, unsat = map(int, fa.split(':'))
                 carbs += carb
-                unsats = unsat
+                unsats += unsat
             ms2fas = '%u:%u' % (carbs, unsats)
     return ms2fa, ms2fai, ms2fas
 
@@ -4629,18 +4629,18 @@ def _features_table_row(ltp, mod, tbl, oi, i, fits_profile):
         '; '.join(map(lambda (hg, fa):
             '%s: %s' % (hg, ', '.join(list(fa))),
             tbl['ms1fa'][oi].iteritems()
-        )) if len(tbl['ms1fa'][oi]) else 'N/A')
+        )) if len(tbl['ms1fa'][oi]) else '')
     )
     row.append(tablecell % \
         ('nothing',
         'Fatty acids identified in MS2',
         ', '.join(list(tbl['ms2fa'][oi])) \
-            if oi in tbl['ms2fa'] and len(tbl['ms2fa'][oi]) else 'N/A')
+            if oi in tbl['ms2fa'] and len(tbl['ms2fa'][oi]) else '')
     )
     row.append(tablecell % \
         ('nothing',
         'Combined identity (MS1, MS2, fatty acids)',
-        ', '.join(list(tbl['combined_hg'][oi])) if len(tbl['combined_hg'][oi]) else 'N/A')
+        ', '.join(list(tbl['combined_hg'][oi])) if len(tbl['combined_hg'][oi]) else '')
     )
     row.append(tablecell % (
         'positive' if tbl[fits_profile][i] else 'nothing',
@@ -4650,7 +4650,7 @@ def _features_table_row(ltp, mod, tbl, oi, i, fits_profile):
     ))
     return row
 
-def features_table(valids, filename = 'identities_details.html', fits_profile = 'cl70pct'):
+def features_table(valids, filename = 'identities_details', fits_profile = 'cl70pct'):
     hdr = ['+m/z', '+Database', '+MS1 headgroups',
         '+MS2 fragments', '+MS2 headgroups', 
         '+MS1 fattya.', '+MS2 fattya.',
@@ -4661,17 +4661,45 @@ def features_table(valids, filename = 'identities_details.html', fits_profile = 
         '-MS1 fattya.', '-MS2 fattya.',
         '-Combined',
         '-Fits protein']
-    title = 'Identities for all features, detailed'
-    table = ''
+    
     tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
     tablehcell = '\t\t\t<th>\n\t\t\t\t%s\n\t\t\t</th>\n'
     tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s\n\t\t\t</td>\n'
-    hrow = ''
-    for coln in hdr:
-        hrow += tablehcell % coln
-    hrow = tablerow % hrow
-    table = hrow
+    
+    # navigation html
+    if not os.path.isdir(filename):
+        os.mkdir(filename)
+    navigation = '%s.html' % filename
+    title = 'Identification details of all features'
+    navhtml = ''
+    navcnum = 7
+    navrnum = len(valids) / navcnum + 1
+    ltps = sorted(valids.keys())
+    for i in xrange(navrnum):
+        thisRow = []
+        for j in xrange(navcnum):
+            thisRow.append(tablecell % \
+                (('nothing',
+                'See identifications for all features of %s' % \
+                    (ltps[j*navrnum + i]),
+                '<a href="%s/%s_%s.html">%s</a>' % \
+                    (filename, filename, 
+                     ltps[j*navrnum + i], ltps[j*navrnum + i])
+                 ) if j*navrnum + i < len(ltps) else ('nothing', '', ''))
+            )
+        navhtml += tablerow % '\n'.join(thisRow)
+    with open(navigation, 'w') as f:
+        f.write(html_table_template % (title, title, navhtml))
+    
     for ltp, d in valids.iteritems():
+        title = '%s: identities for all features, detailed' % ltp
+        thisFilename = '%s/%s_%s.html' % (filename, filename, ltp)
+        table = ''
+        hrow = ''
+        for coln in hdr:
+            hrow += tablehcell % coln
+        hrow = tablerow % hrow
+        table = hrow
         visited = {'pos': set([]), 'neg': set([])}
         thisRow = []
         thisRow.append(tablecell % ('rowname', ltp, ltp))
@@ -4714,6 +4742,73 @@ def features_table(valids, filename = 'identities_details.html', fits_profile = 
                             #except TypeError:
                                 #print pos_row
                                 #print neg_row
+        with open(thisFilename, 'w') as f:
+            f.write(html_table_template % (title, title, table))
+
+def combined_table(valids, filename = 'headgroups_combined.html', include = 'cl70pct'):
+    tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s\n\t\t\t</td>\n'
+    tableccell = '\t\t\t<td class="%s" title="%s" onclick="showTooltip(event);">'\
+        '\n\t\t\t\t%s\n\t\t\t</td>\n'
+    tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
+    tablehcell = '\t\t\t<th>\n\t\t\t\t%s\n\t\t\t</th>\n'
+    title = 'Headgroups, combined identification'
+    sort_alll(valids, 'mz')
+    all_hgs = set([])
+    for ltp, d in valids.iteritems():
+        for mod, tbl in d.iteritems():
+            for i, oi in enumerate(tbl['i']):
+                if tbl[include][i]:
+                    all_hgs = all_hgs | tbl['combined_hg'][oi]
+    all_hgs = sorted(list(all_hgs))
+    data = dict(map(lambda ltp:
+            (ltp, dict(map(lambda hg:
+                (hg, []), 
+                all_hgs
+            ))),
+            valids.keys()
+        ))
+    for ltp, d in valids.iteritems():
+        for mod, tbl in d.iteritems():
+            for i, oi in enumerate(tbl['i']):
+                if tbl[include][i]:
+                    for hg in tbl['combined_hg'][oi]:
+                        adds = ';'.join(uniqList(\
+                            list(tbl['lip'][oi][\
+                                np.where(tbl['lip'][oi][:,7] == hg)[0], 4\
+                            ])\
+                        ))
+                        fa = ','.join(list(tbl['combined_fa'][oi][hg])) \
+                            if hg in tbl['combined_fa'][oi] else \
+                            tbl['ms2fas'][oi] if oi in tbl['ms2fas'] else \
+                            ','.join(list(tbl['ms1fa'][oi][hg]))
+                        data[ltp][hg].append(
+                            ['%.04f' % tbl['mz'][i], adds, fa]
+                        )
+    hdr = map(lambda hg:
+        tablehcell % hg,
+        all_hgs
+    )
+    table = tablerow % '\n'.join([tablehcell % ('')] + hdr)
+    for ltp in sorted(valids.keys()):
+        thisRow = [tablecell % ('rowname', '', ltp)]
+        for hg in all_hgs:
+            c = data[ltp][hg]
+            if not c.__len__():
+                thisRow.append(tablecell % ('nothing', '', ''))
+            else:
+                thisRow.append(tableccell % (
+                    'positive clickable' \
+                        if 'neg' not in map(lambda i: i[1], c) else \
+                    'negative clickable' \
+                        if 'pos' not in map(lambda i: i[1], c) else \
+                    'both clickable',
+                    '%s\n%s' % (hg, '\n'.join(map(lambda l:
+                        '⚫ %s' % '     '.join(l),
+                        c
+                    ))),
+                    ''
+                ))
+        table += tablerow % '\n'.join(thisRow)
     with open(filename, 'w') as f:
         f.write(html_table_template % (title, title, table))
 
