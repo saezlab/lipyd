@@ -33,7 +33,11 @@ except:
 import warnings
 import re
 import timeit
+import datetime
 import xlrd
+import lxml.etree
+import zlib
+import base64
 import numpy as np
 import scipy as sp
 from scipy import stats
@@ -69,6 +73,8 @@ ltpdirs = [os.path.join(basedir, 'share'),
 samplesf = os.path.join(basedir, 'control_sample.csv')
 ppfracf = os.path.join(basedir, 'fractions.csv')
 ppsecdir = os.path.join(ltpdirs[0], 'SEC_profiles')
+stddir = os.path.join(ltpdirs[0], 'Standards_mzML format')
+seqfile = os.path.join(stddir, 'Sequence_list_LTP_screen_2015.csv')
 pptablef = os.path.join(basedir, 'proteins_by_fraction.csv')
 lipnamesf = os.path.join(basedir, 'lipid_names.csv')
 bindpropf = os.path.join(basedir, 'binding_properties.csv')
@@ -684,6 +690,131 @@ def read_samples(fname):
             data[l[0].replace('"', '')] = \
                 np.array([to_int(x) if x != '' else None for x in l[1:]])
     return data
+
+def read_seq(seqfile):
+    refrac = re.compile(r'[AB][9120]{1,2}')
+    result = {}
+    with open(seqfile, 'r') as f:
+        for l in f:
+            l = l.replace('"', '').replace('2606', '0626')\
+                .replace('2627', '0627')
+            if len(l) and l[:6] != 'Bracke' and l[:6] != 'Sample':
+                l = l.split(',')[1]
+                mode = 'neg' if 'neg' in l else 'pos' if 'pos' in l else None
+                seq = l.split(mode)[-1] if mode is not None else None
+                if seq is not None and len(seq) and seq[0] == '_': seq = seq[1:]
+                l = l.split('_')
+                date = l[0]
+                if 'extracted' in l:
+                    if 'SEC' in l:
+                        protein = '#BUF'
+                    elif 'Std1' in l:
+                        protein = '#STD'
+                elif refrac.match(l[-1]) or refrac.match(l[-2]):
+                    protein = l[4]
+                    if protein == 'ORP9STARD15':
+                        protein = protein[:4]
+                else:
+                    protein = None
+                if date not in result:
+                    result[date] = []
+                result[date].append((protein, mode, seq))
+    del result['150330']
+    del result['150331']
+    return result
+
+def standards_filenames(stddir):
+    fnames = os.listdir(stddir)
+    result = {}
+    for fname in fnames:
+        if 'Seq' not in fname:
+            _fname = os.path.join(stddir, fname)
+            lFname = fname[:-5].split('_')
+            date = lFname[0]
+            mode = 'pos' if 'pos' in lFname else 'neg'
+            seq = fname.split(mode)[-1][:-5]
+            if len(seq) and seq[0] == '_': seq = seq[1:]
+            if date not in result:
+                result[date] = {}
+            result[date][('#STD', mode, seq)] = _fname
+    return result
+
+def read_standards(stdfiles, stdmasses):
+    result = dict(map(lambda date:
+        (date, {}),
+        stdfiles.keys()
+    ))
+    for date, samples in stdfiles.iteritems():
+        for sample, fname in samples.iteritems():
+            result[date][sample] = read_mzml(fname, stdmasses)
+    return result
+
+def _process_binary_array(binaryarray):
+    prefix = '{http://psi.hupo.org/ms/mzml}'
+    cvparam = '%scvParam' % prefix
+    _binary = '%sbinary' % prefix
+    for par in binaryarray.findall(cvparam):
+        if par.attrib['name'][-5:] == 'float':
+            typ = par.attrib['name'][:2]
+        if par.attrib['name'][-5:] == 'ssion':
+            comp = par.attrib['name'][:4] == 'zlib'
+        if par.attrib['name'][-5:] == 'array':
+            name = par.attrib['name'].split()[0]
+    binary = binaryarray.find(_binary)
+    decoded = base64.decodestring(binary.text)
+    if comp:
+        decoded = zlib.decompress(decoded)
+    arr = np.frombuffer(decoded, dtype = np.getattr('float%s'%typ))
+    return name, arr
+
+def decode_spectrum(self,line):
+    decoded = base64.decodestring(line)
+    tmp_size = len(decoded)/4
+    unpack_format1 = ">%dL" % tmp_size
+
+    idx = 0
+    lst = []
+
+    for tmp in struct.unpack(unpack_format1,decoded):
+        tmp_i = struct.pack("I",tmp)
+        tmp_f = struct.unpack("f",tmp_i)[0]
+        if( idx % 2 == 0 ):
+            mz_list.append( float(tmp_f) )
+        else:
+            intensity_list.append( float(tmp_f) )
+        idx += 1
+    
+    
+
+def read_mzml(fname, stdmasses):
+    prefix = '{http://psi.hupo.org/ms/mzml}'
+    run = '%srun' % prefix
+    spectrum = '%sspectrum' % prefix
+    cvparam = '%scvParam' % prefix
+    mslevel = 'ms level'
+    basepeakmz = 'base peak m/z'
+    basepeakin = 'base peak intensity'
+    with open(fname, 'r') as f:
+        mzml = lxml.etree.iterparse(f, events = ('end',))
+        try:
+            for ev, elem in mzml:
+                if elem.tag == run:
+                    time = elem.attrib['startTimeStamp']
+                    time = datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%SZ')
+                if elem.tag == spectrum:
+                    for cvp in elem.findall(cvparam):
+                        if cvp.attrib['name'] == mslevel:
+                            level = cvp.attrib['value']
+                            if level != '1':
+                                break
+                        if cvp.attrib['name'] == basepeakmz:
+                            mz = float(cvp.attrib['value'])
+                        if cvp.attrib['name'] == basepeakin:
+                            intensity = float(cvp.attrib['value'])
+        except lxml.etree.XMLSyntaxError as error:
+            sys.stdout.write('\n\tWARNING: XML processing error: %s\n' % \
+                str(error))
+            sys.stdout.flush()
 
 #
 # scanning the directory tree and collecting the MS data csv files
@@ -2683,7 +2814,7 @@ END: disctance metrics
 Functions for clustering
 '''
 
-def distance_matrix(valids, metrics = ['eu'], with_pprof = False, 
+def distance_matrix(valids, metrics = ['eu'], with_pprof = False,
     pprofs = None, samples = None, ltps = None):
     _metrics = {
         'eu': ('euclidean distance', euclidean_dist),
@@ -3859,6 +3990,23 @@ def identity_combined(valids):
                         tbl['combined_fa'][oi][hg].add(tbl['ms2fas'][oi])
                         # maybe later we need those with less evidence
 
+def identity_combined_ms2(valids):
+    '''
+    Combined identification based on MS1 database lookup,
+    MS2 headgroup fragments and MS2 fatty acids.
+    Creates dicts `combined_hg` and `combined_fa`.
+    '''
+    for ltp, d in valids.iteritems():
+        for mod, tbl in d.iteritems():
+            tbl['combined_hg_ms2'] = {}
+            for oi in tbl['i']:
+                tbl['combined_hg_ms2'][oi] = set([])
+                if oi in tbl['ms2hg']:
+                    hgs = tbl['ms1hg'][oi] & tbl['ms2hg'][oi]
+                if len(tbl['hgfa'][oi]) and len(hgs & tbl['hgfa'][oi]):
+                    hgs = hgs & tbl['hgfa'][oi]
+                    tbl['combined_hg_ms2'][oi] = hgs
+
 def ms1_table(valids, lipnames, include = 'cl70pct'):
     ltps = sorted(valids.keys())
     # collecting primary and secondary column names
@@ -4736,7 +4884,8 @@ def features_table(valids, filename = 'identities_details', fits_profile = 'cl70
         with open(thisFilename, 'w') as f:
             f.write(html_table_template % (title, title, table))
 
-def combined_table(valids, filename = 'headgroups_combined.html', include = 'cl70pct'):
+def combined_table(valids, filename = 'headgroups_combined.html', include = 'cl70pct',
+    identity = 'combined_hg'):
     tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s\n\t\t\t</td>\n'
     tableccell = '\t\t\t<td class="%s" title="%s" onclick="showTooltip(event);">'\
         '\n\t\t\t\t%s\n\t\t\t</td>\n'
@@ -4749,7 +4898,7 @@ def combined_table(valids, filename = 'headgroups_combined.html', include = 'cl7
         for mod, tbl in d.iteritems():
             for i, oi in enumerate(tbl['i']):
                 if tbl[include][i]:
-                    all_hgs = all_hgs | tbl['combined_hg'][oi]
+                    all_hgs = all_hgs | tbl[identity][oi]
     all_hgs = sorted(list(all_hgs))
     data = dict(map(lambda ltp:
             (ltp, dict(map(lambda hg:
@@ -4762,7 +4911,7 @@ def combined_table(valids, filename = 'headgroups_combined.html', include = 'cl7
         for mod, tbl in d.iteritems():
             for i, oi in enumerate(tbl['i']):
                 if tbl[include][i]:
-                    for hg in tbl['combined_hg'][oi]:
+                    for hg in tbl[identity][oi]:
                         adds = ';'.join(uniqList(\
                             list(tbl['lip'][oi][\
                                 np.where(tbl['lip'][oi][:,7] == hg)[0], 4\
