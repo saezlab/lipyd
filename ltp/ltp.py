@@ -775,25 +775,85 @@ def _process_binary_array(binaryarray, length = None):
     arr = np.frombuffer(decoded, dtype = dt)
     # this does the same:
     # arr = struct.unpack('<%u%s' % (length, _typ), decoded)
+    # arr = np.array(arr, dtype = np.float32)
     return name, arr
+
+def _find_peaks(raw):
+    '''
+    Perform a Gauss fit to centroid the peaks for the property
+    Code from http://pymzml.github.io/_modules/spec.html
+    '''
+    peaks = []
+    if 'm/z' in raw and 'intensity' in raw:
+        intensity = raw['intensity']
+        mz = raw['m/z']
+        for i, ins in intensity[:-1]:
+            if i < 2:
+                continue
+            if 0.0 < intensity[i - 1] < ins > intensity[i + 1] > 0.0:
+                x1 = mz[i - 1]
+                x2 = mz[i]
+                x3 = mz[i + 1]
+                y1 = intensity[i - 1]
+                y2 = intensity[i]
+                y3 = intensity[i + 1]
+                
+                if x2 - x1 > (x3 - x2) * 10 or (x2 - x1) * 10 < x3 - x2:
+                    continue
+                if y3 == y1:
+                    lower = 2
+                    upper = 2
+                    while (not 0 < y1 < y2 > y3 > 0) and y1 == y3 and upper < 10:
+                        if i - lower < 0:
+                            i_lower = 0
+                        else:
+                            i_lower = i - lower
+                        if i + upper >= len(mz):
+                            i_upper = len(mz) - 1
+                        else:
+                            i_upper = i + upper
+                        x1 = mz[i_lower]
+                        x3 = mz[i_upper]
+                        y1 = intensity[i_lower]
+                        y3 = intensity[i_upper]
+                        if lower % 2 == 0:
+                            upper += 1
+                        else:
+                            lower += 1
+                    if not (0 < y1 < y2 > y3 > 0) or y1 == y3:
+                        continue
+                    try:
+                        logratio = np.log(y2 / y1) / np.log(y3 / y1)
+                        mu = (logratio * (x1**2 - x3**2) - x1**2 + x2**2) / \
+                            (2 * (x2 - x1) - 2 * logratio* (x3 - x1))
+                        csquared = (x2**2 - x1**2 - 2 * x2 * mu) / \
+                            (2 * np.log(y1 / y2))
+                        a = y1 * np.exp((x1 - mu)**2 / (2 * csquared))
+                    except:
+                        continue
+                    peaks.append([mu, a])
+    return np.array(peaks, dtype = np.float32)
 
 def read_mzml(fname, stdmasses):
     prefix = '{http://psi.hupo.org/ms/mzml}'
     run = '%srun' % prefix
     spectrum = '%sspectrum' % prefix
     cvparam = '%scvParam' % prefix
+    binarray = '%sbinaryDataArray' % prefix
     mslevel = 'ms level'
     basepeakmz = 'base peak m/z'
     basepeakin = 'base peak intensity'
     with open(fname, 'r') as f:
         mzml = lxml.etree.iterparse(f, events = ('end',))
         scans = []
+        ms1 = False
         try:
             for ev, elem in mzml:
                 if elem.tag == run:
                     time = elem.attrib['startTimeStamp']
                     time = datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%SZ')
                 if elem.tag == spectrum:
+                    ms1 = False
                     length = elem.attrib['defaultArrayLength']
                     scanid = int(elem.attrib['id'].split('=')[-1])
                     for cvp in elem.findall(cvparam):
@@ -801,11 +861,19 @@ def read_mzml(fname, stdmasses):
                             level = cvp.attrib['value']
                             if level != '1':
                                 break
+                            else:
+                                ms1 = True
                         scans.append(scanid)
                         if cvp.attrib['name'] == basepeakmz:
                             mz = float(cvp.attrib['value'])
                         if cvp.attrib['name'] == basepeakin:
                             intensity = float(cvp.attrib['value'])
+                    if ms1:
+                        raw = {}
+                        for bda in elem.find_all(binarray):
+                            name, arr = _process_binary_array(bda, length)
+                            raw[name] = arr
+                        peaks = _find_peaks(raw)
         except lxml.etree.XMLSyntaxError as error:
             sys.stdout.write('\n\tWARNING: XML processing error: %s\n' % \
                 str(error))
