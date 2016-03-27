@@ -749,7 +749,7 @@ def read_standards(stdfiles, stdmasses):
             result[date][sample] = read_mzml(fname, stdmasses)
     return result
 
-def _process_binary_array(binaryarray):
+def _process_binary_array(binaryarray, length = None):
     prefix = '{http://psi.hupo.org/ms/mzml}'
     cvparam = '%scvParam' % prefix
     _binary = '%sbinary' % prefix
@@ -764,27 +764,18 @@ def _process_binary_array(binaryarray):
     decoded = base64.decodestring(binary.text)
     if comp:
         decoded = zlib.decompress(decoded)
-    arr = np.frombuffer(decoded, dtype = np.getattr('float%s'%typ))
+    # length is stated in the spectrum tag, but knowing the data type
+    # we can also calculate:
+    length = len(decoded) * 8 / int(typ) if length is None else length
+    # float or double:
+    _typ = 'd' if typ == '64' else 'f'
+    # mzml binary data must be always little endian:
+    dt = np.getattr('float%s'%typ)
+    dt = dt.newbyteorder('<')
+    arr = np.frombuffer(decoded, dtype = dt)
+    # this does the same:
+    # arr = struct.unpack('<%u%s' % (length, _typ), decoded)
     return name, arr
-
-def decode_spectrum(self,line):
-    decoded = base64.decodestring(line)
-    tmp_size = len(decoded)/4
-    unpack_format1 = ">%dL" % tmp_size
-
-    idx = 0
-    lst = []
-
-    for tmp in struct.unpack(unpack_format1,decoded):
-        tmp_i = struct.pack("I",tmp)
-        tmp_f = struct.unpack("f",tmp_i)[0]
-        if( idx % 2 == 0 ):
-            mz_list.append( float(tmp_f) )
-        else:
-            intensity_list.append( float(tmp_f) )
-        idx += 1
-    
-    
 
 def read_mzml(fname, stdmasses):
     prefix = '{http://psi.hupo.org/ms/mzml}'
@@ -796,17 +787,21 @@ def read_mzml(fname, stdmasses):
     basepeakin = 'base peak intensity'
     with open(fname, 'r') as f:
         mzml = lxml.etree.iterparse(f, events = ('end',))
+        scans = []
         try:
             for ev, elem in mzml:
                 if elem.tag == run:
                     time = elem.attrib['startTimeStamp']
                     time = datetime.datetime.strptime(time, '%Y-%m-%dT%H:%M:%SZ')
                 if elem.tag == spectrum:
+                    length = elem.attrib['defaultArrayLength']
+                    scanid = int(elem.attrib['id'].split('=')[-1])
                     for cvp in elem.findall(cvparam):
                         if cvp.attrib['name'] == mslevel:
                             level = cvp.attrib['value']
                             if level != '1':
                                 break
+                        scans.append(scanid)
                         if cvp.attrib['name'] == basepeakmz:
                             mz = float(cvp.attrib['value'])
                         if cvp.attrib['name'] == basepeakin:
