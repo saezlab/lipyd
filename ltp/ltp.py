@@ -739,7 +739,11 @@ def standards_filenames(stddir):
             result[date][('#STD', mode, seq)] = _fname
     return result
 
-def read_standards(stdfiles, stdmasses, accuracy = 5, tolerance = 0.02):
+def read_standards(stdfiles, stdmasses, accuracy = 5, tolerance = 0.02,
+    cache = True):
+    cachefile = 'calibrations.pickle'
+    if os.path.exists(cachefile) and cache:
+        return pickle.load(open(cachefile, 'rb'))
     result = dict(map(lambda date:
         (date, {}),
         stdfiles.keys()
@@ -753,6 +757,9 @@ def read_standards(stdfiles, stdmasses, accuracy = 5, tolerance = 0.02):
                 stdmeasured = standards_lookup(peaks, stdmasses[sample[1]],
                     tolerance)
                 result[date][sample] = stdmeasured
+    sys.stdout.write('\n\t:: Results saved to file %s\n' % cachfile)
+    sys.stdout.flush()
+    pickle.dump(result, open(cachefile, 'wb'))
     return result
 
 def standards_lookup(peaks, stdmasses, tolerance = 0.02):
