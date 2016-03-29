@@ -746,15 +746,26 @@ def read_standards(stdfiles, stdmasses, accuracy = 5, tolerance = 0.02):
     ))
     for date, samples in stdfiles.iteritems():
         for sample, fname in samples.iteritems():
-            time, scans, centroids = read_mzml(fname)
-            peaks = find_peaks(scans, centroids, accuracy)
-            peaks = filter_peaks(peaks)
-            stdmeasured = standards_lookup(peaks, stdmasses, tolerance)
-            result[date][sample] = 
+            if sample[0] == '#STD':
+                time, scans, centroids = read_mzml(fname)
+                peaks = find_peaks(scans, centroids, accuracy)
+                peaks = filter_peaks(peaks)
+                stdmeasured = standards_lookup(peaks, stdmasses[mode],
+                    tolerance)
+                result[date][sample] = stdmeasured
     return result
 
 def standards_lookup(peaks, stdmasses, tolerance = 0.02):
-    pass
+    measured = {}
+    for lipid, values in stdmasses.iteritems():
+        _mz = values['ion']
+        ui = peaks[:,0].searchsorted(_mz)
+        ud = 999.0 if ui >= peaks.shape[0] else peaks[ui, 0]
+        ld = 999.0 if ui == 0 else peaks[ui - 1, 0]
+        ci = ui if ud < ld else ui - 1
+        mz = peaks[ci,0] if abs(peaks[ci,0] - _mz) <= tolerance else None
+        measured[lipid] = mz
+    return measured
 
 def _process_binary_array(binaryarray, length = None):
     prefix = '{http://psi.hupo.org/ms/mzml}'
