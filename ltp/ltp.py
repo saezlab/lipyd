@@ -739,15 +739,22 @@ def standards_filenames(stddir):
             result[date][('#STD', mode, seq)] = _fname
     return result
 
-def read_standards(stdfiles, stdmasses):
+def read_standards(stdfiles, stdmasses, accuracy = 5, tolerance = 0.02):
     result = dict(map(lambda date:
         (date, {}),
         stdfiles.keys()
     ))
     for date, samples in stdfiles.iteritems():
         for sample, fname in samples.iteritems():
-            result[date][sample] = read_mzml(fname, stdmasses)
+            time, scans, centroids = read_mzml(fname)
+            peaks = find_peaks(scans, centroids, accuracy)
+            peaks = filter_peaks(peaks)
+            stdmeasured = standards_lookup(peaks, stdmasses, tolerance)
+            result[date][sample] = 
     return result
+
+def standards_lookup(peaks, stdmasses, tolerance = 0.02):
+    pass
 
 def _process_binary_array(binaryarray, length = None):
     prefix = '{http://psi.hupo.org/ms/mzml}'
@@ -840,6 +847,9 @@ def find_peaks(scans, centroids, accuracy = 5):
     Returns list of dicts with centroid m/z,
     cumulative intensity and RT range for
     each peak.
+    Returns array with 
+    m/z, rt_min, rt_max, area, scan count
+    as coulumns.
     
     accuracy : int, float
         Instrument accuracy in ppm.
@@ -886,16 +896,28 @@ def find_peaks(scans, centroids, accuracy = 5):
                     # this consecutive series interrupted here,
                     # so move it to the peaks stack:
                     cons_rt = np.array(map(lambda x: x[0], cons))
-                    peaks.append({
-                        'mz': cons_centroid_mz,
-                        'rt_range': (min(cons_rt), max(cons_rt)),
-                        'area': cons_in.sum()
-                    })
+                    peaks.append([
+                        cons_centroid_mz,
+                        min(cons_rt),
+                        max(cons_rt)),
+                        cons_in.sum(),
+                        len(cons)
+                    ])
                     del consecutive[peakid]
             for i, (mz, ins) in enumerate(_scan):
                 if i not in added:
                     peakid = _peakid.next()
                     consecutive[peakid] = [(rt, mz, ins)]
+    return np.array(peaks, dtype = np.float32)
+
+def filter_peaks(peaks, min_scans = 3, min_area = 10000):
+    peaks = peaks[np.where(
+        np.logical_and(
+            peaks[:,4] >= min_scans,
+            peaks[:,3] >= min_area
+        )
+    ),:]
+    peaks = peaks[peaks[:, 0].argsort(),:]
     return peaks
 
 def read_mzml(fname, stdmasses):
