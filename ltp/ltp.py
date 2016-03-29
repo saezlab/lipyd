@@ -750,7 +750,7 @@ def read_standards(stdfiles, stdmasses, accuracy = 5, tolerance = 0.02):
                 time, scans, centroids = read_mzml(fname)
                 peaks = find_peaks(scans, centroids, accuracy)
                 peaks = filter_peaks(peaks)
-                stdmeasured = standards_lookup(peaks, stdmasses[mode],
+                stdmeasured = standards_lookup(peaks, stdmasses[sample[1]],
                     tolerance)
                 result[date][sample] = stdmeasured
     return result
@@ -788,8 +788,7 @@ def _process_binary_array(binaryarray, length = None):
     # float or double:
     _typ = 'd' if typ == '64' else 'f'
     # mzml binary data must be always little endian:
-    dt = np.getattr('float%s'%typ)
-    dt = dt.newbyteorder('<')
+    dt = np.dtype('<%s'%_typ)
     arr = np.frombuffer(decoded, dtype = dt)
     # this does the same:
     # arr = struct.unpack('<%u%s' % (length, _typ), decoded)
@@ -805,7 +804,7 @@ def _centroid(raw):
     if 'm/z' in raw and 'intensity' in raw:
         intensity = raw['intensity']
         mz = raw['m/z']
-        for i, ins in intensity[:-1]:
+        for i, ins in enumerate(intensity[:-1]):
             if i < 2:
                 continue
             if 0.0 < intensity[i - 1] < ins > intensity[i + 1] > 0.0:
@@ -838,18 +837,18 @@ def _centroid(raw):
                             upper += 1
                         else:
                             lower += 1
-                    if not (0 < y1 < y2 > y3 > 0) or y1 == y3:
-                        continue
-                    try:
-                        logratio = np.log(y2 / y1) / np.log(y3 / y1)
-                        mu = (logratio * (x1**2 - x3**2) - x1**2 + x2**2) / \
-                            (2 * (x2 - x1) - 2 * logratio* (x3 - x1))
-                        csquared = (x2**2 - x1**2 - 2 * x2 * mu + 2 * x1 * mu) / \
-                            (2 * np.log(y1 / y2))
-                        a = y1 * np.exp((x1 - mu)**2 / (2 * csquared))
-                    except:
-                        continue
-                    peaks.append([mu, a])
+                if not (0 < y1 < y2 > y3 > 0) or y1 == y3:
+                    continue
+                try:
+                    logratio = np.log(y2 / y1) / np.log(y3 / y1)
+                    mu = (logratio * (x1**2 - x3**2) - x1**2 + x2**2) / \
+                        (2 * (x2 - x1) - 2 * logratio* (x3 - x1))
+                    csquared = (x2**2 - x1**2 - 2 * x2 * mu + 2 * x1 * mu) / \
+                        (2 * np.log(y1 / y2))
+                    a = y1 * np.exp((x1 - mu)**2 / (2 * csquared))
+                except:
+                    continue
+                peaks.append([mu, a])
     return np.array(peaks, dtype = np.float32)
 
 def find_peaks(scans, centroids, accuracy = 5):
@@ -871,7 +870,7 @@ def find_peaks(scans, centroids, accuracy = 5):
     '''
     accuracy = 1000000.0 / accuracy
     for scan, c in centroids.iteritems():
-        centroids[scan] = c[c[:,0].argsort(),:]
+        centroids[scan]['centroids'] = c['centroids'][c['centroids'][:,0].argsort(),:]
     peaks = []
     consecutive = {}
     def get_id():
@@ -880,11 +879,14 @@ def find_peaks(scans, centroids, accuracy = 5):
             yield i
             i += 1
     _peakid = get_id()
+    prg = progress.Progress(len(scans), 'Processing scans', 1)
     for scan in scans:
+        prg.step()
         if scan in centroids:
             _scan = centroids[scan]['centroids']
             rt = centroids[scan]['rt']
             added = set([])
+            to_remove = set([])
             for peakid, cons in consecutive.iteritems():
                 ld = ud = 999.0
                 cons_mz = np.array(map(lambda x: x[1], cons))
@@ -910,15 +912,18 @@ def find_peaks(scans, centroids, accuracy = 5):
                     peaks.append([
                         cons_centroid_mz,
                         min(cons_rt),
-                        max(cons_rt)),
+                        max(cons_rt),
                         cons_in.sum(),
                         len(cons)
                     ])
-                    del consecutive[peakid]
+                    to_remove.add(peakid)
+            for peakid in to_remove & set(consecutive.keys()):
+                del consecutive[peakid]
             for i, (mz, ins) in enumerate(_scan):
                 if i not in added:
                     peakid = _peakid.next()
                     consecutive[peakid] = [(rt, mz, ins)]
+    prg.terminate()
     return np.array(peaks, dtype = np.float32)
 
 def filter_peaks(peaks, min_scans = 3, min_area = 10000):
@@ -927,25 +932,28 @@ def filter_peaks(peaks, min_scans = 3, min_area = 10000):
             peaks[:,4] >= min_scans,
             peaks[:,3] >= min_area
         )
-    ),:]
+    )]
     peaks = peaks[peaks[:, 0].argsort(),:]
     return peaks
 
-def read_mzml(fname, stdmasses):
+def read_mzml(fname):
     prefix = '{http://psi.hupo.org/ms/mzml}'
     run = '%srun' % prefix
     spectrum = '%sspectrum' % prefix
     cvparam = '%scvParam' % prefix
+    binarraylist = '%sbinaryDataArrayList' % prefix
     binarray = '%sbinaryDataArray' % prefix
+    scanlist = '%sscanList' % prefix
     scan = '%sscan' % prefix
     mslevel = 'ms level'
     basepeakmz = 'base peak m/z'
     basepeakin = 'base peak intensity'
     starttime = 'scan start time'
     scans = []
-    scans_centroids = {}
+    centroids = {}
     time = datetime.datetime.utcfromtimestamp(0)
     with open(fname, 'r') as f:
+        sys.stdout.write('\t:: Reading file `%s`\n'%fname)
         mzml = lxml.etree.iterparse(f, events = ('end',))
         ms1 = False
         try:
@@ -969,12 +977,12 @@ def read_mzml(fname, stdmasses):
                         if cvp.attrib['name'] == basepeakin:
                             intensity = float(cvp.attrib['value'])
                     if ms1:
-                        _scan = elem.find(scan)
-                        for cvp in _scan.find_all(cvparam):
+                        _scan = elem.find(scanlist).find(scan)
+                        for cvp in _scan.findall(cvparam):
                             if cvp.attrib['name'] == starttime:
                                 rt = float(cvp.attrib['value'])
                         raw = {}
-                        for bda in elem.find_all(binarray):
+                        for bda in elem.find(binarraylist).findall(binarray):
                             name, arr = _process_binary_array(bda, length)
                             raw[name] = arr
                         _centroids = _centroid(raw)
