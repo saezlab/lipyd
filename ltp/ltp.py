@@ -778,7 +778,7 @@ def _process_binary_array(binaryarray, length = None):
     # arr = np.array(arr, dtype = np.float32)
     return name, arr
 
-def _find_peaks(raw):
+def _centroid(raw):
     '''
     Perform a Gauss fit to centroid the peaks for the property
     Code from http://pymzml.github.io/_modules/spec.html
@@ -834,6 +834,9 @@ def _find_peaks(raw):
                     peaks.append([mu, a])
     return np.array(peaks, dtype = np.float32)
 
+def process_scans(scans, peaks):
+    
+
 def read_mzml(fname, stdmasses):
     prefix = '{http://psi.hupo.org/ms/mzml}'
     run = '%srun' % prefix
@@ -845,10 +848,11 @@ def read_mzml(fname, stdmasses):
     basepeakmz = 'base peak m/z'
     basepeakin = 'base peak intensity'
     starttime = 'scan start time'
+    scans = []
+    scans_centroids = {}
+    time = datetime.datetime.utcfromtimestamp(0)
     with open(fname, 'r') as f:
         mzml = lxml.etree.iterparse(f, events = ('end',))
-        scans = []
-        peaks = {}
         ms1 = False
         try:
             for ev, elem in mzml:
@@ -879,14 +883,14 @@ def read_mzml(fname, stdmasses):
                         for bda in elem.find_all(binarray):
                             name, arr = _process_binary_array(bda, length)
                             raw[name] = arr
-                        _peaks = _find_peaks(raw)
+                        _centroids = _centroids(raw)
                         scans.append(scanid)
-                        peaks[scanid] = {'rt': rt, 'peaks': _peaks}
+                        scans_centroids[scanid] = {'rt': rt, 'peaks': _centroids}
         except lxml.etree.XMLSyntaxError as error:
             sys.stdout.write('\n\tWARNING: XML processing error: %s\n' % \
                 str(error))
             sys.stdout.flush()
-    return time, scans, peaks
+    return time, scans, scans_centroids
 
 #
 # scanning the directory tree and collecting the MS data csv files
