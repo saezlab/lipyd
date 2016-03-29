@@ -826,7 +826,7 @@ def _find_peaks(raw):
                         logratio = np.log(y2 / y1) / np.log(y3 / y1)
                         mu = (logratio * (x1**2 - x3**2) - x1**2 + x2**2) / \
                             (2 * (x2 - x1) - 2 * logratio* (x3 - x1))
-                        csquared = (x2**2 - x1**2 - 2 * x2 * mu) / \
+                        csquared = (x2**2 - x1**2 - 2 * x2 * mu + 2 * x1 * mu) / \
                             (2 * np.log(y1 / y2))
                         a = y1 * np.exp((x1 - mu)**2 / (2 * csquared))
                     except:
