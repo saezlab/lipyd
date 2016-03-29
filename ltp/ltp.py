@@ -834,8 +834,8 @@ def _centroid(raw):
                     peaks.append([mu, a])
     return np.array(peaks, dtype = np.float32)
 
-def process_scans(scans, peaks):
-    
+def find_peaks(scans, centroids):
+    pass
 
 def read_mzml(fname, stdmasses):
     prefix = '{http://psi.hupo.org/ms/mzml}'
@@ -883,14 +883,14 @@ def read_mzml(fname, stdmasses):
                         for bda in elem.find_all(binarray):
                             name, arr = _process_binary_array(bda, length)
                             raw[name] = arr
-                        _centroids = _centroids(raw)
+                        _centroids = _centroid(raw)
                         scans.append(scanid)
-                        scans_centroids[scanid] = {'rt': rt, 'peaks': _centroids}
+                        centroids[scanid] = {'rt': rt, 'peaks': _centroids}
         except lxml.etree.XMLSyntaxError as error:
             sys.stdout.write('\n\tWARNING: XML processing error: %s\n' % \
                 str(error))
             sys.stdout.flush()
-    return time, scans, scans_centroids
+    return time, scans, centroids
 
 #
 # scanning the directory tree and collecting the MS data csv files
