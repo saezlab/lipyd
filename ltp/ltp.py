@@ -760,8 +760,8 @@ def standards_lookup(peaks, stdmasses, tolerance = 0.02):
     for lipid, values in stdmasses.iteritems():
         _mz = values['ion']
         ui = peaks[:,0].searchsorted(_mz)
-        ud = 999.0 if ui >= peaks.shape[0] else peaks[ui, 0]
-        ld = 999.0 if ui == 0 else peaks[ui - 1, 0]
+        ud = 999.0 if ui >= peaks.shape[0] else peaks[ui, 0] - _mz
+        ld = 999.0 if ui == 0 else _mz - peaks[ui - 1, 0]
         ci = ui if ud < ld else ui - 1
         mz = peaks[ci,0] if abs(peaks[ci,0] - _mz) <= tolerance else None
         measured[lipid] = mz
@@ -851,7 +851,7 @@ def _centroid(raw):
                 peaks.append([mu, a])
     return np.array(peaks, dtype = np.float32)
 
-def find_peaks(scans, centroids, accuracy = 5):
+def find_peaks(scans, centroids, accuracy = 5, dope = False):
     '''
     Finds peaks detected in consecutive scans.
     Returns list of dicts with centroid m/z,
@@ -894,15 +894,22 @@ def find_peaks(scans, centroids, accuracy = 5):
                 cons_centroid_mz = np.sum(cons_mz * cons_in) / np.sum(cons_in)
                 ui = _scan[:,0].searchsorted(cons_centroid_mz)
                 if ui < _scan.shape[0]:
-                    ud = cons_centroid_mz - _scan[ui, 0]
+                    ud = _scan[ui, 0] - cons_centroid_mz
                 if ui > 0:
-                    ld = _scan[ui - 1, 0] - cons_centroid_mz
+                    ld = cons_centroid_mz - _scan[ui - 1, 0]
                 ci = ui if ud < ld else ui - 1
+                if dope and _dope(cons_centroid_mz):
+                    print '\n\t:: This mz looks DOPE: %f, closest in'\
+                        ' this scan (%u): %f; accuracy: %f' % \
+                        (cons_centroid_mz, scan, _scan[ci, 0], cons_centroid_mz / accuracy)
                 if abs(_scan[ci, 0] - cons_centroid_mz) <= \
                     cons_centroid_mz / accuracy:
                     # same m/z detected in another consecutive scan:
                     consecutive[peakid].append(
                         (rt, _scan[ci, 0], _scan[ci, 1]))
+                    if dope and _dope(_scan[ci, 0]):
+                        print '\n\t:: DOPE found in next scan, appended to '\
+                            'consecutive series: %u, %f' % (scan, _scan[ci,0])
                     # this index won't initiate a new consecutive series:
                     added.add(ci)
                 else:
@@ -916,6 +923,10 @@ def find_peaks(scans, centroids, accuracy = 5):
                         cons_in.sum(),
                         len(cons)
                     ])
+                    if dope and _dope(cons_centroid_mz):
+                        print '\n\t:: DOPE series interrupted, moved to '\
+                            'peaks stack: %f, %f' % \
+                            (cons_centroid_mz, cons_in.sum())
                     to_remove.add(peakid)
             for peakid in to_remove & set(consecutive.keys()):
                 del consecutive[peakid]
@@ -923,8 +934,17 @@ def find_peaks(scans, centroids, accuracy = 5):
                 if i not in added:
                     peakid = _peakid.next()
                     consecutive[peakid] = [(rt, mz, ins)]
+                    if dope and _dope(mz):
+                        print '\n\t:: New DOPE found, new consecutive series started'\
+                            ': scan %u, m/z = %f, peakid = %u' % \
+                            (scan, mz, peakid)
     prg.terminate()
-    return np.array(peaks, dtype = np.float32)
+    peaks = np.array(peaks, dtype = np.float32)
+    peaks = peaks[peaks[:,0].argsort(),:]
+    return peaks
+
+def _dope(mz):
+    return mz < 742.5331 and mz > 742.530
 
 def filter_peaks(peaks, min_scans = 3, min_area = 10000):
     peaks = peaks[np.where(
@@ -993,6 +1013,9 @@ def read_mzml(fname):
                 str(error))
             sys.stdout.flush()
     return time, scans, centroids
+
+def dope(c):
+    return np.any(np.logical_and(c[:,0] > 742.52, c[:,0] < 742.54))
 
 #
 # scanning the directory tree and collecting the MS data csv files
