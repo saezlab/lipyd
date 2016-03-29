@@ -834,8 +834,69 @@ def _centroid(raw):
                     peaks.append([mu, a])
     return np.array(peaks, dtype = np.float32)
 
-def find_peaks(scans, centroids):
-    pass
+def find_peaks(scans, centroids, accuracy = 5):
+    '''
+    Finds peaks detected in consecutive scans.
+    Returns list of dicts with centroid m/z,
+    cumulative intensity and RT range for
+    each peak.
+    
+    accuracy : int, float
+        Instrument accuracy in ppm.
+        The difference over we consider 2
+        m/z values to be distinct.
+    
+    # values order: (rt, mz, int)
+    '''
+    accuracy = 1000000.0 / accuracy
+    for scan, c in centroids.iteritems():
+        centroids[scan] = c[c[:,0].argsort(),:]
+    peaks = []
+    consecutive = {}
+    def get_id():
+        i = 0
+        while True:
+            yield i
+            i += 1
+    _peakid = get_id()
+    for scan in scans:
+        if scan in centroids:
+            _scan = centroids[scan]['centroids']
+            rt = centroids[scan]['rt']
+            added = set([])
+            for peakid, cons in consecutive.iteritems():
+                ld = ud = 999.0
+                cons_mz = np.array(map(lambda x: x[1], cons))
+                cons_in = np.array(map(lambda x: x[2], cons))
+                cons_centroid_mz = np.sum(cons_mz * cons_in) / np.sum(cons_in)
+                ui = _scan[:,0].searchsorted(cons_centroid_mz)
+                if ui < _scan.shape[0]:
+                    ud = cons_centroid_mz - _scan[ui, 0]
+                if ui > 0:
+                    ld = _scan[ui - 1, 0] - cons_centroid_mz
+                ci = ui if ud < ld else ui - 1
+                if abs(_scan[ci, 0] - cons_centroid_mz) <= \
+                    cons_centroid_mz / accuracy:
+                    # same m/z detected in another consecutive scan:
+                    consecutive[peakid].append(
+                        (rt, _scan[ci, 0], _scan[ci, 1]))
+                    # this index won't initiate a new consecutive series:
+                    added.add(ci)
+                else:
+                    # this consecutive series interrupted here,
+                    # so move it to the peaks stack:
+                    cons_rt = np.array(map(lambda x: x[0], cons))
+                    peaks.append({
+                        'mz': cons_centroid_mz,
+                        'rt_range': (min(cons_rt), max(cons_rt)),
+                        'area': cons_in.sum()
+                    })
+                    del consecutive[peakid]
+            for i, (mz, ins) in enumerate(_scan):
+                if i not in added:
+                    peakid = _peakid.next()
+                    consecutive[peakid] = [(rt, mz, ins)]
+    return peaks
 
 def read_mzml(fname, stdmasses):
     prefix = '{http://psi.hupo.org/ms/mzml}'
@@ -885,7 +946,7 @@ def read_mzml(fname, stdmasses):
                             raw[name] = arr
                         _centroids = _centroid(raw)
                         scans.append(scanid)
-                        centroids[scanid] = {'rt': rt, 'peaks': _centroids}
+                        centroids[scanid] = {'rt': rt, 'centroids': _centroids}
         except lxml.etree.XMLSyntaxError as error:
             sys.stdout.write('\n\tWARNING: XML processing error: %s\n' % \
                 str(error))
