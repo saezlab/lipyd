@@ -776,9 +776,12 @@ def drifts(measured, stdmasses, write_table = 'drifts_ppm.tab'):
     hdr = ['date', 'run', 'mode', 'lipid', 'theoretical',
         'measured', 'ratio', 'ppm']
     tab = [hdr]
-    for date, samples in measured.iteritems():
-        for sample, lipids in samples.iteritems():
-            for lipid, mmz in lipids.iteritems():
+    for date in sorted(measured.keys()):
+        samples = measured[date]
+        for sample in sorted(samples.keys()):
+            lipids = samples[sample]
+            for lipid in sorted(lipids.keys()):
+                mmz = lipids[lipid]
                 mode = sample[1]
                 tmz = stdmasses[mode][lipid]['ion']
                 ratio = None if mmz is None else tmz / mmz
@@ -848,6 +851,64 @@ def drifts2(drifts):
                 sys.stdout.write('\t:: No values in %s %s\n' % \
                     (date, str(sample)))
     return drifts2
+
+def drifts2ltps(drifts, seq):
+    ltp_drifts = {}
+    def standard_indices(mode, se):
+        return np.array(
+            map(lambda (i, s):
+                i,
+                filter(lambda (i, s):
+                    s[0] == '#STD' and s[1] == mode,
+                    enumerate(se)
+                )
+            )
+        )
+    for date, se in seq.iteritems():
+        l = len(se)
+        stdi = {}
+        lastbuf = {'pos': None, 'neg': None}
+        prev = None
+        stdi['neg'] = standard_indices('neg', se)
+        stdi['pos'] = standard_indices('pos', se)
+        for i, sample in enumerate(se):
+            typ = sample[0]
+            if typ is not None and typ != '#STD':
+                mode = sample[1]
+                ui = stdi[mode].searchsorted(i)
+                if ui == 0:
+                    std1i = stdi[mode][0]
+                else:
+                    std1i = stdi[mode][ui - 1]
+                if ui >= len(stdi[mode]):
+                    std2i = stdi[mode][-1]
+                else:
+                    std2i = stdi[mode][ui]
+                if np.isnan(drifts[date][se[std1i]]):
+                    std1i = std2i
+                if std1i == std2i or np.isnan(drifts[date][se[std2i]]):
+                    std2i = None
+                if std2i is None:
+                    d = drifts[date][se[std1i]]
+                    sys.stdout.write('\t:: For %s-%s-%s only one standard'\
+                        ' available\n' % (typ, mode, sample[2]))
+                else:
+                    o1 = i - std1i
+                    o2 = std2i - i
+                    d = (drifts[date][se[std1i]] * o2 + \
+                        drifts[date][se[std2i]] * o1) / (o1 + o2)
+                if typ == '#BUF':
+                    lastbuf[mode] = d
+                else:
+                    if typ not in ltp_drifts:
+                        ltp_drifts[typ] = {}
+                    if mode not in ltp_drifts[typ]:
+                        ltp_drifts[typ][mode] = {}
+                    if prev != typ:
+                        ltp_drifts[typ][mode]['ctrl'] = lastbuf[mode]
+                    ltp_drifts[typ][mode][sample[2]] = d
+                prev = typ
+    return ltp_drifts
 
 def remove_outliers(data, m = 2):
     return data[np.where(abs(data - np.nanmean(data)) < m * np.nanstd(data))]
