@@ -74,7 +74,7 @@ samplesf = os.path.join(basedir, 'control_sample.csv')
 ppfracf = os.path.join(basedir, 'fractions.csv')
 ppsecdir = os.path.join(ltpdirs[0], 'SEC_profiles')
 stddir = os.path.join(ltpdirs[0], 'Standards_mzML format')
-seqfile = os.path.join(stddir, 'Sequence_list_LTP_screen_2015.csv')
+seqfile = os.path.join(basedir, 'Sequence_list_LTP_screen_2015.csv')
 pptablef = os.path.join(basedir, 'proteins_by_fraction.csv')
 lipnamesf = os.path.join(basedir, 'lipid_names.csv')
 bindpropf = os.path.join(basedir, 'binding_properties.csv')
@@ -738,6 +738,9 @@ def standards_filenames(stddir):
                 result[date] = {}
             result[date][('#STD', mode, seq)] = _fname
     return result
+
+def recalibrate(valids, ltps_drifts):
+    pass
 
 def read_standards(stdfiles, stdmasses, accuracy = 5, tolerance = 0.02,
     cache = True):

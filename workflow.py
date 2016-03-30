@@ -67,6 +67,18 @@ if data is not None:
 valids = ltp.valid_features(data)
 
 '''
+Processing standards from mzML
+'''
+stdfiles = ltp.standards_filenames(ltp.stddir)
+seq = ltp.read_seq(ltp.seqfile)
+measured = ltp.read_standards(stdfiles, ltp.stdmasses)
+drifts = ltp.drifts(measured, ltp.stdmasses)
+drifts2 = ltp.drifts2(drifts)
+ltps_drifts = ltp.drifts2ltps(drifts2, seq)
+
+ltp.recalibrate(valids, ltps_drifts)
+
+'''
 Normalizing all the features.
 '''
 ltp.norm_all(valids)
