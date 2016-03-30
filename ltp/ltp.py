@@ -66,6 +66,7 @@ readline.parse_and_bind('tab:complete')
 warnings.filterwarnings('error')
 warnings.filterwarnings('default')
 
+RECALIBRATED = False
 path_root = '/'
 basedir = os.path.join(path_root, 'home', 'denes', 'Documents' , 'ltp')
 ltpdirs = [os.path.join(basedir, 'share'),
@@ -739,8 +740,29 @@ def standards_filenames(stddir):
             result[date][('#STD', mode, seq)] = _fname
     return result
 
+def is_recalibrated(valids):
+    return np.any(['recalibrated' in tbl and tbl['recalibrated']\
+        for d in valids.values() for tbl in d.values()])
+
 def recalibrate(valids, ltps_drifts):
-    pass
+    if is_recalibrated(valids):
+        sys.stdout.write('\t:: Looks recalibration already has been done.\n'\
+            '\t   Set `recalibrated` values to `False` and call this method\n'\
+            '\t   again if you really want to repeat it.\n\n')
+        return None
+    for ltp, d in valids.iteritems():
+        for mode, tbl in d.iteritems():
+            if ltp in ltps_drifts:
+                if mode in ltps_drifts[ltp]:
+                    ppm = np.median(ltps_drifts[ltp][mode].values())
+                    ratio = ppm2ratio(ppm)
+                    tbl['mz'] = tbl['mz'] * ratio
+                    tbl['recalibrated'] = True
+                else:
+                    sys.stdout.write('\t:: No drift value '\
+                        'for %s in mode %s :(\n' % (ltp, mode))
+            else:
+                sys.stdout.write('\t:: No drift values for %s :(\n' % ltp)
 
 def read_standards(stdfiles, stdmasses, accuracy = 5, tolerance = 0.02,
     cache = True):
@@ -2504,7 +2526,7 @@ def ms2_index(fl, fr):
             offset += len(l)
     return features
 
-def ms2_main(valids, samples, ms2map, pFragments, nFragments, 
+def ms2_main(valids, samples, ms2map, pFragments, nFragments,
     tolerance = 0.02, verbose = False):
     '''
     For all LTPs and modes obtains the MS2 data from original files.
