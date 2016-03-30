@@ -1898,7 +1898,7 @@ Lipid databases lookup functions
 '''
 
 def find_lipids(hits, pAdducts, nAdducts, lipnames, 
-    levels = ['Species'], tolerance = 0.02):
+    levels = ['Species'], tolerance = 0.01)
     '''
     Column order:
     
@@ -1979,8 +1979,8 @@ def fattyacid_from_lipid_name(lip, _sum = True):
         _fa = map(sum, zip(*[[int(i) for i in f[1].split(':')] for f in _fa]))
     return _fa
 
-def find_lipids_exact(valids, exacts, lipnames, 
-    levels = ['Species'], tolerance = 0.02,
+def find_lipids_exact(valids, exacts, lipnames,
+    levels = ['Species'], tolerance = 0.01,
     verbose = False, outfile = None, 
     ltps = None):
     '''
@@ -2014,7 +2014,7 @@ def find_lipids_exact(valids, exacts, lipnames,
     if type(outfile) is file and outfile != sys.stdout:
         outfile.close()
 
-def adduct_lookup(mz, adducts, levels, tolerance = 0.02):
+def adduct_lookup(mz, adducts, levels, tolerance = 0.01):
     '''
     Looks up m/z values in the table containing the reference database
     already converted to a pool of all possible adducts.
@@ -2043,7 +2043,7 @@ def adduct_lookup(mz, adducts, levels, tolerance = 0.02):
     return None if len(result) == 0 else np.vstack(result)
 
 def adduct_lookup_exact(mz, exacts, levels, adducts, lipnames, 
-    tolerance = 0.02, verbose = False, outfile = None):
+    tolerance = 0.01, verbose = False, outfile = None):
     '''
     Looks up m/z values in the table containing the reference database
     casting the m/z to specific adducts.
@@ -2101,7 +2101,7 @@ def adduct_lookup_exact(mz, exacts, levels, adducts, lipnames,
                     break
     return None if len(result) == 0 else np.vstack(result)
 
-def negative_positive(lipids, tolerance = 0.02, 
+def negative_positive(lipids, tolerance = 0.01, 
     add_col = 12, mz_col = 1, swl_col = 8):
     '''
     Column order:
@@ -2191,7 +2191,7 @@ def negative_positive(lipids, tolerance = 0.02,
     prg.terminate()
     return result
 
-def negative_positive2(valids, lipnames, tolerance = 0.02):
+def negative_positive2(valids, lipnames, tolerance = 0.01):
     '''
     Results in dicts ['pos']['neg'] and ['neg']['pos'].
     Values in each array: assumed positive adduct, assumed negative adduct, 
@@ -2505,7 +2505,7 @@ def ms2_index(fl, fr):
     return features
 
 def ms2_main(valids, samples, ms2map, pFragments, nFragments, 
-    tolerance = 0.01, verbose = False):
+    tolerance = 0.02, verbose = False):
     '''
     For all LTPs and modes obtains the MS2 data from original files.
     '''
@@ -4033,7 +4033,7 @@ def best_table(valids, fname, pos, best = 10):
                 else:
                     f.write('\t'.join([ltp, '%.08f'%mz] + ['unknown']*6) + '\n')
 
-def true_positives(valids, stdpos, ltp, pos = 'pos', tolerance = 0.02):
+def true_positives(valids, stdpos, ltp, pos = 'pos', tolerance = 0.01):
     '''
     For one LTP having known binders looks up these
     among the valid features either in positive OR
