@@ -762,8 +762,105 @@ def read_standards(stdfiles, stdmasses, accuracy = 5, tolerance = 0.02,
     pickle.dump(result, open(cachefile, 'wb'))
     return result
 
+def drifts(measured, stdmasses, write_table = 'drifts_ppm.tab'):
+    drifts = dict(map(lambda (date, samples):
+        (date, dict(map(lambda (sample, lipids):
+            (sample, dict(map(lambda lipid:
+                (lipid, None),
+                lipids.keys()))
+            ),
+            samples.iteritems()))
+        ),
+        measured.iteritems())
+    )
+    hdr = ['date', 'run', 'mode', 'lipid', 'theoretical',
+        'measured', 'ratio', 'ppm']
+    tab = [hdr]
+    for date, samples in measured.iteritems():
+        for sample, lipids in samples.iteritems():
+            for lipid, mmz in lipids.iteritems():
+                mode = sample[1]
+                tmz = stdmasses[mode][lipid]['ion']
+                ratio = None if mmz is None else tmz / mmz
+                ppm = None if ratio is None else ratio2ppm(ratio)
+                drifts[date][sample][lipid] = ppm
+                tab.append([
+                    '20%s-%s-%s' % (date[:2], date[2:4], date[4:6]),
+                    sample[2],
+                    'positive' if sample[1] == 'pos' else 'negative',
+                    lipid,
+                    '%.06f' % tmz,
+                    '%.06f' % mmz if mmz is not None else 'n/a',
+                    '%.09f' % ratio if ratio is not None else 'n/a',
+                    '%.03f' % ppm if ppm is not None else 'n/a'
+                ])
+    if write_table and type(write_table) in charTypes:
+        tab = '\n'.join(map(lambda line:
+            '\t'.join(line),
+            tab
+        ))
+        with open(write_table, 'w') as f:
+            f.write(tab)
+    return drifts
+
+def drifts_table(drifts, outfile = 'drifts_ppm.tab'):
+    hdr = ['date', 'run', 'mode', 'lipid', 'ppm']
+    tab = [hdr]
+    for date, samples in drifts.iteritems():
+        for sample, lipids in samples.iteritems():
+            for lipid, ppm in lipids.iteritems():
+                tab.append([
+                    '20%s-%s-%s' % (date[:2], date[2:4], date[4:6]),
+                    sample[2],
+                    'positive' if sample[1] == 'pos' else 'negative',
+                    lipid,
+                    '%.03f' % ppm if ppm is not None else 'n/a'
+                ])
+    tab = '\n'.join(map(lambda line:
+        '\t'.join(line),
+        tab
+    ))
+    with open(outfile, 'w') as f:
+        f.write(tab)
+
+def drifts2(drifts):
+    drifts2 = dict(map(lambda (date, samples):
+        (date, dict(map(lambda sample:
+            (sample, None),
+            samples.keys()))
+        ),
+        drifts.iteritems())
+    )
+    for date, samples in drifts.iteritems():
+        for sample, lipids in samples.iteritems():
+            drifts2[date][sample] = \
+            np.nanmean(
+                remove_outliers(
+                    np.array(
+                        filter(lambda x:
+                            x is not None,
+                            lipids.values()
+                        )
+                    )
+                )
+            )
+            if np.isnan(drifts2[date][sample]):
+                sys.stdout.write('\t:: No values in %s %s\n' % \
+                    (date, str(sample)))
+    return drifts2
+
+def remove_outliers(data, m = 2):
+    return data[np.where(abs(data - np.nanmean(data)) < m * np.nanstd(data))]
+
+def ratio2ppm(ratio):
+    return (1.0 - ratio) * 1.0e06
+
+def ppm2ratio(ppm):
+    return 1.0 - ppm / 1.0e06
+
 def standards_lookup(peaks, stdmasses, tolerance = 0.02):
     measured = {}
+    drifts = {}
     for lipid, values in stdmasses.iteritems():
         _mz = values['ion']
         ui = peaks[:,0].searchsorted(_mz)
@@ -4105,7 +4202,8 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                     for lip in lips:
                         if lip[7] is not None:
                             if verbose:
-                                sys.stdout.write('\t:: %s-%s: found %s\n' % (ltp, pn, lip[7]))
+                                sys.stdout.write('\t:: %s-%s: found %s\n' % \
+                                    (ltp, pn, lip[7]))
                                 sys.stdout.flush()
                             posAdd = lipnames[lip[7]]['pos_adduct']
                             negAdd = lipnames[lip[7]]['neg_adduct']
@@ -4116,7 +4214,8 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                             if posAdd is None and negAdd is None or \
                                 thisModeAdd == lip[4]:
                                 if verbose:
-                                    sys.stdout.write('\t\taccepting %s-%s for %s-%s\n' % \
+                                    sys.stdout.write('\t\taccepting %s-%s for'\
+                                        ' %s-%s\n' % \
                                         (hg, lip[4], ltp, pn))
                                     sys.stdout.flush()
                                 tbl['ms1hg'][oi].add(hg)
@@ -4126,7 +4225,8 @@ def ms1_headgroups(valids, lipnames, verbose = False):
                                     tbl['ms1fa'][oi][hg].add(fa)
                             else:
                                 if verbose:
-                                    sys.stdout.write('\t\tdiscarding %s-%s for %s, %s\n'\
+                                    sys.stdout.write('\t\tdiscarding %s-%s'\
+                                        ' for %s, %s\n'\
                                         ' in %s mode' % (lip[7], lip[4], ltp, 
                                             '%s is the main adduct'%thisModeAdd \
                                                 if thisModeAdd is not None \
