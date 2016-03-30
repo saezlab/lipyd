@@ -852,8 +852,24 @@ def drifts2(drifts):
                     (date, str(sample)))
     return drifts2
 
-def drifts2ltps(drifts, seq):
+def drifts2ltps(drifts, seq, write_table = 'LTPs_drifts.tab'):
+    # before doing anything, fix some inconsistencies:
+    stard10fractions = ['A09', 'A10', 'A11', 'A12']
+    for i, fr in zip(
+            map(lambda (i, sample):
+                i,
+                filter(lambda (i, sample):
+                    sample[0] == 'STARD10',
+                    enumerate(seq['150310'])
+                )
+            ),
+            stard10fractions * 2
+        ):
+        seq['150310'][i] = (seq['150310'][i][0], seq['150310'][i][1], fr)
+    #
     ltp_drifts = {}
+    hdr = ['LTP', 'mode', 'fraction', 'ratio', 'ppm']
+    tab = [hdr]
     def standard_indices(mode, se):
         return np.array(
             map(lambda (i, s):
@@ -864,8 +880,17 @@ def drifts2ltps(drifts, seq):
                 )
             )
         )
-    for date, se in seq.iteritems():
-        l = len(se)
+    def add_row(tab, ltp, mode, fr, d):
+        tab.append([
+            ltp,
+            'positive' if mode == 'pos' else 'negative',
+            fr,
+            '%.09f' % ppm2ratio(d),
+            '%.06f' % d
+        ])
+        return tab
+    for date in sorted(seq.keys()):
+        se = seq[date]
         stdi = {}
         lastbuf = {'pos': None, 'neg': None}
         prev = None
@@ -906,8 +931,19 @@ def drifts2ltps(drifts, seq):
                         ltp_drifts[typ][mode] = {}
                     if prev != typ:
                         ltp_drifts[typ][mode]['ctrl'] = lastbuf[mode]
+                        tab = add_row(tab, typ, mode, 'CTL', lastbuf[mode])
                     ltp_drifts[typ][mode][sample[2]] = d
+                    tab = add_row(tab, typ, mode, sample[2], d)
                 prev = typ
+    if write_table and type(write_table) in charTypes:
+        with open(write_table, 'w') as f:
+            f.write('\n'.join(
+                map(lambda line:
+                    '\t'.join(line),
+                    tab)
+                )
+            )
+        sys.stdout.write('\n\t:: Table written to file %s\n\n'%write_table)
     return ltp_drifts
 
 def remove_outliers(data, m = 2):
