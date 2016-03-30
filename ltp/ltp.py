@@ -840,7 +840,7 @@ def drifts2(drifts):
     for date, samples in drifts.iteritems():
         for sample, lipids in samples.iteritems():
             drifts2[date][sample] = \
-            np.nanmean(
+            np.nanmedian(
                 remove_outliers(
                     np.array(
                         filter(lambda x:
