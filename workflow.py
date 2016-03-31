@@ -95,8 +95,8 @@ ltp.ms1_headgroups(valids, lipnames, verbose = False)
 ltp.headgroups_negative_positive(valids, 'ms1')
 
 # the MS2 part
-pFragments, pHgfrags, pHeadgroups = ltp.read_metabolite_lines('lipid_fragments_positive_mode.txt')
-nFragments, nHgfrags, nHeadgroups = ltp.read_metabolite_lines('lipid_fragments_negative_mode.txt')
+pFragments, pHgfrags, pHeadgroups = ltp.read_metabolite_lines('lipid_fragments_positive_mode_v2.txt')
+nFragments, nHgfrags, nHeadgroups = ltp.read_metabolite_lines('lipid_fragments_negative_mode_v2.txt')
 ms2files = ltp.ms2_filenames(ltp.ltpdirs)
 ms2map = ltp.ms2_map(ms2files)
 ltp.ms2_main(valids, samples_upper, ms2map, pFragments, nFragments)
