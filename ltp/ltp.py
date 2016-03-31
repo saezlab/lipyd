@@ -1920,7 +1920,7 @@ Lipid databases lookup functions
 '''
 
 def find_lipids(hits, pAdducts, nAdducts, lipnames, 
-    levels = ['Species'], tolerance = 0.01)
+    levels = ['Species'], tolerance = 0.01):
     '''
     Column order:
     
@@ -2392,12 +2392,21 @@ def read_metabolite_lines(fname):
     '''
     Metabolites = []
     Hgroupfrags = {}
+    rehg = re.compile(r'.*\(([\+;A-Z]+)\).*')
+    rehgsep = re.compile(r'[;\+]')
     with open(fname, 'r') as Handle:
         for Line in Handle.readlines():
             Line = Line.strip().split('\t')
             MetabMass, MetabType, MetabCharge = Line[:3]
-            if len(Line) == 4:
-                Hgroupfrags[MetabType] = set(Line[3].split(';'))
+            hgm = rehg.match(Line[1])
+            if len(Line) == 4 or hgm:
+                Hgroupfrags[MetabType] = set([])
+                if len(Line) == 4:
+                    Hgroupfrags[MetabType] = Hgroupfrags[MetabType] | \
+                        set(rehgsep.split(Line[3]))
+                if hgm:
+                    Hgroupfrags[MetabType] = Hgroupfrags[MetabType] | \
+                        set(rehgsep.split(hgm.groups()[0]))
             Metabolites.append([to_float(MetabMass), MetabType, MetabCharge])
             if '+' not in MetabCharge and '-' not in MetabCharge and 'NL' not in MetabCharge:
                 sys.stdout.write('WARNING: fragment %s has no valid charge information!\n' % \
