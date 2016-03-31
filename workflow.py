@@ -99,11 +99,14 @@ ltp.ms1_headgroups(valids, lipnames, verbose = False)
 ltp.headgroups_negative_positive(valids, 'ms1')
 
 # the MS2 part
-pFragments, pHgfrags, pHeadgroups = ltp.read_metabolite_lines('lipid_fragments_positive_mode_v2.txt')
-nFragments, nHgfrags, nHeadgroups = ltp.read_metabolite_lines('lipid_fragments_negative_mode_v2.txt')
+pFragments, pHgfrags, pHeadgroups = \
+    ltp.read_metabolite_lines('lipid_fragments_positive_mode_v2.txt')
+nFragments, nHgfrags, nHeadgroups = \
+    ltp.read_metabolite_lines('lipid_fragments_negative_mode_v2.txt')
 ms2files = ltp.ms2_filenames(ltp.ltpdirs)
 ms2map = ltp.ms2_map(ms2files)
-ltp.ms2_main(valids, samples_upper, ms2map, pFragments, nFragments)
+ltp.ms2_main(valids, samples_upper, ms2map,
+    pFragments, nFragments, drifts = ltps_drifts)
 ltp.ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups)
 ltp.headgroups_by_fattya(valids)
 ltp.identity_combined(valids)
@@ -210,7 +213,7 @@ bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
     highlight = 'cl70pct',
     highlight2 = False,
     all_features = False,
-    pdfname = 'protein_profiles_features_cl_maxdist_70pct-b.pdf')
+    pdfname = 'protein_profiles_features_cl_maxdist_70pct-c.pdf')
 
 # ##
 
@@ -227,16 +230,21 @@ ms1tab_coln, ms1tab = ltp.ms1_table(valids, lipnames)
 
 
 ltp.ms1_table_html(valids, lipnames)
-ltp.ms1_table_html_simple(valids, lipnames, include = 'cl5pct')
-ltp.ms2_table_html_simple(valids, lipnames, include = 'cl5pct')
+ltp.ms1_table_html_simple(valids, lipnames, include = 'cl70pct',
+    filename = 'ms1_headgroups_rec.html')
+ltp.ms2_table_html_simple(valids, lipnames, include = 'cl70pct',
+    filename = 'ms2_headgroups_rec.html')
 
-ltp.ms1_ms2_table_html_simple(valids, lipnames, include = 'cl70pct', filename = 'ms1ms2headgroups2.html')
+ltp.ms1_ms2_table_html_simple(valids, lipnames, include = 'cl70pct',
+    filename = 'ms1ms2headgroups2rec.html')
 
-ltp.features_table(valids)
+ltp.features_table(valids, filename = 'identities_details_rec',
+    drifts = ltps_drifts)
 
 idlevels = {
     'All': ltp.identification_levels(valids, 'STARD10', 'PC'),
-    'Best': ltp.identification_levels(valids, 'STARD10', 'PC', classif = 'cl50pct')
+    'Best': ltp.identification_levels(valids, 'STARD10', 'PC',
+        classif = 'cl50pct')
 }
 
 ltp.plot_identification_levels(idlevels, 'STARD10', 'PC')

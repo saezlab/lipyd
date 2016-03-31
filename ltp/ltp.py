@@ -762,10 +762,10 @@ def is_recalibrated(valids):
         for d in valids.values() for tbl in d.values()])
 
 def recalibrate(valids, ltps_drifts, missing = False):
-    if is_recalibrated(valids) 
+    if is_recalibrated(valids):
         if not missing:
-            sys.stdout.write('\t:: Looks recalibration '\'
-                already has been done.\n'\
+            sys.stdout.write('\t:: Looks recalibration '\
+                'already has been done.\n'\
                 '\t   Set `recalibrated` '\
                 'values to `False` and call this method\n'\
                 '\t   again if you really want to repeat it.\n\n')
@@ -1524,12 +1524,14 @@ def peaksize_filter(data, peak = 2.0):
     for ltp, d in data.iteritems():
         for pn, tbl in d.iteritems():
             prg.step()
-            tbl['pks'] = np.nanmax(tbl['lip'], 1) / np.nanmax(tbl['ctr'], 1) >= peak
+            tbl['pks'] = np.nanmax(tbl['lip'], 1) / \
+                np.nanmax(tbl['ctr'], 1) >= peak
             # tbl['pks'] = lmax / cmax >= peak
             #tbl['pks'] = np.apply_along_axis(lambda x: , 1, tbl['lip'])
             #tbl['pks'] = np.empty([tbl['lip'].shape[0], 1])
             #for i, (c, s) in enumerate(zip(tbl['ctr'], tbl['lip'])):
-                #tbl['pks'][i] = bool(sum(max(ss/cc >= peak for cc in c) for ss in s))
+                #tbl['pks'][i] = bool(sum(max(ss/cc >= peak for cc in c) \
+                    #for ss in s))
     prg.terminate()
 
 def cprofile_filter(data, pprofs, samples):
@@ -2730,7 +2732,7 @@ def ms2_index(fl, fr):
     return features
 
 def ms2_main(valids, samples, ms2map, pFragments, nFragments,
-    tolerance = 0.02, verbose = False):
+    tolerance = 0.02, verbose = False, drifts = None):
     '''
     For all LTPs and modes obtains the MS2 data from original files.
     '''
@@ -2741,8 +2743,15 @@ def ms2_main(valids, samples, ms2map, pFragments, nFragments,
         for pn, tbl in d.iteritems():
             prg.step()
             fragments = pFragments if pn == 'pos' else nFragments
+            drift = 1.0 \
+                if drifts is None \
+                or 'recalibrated' not in tbl \
+                or not tbl['recalibrated'] \
+                else ppm2ratio(np.nanmedian(
+                        np.array(drifts[ltp][pn].values())
+                    ))
             ms2matches = ms2_match(tbl['mz'], tbl['rt'], tbl['i'], ms2map, 
-                ltp, pn, tolerance)
+                ltp, pn, tolerance, drift = drift)
             # this already returns final result, from protein containing
             # fractions and with the relevant retention times
             tbl['ms2'] = ms2_lookup(ms2map[ltp][pn], ms2matches, samples[ltp], 
@@ -2764,13 +2773,14 @@ def ms2_result(ms2matches):
     result = dict((oi, []) for oi in ms2matches.keys())
     for oi, ms2s in ms2matches.iteritems():
         for ms2i in ms2s:
-            result[oi].append(np.array([ms2i[7], ms2i[8], ms2i[1], ms2i[2]], dtype = np.object))
+            result[oi].append(np.array([ms2i[7], ms2i[8],
+                ms2i[1], ms2i[2]], dtype = np.object))
     for oi, ms2s in result.iteritems():
         result[oi] = np.vstack(ms2s) if len(ms2s) > 0 else np.array([])
     return result
 
 def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
-    verbose = False, outfile = None):
+    verbose = False, outfile = None, drift = 1.0):
     '''
     Looks up matching pepmasses for a list of MS1 m/z's.
     '''
@@ -2779,6 +2789,10 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
     ms2tbl = ms2map[ltp][pos]
     # iterating over MS1 m/z, MS1 original index, and retention time
     for ms1Mz, ms1i, rt in zip(ms1Mzs, ms1is, ms1Rts):
+        # drift is the ratio
+        # we divide here to have the original measured MS1 m/z,
+        # not the recalibrated one:
+        ms1Mz = ms1Mz / drift
         # if error comes here, probably MS2 files are missing
         try:
             iu = ms2tbl[:,0].searchsorted(ms1Mz)
@@ -5468,15 +5482,18 @@ def _fragment_details_list(ms2r):
         )
     ))
 
-def _features_table_row(ltp, mod, tbl, oi, i, fits_profile):
+def _features_table_row(ltp, mod, tbl, oi, i, fits_profile, drift):
     tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s\n\t\t\t</td>\n'
     tableccell = '\t\t\t<td class="%s" title="%s" onclick="showTooltip(event);">'\
         '\n\t\t\t\t%s\n\t\t\t</td>\n'
     row = []
+    original_mz = tbl['mz'][i] / drift
     row.append(tablecell % \
-        ('nothing', 'm/z measured; %s, %s mode' % \
-            (ltp, 'negative' if mod == 'neg' else 'positive'), 
-        '%.04f' % tbl['mz'][i]))
+        ('nothing', 'm/z measured; %s, %s mode; raw: %.07f, '\
+            'recalibrated: %.07f' % \
+            (ltp, 'negative' if mod == 'neg' else 'positive',
+                original_mz, tbl['mz'][i]),
+        '%.04f (%.04f)' % (tbl['mz'][i], original_mz)))
     row.append(tableccell % (
         ('nothing clickable',
             _database_details_list(tbl['lip'][oi]),
@@ -5530,7 +5547,8 @@ def _features_table_row(ltp, mod, tbl, oi, i, fits_profile):
     ))
     return row
 
-def features_table(valids, filename = 'identities_details', fits_profile = 'cl70pct'):
+def features_table(valids, filename = 'identities_details_rec',
+    fits_profile = 'cl70pct', drifts = None):
     hdr = ['+m/z', '+Database', '+MS1 headgroups',
         '+MS2 fragments', '+MS2 headgroups', 
         '+MS1 fattya.', '+MS2 fattya.',
@@ -5590,13 +5608,25 @@ def features_table(valids, filename = 'identities_details', fits_profile = 'cl70
         table += (tablerow % '\n'.join(thisRow))
         for mod, tbl in d.iteritems():
             opp_mod = 'neg' if mod == 'pos' else 'pos'
+            drift = 1.0 if drifts is None \
+                or 'recalibrated' not in tbl \
+                or not tbl['recalibrated'] \
+                else ppm2ratio(np.nanmedian(
+                    np.array(drifts[ltp][mod].values())
+                ))
+            opp_drift = 1.0 if drifts is None \
+                or 'recalibrated' not in tbl \
+                or not tbl['recalibrated'] \
+                else ppm2ratio(np.nanmedian(
+                    np.array(drifts[ltp][opp_mod].values())
+                ))
             for i, oi in enumerate(tbl['i']):
                 if oi not in visited[mod]:
                     thisRow = {'pos': [], 'neg': []}
                     visited[mod].add(oi)
                     thisRow[mod].append(
                         _features_table_row(ltp, mod, tbl, 
-                            oi, i, fits_profile))
+                            oi, i, fits_profile, drift))
                     try:
                         if len(tbl[opp_mod][oi]) == 0:
                             thisRow[opp_mod] = [map(lambda i:
@@ -5611,7 +5641,7 @@ def features_table(valids, filename = 'identities_details', fits_profile = 'cl70
                                     [0][0]
                                 thisRow[opp_mod].append(_features_table_row(
                                     ltp, opp_mod, d[opp_mod], 
-                                    opp_oi, opp_i, fits_profile))
+                                    opp_oi, opp_i, fits_profile, opp_drift))
                     except KeyError:
                         print ltp, mod, opp_mod
                     for pos_row in thisRow['pos']:
