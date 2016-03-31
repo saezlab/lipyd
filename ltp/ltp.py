@@ -2827,7 +2827,9 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
                     # checking retention time
                     if ms2tbl[iu + u, 2] >= rt[0] and \
                         ms2tbl[iu + u, 2] <= rt[1]:
-                        matches.append((ms1Mz, iu + u, ms1i))
+                        matches.append(
+                            (ms1Mz, iu + u, ms1i, ms2tbl[iu + u, 3])
+                        )
                     u += 1
                 else:
                     break
@@ -2852,7 +2854,9 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
                                 'drop this match\n')
                     if ms2tbl[iu - l, 2] >= rt[0] and \
                         ms2tbl[iu - l, 2] <= rt[1]:
-                        matches.append((ms1Mz, iu - l, ms1i))
+                        matches.append(
+                            (ms1Mz, iu - l, ms1i, ms2tbl[iu - l, 3])
+                        )
                     l += 1
                 else:
                     break
