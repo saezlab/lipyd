@@ -2575,7 +2575,7 @@ Functions for MS2
 
 def read_metabolite_lines(fname):
     '''
-    From Toby Hodges.
+    In part from Toby Hodges.
     Reads metabolite fragments data.
     '''
     Metabolites = []
@@ -2716,7 +2716,7 @@ def ms2_index(fl, fr):
                     print fl, l
                     continue
                 if m[0] == stRtitle:
-                    scan = float(m[1]) / 60.0
+                    scan = float(m[1])
                 if m[0] == stRrtinseconds:
                     rtime = float(m[1]) / 60.0
                 if m[0] == stRpepmass:
@@ -2743,6 +2743,8 @@ def ms2_main(valids, samples, ms2map, pFragments, nFragments,
         for pn, tbl in d.iteritems():
             prg.step()
             fragments = pFragments if pn == 'pos' else nFragments
+            # we look up the real measured MS1 m/z's in MS2,
+            # so will divide recalibrated values by the drift ratio
             drift = 1.0 \
                 if drifts is None \
                 or 'recalibrated' not in tbl \
@@ -3038,7 +3040,8 @@ def ms2_headgroup(ms2r, hgfrags, headgroups):
     for ms2item in ms2r:
         if ms2item[0] in hgfrags:
             hgroups = hgfrags[ms2item[0]] if hgroups is None \
-                else hgroups & hgfrags[ms2item[0]]
+                
+else hgroups & hgfrags[ms2item[0]]
             frags.add(ms2item[0])
     # if any headgroup related fragment found
     if hgroups is not None and len(hgroups) > 0:
@@ -3586,7 +3589,8 @@ def _get_link_colors_dist(tbl, dist, threshold, highlight_color, base_color):
                 else base_color]
     ))
 
-def _get_link_colors_corr(tbl, dist, cmap, threshold, highlight_color, base_color):
+def _get_link_colors_corr(tbl, dist, cmap, threshold,
+    highlight_color, base_color):
     return dict(zip(
         xrange(tbl['_%sc'%dist].shape[0] + 1,
             tbl['_%sc'%dist].shape[0]*2 + 2), # 180
@@ -3721,7 +3725,8 @@ def plot_heatmaps_dendrograms(valids, singles,
             '-%02f'%threshold if threshold is not None else '') \
         if fname is None else fname
     if coloring == 'corr':
-        _cmap = _get_dendrogram_cmap(cmap, threshold, highlight_color, base_color)
+        _cmap = _get_dendrogram_cmap(cmap, threshold,
+            highlight_color, base_color)
     frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
     with mpl.backends.backend_pdf.PdfPages(fname) as pdf:
         prg = progress.Progress(len(valids)*2 if ltps is None else len(ltps)*2,
@@ -3862,7 +3867,8 @@ def plot_heatmaps_dendrograms(valids, singles,
                         ax.scatter(coo[:,0], coo[:,1], c = col, 
                             linewidth = 0.0, alpha = 0.7)
                         ax.set_title('%s :: %s mode :: PCA' % (ltp, pn),
-                            color = '#AA0000' if ltp in singles else '#000000')
+                            color = '#AA0000' \
+                                if ltp in singles else '#000000')
                         cvs.draw()
                         fig.tight_layout()
                         cvs.print_figure(pdf)
@@ -3957,7 +3963,8 @@ def spec_sens(valids, ltp, pos, metric, asc):
     values of a score, for one LTP for one mode.
     Returns dict of lists.
     '''
-    result = {'spec': [], 'sens': [], 'prec': [], 'fdr': [], 'cutoff': [], 'n': 0}
+    result = {'spec': [], 'sens': [], 'prec': [],
+        'fdr': [], 'cutoff': [], 'n': 0}
     tbl = valids[ltp][pos]
     ioffset = 0 if pos == 'pos' else 6
     if len(tbl['std']) > 0:
@@ -5154,10 +5161,12 @@ def feature_identity_html_table(valids, bindprop, fits_pprop = 'cl5pct',
             _np = 'pos' if pn == 'neg' else 'neg'
             for i, oi in enumerate(tbl['i']):
                 for hg, ids in (tbl['identity'][oi].iteritems() \
-                    if len(tbl['identity'][oi]) > 0 else empty_ids.iteritems()):
+                    if len(tbl['identity'][oi]) > 0 \
+                    else empty_ids.iteritems()):
                     this_row = ''
                     this_row += tablecell % ('rowname', '', ltp)
-                    this_row += tablecell % ('nothing', '', '%.05f'%tbl['mz'][i])
+                    this_row += tablecell % \
+                        ('nothing', '', '%.05f'%tbl['mz'][i])
                     this_row += tablecell % ('nothing', '', 
                         '+' if pn == 'pos' else '-')
                     fits_pos = tbl[fits_pprop][i] if pn == 'pos' else \

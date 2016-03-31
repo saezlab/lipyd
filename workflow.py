@@ -222,7 +222,7 @@ Calculating ubiquity. (variable name: `ubi`)
 '''
 ltp.sort_alll(valids, 'mz')
 ltp.ubiquity_filter(valids)
-timeit.timeit('ltp.ubiquity_filter(valids)', 
+timeit.timeit('ltp.ubiquity_filter(valids)',
     setup = 'from __main__ import ltp, valids', number = 1)
 
 
