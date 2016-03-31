@@ -66,7 +66,6 @@ readline.parse_and_bind('tab:complete')
 warnings.filterwarnings('error')
 warnings.filterwarnings('default')
 
-RECALIBRATED = False
 path_root = '/'
 basedir = os.path.join(path_root, 'home', 'denes', 'Documents' , 'ltp')
 ltpdirs = [os.path.join(basedir, 'share'),
@@ -311,6 +310,21 @@ class Mz():
 #
 # read standards data
 #
+
+def which_day(ltp, seq, mode = 'pos'):
+    '''
+    Which day the samples for a given LTP have been run?
+    '''
+    return map(lambda (date, samples):
+        date,
+        filter(lambda (date, samples):
+            (ltp, mode) in map(lambda sample:
+                (sample[0], sample[1]),
+                samples
+            ),
+            seq.iteritems()
+        )
+    )
 
 def standards_theoretic_masses(metabsf):
     '''
@@ -596,7 +610,8 @@ def protein_profiles(basedir, ppfracf, fnames, cache = True):
         try:
             tbl = read_xls(os.path.join(basedir, fname))[3:]
         except xlrd.biffh.XLRDError:
-            sys.stdout.write('Error reading XLS:\n\t%s\n'%os.path.join(basedir, fname))
+            sys.stdout.write('Error reading XLS:\n\t%s\n' % \
+                os.path.join(basedir, fname))
         minabs = min(0.0, min(to_float(l[5]) for l in tbl))
         for l in tbl:
             # l[4]: volume (ml)
@@ -610,7 +625,8 @@ def protein_profiles(basedir, ppfracf, fnames, cache = True):
                     break
             # l[5] mAU UV3 215nm
             frac_abs[fr[2]].append(to_float(l[5]) - minabs)
-        result[ltpname] = dict((fnum, np.mean(a)) for fnum, a in frac_abs.iteritems())
+        result[ltpname] = dict((fnum, np.mean(a)) \
+            for fnum, a in frac_abs.iteritems())
     pickle.dump(result, open(cachefile, 'wb'))
     return result
 
@@ -703,7 +719,8 @@ def read_seq(seqfile):
                 l = l.split(',')[1]
                 mode = 'neg' if 'neg' in l else 'pos' if 'pos' in l else None
                 seq = l.split(mode)[-1] if mode is not None else None
-                if seq is not None and len(seq) and seq[0] == '_': seq = seq[1:]
+                if seq is not None and len(seq) and seq[0] == '_':
+                    seq = seq[1:]
                 l = l.split('_')
                 date = l[0]
                 if 'extracted' in l:
@@ -714,7 +731,7 @@ def read_seq(seqfile):
                 elif refrac.match(l[-1]) or refrac.match(l[-2]):
                     protein = l[4]
                     if protein == 'ORP9STARD15':
-                        protein = protein[:4]
+                        protein = protein[4:]
                 else:
                     protein = None
                 if date not in result:
@@ -744,25 +761,41 @@ def is_recalibrated(valids):
     return np.any(['recalibrated' in tbl and tbl['recalibrated']\
         for d in valids.values() for tbl in d.values()])
 
-def recalibrate(valids, ltps_drifts):
-    if is_recalibrated(valids):
-        sys.stdout.write('\t:: Looks recalibration already has been done.\n'\
-            '\t   Set `recalibrated` values to `False` and call this method\n'\
-            '\t   again if you really want to repeat it.\n\n')
-        return None
+def recalibrate(valids, ltps_drifts, missing = False):
+    if is_recalibrated(valids) 
+        if not missing:
+            sys.stdout.write('\t:: Looks recalibration '\'
+                already has been done.\n'\
+                '\t   Set `recalibrated` '\
+                'values to `False` and call this method\n'\
+                '\t   again if you really want to repeat it.\n\n')
+            sys.stdout.flush()
+            return None
+        else:
+            sys.stdout.write('\t:: Recalibration already done.\n'\
+                '\t   Looking for missing LTP/mode cases, and '\
+                'doing only those.\n'\
+                '\t   If you want to recalibrate everything '\
+                'again,\n'\
+                '\t   reload the original data.\n\n')
+            sys.stdout.flush()
     for ltp, d in valids.iteritems():
         for mode, tbl in d.iteritems():
-            if ltp in ltps_drifts:
-                if mode in ltps_drifts[ltp]:
-                    ppm = np.median(ltps_drifts[ltp][mode].values())
-                    ratio = ppm2ratio(ppm)
-                    tbl['mz'] = tbl['mz'] * ratio
-                    tbl['recalibrated'] = True
+            if 'recalibrated' not in tbl or \
+            (not tbl['recalibrated'] and missing):
+                if ltp in ltps_drifts:
+                    if mode in ltps_drifts[ltp]:
+                        ppm = np.median(ltps_drifts[ltp][mode].values())
+                        ratio = ppm2ratio(ppm)
+                        tbl['mz'] = tbl['mz'] * ratio
+                        tbl['recalibrated'] = True
+                    else:
+                        tbl['recalibrated'] = False
+                        sys.stdout.write('\t:: No drift value '\
+                            'for %s in mode %s :(\n' % (ltp, mode))
                 else:
-                    sys.stdout.write('\t:: No drift value '\
-                        'for %s in mode %s :(\n' % (ltp, mode))
-            else:
-                sys.stdout.write('\t:: No drift values for %s :(\n' % ltp)
+                    tbl['recalibrated'] = False
+                    sys.stdout.write('\t:: No drift values for %s :(\n' % ltp)
 
 def read_standards(stdfiles, stdmasses, accuracy = 5, tolerance = 0.02,
     cache = True):
@@ -4716,7 +4749,7 @@ def ms1_table(valids, lipnames, include = 'cl70pct'):
                                     result[ltp][hg][fa][0] = True
                                 elif pn == 'neg':
                                     result[ltp][hg][fa][1] = True
-                                for _oi, pnlips in 
+                                for _oi, pnlips in \
                                     tbl['%s_lip'%_np][oi].iteritems():
                                     if not result[ltp][hg][fa][2] and \
                                         pnlips is not None:

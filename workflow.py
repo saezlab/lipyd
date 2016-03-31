@@ -39,7 +39,8 @@ data, fnames, samples, csamples, pprofs = \
 '''
 Here we reload the workspace including all the data from the pickle:
 '''
-data, fnames, samples, csamples, samples_upper, pprofs = ltp.init_reinit(ltp.basedir)
+data, fnames, samples, csamples, samples_upper, pprofs = \
+    ltp.init_reinit(ltp.basedir)
 pprofs_original = copy.deepcopy(pprofs)
 singles = ltp.one_sample(samples_upper)
 
@@ -68,11 +69,14 @@ valids = ltp.valid_features(data)
 
 '''
 Processing standards from mzML
+Calculating drifts
+Recalibrating all m/z's
 '''
 stdfiles = ltp.standards_filenames(ltp.stddir)
 seq = ltp.read_seq(ltp.seqfile)
-measured = ltp.read_standards(stdfiles, ltp.stdmasses)
-drifts = ltp.drifts(measured, ltp.stdmasses)
+stdmasses = ltp.standards_theoretic_masses(ltp.metabsf)
+measured = ltp.read_standards(stdfiles, stdmasses)
+drifts = ltp.drifts(measured, stdmasses)
 drifts2 = ltp.drifts2(drifts)
 ltps_drifts = ltp.drifts2ltps(drifts2, seq)
 
