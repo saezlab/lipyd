@@ -238,7 +238,8 @@ ltp.ms2_table_html_simple(valids, lipnames, include = 'cl70pct',
 ltp.ms1_ms2_table_html_simple(valids, lipnames, include = 'cl70pct',
     filename = 'ms1ms2headgroups2rec.html')
 
-ltp.features_table(valids, filename = 'identities_details_rec',
+ltp.features_table(valids, ms2files, ltp.ltpdirs[0],
+    filename = 'identities_details_rec',
     drifts = ltps_drifts)
 
 idlevels = {

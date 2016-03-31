@@ -2646,6 +2646,9 @@ def ms2_filenames(ltpdirs):
                         except AttributeError:
                             sys.stdout.write(
                                 'could not determine fraction number: %s'%f)
+                        fr = 'B01' if fr == 'B1' \
+                            else 'A09' if fr == 'A9' \
+                            else fr
                         fnames[ltpname][pos][fr] = \
                             os.path.join(*([d] + fpath + [f]))
     return fnames
@@ -2771,12 +2774,17 @@ def ms2_result(ms2matches):
     '''
     Extracts the most relevant information from the MS2
     result arrays, throwing away the rest.
+    
+    Columns in output arrays (6):
+        # MS2 fragment name, MS2 adduct name, (0-1)
+        # MS2 fragment m/z, MS2 fragment intensity (2-3)
+        # fraction number, scan number (4-5)
     '''
     result = dict((oi, []) for oi in ms2matches.keys())
     for oi, ms2s in ms2matches.iteritems():
         for ms2i in ms2s:
             result[oi].append(np.array([ms2i[7], ms2i[8],
-                ms2i[1], ms2i[2]], dtype = np.object))
+                ms2i[1], ms2i[2], ms2i[14], ms2i[12]], dtype = np.object))
     for oi, ms2s in result.iteritems():
         result[oi] = np.vstack(ms2s) if len(ms2s) > 0 else np.array([])
     return result
@@ -2827,9 +2835,7 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
                     # checking retention time
                     if ms2tbl[iu + u, 2] >= rt[0] and \
                         ms2tbl[iu + u, 2] <= rt[1]:
-                        matches.append(
-                            (ms1Mz, iu + u, ms1i, ms2tbl[iu + u, 3])
-                        )
+                        matches.append((ms1Mz, iu + u, ms1i))
                     u += 1
                 else:
                     break
@@ -2854,9 +2860,7 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
                                 'drop this match\n')
                     if ms2tbl[iu - l, 2] >= rt[0] and \
                         ms2tbl[iu - l, 2] <= rt[1]:
-                        matches.append(
-                            (ms1Mz, iu - l, ms1i, ms2tbl[iu - l, 3])
-                        )
+                        matches.append((ms1Mz, iu - l, ms1i))
                     l += 1
                 else:
                     break
@@ -2866,14 +2870,22 @@ def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
 
 def ms2_verbose(valids, ltp, mode, ms2map, tolerance = 0.02, outfile = None):
     tbl = valids[ltp][mode]
-    ms2_match(tbl['mz'], tbl['rt'], tbl['i'], 
-            ms2map, ltp, mode, tolerance, verbose = True, 
+    ms2_match(tbl['mz'], tbl['rt'], tbl['i'],
+            ms2map, ltp, mode, tolerance, verbose = True,
             outfile = outfile)
 
 def ms2_lookup(ms2map, ms1matches, samples, ms2files, fragments):
     '''
     For the matching MS2 m/z's given, reads and identifies
     the list of fragments.
+    
+    Columns in output arrays (15):
+        # MS1 m/z, MS2 fragment m/z, MS2 fragment intensity, (0-2)
+        # MS2 table index, direct/inverted match, fraction number, (3-5)
+        # MS2 fragment m/z in annotation, MS2 fragment name, (6-7)
+        # MS2 adduct name, (8)
+        # MS1 pepmass, MS1 intensity, rtime, MS2 scan, (9-12)
+        # MS2 file offset, fraction number (13-14)
     '''
     # indices of fraction numbers
     sample_i = {
@@ -2928,29 +2940,32 @@ def ms2_lookup(ms2map, ms1matches, samples, ms2files, fragments):
                     ms2hit2 = ms2_identify(ms2item[0] - mass,
                         fragments, compl = True)
                     # matched fragment --- direct
-                    # columns (14): 
+                    # columns (14):
                     # MS1 m/z, MS2 fragment m/z, MS2 fragment intensity, 
                     # MS2 table index, direct/inverted match, fraction number, 
                     # MS2 fragment m/z in annotation, MS2 fragment name,
-                    # MS2 adduct name, 
-                    # MS1 pepmass, MS1 intensity, rtime, MS2 scan, 
+                    # MS2 adduct name,
+                    # MS1 pepmass, MS1 intensity, rtime, MS2 scan,
                     # MS2 file offset, fraction number
                     if ms2hit1 is not None:
                         ms2matches[ms1oi].append(np.concatenate(
                             (np.array([ms1mz, mass,
-                            intensity, ms2i, 0, fr]), ms2hit1, ms2item)
+                                intensity, ms2i, 0, fr]),
+                            ms2hit1, ms2item)
                         ))
                     # matched fragment --- inverted
                     if ms2hit2 is not None:
                         ms2matches[ms1oi].append(np.concatenate((
                             np.array([ms1mz, mass,
-                            intensity, ms2i, 1, fr]), ms2hit2, ms2item)
+                                intensity, ms2i, 1, fr]),
+                            ms2hit2, ms2item)
                         ))
                     # no fragment matched --- unknown fragment
                     if ms2hit1 is None and ms2hit2 is None:
                         ms2matches[ms1oi].append(np.concatenate((
                             np.array([ms1mz, mass,
-                            intensity, ms2i, 0, fr], dtype = np.object),
+                                intensity, ms2i, 0, fr],
+                                dtype = np.object),
                             np.array([None, 'unknown', 'unknown'],
                                 dtype = np.object),
                             ms2item)
@@ -3044,8 +3059,7 @@ def ms2_headgroup(ms2r, hgfrags, headgroups):
     for ms2item in ms2r:
         if ms2item[0] in hgfrags:
             hgroups = hgfrags[ms2item[0]] if hgroups is None \
-                
-else hgroups & hgfrags[ms2item[0]]
+                else hgroups & hgfrags[ms2item[0]]
             frags.add(ms2item[0])
     # if any headgroup related fragment found
     if hgroups is not None and len(hgroups) > 0:
@@ -5485,17 +5499,22 @@ def _database_details_list(lip):
         lip
     ))
 
-def _fragment_details_list(ms2r):
+def _fragment_details_list(ms2r, ms2files, path):
+    fractions = {9: 'A09', 10: 'A10', 11: 'A11', 12: 'A12', 1: 'B01'}
     if ms2r is None: ms2r = []
     return '\n'.join(map(lambda l:
-        '⚫ %s (%.02f)' % (l[0], l[3]),
+        '⚫ %s (%.02f)\n    @ file: %s\n    @ scan no. %u' % \
+            (l[0], l[3],
+                ms2files[fractions[int(l[4])]].replace(path, '')[1:],
+                int(l[5])),
         filter(lambda l:
             l[0] != 'unknown',
             ms2r
         )
     ))
 
-def _features_table_row(ltp, mod, tbl, oi, i, fits_profile, drift):
+def _features_table_row(ltp, mod, tbl, oi, i, fits_profile, drift,
+    ms2files, path):
     tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s\n\t\t\t</td>\n'
     tableccell = '\t\t\t<td class="%s" title="%s" onclick="showTooltip(event);">'\
         '\n\t\t\t\t%s\n\t\t\t</td>\n'
@@ -5523,8 +5542,10 @@ def _features_table_row(ltp, mod, tbl, oi, i, fits_profile, drift):
         ', '.join(tbl['ms1hg'][oi])))
     row.append(tableccell % \
         (('nothing clickable',
-            _fragment_details_list(tbl['ms2r'][oi]), 'see MS2 frags.') \
-                if oi in tbl['ms2r'] else \
+                _fragment_details_list(tbl['ms2r'][oi],
+                    ms2files[ltp][mod], path),
+                'see MS2 frags.') \
+            if oi in tbl['ms2r'] else \
         ('nothing', 'No MS2 results for this feature', 'No MS2'))
     )
     row.append(tablecell % \
@@ -5560,7 +5581,7 @@ def _features_table_row(ltp, mod, tbl, oi, i, fits_profile, drift):
     ))
     return row
 
-def features_table(valids, filename = 'identities_details_rec',
+def features_table(valids, ms2files, path, filename = 'identities_details_rec',
     fits_profile = 'cl70pct', drifts = None):
     hdr = ['+m/z', '+Database', '+MS1 headgroups',
         '+MS2 fragments', '+MS2 headgroups', 
@@ -5638,8 +5659,8 @@ def features_table(valids, filename = 'identities_details_rec',
                     thisRow = {'pos': [], 'neg': []}
                     visited[mod].add(oi)
                     thisRow[mod].append(
-                        _features_table_row(ltp, mod, tbl, 
-                            oi, i, fits_profile, drift))
+                        _features_table_row(ltp, mod, tbl,
+                            oi, i, fits_profile, drift, ms2files, path))
                     try:
                         if len(tbl[opp_mod][oi]) == 0:
                             thisRow[opp_mod] = [map(lambda i:
@@ -5653,8 +5674,10 @@ def features_table(valids, filename = 'identities_details_rec',
                                 opp_i = np.where(d[opp_mod]['i'] == opp_oi)\
                                     [0][0]
                                 thisRow[opp_mod].append(_features_table_row(
-                                    ltp, opp_mod, d[opp_mod], 
-                                    opp_oi, opp_i, fits_profile, opp_drift))
+                                    ltp, opp_mod, d[opp_mod],
+                                    opp_oi, opp_i, fits_profile, opp_drift,
+                                    ms2files, path
+                                ))
                     except KeyError:
                         print ltp, mod, opp_mod
                     for pos_row in thisRow['pos']:
