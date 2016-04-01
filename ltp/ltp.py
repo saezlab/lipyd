@@ -2667,7 +2667,7 @@ def ms2_filenames(ltpdirs):
                             os.path.join(*([d] + fpath + [f]))
     return fnames
 
-def ms2_map(ms2files):
+def ms2_map(ms2files, charge = 1):
     stRpos = 'pos'
     stRneg = 'neg'
     redgt = re.compile(r'[AB]([\d]+)$')
@@ -2687,7 +2687,7 @@ def ms2_map(ms2files):
             for fr, fl in files.iteritems():
                 fr = int(redgt.match(fr).groups()[0])
                 #fractions.add(fr)
-                mm = ms2_index(fl, fr)
+                mm = ms2_index(fl, fr, charge = charge)
                 m = np.vstack(mm)
                 features.extend(mm)
                 result[ultp]['ms2files'][pn][int(fr)] = fl
@@ -2700,7 +2700,7 @@ def ms2_map(ms2files):
     prg.terminate()
     return result
 
-def ms2_index(fl, fr):
+def ms2_index(fl, fr, charge = 1):
     '''
     Looking up offsets in one MS2 mgf file.
     
@@ -2736,15 +2736,18 @@ def ms2_index(fl, fr):
                     scan = float(m[1])
                 if m[0] == stRrtinseconds:
                     rtime = float(m[1]) / 60.0
+                if l[:6] == stRcharge:
+                    _charge = int(l[7]) if len(l) >= 8 else None
                 if m[0] == stRpepmass:
-                    pepmass = float(m[1])
-                    intensity = 0.0 if m[2] == stRempty else float(m[2])
-                    features.append([pepmass, intensity,
-                        rtime, scan, offset + len(l), fr])
-                    scan = None
-                    rtime = None
-                    intensity = None
-                    pepmass = None
+                    if _charge == charge:
+                        pepmass = float(m[1])
+                        intensity = 0.0 if m[2] == stRempty else float(m[2])
+                        features.append([pepmass, intensity,
+                            rtime, scan, offset + len(l), fr])
+                        scan = None
+                        rtime = None
+                        intensity = None
+                        pepmass = None
             offset += len(l)
     return features
 
