@@ -2215,11 +2215,13 @@ def find_lipids_exact(valids, exacts, lipnames,
             }
         },
         2: {
+            'pos': {},
             'neg': {
                 '[M-2H]2-': 'add_2h'
             }
         },
         3: {
+            'pos': {},
             'neg': {
                 '[M-3H]3-': 'add_3h'
             }
@@ -2272,8 +2274,8 @@ def adduct_lookup(mz, adducts, levels, tolerance = 0.01):
                 break
     return None if len(result) == 0 else np.vstack(result)
 
-def adduct_lookup_exact(mz, exacts, levels, adducts, lipnames, 
-    tolerance = 0.01, verbose = False, outfile = None):
+def adduct_lookup_exact(mz, exacts, levels, adducts, lipnames,
+    tolerance = 0.01, verbose = False, outfile = None, charge = 1):
     '''
     Looks up m/z values in the table containing the reference database
     casting the m/z to specific adducts.
