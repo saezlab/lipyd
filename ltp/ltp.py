@@ -1518,20 +1518,33 @@ def area_filter(data, area = 10000.0):
         for pn, tbl in d.iteritems():
             tbl['are'] = np.nanmax(tbl['lip'], 1) >= area
 
-def peaksize_filter(data, peak = 2.0):
-    prg = progress.Progress(data.values()[0].values()[0]['raw'].shape[0] * 2, 
-        'Peak size filter', 1)
+def peaksize_filter(data, peakmin = 2.0, peakmax = 5.0):
+    # minimum and maximum of all intensities over all proteins:
+    mini = min(
+        map(
+            np.nanmin,
+            (tbl['int'] for d in data.values() for tbl in d.values())
+        )
+    )
+    maxi = max(
+        map(
+            np.nanmax,
+            (tbl['int'] for d in data.values() for tbl in d.values())
+        )
+    )
+    prg = progress.Progress(len(data) * 2, 'Peak size filter', 1)
     for ltp, d in data.iteritems():
         for pn, tbl in d.iteritems():
             prg.step()
-            tbl['pks'] = np.nanmax(tbl['lip'], 1) / \
-                np.nanmax(tbl['ctr'], 1) >= peak
-            # tbl['pks'] = lmax / cmax >= peak
-            #tbl['pks'] = np.apply_along_axis(lambda x: , 1, tbl['lip'])
-            #tbl['pks'] = np.empty([tbl['lip'].shape[0], 1])
-            #for i, (c, s) in enumerate(zip(tbl['ctr'], tbl['lip'])):
-                #tbl['pks'][i] = bool(sum(max(ss/cc >= peak for cc in c) \
-                    #for ss in s))
+            tbl['pks'] = (
+                # the peaksize:
+                np.nanmax(tbl['lip'], 1) / (np.nanmax(tbl['ctr'], 1) + 0.001)
+                # must be larger:
+                >
+                # than the min peaksize as a function of intensity:
+                (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
+                    (peakmax - peakmin) + peakmin)
+            )
     prg.terminate()
 
 def cprofile_filter(data, pprofs, samples):
