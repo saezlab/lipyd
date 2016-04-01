@@ -1518,12 +1518,13 @@ def area_filter(data, area = 10000.0):
         for pn, tbl in d.iteritems():
             tbl['are'] = np.nanmax(tbl['lip'], 1) >= area
 
-def peaksize_filter(data, peakmin = 2.0, peakmax = 5.0):
+def peaksize_filter(data, peakmin = 2.0, peakmax = 5.0, area = 10000):
     # minimum and maximum of all intensities over all proteins:
     mini = min(
-        map(
-            np.nanmin,
-            (tbl['int'] for d in data.values() for tbl in d.values())
+        map(lambda tb:
+            np.nanmin(np.nanmax(tb, 1)),
+            (tbl['int'][np.nanmax(tbl['lip'], 1) >= area,:] \
+                for d in data.values() for tbl in d.values())
         )
     )
     maxi = max(
