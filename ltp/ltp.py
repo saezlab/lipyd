@@ -2190,8 +2190,8 @@ def fattyacid_from_lipid_name(lip, _sum = True):
 
 def find_lipids_exact(valids, exacts, lipnames,
     levels = ['Species'], tolerance = 0.01,
-    verbose = False, outfile = None, 
-    ltps = None):
+    verbose = False, outfile = None,
+    ltps = None, charge = 1):
     '''
     Looks up lipids by m/z among database entries in
     `exacts`, and stores the result in dict under key
@@ -2752,7 +2752,7 @@ def ms2_index(fl, fr, charge = 1):
     return features
 
 def ms2_main(valids, samples, ms2map, pFragments, nFragments,
-    tolerance = 0.02, verbose = False, drifts = None):
+    tolerance = 0.01, verbose = False, drifts = None):
     '''
     For all LTPs and modes obtains the MS2 data from original files.
     '''
@@ -2806,7 +2806,7 @@ def ms2_result(ms2matches):
         result[oi] = np.vstack(ms2s) if len(ms2s) > 0 else np.array([])
     return result
 
-def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.02,
+def ms2_match(ms1Mzs, ms1Rts, ms1is, ms2map, ltp, pos, tolerance = 0.01,
     verbose = False, outfile = None, drift = 1.0):
     '''
     Looks up matching pepmasses for a list of MS1 m/z's.
@@ -4498,7 +4498,7 @@ def lipid_lookup(stage0, runtime = None):
 
 def lipid_lookup_exact(valids, swisslipids_url, 
     lipnames, exacts = None, runtime = None,
-    verbose = False, outfile = None):
+    verbose = False, outfile = None, charge = 1):
     '''
     Fetches data from SwissLipids and LipidMaps
     if not given.
@@ -4514,8 +4514,8 @@ def lipid_lookup_exact(valids, swisslipids_url,
         la5Exacts = lipidmaps_exact(exacts = la5Exacts)
     else:
         la5Exacts = exacts
-    find_lipids_exact(valids, la5Exacts, lipnames, 
-        verbose = verbose, outfile = outfile)
+    find_lipids_exact(valids, la5Exacts, lipnames,
+        verbose = verbose, outfile = outfile, charge = charge)
     if runtime:
         runtime = timeit.timeit('find_lipids(valids, la5Exacts)',
             setup = 'from __main__ import find_lipids, valids, la5Exacts',
