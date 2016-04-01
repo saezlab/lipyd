@@ -2198,13 +2198,25 @@ def find_lipids_exact(valids, exacts, lipnames,
     `lip`, where keys are the original indices (`i`).
     '''
     adducts = {
-        'pos': {
-            '[M+H]+': 'remove_h',
-            '[M+NH4]+': 'remove_nh4'
+        1: {
+            'pos': {
+                '[M+H]+': 'remove_h',
+                '[M+NH4]+': 'remove_nh4'
+            },
+            'neg': {
+                '[M-H]-': 'add_h',
+                '[M+Fo]-': 'remove_fo'
+            }
         },
-        'neg': {
-            '[M-H]-': 'add_h',
-            '[M+Fo]-': 'remove_fo'
+        2: {
+            'neg': {
+                '[M-2H]2-': 'add_2h'
+            }
+        },
+        3: {
+            'neg': {
+                '[M-3H]3-': 'add_3h'
+            }
         }
     }
     levels = levels if type(levels) is set \
@@ -2217,9 +2229,12 @@ def find_lipids_exact(valids, exacts, lipnames,
             for pn, tbl in d.iteritems():
                 tbl['lip'] = {}
                 for i in xrange(tbl['mz'].shape[0]):
-                    tbl['lip'][tbl['i'][i]] = adduct_lookup_exact(tbl['mz'][i],
-                        exacts, levels, adducts[pn], lipnames, tolerance,
-                        verbose, outfile)
+                    tbl['lip'][tbl['i'][i]] = adduct_lookup_exact(
+                        tbl['mz'][i],
+                        exacts, levels,
+                        adducts[charge][pn],
+                        lipnames, tolerance,
+                        verbose, outfile, charge = 1)
     if type(outfile) is file and outfile != sys.stdout:
         outfile.close()
 
