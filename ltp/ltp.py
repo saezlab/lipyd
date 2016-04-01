@@ -291,6 +291,12 @@ class Mz():
     def add_h(self):
         return self.adduct(mass.proton)
     
+    def add_2h(self):
+        return self.adduct(2 * mass.proton)
+    
+    def add_3h(self):
+        return self.adduct(3 * mass.proton)
+    
     def add_oh(self):
         m = MolWeight('OH')
         return self.adduct(m + mass.electron)
