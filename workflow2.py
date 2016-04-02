@@ -21,7 +21,7 @@
 
 import numpy as np
 import scipy as sp
- ...mert volt itt mifelénk, drága szerkesztő úr, ebben a kerthelyiséges Kelet-Európában egy eléggé apró kis emberke, aki belülről mégis olyan nagynak tudta magát, mintha egyszerre három tenger partján sütkérezne, és már kisgyerekként is elhitették vele, hogy a világ az ő lapostányérja, mindegy, mi van ráírva, "Balatonaligai Pártüdülő", "KISZ-vezetőképző", netán "Fiatal Demokrácia", vagy "Nemzethy Mindenség", a címke tel...import time
+import time
 import os
 import sys
 import copy
@@ -29,6 +29,14 @@ import cPickle as pickle
 
 from common import *
 from ltp import *
+
+#
+
+from ltp import ltp2
+
+l = ltp2.LTP()
+
+
 
 '''
 Initializing from the beginning.

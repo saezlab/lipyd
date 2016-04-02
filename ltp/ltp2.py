@@ -231,6 +231,7 @@ class LTP(object):
             'pfragmentsfile': 'lipid_fragments_positive_mode_v2.txt',
             'nfragmentsfile': 'lipid_fragments_negative_mode_v2.txt',
             'featurescache': 'features.pickle',
+            'pprofcache': 'pprofiles_raw.pickle',
             'auxcache': 'save.pickle',
             'stdcachefile': 'calibrations.pickle',
             'swl_levels': ['Species'],
@@ -361,32 +362,32 @@ class LTP(object):
                 </table>
             </body>
             </html>'''
-    
-    self.colors = [
-        '#B81466', # blue maguerite
-        '#C441B3', # slate blue
-        '#D6708B', # pale violet red
-        '#69B3D6', # viking
-        '#3A7AB3', # chetwode blue
-        '#608784', # gothic
-        '#03928C', # java
-        '#CF5836', # mandy
-        '#B3443D', # blush
-        '#65B9B9', # seagull
-        '#009BB9', # pelorous
-        '#D88776', # my pink
-        '#755987', # kimberly
-        '#6F3940', # sanguine brown
-        '#A09255', # teak
-        '#7C997B', # avocado
-        '#582E5E', # minsk
-        '#224A7A', # fun blue
-        '#FE2E08', # orange red
-        '#2D16E2', # medium blue
-        '#CBE216', # fuego
-        '#14B866', # medium sea green
-        '#987B99'  # london hue
-    ]
+        
+        self.colors = [
+            '#B81466', # blue maguerite
+            '#C441B3', # slate blue
+            '#D6708B', # pale violet red
+            '#69B3D6', # viking
+            '#3A7AB3', # chetwode blue
+            '#608784', # gothic
+            '#03928C', # java
+            '#CF5836', # mandy
+            '#B3443D', # blush
+            '#65B9B9', # seagull
+            '#009BB9', # pelorous
+            '#D88776', # my pink
+            '#755987', # kimberly
+            '#6F3940', # sanguine brown
+            '#A09255', # teak
+            '#7C997B', # avocado
+            '#582E5E', # minsk
+            '#224A7A', # fun blue
+            '#FE2E08', # orange red
+            '#2D16E2', # medium blue
+            '#CBE216', # fuego
+            '#14B866', # medium sea green
+            '#987B99'  # london hue
+        ]
 
     #
     # read standards data
@@ -427,11 +428,11 @@ class LTP(object):
                             'exact': float(line[1]),
                             'ion': float(line[2]),
                             ''.join(filter(lambda c: c.isdigit(), hdr[3])):
-                                to_float(line[3]),
+                                self.to_float(line[3]),
                             ''.join(filter(lambda c: c.isdigit(), hdr[4])):
-                                to_float(line[4]),
+                                self.to_float(line[4]),
                             ''.join(filter(lambda c: c.isdigit(), hdr[5])):
-                                to_float(line[5])
+                                self.to_float(line[5])
                         }
                     ),
                     tbl[pn[1]:pn[2]]
@@ -685,19 +686,19 @@ class LTP(object):
     # profiles in the fractions
     #
 
-    def protein_profiles(self, basedir, ppfracf, fnames, cache = True):
+    def protein_profiles(self, cache = True):
         '''
         For each protein, for each fraction, calculates the mean of 
         absorptions of all the measurements belonging to one fraction.
         '''
-        cachefile = 'pprofiles_raw.pickle'
-        if cache and os.path.exists(cachefile):
-            return pickle.load(open(cachefile, 'rb'))
+        if cache and os.path.exists(self.pprofcache):
+            self.pprofs = pickle.load(open(self.pprofcache, 'rb'))
+            return None
         reltp = re.compile(r'.*[\s_-]([A-Za-z0-9]{3,})\.xls')
         result = {}
-        fnames = os.listdir(basedir)
-        with open(ppfracf, 'r') as f:
-            frac = [(to_float(i[0]), to_float(i[1]), i[2]) for i in \
+        fnames = os.listdir(self.basedir)
+        with open(self.ppfracf, 'r') as f:
+            frac = [(self.to_float(i[0]), self.to_float(i[1]), i[2]) for i in \
                 [l.split(';') for l in f.read().split('\n')]]
         for fname in fnames:
             ltpname = reltp.findall(fname)[0]
@@ -705,11 +706,11 @@ class LTP(object):
             gfrac = (i for i in frac)
             fr = gfrac.next()
             try:
-                tbl = read_xls(os.path.join(basedir, fname))[3:]
+                tbl = self.read_xls(os.path.join(self.basedir, fname))[3:]
             except xlrd.biffh.XLRDError:
                 sys.stdout.write('Error reading XLS:\n\t%s\n' % \
-                    os.path.join(basedir, fname))
-            minabs = min(0.0, min(to_float(l[5]) for l in tbl))
+                    os.path.join(self.basedir, fname))
+            minabs = min(0.0, min(self.to_float(l[5]) for l in tbl))
             for l in tbl:
                 # l[4]: volume (ml)
                 ml = to_float(l[4])
@@ -724,8 +725,8 @@ class LTP(object):
                 frac_abs[fr[2]].append(to_float(l[5]) - minabs)
             result[ltpname] = dict((fnum, np.mean(a)) \
                 for fnum, a in frac_abs.iteritems())
-        pickle.dump(result, open(cachefile, 'wb'))
-        return result
+        pickle.dump(result, open(self.pprofcache, 'wb'))
+        self.pprofs = result
 
     def zero_controls(self, samples, pprofs):
         fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
@@ -760,7 +761,7 @@ class LTP(object):
         '''
         with open(self.pptablef, 'r') as f:
             header = f.readline().strip().split('\t')
-            return dict((ll[0], dict(zip(header, float_lst(ll[1:])))) \
+            return dict((ll[0], dict(zip(header, self.float_lst(ll[1:])))) \
                 for ll in (l.split('\t') for l in f.read().split('\n')))
 
     def read_xls(self, xls_file, sheet = 0, csv_file = None,
@@ -808,8 +809,9 @@ class LTP(object):
             for l in f:
                 l = l.split(',')
                 data[l[0].replace('"', '')] = \
-                    np.array([to_int(x) if x != '' else None for x in l[1:]])
-        return data
+                    np.array([self.to_int(x) \
+                        if x != '' else None for x in l[1:]])
+        self.samples = data
 
     def read_seq(self):
         refrac = re.compile(r'[AB][9120]{1,2}')
@@ -1410,29 +1412,37 @@ class LTP(object):
         '''
         redirname = re.compile(r'(^[0-9a-zA-Z]+)[ _]')
         fnames = {}
-        ltpdd = os.listdir(self.basedir)
-        ltpdd = [i for i in ltpdd if os.path.join(self.basedir, i)]
-        if len(ltpdd) == 0:
+        ltpdlsts = \
+            map(lambda d:
+                filter(lambda dd:
+                    os.path.isdir(os.path.join(d, dd)),
+                    os.listdir(d)
+                ),
+                self.ltpdirs
+            )
+        if sum(map(len, ltpdlsts)) == 0:
             sys.stdout.write('\t:: Please mount the shared folder!\n')
             return fnames
-        for ltpd in ltpdd:
-            ltpname = redirname.findall(ltpd)
-            pos = 'pos' if 'pos' in ltpd else 'neg' if 'neg' in ltpd else None
-            if pos is not None and len(ltpname) > 0:
-                ltpname = ltpname[0]
-                fpath = [ltpd, 'features']
-                for f in os.listdir(os.path.join(loc, *fpath)):
-                    if 'LABELFREE' in f:
-                        fpath.append(f)
-                        break
-                for f in os.listdir(os.path.join(loc, *fpath)):
-                    if f.endswith('.csv'):
-                        fpath.append(f)
-                        break
-                if ltpname not in fnames:
-                    fnames[ltpname] = {}
-                if pos not in fnames[ltpname] or ltpd.endswith('update'):
-                    fnames[ltpname][pos] = os.path.join(loc, *fpath)
+        for path, ltpdl in zip(self.ltpdirs, ltpdlsts):
+            for ltpd in ltpdl:
+                ltpname = redirname.findall(ltpd)
+                pos = 'pos' if 'pos' in ltpd \
+                    else 'neg' if 'neg' in ltpd else None
+                if pos is not None and len(ltpname) > 0:
+                    ltpname = ltpname[0]
+                    fpath = [ltpd, 'features']
+                    for f in os.listdir(os.path.join(path, *fpath)):
+                        if 'LABELFREE' in f:
+                            fpath.append(f)
+                            break
+                    for f in os.listdir(os.path.join(path, *fpath)):
+                        if f.endswith('.csv'):
+                            fpath.append(f)
+                            break
+                    if ltpname not in fnames:
+                        fnames[ltpname] = {}
+                    if pos not in fnames[ltpname] or ltpd.endswith('update'):
+                        fnames[ltpname][pos] = os.path.join(path, *fpath)
         self.datafiles = fnames
 
     def read_file_np(self, fname, read_vars = ['Normalized Area']):
@@ -1484,9 +1494,9 @@ class LTP(object):
                 scols[c[2]][fnum] = c
             for l in f:
                 l = [i.strip() for i in l.split(',')][1:]
-                vals = [to_float(l[0]), to_float(l[2])] + \
-                    [to_float(i.strip()) for i in l[3].split('-')] + \
-                    [to_float(l[4])]
+                vals = [self.to_float(l[0]), self.to_float(l[2])] + \
+                    [self.to_float(i.strip()) for i in l[3].split('-')] + \
+                    [self.to_float(l[4])]
                 for var, scol in scols.iteritems():
                     # number of columns depends on which variables we need
                     if var in read_vars:
@@ -1495,7 +1505,7 @@ class LTP(object):
                                 vals.append(None)
                             else:
                                 # col offset is 6 !
-                                vals.append(to_float(l[scol[s][0] + 6]))
+                                vals.append(self.to_float(l[scol[s][0] + 6]))
                 data.append(vals)
         data.sort(key = lambda x: x[1])
         return np.ma.masked_array(data, dtype = 'float64')
@@ -1507,15 +1517,15 @@ class LTP(object):
         to handle missing data, and access m/z values of samples 
         and controls, and other values.
         '''
-        data = dict((ltp, {}) for ltp in fnames.keys())
-        prg = progress.Progress(len(fnames) * 2, 'Reading files', 1)
+        data = dict((ltp, {}) for ltp in self.datafiles.keys())
+        prg = progress.Progress(len(self.datafiles) * 2, 'Reading files', 1)
         for ltp, pos_neg in self.datafiles.iteritems():
             for p, fname in pos_neg.iteritems():
                 prg.step()
                 try:
                     data[ltp][p] = {}
                     # this returns a masked array:
-                    data[ltp][p]['raw'] = read_file_np(fname)
+                    data[ltp][p]['raw'] = self.read_file_np(fname)
                 except:
                     sys.stdout.write('\nerror reading file: %s\n' % fname)
                     sys.stdout.flush()
@@ -1539,7 +1549,7 @@ class LTP(object):
                 # all samples except blank control:
                 data[ltp][p]['smp'] = data[ltp][p]['mes'][:,
                     np.array([False] + [x is not None \
-                        for x in samples[ltp][1:]] * \
+                        for x in self.samples[ltp][1:]] * \
                         (data[ltp][p]['mes'].shape[1] / 6))]
         prg.terminate()
         self.data = data
@@ -1574,7 +1584,7 @@ class LTP(object):
         '''
         Converts elements of a list to floats.
         '''
-        return [to_float(x) for x in l]
+        return [self.to_float(x) for x in l]
 
     '''
     Filtering functions
@@ -2170,7 +2180,7 @@ class LTP(object):
             if fname is None else fname
         sys.stdout.write('\t:: Saving data to %s ...\n' % fname)
         sys.stdout.flush()
-        pickle.dump(data, open(fname, 'wb'))
+        pickle.dump(self.data, open(fname, 'wb'))
         sys.stdout.write('\t:: Data has been saved to %s.\n' % fname)
         sys.stdout.flush()
 
@@ -2179,7 +2189,7 @@ class LTP(object):
             if fname is None else fname
         sys.stdout.write('\t:: Loading data from data to %s ...\n' % fname)
         sys.stdout.flush()
-        return pickle.load(open(fname, 'rb'))
+        self.data = pickle.load(open(fname, 'rb'))
 
     def save(self, fname = 'save.pickle'):
         fname = os.path.join(self.basedir, self.auxcache) \
@@ -2197,7 +2207,8 @@ class LTP(object):
         sys.stdout.write('\t:: Loading auxiliary data '\
             'from data to %s ...\n' % fname)
         sys.stdout.flush()
-        return pickle.load(open(fname, 'rb'))
+        self.datafiles, self.samples, self.pprofs = \
+            pickle.load(open(fname, 'rb'))
 
     '''
     END: save & reload
@@ -2659,7 +2670,8 @@ class LTP(object):
                     if hgm:
                         Hgroupfrags[MetabType] = Hgroupfrags[MetabType] | \
                             set(rehgsep.split(hgm.groups()[0]))
-                Metabolites.append([to_float(MetabMass), MetabType, MetabCharge])
+                Metabolites.append([self.to_float(MetabMass),
+                    MetabType, MetabCharge])
                 if '+' not in MetabCharge and '-' not in MetabCharge \
                     and 'NL' not in MetabCharge:
                     sys.stdout.write('WARNING: fragment %s has no '\
@@ -3323,17 +3335,16 @@ class LTP(object):
         for next sessions.
         '''
         self.get_filenames()
-        self.samples = self.read_samples()
+        self.read_samples()
         # at first run, after reading from saved textfile
-        self.pprofs = self.protein_profiles(self.ppsecdir,
-            self.ppfracf, self.datafiles)
-        write_pptable(self.pprofs, self.pptablef)
+        self.protein_profiles()
+        self.write_pptable()
         del self.datafiles['ctrl']
-        save(self.datafiles, self.samples, self.pprofs, self.basedir)
-        self.csamples = self.samples_with_controls(self.samples)
-        self.samples_upper = self.upper_samples(self.samples)
-        self.data = self.read_data(fnames, self.samples)
-        self.save_data(self.data, self.basedir)
+        self.save()
+        self.samples_with_controls()
+        self.upper_samples()
+        self.read_data()
+        self.save_data()
 
     def init_reinit(self, data = False):
         '''
@@ -3678,8 +3689,8 @@ class LTP(object):
                    tbl['_%sc'%dist].shape[0] * 2 + 2),
             map(lambda x: 
                 highlight_color \
-                    if set(nodes_in_cluster(tbl['_%sc' % dist], x)) <=
-                        \ protein_fc \
+                    if set(nodes_in_cluster(tbl['_%sc' % dist], x)) <= \
+                        protein_fc \
                     else base_color,
             xrange(tbl['_%sc'%dist].shape[0])) + \
                 [highlight_color \
