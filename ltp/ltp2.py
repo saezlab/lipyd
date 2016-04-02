@@ -325,6 +325,7 @@ class LTP(object):
         
         self.nAdducts = None
         self.pAdducts = None
+        self.exacts = None
         
         self.html_table_template = '''<!DOCTYPE html>
             <html lang="en">
@@ -520,7 +521,7 @@ class LTP(object):
                 lipidmaps.append([record[label] if label in record else None \
                     for label in fields])
                 record = {}
-        self.lipidmaps = lipidmaps
+        return lipidmaps
 
     def lipidmaps_adducts(self):
         _nAdducts = []
@@ -556,7 +557,7 @@ class LTP(object):
 
     def lipidmaps_exact(self):
         _exacts = []
-        lipidmaps = lipidmaps if lipidmaps is not None else get_lipidmaps()
+        lipidmaps = self.get_lipidmaps()
         for l in lipidmaps:
             if l[5] is not None:
                 _exacts.append([l[0], 'Species', \
@@ -634,39 +635,35 @@ class LTP(object):
         negatives = np.array(negatives, dtype = np.object)
         return positives, negatives
 
-    def get_swisslipids_exact(self, swisslipids_url):
+    def get_swisslipids_exact(self):
         '''
         Downloads the total SwissLipids lipids dataset.
         Returns numpy array with only exact mass values.
         '''
         readd = re.compile(r'.*(\[.*)')
-        swl = _curl.curl(swisslipids_url, silent = False,
+        swl = _curl.curl(self.swisslipids_url, silent = False,
             compr = 'gz', large = True)
         swl.fileobj.seek(-4, 2)
         ucsize = struct.unpack('I', swl.fileobj.read(4))[0]
         swl.fileobj.seek(0)
         hdr = swl.readline().split('\t')
-        exact_masses = []
+        _exacts = []
         prg = progress.Progress(ucsize, 'Processing SwissLipids', 101)
         for l in swl:
             prg.step(len(l))
             l = l.split('\t')
             if len(l) > 22:
-                mz = to_float(l[14])
+                mz = self.to_float(l[14])
                 add = ''
-                exact_masses.append([l[0], l[1], l[2], l[10], add, mz])
+                _exacts.append([l[0], l[1], l[2], l[10], add, mz])
         prg.terminate()
         swl.close()
-        exact_masses = sorted(exact_masses, key = lambda x: x[-1])
-        exact_masses = np.array(exact_masses, dtype = np.object)
-        return exact_masses
-
-    def theoretical_positives(self, valids, exacts,
-        swisslipids = True, lipidmaps = True):
-        result = dict(map(lambda (ltp, d): 
-            (ltp, dict(map(lambda pn: 
-                (pn, ), d.keys()))), 
-            valids.iteritems()))
+        _exacts = sorted(_exacts, key = lambda x: x[-1])
+        _exacts = np.array(_exacts, dtype = np.object)
+        self.exacts = _exacts \
+            if self.exacts is None \
+            else np.vstack((exacts, _exacts))
+        self.exacts = self.exacts[self.exacts[:,-1].argsort()]
 
     def database_set(self, exacts, names, levels = ['Species']):
         levels = [levels] if type(levels) in [str, unicode] else levels
@@ -2402,9 +2399,7 @@ class LTP(object):
                     tbl['lip'] = {}
                     for i in xrange(tbl['mz'].shape[0]):
                         tbl['lip'][tbl['i'][i]] = self.adduct_lookup_exact(
-                            tbl['mz'][i],
-                            self.exacts,
-                            self.aadducts[charge][pn],
+                            tbl['mz'][i], pn,
                             verbose, outfile, charge = 1
                         )
         if type(outfile) is file and outfile != sys.stdout:
@@ -2438,7 +2433,7 @@ class LTP(object):
                     break
         return None if len(result) == 0 else np.vstack(result)
 
-    def adduct_lookup_exact(self, mz, adducts, verbose = False,
+    def adduct_lookup_exact(self, mz, mode, verbose = False,
         outfile = None, charge = 1):
         '''
         Looks up m/z values in the table containing the reference database
@@ -2447,6 +2442,7 @@ class LTP(object):
         if verbose and outfile is None:
             outfile = sys.stdout
         result = []
+        adducts = self.aadducts[charge][mode]
         for addName, addFun in adducts.iteritems():
             addMz = getattr(Mz(mz), addFun)()
             if verbose:
@@ -2459,11 +2455,10 @@ class LTP(object):
                 u = 0
                 while True:
                     if self.exacts[iu + u,-1] - addMz <= self.ms1_tlr:
-                        if self.exacts[iu + u,1] in levels:
+                        if self.exacts[iu + u,1] in self.swl_levels:
                             lip = self.exacts[iu + u,:]
                             hg, p_add, n_add = \
-                                self.headgroup_from_lipid_name(
-                                    lip, self.lipnames)
+                                self.headgroup_from_lipid_name(lip)
                             fa = self.fattyacid_from_lipid_name(lip)
                             lip = np.concatenate((lip,
                                 np.array([addMz, hg, fa], dtype = np.object)),
@@ -2481,13 +2476,12 @@ class LTP(object):
                 while True:
                     if iu - l >= 0 and addMz - self.exacts[iu - l,-1] <= \
                         self.ms1_tlr:
-                        if self.exacts[iu - l,1] in levels:
+                        if self.exacts[iu - l,1] in self.swl_levels:
                             lip = self.exacts[iu - l,:]
                             # headgroup and fatty acid guess from lipid name
                             # happens here!
                             hg, p_add, n_add = \
-                                self.headgroup_from_lipid_name(
-                                    lip, self.lipnames)
+                                self.headgroup_from_lipid_name(lip)
                             fa = self.fattyacid_from_lipid_name(lip)
                             lip = np.concatenate((lip, 
                                 np.array([addMz, hg, fa], dtype = np.object)),
@@ -2636,7 +2630,8 @@ class LTP(object):
             tbl['pos']['neg_lip'] = dict((i, {}) for i in tbl['pos']['i'])
             tbl['neg']['pos'] = dict((i, {}) for i in tbl['neg']['i'])
             tbl['neg']['pos_lip'] = dict((i, {}) for i in tbl['neg']['i'])
-        prg = progress.Progress(len(valids), 'Matching positive & negative',
+        prg = progress.Progress(len(self.valids),
+            'Matching positive & negative',
             1, percent = False)
         for ltp, tbl in self.valids.iteritems():
             prg.step()
@@ -2718,7 +2713,13 @@ class LTP(object):
         result = np.vstack(result) if len(result) > 0 else None
         tbl['pos']['neg_lip'][poi][noi] = result
         tbl['neg']['pos_lip'][noi][poi] = result
-
+    
+    def ms1(self):
+        self.lipid_lookup_exact()
+        self.ms1_headgroups()
+        self.negative_positive2()
+        self.headgroups_negative_positive('ms1')
+    
     '''
     END: lipid databases lookup
     '''
@@ -4664,15 +4665,15 @@ class LTP(object):
         if not asc:
             tbl[attr] = tbl[attr][::-1]
 
-    def sort_alll(self, valids, attr, asc = True):
+    def sort_alll(self, attr, asc = True):
         '''
         Sorts all arrays in all tables by one specified 
         attribute.
         Either ascending or descending.
         '''
-        for d in valids.values():
+        for d in self.valids.values():
             for tbl in d.values():
-                _sort_all(tbl, attr, asc)
+                self._sort_all(tbl, attr, asc)
 
     def get_scored_hits(self, data):
         hits = val_ubi_prf_rpr_hits(data, ubiquity = 70, profile_best = 50000)
@@ -4705,8 +4706,7 @@ class LTP(object):
                 'pAdducts, nAdducts', number = 1)
         return pAdducts, nAdducts, lipids, runtime
 
-    def lipid_lookup_exact(self, valids,
-        lipnames, verbose = False, outfile = None, charge = 1):
+    def lipid_lookup_exact(self, verbose = False, outfile = None, charge = 1):
         '''
         Fetches data from SwissLipids and LipidMaps
         if not given.
@@ -4718,9 +4718,9 @@ class LTP(object):
         masses.
         '''
         if self.exacts is None:
-            get_swisslipids_exact()
-            lipidmaps_exact()
-        find_lipids_exact(verbose = verbose,
+            self.get_swisslipids_exact()
+            self.lipidmaps_exact()
+        self.find_lipids_exact(verbose = verbose,
             outfile = outfile, charge = charge)
 
     def evaluate_results(self, stage0, stage2, lipids, samples_upper,
@@ -4839,12 +4839,12 @@ class LTP(object):
         fig.savefig('lipid-matches-3000-%s.pdf'%letter)
         plt.close()
 
-    def ms1_headgroups(self, valids, lipnames, verbose = False):
+    def ms1_headgroups(self, verbose = False):
         '''
         Identifies headgroups by keywords and fatty acids
         from database record names.
         '''
-        for ltp, d in valids.iteritems():
+        for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['ms1hg'] = {}
                 tbl['ms1fa'] = {}
@@ -4859,9 +4859,10 @@ class LTP(object):
                                         'found %s\n' % \
                                         (ltp, pn, lip[7]))
                                     sys.stdout.flush()
-                                posAdd = lipnames[lip[7]]['pos_adduct']
-                                negAdd = lipnames[lip[7]]['neg_adduct']
-                                thisModeAdd = lipnames[lip[7]]['%s_adduct'%pn]
+                                posAdd = self.lipnames[lip[7]]['pos_adduct']
+                                negAdd = self.lipnames[lip[7]]['neg_adduct']
+                                thisModeAdd = \
+                                    self.lipnames[lip[7]]['%s_adduct'%pn]
                                 hg = lip[7]
                                 fa = '%u:%u' % (lip[8][0], lip[8][1]) \
                                     if lip[8] is not None else None
