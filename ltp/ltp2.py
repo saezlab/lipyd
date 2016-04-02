@@ -1892,13 +1892,19 @@ class LTP(object):
         def __init__(self, fun):
             self.fun = fun
         
-        def __call__(self, data, **kwargs):
-            for ltp in data.keys():
-                for pn, tbl in data[ltp].iteritems():
+        def __call__(self, **kwargs):
+            for ltp in self.obj.data.keys():
+                for pn, tbl in self.obj.data[ltp].iteritems():
                     try:
                         self.fun(tbl, **kwargs)
                     except:
                         pass
+        
+        def __get__(self, instance, owner):
+            self.obj = instance
+            self.cls = owner
+            
+            return self.__call__
     
     class count_hits(object):
         
@@ -3480,7 +3486,7 @@ class LTP(object):
             'i': original index
         '''
         if cache and os.path.exists(self.validscache):
-            return pickle.load(open(self.validscache, 'rb'))
+            self.valids = pickle.load(open(self.validscache, 'rb'))
         self.apply_filters()
         self.validity_filter()
         self.valids = dict((ltp.upper(), {'pos': {}, 'neg': {}}) \
