@@ -52,6 +52,7 @@ l.load_data()
 Apply basic filters, and obtain the valid features.
 '''
 l.valid_features()
+l.recalibration()
 
 l.ms2()
 

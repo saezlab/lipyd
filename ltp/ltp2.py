@@ -284,7 +284,7 @@ class LTP(object):
         self.in_basedir = ['samplesf', 'ppfracf', 'seqfile',
             'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
-            'auxcache', 'stdcachefile']
+            'auxcache', 'stdcachefile', 'validscache']
         
         for attr, val in self.defaults.iteritems():
             if attr in kwargs:
@@ -909,7 +909,17 @@ class LTP(object):
         del result['150330']
         del result['150331']
         self.seq = result
-
+    
+    def recalibration(self):
+        self.standards_filenames()
+        self.read_seq()
+        self.standards_theoretic_masses()
+        self.read_standards()
+        self.drifts_by_standard()
+        self.drifts_by_date()
+        self.drifts2ltps()
+        self.recalibrate()
+    
     def standards_filenames(self):
         fnames = os.listdir(self.stddir)
         result = {}
@@ -931,7 +941,7 @@ class LTP(object):
             for d in self.valids.values() for tbl in d.values()])
 
     def recalibrate(self, missing = False):
-        if is_recalibrated():
+        if self.is_recalibrated():
             if not missing:
                 sys.stdout.write('\t:: Looks recalibration '\
                     'already has been done.\n'\
@@ -952,10 +962,11 @@ class LTP(object):
             for mode, tbl in d.iteritems():
                 if 'recalibrated' not in tbl or \
                 (not tbl['recalibrated'] and missing):
-                    if ltp in ltps_drifts:
-                        if mode in ltps_drifts[ltp]:
-                            ppm = np.median(ltps_drifts[ltp][mode].values())
-                            ratio = ppm2ratio(ppm)
+                    if ltp in self.ltps_drifts:
+                        if mode in self.ltps_drifts[ltp]:
+                            ppm = np.median(
+                                self.ltps_drifts[ltp][mode].values())
+                            ratio = self.ppm2ratio(ppm)
                             tbl['mz'] = tbl['mz'] * ratio
                             tbl['recalibrated'] = True
                         else:
@@ -989,7 +1000,7 @@ class LTP(object):
         pickle.dump(result, open(self.stdcachefile, 'wb'))
         self.std_measured = result
 
-    def drifts(self, write_table = 'drifts_ppm.tab'):
+    def drifts_by_standard(self, write_table = 'drifts_ppm.tab'):
         drifts = dict(map(lambda (date, samples):
             (date, dict(map(lambda (sample, lipids):
                 (sample, dict(map(lambda lipid:
@@ -998,13 +1009,13 @@ class LTP(object):
                 ),
                 samples.iteritems()))
             ),
-            self.measured.iteritems())
+            self.std_measured.iteritems())
         )
         hdr = ['date', 'run', 'mode', 'lipid', 'theoretical',
             'measured', 'ratio', 'ppm']
         tab = [hdr]
-        for date in sorted(self.measured.keys()):
-            samples = self.measured[date]
+        for date in sorted(self.std_measured.keys()):
+            samples = self.std_measured[date]
             for sample in sorted(samples.keys()):
                 lipids = samples[sample]
                 for lipid in sorted(lipids.keys()):
@@ -1012,7 +1023,7 @@ class LTP(object):
                     mode = sample[1]
                     tmz = self.stdmasses[mode][lipid]['ion']
                     ratio = None if mmz is None else tmz / mmz
-                    ppm = None if ratio is None else ratio2ppm(ratio)
+                    ppm = None if ratio is None else self.ratio2ppm(ratio)
                     drifts[date][sample][lipid] = ppm
                     tab.append([
                         '20%s-%s-%s' % (date[:2], date[2:4], date[4:6]),
@@ -1053,7 +1064,7 @@ class LTP(object):
         with open(outfile, 'w') as f:
             f.write(tab)
 
-    def drifts2(self):
+    def drifts_by_date(self):
         drifts2 = dict(map(lambda (date, samples):
             (date, dict(map(lambda sample:
                 (sample, None),
@@ -1065,7 +1076,7 @@ class LTP(object):
             for sample, lipids in samples.iteritems():
                 drifts2[date][sample] = \
                 np.nanmedian(
-                    remove_outliers(
+                    self.remove_outliers(
                         np.array(
                             filter(lambda x:
                                 x is not None,
@@ -1087,18 +1098,18 @@ class LTP(object):
                     i,
                     filter(lambda (i, sample):
                         sample[0] == 'STARD10',
-                        enumerate(seq['150310'])
+                        enumerate(self.seq['150310'])
                     )
                 ),
                 stard10fractions * 2
             ):
             self.seq['150310'][i] = \
-                (seq['150310'][i][0], seq['150310'][i][1], fr)
+                (self.seq['150310'][i][0], self.seq['150310'][i][1], fr)
         #
-        ltp_drifts = {}
+        ltps_drifts = {}
         hdr = ['LTP', 'mode', 'fraction', 'ratio', 'ppm']
         tab = [hdr]
-        def standard_indices(self, mode, se):
+        def standard_indices(mode, se):
             return np.array(
                 map(lambda (i, s):
                     i,
@@ -1108,17 +1119,17 @@ class LTP(object):
                     )
                 )
             )
-        def add_row(self, tab, ltp, mode, fr, d):
+        def add_row(tab, ltp, mode, fr, d):
             tab.append([
                 ltp,
                 'positive' if mode == 'pos' else 'negative',
                 fr,
-                '%.09f' % ppm2ratio(d),
+                '%.09f' % self.ppm2ratio(d),
                 '%.06f' % d
             ])
             return tab
         for date in sorted(self.seq.keys()):
-            se = seq[date]
+            se = self.seq[date]
             stdi = {}
             lastbuf = {'pos': None, 'neg': None}
             prev = None
@@ -1137,31 +1148,31 @@ class LTP(object):
                         std2i = stdi[mode][-1]
                     else:
                         std2i = stdi[mode][ui]
-                    if np.isnan(self.drifts[date][se[std1i]]):
+                    if np.isnan(self.drifts2[date][se[std1i]]):
                         std1i = std2i
                     if std1i == std2i or \
-                        np.isnan(self.drifts[date][se[std2i]]):
+                        np.isnan(self.drifts2[date][se[std2i]]):
                         std2i = None
                     if std2i is None:
-                        d = drifts[date][se[std1i]]
+                        d = self.drifts2[date][se[std1i]]
                         sys.stdout.write('\t:: For %s-%s-%s only one standard'\
                             ' available\n' % (typ, mode, sample[2]))
                     else:
                         o1 = i - std1i
                         o2 = std2i - i
-                        d = (self.drifts[date][se[std1i]] * o2 + \
-                            self.drifts[date][se[std2i]] * o1) / (o1 + o2)
+                        d = (self.drifts2[date][se[std1i]] * o2 + \
+                            self.drifts2[date][se[std2i]] * o1) / (o1 + o2)
                     if typ == '#BUF':
                         lastbuf[mode] = d
                     else:
-                        if typ not in ltp_drifts:
-                            ltp_drifts[typ] = {}
-                        if mode not in ltp_drifts[typ]:
-                            ltp_drifts[typ][mode] = {}
+                        if typ not in ltps_drifts:
+                            ltps_drifts[typ] = {}
+                        if mode not in ltps_drifts[typ]:
+                            ltps_drifts[typ][mode] = {}
                         if prev != typ:
-                            ltp_drifts[typ][mode]['ctrl'] = lastbuf[mode]
+                            ltps_drifts[typ][mode]['ctrl'] = lastbuf[mode]
                             tab = add_row(tab, typ, mode, 'CTL', lastbuf[mode])
-                        ltp_drifts[typ][mode][sample[2]] = d
+                        ltps_drifts[typ][mode][sample[2]] = d
                         tab = add_row(tab, typ, mode, sample[2], d)
                     prev = typ
         if write_table and type(write_table) in charTypes:
@@ -1173,7 +1184,7 @@ class LTP(object):
                     )
                 )
             sys.stdout.write('\n\t:: Table written to file %s\n\n'%write_table)
-        self.ltp_drifts =  ltp_drifts
+        self.ltps_drifts =  ltps_drifts
 
     def remove_outliers(self, data, m = 2):
         return data[np.where(abs(data - np.nanmean(data)) < \
@@ -3514,6 +3525,7 @@ class LTP(object):
         '''
         if cache and os.path.exists(self.validscache):
             self.valids = pickle.load(open(self.validscache, 'rb'))
+            return None
         self.apply_filters()
         self.validity_filter()
         self.valids = dict((ltp.upper(), {'pos': {}, 'neg': {}}) \
