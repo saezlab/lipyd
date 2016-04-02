@@ -1896,7 +1896,7 @@ class LTP(object):
             for ltp in self.obj.data.keys():
                 for pn, tbl in self.obj.data[ltp].iteritems():
                     try:
-                        self.fun(tbl, **kwargs)
+                        self.fun(self.obj, tbl, **kwargs)
                     except:
                         pass
         
@@ -1911,11 +1911,11 @@ class LTP(object):
         def __init__(self, fun):
             self.fun = fun
         
-        def __call__(self, data, **kwargs):
-            hits = empty_dict(data)
-            phits = empty_dict(data)
-            for ltp in data.keys():
-                for pn, tbl in data[ltp].iteritems():
+        def __call__(self, **kwargs):
+            hits = self.obj.empty_dict(self.obj.data)
+            phits = self.obj.empty_dict(self.obj.data)
+            for ltp in self.obj.data.keys():
+                for pn, tbl in self.obj.data[ltp].iteritems():
                     try:
                         hits[ltp][pn] = self.fun(tbl, **kwargs)
                         phits[ltp][pn] = self.fun(tbl, **kwargs) / \
@@ -1923,6 +1923,12 @@ class LTP(object):
                     except:
                         pass
             return hits, phits
+        
+        def __get__(self, instance, owner):
+            self.obj = instance
+            self.cls = owner
+            
+            return self.__call__
     
     @get_hits
     def val_ubi_prf_rpr_hits(self, tbl, ubiquity = 7, treshold = 0.15,
