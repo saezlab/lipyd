@@ -36,52 +36,24 @@ from ltp import ltp2
 
 l = ltp2.LTP()
 
-l.init_from_scratch()
-
-l.init_reinit()
-
-l.load_data()
-
-l.valid_features()
-
-l.ms2()
-
 '''
 Initializing from the beginning.
 '''
-data, fnames, samples, csamples, pprofs = \
-    ltp.init_from_scratch(ltp.basedir, ltp.ltpdirs, ltp.pptablef, ltp.samplesf)
+l.init_from_scratch()
 
 '''
 Here we reload the workspace including all the data from the pickle:
 '''
-data, fnames, samples, csamples, samples_upper, pprofs = \
-    ltp.init_reinit(ltp.basedir)
-pprofs_original = copy.deepcopy(pprofs)
-singles = ltp.one_sample(samples_upper)
+l.init_reinit()
 
-lipnames = ltp.read_lipid_names(ltp.lipnamesf)
-bindprop = ltp.read_binding_properties(ltp.bindpropf)
+l.load_data()
 
 '''
-Setting the protein concentrations to zero in controls
-out of protein profiles.
+Apply basic filters, and obtain the valid features.
 '''
-ltp.zero_controls(samples_upper, pprofs)
+l.valid_features()
 
-'''
-Reloading profiles to know the original values.
-'''
-# pprofs_original = ltp.protein_profiles(ltp.ppsecdir, ltp.ppfracf, fnames)
-
-'''
-Apply basic filters, and obtaining the valid features.
-'''
-if data is not None:
-    ltp.apply_filters(data)
-    ltp.validity_filter(data)
-
-valids = ltp.valid_features(data)
+l.ms2()
 
 '''
 Processing standards from mzML

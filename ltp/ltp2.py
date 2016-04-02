@@ -37,6 +37,7 @@ import timeit
 import re
 
 import xlrd
+import openpyxl
 import lxml.etree
 
 import zlib
@@ -244,7 +245,7 @@ class LTP(object):
             'swl_levels': ['Species'],
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.02,
-            'std_tolerance': 0.01,
+            'std_tolerance': 0.02,
             'aadducts': {
                 1: {
                     'pos': {
@@ -308,6 +309,8 @@ class LTP(object):
             os.path.join(*([self.data_basedir] + p)) if type(p) is list else p,
             self.ltpdirs
         )
+        
+        self.stddir = os.path.join(self.ltpdirs[0], self.stddir)
         
         self.paths_exist()
         
@@ -455,7 +458,7 @@ class LTP(object):
         the lipid standards.
         '''
         result = {}
-        tbl = read_xls(self.metabsf, 9)
+        tbl = self.read_xls(self.metabsf, 9)
         hdr = tbl[0]
         for pn in [('pos', 1, 6), ('neg', 8, 16)]:
             hdr = tbl[pn[1] - 1]
@@ -483,7 +486,7 @@ class LTP(object):
                     if k.isdigit():
                         d['diff_%s'%k] = d['ion'] - d[k] \
                             if type(d[k]) is float else np.nan
-        return result
+        self.stdmasses = result
 
     #
     # obtaining lipid data from SwissLipids
@@ -822,16 +825,35 @@ class LTP(object):
             table = [[str(c.value) \
                 for c in sheet.row(i)] \
                 for i in xrange(sheet.nrows)]
-            if csv_file:
-                with open(csv_file, 'w') as csv:
-                    csv.write('\n'.join(['\t'.join(r) for r in table]))
-            if not return_table:
-                table = None
-            book.release_resources()
-            return table
         except IOError:
             sys.stdout.write('No such file: %s\n' % xls_file)
-        sys.stdout.flush()
+            sys.stdout.flush()
+        except:
+            book = openpyxl.load_workbook(filename = xls_file,
+                read_only = True)
+            try:
+                if type(sheet) is int:
+                    sheet = book.worksheets[sheet]
+                else:
+                    sheet = book.get_sheet_by_name(sheet)
+            except:
+                sheet = book.worksheets[0]
+            cells = sheet.get_squared_range(1, 1,
+                sheet.max_column, sheet.max_row)
+            table = map(lambda row:
+                map(lambda c:
+                    str(c.value),
+                    row
+                ),
+                cells
+            )
+        if csv_file:
+            with open(csv_file, 'w') as csv:
+                csv.write('\n'.join(['\t'.join(r) for r in table]))
+        if not return_table:
+            table = None
+        book.release_resources()
+        return table
 
     #
     # reading in a small table for keeping track which fractions are samples 
@@ -893,7 +915,7 @@ class LTP(object):
         result = {}
         for fname in fnames:
             if 'Seq' not in fname:
-                _fname = os.path.join(stddir, fname)
+                _fname = os.path.join(self.stddir, fname)
                 lFname = fname[:-5].split('_')
                 date = lFname[0]
                 mode = 'pos' if 'pos' in lFname else 'neg'
@@ -947,25 +969,25 @@ class LTP(object):
 
     def read_standards(self, accuracy = 5, cache = True):
         if os.path.exists(self.stdcachefile) and cache:
-            return pickle.load(open(self.stdcachefile, 'rb'))
+            self.std_measured = pickle.load(open(self.stdcachefile, 'rb'))
+            return None
         result = dict(map(lambda date:
             (date, {}),
-            stdfiles.keys()
+            self.stdfiles.keys()
         ))
-        for date, samples in stdfiles.iteritems():
+        for date, samples in self.stdfiles.iteritems():
             for sample, fname in samples.iteritems():
                 if sample[0] == '#STD':
-                    time, scans, centroids = read_mzml(fname)
-                    peaks = find_peaks(scans, centroids, accuracy)
-                    peaks = filter_peaks(peaks)
-                    stdmeasured = self.standards_lookup(peaks,
-                        stdmasses[sample[1]])
+                    time, scans, centroids = self.read_mzml(fname)
+                    peaks = self.find_peaks(scans, centroids, accuracy)
+                    peaks = self.filter_peaks(peaks)
+                    stdmeasured = self.standards_lookup(peaks, sample[1])
                     result[date][sample] = stdmeasured
         sys.stdout.write('\n\t:: Results saved to file %s\n' % \
-            self.stdcachfile)
+            self.stdcachefile)
         sys.stdout.flush()
         pickle.dump(result, open(self.stdcachefile, 'wb'))
-        return result
+        self.std_measured = result
 
     def drifts(self, write_table = 'drifts_ppm.tab'):
         drifts = dict(map(lambda (date, samples):
@@ -1163,16 +1185,15 @@ class LTP(object):
     def ppm2ratio(self, ppm):
         return 1.0 - ppm / 1.0e06
 
-    def standards_lookup(self, peaks):
+    def standards_lookup(self, peaks, mode):
         measured = {}
-        drifts = {}
-        for lipid, values in self.stdmasses.iteritems():
+        for lipid, values in self.stdmasses[mode].iteritems():
             _mz = values['ion']
             ui = peaks[:,0].searchsorted(_mz)
             ud = 999.0 if ui >= peaks.shape[0] else peaks[ui, 0] - _mz
             ld = 999.0 if ui == 0 else _mz - peaks[ui - 1, 0]
             ci = ui if ud < ld else ui - 1
-            mz = peaks[ci,0] if abs(peaks[ci,0] - _mz) <= tolerance else None
+            mz = peaks[ci,0] if abs(peaks[ci,0] - _mz) <= self.std_tlr else None
             measured[lipid] = mz
         return measured
 
@@ -1285,7 +1306,7 @@ class LTP(object):
                 c['centroids'][c['centroids'][:,0].argsort(),:]
         peaks = []
         consecutive = {}
-        def get_id(self, ):
+        def get_id():
             i = 0
             while True:
                 yield i
@@ -1421,9 +1442,9 @@ class LTP(object):
                             raw = {}
                             for bda in elem.find(binarraylist).\
                                 findall(binarray):
-                                name, arr = _process_binary_array(bda, length)
+                                name, arr = self._process_binary_array(bda, length)
                                 raw[name] = arr
-                            _centroids = _centroid(raw)
+                            _centroids = self._centroid(raw)
                             scans.append(scanid)
                             centroids[scanid] = \
                                 {'rt': rt, 'centroids': _centroids}
