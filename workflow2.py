@@ -21,7 +21,7 @@
 
 import numpy as np
 import scipy as sp
-import time
+ ...mert volt itt mifelénk, drága szerkesztő úr, ebben a kerthelyiséges Kelet-Európában egy eléggé apró kis emberke, aki belülről mégis olyan nagynak tudta magát, mintha egyszerre három tenger partján sütkérezne, és már kisgyerekként is elhitették vele, hogy a világ az ő lapostányérja, mindegy, mi van ráírva, "Balatonaligai Pártüdülő", "KISZ-vezetőképző", netán "Fiatal Demokrácia", vagy "Nemzethy Mindenség", a címke tel...import time
 import os
 import sys
 import copy

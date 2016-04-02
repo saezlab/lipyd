@@ -208,86 +208,102 @@ class Mz():
 
 class LTP(object):
     
-    def __init__(self, basedir = None, path_root = None,
-        swl_levels = None, ms1_tolerance = 0.01, ms2_tolerance = 0.02,
-        std_tolerance = 0.02):
-        self.path_root = '/' if path_root is None else path_root
-        self.basedir = os.path.join(path_root,
-            'home', 'denes', 'Documents' , 'ltp') \
-            if basedir is None else basedir
-            if type(basedir) in charTypes else
-            os.path.join(*basedir)
-        self.ltpdirs = [os.path.join(basedir, 'share'),
-            os.path.join(self.basedir, 'share', '2015_06_Popeye')]
-        self.samplesf = os.path.join(self.basedir, 'control_sample.csv')
-        self.ppfracf = os.path.join(self.basedir, 'fractions.csv')
-        self.ppsecdir = os.path.join(self.ltpdirs[0], 'SEC_profiles')
-        self.stddir = os.path.join(self.ltpdirs[0], 'Standards_mzML format')
-        self.seqfile = os.path.join(self.basedir,
-            'Sequence_list_LTP_screen_2015.csv')
-        self.pptablef = os.path.join(self.basedir, 'proteins_by_fraction.csv')
-        self.lipnamesf = os.path.join(self.basedir, 'lipid_names.csv')
-        self.bindpropf = os.path.join(self.basedir, 'binding_properties.csv')
-        self.metabsf = os.path.join(self.basedir, 'Metabolites.xlsx')
-        self.swisslipids_url = 'http://www.swisslipids.org/php/'\
-            #'export.php?action=get&file=lipids.csv'
-        self.lipidmaps_url = 'http://www.lipidmaps.org/resources/downloads/'\
+    def __init__(self, **kwargs):
+        self.defaults = {
+            'path_root': '/',
+            'basedir': ['home', 'denes', 'Documents' , 'ltp'],
+            'ltpdirs': [['share'], ['share', '2015_06_Popeye']],
+            'samplesf': 'control_sample.csv',
+            'ppfracf': 'fractions.csv',
+            'ppsecdir': 'SEC_profiles',
+            'stddir': 'Standards_mzML format',
+            'seqfile': 'Sequence_list_LTP_screen_2015.csv',
+            'pptablef': 'proteins_by_fraction.csv',
+            'lipnamesf': 'lipid_names.csv',
+            'bindpropf': 'binding_properties.csv',
+            'metabsf': 'Metabolites.xlsx',
+            'swisslipids_url': 'http://www.swisslipids.org/php/'\
+                'export.php?action=get&file=lipids.csv',
+            'lipidmaps_url': 'http://www.lipidmaps.org/resources/downloads/'\
                 'LMSDFDownload28Jun15.tar.gz',
-        self.lipidmaps_fname = 'LMSDFDownload28Jun15/'\
-                'LMSDFDownload28Jun15FinalAll.sdf'
-        self.pfragmentsfile = 'lipid_fragments_positive_mode_v2.txt'
-        self.nfragmentsfile = 'lipid_fragments_negative_mode_v2.txt'
+            'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
+                'LMSDFDownload28Jun15FinalAll.sdf',
+            'pfragmentsfile': 'lipid_fragments_positive_mode_v2.txt',
+            'nfragmentsfile': 'lipid_fragments_negative_mode_v2.txt',
+            'featurescache': 'features.pickle',
+            'auxcache': 'save.pickle',
+            'stdcachefile': 'calibrations.pickle',
+            'swl_levels': ['Species'],
+            'ms1_tolerance': 0.01,
+            'ms2_tolerance': 0.02,
+            'std_tolerance': 0.01,
+            'aadducts': {
+                1: {
+                    'pos': {
+                        '[M+H]+': 'remove_h',
+                        '[M+NH4]+': 'remove_nh4'
+                    },
+                    'neg': {
+                        '[M-H]-': 'add_h',
+                        '[M+Fo]-': 'remove_fo'
+                    }
+                },
+                2: {
+                    'pos': {},
+                    'neg': {
+                        '[M-2H]2-': 'add_2h'
+                    }
+                },
+                3: {
+                    'pos': {},
+                    'neg': {
+                        '[M-3H]3-': 'add_3h'
+                    }
+                }
+            },
+            'metrics': [
+                ('Kendall\'s tau', 'ktv', False),
+                ('Spearman corr.', 'spv', False),
+                ('Pearson corr.', 'pev', False),
+                ('Euclidean dist.', 'euv', True),
+                ('Robust corr.', 'rcv', False),
+                ('Goodman-Kruskal\'s gamma', 'gkv', False),
+                ('Difference', 'dfv', True)
+            ]
+        }
         
-        self.featurescache = 'features.pickle'
-        self.auxcache = 'save.pickle'
-        self.stdcachefile = 'calibrations.pickle'
+        self.in_basedir = ['share', 'samplesf', 'ppfracf', 'seqfile',
+            'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
+            'pfragmentsfile', 'nfragmentsfile', 'featurescache',
+            'auxcache', 'stdcachefile']
         
-        self.swl_levels = set(['Species']) if swl_levels is None \
-            else set(swl_levels) if type(swl_levels) is list \
-            else swl_levels
+        for attr, val in self.defaults.iteritems():
+            if attr in kwargs:
+                setattr(self, attr, kwargs[attr])
+            else:
+                setattr(self, attr, val)
         
-        self.ms1_tlr = ms1_tolerance
-        self.ms2_tlr = ms2_tolerance
-        self.std_tlr = std_tolerance
+        self.basedir = os.path.join(*([self.path_root] + self.basedir)) \
+            if type(self.basedir) is list \
+            else self.basedir
+        
+        self.ltpdirs = map(lambda p:
+            os.path.join(*([self.basedir] + p)) if type(p) is list else p,
+            self.ltpdirs
+        )
+        
+        if type(self.swl_levels) in charTypes:
+            self.swl_levels = set([self.swl_levels])
+        elif type(self.swl_levels) is list:
+            self.swl_levels = set(self.swl_levels)
+        
+        self.ms1_tlr = self.ms1_tolerance
+        self.ms2_tlr = self.ms2_tolerance
+        self.std_tlr = self.std_tolerance
         
         self.nAdducts = None
         self.pAdducts = None
         
-        self.aadducts = {
-            1: {
-                'pos': {
-                    '[M+H]+': 'remove_h',
-                    '[M+NH4]+': 'remove_nh4'
-                },
-                'neg': {
-                    '[M-H]-': 'add_h',
-                    '[M+Fo]-': 'remove_fo'
-                }
-            },
-            2: {
-                'pos': {},
-                'neg': {
-                    '[M-2H]2-': 'add_2h'
-                }
-            },
-            3: {
-                'pos': {},
-                'neg': {
-                    '[M-3H]3-': 'add_3h'
-                }
-            }
-        }
-        
-        self.metrics = [
-            ('Kendall\'s tau', 'ktv', False),
-            ('Spearman corr.', 'spv', False),
-            ('Pearson corr.', 'pev', False),
-            ('Euclidean dist.', 'euv', True),
-            ('Robust corr.', 'rcv', False),
-            ('Goodman-Kruskal\'s gamma', 'gkv', False),
-            ('Difference', 'dfv', True)
-        ]
-
         self.html_table_template = '''<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -1631,7 +1647,7 @@ class LTP(object):
                         if fr == 1 and i != 0])
                 ppr = self.norm_profile(ppr).astype(np.float64)
                 prr = stats.rankdata(ppr)
-                pranks = sorted((i for i, x in enumerate(prr)), 
+                pranks = sorted((i for i, x in enumerate(prr)),
                     key = lambda x: x, reverse = True)
                 if tbl[cols][0,:].count() > 1:
                     flatp = ppr[pranks[0]] - ppr[pranks[1]] < \
