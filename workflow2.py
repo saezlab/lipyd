@@ -36,7 +36,15 @@ from ltp import ltp2
 
 l = ltp2.LTP()
 
+l.init_from_scratch()
 
+l.init_reinit()
+
+l.load_data()
+
+l.valid_features()
+
+l.ms2()
 
 '''
 Initializing from the beginning.

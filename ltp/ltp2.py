@@ -21,9 +21,10 @@
 
 import os
 import sys
-import struct
+import copy
 import time
 import datetime
+
 import collections
 try:
     import cPickle as pickle
@@ -31,13 +32,17 @@ except:
     import pickle
 
 import warnings
-import re
 import timeit
-import datetime
+
+import re
+
 import xlrd
 import lxml.etree
+
 import zlib
 import base64
+import struct
+
 import numpy as np
 import scipy as sp
 from scipy import stats
@@ -212,6 +217,7 @@ class LTP(object):
         self.defaults = {
             'path_root': '/',
             'basedir': ['home', 'denes', 'Documents' , 'ltp'],
+            'data_basedir': None,
             'ltpdirs': [['share'], ['share', '2015_06_Popeye']],
             'samplesf': 'control_sample.csv',
             'ppfracf': 'fractions.csv',
@@ -234,6 +240,7 @@ class LTP(object):
             'pprofcache': 'pprofiles_raw.pickle',
             'auxcache': 'save.pickle',
             'stdcachefile': 'calibrations.pickle',
+            'validscache': 'valids.pickle',
             'swl_levels': ['Species'],
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.02,
@@ -273,7 +280,7 @@ class LTP(object):
             ]
         }
         
-        self.in_basedir = ['share', 'samplesf', 'ppfracf', 'seqfile',
+        self.in_basedir = ['samplesf', 'ppfracf', 'seqfile',
             'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile']
@@ -288,10 +295,21 @@ class LTP(object):
             if type(self.basedir) is list \
             else self.basedir
         
+        for name in self.in_basedir:
+            if hasattr(self, name):
+                path = getattr(self, name)
+                path = path if type(path) in charTypes else os.path.join(*path)
+                setattr(self, name, os.path.join(self.basedir, path))
+        
+        self.data_basedir = self.basedir \
+            if self.data_basedir is None else self.data_basedir
+        
         self.ltpdirs = map(lambda p:
-            os.path.join(*([self.basedir] + p)) if type(p) is list else p,
+            os.path.join(*([self.data_basedir] + p)) if type(p) is list else p,
             self.ltpdirs
         )
+        
+        self.paths_exist()
         
         if type(self.swl_levels) in charTypes:
             self.swl_levels = set([self.swl_levels])
@@ -388,7 +406,28 @@ class LTP(object):
             '#14B866', # medium sea green
             '#987B99'  # london hue
         ]
-
+    
+    def paths_exist(self):
+        paths = map(lambda name:
+            getattr(self, name),
+            self.in_basedir
+        ) + self.ltpdirs
+        for path in paths:
+            if not os.path.exists(path) and path[-6:] != 'pickle':
+                sys.stdout.write('\t:: Missing input file/path: %s\n' % path)
+        sys.stdout.flush()
+    
+    def reload(self):
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        reload(mod)
+        # print 'self.__class__.__name__ = ', self.__class__.__name__
+        # print 'mod = ', mod
+        new = getattr(mod, self.__class__.__name__)
+        # print 'new = ', new
+        # print 'new.__class__ = ', new.__class__
+        setattr(self, '__class__', new)
+    
     #
     # read standards data
     #
@@ -639,9 +678,9 @@ class LTP(object):
                         break
         return exacts[idx,:]
 
-    def read_lipid_names(self, lipnamesf):
+    def read_lipid_names(self):
         result = {}
-        with open(lipnamesf, 'r') as f:
+        with open(self.lipnamesf, 'r') as f:
             nul = f.readline()
             for l in f:
                 l = l.strip().split('\t')
@@ -658,11 +697,11 @@ class LTP(object):
                     'pos_adduct': l[4] if l[4] != 'ND' else None,
                     'neg_adduct': l[5] if l[5] != 'ND' else None
                 }
-        return result
+        self.lipnames = result
 
-    def read_binding_properties(self, bindpropf):
+    def read_binding_properties(self):
         result = {}
-        with open(bindpropf, 'r') as f:
+        with open(self.bindpropf, 'r') as f:
             data = map(lambda l:
                 l.strip('\n').split('\t'),
                 filter(lambda l:
@@ -679,7 +718,7 @@ class LTP(object):
                         result[l[2]].add(lip)
             except IndexError:
                 print l
-        return result
+        self.bindprop = result
 
     #
     # reading the SEC absorption values and calculating the protein 
@@ -728,15 +767,16 @@ class LTP(object):
         pickle.dump(result, open(self.pprofcache, 'wb'))
         self.pprofs = result
 
-    def zero_controls(self, samples, pprofs):
+    def zero_controls(self):
+        self.pprofs_original = copy.deepcopy(self.pprofs)
         fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
-        for ltpname, sample in samples.iteritems():
+        for ltpname, sample in self.samples.iteritems():
             for i, fr in enumerate(fracs):
                 if sample[i + 1] == 0:
-                    pprofs[ltpname][fr] = 0.0
+                    self.pprofs[ltpname.upper()][fr] = 0.0
 
-    def one_sample(self, samples):
-        return [k for k, v in samples.iteritems() \
+    def one_sample(self):
+        self.singles = [k for k, v in self.samples.iteritems() \
             if sum((i for i in v if i is not None)) == 1]
 
     def write_pptable(self):
@@ -1620,7 +1660,7 @@ class LTP(object):
                 (tbl['int'] for d in self.data.values() for tbl in d.values())
             )
         )
-        prg = progress.Progress(len(data) * 2, 'Peak size filter', 1)
+        prg = progress.Progress(len(self.data) * 2, 'Peak size filter', 1)
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 prg.step()
@@ -2097,8 +2137,8 @@ class LTP(object):
         param = {}):
         for f in filters:
             p = param[f] if f in param else {}
-            fun = globals()['%s_filter' % f]
-            fun(self.data, **p)
+            fun = getattr(self, '%s_filter' % f)
+            fun(**p)
 
     def empty_dict(self):
         return dict((ltp, {'pos': None, 'neg': None}) \
@@ -2205,7 +2245,7 @@ class LTP(object):
         fname = os.path.join(self.basedir, self.auxcache) \
             if fname is None else fname
         sys.stdout.write('\t:: Loading auxiliary data '\
-            'from data to %s ...\n' % fname)
+            'from %s ...\n' % fname)
         sys.stdout.flush()
         self.datafiles, self.samples, self.pprofs = \
             pickle.load(open(fname, 'rb'))
@@ -2642,6 +2682,13 @@ class LTP(object):
     '''
     Functions for MS2
     '''
+    def ms2(self):
+        self.ms2_metabolites()
+        self.ms2_filenames()
+        self.ms2_map()
+        self.ms2_main()
+        self.ms2
+    
     def ms2_metabolites(self):
         self.pFragments, self.pHgfrags, self.pHeadgroups = \
             self.ms2_read_metabolites(self.pfragmentsfile)
@@ -3317,7 +3364,10 @@ class LTP(object):
                     for a in b.values()])))
 
     def samples_with_controls(self):
-        return dict((k, np.array([1 if x is not None else None for x in v])) \
+        self.csamples = dict((
+                k,
+                np.array([1 if x is not None else None for x in v])
+            )
             for k, v in self.samples.iteritems())
 
     def upper_samples(self):
@@ -3340,9 +3390,8 @@ class LTP(object):
         self.protein_profiles()
         self.write_pptable()
         del self.datafiles['ctrl']
+        self.small_inputs()
         self.save()
-        self.samples_with_controls()
-        self.upper_samples()
         self.read_data()
         self.save_data()
 
@@ -3354,8 +3403,15 @@ class LTP(object):
         self.load()
         if data:
             self.load_data()
+        self.small_inputs()
+        
+    def small_inputs(self):
         self.samples_with_controls()
         self.upper_samples()
+        self.one_sample()
+        self.zero_controls()
+        self.read_lipid_names()
+        self.read_binding_properties()
 
     def basic_filters(self, profile_treshold = 0.25, ubiquity_treshold = 7):
         '''
@@ -3375,48 +3431,47 @@ class LTP(object):
         self.val_ubi_prf_rprf_filter(treshold = profile_treshold,
             ubiquity = ubiquity_treshold)
 
-    def basic_filters_with_evaluation(self, data, pprofs, samples, 
+    def basic_filters_with_evaluation(self,
         profile_treshold = 0.25, ubiquity_treshold = 7):
         '''
         Deprecated with new data structure.
         '''
         filtr_results = {}
         for f in ['quality', 'charge', 'area', 'peaksize', 'validity']:
-            filtr_results[f] = eval_filter(data, f)
-        filtr_results['ubiquity'] = eval_filter(data, 'ubiquity',
+            filtr_results[f] = self.eval_filter(f)
+        filtr_results['ubiquity'] = self.eval_filter('ubiquity',
         param = {'only_valid': False},
         runtime = True, repeat = 1, number = 1,
         hit = lambda x: x < ubiquity_treshold)
-        filtr_results['val_ubi'] = eval_filter(data, 'val_ubi',
+        filtr_results['val_ubi'] = eval_filter('val_ubi',
             param = {'ubiquity': ubiquity_treshold})
-        filtr_results['profile025'] = eval_filter(data, 'profile', 
-            param = {'pprofs': pprofs, 'samples': samples, 'prfx': ''},
+        filtr_results['profile025'] = eval_filter('profile',
+            param = {'prfx': ''},
             runtime = True, repeat = 1, number = 1, 
             hit = lambda x: x <= profile_treshold)
-        filtr_results['cprofile025'] = eval_filter(data, 'cprofile',
-            param = {'pprofs': pprofs, 'samples': csamples},
+        filtr_results['cprofile025'] = self.eval_filter('cprofile',
             runtime = True, repeat = 1, number = 1, 
             hit = lambda x: x <= profile_treshold)
-        filtr_results['rprofile'] = eval_filter(data, 'rprofile',
+        filtr_results['rprofile'] = self.eval_filter('rprofile',
             runtime = True)
-        filtr_results['val_prf'] = eval_filter(data, 'val_prf',
+        filtr_results['val_prf'] = self.eval_filter('val_prf',
             param = {'treshold': profile_treshold})
-        filtr_results['val_rpr'] = eval_filter(data, 'val_rpr')
-        filtr_results['val_ubi_prf'] = eval_filter(data, 'val_ubi_prf',
+        filtr_results['val_rpr'] = self.eval_filter('val_rpr')
+        filtr_results['val_ubi_prf'] = self.eval_filter('val_ubi_prf',
             param = {'treshold': profile_treshold,
                      'ubiquity': ubiquity_treshold})
         filtr_results['val_ubi_prf_rprf'] = \
-            eval_filter(data, 'val_ubi_prf_rprf',
+            self.eval_filter('val_ubi_prf_rprf',
             param = {'treshold': profile_treshold,
                      'ubiquity': ubiquity_treshold})
-        return filtr_results
+        self.filter_results = filtr_results
 
     def positive_negative_runtime(self, ):
         return timeit.timeit('negative_positive(lipids)', 
             setup = 'from __main__ import negative_positive, lipids',
             number = 1)
 
-    def valid_features(self, data, cache = True):
+    def valid_features(self, cache = True):
         '''
         Creates new dict of arrays with only valid features.
         Keys:
@@ -3424,33 +3479,31 @@ class LTP(object):
             'mz': m/z values
             'i': original index
         '''
-        cachefile = 'valids.pickle'
-        if cache and os.path.exists(cachefile):
-            return pickle.load(open(cachefile, 'rb'))
-        apply_filters(data)
-        validity_filter(data)
-        valids = dict((ltp.upper(), {'pos': {}, 'neg': {}}) \
-            for ltp in data.keys())
-        for ltp, d in data.iteritems():
+        if cache and os.path.exists(self.validscache):
+            return pickle.load(open(self.validscache, 'rb'))
+        self.apply_filters()
+        self.validity_filter()
+        self.valids = dict((ltp.upper(), {'pos': {}, 'neg': {}}) \
+            for ltp in self.data.keys())
+        for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
-                valids[ltp.upper()][pn]['fe'] = np.array(tbl['smp'][tbl['vld']])
-                valids[ltp.upper()][pn]['mz'] = \
+                self.valids[ltp.upper()][pn]['fe'] = np.array(tbl['smp'][tbl['vld']])
+                self.valids[ltp.upper()][pn]['mz'] = \
                     np.array(tbl['raw'][tbl['vld'], 1])
-                valids[ltp.upper()][pn]['rt'] = \
+                self.valids[ltp.upper()][pn]['rt'] = \
                     np.array(tbl['raw'][tbl['vld'], 2:4])
-                valids[ltp.upper()][pn]['i'] = np.where(tbl['vld'])[0]
-        pickle.dump(valids, open(cachefile, 'wb'))
-        return valids
+                self.valids[ltp.upper()][pn]['i'] = np.where(tbl['vld'])[0]
+        pickle.dump(self.valids, open(self.validscache, 'wb'))
 
-    def norm_all(self, valids):
+    def norm_all(self):
         '''
         Creates table with all the profiles normalized
         Keys:
             'no': normalized profiles
         '''
-        for ltp, d in valids.iteritems():
+        for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
-                tbl['no'] = norm_profiles(tbl['fe'])
+                tbl['no'] = self.norm_profiles(tbl['fe'])
 
     '''
     END: pipeline elements
