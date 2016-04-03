@@ -52,40 +52,19 @@ l.load_data()
 Apply basic filters, and obtain the valid features.
 '''
 l.valid_features()
-l.recalibration()
-
-l.ms2()
-
 '''
 Processing standards from mzML
 Calculating drifts
 Recalibrating all m/z's
 '''
-stdfiles = ltp.standards_filenames(ltp.stddir)
-seq = ltp.read_seq(ltp.seqfile)
-stdmasses = ltp.standards_theoretic_masses(ltp.metabsf)
-measured = ltp.read_standards(stdfiles, stdmasses)
-drifts = ltp.drifts(measured, stdmasses)
-drifts2 = ltp.drifts2(drifts)
-ltps_drifts = ltp.drifts2ltps(drifts2, seq)
-
-ltp.recalibrate(valids, ltps_drifts)
-
-'''
-Normalizing all the features.
-'''
-ltp.norm_all(valids)
+l.recalibration()
 
 '''
 Lookup lipids for all the valid features. (variable name: `lip`)
 '''
-exacts = None
-exacts, runtime = ltp.lipid_lookup_exact(valids, ltp.swisslipids_url, exacts = exacts, lipnames = lipnames)
-ltp.negative_positive2(valids, lipnames)
+l.ms1()
+l.ms2()
 
-ltp.ms1_headgroups(valids, lipnames, verbose = False)
-
-ltp.headgroups_negative_positive(valids, 'ms1')
 
 # the MS2 part
 pFragments, pHgfrags, pHeadgroups = \

@@ -2820,7 +2820,7 @@ class LTP(object):
                                 else fr
                             fnames[ltpname][pos][fr] = \
                                 os.path.join(*([d] + fpath + [f]))
-        self.ms2files
+        self.ms2files = fnames
 
     def ms2_map(self, charge = 1):
         stRpos = 'pos'
@@ -2829,7 +2829,7 @@ class LTP(object):
         result = dict((ltp.upper(), {'pos': None, 'neg': None, 
                 'ms2files': {'pos': {}, 'neg': {}}}) \
             for ltp, d in self.ms2files.iteritems())
-        prg = progress.Progress(len(ms2files) * 2, 'Indexing MS2 data', 1,
+        prg = progress.Progress(len(self.ms2files) * 2, 'Indexing MS2 data', 1,
             percent = False)
         for ltp, d in self.ms2files.iteritems():
             pFeatures = []
@@ -2842,7 +2842,7 @@ class LTP(object):
                 for fr, fl in files.iteritems():
                     fr = int(redgt.match(fr).groups()[0])
                     #fractions.add(fr)
-                    mm = ms2_index(fl, fr, charge = charge)
+                    mm = self.ms2_index(fl, fr, charge = charge)
                     m = np.vstack(mm)
                     features.extend(mm)
                     result[ultp]['ms2files'][pn][int(fr)] = fl
@@ -2873,36 +2873,37 @@ class LTP(object):
         stRen = 'EN'
         stRch = 'CH'
         stRpepmass = 'PEPMASS'
-        stRcharge = 'CHARGE'
         stRempty = ''
         reln = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
         features = []
         offset = 0
         with open(fl, 'rb', 8192) as f:
             for l in f:
-                if not l[0].isdigit() and not l[:2] == stRch and \
+                if not l[0].isdigit() and \
                     not l[:2] == stRbe and not l[:2] == stRen:
-                    try:
-                        m = reln.match(l).groups()
-                    except:
-                        print fl, l
-                        continue
-                    if m[0] == stRtitle:
-                        scan = float(m[1])
-                    if m[0] == stRrtinseconds:
-                        rtime = float(m[1]) / 60.0
-                    if l[:6] == stRcharge:
-                        _charge = int(l[7]) if len(l) >= 8 else None
-                    if m[0] == stRpepmass:
-                        if _charge == charge:
+                    if not l[:2] == stRch:
+                        try:
+                            m = reln.match(l).groups()
+                        except:
+                            print fl, l
+                            continue
+                        if m[0] == stRtitle:
+                            scan = float(m[1])
+                        if m[0] == stRrtinseconds:
+                            rtime = float(m[1]) / 60.0
+                        if m[0] == stRpepmass:
                             pepmass = float(m[1])
                             intensity = 0.0 if m[2] == stRempty else float(m[2])
+                    if l[:2] == stRch:
+                        _charge = int(l[7]) if len(l) >= 8 else None
+                        if _charge == charge:
                             features.append([pepmass, intensity,
                                 rtime, scan, offset + len(l), fr])
                             scan = None
                             rtime = None
                             intensity = None
                             pepmass = None
+                            _charge = None
                 offset += len(l)
         return features
 
@@ -2911,12 +2912,12 @@ class LTP(object):
         For all LTPs and modes obtains the MS2 data from original files.
         '''
         # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
-        prg = progress.Progress(len(valids) * 2, 'Looking up MS2 fragments', 1,
+        prg = progress.Progress(len(self.valids) * 2,
+            'Looking up MS2 fragments', 1,
             percent = False)
         for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 prg.step()
-                fragments = self.pFragments if pn == 'pos' else self.nFragments
                 # we look up the real measured MS1 m/z's in MS2,
                 # so will divide recalibrated values by the drift ratio
                 drift = 1.0 \
@@ -2931,9 +2932,7 @@ class LTP(object):
                     ltp, pn, drift = drift)
                 # this already returns final result, from protein containing
                 # fractions and with the relevant retention times
-                tbl['ms2'] = ms2_lookup(self.ms2map[ltp][pn],
-                    ms2matches, self.samples[ltp],
-                    self.ms2map[ltp]['ms2files'][pn], fragments)
+                tbl['ms2'] = self.ms2_lookup(ltp, pn, ms2matches)
                 tbl['ms2r'] = self.ms2_result(tbl['ms2'])
                 if verbose:
                     print '\n'
@@ -3050,7 +3049,7 @@ class LTP(object):
                 ltp, mode, verbose = True,
                 outfile = outfile)
 
-    def ms2_lookup(self, ms2map, ms1matches, fragments):
+    def ms2_lookup(self, ltp, mode, ms1matches):
         '''
         For the matching MS2 m/z's given, reads and identifies
         the list of fragments.
@@ -3064,6 +3063,10 @@ class LTP(object):
             # MS2 file offset, fraction number (13-14)
         '''
         # indices of fraction numbers
+        fragments = self.pFragments if mode == 'pos' else self.nFragments
+        ms2map = self.ms2map[ltp][mode]
+        ms2files = self.ms2map[ltp]['ms2files'][mode]
+        samples = self.samples_upper[ltp]
         sample_i = {
             9: 1, 10: 2, 11: 3, 12: 4, 1: 5
         }
@@ -3079,7 +3082,7 @@ class LTP(object):
             ms2item = ms2map[ms2i,:]
             fr = int(ms2item[5])
             # only samples with the LTP
-            if self.samples[sample_i[fr]] == 1 and fr in files:
+            if samples[sample_i[fr]] == 1 and fr in files:
                 f = files[fr]
                 # jumping to offset
                 f.seek(int(ms2item[4]), 0)
