@@ -3708,26 +3708,25 @@ class LTP(object):
     Functions for clustering
     '''
 
-    def distance_matrix(self, valids, metrics = ['eu'], with_pprof = False,
-        pprofs = None, samples = None, ltps = None):
+    def distance_matrix(self, metrics = ['eu'], with_pprof = False, ltps = None):
         _metrics = {
-            'eu': ('euclidean distance', euclidean_dist),
-            'en': ('normalized euclidean distance', euclidean_dist_norm)
+            'eu': ('euclidean distance', self.euclidean_dist),
+            'en': ('normalized euclidean distance', self.euclidean_dist_norm)
         }
         frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
-        if pprofs is None and samples is None:
-            with_pprof = True
         t0 = time.time()
         for m in metrics:
-            prg = progress.Progress(len(valids)*2 if ltps is None else len(ltps)*2,
-                'Calculating %s'%_metrics[m][0], 1, percent = False)
-            for ltp, d in valids.iteritems():
+            prg = progress.Progress(
+                len(self.valids) * 2 if ltps is None else len(ltps) * 2,
+                'Calculating %s' % _metrics[m][0],
+                1, percent = False)
+            for ltp, d in self.valids.iteritems():
                 if ltps is None or ltp in ltps:
                     if with_pprof:
-                        ppr = np.array([pprofs[ltp.upper()][frs[i]] \
-                            for i, fr in enumerate(samples[ltp]) \
+                        ppr = np.array([self.pprofs[ltp.upper()][frs[i]] \
+                            for i, fr in enumerate(self.samples_upper[ltp]) \
                                 if i != 0 and fr is not None])
-                        ppr = norm_profile(ppr).astype(np.float64)
+                        ppr = self.norm_profile(ppr).astype(np.float64)
                     for pn, tbl in d.iteritems():
                         prg.step()
                         fnum = tbl['no'].shape[0]

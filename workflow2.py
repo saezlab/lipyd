@@ -66,37 +66,18 @@ l.ms1()
 l.ms2()
 l.identify()
 
-l.profiles_corrs()
-
-# the MS2 part
-pFragments, pHgfrags, pHeadgroups = \
-    ltp.read_metabolite_lines('lipid_fragments_positive_mode_v2.txt')
-nFragments, nHgfrags, nHeadgroups = \
-    ltp.read_metabolite_lines('lipid_fragments_negative_mode_v2.txt')
-ms2files = ltp.ms2_filenames(ltp.ltpdirs)
-ms2map = ltp.ms2_map(ms2files)
-ltp.ms2_main(valids, samples_upper, ms2map,
-    pFragments, nFragments, drifts = ltps_drifts)
-ltp.ms2_headgroups(valids, pHgfrags, nHgfrags, pHeadgroups, nHeadgroups)
-ltp.headgroups_by_fattya(valids)
-ltp.identity_combined(valids)
-ltp.headgroups_negative_positive(valids, 'ms2')
-#
-
-ltp.feature_identity_table(valids)
-
-
 '''
 Correlation and similarity metrics between features and
 protein concentration profile.
 '''
-ltp.profiles_corrs(valids, pprofs, samples_upper)
+l.profiles_corrs()
+
+l.distance_matrix(metrics = ['en'], with_pprof = True)
 
 '''
 Clustering features based on euclidean distance
 '''
-ltp.distance_matrix(valids, metrics = ['en'], with_pprof = True, 
-    pprofs = pprofs, samples = samples_upper)
+ltp.
 
 ltp.features_clustering(valids)
 ltp.distance_corr(valids)
