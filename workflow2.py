@@ -64,7 +64,9 @@ Lookup lipids for all the valid features. (variable name: `lip`)
 '''
 l.ms1()
 l.ms2()
+l.identify()
 
+l.profiles_corrs()
 
 # the MS2 part
 pFragments, pHgfrags, pHeadgroups = \

@@ -568,7 +568,7 @@ class LTP(object):
             dtype = np.object)
         self.exacts = _exacts \
             if self.exacts is None \
-            else np.vstack((exacts, _exacts))
+            else np.vstack((self.exacts, _exacts))
         self.exacts = self.exacts[self.exacts[:,-1].argsort()]
 
     def get_swisslipids(self, adducts = None,
@@ -662,7 +662,7 @@ class LTP(object):
         _exacts = np.array(_exacts, dtype = np.object)
         self.exacts = _exacts \
             if self.exacts is None \
-            else np.vstack((exacts, _exacts))
+            else np.vstack((self.exacts, _exacts))
         self.exacts = self.exacts[self.exacts[:,-1].argsort()]
 
     def database_set(self, exacts, names, levels = ['Species']):
@@ -1760,7 +1760,7 @@ class LTP(object):
             key = lambda x: x, reverse = True)
         flatp = p1r[pranks[0]] - p1r[pranks[1]] < \
             p1r[pranks[0]] * 0.1
-        return comp_profiles(p1, p2, p1r, flatp), 0.0
+        return self.comp_profiles(p1, p2, p1r, flatp), 0.0
 
     def comp_profiles(self, p1, p2, p1r = False, flatp = False):
         highest = False
@@ -2732,7 +2732,14 @@ class LTP(object):
         self.ms2_filenames()
         self.ms2_map()
         self.ms2_main()
-        self.ms2
+        self.ms2_headgroups()
+    
+    def identify(self):
+        self.headgroups_by_fattya()
+        self.headgroups_negative_positive('ms2')
+        self.identity_combined()
+        self.identity_combined_ms2()
+        self.feature_identity_table()
     
     def ms2_metabolites(self):
         self.pFragments, self.pHgfrags, self.pHeadgroups = \
@@ -3542,6 +3549,7 @@ class LTP(object):
                 self.valids[ltp.upper()][pn]['rt'] = \
                     np.array(tbl['raw'][tbl['vld'], 2:4])
                 self.valids[ltp.upper()][pn]['i'] = np.where(tbl['vld'])[0]
+        self.norm_all()
         pickle.dump(self.valids, open(self.validscache, 'wb'))
 
     def norm_all(self):
@@ -3562,17 +3570,17 @@ class LTP(object):
     Distance metrics
     '''
 
-    def profiles_corr(self, valids, pprofs, samples, metric, prfx):
+    def profiles_corr(self, metric, prfx):
         '''
         Calculates custom correlation metric
         between each feature and the protein profile.
         '''
         frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
-        for ltp, d in valids.iteritems():
-            ppr = np.array([pprofs[ltp.upper()][frs[i]] \
-                for i, fr in enumerate(samples[ltp]) \
+        for ltp, d in self.valids.iteritems():
+            ppr = np.array([self.pprofs[ltp.upper()][frs[i]] \
+                for i, fr in enumerate(self.samples_upper[ltp]) \
                     if fr is not None and i != 0])
-            ppr = norm_profile(ppr).astype(np.float64)
+            ppr = self.norm_profile(ppr).astype(np.float64)
             for pn, tbl in d.iteritems():
                 tbl['%sv'%prfx] = np.zeros((tbl['no'].shape[0],),
                     dtype = np.float64)
@@ -3584,7 +3592,8 @@ class LTP(object):
                     # it will have a nan value:
                     if np.any(np.isnan(\
                             fe[np.where(\
-                                [fr == 1 for fr in samples[ltp][1:] \
+                                [fr == 1 \
+                                    for fr in self.samples_upper[ltp][1:] \
                                     if fr is not None]
                             )]
                         )):
@@ -3629,7 +3638,7 @@ class LTP(object):
         '''
         Wrapper for diff_profiles() to return a tuple.
         '''
-        return diff_profiles(x, y), 0.0
+        return self.diff_profiles(x, y), 0.0
 
     def euclidean_dist(self, x, y):
         '''
@@ -3649,7 +3658,7 @@ class LTP(object):
         return (sp.spatial.distance.euclidean(_x, _y) / len(_x), 0.0) \
             if len(_x) > 0 else (1.0, 0.0)
 
-    def profiles_corrs(self, valids, pprofs, samples):
+    def profiles_corrs(self):
         '''
         Calculates an array of similarity/correlation
         metrics between each MS intensity profile and 
@@ -3658,17 +3667,17 @@ class LTP(object):
         metrics = [
             (stats.spearmanr, 'sp'),
             (stats.kendalltau, 'kt'),
-            (_diff_profiles, 'df'),
-            (gkgamma, 'gk'),
-            (roco, 'rc'),
-            (euclidean_dist, 'eu'),
-            (euclidean_dist_norm, 'en'),
+            (self._diff_profiles, 'df'),
+            (self.gkgamma, 'gk'),
+            (self.roco, 'rc'),
+            (self.euclidean_dist, 'eu'),
+            (self.euclidean_dist_norm, 'en'),
             (stats.pearsonr, 'pe'),
-            (_comp_profiles, 'cp')
+            (self._comp_profiles, 'cp')
         ]
         for metric, prfx in metrics:
             sys.stdout.write('Calculating %s\n' % metric.__name__)
-            profiles_corr(valids, pprofs, samples, metric, prfx)
+            self.profiles_corr(metric, prfx)
 
     def inconsistent(self, valids, metric = 'en'):
         attr = '%sv'%metric
@@ -4904,13 +4913,13 @@ class LTP(object):
                                         )
                                         sys.stdout.flush()
 
-    def headgroups_by_fattya(self, valids, verbose = False):
+    def headgroups_by_fattya(self, verbose = False):
         '''
         Limits the number of possible headgroups based on detected
         MS2 fatty acids.
         Creates dict `hgfa`.
         '''
-        for ltp, d in valids.iteritems():
+        for ltp, d in self.valids.iteritems():
             for mod, tbl in d.iteritems():
                 tbl['hgfa'] = {}
                 for oi in tbl['i']:
@@ -4936,13 +4945,13 @@ class LTP(object):
                                         (ms2fa, ', '.join(list(ms1fa)), 
                                             hg, oi, ltp, mod))
 
-    def identity_combined(self, valids):
+    def identity_combined(self):
         '''
         Combined identification based on MS1 database lookup,
         MS2 headgroup fragments and MS2 fatty acids.
         Creates dicts `combined_hg` and `combined_fa`.
         '''
-        for ltp, d in valids.iteritems():
+        for ltp, d in self.valids.iteritems():
             for mod, tbl in d.iteritems():
                 tbl['combined_hg'] = {}
                 tbl['combined_fa'] = {}
@@ -4971,13 +4980,13 @@ class LTP(object):
                             tbl['combined_fa'][oi][hg].add(tbl['ms2fas'][oi])
                             # maybe later we need those with less evidence
 
-    def identity_combined_ms2(self, valids):
+    def identity_combined_ms2(self):
         '''
         Combined identification based on MS1 database lookup,
         MS2 headgroup fragments and MS2 fatty acids.
         Creates dicts `combined_hg` and `combined_fa`.
         '''
-        for ltp, d in valids.iteritems():
+        for ltp, d in self.valids.iteritems():
             for mod, tbl in d.iteritems():
                 tbl['combined_hg_ms2'] = {}
                 for oi in tbl['i']:
@@ -5383,15 +5392,15 @@ class LTP(object):
             f.write(html_table_template % (title, title, table))
 
 
-    def feature_identity_table(self, valids):
+    def feature_identity_table(self):
         '''
         Creates dictionaries named `identity`, having
         original IDs as keys and 4 element dictionaries
         as values with keys ms1_pos, ms2_pos, ms1_neg, ms2_neg,
         each having a boolean value.
         '''
-        sort_alll(valids, 'mz')
-        for ltp, d in valids.iteritems():
+        self.sort_alll('mz')
+        for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 opp_mode = 'neg' if pn == 'pos' else 'pos'
                 tbl['identity'] = {}
