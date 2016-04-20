@@ -784,14 +784,27 @@ class LTP(object):
     # reading the SEC absorption values and calculating the protein 
     # profiles in the fractions
     #
-
-    def protein_profiles(self, cache = True):
+    
+    def _GLTPD1_profile_correction_eq(self):
+        eq = (self.pprofs['GLTPD1']['a11'] + self.pprofs['GLTPD1']['a12']) / 2.0
+        self.pprofs['GLTPD1']['a11'] = eq
+        self.pprofs['GLTPD1']['a12'] = eq
+    
+    def _GLTP1_profile_correction_inv(self):
+        a11 = self.pprofs['GLTPD1']['a11']
+        a12 = self.pprofs['GLTPD1']['a12']
+        self.pprofs['GLTPD1']['a11'] = a12
+        self.pprofs['GLTPD1']['a12'] = a11
+    
+    def protein_profiles(self, cache = True, correct_GLTPD1 = True, GLTPD_correction = 'eq'):
         '''
         For each protein, for each fraction, calculates the mean of 
         absorptions of all the measurements belonging to one fraction.
         '''
         if cache and os.path.exists(self.pprofcache):
             self.pprofs = pickle.load(open(self.pprofcache, 'rb'))
+            if correct_GLTPD1:
+                getattr(self, '_GLTPD1_profile_correction_%s' % GLTPD_correction)()
             return None
         reltp = re.compile(r'.*[\s_-]([A-Za-z0-9]{3,})\.xls')
         result = {}
@@ -826,6 +839,8 @@ class LTP(object):
                 for fnum, a in frac_abs.iteritems())
         pickle.dump(result, open(self.pprofcache, 'wb'))
         self.pprofs = result
+        if correct_GLTPD1:
+            getattr(self, '_GLTPD1_profile_correction_%s' % GLTPD_correction)()
 
     def zero_controls(self):
         self.pprofs_original = copy.deepcopy(self.pprofs)
@@ -836,7 +851,7 @@ class LTP(object):
                     self.pprofs[ltpname.upper()][fr] = 0.0
 
     def one_sample(self):
-        self.singles = [k for k, v in self.samples.iteritems() \
+        self.singles = [k.upper() for k, v in self.samples.iteritems() \
             if sum((i for i in v if i is not None)) == 1]
 
     def write_pptable(self):
@@ -3661,6 +3676,8 @@ class LTP(object):
                     if fr is not None and i != 0])
             ppr = self.norm_profile(ppr).astype(np.float64)
             for pn, tbl in d.iteritems():
+                if 'no' not in tbl:
+                    self.norm_all()
                 tbl['%sv'%prfx] = np.zeros((tbl['no'].shape[0],),
                     dtype = np.float64)
                 tbl['%sp'%prfx] = np.zeros((tbl['no'].shape[0],),
@@ -3831,16 +3848,16 @@ class LTP(object):
         sys.stdout.write('\t:: Time elapsed: %us\n'%(time.time() - t0))
         sys.stdout.flush()
 
-    def features_clustering(self, valids, dist = 'en',
-        method = 'ward', ltps = None):
+    def features_clustering(self, dist = 'en', method = 'ward', ltps = None):
         '''
         Using the distance matrices calculated by
         `distance_matrix()`, builds clusters using
         the linkage method given by `method` arg.
         '''
-        prg = progress.Progress(len(valids)*2 if ltps is None else len(ltps)*2,
+        prg = progress.Progress(len(self.valids)*2 \
+            if ltps is None else len(ltps)*2,
             'Calculating clusters', 1, percent = False)
-        for ltp, d in valids.iteritems():
+        for ltp, d in self.valids.iteritems():
             if ltps is None or ltp in ltps:
                 for pn, tbl in d.iteritems():
                     prg.step()
@@ -3867,18 +3884,18 @@ class LTP(object):
         singletons = set(filter(lambda x: x <= n, nodes))
         upper_levels = set(nodes) - singletons
         for u in upper_levels:
-            singletons = singletons | nodes_in_cluster(lin, u - n - 1)
+            singletons = singletons | self.nodes_in_cluster(lin, u - n - 1)
         return singletons
 
     def _get_link_colors_dist(self, tbl, dist, threshold,
         highlight_color, base_color):
-        protein_fc = set(fcluster_with_protein(tbl['_%sc' % dist], threshold))
+        protein_fc = set(self.fcluster_with_protein(tbl['_%sc' % dist], threshold))
         return dict(zip(
             xrange(tbl['_%sc'%dist].shape[0] + 1,
                    tbl['_%sc'%dist].shape[0] * 2 + 2),
             map(lambda x: 
                 highlight_color \
-                    if set(nodes_in_cluster(tbl['_%sc' % dist], x)) <= \
+                    if set(self.nodes_in_cluster(tbl['_%sc' % dist], x)) <= \
                         protein_fc \
                     else base_color,
             xrange(tbl['_%sc'%dist].shape[0])) + \
@@ -3996,8 +4013,7 @@ class LTP(object):
     def plot_heatmaps_dendrograms_gradient(self, *args, **kwargs):
         pass
 
-    def plot_heatmaps_dendrograms(self, valids, singles, 
-        pprofs, samples, dist = 'en', 
+    def plot_heatmaps_dendrograms(self, dist = 'en', 
         fname = None, ltps = None, cmap = None,
         highlight_color = '#FFAA00', base_color = '#000000',
         coloring = 'corr', threshold = None,
@@ -4008,13 +4024,13 @@ class LTP(object):
         Thanks to http://stackoverflow.com/a/3011894/854988
         '''
         all_hgs = set()
-        for ltp, d in valids.iteritems():
+        for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 for ids in tbl['identity'].values():
                     for hg in ids.keys():
                         all_hgs.add(hg)
         hg_cols = dict(map(lambda (i, hg): 
-            (hg, colors[i]),
+            (hg, self.colors[i]),
             enumerate(sorted(list(all_hgs)))
         ))
         t0 = time.time()
@@ -4024,23 +4040,23 @@ class LTP(object):
                 '-%02f'%threshold if threshold is not None else '') \
             if fname is None else fname
         if coloring == 'corr':
-            _cmap = _get_dendrogram_cmap(cmap, threshold,
+            _cmap = self._get_dendrogram_cmap(cmap, threshold,
                 highlight_color, base_color)
         frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
         with mpl.backends.backend_pdf.PdfPages(fname) as pdf:
-            prg = progress.Progress(len(valids) * 2 \
+            prg = progress.Progress(len(self.valids) * 2 \
                 if ltps is None else len(ltps)*2,
                 'Plotting heatmaps with dendrograms', 1, percent = False)
-            for ltp, d in valids.iteritems():
+            for ltp, d in self.valids.iteritems():
                 if ltps is None or ltp in ltps:
-                    ppr = np.array([pprofs[ltp.upper()][frs[i]] \
-                        for i, fr in enumerate(samples[ltp]) \
+                    ppr = np.array([self.pprofs[ltp.upper()][frs[i]] \
+                        for i, fr in enumerate(self.samples_upper[ltp]) \
                             if i != 0 and fr is not None])
-                    ppr = norm_profile(ppr).astype(np.float64)
+                    ppr = self.norm_profile(ppr).astype(np.float64)
                     for pn, tbl in d.iteritems():
                         prg.step()
                         if coloring == 'dist':
-                            _threshold = _dendrogram_get_threshold(tbl, dist,
+                            _threshold = self._dendrogram_get_threshold(tbl, dist,
                                 threshold, threshold_type)
                         labels = ['%u'%(f) for f in tbl['_%so'%dist]] + [ltp]
                         names = map(lambda oi:
@@ -4057,13 +4073,13 @@ class LTP(object):
                         
                         if coloring == 'corr':
                             _link_colors = \
-                                _get_link_colors_corr(tbl, dist, _cmap,
+                                self._get_link_colors_corr(tbl, dist, _cmap,
                                 threshold, highlight_color, base_color)
                         elif coloring == 'dist':
-                            _link_colors = _get_link_colors_dist(tbl, dist,
+                            _link_colors = self._get_link_colors_dist(tbl, dist,
                                 _threshold, highlight_color, base_color)
                         protein_fc = \
-                            set(fcluster_with_protein(tbl['_%sc' % dist],
+                            set(self.fcluster_with_protein(tbl['_%sc' % dist],
                             _threshold))
                         if save_selection is not None:
                             oi2i = \
@@ -4144,8 +4160,8 @@ class LTP(object):
                         fig.suptitle('%s :: %s mode\n'\
                             'clustering valid features; '\
                             'features in highlighted cluster: %u' % \
-                            (ltp, pn, len(protein_fc) - 1), 
-                            color = '#AA0000' if ltp in singles else '#000000')
+                            (ltp, pn, len(protein_fc) - 1),
+                            color = '#AA0000' if ltp in self.singles else '#000000')
                         
                         cvs.draw()
                         fig.tight_layout()

@@ -76,56 +76,10 @@ l.profiles_corrs()
 Clustering features based on euclidean distance
 '''
 l.distance_matrix(metrics = ['en'], with_pprof = True)
-
-
-ltp.
-
-ltp.features_clustering(valids)
-ltp.distance_corr(valids)
-
-### playing with GLTPD1 proportions
-
-pprofs_gltpd1_eq = copy.deepcopy(pprofs)
-eq = (pprofs['GLTPD1']['a11'] + pprofs['GLTPD1']['a12']) / 2.0
-pprofs_gltpd1_eq['GLTPD1']['a11'] = eq
-pprofs_gltpd1_eq['GLTPD1']['a12'] = eq
-
-pprofs_gltpd1_inv = copy.deepcopy(pprofs)
-pprofs_gltpd1_inv['GLTPD1']['a11'] = pprofs['GLTPD1']['a12']
-pprofs_gltpd1_inv['GLTPD1']['a12'] = pprofs['GLTPD1']['a11']
-
-ltp.distance_matrix(valids, metrics = ['en'], with_pprof = True,
-    pprofs = pprofs_gltpd1_eq, samples = samples_upper, ltps = ['GLTPD1'])
-
-ltp.features_clustering(valids, ltps = ['GLTPD1'])
-
-ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper, 
+l.features_clustering()
+l.plot_heatmaps_dendrograms(
     threshold = 0.70, threshold_type = 'percent', coloring = 'dist',
-    save_selection = 'cl70pct', ltps = ['GLTPD1'],
-    fname = 'features_clustering_GLTPD1eq.pdf')
-
-ltp.distance_matrix(valids, metrics = ['en'], with_pprof = True,
-    pprofs = pprofs_gltpd1_inv, samples = samples_upper, ltps = ['GLTPD1'],)
-
-ltp.features_clustering(valids, ltps = ['GLTPD1'])
-
-ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper, 
-    threshold = 0.70, threshold_type = 'percent', coloring = 'dist',
-    save_selection = 'cl70pct', ltps = ['GLTPD1'],
-    fname = 'features_clustering_GLTPD1inv.pdf')
-
-ltp.distance_matrix(valids, metrics = ['en'], with_pprof = True,
-    pprofs = pprofs, samples = samples_upper, ltps = ['GLTPD1'])
-
-ltp.features_clustering(valids, ltps = ['GLTPD1'])
-
-ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper, 
-    threshold = 0.70, threshold_type = 'percent', coloring = 'dist',
-    save_selection = 'cl70pct', ltps = ['GLTPD1'],
-    fname = 'features_clustering_GLTPD1orig.pdf')
-
-###
-
+    save_selection = 'cl70pct')
 
 reload(ltp)
 ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper,
