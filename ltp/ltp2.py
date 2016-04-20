@@ -5351,12 +5351,14 @@ class LTP(object):
         with open(filename, 'w') as f:
             f.write(self.html_table_template % (title, title, table))
 
-    def ms1_ms2_table_html_simple(self, valids, lipnames, 
-        filename = 'ms1ms2headgroups.html', include = 'cl50pct'):
+    def ms1_ms2_table_html_simple(self, filename = None, include = 'cl70pct'):
         '''
         Outputs a HTML table LTPs vs lipid classes (headgroups)
         based on MS1 and MS2 identifications.
         '''
+        filename = 'results_%s_ms1ms2hg.html' % self.today() \
+            if filename is None \
+            else filename
         title = 'Binding specificities of LTPs by headgroups'\
             ' detected in MS1 and MS2'
         table = ''
@@ -5366,7 +5368,7 @@ class LTP(object):
             '\n\t\t\t</td>\n'
         th1 = tablehcell % 'LTP'
         colnames = set([])
-        for ltp, d in valids.iteritems():
+        for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 for hgs in tbl['identity'].values():
                     for hg, ids in hgs.iteritems():
@@ -5379,7 +5381,7 @@ class LTP(object):
             th1 += tablehcell % hg
         table += tablerow % th1
         # rows by LTP
-        for ltp in sorted(valids.keys()):
+        for ltp in sorted(self.valids.keys()):
             row = tablecell % ('rowname', ltp, ltp)
             for hg in colnames:
                 pos = False
@@ -5390,7 +5392,7 @@ class LTP(object):
                 pos_neg_same_unambig = False
                 pos_neg_unambig = False
                 pos_neg_same = False
-                tbl = valids[ltp]['pos']
+                tbl = self.valids[ltp]['pos']
                 for oi in tbl['i'][np.where(tbl[include])[0]]:
                     if hg in tbl['identity'][oi]:
                         this_hg = tbl['identity'][oi][hg]
@@ -5401,10 +5403,10 @@ class LTP(object):
                                 for noi in tbl['neg'][oi].keys():
                                     if hg in valids[ltp]['neg']\
                                         ['identity'][noi]:
-                                        if valids[ltp]['neg']['identity']\
+                                        if self.valids[ltp]['neg']['identity']\
                                             [noi][hg]['ms1_neg'] \
                                                 and \
-                                            valids[ltp]['neg']['identity']\
+                                            self.valids[ltp]['neg']['identity']\
                                             [noi][hg]['ms2_neg']:
                                             pos_neg = True
                                             if sum(map(lambda (_hg, this_hg):
@@ -5424,7 +5426,7 @@ class LTP(object):
                                     tbl['identity'][oi].iteritems()
                                 )) == 0:
                                 pos_unambig = True
-                tbl = valids[ltp]['neg']
+                tbl = self.valids[ltp]['neg']
                 for oi in tbl['i'][np.where(tbl[include])[0]]:
                     if hg in tbl['identity'][oi]:
                         this_hg = tbl['identity'][oi][hg]
@@ -5433,11 +5435,11 @@ class LTP(object):
                             if this_hg['ms1_pos'] and this_hg['ms2_pos']:
                                 pos_neg_same = True
                                 for noi in tbl['pos'][oi].keys():
-                                    if hg in valids[ltp]['pos']\
+                                    if hg in self.valids[ltp]['pos']\
                                         ['identity'][noi]:
                                         if valids[ltp]['pos']['identity']\
                                             [noi][hg]['ms1_pos'] and \
-                                            valids[ltp]['pos']['identity']\
+                                            self.valids[ltp]['pos']['identity']\
                                                 [noi][hg]['ms2_pos']:
                                             pos_neg = True
                                             if sum(map(lambda (_hg, this_hg):
@@ -5492,7 +5494,7 @@ class LTP(object):
                     row += tablecell % ('empty', '%s not detected' % hg, '')
             table += tablerow % row
         with open(filename, 'w') as f:
-            f.write(html_table_template % (title, title, table))
+            f.write(self.html_table_template % (title, title, table))
 
 
     def feature_identity_table(self):
