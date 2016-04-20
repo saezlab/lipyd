@@ -5258,12 +5258,14 @@ class LTP(object):
     END: MS1 lipid identification
     '''
 
-    def ms2_table_html_simple(self, valids, lipnames,
-        filename = 'ms2headgroups.html', include = 'bool_env'):
+    def ms2_table_html_simple(self, filename = None, include = 'cl70pct'):
         '''
         Outputs a HTML table LTPs vs lipid classes (headgroups)
         based on MS2 identifications.
         '''
+        filename = 'results_%s_ms2hg.html' % self.today() \
+            if filename is None \
+            else filename
         title = 'Binding specificities of LTPs by headgroups detected in MS2'
         table = ''
         tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
@@ -5272,7 +5274,7 @@ class LTP(object):
             '\n\t\t\t</td>\n'
         th1 = tablehcell % 'LTP'
         colnames = set([])
-        for ltp, d in valids.iteritems():
+        for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 for hg in tbl['ms2hg'].values():
                     if hg is not None:
@@ -5281,7 +5283,7 @@ class LTP(object):
         for hg in colnames:
             th1 += tablehcell % hg
         table += tablerow % th1
-        for ltp in sorted(valids.keys()):
+        for ltp in sorted(self.valids.keys()):
             row = tablecell % ('rowname', ltp, ltp)
             for hg in colnames:
                 pos_neg_same = False
@@ -5292,7 +5294,7 @@ class LTP(object):
                 neg_unambig = False
                 pos_neg_same_unambig = False
                 pos_neg_unambig = False
-                for pn, tbl in valids[ltp].iteritems():
+                for pn, tbl in self.valids[ltp].iteritems():
                     for ms2hg in tbl['ms2hg'].values():
                         if ms2hg is not None and hg in ms2hg:
                             if pn == 'pos':
@@ -5307,7 +5309,7 @@ class LTP(object):
                     pos_neg = True
                 if pos_unambig or neg_unambig:
                     pos_neg_unambig = True
-                for ms2hgs in valids[ltp]['pos']['ms2hg_neg'].values():
+                for ms2hgs in self.valids[ltp]['pos']['ms2hg_neg'].values():
                     for ms2hg in ms2hgs.values():
                         if hg in ms2hg:
                             pos_neg_same = True
@@ -5347,7 +5349,7 @@ class LTP(object):
                     row += tablecell % ('empty', 'Not detected', '')
             table += tablerow % row
         with open(filename, 'w') as f:
-            f.write(html_table_template % (title, title, table))
+            f.write(self.html_table_template % (title, title, table))
 
     def ms1_ms2_table_html_simple(self, valids, lipnames, 
         filename = 'ms1ms2headgroups.html', include = 'cl50pct'):

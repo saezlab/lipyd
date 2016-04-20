@@ -87,13 +87,12 @@ Calculating ubiquity. (variable name: `ubi`)
 l.sort_alll('mz')
 l.ubiquity_filter()
 
+'''
+Exporting HTML tables
+'''
 l.ms1_table_html()
-
-
-ltp.ms1_table_html_simple(valids, lipnames, include = 'cl70pct',
-    filename = 'ms1_headgroups_rec.html')
-ltp.ms2_table_html_simple(valids, lipnames, include = 'cl70pct',
-    filename = 'ms2_headgroups_rec.html')
+l.ms1_table_html_simple()
+l.ms2_table_html_simple()
 
 ltp.ms1_ms2_table_html_simple(valids, lipnames, include = 'cl70pct',
     filename = 'ms1ms2headgroups2rec.html')
