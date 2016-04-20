@@ -1916,7 +1916,7 @@ class LTP(object):
         prg.terminate()
 
     def ubiquity_filter(self, only_valid = True):
-        prg = progress.Progress(len(valids)**2, 'Ubiquity filter', 1)
+        prg = progress.Progress(len(self.valids)**2, 'Ubiquity filter', 1)
         ltps = sorted(self.valids.keys())
         for pn in ['pos', 'neg']:
             for i, ltp1 in enumerate(ltps):
@@ -1925,8 +1925,8 @@ class LTP(object):
                     ltp2s = set([])
                     prg.step()
                     if pn in self.valids[ltp1] and pn in self.valids[ltp2]:
-                        ltp1t = valids[ltp1][pn]
-                        ltp2t = valids[ltp2][pn]
+                        ltp1t = self.valids[ltp1][pn]
+                        ltp2t = self.valids[ltp2][pn]
                         if 'ubi' not in ltp1t:
                             ltp1t['ubi'] = np.zeros(ltp1t['mz'].shape[0],
                                 dtype = np.int8)
@@ -5091,14 +5091,14 @@ class LTP(object):
                         hgs = hgs & tbl['hgfa'][oi]
                         tbl['combined_hg_ms2'][oi] = hgs
 
-    def ms1_table(self, valids, lipnames, include = 'cl70pct'):
-        ltps = sorted(valids.keys())
+    def ms1_table(self, include = 'cl70pct'):
+        ltps = sorted(self.valids.keys())
         # collecting primary and secondary column names
         # and cell values
         result = dict((ltp, {}) for ltp in ltps)
         colnames = {}
         for ltp in ltps:
-            for pn, tbl in valids[ltp].iteritems():
+            for pn, tbl in self.valids[ltp].iteritems():
                 _np = 'pos' if pn == 'neg' else 'neg'
                 nptbl = tbl[_np]
                 for i, oi in enumerate(tbl['i']):
@@ -5146,10 +5146,15 @@ class LTP(object):
                                                         True
                                                     break
         return colnames, result
-
-    def ms1_table_html(self, valids, lipnames, filename = 'ms1.html',
-        include = 'cl70pct'):
-        colnames, ms1tab = ms1_table(valids, lipnames, include = include)
+    
+    def today(self):
+        return datetime.date.today().strftime(r'%Y-%m-%d')
+    
+    def ms1_table_html(self, filename = None, include = 'cl70pct'):
+        filename = 'results_%s_ms1.html' % self.today() \
+            if filename is None \
+            else filename
+        colnames, ms1tab = self.ms1_table(include = include)
         title = 'Binding specificities of LTPs detected in MS1'
         table = ''
         tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
@@ -5165,7 +5170,7 @@ class LTP(object):
                 th2 += tablehcell % fa
         table += tablerow % th1
         table += tablerow % th2
-        for ltp in sorted(valids.keys()):
+        for ltp in sorted(self.valids.keys()):
             row = tablecell % ('rowname', ltp, ltp)
             for hg in sorted(colnames.keys()):
                 for fa in sorted(colnames[hg]):
@@ -5195,15 +5200,17 @@ class LTP(object):
                             '%s (%s) not detected at %s' % (hg, fa, ltp), '')
             table += tablerow % row
         with open(filename, 'w') as f:
-            f.write(html_table_template % (title, title, table))
+            f.write(self.html_table_template % (title, title, table))
 
-    def ms1_table_html_simple(self, valids, lipnames,
-        filename = 'ms1headgroups.html', include = 'cl70pct'):
+    def ms1_table_html_simple(self, filename = None, include = 'cl70pct'):
         '''
         Outputs a HTML table LTPs vs lipid classes (headgroups)
         based on MS1 identifications.
         '''
-        colnames, ms1tab = ms1_table(valids, lipnames, include = include)
+        filename = 'results_%s_ms1hg.html' % self.today() \
+            if filename is None \
+            else filename
+        colnames, ms1tab = self.ms1_table(include = include)
         title = 'Binding specificities of LTPs by headgroups detected in MS1'
         table = ''
         tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
@@ -5214,7 +5221,7 @@ class LTP(object):
         for hg in sorted(colnames.keys()):
             th1 += tablehcell % hg
         table += tablerow % th1
-        for ltp in sorted(valids.keys()):
+        for ltp in sorted(self.valids.keys()):
             row = tablecell % ('rowname', ltp, ltp)
             for hg in sorted(colnames.keys()):
                 pos_neg = False
@@ -5245,7 +5252,7 @@ class LTP(object):
                     row += tablecell % ('empty', '%s not detected' % hg, '')
             table += tablerow % row
         with open(filename, 'w') as f:
-            f.write(html_table_template % (title, title, table))
+            f.write(self.html_table_template % (title, title, table))
 
     '''
     END: MS1 lipid identification

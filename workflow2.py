@@ -81,61 +81,15 @@ l.plot_heatmaps_dendrograms(
     threshold = 0.70, threshold_type = 'percent', coloring = 'dist',
     save_selection = 'cl70pct')
 
-reload(ltp)
-ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper,
-    threshold = 0.05, threshold_type = 'percent', coloring = 'dist',
-    ltps = ['STARD10'], fname = 'features_clustering_STARD10.pdf')
-
-ltp.plot_heatmaps_dendrograms(valids, singles, ltps = ['STARD10'], 
-    threshold = 0.05, threshold_type = 'percent', coloring = 'dist')
-
-
-ltp.plot_heatmaps_dendrograms(valids, singles, ltps = ['STARD10'], 
-    threshold = None, threshold_type = 'clsize', coloring = 'dist')
-
-
-ltp.plot_heatmaps_dendrograms(valids, singles, ltps = ['STARD10'], 
-    threshold = 30, threshold_type = 'incons', coloring = 'dist')
-
-# run all with clsize
-ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper,
-    threshold = None, threshold_type = 'clsize', coloring = 'dist',
-    save_selection = 'clcs10pct')
-
-bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
-    features = True, valids = valids, 
-    highlight = 'clcs10pct',
-    highlight2 = False,
-    all_features = False,
-    pdfname = 'protein_profiles_features_cl_csize_10pct.pdf')
-
-# run for all with 5% threshold
-ltp.plot_heatmaps_dendrograms(valids, singles, pprofs, samples_upper, 
-    threshold = 0.70, threshold_type = 'percent', coloring = 'dist',
-    save_selection = 'cl70pct')
-
-bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
-    features = True, valids = valids, 
-    highlight = 'cl70pct',
-    highlight2 = False,
-    all_features = False,
-    pdfname = 'protein_profiles_features_cl_maxdist_70pct-c.pdf')
-
-# ##
-
 '''
 Calculating ubiquity. (variable name: `ubi`)
 '''
-ltp.sort_alll(valids, 'mz')
-ltp.ubiquity_filter(valids)
-timeit.timeit('ltp.ubiquity_filter(valids)',
-    setup = 'from __main__ import ltp, valids', number = 1)
+l.sort_alll('mz')
+l.ubiquity_filter()
+
+l.ms1_table_html()
 
 
-ms1tab_coln, ms1tab = ltp.ms1_table(valids, lipnames)
-
-
-ltp.ms1_table_html(valids, lipnames)
 ltp.ms1_table_html_simple(valids, lipnames, include = 'cl70pct',
     filename = 'ms1_headgroups_rec.html')
 ltp.ms2_table_html_simple(valids, lipnames, include = 'cl70pct',
