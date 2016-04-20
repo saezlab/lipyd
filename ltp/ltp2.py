@@ -246,14 +246,116 @@ class Feature(object):
         self.mode = mode
         self.oi = oi
         self.tbl = self.main.valids[self.protein][self.mode]
-        self.oi = self.main.i2oi(self.protein, self.mode, self.i)
+        self.ms2 = self.tbl['ms2'][self.oi]
+        self.i = self.main.oi2i(self.protein, self.mode, self.oi)
+        self.scans_fractions = map(
+            lambda tpl: tuple(map(int, tpl)),
+            uniqList(
+                map(
+                    tuple,
+                    self.ms2[:,[12,14]]
+                )
+            )
+        )
+        # sorting by fractions/scans
+        self.scans = dict(
+            map(
+                lambda (sc, fr):
+                    (
+                        (sc, fr),
+                        self.ms2[
+                            np.where(
+                                np.logical_and(
+                                    self.ms2[:,12] == sc,
+                                    self.ms2[:,14] == fr
+                                )
+                            )
+                        ]
+                    ),
+                self.scans_fractions
+            )
+        )
+        # sorting by intensity desc
+        self.scans = dict(
+            map(
+                lambda (k, v):
+                    (
+                        k,
+                        v[v[:,2].argsort()[::-1],:]
+                    ),
+                self.scans.iteritems()
+            )
+        )
+        self.maxins = dict(
+            map(
+                lambda (k, v):
+                    (
+                        k,
+                        v[0,2]
+                    ),
+                self.scans.iteritems()
+            )
+        )
+        self.medins = dict(
+            map(
+                lambda (k, v):
+                    (
+                        k,
+                        np.median(v[:,2])
+                    ),
+                self.scans.iteritems()
+            )
+        )
+    
+    def _any_scan(self, scan_condition, **kwargs):
+        scans = self._scans()
+        for sc in self.scans.itervalues():
+            if scan_condition(sc, **kwargs):
+                return True
+        return False
+    
+    def _fragment_match(self, fragment, mz):
+        return abs(fragment[1] - mz) <= self.main.ms2_tlr
+    
+    def _fragment_fa_type(self, fragment, fa_type):
+        return fa_type in fragment[7]
+    
+    def _fragments(self, scan, fragment_condition = lambda x: True,
+        head = None, max_percent = None, **kwargs):
+        for i in xrange(scan.shape[0] if head is None else head):
+            if max_percent is None or \
+                scan[0,2] * max_percent / 100.0 <= scan[i,2]:
+                if fragment_condition(scan[i,:], **kwargs):
+                    yield scan[i,:]
+    
+    def _any_fragment(self, scan, fragment_condition = lambda x: True,
+        head = None, max_percent = None, **kwargs):
+        f = self._fragments(scan, fragment_condition,
+            head, max_percent, **kwargs)
+        try:
+            f.next()
+            return True
+        except StopIteration:
+            return False
+    
+    def _is_hg(self, name):
+        pass
+    
+    def _hgs(self, scan):
+        pass
     
     def get_most_abundant_frag(self):
-        return None if self.tbl['ms2r'] is None \
-            else None
-    
-    def most_abundant_hg_frag(self):
         pass
+    
+    def most_abundant(self, head = 1, max_percent = None,
+        fragment_condition = None, **kwargs):
+        fragment_condition = self.fragment_match \
+            if fragment_condition is None else fragment_condition
+        return self._any_scan(
+            scan_condition = self._any_fragment,
+            fragment_condition = self._fragment_match,
+            head = head, max_percent = max_percent,
+            **kwargs)
     
     def most_abundant_fa_frag(self):
         pass
@@ -268,7 +370,13 @@ class Feature(object):
         pass
     
     def is_pe(self):
-        return self.most_abundant_hg_frag()
+        if self.mode == 'pos':
+            return self.most_abundant(head = 2, mz = 141.0191) \
+                and self.most_abundant(head = 2,
+                    fragment_condition = self._fragment_fa_type,
+                    fa_type = '-H2O+H')
+        else:
+            return self.most_abundant(head = 2, )
 
 # ##
 
@@ -386,6 +494,7 @@ class LTP(object):
         self.nAdducts = None
         self.pAdducts = None
         self.exacts = None
+        self.ltps_drifts = None
         
         self.html_table_template = '''<!DOCTYPE html>
             <html lang="en">
@@ -3236,22 +3345,27 @@ class LTP(object):
                             ))
                         # no fragment matched --- unknown fragment
                         if ms2hit1 is None and ms2hit2 is None:
-                            ms2matches[ms1oi].append(np.concatenate((
+                            thisRow = np.concatenate((
                                 np.array([ms1mz, mass,
                                     intensity, ms2i, 0, fr],
                                     dtype = np.object),
                                 np.array([None, 'unknown', 'unknown'],
                                     dtype = np.object),
                                 ms2item)
-                            ))
+                            )
+                            thisRow.shape = (1, 15)
+                            ms2matches[ms1oi].append(thisRow)
                     prevl = l
                     prevp = f.tell()
         # removing file pointers
         for f in files.values():
             f.close()
         for oi, ms2match in ms2matches.iteritems():
-            ms2matches[oi] = np.vstack(ms2match) if len(ms2match) > 0 \
-                else np.array([])
+            if len(ms2match) > 0:
+                ms2matches[oi] = np.vstack(ms2match)
+            else:
+                ms2matches[oi] = np.array([[]])
+                ms2matches[oi].shape = (0, 15)
         return ms2matches
 
     def ms2_identify(self, mass, fragments, compl):
@@ -5725,7 +5839,7 @@ class LTP(object):
         cvs.print_figure(outf)
         fig.clf()
 
-    def identification_levels(self, valids, ltp = 'STARD10',
+    def identification_levels(self, ltp = 'STARD10',
         hg = 'PC', classif = None):
         visited = {'neg': set([]), 'pos': set([])}
         labels = ['MS1 & MS2 both +/-', 
@@ -5759,7 +5873,7 @@ class LTP(object):
         }
         for mode, opp_mod in [('pos', 'neg'), ('neg', 'pos')]:
             tbl = valids[ltp][mode]
-            opp_tbl = valids[ltp][opp_mod]
+            opp_tbl = self.valids[ltp][opp_mod]
             for i, oi in enumerate(tbl['i']):
                 if oi not in visited[mode] and \
                     (classif is None or tbl[classif][i]):
@@ -5905,8 +6019,7 @@ class LTP(object):
             )
         ))
 
-    def _features_table_row(self, ltp, mod, tbl, oi, i, fits_profile, drift,
-        ms2files, path):
+    def _features_table_row(self, ltp, mod, tbl, oi, i, fits_profile, drift):
         tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s'\
             '\n\t\t\t</td>\n'
         tableccell = '\t\t\t<td class="%s" title="%s"'\
@@ -5922,7 +6035,7 @@ class LTP(object):
             '%.04f (%.04f)' % (tbl['mz'][i], original_mz)))
         row.append(tableccell % (
             ('nothing clickable',
-                _database_details_list(tbl['lip'][oi]),
+                self._database_details_list(tbl['lip'][oi]),
                 'see DB records') \
                     if tbl['lip'][oi] is not None and \
                         len(tbl['lip'][oi]) > 0 \
@@ -5936,8 +6049,8 @@ class LTP(object):
             ', '.join(tbl['ms1hg'][oi])))
         row.append(tableccell % \
             (('nothing clickable',
-                    _fragment_details_list(tbl['ms2r'][oi],
-                        ms2files[ltp][mod], path),
+                    self._fragment_details_list(tbl['ms2r'][oi],
+                        self.ms2files[ltp][mod], self.ltpdirs[0]),
                     'see MS2 frags.') \
                 if oi in tbl['ms2r'] else \
             ('nothing', 'No MS2 results for this feature', 'No MS2'))
@@ -5975,9 +6088,8 @@ class LTP(object):
         ))
         return row
 
-    def features_table(self, valids, ms2files, path,
-        filename = 'identities_details_rec',
-        fits_profile = 'cl70pct', drifts = None):
+    def features_table(self, filename = None,
+        fits_profile = 'cl70pct'):
         hdr = ['+m/z', '+Database', '+MS1 headgroups',
             '+MS2 fragments', '+MS2 headgroups', 
             '+MS1 fattya.', '+MS2 fattya.',
@@ -5989,6 +6101,9 @@ class LTP(object):
             '-Combined',
             '-Fits protein']
         
+        filename = 'results_%s_identities_details' % self.today() \
+            if filename is None \
+            else filename
         tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
         tablehcell = '\t\t\t<th>\n\t\t\t\t%s\n\t\t\t</th>\n'
         tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s'\
@@ -6001,8 +6116,8 @@ class LTP(object):
         title = 'Identification details of all features'
         navhtml = ''
         navcnum = 7
-        navrnum = len(valids) / navcnum + 1
-        ltps = sorted(valids.keys())
+        navrnum = len(self.valids) / navcnum + 1
+        ltps = sorted(self.valids.keys())
         for i in xrange(navrnum):
             thisRow = []
             for j in xrange(navcnum):
@@ -6017,9 +6132,9 @@ class LTP(object):
                 )
             navhtml += tablerow % '\n'.join(thisRow)
         with open(navigation, 'w') as f:
-            f.write(html_table_template % (title, title, navhtml))
+            f.write(self.html_table_template % (title, title, navhtml))
         
-        for ltp, d in valids.iteritems():
+        for ltp, d in self.valids.iteritems():
             title = '%s: identities for all features, detailed' % ltp
             thisFilename = '%s/%s_%s.html' % (filename, filename, ltp)
             table = ''
@@ -6038,25 +6153,25 @@ class LTP(object):
             table += (tablerow % '\n'.join(thisRow))
             for mod, tbl in d.iteritems():
                 opp_mod = 'neg' if mod == 'pos' else 'pos'
-                drift = 1.0 if drifts is None \
+                drift = 1.0 if not self.ltps_drifts \
                     or 'recalibrated' not in tbl \
                     or not tbl['recalibrated'] \
-                    else ppm2ratio(np.nanmedian(
-                        np.array(drifts[ltp][mod].values())
+                    else self.ppm2ratio(np.nanmedian(
+                        np.array(self.ltps_drifts[ltp][mod].values())
                     ))
-                opp_drift = 1.0 if drifts is None \
+                opp_drift = 1.0 if not self.ltps_drifts \
                     or 'recalibrated' not in tbl \
                     or not tbl['recalibrated'] \
-                    else ppm2ratio(np.nanmedian(
-                        np.array(drifts[ltp][opp_mod].values())
+                    else self.ppm2ratio(np.nanmedian(
+                        np.array(self.ltps_drifts[ltp][opp_mod].values())
                     ))
                 for i, oi in enumerate(tbl['i']):
                     if oi not in visited[mod]:
                         thisRow = {'pos': [], 'neg': []}
                         visited[mod].add(oi)
                         thisRow[mod].append(
-                            _features_table_row(ltp, mod, tbl,
-                                oi, i, fits_profile, drift, ms2files, path))
+                            self._features_table_row(ltp, mod, tbl,
+                                oi, i, fits_profile, drift))
                         try:
                             if len(tbl[opp_mod][oi]) == 0:
                                 thisRow[opp_mod] = [map(lambda i:
@@ -6070,10 +6185,10 @@ class LTP(object):
                                     opp_i = np.where(d[opp_mod]['i'] == \
                                         opp_oi)[0][0]
                                     thisRow[opp_mod].append(
-                                        _features_table_row(
+                                        self._features_table_row(
                                             ltp, opp_mod, d[opp_mod],
                                             opp_oi, opp_i, fits_profile,
-                                            opp_drift, ms2files, path
+                                            opp_drift
                                         )
                                     )
                         except KeyError:
@@ -6087,7 +6202,7 @@ class LTP(object):
                                     #print pos_row
                                     #print neg_row
             with open(thisFilename, 'w') as f:
-                f.write(html_table_template % (title, title, table))
+                f.write(self.html_table_template % (title, title, table))
 
     def combined_table(self, valids, filename = 'headgroups_combined.html',
         include = 'cl70pct', identity = 'combined_hg'):

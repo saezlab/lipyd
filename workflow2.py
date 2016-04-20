@@ -93,13 +93,8 @@ Exporting HTML tables
 l.ms1_table_html()
 l.ms1_table_html_simple()
 l.ms2_table_html_simple()
-
-ltp.ms1_ms2_table_html_simple(valids, lipnames, include = 'cl70pct',
-    filename = 'ms1ms2headgroups2rec.html')
-
-ltp.features_table(valids, ms2files, ltp.ltpdirs[0],
-    filename = 'identities_details_rec',
-    drifts = ltps_drifts)
+l.ms1_ms2_table_html_simple()
+l.features_table()
 
 idlevels = {
     'All': ltp.identification_levels(valids, 'STARD10', 'PC'),
