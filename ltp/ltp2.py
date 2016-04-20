@@ -212,6 +212,66 @@ class Mz():
         m = MolWeight('NH4')
         return self.adduct(m - mass.electron)
 
+# ##
+
+class Feature(object):
+    '''
+    Provides additional, more sophisticated methods
+    for identification of a single feature.
+    
+    In the original concept all methods for identification
+    based on MS1 and MS2 took place in class LTP(),
+    as those could simply iterate through the arrays.
+    
+    Later more complex methods became necessary, so
+    I created this class to group them.
+    '''
+    
+    def __init__(self, main, protein, mode, oi):
+        '''
+        @main : ltp.LTP() instance
+            One LTP() instance with MS1 and MS2 processing already done.
+        
+        @protein : str
+            Protein name
+        
+        @mode : str
+            MS mode (`pos` or `neg`)
+        
+        @oi : int
+            Original index of one feature.
+        '''
+        self.main = main
+        self.protein = protein
+        self.mode = mode
+        self.oi = oi
+        self.tbl = self.main.valids[self.protein][self.mode]
+        self.oi = self.main.i2oi(self.protein, self.mode, self.i)
+    
+    def get_most_abundant_frag(self):
+        return None if self.tbl['ms2r'] is None \
+            else None
+    
+    def most_abundant_hg_frag(self):
+        pass
+    
+    def most_abundant_fa_frag(self):
+        pass
+    
+    def most_abundant_hg_frag_matches(self, target_frag):
+        pass
+    
+    def most_abundant_fa_frag_matches(self, target_frag):
+        pass
+    
+    def frag_present(self, target_frag):
+        pass
+    
+    def is_pe(self):
+        return self.most_abundant_hg_frag()
+
+# ##
+
 class LTP(object):
     
     def __init__(self, **kwargs):
@@ -973,7 +1033,7 @@ class LTP(object):
                     else:
                         tbl['recalibrated'] = False
                         sys.stdout.write('\t:: No drift values'\
-                            ' for %s :(\n' % ltp)
+                            ' for %s-%s :(\n' % (ltp, mode))
 
     def read_standards(self, accuracy = 5, cache = True):
         if os.path.exists(self.stdcachefile) and cache:
@@ -1151,6 +1211,16 @@ class LTP(object):
                         np.isnan(self.drifts2[date][se[std2i]]):
                         std2i = None
                     if std2i is None:
+                        d = self.drifts2[date][se[std1i]]
+                        sys.stdout.write('\t:: For %s-%s-%s only one standard'\
+                            ' available\n' % (typ, mode, sample[2]))
+                    elif std1i is not None and \
+                        np.isnan(self.drifts2[date][se[std1i]]) and std2i is not None:
+                        d = self.drifts2[date][se[std2i]]
+                        sys.stdout.write('\t:: For %s-%s-%s only one standard'\
+                            ' available\n' % (typ, mode, sample[2]))
+                    elif std2i is not None and \
+                        np.isnan(self.drifts2[date][se[std2i]]) and std1i is not None:
                         d = self.drifts2[date][se[std1i]]
                         sys.stdout.write('\t:: For %s-%s-%s only one standard'\
                             ' available\n' % (typ, mode, sample[2]))
@@ -3365,16 +3435,25 @@ class LTP(object):
                     unsats += unsat
                 ms2fas = '%u:%u' % (carbs, unsats)
         return ms2fa, ms2fai, ms2fas
-
+    
     '''
     END: MS2 functions
     '''
+    
+    '''
+    BEGIN: New identification methods
+    '''
+    
 
-
+    
+    '''
+    END: New identification methods
+    '''
+    
     '''
     Pipeline elements
     '''
-
+    
     def write_out(self, matches, fname):
         '''
         In:
@@ -6052,3 +6131,12 @@ class LTP(object):
             table += tablerow % '\n'.join(thisRow)
         with open(filename, 'w') as f:
             f.write(html_table_template % (title, title, table))
+    
+    def i2oi(self, protein, mode, i):
+        return self.valids[protein][mode]['i'][i] \
+            if (0 <= i < len(self.valids[protein][mode]['i'])) \
+            else None
+    
+    def oi2i(self, protein, mode, oi):
+        i = np.where(self.valids[protein][mode]['i'] == oi)[0]
+        return i[0] if len(i) > 0 else None

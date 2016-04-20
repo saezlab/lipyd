@@ -72,11 +72,12 @@ protein concentration profile.
 '''
 l.profiles_corrs()
 
-l.distance_matrix(metrics = ['en'], with_pprof = True)
-
 '''
 Clustering features based on euclidean distance
 '''
+l.distance_matrix(metrics = ['en'], with_pprof = True)
+
+
 ltp.
 
 ltp.features_clustering(valids)
