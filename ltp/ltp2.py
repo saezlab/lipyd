@@ -259,6 +259,8 @@ class Feature(object):
         )
         self.classes = ['PA', 'PC', 'PE', 'PG', 'PS']
         self.identities = set([])
+        # get carbon counts from MS1
+        self.ms1fa = self.tbl['ms1fa'][oi]
         # sorting by fractions/scans
         self.scans = dict(
             map(
@@ -335,6 +337,9 @@ class MS2Scan(object):
     def __init__(self, scan, feature):
         self.scan = scan
         self.feature = feature
+        self.recc = re.compile(r'.*[^0-9]([0-9]{1,2}):([0-9]).*')
+        self.fa = {}
+        self.fa1 = {}
     
     def most_abundant_mz(self):
         return scan[0,1]
@@ -388,8 +393,10 @@ class MS2Scan(object):
     def is_fa(self, i):
         return 'FA' in self.scan[i,7] or scan[i,7][:7] == 'Lyso-PA'
     
-    def most_abundant_fa(self, fa_type):
+    def most_abundant_fa(self, fa_type, head = 1):
         for i in xrange(self.scan.shape[0]):
+            if i == head:
+                break
             if self.is_fa(i):
                 return self.fa_type_is(i, fa_type)
         return False
@@ -419,6 +426,78 @@ class MS2Scan(object):
         if self.most_abundant_mz_is(mz):
             return self.scan.shape[0] == 1 or \
                 self.scan[1,2] * fold <= self.scan[0,2]
+    
+    def get_cc(self, fa):
+        m = self.recc.match(fa)
+        if m is not None:
+            return tuple(map(int, m.groups()))
+        return (None, None)
+    
+    def most_abundant_fa_cc(self, fa_type = None, head = 2):
+        fa_cc = []
+        for i, frag in enumerate(self.scan):
+            if i == head:
+                break
+            if is_fa(i) and (fa_type is None or self.fa_type_is(i, fa_type)):
+                cc = self.get_cc(frag[7])
+                if cc[0] is not None:
+                    fa_cc.append((cc, frag[2]))
+        return fa_cc
+    
+    def cc2str(self, cc):
+        return '%u:%u' % cc
+    
+    def sum_cc2str(self, ccs):
+        return cc2str(
+            tuple(
+                reduce(
+                    lambda ((c1, uns1), ins1), ((c2, uns2), ins2):
+                        (c1 + c2, uns1 + uns2),
+                    ccs
+                )
+            )
+        )
+    
+    def add_fa1(self, fa, hg):
+        if hg not in self.fa1:
+            self.fa1[hg] = set([])
+            self.fa1[hg].add(
+                tuple(
+                    map(
+                        lambda (_fa, ins):
+                            _fa,
+                        fa
+                    )
+                )
+            )
+    
+    def fa_ccs_agree_ms1(self, hg, fa_type = None, head = 2):
+        fa_cc = self.most_abundant_fa_cc(fa_type = fa_type, head = head)
+        if len(fa_cc) > 0:
+            cc = self.cc2str(fa_cc[0][0])
+            agr = self.fa_cc_agrees_ms1(cc, hg)
+            if agr:
+                self.add_fa1(fa_cc[:1], hg)
+            if len(fa_cc) > 1:
+                cc = self.sum_cc2str(fa_cc[:2], hg)
+                agr = self.fa_cc_agrees_ms1(cc, hg)
+                if agr:
+                    self.add_fa1(fa_cc[:2], hg)
+        return bool(len(self.fa[hg]))
+    
+    def fa_cc_agrees_ms1(self, cc, hg):
+        if hg in self.feature.ms1fa and cc in self.feature.ms1fa[hg]:
+            if hg not in self.feature.fa:
+                self.feature.fa[hg] = set([])
+            if hg not in self.fa:
+                self.fa[hg] = set([])
+            self.feature.fa.add(cc)
+            self.fa.add(cc)
+            return True
+        return False
+    
+    def is_something(self, hg):
+        fa_cc = self.most_abundant_fa_cc(self, )
     
     def is_pe(self):
         if self.feature.mode == 'pos':
@@ -450,19 +529,23 @@ class MS2Scan(object):
         else:
             return self.pe_pc_pg_neg()
     
-    def pa_pe_ps_pg_pos(self):
+    def pa_pe_ps_pg_pos(self, hg):
         return self.mz_among_most_abundant(141.0191) \
-                and self.fa_among_most_abundant('-O]+', min_mass = 140.0)
+            and self.fa_among_most_abundant('-O]+', min_mass = 140.0) \
+            and self.fa_ccs_agree_ms1(hg, '-O]+')
     
-    def pa_ps_neg(self):
+    def pa_ps_neg(self, hg):
         return self.has_mz(152.9958366) and self.has_mz(78.95905658) \
-                and self.fa_among_most_abundant('-H]-')
+            and self.most_abundant_fa('-H]-') \
+            and self.fa_ccs_agree_ms1(hg, '-H]-')
     
-    def pe_pc_pg_neg(self):
-        return self.fa_among_most_abundant('-H]-')
+    def pe_pc_pg_neg(self, hg):
+        return self.most_abundant_fa('-H]-') \
+            and self.fa_ccs_agree_ms1(hg, '-H]-')
     
-    def pc_pos(self):
-        return self.mz_most_abundant_fold(184.0733, 3)
+    def pc_pos(self, hg):
+        return self.mz_most_abundant_fold(184.0733, 3) \
+            and self.fa_ccs_agree_ms1(hg)
 
 # ##
 
