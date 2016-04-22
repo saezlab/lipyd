@@ -452,7 +452,7 @@ class MS2Scan(object):
     
     def pa_pe_ps_pg_pos(self):
         return self.mz_among_most_abundant(141.0191) \
-                and self.fa_among_most_abundant('-H2O+H', min_mass = 200.0)
+                and self.fa_among_most_abundant('-O]+', min_mass = 140.0)
     
     def pa_ps_neg(self):
         return self.has_mz(152.9958366) and self.has_mz(78.95905658) \
@@ -489,8 +489,8 @@ class LTP(object):
                 'LMSDFDownload28Jun15.tar.gz',
             'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
                 'LMSDFDownload28Jun15FinalAll.sdf',
-            'pfragmentsfile': 'lipid_fragments_positive_mode_v2.txt',
-            'nfragmentsfile': 'lipid_fragments_negative_mode_v2.txt',
+            'pfragmentsfile': 'lipid_fragments_positive_mode_v3.txt',
+            'nfragmentsfile': 'lipid_fragments_negative_mode_v3.txt',
             'featurescache': 'features.pickle',
             'pprofcache': 'pprofiles_raw.pickle',
             'auxcache': 'save.pickle',
@@ -3659,7 +3659,16 @@ class LTP(object):
     BEGIN: New identification methods
     '''
     
-
+    def ms2_scans_identify(self):
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                tbl['ms2f'] = {}
+                tbl['ms2i'] = {}
+                for i, oi in enumerate(tbl['i']):
+                    if oi in tbl['ms2']:
+                        tbl['ms2f'] = Feature(self, protein, mode, oi)
+                        tbl['ms2f'].identify()
+                        tbl['ms2i'] = tbl['ms2f'].identities
     
     '''
     END: New identification methods
