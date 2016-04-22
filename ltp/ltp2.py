@@ -257,6 +257,8 @@ class Feature(object):
                 )
             )
         )
+        self.classes = ['PA', 'PC', 'PE', 'PG', 'PS']
+        self.identities = set([])
         # sorting by fractions/scans
         self.scans = dict(
             map(
@@ -286,6 +288,16 @@ class Feature(object):
                 self.scans.iteritems()
             )
         )
+        self._scans = dict(
+            map(
+                lambda (k, v):
+                    (
+                        k,
+                        MS2Scan(v, self)
+                    ),
+                self.scans.iteritems()
+            )
+        )
         self.maxins = dict(
             map(
                 lambda (k, v):
@@ -307,76 +319,150 @@ class Feature(object):
             )
         )
     
-    def _any_scan(self, scan_condition, **kwargs):
-        scans = self._scans()
-        for sc in self.scans.itervalues():
-            if scan_condition(sc, **kwargs):
+    def _any_scan(self, method, **kwargs):
+        for sc in self._scans.itervalues():
+            if getattr(sc, method)(**kwargs):
                 return True
         return False
     
-    def _fragment_match(self, fragment, mz):
-        return abs(fragment[1] - mz) <= self.main.ms2_tlr
+    def identify(self):
+        for hg in self.classes:
+            if self._any_scan('is_%s' % hg.lower()):
+                self.identities.add(hg)
+
+class MS2Scan(object):
     
-    def _fragment_fa_type(self, fragment, fa_type):
-        return fa_type in fragment[7]
+    def __init__(self, scan, feature):
+        self.scan = scan
+        self.feature = feature
     
-    def _fragments(self, scan, fragment_condition = lambda x: True,
-        head = None, max_percent = None, **kwargs):
-        for i in xrange(scan.shape[0] if head is None else head):
-            if max_percent is None or \
-                scan[0,2] * max_percent / 100.0 <= scan[i,2]:
-                if fragment_condition(scan[i,:], **kwargs):
-                    yield scan[i,:]
+    def most_abundant_mz(self):
+        return scan[0,1]
     
-    def _any_fragment(self, scan, fragment_condition = lambda x: True,
-        head = None, max_percent = None, **kwargs):
-        f = self._fragments(scan, fragment_condition,
-            head, max_percent, **kwargs)
-        try:
-            f.next()
-            return True
-        except StopIteration:
-            return False
+    def mz_match(self, mz_detected, mz):
+        return abs(mz_detected - mz) <= self.feature.main.ms2_tlr
     
-    def _is_hg(self, name):
-        pass
+    def mz_lookup(self, mz):
+        '''
+        Returns the index of the closest m/z value
+        detected in the scan if it is within the
+        range of tolerance, otherwise None.
+        '''
+        self.scan = self.scan[self.scan[:,1].argsort(),:]
+        ui = self.scan[:,1].searchsorted(mz)
+        if ui < self.scan.shape[0]:
+            du = mz - self.scan[ui,1]
+        if ui > 0:
+            dl = self.scan[ui - 1,1] - mz
+        i = ui if du < dl else ui - 1
+        i = i if self.mz_match(self.scan[i,1], mz) else None
+        sort = self.scan[:,2].argsort()[::-1]
+        i = np.where(sort == i)[0][0]
+        self.scan = self.scan[sort,:]
+        return i
     
-    def _hgs(self, scan):
-        pass
+    def has_mz(self, mz):
+        return self.mz_lookup(mz) is not None
     
-    def get_most_abundant_frag(self):
-        pass
+    def most_abundant_mz_is(self, mz):
+        return self.mz_match(self.most_abundant_mz(), mz)
     
-    def most_abundant(self, head = 1, max_percent = None,
-        fragment_condition = None, **kwargs):
-        fragment_condition = self.fragment_match \
-            if fragment_condition is None else fragment_condition
-        return self._any_scan(
-            scan_condition = self._any_fragment,
-            fragment_condition = self._fragment_match,
-            head = head, max_percent = max_percent,
-            **kwargs)
+    def mz_among_most_abundant(self, mz, n = 2):
+        for i in xrange(min(n, self.scan.shape[0])):
+            if self.mz_match(self.scan[i,1], mz):
+                return True
+        return False
     
-    def most_abundant_fa_frag(self):
-        pass
+    def mz_percent_of_most_abundant(self, mz, percent = 80.0):
+        insmax = self.scan[0,2]
+        for frag in self.scan:
+            if self.mz_match(frag[1], mz):
+                return True
+            if frag[2] < insmax * 100.0 / percent:
+                return False
+        return False
     
-    def most_abundant_hg_frag_matches(self, target_frag):
-        pass
+    def fa_type_is(self, i, fa_type):
+        return fa_type in self.scan[i,7]
     
-    def most_abundant_fa_frag_matches(self, target_frag):
-        pass
+    def is_fa(self, i):
+        return 'FA' in self.scan[i,7] or scan[i,7][:7] == 'Lyso-PA'
     
-    def frag_present(self, target_frag):
-        pass
+    def most_abundant_fa(self, fa_type):
+        for i in xrange(self.scan.shape[0]):
+            if self.is_fa(i):
+                return self.fa_type_is(i, fa_type)
+        return False
+    
+    def fa_among_most_abundant(self, fa_type, n = 2, min_mass = None):
+        fa_frags = 0
+        for i in xrange(self.scan.shape[0]):
+            if self.is_fa(i) and self.scan[i,1] >= min_mass:
+                fa_frags += 1
+                if self.fa_type_is(i, fa_type):
+                    return True
+                if fa_frags == n:
+                    break
+        return False
+    
+    def fa_percent_of_most_abundant(self, fa_type, percent = 80.0):
+        insmax = self.scan[0,2]
+        for i in xrange(self.scan.shape[0]):
+            if self.is_fa(i):
+                if self.fa_type_is(i, fa_type):
+                    return True
+            if self.scan[i,2] < insmax * 100.0 / percent:
+                return False
+        return False
+    
+    def mz_most_abundant_fold(self, mz, fold):
+        if self.most_abundant_mz_is(mz):
+            return self.scan.shape[0] == 1 or \
+                self.scan[1,2] * fold <= self.scan[0,2]
     
     def is_pe(self):
-        if self.mode == 'pos':
-            return self.most_abundant(head = 2, mz = 141.0191) \
-                and self.most_abundant(head = 2,
-                    fragment_condition = self._fragment_fa_type,
-                    fa_type = '-H2O+H')
+        if self.feature.mode == 'pos':
+            return self.pa_pe_ps_pg_pos()
         else:
-            return self.most_abundant(head = 2, )
+            return self.pe_pc_pg_neg()
+    
+    def is_pc(self):
+        if self.feature.mode == 'pos':
+            return self.pc_pos()
+        else:
+            return self.pe_pc_pg_neg()
+    
+    def is_pa(self):
+        if self.feature.mode == 'pos':
+            return self.pa_pe_ps_pg_pos()
+        else:
+            return self.pa_ps_neg()
+    
+    def is_ps(self):
+        if self.feature.mode == 'pos':
+            return self.pa_pe_ps_pg_pos()
+        else:
+            return self.pa_ps_neg()
+    
+    def is_pg(self):
+        if self.feature.mode == 'pos':
+            return self.pa_pe_ps_pg_pos()
+        else:
+            return self.pe_pc_pg_neg()
+    
+    def pa_pe_ps_pg_pos(self):
+        return self.mz_among_most_abundant(141.0191) \
+                and self.fa_among_most_abundant('-H2O+H', min_mass = 200.0)
+    
+    def pa_ps_neg(self):
+        return self.has_mz(152.9958366) and self.has_mz(78.95905658) \
+                and self.fa_among_most_abundant('-H]-')
+    
+    def pe_pc_pg_neg(self):
+        return self.fa_among_most_abundant('-H]-')
+    
+    def pc_pos(self):
+        return self.mz_most_abundant_fold(184.0733, 3)
 
 # ##
 
@@ -394,7 +480,7 @@ class LTP(object):
             'stddir': 'Standards_mzML format',
             'seqfile': 'Sequence_list_LTP_screen_2015.csv',
             'pptablef': 'proteins_by_fraction.csv',
-            'lipnamesf': 'lipid_names.csv',
+            'lipnamesf': 'lipid_names_v2.csv',
             'bindpropf': 'binding_properties.csv',
             'metabsf': 'Metabolites.xlsx',
             'swisslipids_url': 'http://www.swisslipids.org/php/'\
