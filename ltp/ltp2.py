@@ -3743,8 +3743,11 @@ class LTP(object):
     '''
     
     def ms2_scans_identify(self):
+        prg = progress.Progress(len(self.valids) * 2,
+            'Analysing MS2 scans and identifying features', 1)
         for protein, d in self.valids.iteritems():
             for mode, tbl in d.iteritems():
+                prg.step()
                 tbl['ms2f'] = {}
                 tbl['ms2i'] = {}
                 for i, oi in enumerate(tbl['i']):
@@ -3752,6 +3755,7 @@ class LTP(object):
                         tbl['ms2f'] = Feature(self, protein, mode, oi)
                         tbl['ms2f'].identify()
                         tbl['ms2i'] = tbl['ms2f'].identities
+        prg.terminate()
     
     '''
     END: New identification methods
