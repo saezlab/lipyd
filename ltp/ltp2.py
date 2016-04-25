@@ -227,7 +227,7 @@ class Feature(object):
     I created this class to group them.
     '''
     
-    def __init__(self, main, protein, mode, oi):
+    def __init__(self, main, protein, mode, oi, log = True):
         '''
         @main : ltp.LTP() instance
             One LTP() instance with MS1 and MS2 processing already done.
@@ -240,14 +240,19 @@ class Feature(object):
         
         @oi : int
             Original index of one feature.
+        
+        @log : bool
+            Whether output verbose messages to logfile.
         '''
         self.main = main
+        self.log = log
         self.protein = protein
         self.mode = mode
         self.oi = oi
         self.tbl = self.main.valids[self.protein][self.mode]
         self.ms2 = self.tbl['ms2'][self.oi]
         self.i = self.main.oi2i(self.protein, self.mode, self.oi)
+        self.fa = {}
         self.scans_fractions = map(
             lambda tpl: tuple(map(int, tpl)),
             uniqList(
@@ -320,17 +325,48 @@ class Feature(object):
                 self.scans.iteritems()
             )
         )
+        self.msg('\n::: Analysing feature: %s :: %s :: index = %u ::'\
+                ' m/z = %.03f :: number of MS2 scans: %u\n' % \
+            (self.protein, self.mode, self.oi, self.tbl['mz'][self.i],
+                len(self._scans))
+        )
+        self.msg('\n::: MS2 scans available (%u):\n' % len(self.scans))
+        
+        for sc in self.scans:
+            self.print_scan(sc)
+    
+    def print_scan(self, scan):
+        header = '\tFrag. m/z\tIntensity\tIdentity\n'\
+            '\t=======================================\n'
+        table = '\n\t'.join(
+            map(
+                lambda sc:
+                    '%9.4f\t%10.2f\t%s' % tuple(sc[[1, 2, 7]]),
+                self.scans[scan]
+            )
+        )
+        self.msg('\tScan %u:\n%s\t%s\n\n' % (scan[0], header, table))
+    
+    def msg(self, text):
+        if self.log:
+            with open(self.main.ms2log, 'a') as f:
+                f.write(text)
     
     def _any_scan(self, method, **kwargs):
-        for sc in self._scans.itervalues():
+        for i, sc in self._scans.iteritems():
+            self.msg('\t\t:: Calling method %s() on scan #%u\n' % (method, i[0]))
             if getattr(sc, method)(**kwargs):
                 return True
         return False
     
     def identify(self):
         for hg in self.classes:
+            self.msg('\t>>> Attempting to identify %s in all scans\n' % (hg))
             if self._any_scan('is_%s' % hg.lower()):
                 self.identities.add(hg)
+                self.msg('\t<<< Result: identified as %s\n' % hg)
+            else:
+                self.msg('\t<<< Result: not %s\n' % hg)
 
 class MS2Scan(object):
     
@@ -342,7 +378,9 @@ class MS2Scan(object):
         self.fa1 = {}
     
     def most_abundant_mz(self):
-        return scan[0,1]
+        result = self.scan[0,1]
+        self.feature.msg('\t\t  -- Most abundant m/z is %.03f\n' % result)
+        return result
     
     def mz_match(self, mz_detected, mz):
         return abs(mz_detected - mz) <= self.feature.main.ms2_tlr
@@ -362,55 +400,90 @@ class MS2Scan(object):
         i = ui if du < dl else ui - 1
         i = i if self.mz_match(self.scan[i,1], mz) else None
         sort = self.scan[:,2].argsort()[::-1]
-        i = np.where(sort == i)[0][0]
+        if i is not None:
+            i = np.where(sort == i)[0][0]
         self.scan = self.scan[sort,:]
         return i
     
     def has_mz(self, mz):
-        return self.mz_lookup(mz) is not None
+        result = self.mz_lookup(mz) is not None
+        self.feature.msg('\t\t  -- m/z %.03f occures in this scan? -- %s\n' % \
+            (mz, str(result)))
+        return result
     
     def most_abundant_mz_is(self, mz):
-        return self.mz_match(self.most_abundant_mz(), mz)
+        result = self.mz_match(self.most_abundant_mz(), mz)
+        self.feature.msg('\t\t  -- m/z %.03f is the most abundant? -- %s\n' % \
+            (mz, str(result)))
+        return result
     
     def mz_among_most_abundant(self, mz, n = 2):
+        result = False
         for i in xrange(min(n, self.scan.shape[0])):
             if self.mz_match(self.scan[i,1], mz):
-                return True
-        return False
+                result = True
+                break
+        self.feature.msg('\t\t  -- m/z %.03f is among the %u most abundant? -- '\
+            '%s\n' % (mz, n, str(result)))
+        return result
     
     def mz_percent_of_most_abundant(self, mz, percent = 80.0):
         insmax = self.scan[0,2]
+        result = False
         for frag in self.scan:
             if self.mz_match(frag[1], mz):
-                return True
+                result = True
+                break
             if frag[2] < insmax * 100.0 / percent:
-                return False
-        return False
+                result = False
+                break
+        self.feature.msg('\t\t  -- m/z %.03f has abundance at least %.01f %% of'\
+            ' the highest abundance? -- %s\n' % \
+            (mz, percent, str(result)))
+        return result
     
     def fa_type_is(self, i, fa_type):
-        return fa_type in self.scan[i,7]
+        result = fa_type in self.scan[i,8]
+        self.feature.msg('\t\t  -- Fragment #%u (%s, %s): fatty acid type '\
+            'is %s?  -- %s\n' % \
+                (i, self.scan[i,7], self.scan[i,8], fa_type, str(result)))
+        return result
     
     def is_fa(self, i):
-        return 'FA' in self.scan[i,7] or scan[i,7][:7] == 'Lyso-PA'
+        result = 'FA' in self.scan[i,7] or self.scan[i,7][:7] == 'Lyso-PA'
+        self.feature.msg('\t\t  -- Fragment #%u (%s): is fatty acid? '\
+            '-- %s\n' % (i, self.scan[i,7], str(result)))
+        return result
     
     def most_abundant_fa(self, fa_type, head = 1):
+        result = False
         for i in xrange(self.scan.shape[0]):
             if i == head:
                 break
             if self.is_fa(i):
-                return self.fa_type_is(i, fa_type)
-        return False
+                result = self.fa_type_is(i, fa_type)
+        self.feature.msg('\t\t  -- Having fatty acid %s among %u most abundant '\
+            'features? -- %s\n' % (fa_type, head, str(result)))
+        return result
     
     def fa_among_most_abundant(self, fa_type, n = 2, min_mass = None):
         fa_frags = 0
         for i in xrange(self.scan.shape[0]):
             if self.is_fa(i) and self.scan[i,1] >= min_mass:
                 fa_frags += 1
+                if min_mass is not None:
+                    self.feature.msg('\t\t\t-- Fragment #%u having mass larger '\
+                        'than %.01f\n' % (i, min_mass))
                 if self.fa_type_is(i, fa_type):
-                    return True
+                    result = True
                 if fa_frags == n:
                     break
-        return False
+            elif min_mass is not None:
+                self.feature.msg('\t\t\t-- Fragment #%u having mass lower '\
+                        'than %.01f\n' % (i, min_mass))
+        self.feature.msg('\t\t  -- Having fatty acid fragment %s among %u most '\
+            'abundant -- %s\n' % (fa_type, n, str(result)))
+        return result
     
     def fa_percent_of_most_abundant(self, fa_type, percent = 80.0):
         insmax = self.scan[0,2]
@@ -423,9 +496,13 @@ class MS2Scan(object):
         return False
     
     def mz_most_abundant_fold(self, mz, fold):
+        result = False
         if self.most_abundant_mz_is(mz):
-            return self.scan.shape[0] == 1 or \
+            result = self.scan.shape[0] == 1 or \
                 self.scan[1,2] * fold <= self.scan[0,2]
+        self.feature.msg('\t\t  -- m/z %.03f is at least %u times higher than '\
+            'any other? -- %s\n' % (mz, fold, str(result)))
+        return result
     
     def get_cc(self, fa):
         m = self.recc.match(fa)
@@ -438,7 +515,7 @@ class MS2Scan(object):
         for i, frag in enumerate(self.scan):
             if i == head:
                 break
-            if is_fa(i) and (fa_type is None or self.fa_type_is(i, fa_type)):
+            if self.is_fa(i) and (fa_type is None or self.fa_type_is(i, fa_type)):
                 cc = self.get_cc(frag[7])
                 if cc[0] is not None:
                     fa_cc.append((cc, frag[2]))
@@ -448,7 +525,7 @@ class MS2Scan(object):
         return '%u:%u' % cc
     
     def sum_cc2str(self, ccs):
-        return cc2str(
+        return self.cc2str(
             tuple(
                 reduce(
                     lambda ((c1, uns1), ins1), ((c2, uns2), ins2):
@@ -470,6 +547,15 @@ class MS2Scan(object):
                     )
                 )
             )
+            fastr = ', '.join(
+                    map(
+                        lambda (_fa, ins):
+                            self.cc2str(_fa),
+                        fa
+                    )
+                )
+            self.feature.msg('\t\t  -- Adding fatty acids %s at headgroup '\
+                '%s\n' % (fastr, hg))
     
     def fa_ccs_agree_ms1(self, hg, fa_type = None, head = 2):
         fa_cc = self.most_abundant_fa_cc(fa_type = fa_type, head = head)
@@ -479,55 +565,64 @@ class MS2Scan(object):
             if agr:
                 self.add_fa1(fa_cc[:1], hg)
             if len(fa_cc) > 1:
-                cc = self.sum_cc2str(fa_cc[:2], hg)
+                cc = self.sum_cc2str(fa_cc[:2])
                 agr = self.fa_cc_agrees_ms1(cc, hg)
                 if agr:
                     self.add_fa1(fa_cc[:2], hg)
-        return bool(len(self.fa[hg]))
+        return hg in self.fa
     
     def fa_cc_agrees_ms1(self, cc, hg):
+        result = False
         if hg in self.feature.ms1fa and cc in self.feature.ms1fa[hg]:
             if hg not in self.feature.fa:
                 self.feature.fa[hg] = set([])
             if hg not in self.fa:
                 self.fa[hg] = set([])
-            self.feature.fa.add(cc)
-            self.fa.add(cc)
-            return True
-        return False
+            self.feature.fa[hg].add(cc)
+            self.fa[hg].add(cc)
+            result = True
+        self.feature.msg('\t\t  -- Carbon count from MS2: %s; from databases '\
+            'lookup: %s -- Any of these matches: %s\n' % \
+                (
+                    cc,
+                    str(self.feature.ms1fa[hg]) \
+                        if hg in self.feature.ms1fa else '-',
+                    str(result))
+                )
+        return result
     
     def is_something(self, hg):
         fa_cc = self.most_abundant_fa_cc(self, )
     
     def is_pe(self):
         if self.feature.mode == 'pos':
-            return self.pa_pe_ps_pg_pos()
+            return self.pa_pe_ps_pg_pos('PE')
         else:
-            return self.pe_pc_pg_neg()
+            return self.pe_pc_pg_neg('PE')
     
     def is_pc(self):
         if self.feature.mode == 'pos':
-            return self.pc_pos()
+            return self.pc_pos('PC')
         else:
-            return self.pe_pc_pg_neg()
+            return self.pe_pc_pg_neg('PC')
     
     def is_pa(self):
         if self.feature.mode == 'pos':
-            return self.pa_pe_ps_pg_pos()
+            return self.pa_pe_ps_pg_pos('PA')
         else:
-            return self.pa_ps_neg()
+            return self.pa_ps_neg('PA')
     
     def is_ps(self):
         if self.feature.mode == 'pos':
-            return self.pa_pe_ps_pg_pos()
+            return self.pa_pe_ps_pg_pos('PS')
         else:
-            return self.pa_ps_neg()
+            return self.pa_ps_neg('PS')
     
     def is_pg(self):
         if self.feature.mode == 'pos':
-            return self.pa_pe_ps_pg_pos()
+            return self.pa_pe_ps_pg_pos('PG')
         else:
-            return self.pe_pc_pg_neg()
+            return self.pe_pc_pg_neg('PG')
     
     def pa_pe_ps_pg_pos(self, hg):
         return self.mz_among_most_abundant(141.0191) \
@@ -579,6 +674,7 @@ class LTP(object):
             'auxcache': 'save.pickle',
             'stdcachefile': 'calibrations.pickle',
             'validscache': 'valids.pickle',
+            'ms2log': 'ms2.log',
             'swl_levels': ['Species'],
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.02,
@@ -3122,7 +3218,10 @@ class LTP(object):
         with open(fname, 'r') as Handle:
             for Line in Handle.readlines():
                 Line = Line.strip().split('\t')
-                MetabMass, MetabType, MetabCharge = Line[:3]
+                try:
+                    MetabMass, MetabType, MetabCharge = Line[:3]
+                except:
+                    print Line
                 hgm = rehg.match(Line[1])
                 if len(Line) == 4 or hgm:
                     Hgroupfrags[MetabType] = set([])
@@ -3329,6 +3428,7 @@ class LTP(object):
                     ms2i[1], ms2i[2], ms2i[14], ms2i[12]], dtype = np.object))
         for oi, ms2s in result.iteritems():
             result[oi] = np.vstack(ms2s) if len(ms2s) > 0 else np.array([])
+            result[oi].shape = (len(result[oi]), 6)
         return result
 
     def ms2_match(self, ms1Mzs, ms1Rts, ms1is, ltp, pos,
@@ -3744,7 +3844,7 @@ class LTP(object):
     
     def ms2_scans_identify(self):
         prg = progress.Progress(len(self.valids) * 2,
-            'Analysing MS2 scans and identifying features', 1)
+            'Analysing MS2 scans and identifying features', 1, percent = False)
         for protein, d in self.valids.iteritems():
             for mode, tbl in d.iteritems():
                 prg.step()
@@ -3752,9 +3852,9 @@ class LTP(object):
                 tbl['ms2i'] = {}
                 for i, oi in enumerate(tbl['i']):
                     if oi in tbl['ms2']:
-                        tbl['ms2f'] = Feature(self, protein, mode, oi)
-                        tbl['ms2f'].identify()
-                        tbl['ms2i'] = tbl['ms2f'].identities
+                        tbl['ms2f'][oi] = Feature(self, protein, mode, oi)
+                        tbl['ms2f'][oi].identify()
+                        tbl['ms2i'][oi] = tbl['ms2f'][oi].identities
         prg.terminate()
     
     '''
@@ -6189,15 +6289,21 @@ class LTP(object):
 
     def _fragment_details_list(self, ms2r, ms2files, path):
         fractions = {9: 'A09', 10: 'A10', 11: 'A11', 12: 'A12', 1: 'B01'}
-        if ms2r is None: ms2r = []
-        return '\n'.join(map(lambda l:
+        if ms2r is not None:
+            try:
+                sort = ms2r[:,3].argsort()[::-1]
+            except:
+                print ms2r.shape
+        else:
+            sort = []
+        return '\n'.join(map(lambda i:
             '⚫ %s (%.02f)\n    @ file: %s\n    @ scan no. %u' % \
-                (l[0], l[3],
-                    ms2files[fractions[int(l[4])]].replace(path, '')[1:],
-                    int(l[5])),
-            filter(lambda l:
-                l[0] != 'unknown',
-                ms2r
+                (ms2r[i,0], ms2r[i,3],
+                    ms2files[fractions[int(ms2r[i,4])]].replace(path, '')[1:],
+                    int(ms2r[i,5])),
+            filter(lambda i:
+                ms2r[i,0] != 'unknown',
+                sort
             )
         ))
 
@@ -6464,3 +6570,74 @@ class LTP(object):
     def oi2i(self, protein, mode, oi):
         i = np.where(self.valids[protein][mode]['i'] == oi)[0]
         return i[0] if len(i) > 0 else None
+    
+    def ms2identities_summary(self, string = False):
+        result = \
+            dict(
+                map(
+                    lambda (protein, d):
+                        (protein,
+                        dict(
+                            map(
+                                lambda (mode, tbl):
+                                    (mode,
+                                    filter(
+                                        lambda i:
+                                            i is not None,
+                                        map(
+                                            lambda f:
+                                                None \
+                                                if len(f.identities) == 0 \
+                                                else reduce(
+                                                    lambda (a, b):
+                                                        a | b,
+                                                    f.identities
+                                                ),
+                                            tbl['ms2f'].values()
+                                        ),
+                                    )
+                                    ),
+                                d.iteritems()
+                            )
+                            )
+                        ),
+                    self.valids.iteritems()
+                )
+            )
+        
+        if not string:
+            return result
+        
+        result_str = \
+            ''.join(
+                map(
+                    lambda (protein, d):
+                        'Protein: %s\n%s\n' % (
+                            protein,
+                            ''.join(
+                                map(
+                                    lambda (mode, res):
+                                        '\tMode: %s\n\t   %s\n' % (
+                                            mode,
+                                            '\n\t   '.join(
+                                                map(
+                                                    lambda hg:
+                                                        '%s (detected %u '\
+                                                            'times)' % \
+                                                                (hg,
+                                                                collections.\
+                                                                Counter(res)\
+                                                                    [hg]
+                                                                ),
+                                                    uniqList(res)
+                                                ),
+                                            )
+                                        ),
+                                    d.iteritems()
+                                )
+                            )
+                        ),
+                    result.iteritems()
+                )
+            )
+        return result_str
