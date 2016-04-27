@@ -72,7 +72,7 @@ readline.parse_and_bind('tab:complete')
 warnings.filterwarnings('error')
 warnings.filterwarnings('default')
 
-class MolWeight():
+class MolWeight(object):
     
     #
     # Thanks for
@@ -88,7 +88,7 @@ class MolWeight():
         self.mass = mass.massFirstIso
         self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
         if formula is None:
-            formula = ''.join('%s%u'%(elem.upper(), num) \
+            formula = ''.join('%s%u'%(elem.capitalize(), num) \
                 for elem, num in kwargs.iteritems())
         self.formula = formula
         self.calc_weight()
@@ -145,6 +145,110 @@ class MolWeight():
             count = int(count or '1')
             w += self.mass[element] * count
         self.weight = w
+    
+    def reload(self):
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+
+class AdductCalculator(object):
+    
+    def __init__(self):
+        self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
+        self.init_counts()
+    
+    def init_counts(self):
+        self.counts = self.counts if hasattr(self, 'counts') else {}
+    
+    def formula2counts(self, formula):
+        for elem, num in self.reform.findall(formula):
+            num = 1 if len(num) == 0 else int(num)
+            yield elem, num
+    
+    def remove(self, formula):
+        for elem, num in self.formula2counts(formula):
+            self.add_atoms(elem, -num)
+    
+    def add(self, formula):
+        for elem, num in self.formula2counts(formula):
+            self.add_atoms(elem, num)
+    
+    def add_atoms(self, elem, num):
+        self.counts[elem] = num if elem not in self.counts \
+            else self.counts[elem] + num
+
+class FattyFragment(MolWeight, AdductCalculator):
+    
+    def __init__(self, c = 3, unsat = 0, minus = [], plus = []):
+        self.init_counts()
+        self.add_atoms('C', c)
+        self.add_atoms('H', c * 2)
+        self.add_atoms('O', 2)
+        self.add_atoms('H', unsat * - 2 )
+        AdductCalculator.__init__(self)
+        for formula in minus:
+            self.remove(formula)
+        for formula in plus:
+            self.add(formula)
+        MolWeight.__init__(self, **self.counts)
+
+class LysoPEAlkenyl(FattyFragment):
+    
+    def __init__(self, c, unsat = 0, minus = [], plus = []):
+        self.counts = {
+            'C': 5,
+            'H': 11,
+            'O': 4,
+            'N': 1,
+            'P': 1
+        }
+        super(LysoPEAlkenyl, self).__init__(
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus
+        )
+
+class LysoPEAlkanyl(FattyFragment):
+    
+    def __init__(self, c, unsat = 0, minus = [], plus = []):
+        self.counts = {
+            'C': 5,
+            'H': 13,
+            'O': 4,
+            'N': 1,
+            'P': 1
+        }
+        super(LysoPEAlkanyl, self).__init__(
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus
+        )
+
+class LysoPCAlkenyl(FattyFragment):
+    
+    def __init__(self, c, unsat = 0, minus = [], plus = []):
+        self.counts = {
+            'C': 8,
+            'H': 18,
+            'O': 4,
+            'N': 1,
+            'P': 1
+        }
+        super(LysoPCAlkenyl, self).__init__(
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus
+        )
+
+class FAminusH(FattyFragment):
+    
+    def __init__(self, c, unsat):
+        super(FAminusH, self).__init__(c = c, unsat = unsat, minus = ['H'])
 
 class Mz():
     
@@ -211,6 +315,13 @@ class Mz():
     def add_nh4(self):
         m = MolWeight('NH4')
         return self.adduct(m - mass.electron)
+    
+    def reload(self):
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
 
 # ##
 
@@ -335,6 +446,28 @@ class Feature(object):
         for sc in self.scans:
             self.print_scan(sc)
     
+    def reload(self):
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+    
+    def __str__(self):
+        return ', '.join(
+            map(
+                lambda (hg, fas):
+                    ', '.join(
+                        map(
+                            lambda fa:
+                                '%s(%s)' % (hg, fa),
+                            fas
+                        )
+                    ),
+                self.fa.iteritems()
+            )
+        )
+    
     def print_scan(self, scan):
         header = '\tFrag. m/z\tIntensity\tIdentity\n'\
             '\t=======================================\n'
@@ -376,6 +509,13 @@ class MS2Scan(object):
         self.recc = re.compile(r'.*[^0-9]([0-9]{1,2}):([0-9]).*')
         self.fa = {}
         self.fa1 = {}
+    
+    def reload(self):
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
     
     def most_abundant_mz(self):
         result = self.scan[0,1]
@@ -443,7 +583,7 @@ class MS2Scan(object):
         return result
     
     def fa_type_is(self, i, fa_type):
-        result = fa_type in self.scan[i,8]
+        result = fa_type in self.scan[i,8] or fa_type in self.scan[i,7]
         self.feature.msg('\t\t  -- Fragment #%u (%s, %s): fatty acid type '\
             'is %s?  -- %s\n' % \
                 (i, self.scan[i,7], self.scan[i,8], fa_type, str(result)))
@@ -560,7 +700,7 @@ class MS2Scan(object):
     def fa_ccs_agree_ms1(self, hg, fa_type = None, head = 2):
         fa_cc = self.most_abundant_fa_cc(fa_type = fa_type, head = head)
         if len(fa_cc) > 0:
-            cc = self.cc2str(fa_cc[0][0])
+            cc = self.sum_cc2str([fa_cc[0]] * 2)
             agr = self.fa_cc_agrees_ms1(cc, hg)
             if agr:
                 self.add_fa1(fa_cc[:1], hg)
@@ -640,7 +780,7 @@ class MS2Scan(object):
     
     def pc_pos(self, hg):
         return self.mz_most_abundant_fold(184.0733, 3) \
-            and self.fa_ccs_agree_ms1(hg)
+            and self.fa_ccs_agree_ms1(hg, head = 4)
 
 # ##
 
@@ -859,11 +999,7 @@ class LTP(object):
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist = [modname.split('.')[0]])
         reload(mod)
-        # print 'self.__class__.__name__ = ', self.__class__.__name__
-        # print 'mod = ', mod
         new = getattr(mod, self.__class__.__name__)
-        # print 'new = ', new
-        # print 'new.__class__ = ', new.__class__
         setattr(self, '__class__', new)
     
     #
@@ -6349,6 +6485,12 @@ class LTP(object):
                 if oi in tbl['ms2hg'] and tbl['ms2hg'][oi] is not None else '')
         ))
         row.append(tablecell % \
+            ('nothing', 'MS2 headroups and fatty acids identified based on '\
+                'MS1 and MS2 new rule sets.',
+            '' if oi not in self.valids[ltp][mod]['ms2f'] \
+                else str(self.valids[ltp][mod]['ms2f'][oi])
+        ))
+        row.append(tablecell % \
             ('nothing',
             'Possible fatty acids based on database records',
             '; '.join(map(lambda (hg, fa):
@@ -6378,15 +6520,15 @@ class LTP(object):
 
     def features_table(self, filename = None,
         fits_profile = 'cl70pct'):
-        hdr = ['+m/z', '+Database', '+MS1 headgroups',
-            '+MS2 fragments', '+MS2 headgroups', 
-            '+MS1 fattya.', '+MS2 fattya.',
-            '+Combined',
+        hdr = ['+m/z', '+Database', '+MS1 HGs',
+            '+MS2 frags', '+MS2 HGs', '+ID',
+            '+MS1 FAs', '+MS2 FAs',
+            '+MS1&2',
             '+Fits protein',
-            '-m/z', '-Database', '-MS1 headgroups',
-            '-MS2 fragments', '-MS2 headgroups', 
-            '-MS1 fattya.', '-MS2 fattya.',
-            '-Combined',
+            '-m/z', '-Database', '-MS1 HGs',
+            '-MS2 frags', '-MS2 HGs', '-ID',
+            '-MS1 FAs', '-MS2 FAs',
+            '-MS1&2',
             '-Fits protein']
         
         filename = 'results_%s_identities_details' % self.today() \
@@ -6434,8 +6576,8 @@ class LTP(object):
             visited = {'pos': set([]), 'neg': set([])}
             thisRow = []
             thisRow.append(tablecell % ('rowname', ltp, ltp))
-            thisRow += map(lambda i: 
-                tablecell % ('nothing', '', ''), 
+            thisRow += map(lambda i:
+                tablecell % ('nothing', '', ''),
                 xrange(len(hdr) - 1)
             )
             table += (tablerow % '\n'.join(thisRow))

@@ -37,6 +37,7 @@ def getMasses(url):
             continue
     mass['proton'] = 1.00727646677
     mass['electron'] = 0.00054857990924
+    mass['neutron'] = 1.00866491588
     return mass
 
 def getMassMonoIso():
@@ -86,6 +87,7 @@ def getFreqIso():
 mass = {
   "proton": 1.00727646677,
   "electron": 0.00054857990924,
+  "neutron": 1.00866491588,
   "H":  1.007825,
   "He": 4.002602,
   "Li": 6.941,
