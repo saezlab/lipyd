@@ -4215,7 +4215,9 @@ class LTP(object):
         in case of no match.
         '''
         result = []
-        i = None
+        i = -1
+        du = None
+        dl = None
         iu = fragments[:,0].searchsorted(mass)
         if iu < len(fragments) and \
             (compl and 'NL' in fragments[iu,2] or \
