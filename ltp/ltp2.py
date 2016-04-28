@@ -301,7 +301,7 @@ class LysoPEAlkyl(FattyFragment):
             'N': 1,
             'P': 1
         }
-        super(LysoPEAlkanyl, self).__init__(
+        super(LysoPEAlkyl, self).__init__(
             charge = charge,
             c = c,
             unsat = unsat,
@@ -536,31 +536,6 @@ class LysoPG(FattyFragment):
             hg = ['PG']
         )
 
-class LysoPG(FattyFragment):
-    
-    # from massbank:
-    # [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 6,
-            'H': 12,
-            'O': 7,
-            'P': 1
-        }
-        super(LysoPG, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PG',
-            hg = ['PG']
-        )
-
 class LysoPA(FattyFragment):
     
     # from Characterization of Phospholipid 
@@ -589,13 +564,13 @@ class LysoPA(FattyFragment):
 
 class FAminusH(FattyFragment):
     
-    def __init__(self, c, unsat = 0, isotope = 0):
+    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
         super(FAminusH, self).__init__(charge = -1, c = c, unsat = unsat,
             minus = ['H'], isotope = isotope, name = 'FA')
 
 class FAAlkenylminusH(FattyFragment):
     
-    def __init__(self, c, unsat = 0, isotope = 0):
+    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
         self.counts = {
             'O': -1
         }
@@ -606,7 +581,7 @@ class FAFragSeries(object):
     
     def __init__(self, typ, charge, cmin = 2, unsatmin = 0,
         cmax = 36, unsatmax = 6,
-        minus = [], plus = []):
+        minus = [], plus = [], **kwargs):
         for attr, val in locals().iteritems():
             setattr(self, attr, val)
         self.fragments = []
@@ -617,7 +592,7 @@ class FAFragSeries(object):
                 for cnum in xrange(this_cmin, cmax + 1):
                     self.fragments.append(
                         self.typ(charge = charge, c = cnum, unsat = unsat,
-                            minus = self.minus, plus = self.plus)
+                            minus = self.minus, plus = self.plus, **kwargs)
                     )
     
     def __iter__(self):
@@ -3723,8 +3698,25 @@ class LTP(object):
             self.ms2_read_metabolites(self.pfragmentsfile)
         self.nFragments, self.nHgfrags, self.nHeadgroups = \
             self.ms2_read_metabolites(self.nfragmentsfile)
-
-    def ms2_read_metabolites(self, fname, extra_fragments = False):
+    
+    def export_auto_fraglist(self, infile,
+        outfile = 'lipid_fragments_negative_mode_ext.txt'):
+        lst = self.ms2_read_metabolites(infile, extra_fragments = True,
+            return_fraglines = True)
+        with open(outfile, 'w') as out:
+            out.write(
+                '\n'.join(
+                    map(
+                        lambda l:
+                            '%.07f\t%s\t%s%s' %\
+                                tuple(l[:3] +
+                                    ['\t%s'%l[3] if len(l) >= 4 else '']),
+                        lst
+                    )
+                )
+            )
+    
+    def ms2_read_metabolites(self, fname, extra_fragments = True, return_fraglines = False):
         '''
         In part from Toby Hodges.
         Reads metabolite fragments data.
@@ -3734,28 +3726,79 @@ class LTP(object):
         rehg = re.compile(r'.*\(([\+;A-Z]+)\).*')
         rehgsep = re.compile(r'[;\+]')
         with open(fname, 'r') as Handle:
-            for Line in Handle.readlines():
-                Line = Line.strip().split('\t')
-                try:
-                    MetabMass, MetabType, MetabCharge = Line[:3]
-                except:
-                    print Line
-                hgm = rehg.match(Line[1])
-                if len(Line) == 4 or hgm:
-                    Hgroupfrags[MetabType] = set([])
-                    if len(Line) == 4:
-                        Hgroupfrags[MetabType] = Hgroupfrags[MetabType] | \
-                            set(rehgsep.split(Line[3]))
-                    if hgm:
-                        Hgroupfrags[MetabType] = Hgroupfrags[MetabType] | \
-                            set(rehgsep.split(hgm.groups()[0]))
-                Metabolites.append([self.to_float(MetabMass),
-                    MetabType, MetabCharge])
-                if '+' not in MetabCharge and '-' not in MetabCharge \
-                    and 'NL' not in MetabCharge:
-                    sys.stdout.write('WARNING: fragment %s has no '\
-                        'valid charge information!\n' % \
-                        metabolites[metabolite][1])
+            lst = \
+            map(
+                lambda l:
+                    map(
+                        lambda (i, v):
+                            v if i > 0 else self.to_float(v),
+                        enumerate(
+                            l.strip().split('\t')
+                        )
+                    ),
+                Handle.readlines()
+            )
+        if extra_fragments and 'negative' in fname:
+            # fatty acid -CO2- fragments:
+            lst += self.auto_fragment_list(
+                FattyFragment, -1, minus = ['H', 'CO2'], name = 'FA')
+            lst += self.auto_fragment_list(FAAlkenylminusH, -1)
+            for hg in ('PE', 'PC', 'PS', 'PI'):
+                lst += self.auto_fragment_list(
+                    globals()['Lyso%s' % hg], -1
+                )
+                lst += self.auto_fragment_list(
+                    globals()['Lyso%s' % hg], -1, minus = ['H2O']
+                )
+                lst += self.auto_fragment_list(
+                    globals()['Lyso%sAlkyl' % hg], -1
+                )
+                lst += self.auto_fragment_list(
+                    globals()['Lyso%sAlkyl' % hg], -1, minus = ['H2O']
+                )
+                if hg != 'PI':
+                    lst += self.auto_fragment_list(
+                        globals()['Lyso%sAlkenyl' % hg], -1, cmin = 4
+                    )
+                    lst += self.auto_fragment_list(
+                        globals()['Lyso%sAlkenyl' % hg], -1, cmin = 4, minus = ['H2O']
+                    )
+                if hg == 'PI':
+                    lst += self.auto_fragment_list(
+                        LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
+                    )
+                    lst += self.auto_fragment_list(
+                        LysoPI, -1, minus = ['CO2']
+                    )
+                if hg == 'PE':
+                    lst += self.auto_fragment_list(
+                        LysoPE, -1, minus = ['CO2']
+                    )
+            lst += self.auto_fragment_list(LysoPG, -1)
+            lst += self.auto_fragment_list(LysoPG, -1, minus = ['H2O'])
+            lst += self.auto_fragment_list(LysoPA, -1, minus = ['H2O'])
+            if return_fraglines:
+                return lst
+        for Line in lst:
+            try:
+                MetabMass, MetabType, MetabCharge = Line[:3]
+            except:
+                print Line
+            hgm = rehg.match(Line[1])
+            if len(Line) == 4 or hgm:
+                Hgroupfrags[MetabType] = set([])
+                if len(Line) == 4:
+                    Hgroupfrags[MetabType] = Hgroupfrags[MetabType] | \
+                        set(rehgsep.split(Line[3]))
+                if hgm:
+                    Hgroupfrags[MetabType] = Hgroupfrags[MetabType] | \
+                        set(rehgsep.split(hgm.groups()[0]))
+            Metabolites.append([MetabMass, MetabType, MetabCharge])
+            if '+' not in MetabCharge and '-' not in MetabCharge \
+                and 'NL' not in MetabCharge:
+                sys.stdout.write('WARNING: fragment %s has no '\
+                    'valid charge information!\n' % \
+                    MetabType)
         Headgroups = {}
         for frag, hgs in Hgroupfrags.iteritems():
             for hg in hgs:
@@ -3765,8 +3808,12 @@ class LTP(object):
         return np.array(sorted(Metabolites, key = lambda x: x[0]),
             dtype = np.object), Hgroupfrags, Headgroups
     
-    
-        
+    def auto_fragment_list(self, typ, charge, cmin = 2, unsatmin = 0,
+        cmax = 36, unsatmax = 6, minus = [], plus = [], **kwargs):
+        series = FAFragSeries(typ, charge, cmin = cmin, unsatmin = unsatmin,
+            cmax = cmax, unsatmax = unsatmax, minus = minus, plus = plus,
+            **kwargs)
+        return(series.iterfraglines())
 
     def ms2_filenames(self):
         '''
@@ -4120,21 +4167,21 @@ class LTP(object):
                         # MS2 adduct name,
                         # MS1 pepmass, MS1 intensity, rtime, MS2 scan,
                         # MS2 file offset, fraction number
-                        if ms2hit1 is not None:
+                        for frag in ms2hit1:
                             ms2matches[ms1oi].append(np.concatenate(
                                 (np.array([ms1mz, mass,
                                     intensity, ms2i, 0, fr]),
-                                ms2hit1, ms2item)
+                                frag, ms2item)
                             ))
                         # matched fragment --- inverted
-                        if ms2hit2 is not None:
+                        for frag in ms2hit2:
                             ms2matches[ms1oi].append(np.concatenate((
                                 np.array([ms1mz, mass,
                                     intensity, ms2i, 1, fr]),
-                                ms2hit2, ms2item)
+                                frag, ms2item)
                             ))
                         # no fragment matched --- unknown fragment
-                        if ms2hit1 is None and ms2hit2 is None:
+                        if not len(ms2hit1) and not len(ms2hit2):
                             thisRow = np.concatenate((
                                 np.array([ms1mz, mass,
                                     intensity, ms2i, 0, fr],
@@ -4167,20 +4214,30 @@ class LTP(object):
         Returns the fragment's mass, name and adduct type, or None
         in case of no match.
         '''
+        result = []
+        i = None
         iu = fragments[:,0].searchsorted(mass)
         if iu < len(fragments) and \
             (compl and 'NL' in fragments[iu,2] or \
             not compl and ('+' in fragments[iu,2] or \
-                '-' in fragments[iu,2])) and \
-            fragments[iu,0] - mass <= self.ms2_tlr:
-            return fragments[iu,:]
-        elif iu > 0 and \
+                '-' in fragments[iu,2])):
+            du = fragments[iu,0] - mass
+        if iu > 0 and \
             (compl and 'NL' in fragments[iu - 1,2] or \
             not compl and ('+' in fragments[iu - 1,2] or \
-                '-' in fragments[iu - 1,2])) and \
-            mass - fragments[iu - 1,0] <= self.ms2_tlr:
-            return fragments[iu - 1,:]
-        return None
+                '-' in fragments[iu - 1,2])):
+            dl = mass - fragments[iu - 1,0]
+        if du is not None and (du < dl or dl is None) and du < self.ms2_tlr:
+            i = iu
+            st = 1
+        if dl is not None and (dl < du or du is None) and dl < self.ms2_tlr:
+            i = iu - 1
+            st = -1
+        val = fragments[i,0]
+        while len(fragments) > i >= 0 and fragments[i,0] == val:
+            result.append(fragments[i,:])
+            i += st
+        return result
 
     def ms2_collect(self, ms2matches, ms1mz, unknown = False):
         '''
