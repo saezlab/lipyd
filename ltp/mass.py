@@ -222,3 +222,24 @@ iso_freq = {
     "S34": 0.0429,
     "S35": 0.0002
 }
+
+fragments = {
+    'neg': {
+        'PI [InsP-H2O]-': 'C6H12O9P',
+        'PI [InsP-H]-': 'C6H12O9P',
+        'PI [InsP-2H2O]-': 'C6H12O9P',
+        'PI headgroup [G-P-I]': 'C9H14O9P',
+        'PG/PA/PS/PI partial headgroup': 'C3H6O5P',
+        'Ubiquitious1': 'CH6O4P',
+        'Cer1P/PIP phosphate': 'H2O4P',
+        'SM CH3+COOH': 'CH3COOH',
+        'Cer1P/PIP/PL metaphosphate': 'O3P',
+        'PE headgroup [P-E]': 'C2H7O4NP',
+        'PE headgroup [G-P-E]': 'C5H11O5PN',
+        'PG headgroup [G-P]': 'C3H8O6P'
+    },
+    'pos': {
+        'PC headgroup [P-C]': 'C5H15O4NP',
+        'PC/SM choline [C]': 'C5H12N'
+    }
+}

@@ -28,7 +28,6 @@ import copy
 import cPickle as pickle
 
 from common import *
-from ltp import *
 
 #
 

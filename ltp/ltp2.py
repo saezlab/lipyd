@@ -798,10 +798,30 @@ class Feature(object):
             (self.protein, self.mode, self.oi, self.tbl['mz'][self.i],
                 len(self._scans))
         )
+        self.msg('\n::: Database lookup resulted'\
+            'the following species:\n\t%s\n\n') % self.print_db_species()
         self.msg('\n::: MS2 scans available (%u):\n' % len(self.scans))
         
         for sc in self.scans:
             self.print_scan(sc)
+    
+    def print_db_species(self):
+        return ', '.join(
+            map(
+                lambda hg:
+                    '%s' % hg \
+                        if hg not in self.tbl['ms1fa'] \
+                        or not len(self.tbl['ms1fa'][self.oi]) \
+                        else \
+                    ', '.join(
+                        map(
+                            lambda fa:
+                                '%s(%s)' % (hg, fa),
+                            self.tbl['ms1fa'][self.oi][hg]
+                        )
+                    ),
+            self.tbl['ms1hg'][self.oi]
+        )
     
     def reload(self):
         modname = self.__class__.__module__
@@ -826,16 +846,25 @@ class Feature(object):
         )
     
     def print_scan(self, scan):
-        header = '\tFrag. m/z\tIntensity\tIdentity\n'\
-            '\t=======================================\n'
+        ms1mz = self.tbl['mz'][self.i]
+        header = '\tFrag. m/z\tIntensity\tIdentity%sNL mass\n'\
+            '\t%s\n' % (' ' * 26, '=' * 73)
         table = '\n\t'.join(
             map(
                 lambda sc:
-                    '%9.4f\t%10.2f\t%s' % tuple(sc[[1, 2, 7]]),
+                    '%9.4f\t%10.2f\t%s%s%9.4f' % \
+                        tuple(list(sc[[1, 2, 7]]) + \
+                            [' ' * (32 - len(sc[7])), ms1mz - sc[1]]),
                 self.scans[scan]
             )
         )
-        self.msg('\tScan %u:\n%s\t%s\n\n' % (scan[0], header, table))
+        self.msg('\tScan %u (from fraction %s%u):\n%s\t%s\n\n' % \
+            (scan[0],
+             'A' if 8 < scan[1] < 13 else 'B',
+             scan[1],
+             header,
+             table)
+        )
     
     def msg(self, text):
         if self.log:
@@ -1604,7 +1633,32 @@ class LTP(object):
                         idx.append(i)
                         break
         return exacts[idx,:]
-
+    
+    def process_db_keywords(self, kwdstr):
+        return \
+            map(
+                lambda kwdset:
+                    {
+                        'neg':
+                            map(
+                                lambda kwd:
+                                    kwd[1:],
+                                filter(
+                                    lambda kwd:
+                                        len(kwd) and kwd[0] == '!',
+                                    kwdset.split(';')
+                                )
+                            ),
+                        'pos':
+                            filter(
+                                lambda kwd:
+                                    len(kwd) and kwd[0] != '!',
+                                kwdset.split(';')
+                            )
+                    },
+                kwdstr.split('|')
+            )
+    
     def read_lipid_names(self):
         result = {}
         with open(self.lipnamesf, 'r') as f:
@@ -1613,14 +1667,8 @@ class LTP(object):
                 l = l.strip().split('\t')
                 result[l[0]] = {
                     'full_name': l[1],
-                    'swl_pos_kwds': [kw for kw in l[2].split(';') \
-                        if not kw.startswith('!') and len(kw) > 0],
-                    'swl_neg_kwds': [kw[1:] for kw in l[2].split(';') \
-                        if kw.startswith('!')],
-                    'lmp_pos_kwds': [kw for kw in l[3].split(';') \
-                        if not kw.startswith('!') and len(kw) > 0],
-                    'lmp_neg_kwds': [kw[1:] for kw in l[3].split(';') \
-                        if kw.startswith('!')],
+                    'swl': self.process_db_keywords(l[2]),
+                    'lmp': self.process_db_keywords(l[3]),
                     'pos_adduct': l[4] if l[4] != 'ND' else None,
                     'neg_adduct': l[5] if l[5] != 'ND' else None
                 }
@@ -3308,12 +3356,13 @@ class LTP(object):
         '''
         db = 'lmp' if lip[0][0] == 'L' else 'swl'
         for shortname, spec in self.lipnames.iteritems():
-            matched = [kw in lip[2] for kw in spec['%s_pos_kwds' % db]]
-            if sum(matched) == len(spec['%s_pos_kwds' % db]) and \
-                sum(matched) > 0:
-                matched = [kw in lip[2] for kw in spec['%s_neg_kwds' % db]]
-                if sum(matched) == 0:
-                    return shortname, spec['pos_adduct'], spec['neg_adduct']
+            for kwset in spec[db]:
+                matched = [kw in lip[2] for kw in kwset['pos']]
+                if sum(matched) == len(kwset['pos']) and \
+                    sum(matched) > 0:
+                    matched = [kw in lip[2] for kw in kwset['neg']]
+                    if sum(matched) == 0:
+                        return shortname, spec['pos_adduct'], spec['neg_adduct']
         return None, None, None
 
     def fattyacid_from_lipid_name(self, lip, _sum = True):
@@ -3685,6 +3734,8 @@ class LTP(object):
         self.ms2_map()
         self.ms2_main()
         self.ms2_headgroups()
+        self.headgroups_by_fattya()
+        self.identity_combined()
     
     def identify(self):
         self.headgroups_by_fattya()
@@ -3774,6 +3825,13 @@ class LTP(object):
                     lst += self.auto_fragment_list(
                         LysoPE, -1, minus = ['CO2']
                     )
+                if hg == 'PC':
+                    lst += self.auto_fragment_list(
+                        LysoPC, -1, minus = ['CH3']
+                    )
+                    lst += self.auto_fragment_list(
+                        LysoPC, -1, minus = ['CH3', 'H2O']
+                    )
             lst += self.auto_fragment_list(LysoPG, -1)
             lst += self.auto_fragment_list(LysoPG, -1, minus = ['H2O'])
             lst += self.auto_fragment_list(LysoPA, -1, minus = ['H2O'])
@@ -3801,7 +3859,7 @@ class LTP(object):
                     MetabType)
         Headgroups = {}
         for frag, hgs in Hgroupfrags.iteritems():
-            for hg in hgs:
+            for hg in hgs and len(hg):
                 if hg not in Headgroups:
                     Headgroups[hg] = set([])
                 Headgroups[hg].add(frag)
@@ -5948,7 +6006,7 @@ class LTP(object):
                                 hg = lip[7]
                                 fa = '%u:%u' % (lip[8][0], lip[8][1]) \
                                     if lip[8] is not None else None
-                                if posAdd is None and negAdd is None or \
+                                if (posAdd is None and negAdd is None) or \
                                     thisModeAdd == lip[4]:
                                     if verbose:
                                         sys.stdout.write('\t\taccepting '\
@@ -6826,9 +6884,9 @@ class LTP(object):
         cvs.print_figure(fname)
         fig.clf()
 
-    def mz_report(self, valids, ltp, mode, mz):
-        sort_alll(valids, 'mz')
-        tbl = valids[ltp][mode]
+    def mz_report(self, ltp, mode, mz):
+        self.sort_alll('mz')
+        tbl = self.valids[ltp][mode]
         ui = tbl['mz'].searchsorted(mz)
         i = ui if tbl['mz'][ui] - mz < mz - tbl['mz'][ui - 1] else ui - 1
         oi = tbl['i'][i]
