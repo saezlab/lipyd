@@ -3827,8 +3827,10 @@ class LTP(object):
         self.nFragments, self.nHgfrags, self.nHeadgroups = \
             self.ms2_read_metabolites(self.nfragmentsfile)
     
-    def export_auto_fraglist(self, infile,
-        outfile = 'lipid_fragments_negative_mode_ext.txt'):
+    def export_auto_fraglist(self, infile, outfile = None):
+        outfile = 'lipid_fragments_%s_mode_ext.txt' % \
+            ('negative' if 'negative' in infile else 'positive') \
+            if outfile is None else outfile
         lst = self.ms2_read_metabolites(infile, extra_fragments = True,
             return_fraglines = True)
         with open(outfile, 'w') as out:
