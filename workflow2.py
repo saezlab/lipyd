@@ -283,3 +283,78 @@ ms2files = ltp.ms2_filenames(ltp.ltpdirs)
 ms2map = ms2_map(ms2files)
 ms2_main(ms2map, stage2_best, pFragments, nFragments)
 ms2_main(ms2map, stage2_best_unknown, pFragments, nFragments)
+
+
+####
+ms2result = {
+    'STARD10': {
+        'neg': ['PC', 'PE'],
+        'pos': ['PC']
+    },
+    'BPI': {
+        'neg': ['PC', 'PI'],
+        'pos': ['PE']
+    },
+    'LCN1': {
+        'neg': ['PC'],
+        'pos': []
+    },
+    'BPIFB2': {
+        'neg': ['PC'],
+        'pos': []
+    },
+    'GM2A': {
+        'neg': ['PC', 'PI', 'PE', 'PS', 'PG'],
+        'pos': ['PC', 'PE']
+    },
+    'STARD2': {
+        'neg': ['PC'],
+        'pos': []
+    },
+    'SEC14L2': {
+        'neg': ['PI'],
+        'pos': []
+    },
+    'ORP9': {
+        'neg': ['PS'],
+        'pos': ['Cer']
+    },
+    'GLTPD1': {
+        'neg': ['SM'],
+        'pos': []
+    },
+    'RBP1': {
+        'neg': ['PG'],
+        'pos': []
+    },
+    'SEC14L6': {
+        'neg': [],
+        'pos': ['PE', 'SM']
+    },
+    'STARD11': {
+        'neg': [],
+        'pos': ['Cer']
+    },
+    'SEC14L1': {
+        'neg': [],
+        'pos': ['Cer']
+    },
+    'FABP4': {
+        'neg': [],
+        'pos': ['Cer']
+    },
+    'GLTP': {
+        'neg': [],
+        'pos': ['Cer']
+    }
+}
+
+ms2i = l.ms2identities_summary()
+
+for protein, d in ms2i.iteritems():
+    for mode, lst in d.iteritems():
+        ms2i[protein][mode] = set(ms2i[protein][mode])
+
+for protein, d in ms2result.iteritems():
+    for mode, lst in d.iteritems():
+        ms2i[protein][mode] = ms2i[protein][mode] | set(lst)

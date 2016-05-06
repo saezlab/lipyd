@@ -220,7 +220,7 @@ class FattyFragment(MolWeight, AdductCalculator):
         return '%s%s' % (
                 ('%u' % abs(self.charge)) if abs(self.charge) > 1 else '',
                 '-' if self.charge < 0 else '+'
-            )
+            ) if self.charge != 0 else 'NL'
     
     def adduct_str(self):
         return '%s%s' % (
@@ -577,6 +577,38 @@ class FAAlkenylminusH(FattyFragment):
         super(FAAlkenylminusH, self).__init__(charge = -1, c = c, unsat = unsat,
             minus = ['H'], isotope = isotope, name = 'FA-alkenyl')
 
+class NLFAminusH2O(FattyFragment):
+    
+    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
+        super(NLFAminusH2O, self).__init__(charge = 0, c = c, unsat = unsat,
+            minus = ['H2O'], isotope = isotope, name = 'NL FA-H2O')
+
+class FAplusGlycerol(FattyFragment):
+    
+    def __init__(self, c, unsat = 0, isotope = 0,
+        minus = [], plus = [], **kwargs):
+        self.counts = {
+            'C': 3,
+            'H': 5,
+            'O': 1
+        }
+        super(FAplusGlycerol, self).__init__(charge = 1, c = c, unsat = unsat,
+            minus = minus, plus = plus,
+            isotope = isotope, name = 'FA+G', hg = ['PG', 'BMP'])
+
+class SphingosineBase(FattyFragment):
+    
+    def __init__(self, c, unsat = 0, isotope = 0,
+        minus = [], plus = [], **kwargs):
+        self.counts = {
+            'N': 1,
+            'H': 4
+        }
+        super(SphingosineBase, self).__init__(charge = 1, c = c, unsat = unsat,
+            isotope = isotope, name = 'Sphingosine',
+            minus = minus, plus = plus,
+            hg = ['Sph', 'SM', 'Cer', 'HexCer'])
+
 class FAFragSeries(object):
     
     def __init__(self, typ, charge, cmin = 2, unsatmin = 0,
@@ -798,9 +830,28 @@ class Feature(object):
             (self.protein, self.mode, self.oi, self.tbl['mz'][self.i],
                 len(self._scans))
         )
-        self.msg('\n::: Database lookup resulted'\
-            'the following species:\n\t%s\n\n') % self.print_db_species()
-        self.msg('\n::: MS2 scans available (%u):\n' % len(self.scans))
+        self.msg('\n::: Database lookup resulted '\
+            'the following species: %s\n' % self.print_db_species())
+        self.msg('\n::: Intensities:\n%s%s\n' % \
+            (' ' * 24, '          '.join(['A09', 'A10', 'A11', 'A12', 'B01'])))
+        self.msg('%s%s' % (' ' * 16, '=' * 63))
+        self.msg('\n    - absolute:  %s' % '   '.join(
+            map(lambda x: '%10.01f' % x, self.tbl['fe'][self.i,:]))
+        )
+        self.msg('\n    - relative: %s\n' % \
+            '  '.join(
+                map(
+                    lambda xx:
+                        '%10.02f%%' % (xx * 100.0),
+                    map(
+                        lambda x:
+                            x / np.nanmax(self.tbl['fe'][self.i,:]),
+                        self.tbl['fe'][self.i,:]
+                    )
+                )
+            )
+        )
+        self.msg('\n::: MS2 scans available (%u):\n\n' % len(self.scans))
         
         for sc in self.scans:
             self.print_scan(sc)
@@ -809,19 +860,24 @@ class Feature(object):
         return ', '.join(
             map(
                 lambda hg:
-                    '%s' % hg \
-                        if hg not in self.tbl['ms1fa'] \
-                        or not len(self.tbl['ms1fa'][self.oi]) \
-                        else \
-                    ', '.join(
-                        map(
-                            lambda fa:
-                                '%s(%s)' % (hg, fa),
-                            self.tbl['ms1fa'][self.oi][hg]
+                    '%s' % (
+                        hg \
+                            if hg not in self.tbl['ms1fa'][self.oi] \
+                            or not len(self.tbl['ms1fa'][self.oi][hg]) \
+                            else \
+                        ', '.join(
+                            map(
+                                lambda fa:
+                                    '%s(%s)' % (hg, fa),
+                                self.tbl['ms1fa'][self.oi][hg]
+                            )
                         )
                     ),
-            self.tbl['ms1hg'][self.oi]
-        )
+                self.tbl['ms1hg'][self.oi]
+            )
+        ) \
+        if len(self.tbl['ms1hg'][self.oi]) \
+        else 'none'
     
     def reload(self):
         modname = self.__class__.__module__
@@ -858,10 +914,20 @@ class Feature(object):
                 self.scans[scan]
             )
         )
-        self.msg('\tScan %u (from fraction %s%u):\n%s\t%s\n\n' % \
+        fri = scan[1] - 9 if scan[1] != 1 else 4
+        self.msg('\tScan %u (fraction %s%u; %s %s; intensity = %.01f (%.02f%%)):\n\n%s\t%s\n\n' % \
             (scan[0],
              'A' if 8 < scan[1] < 13 else 'B',
              scan[1],
+             'contains' \
+                if self.main.samples_upper[self.protein][fri + 1] == 1 \
+                else 'does not contain',
+             self.protein,
+             self.tbl['fe'][self.i, fri] \
+                 if fri < self.tbl['fe'].shape[1] else np.nan,
+             (self.tbl['fe'][self.i, fri] \
+                 if fri < self.tbl['fe'].shape[1] else np.nan) / \
+                 np.nanmax(self.tbl['fe'][self.i, :]) * 100.0,
              header,
              table)
         )
@@ -1200,7 +1266,7 @@ class LTP(object):
             'auxcache': 'save.pickle',
             'stdcachefile': 'calibrations.pickle',
             'validscache': 'valids.pickle',
-            'ms2log': 'ms2.log',
+            'ms2log': 'ms2identities.log',
             'swl_levels': ['Species'],
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.02,
@@ -1694,6 +1760,17 @@ class LTP(object):
             except IndexError:
                 print l
         self.bindprop = result
+    
+    def binders_of(self, hg):
+        return map(
+            lambda (k, v):
+                k,
+            filter(
+                lambda (k, v):
+                    hg in v and k in self.samples_upper,
+                self.bindprop.iteritems()
+            )
+        )
 
     #
     # reading the SEC absorption values and calculating the protein 
@@ -3789,54 +3866,64 @@ class LTP(object):
                     ),
                 Handle.readlines()
             )
-        if extra_fragments and 'negative' in fname:
-            # fatty acid -CO2- fragments:
-            lst += self.auto_fragment_list(
-                FattyFragment, -1, minus = ['H', 'CO2'], name = 'FA')
-            lst += self.auto_fragment_list(FAAlkenylminusH, -1)
-            for hg in ('PE', 'PC', 'PS', 'PI'):
+        if extra_fragments:
+            if 'negative' in fname:
+                # fatty acid -CO2- fragments:
                 lst += self.auto_fragment_list(
-                    globals()['Lyso%s' % hg], -1
-                )
-                lst += self.auto_fragment_list(
-                    globals()['Lyso%s' % hg], -1, minus = ['H2O']
-                )
-                lst += self.auto_fragment_list(
-                    globals()['Lyso%sAlkyl' % hg], -1
-                )
-                lst += self.auto_fragment_list(
-                    globals()['Lyso%sAlkyl' % hg], -1, minus = ['H2O']
-                )
-                if hg != 'PI':
+                    FattyFragment, -1, minus = ['H', 'CO2'], name = 'FA')
+                lst += self.auto_fragment_list(FAAlkenylminusH, -1)
+                for hg in ('PE', 'PC', 'PS', 'PI'):
                     lst += self.auto_fragment_list(
-                        globals()['Lyso%sAlkenyl' % hg], -1, cmin = 4
+                        globals()['Lyso%s' % hg], -1
                     )
                     lst += self.auto_fragment_list(
-                        globals()['Lyso%sAlkenyl' % hg], -1, cmin = 4, minus = ['H2O']
-                    )
-                if hg == 'PI':
-                    lst += self.auto_fragment_list(
-                        LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
+                        globals()['Lyso%s' % hg], -1, minus = ['H2O']
                     )
                     lst += self.auto_fragment_list(
-                        LysoPI, -1, minus = ['CO2']
-                    )
-                if hg == 'PE':
-                    lst += self.auto_fragment_list(
-                        LysoPE, -1, minus = ['CO2']
-                    )
-                if hg == 'PC':
-                    lst += self.auto_fragment_list(
-                        LysoPC, -1, minus = ['CH3']
+                        globals()['Lyso%sAlkyl' % hg], -1
                     )
                     lst += self.auto_fragment_list(
-                        LysoPC, -1, minus = ['CH3', 'H2O']
+                        globals()['Lyso%sAlkyl' % hg], -1, minus = ['H2O']
                     )
-            lst += self.auto_fragment_list(LysoPG, -1)
-            lst += self.auto_fragment_list(LysoPG, -1, minus = ['H2O'])
-            lst += self.auto_fragment_list(LysoPA, -1, minus = ['H2O'])
+                    if hg != 'PI':
+                        lst += self.auto_fragment_list(
+                            globals()['Lyso%sAlkenyl' % hg], -1, cmin = 4
+                        )
+                        lst += self.auto_fragment_list(
+                            globals()['Lyso%sAlkenyl' % hg], -1, cmin = 4, minus = ['H2O']
+                        )
+                    if hg == 'PI':
+                        lst += self.auto_fragment_list(
+                            LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
+                        )
+                        lst += self.auto_fragment_list(
+                            LysoPI, -1, minus = ['CO2']
+                        )
+                    if hg == 'PE':
+                        lst += self.auto_fragment_list(
+                            LysoPE, -1, minus = ['CO2']
+                        )
+                    if hg == 'PC':
+                        lst += self.auto_fragment_list(
+                            LysoPC, -1, minus = ['CH3']
+                        )
+                        lst += self.auto_fragment_list(
+                            LysoPC, -1, minus = ['CH3', 'H2O']
+                        )
+                lst += self.auto_fragment_list(LysoPG, -1)
+                lst += self.auto_fragment_list(LysoPG, -1, minus = ['H2O'])
+                lst += self.auto_fragment_list(LysoPA, -1, minus = ['H2O'])
+            if 'positive' in fname:
+                lst += self.auto_fragment_list(NLFAminusH2O, 0)
+                lst += self.auto_fragment_list(FattyFragment, 0, name = 'FA')
+                lst += self.auto_fragment_list(FAplusGlycerol, 1)
+                lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O'])
+                lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O', 'H2O'])
+                lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
+                lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H5'])
             if return_fraglines:
                 return lst
+            
         for Line in lst:
             try:
                 MetabMass, MetabType, MetabCharge = Line[:3]
@@ -3859,10 +3946,11 @@ class LTP(object):
                     MetabType)
         Headgroups = {}
         for frag, hgs in Hgroupfrags.iteritems():
-            for hg in hgs and len(hg):
-                if hg not in Headgroups:
-                    Headgroups[hg] = set([])
-                Headgroups[hg].add(frag)
+            for hg in hgs:
+                if len(hg):
+                    if hg not in Headgroups:
+                        Headgroups[hg] = set([])
+                    Headgroups[hg].add(frag)
         return np.array(sorted(Metabolites, key = lambda x: x[0]),
             dtype = np.object), Hgroupfrags, Headgroups
     
@@ -6287,6 +6375,59 @@ class LTP(object):
             table += tablerow % row
         with open(filename, 'w') as f:
             f.write(self.html_table_template % (title, title, table))
+    
+    def ms1_table_latex_simple(self, filename = 'ms1headgroups.tex', include = 'cl70pct', break_half = True):
+        '''
+        Outputs a LaTeX table LTPs vs lipid classes (headgroups)
+        based on MS1 identifications.
+        '''
+        colnames, ms1tab = self.ms1_table(include = include)
+        table = '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
+        tablerow = '\t%s\\\\\n'
+        hdr = '& '
+        hdr += ' & '.join(
+            sorted(
+                map(
+                    lambda hg:
+                        '\\rot{%s}' % hg,
+                    colnames.keys()
+                )
+            )
+        )
+        table += tablerow % hdr
+        for i, ltp in enumerate(sorted(self.valids.keys())):
+            row = [ltp]
+            for hg in sorted(colnames.keys()):
+                pos_neg = False
+                pos = False
+                neg = False
+                for fa in sorted(colnames[hg]):
+                    if hg in ms1tab[ltp] and fa in ms1tab[ltp][hg]:
+                        if ms1tab[ltp][hg][fa][2]:
+                            pos_neg = True
+                        elif ms1tab[ltp][hg][fa][0] and \
+                            ms1tab[ltp][hg][fa][1]:
+                            pos_neg = True
+                        elif ms1tab[ltp][hg][fa][0]:
+                            pos = True
+                        elif ms1tab[ltp][hg][fa][1]:
+                            neg = True
+                if pos_neg:
+                    row.append('\\cellcolor{emblyellow!75}')
+                elif pos:
+                    row.append('\\cellcolor{emblgreen!75}')
+                elif neg:
+                    row.append('\\cellcolor{emblpetrol!75}')
+                else:
+                    row.append('')
+            table += tablerow % ' & '.join(row)
+            if break_half and i == np.ceil(len(self.valids) / 2.0):
+                table += '\\end{tabular}\n\quad\n'
+                table += '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
+                table += tablerow % hdr
+        table += '\\end{tabular}\n'
+        with open(filename, 'w') as f:
+            f.write(table)
 
     '''
     END: MS1 lipid identification
@@ -6384,6 +6525,79 @@ class LTP(object):
             table += tablerow % row
         with open(filename, 'w') as f:
             f.write(self.html_table_template % (title, title, table))
+
+    def ms2_table_latex_simple(self, filename = 'ms2headgroups.tex', include = 'cl70pct', break_half = True):
+        '''
+        Outputs a LaTeX table LTPs vs lipid classes (headgroups)
+        based on MS2 identifications.
+        '''
+        colnames = set([])
+        for ltp, d in self.valids.iteritems():
+            for pn, tbl in d.iteritems():
+                for hg in tbl['ms2hg'].values():
+                    if hg is not None:
+                        colnames = colnames | hg
+        tablerow = '\t%s\\\\\n'
+        colnames.remove('')
+        colnames = sorted(list(colnames))
+        table = '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
+        hdr = '\t& '
+        hdr += ' & '.join(
+            map(
+                lambda hg:
+                    '\\rot{%s}' % hg,
+                colnames
+            )
+        )
+        table += tablerow % hdr
+        for i, ltp in enumerate(sorted(self.valids.keys())):
+            row = [ltp]
+            for hg in colnames:
+                pos_neg_same = False
+                pos_neg = False
+                pos = False
+                neg = False
+                pos_unambig = False
+                neg_unambig = False
+                pos_neg_same_unambig = False
+                pos_neg_unambig = False
+                for pn, tbl in self.valids[ltp].iteritems():
+                    for ms2hg in tbl['ms2hg'].values():
+                        if ms2hg is not None and hg in ms2hg:
+                            if pn == 'pos':
+                                pos = True
+                                if len(ms2hg) == 1:
+                                    pos_unambig = True
+                            elif pn == 'neg':
+                                neg = True
+                                if len(ms2hg) == 1:
+                                    neg_unambig = True
+                if pos and neg:
+                    pos_neg = True
+                if pos_unambig or neg_unambig:
+                    pos_neg_unambig = True
+                for ms2hgs in self.valids[ltp]['pos']['ms2hg_neg'].values():
+                    for ms2hg in ms2hgs.values():
+                        if hg in ms2hg:
+                            pos_neg_same = True
+                            if len(ms2hg) == 1:
+                                pos_neg_unambig = True
+                if pos_neg_same or pos_neg:
+                    row.append('\\cellcolor{emblyellow!75}')
+                elif pos:
+                    row.append('\\cellcolor{emblgreen!75}')
+                elif neg:
+                    row.append('\\cellcolor{emblpetrol!75}')
+                else:
+                    row.append('')
+            table += tablerow % ' & '.join(row)
+            if break_half and i == np.ceil(len(self.valids) / 2.0):
+                table += '\\end{tabular}\n\quad\n'
+                table += '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
+                table += tablerow % hdr
+        table += '\\end{tabular}\n'
+        with open(filename, 'w') as f:
+            f.write(table)
 
     def ms1_ms2_table_html_simple(self, filename = None, include = 'cl70pct'):
         '''
@@ -6529,8 +6743,172 @@ class LTP(object):
             table += tablerow % row
         with open(filename, 'w') as f:
             f.write(self.html_table_template % (title, title, table))
-
-
+    
+    def ms1_ms2_table_latex_simple(self, filename = 'ms1ms2headgroups.tex',
+        include = 'cl70pct', break_half = True):
+        '''
+        Outputs a LaTeX table LTPs vs lipid classes (headgroups)
+        based on MS1 and MS2 identifications.
+        '''
+        colnames = set([])
+        for ltp, d in self.valids.iteritems():
+            for pn, tbl in d.iteritems():
+                for hgs in tbl['identity'].values():
+                    for hg, ids in hgs.iteritems():
+                        if hg is not None and \
+                            (ids['ms2_pos'] or ids['ms2_neg']):
+                            colnames.add(hg)
+        colnames.remove('')
+        colnames = sorted(list(colnames))
+        tablerow = '\t%s\\\\\n'
+        table = '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
+        hdr = '\t& '
+        hdr += ' & '.join(
+            map(
+                lambda hg:
+                    '\\rot{%s}' % hg,
+                colnames
+            )
+        )
+        table += tablerow % hdr
+        # rows by LTP
+        for i, ltp in enumerate(sorted(self.valids.keys())):
+            row = [ltp]
+            for hg in colnames:
+                pos = False
+                neg = False
+                pos_neg = False
+                pos_unambig = False
+                neg_unambig = False
+                pos_neg_same_unambig = False
+                pos_neg_unambig = False
+                pos_neg_same = False
+                tbl = self.valids[ltp]['pos']
+                for oi in tbl['i'][np.where(tbl[include])[0]]:
+                    if hg in tbl['identity'][oi]:
+                        this_hg = tbl['identity'][oi][hg]
+                        if this_hg['ms1_pos'] and this_hg['ms2_pos']:
+                            pos = True
+                            if this_hg['ms1_neg'] and this_hg['ms2_neg']:
+                                pos_neg_same = True
+                                for noi in tbl['neg'][oi].keys():
+                                    if hg in valids[ltp]['neg']\
+                                        ['identity'][noi]:
+                                        if self.valids[ltp]['neg']['identity']\
+                                            [noi][hg]['ms1_neg'] \
+                                                and \
+                                            self.valids[ltp]['neg']['identity']\
+                                            [noi][hg]['ms2_neg']:
+                                            pos_neg = True
+                                            if sum(map(lambda (_hg, this_hg):
+                                                    _hg != hg \
+                                                            and \
+                                                        this_hg['ms1_neg'] \
+                                                            and \
+                                                        this_hg['ms2_neg'],
+                                                    valids[ltp]['neg']\
+                                                        ['identity']\
+                                                        [noi].iteritems()
+                                                )) == 0:
+                                                pos_neg_same_unambig = True
+                            if sum(map(lambda (_hg, this_hg):
+                                    _hg != hg and this_hg['ms1_pos'] \
+                                        and this_hg['ms2_pos'],
+                                    tbl['identity'][oi].iteritems()
+                                )) == 0:
+                                pos_unambig = True
+                tbl = self.valids[ltp]['neg']
+                for oi in tbl['i'][np.where(tbl[include])[0]]:
+                    if hg in tbl['identity'][oi]:
+                        this_hg = tbl['identity'][oi][hg]
+                        if this_hg['ms1_neg'] and this_hg['ms2_neg']:
+                            neg = True
+                            if this_hg['ms1_pos'] and this_hg['ms2_pos']:
+                                pos_neg_same = True
+                                for noi in tbl['pos'][oi].keys():
+                                    if hg in self.valids[ltp]['pos']\
+                                        ['identity'][noi]:
+                                        if valids[ltp]['pos']['identity']\
+                                            [noi][hg]['ms1_pos'] and \
+                                            self.valids[ltp]['pos']['identity']\
+                                                [noi][hg]['ms2_pos']:
+                                            pos_neg = True
+                                            if sum(map(lambda (_hg, this_hg):
+                                                    _hg != hg and \
+                                                        this_hg['ms1_pos'] \
+                                                            and \
+                                                        this_hg['ms2_pos'],
+                                                    valids[ltp]['pos']\
+                                                        ['identity']\
+                                                        [noi].iteritems()
+                                                )) == 0:
+                                                pos_neg_same_unambig = True
+                            if sum(map(lambda (_hg, this_hg):
+                                    _hg != hg and this_hg['ms1_neg'] \
+                                        and this_hg['ms2_neg'],
+                                    tbl['identity'][oi].iteritems()
+                                )) == 0:
+                                neg_unambig = True
+                if pos_unambig and neg_unambig:
+                    pos_neg_unambig = True
+                if pos_neg_unambig:
+                    row.append('\\cellcolor{emblyellow!75}')
+                elif pos_neg:
+                    row.append('\\cellcolor{emblyellow!75}')
+                elif pos:
+                    row.append('\\cellcolor{emblgreen!75}')
+                elif neg:
+                    row.append('\\cellcolor{emblpetrol!75}')
+                else:
+                    row.append('')
+            table += tablerow % ' & '.join(row)
+            if break_half and i == np.ceil(len(self.valids) / 2.0):
+                table += '\\end{tabular}\n\quad\n'
+                table += '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
+                table += tablerow % hdr
+        table += '\\end{tabular}\n'
+        with open(filename, 'w') as f:
+            f.write(table)
+    
+    def identities_latex_table(self, data,
+        filename = 'ms1ms2hcheadgroups.tex', break_half = True):
+        allhgs = set([])
+        for protein, d in data.iteritems():
+            for hgs in d.values():
+                allhgs = allhgs | hgs
+        colnames = sorted(list(allhgs))
+        tablerow = '\t%s\\\\\n'
+        table = '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
+        hdr = '\t& '
+        hdr += ' & '.join(
+            map(
+                lambda hg:
+                    '\\rot{%s}' % hg,
+                colnames
+            )
+        )
+        table += tablerow % hdr
+        for i, protein in enumerate(sorted(data.keys())):
+            row = [protein]
+            for hg in colnames:
+                if hg in data[protein]['pos'] and \
+                    hg in data[protein]['neg']:
+                    row.append('\\cellcolor{emblyellow!75}')
+                elif hg in data[protein]['neg']:
+                    row.append('\\cellcolor{emblpetrol!75}')
+                elif hg in data[protein]['pos']:
+                    row.append('\\cellcolor{emblgreen!75}')
+                else:
+                    row.append('')
+            table += tablerow % ' & '.join(row)
+            if break_half and i == np.ceil(len(self.valids) / 2.0):
+                table += '\\end{tabular}\n\quad\n'
+                table += '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
+                table += tablerow % hdr
+        table += '\\end{tabular}\n'
+        with open(filename, 'w') as f:
+            f.write(table)
+    
     def feature_identity_table(self):
         '''
         Creates dictionaries named `identity`, having
@@ -7285,3 +7663,65 @@ class LTP(object):
                 )
             )
         return result_str
+    
+    def bindprop_latex_table(self, only_with_ms_data = False, outfile = 'binding_properties_table.tex'):
+        allhgs = \
+        sorted(
+            list(
+                reduce(
+                    lambda lst, lips:
+                        lst | lips,
+                    map(
+                        lambda (protein, lips):
+                            lips,
+                        filter(
+                            lambda (protein, lips):
+                                not only_with_ms_data or protein in self.samples_upper,
+                            self.bindprop.iteritems()
+                        )
+                    )
+                )
+            )
+        )
+        tbl = r'''\begin{tabular}{l%s}
+            & %s \\
+            %s \\
+        \end{tabular}
+        '''
+        colalign = 'l' * len(allhgs)
+        rownames = \
+        sorted(
+            filter(
+                lambda protein:
+                    not only_with_ms_data or protein in self.samples_upper,
+                self.bindprop.keys()
+            )
+        )
+        hdr = ' & '.join(
+            map(
+                lambda lip:
+                    '\\rot{%s}' % lip,
+                allhgs
+            )
+        )
+        cells = \
+        '\\\\\n'.join(
+            map(
+                lambda protein:
+                    '%s & %s' % (
+                        protein,
+                        ' & '.join(
+                            map(
+                                lambda lip:
+                                    r'\cellcolor{emblgreen}' \
+                                    if lip in self.bindprop[protein] \
+                                    else '',
+                                allhgs
+                            )
+                        )
+                    ),
+                rownames
+            )
+        )
+        with open(outfile, 'w') as f:
+            f.write(tbl % (colalign, hdr, cells))
