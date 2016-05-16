@@ -762,8 +762,10 @@ class Feature(object):
                 )
             )
         )
-        self.classes = ['PA', 'PC', 'PE', 'PG', 'PS']
+        self.classes = ['PA', 'PC', 'PE', 'PG', 'PS', 'SM']
+        self.classes2 = ['PA', 'PC', 'PE', 'PG', 'PS', 'SM', 'Cer']
         self.identities = set([])
+        self.identities2 = {}
         # get carbon counts from MS1
         self.ms1fa = self.tbl['ms1fa'][oi]
         # sorting by fractions/scans
@@ -914,6 +916,7 @@ class Feature(object):
                 self.scans[scan]
             )
         )
+        # fraction index (A09-B01)
         fri = scan[1] - 9 if scan[1] != 1 else 4
         self.msg('\tScan %u (fraction %s%u; %s %s; intensity = %.01f (%.02f%%)):\n\n%s\t%s\n\n' % \
             (scan[0],
@@ -952,15 +955,38 @@ class Feature(object):
                 self.msg('\t<<< Result: identified as %s\n' % hg)
             else:
                 self.msg('\t<<< Result: not %s\n' % hg)
+    
+    def identify2(self, num = 1):
+        for hg in self.classes2:
+            self.msg('\t>>> Attempting to identify %s in all scans\n' % (hg))
+            self.identities2[hg] = []
+            identified = False
+            for scan in self.scans:
+                method = '%s_%s_%u' % (hg.lower(), self.mode, num)
+                if hasattr(scan, method):
+                    self.identities2[hg].append(getattr(scan, method)())
+                    identified = any(
+                        map(
+                            lambda i: i['score'] >= 5,
+                            self.identities2[hg]
+                        )
+                    )
+            if identified:
+                self.msg('\t<<< Result: identified as %s\n' % hg)
+            else:
+                self.msg('\t<<< Result: not %s\n' % hg)
 
 class MS2Scan(object):
     
     def __init__(self, scan, feature):
         self.scan = scan
         self.feature = feature
+        self.insmax = self.scan[0,2]
         self.recc = re.compile(r'.*[^0-9]([0-9]{1,2}):([0-9]).*')
         self.fa = {}
         self.fa1 = {}
+        self.fa_list = None
+        self.build_fa_list()
     
     def reload(self):
         modname = self.__class__.__module__
@@ -1003,6 +1029,14 @@ class MS2Scan(object):
             (mz, str(result)))
         return result
     
+    def has_nl(self, nl):
+        result = self.has_mz(self.feature.main['mz'][self.feature.i] - nl)
+        self.feature.msg('\t\t  -- neutral loss of %.03f occures in '\
+            'this scan? Looked up m/z %.03f - %.03f = %.03f -- %s\n' % \
+            (nl, self.feature.main['mz'][self.feature.i], nl,
+             self.feature.main['mz'][self.feature.i] - nl, str(result)))
+        return result
+    
     def most_abundant_mz_is(self, mz):
         result = self.mz_match(self.most_abundant_mz(), mz)
         self.feature.msg('\t\t  -- m/z %.03f is the most abundant? -- %s\n' % \
@@ -1017,6 +1051,18 @@ class MS2Scan(object):
                 break
         self.feature.msg('\t\t  -- m/z %.03f is among the %u most abundant? -- '\
             '%s\n' % (mz, n, str(result)))
+        return result
+    
+    def nl_among_most_abundant(self, nl, n = 2):
+        result = False
+        mz = self.feature.main['mz'][self.feature.i] - nl
+        for i in xrange(min(n, self.scan.shape[0])):
+            if self.mz_match(self.scan[i,1], mz):
+                result = True
+                break
+        self.feature.msg('\t\t  -- neutral loss %.03f is among '\
+            'the %u most abundant? -- '\
+            '%s\n' % (nl, n, str(result)))
         return result
     
     def mz_percent_of_most_abundant(self, mz, percent = 80.0):
@@ -1034,39 +1080,41 @@ class MS2Scan(object):
             (mz, percent, str(result)))
         return result
     
-    def fa_type_is(self, i, fa_type):
-        result = fa_type in self.scan[i,8] or fa_type in self.scan[i,7]
+    def fa_type_is(self, i, fa_type, sphingo = False):
+        result = (fa_type in self.scan[i,8] or fa_type in self.scan[i,7]) \
+            and (not sphingo or 'Sphingosine' in self.scan[i,7])
         self.feature.msg('\t\t  -- Fragment #%u (%s, %s): fatty acid type '\
             'is %s?  -- %s\n' % \
                 (i, self.scan[i,7], self.scan[i,8], fa_type, str(result)))
         return result
     
-    def is_fa(self, i):
-        result = 'FA' in self.scan[i,7] or self.scan[i,7][:7] == 'Lyso-PA'
+    def is_fa(self, i, sphingo = False):
+        result = 'FA' in self.scan[i,7] or 'Lyso' in self.scan[i,7] or \
+            (sphingo and 'Sphingosine' in self.scan[i,7])
         self.feature.msg('\t\t  -- Fragment #%u (%s): is fatty acid? '\
             '-- %s\n' % (i, self.scan[i,7], str(result)))
         return result
     
-    def most_abundant_fa(self, fa_type, head = 1):
+    def most_abundant_fa(self, fa_type, head = 1, sphingo = False):
         result = False
         for i in xrange(self.scan.shape[0]):
             if i == head:
                 break
-            if self.is_fa(i):
-                result = self.fa_type_is(i, fa_type)
+            if self.is_fa(i, sphingo = sphingo):
+                result = self.fa_type_is(i, fa_type, sphingo = sphingo)
         self.feature.msg('\t\t  -- Having fatty acid %s among %u most abundant '\
             'features? -- %s\n' % (fa_type, head, str(result)))
         return result
     
-    def fa_among_most_abundant(self, fa_type, n = 2, min_mass = None):
+    def fa_among_most_abundant(self, fa_type, n = 2, min_mass = None, sphingo = False):
         fa_frags = 0
         for i in xrange(self.scan.shape[0]):
-            if self.is_fa(i) and self.scan[i,1] >= min_mass:
+            if self.is_fa(i, sphingo = sphingo) and self.scan[i,1] >= min_mass:
                 fa_frags += 1
                 if min_mass is not None:
                     self.feature.msg('\t\t\t-- Fragment #%u having mass larger '\
                         'than %.01f\n' % (i, min_mass))
-                if self.fa_type_is(i, fa_type):
+                if self.fa_type_is(i, fa_type, sphingo = sphingo):
                     result = True
                 if fa_frags == n:
                     break
@@ -1077,13 +1125,12 @@ class MS2Scan(object):
             'abundant -- %s\n' % (fa_type, n, str(result)))
         return result
     
-    def fa_percent_of_most_abundant(self, fa_type, percent = 80.0):
-        insmax = self.scan[0,2]
+    def fa_percent_of_most_abundant(self, fa_type, percent = 80.0, sphingo = False):
         for i in xrange(self.scan.shape[0]):
-            if self.is_fa(i):
-                if self.fa_type_is(i, fa_type):
+            if self.is_fa(i, sphingo = sphingo):
+                if self.fa_type_is(i, fa_type, sphingo = sphingo):
                     return True
-            if self.scan[i,2] < insmax * 100.0 / percent:
+            if self.scan[i,2] < self.insmax * 100.0 / percent:
                 return False
         return False
     
@@ -1095,6 +1142,97 @@ class MS2Scan(object):
         self.feature.msg('\t\t  -- m/z %.03f is at least %u times higher than '\
             'any other? -- %s\n' % (mz, fold, str(result)))
         return result
+    
+    def sum_cc_is(self, cc1, cc2, cc):
+        return self.cc2str(self.sum_cc(cc1, cc2)) == cc
+    
+    def fa_combinations(self, hg, sphingo = False):
+        result = set([])
+        try:
+            cc = list(self.fragment.ms1fa[hg])[0]
+        else:
+            return result
+        self.build_fa_list()
+        for frag1 in self.fa_list:
+            for frag2 in self.fa_list:
+                if frag1[0][0] is not None and frag2[0][0] is not None and \
+                    (frag1[1] is None or hg in frag1[1]) and \
+                    (frag2[1] is None or hg in frag2[1]) and \
+                    (not sphingo or frag1[3] or frag2[3]):
+                    if self.sum_cc_is(frag1[0], frag2[0], cc):
+                        ether_1 = 'O-' if frag1[2] else ''
+                        ether_2 = 'O-' if frag2[2] else ''
+                        fa_1 = '%s%u:%u' % (ether_1, frag1[0][0], frag1[0][1])
+                        fa_2 = '%s%u:%u' % (ether_2, frag2[0][0], frag2[0][1])
+                        if frag1[3]:
+                            fa_1 = 'd%s' % fa_1
+                        elif frag2[3]:
+                            sph = 'd%s' % fa_2
+                            fa_2 = fa_1
+                            fa_1 = sph
+                        result.add('%s/%s' % (fa_1, fa_2))
+        return result
+    
+    def matching_fa_frags_of_type(self, hg, typ, sphingo = False,
+        return_details = False):
+        '''
+        Returns carbon counts of those fragments which are of the given type
+        and have complement fatty acid fragment of any type.
+        
+        Details is a dict with carbon counts as keys
+        and fragment names as values.
+        '''
+        result = set([])
+        details = {}
+        try:
+            cc = list(self.feature.ms1fa[hg])[0]
+        except:
+            return result
+        self.build_fa_list()
+        for frag1 in self.fa_list:
+            for frag2 in self.fa_list:
+                if frag1[0][0] is not None and frag2[0][0] is not None and \
+                    (frag1[1] is None or hg in frag1[1]) and \
+                    (frag2[1] is None or hg in frag2[1]) and \
+                    (not sphingo or frag1[3]):
+                    if typ in self.scan[frag1[5],7] and \
+                        self.sum_cc_is(frag1[0], frag2[0], cc):
+                        result.add(frag1[0])
+                        if return_details:
+                            if frag1[0] not in details:
+                                details[frag1[0]] = {}
+                            details[frag1[0]].add(self.scan[frag2[5],7])
+        if return_details:
+            return result, details
+        else:
+            return result
+    
+    def build_fa_list(self, rebuild = False):
+        '''
+        Returns list with elements:
+            carbon count, headgroups (set or None),
+            esther (False) or ether (True),
+            sphingosine (True) or fatty acid (False),
+            fragment intensity and row index
+        '''
+        if self.fa_list is None or rebuild:
+            self.fa_list = []
+            for i, frag in enumerate(self.scan):
+                if frag[7] != 'unknown' and self.is_fa(i, sphingo = True):
+                    cc = self.get_cc(frag[7])
+                    hgs = self.get_hg(frag[7])
+                    is_ether = 'alk' in frag[7]
+                    is_sphingo = 'Sphingosine' in frag[7]
+                    self.fa_list.append([cc, hgs, is_ether, is_sphingo, frag[2], i])
+    
+    def get_hg(self, frag_name):
+        hgfrags = self.feature.main.nHgfrags \
+            if self.feature.mode == 'neg' \
+            else self.feature.main.pHgfrags
+        return hgfrags[frag_name] \
+            if frag_name in hgfrags and \
+                len(hgfrags[frag_name]) \
+            else None
     
     def get_cc(self, fa):
         m = self.recc.match(fa)
@@ -1115,6 +1253,16 @@ class MS2Scan(object):
     
     def cc2str(self, cc):
         return '%u:%u' % cc
+    
+    def sum_cc(self, ccs):
+        return \
+            tuple(
+                reduce(
+                    lambda ((c1, uns1), (c2, uns2)):
+                        (c1 + c2, uns1 + uns2),
+                    ccs
+                )
+            )
     
     def sum_cc2str(self, ccs):
         return self.cc2str(
@@ -1183,8 +1331,166 @@ class MS2Scan(object):
                 )
         return result
     
-    def is_something(self, hg):
-        fa_cc = self.most_abundant_fa_cc(self, )
+    def frag_name_present(self, name):
+        return name in self.scan[:,7]
+    
+    def pe_neg_1(self):
+        score = 0
+        fattya = set([])
+        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and self.has_mz(140.0118206):
+            score += 5
+            fattya = self.fa_combinations('PE')
+            if self.has_mz(196.0380330):
+                score +=1
+            fa_h_ccs = self.matching_fa_frags_of_type('PE', '-H]-')
+            for fa_h_cc in fa_h_ccs:
+                for fa_other in [
+                    '[Lyso-PE(C%u:%u)-]-',
+                    '[Lyso-PE-alkyl(C%u:%u)-H2O]-',
+                    '[Lyso-PE-alkyl(C%u:%u)-]-'
+                    '[FA(C%u:%u)-H-CO2]-']:
+                    if self.frag_name_present(fa_other % fa_h_cc)
+                        score += 1
+        return {'score': score, 'fattya': fattya}
+    
+    def pc_neg_1(self):
+        score = 0
+        fattya = set([])
+        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and self.has_mz(168.0431206):
+            score += 5
+            fattya = self.fa_combinations('PC')
+            fa_h_ccs = self.matching_fa_frags_of_type('PC', '-H]-')
+            for fa_h_cc in fa_h_ccs:
+                if self.frag_name_present('[Lyso-PC(c%u:%u)-]-' % fa_h_cc)
+                    score += 1
+        return {'score': score, 'fattya': fattya}
+    
+    def pi_neg_1(self):
+        score = 0
+        fattya = set([])
+        if self.has_mz(241.0118779) and self.has_mz(152.9958366) and \
+            self.has_mz(78.95905658):
+            score += 5
+            fattya = self.fa_combinations('PI')
+            for hgfrag_mz in [96.96962158, 259.0224425, 297.0380926]:
+                if self.has_mz(hgfrag_mz):
+                    score += 1
+            fa_h_ccs = self.matching_fa_frags_of_type('PI', '-H]-')
+            for fa_h_cc in fa_h_ccs:
+                for fa_other in [
+                    '[Lyso-PI(C%u:%u)-]-',
+                    '[Lyso-PI(C%u:%u)-H2O]-]']:
+                    if self.frag_name_present(fa_other % fa_h_cc):
+                        score += 1
+        return {'score': score, 'fattya': fattya}
+    
+    def ps_neg_1(self):
+        score = 0
+        fattya = set([])
+        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and \
+            self.has_mz(152.9958366):
+            score += 5
+            fattya = self.fa_combinations('PS')
+            if self.has_mz(87.03202840):
+                score += 1
+            fa_h_ccs = self.matching_fa_frags_of_type('PS', '-H]-')
+            for fa_h_cc in fa_h_ccs:
+                for fa_other in [
+                    '[Lyso-PS(C%u:%u)-]-',
+                    '[Lyso-PA(C%u:%u)-]-']:
+                    if self.frag_name_present(fa_other % fa_h_cc):
+                        score += 1
+        return {'score': score, 'fattya': fattya}
+    
+    def pg_neg_1(self):
+        score = 0
+        fattya = set([])
+        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and \
+            self.has_mz(152.9958366):
+            score += 5
+            fattya = self.fa_combinations('PG')
+            if self.has_mz(171.0064016):
+                score += 1
+            fa_h_ccs = self.matching_fa_frags_of_type('PG', '-H]-')
+            for fa_h_cc in fa_h_ccs:
+                for fa_other in [
+                    'Lyso-PG(C%u:%u)-]-',
+                    'Lyso-PG(C%u:%u)-H2O]-']:
+                    if self.frag_name_present(fa_other % fa_h_cc):
+                        score += 1
+        return {'score': score, 'fattya': fattya}
+    
+    def sm_neg_1(self):
+        score = 0
+        fattya = set([])
+        if self.mz_among_most_abundant(168.0431206) and self.has_nl(60.02113):
+            score += 5
+        return {'score': score, 'fattya': fattya}
+    
+    def pc_pos_1(self):
+        score = 0
+        fattya = set([])
+        if self.most_abundant_mz_is(184.073323) and self.has_mz(86.096425):
+            score += 5
+            fattya = self.fa_combinations('PC')
+            if self.has_mz(104.106990):
+                score += 1
+            if self.has_mz(124.999822):
+                score += 1
+        return {'score': score, 'fattya': fattya}
+    
+    def pe_pos_1(self):
+        score = 0
+        fattya = set([])
+        if self.nl_among_most_abundant(141.019097, 1):
+            score += 5
+            fattya = self.fa_combinations('PE')
+        return {'score': score, 'fattya': fattya}
+    
+    def cer_pos_1(self):
+        score = 0
+        fattya = set([])
+        if self.fa_among_most_abundant('-H2O-H2O+]+', n = 10, sphingo = True):
+            score += 5
+            fattya = self.fa_combinations('Cer', sphingo = True)
+            sph_ccs, fa_frags = self.matching_fa_frags_of_type('-H2O-H2O+]+', sphingo = True, return_details = True)
+            for cc, fa_frag_names in fa_frags.iteritems():
+                for fa_frag_name in fa_frag_names:
+                    if '+H]+' in fa_frag_name:
+                        score += 1
+                    if '-O]+' in fa_frag_name:
+                        score += 1
+                    if fa_frag_name[:2] == 'NL':
+                        score += 1
+            for sph_cc in sph_ccs:
+                for fa_other in [
+                    '[Sphingosine(C%u:%u)-C-H2O-H2O+]+',
+                    '[Sphingosine(C%u:%u)-H2O+]+']:
+                    if self.frag_name_present(fa_other % sph_cc):
+                        score += 1
+            if not len(
+                filter(
+                    lambda mz: 
+                        self.has_mz(mz),
+                    [58.065126, 104.106990, 124.999822, 184.073323]
+                )
+            ):
+                score += 1
+        return {'score': score, 'fattya': fattya}
+    
+    def sm_pos_1(self):
+        score = 0
+        fattya = set([])
+        if all(
+            map(
+                lambda mz:
+                    self.has_mz(mz),
+                [60.080776, 86.096425, 104.106990,
+                    124.999822, 184.073323]
+            )
+        ):
+            score += 5
+        return {'score': score, 'fattya': fattya}
     
     def is_pe(self):
         if self.feature.mode == 'pos':
@@ -3887,13 +4193,6 @@ class LTP(object):
                     lst += self.auto_fragment_list(
                         globals()['Lyso%sAlkyl' % hg], -1, minus = ['H2O']
                     )
-                    if hg != 'PI':
-                        lst += self.auto_fragment_list(
-                            globals()['Lyso%sAlkenyl' % hg], -1, cmin = 4
-                        )
-                        lst += self.auto_fragment_list(
-                            globals()['Lyso%sAlkenyl' % hg], -1, cmin = 4, minus = ['H2O']
-                        )
                     if hg == 'PI':
                         lst += self.auto_fragment_list(
                             LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
@@ -4573,8 +4872,19 @@ class LTP(object):
     def ms2_scans_identify(self):
         prg = progress.Progress(len(self.valids) * 2,
             'Analysing MS2 scans and identifying features', 1, percent = False)
+        logdir = 'ms2log_%s' % self.today()
+        if not os.path.isdir(logdir):
+            os.mkdir(logdir)
+        else:
+            map(
+                lambda f:
+                    os.remove(os.path.join(logdir,f)),
+                os.listdir(logdir)
+            )
         for protein, d in self.valids.iteritems():
             for mode, tbl in d.iteritems():
+                logfile = '%s-%s.txt' % (protein, mode)
+                self.ms2log = os.path.join(logdir, logfile)
                 prg.step()
                 tbl['ms2f'] = {}
                 tbl['ms2i'] = {}
@@ -4582,7 +4892,9 @@ class LTP(object):
                     if oi in tbl['ms2']:
                         tbl['ms2f'][oi] = Feature(self, protein, mode, oi)
                         tbl['ms2f'][oi].identify()
+                        tbl['ms2f'][oi].identify2()
                         tbl['ms2i'][oi] = tbl['ms2f'][oi].identities
+                        tbl['ms2i2'][oi] = tbl['ms2f'][oi].identities2
         prg.terminate()
     
     '''
