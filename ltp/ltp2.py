@@ -1587,7 +1587,7 @@ class LTP(object):
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.02,
             'std_tolerance': 0.02,
-            'aadducts': {
+            'ad2ex': {
                 1: {
                     'pos': {
                         '[M+H]+': 'remove_h',
@@ -1608,6 +1608,30 @@ class LTP(object):
                     'pos': {},
                     'neg': {
                         '[M-3H]3-': 'add_3h'
+                    }
+                }
+            },
+            'ex2ad': {
+                1: {
+                    'pos': {
+                        '[M+H]+': 'add_h',
+                        '[M+NH4]+': 'add_nh4'
+                    },
+                    'neg': {
+                        '[M-H]-': 'remove_h',
+                        '[M+Fo]-': 'add_fo'
+                    }
+                },
+                2: {
+                    'pos': {},
+                    'neg': {
+                        '[M-2H]2-': 'remove_2h'
+                    }
+                },
+                3: {
+                    'pos': {},
+                    'neg': {
+                        '[M-3H]3-': 'remove_3h'
                     }
                 }
             },
@@ -3957,7 +3981,7 @@ class LTP(object):
         if verbose and outfile is None:
             outfile = sys.stdout
         result = []
-        adducts = self.aadducts[charge][mode]
+        adducts = self.ad2ex[charge][mode]
         for addName, addFun in adducts.iteritems():
             addMz = getattr(Mz(mz), addFun)()
             if verbose:
@@ -4138,7 +4162,8 @@ class LTP(object):
         Values in each array: assumed positive adduct, assumed negative adduct, 
             measured positive m/z, measured negative m/z
         '''
-        adds = self.aadducts[1]
+        ad2ex = self.ad2ex[1]
+        ex2ad = self.ex2ad[1]
         self.sort_alll('mz')
         for ltp, tbl in self.valids.iteritems():
             tbl['pos']['neg'] = dict((i, {}) for i in tbl['pos']['i'])
@@ -4152,10 +4177,10 @@ class LTP(object):
             prg.step()
             for pi, poi in enumerate(tbl['pos']['i']):
                 measured_pos_mz = tbl['pos']['mz'][pi]
-                for pos_add, pos_add_fun in adds['pos'].iteritems():
+                for pos_add, pos_add_fun in ad2ex['pos'].iteritems():
                     calculated_exact = \
                         getattr(Mz(measured_pos_mz), pos_add_fun)()
-                    for neg_add, neg_add_fun in adds['neg'].iteritems():
+                    for neg_add, neg_add_fun in ex2ad['neg'].iteritems():
                         calculated_neg_mz = getattr(Mz(calculated_exact),
                             neg_add_fun)()
                         iu = tbl['neg']['mz'].searchsorted(calculated_neg_mz)
