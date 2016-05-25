@@ -568,14 +568,17 @@ class FAminusH(FattyFragment):
         super(FAminusH, self).__init__(charge = -1, c = c, unsat = unsat,
             minus = ['H'], isotope = isotope, name = 'FA')
 
-class FAAlkenylminusH(FattyFragment):
+class FAAlkylminusH(FattyFragment):
     
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
+    # 18:0 = 267.2693393
+    
+    def __init__(self, c, unsat = 1, isotope = 0, **kwargs):
         self.counts = {
-            'O': -1
+            'O': -1,
+            'H': 2
         }
-        super(FAAlkenylminusH, self).__init__(charge = -1, c = c, unsat = unsat,
-            minus = ['H'], isotope = isotope, name = 'FA-alkenyl')
+        super(FAAlkylminusH, self).__init__(charge = -1, c = c, unsat = unsat,
+            minus = ['H'], isotope = isotope, name = 'FA-alkyl')
 
 class NLFAminusH2O(FattyFragment):
     
@@ -762,8 +765,8 @@ class Feature(object):
                 )
             )
         )
-        self.classes = ['PA', 'PC', 'PE', 'PG', 'PS', 'SM']
-        self.classes2 = ['PA', 'PC', 'PE', 'PG', 'PS', 'SM', 'Cer']
+        self.classes = ['PA', 'PC', 'PE', 'PG', 'PS']
+        self.classes2 = ['PA', 'PC', 'PE', 'PG', 'PS', 'PI', 'SM', 'Cer']
         self.identities = set([])
         self.identities2 = {}
         # get carbon counts from MS1
@@ -961,7 +964,7 @@ class Feature(object):
             self.msg('\t>>> Attempting to identify %s in all scans\n' % (hg))
             self.identities2[hg] = []
             identified = False
-            for scan in self.scans:
+            for scanid, scan in self._scans.iteritems():
                 method = '%s_%s_%u' % (hg.lower(), self.mode, num)
                 if hasattr(scan, method):
                     self.identities2[hg].append(getattr(scan, method)())
@@ -1009,12 +1012,14 @@ class MS2Scan(object):
         detected in the scan if it is within the
         range of tolerance, otherwise None.
         '''
+        du = 999.0
+        dl = 999.0
         self.scan = self.scan[self.scan[:,1].argsort(),:]
         ui = self.scan[:,1].searchsorted(mz)
         if ui < self.scan.shape[0]:
-            du = mz - self.scan[ui,1]
+            du = self.scan[ui,1] - mz
         if ui > 0:
-            dl = self.scan[ui - 1,1] - mz
+            dl = mz - self.scan[ui - 1,1]
         i = ui if du < dl else ui - 1
         i = i if self.mz_match(self.scan[i,1], mz) else None
         sort = self.scan[:,2].argsort()[::-1]
@@ -1030,11 +1035,11 @@ class MS2Scan(object):
         return result
     
     def has_nl(self, nl):
-        result = self.has_mz(self.feature.main['mz'][self.feature.i] - nl)
+        result = self.has_mz(self.feature.tbl['mz'][self.feature.i] - nl)
         self.feature.msg('\t\t  -- neutral loss of %.03f occures in '\
             'this scan? Looked up m/z %.03f - %.03f = %.03f -- %s\n' % \
-            (nl, self.feature.main['mz'][self.feature.i], nl,
-             self.feature.main['mz'][self.feature.i] - nl, str(result)))
+            (nl, self.feature.tbl['mz'][self.feature.i], nl,
+             self.feature.tbl['mz'][self.feature.i] - nl, str(result)))
         return result
     
     def most_abundant_mz_is(self, mz):
@@ -1055,7 +1060,7 @@ class MS2Scan(object):
     
     def nl_among_most_abundant(self, nl, n = 2):
         result = False
-        mz = self.feature.main['mz'][self.feature.i] - nl
+        mz = self.feature.tbl['mz'][self.feature.i] - nl
         for i in xrange(min(n, self.scan.shape[0])):
             if self.mz_match(self.scan[i,1], mz):
                 result = True
@@ -1107,6 +1112,7 @@ class MS2Scan(object):
         return result
     
     def fa_among_most_abundant(self, fa_type, n = 2, min_mass = None, sphingo = False):
+        result = False
         fa_frags = 0
         for i in xrange(self.scan.shape[0]):
             if self.is_fa(i, sphingo = sphingo) and self.scan[i,1] >= min_mass:
@@ -1144,12 +1150,12 @@ class MS2Scan(object):
         return result
     
     def sum_cc_is(self, cc1, cc2, cc):
-        return self.cc2str(self.sum_cc(cc1, cc2)) == cc
+        return self.cc2str(self.sum_cc([cc1, cc2])) == cc
     
     def fa_combinations(self, hg, sphingo = False):
         result = set([])
-        try:
-            cc = list(self.fragment.ms1fa[hg])[0]
+        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
+            cc = list(self.feature.ms1fa[hg])[0]
         else:
             return result
         self.build_fa_list()
@@ -1170,7 +1176,11 @@ class MS2Scan(object):
                             sph = 'd%s' % fa_2
                             fa_2 = fa_1
                             fa_1 = sph
-                        result.add('%s/%s' % (fa_1, fa_2))
+                        if not frag1[3] and not frag2[3]:
+                            fa = tuple(sorted([fa_1, fa_2]))
+                        else:
+                            fa = (fa_1, fa_2)
+                        result.add('%s/%s' % fa)
         return result
     
     def matching_fa_frags_of_type(self, hg, typ, sphingo = False,
@@ -1184,26 +1194,25 @@ class MS2Scan(object):
         '''
         result = set([])
         details = {}
-        try:
+        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
             cc = list(self.feature.ms1fa[hg])[0]
-        except:
-            return result
-        self.build_fa_list()
-        for frag1 in self.fa_list:
-            for frag2 in self.fa_list:
-                if frag1[0][0] is not None and frag2[0][0] is not None and \
-                    (frag1[1] is None or hg in frag1[1]) and \
-                    (frag2[1] is None or hg in frag2[1]) and \
-                    (not sphingo or frag1[3]):
-                    if typ in self.scan[frag1[5],7] and \
-                        self.sum_cc_is(frag1[0], frag2[0], cc):
-                        result.add(frag1[0])
-                        if return_details:
-                            if frag1[0] not in details:
-                                details[frag1[0]] = {}
-                            details[frag1[0]].add(self.scan[frag2[5],7])
+            self.build_fa_list()
+            for frag1 in self.fa_list:
+                for frag2 in self.fa_list:
+                    if frag1[0][0] is not None and \
+                        frag2[0][0] is not None and \
+                        (frag1[1] is None or hg in frag1[1]) and \
+                        (frag2[1] is None or hg in frag2[1]) and \
+                        (not sphingo or frag1[3]):
+                        if typ in self.scan[frag1[5],7] and \
+                            self.sum_cc_is(frag1[0], frag2[0], cc):
+                            result.add(frag1[0])
+                            if return_details:
+                                if frag1[0] not in details:
+                                    details[frag1[0]] = set([])
+                                details[frag1[0]].add(self.scan[frag2[5],7])
         if return_details:
-            return result, details
+            return (result, details)
         else:
             return result
     
@@ -1258,7 +1267,7 @@ class MS2Scan(object):
         return \
             tuple(
                 reduce(
-                    lambda ((c1, uns1), (c2, uns2)):
+                    lambda (c1, uns1), (c2, uns2):
                         (c1 + c2, uns1 + uns2),
                     ccs
                 )
@@ -1349,7 +1358,7 @@ class MS2Scan(object):
                     '[Lyso-PE-alkyl(C%u:%u)-H2O]-',
                     '[Lyso-PE-alkyl(C%u:%u)-]-'
                     '[FA(C%u:%u)-H-CO2]-']:
-                    if self.frag_name_present(fa_other % fa_h_cc)
+                    if self.frag_name_present(fa_other % fa_h_cc):
                         score += 1
         return {'score': score, 'fattya': fattya}
     
@@ -1361,7 +1370,7 @@ class MS2Scan(object):
             fattya = self.fa_combinations('PC')
             fa_h_ccs = self.matching_fa_frags_of_type('PC', '-H]-')
             for fa_h_cc in fa_h_ccs:
-                if self.frag_name_present('[Lyso-PC(c%u:%u)-]-' % fa_h_cc)
+                if self.frag_name_present('[Lyso-PC(c%u:%u)-]-' % fa_h_cc):
                     score += 1
         return {'score': score, 'fattya': fattya}
     
@@ -1453,7 +1462,8 @@ class MS2Scan(object):
         if self.fa_among_most_abundant('-H2O-H2O+]+', n = 10, sphingo = True):
             score += 5
             fattya = self.fa_combinations('Cer', sphingo = True)
-            sph_ccs, fa_frags = self.matching_fa_frags_of_type('-H2O-H2O+]+', sphingo = True, return_details = True)
+            sph_ccs, fa_frags = self.matching_fa_frags_of_type('Cer',
+                '-H2O-H2O+]+', sphingo = True, return_details = True)
             for cc, fa_frag_names in fa_frags.iteritems():
                 for fa_frag_name in fa_frag_names:
                     if '+H]+' in fa_frag_name:
@@ -2083,47 +2093,72 @@ class LTP(object):
     # profiles in the fractions
     #
     
-    def _GLTPD1_profile_correction_eq(self):
-        eq = (self.pprofs['GLTPD1']['a11'] + self.pprofs['GLTPD1']['a12']) / 2.0
-        self.pprofs['GLTPD1']['a11'] = eq
-        self.pprofs['GLTPD1']['a12'] = eq
+    def _GLTPD1_profile_correction_eq(self, propname):
+        eq = (getattr(self, propname)['GLTPD1']['a11'] + \
+            getattr(self, propname)['GLTPD1']['a12']) / 2.0
+        getattr(self, propname)['GLTPD1']['a11'] = eq
+        getattr(self, propname)['GLTPD1']['a12'] = eq
     
-    def _GLTP1_profile_correction_inv(self):
-        a11 = self.pprofs['GLTPD1']['a11']
-        a12 = self.pprofs['GLTPD1']['a12']
-        self.pprofs['GLTPD1']['a11'] = a12
-        self.pprofs['GLTPD1']['a12'] = a11
+    def _GLTP1_profile_correction_inv(self, propname):
+        a11 = getattr(self, propname)['GLTPD1']['a11']
+        a12 = getattr(self, propname)['GLTPD1']['a12']
+        getattr(self, propname)['GLTPD1']['a11'] = a12
+        getattr(self, propname)['GLTPD1']['a12'] = a11
     
-    def protein_profiles(self, cache = True, correct_GLTPD1 = True, GLTPD_correction = 'eq'):
+    def protein_profiles(self, **kwargs):
+        offsets = [0.0, 0.015, 0.045]
+        for offset in offsets:
+            self._protein_profiles(offset = offset, **kwargs)
+    
+    def _protein_profiles(self, offset = 0.0, cache = True,
+        correct_GLTPD1 = True, GLTPD_correction = 'eq'):
         '''
         For each protein, for each fraction, calculates the mean of 
         absorptions of all the measurements belonging to one fraction.
         '''
-        if cache and os.path.exists(self.pprofcache):
-            self.pprofs = pickle.load(open(self.pprofcache, 'rb'))
+        label = '' if offset == 0.0 else '%u' % int(offset * 1000)
+        cachefile = '%s%s.pickle' % (self.pprofcache.split('.')[0], label)
+        propname = 'pprofs%s' % label
+        if cache and os.path.exists(cachefile):
+            self.pprofs = pickle.load(open(cachefile, 'rb'))
             if correct_GLTPD1:
-                getattr(self, '_GLTPD1_profile_correction_%s' % GLTPD_correction)()
+                getattr(self,
+                    '_GLTPD1_profile_correction_%s' % GLTPD_correction)(propname)
             return None
         reltp = re.compile(r'.*[\s_-]([A-Za-z0-9]{3,})\.xls')
         result = {}
-        fnames = os.listdir(self.basedir)
+        secdir = os.path.join(self.basedir, self.ppsecdir)
+        fnames = os.listdir(secdir)
         with open(self.ppfracf, 'r') as f:
-            frac = [(self.to_float(i[0]), self.to_float(i[1]), i[2]) for i in \
-                [l.split(';') for l in f.read().split('\n')]]
+            frac = \
+                map(
+                    lambda i:
+                        (self.to_float(i[0]) + offset, self.to_float(i[1]) + offset, i[2]),
+                    filter(
+                        lambda l:
+                            len(l) == 3,
+                        map(
+                            lambda l:
+                                l.split(';'),
+                            f.read().split('\n')
+                        )
+                    )
+                )
         for fname in fnames:
             ltpname = reltp.findall(fname)[0]
             frac_abs = dict((i[2], []) for i in frac)
             gfrac = (i for i in frac)
             fr = gfrac.next()
             try:
-                tbl = self.read_xls(os.path.join(self.basedir, fname))[3:]
+                tbl = self.read_xls(os.path.join(secdir, fname))[3:]
             except xlrd.biffh.XLRDError:
                 sys.stdout.write('Error reading XLS:\n\t%s\n' % \
                     os.path.join(self.basedir, fname))
+                continue
             minabs = min(0.0, min(self.to_float(l[5]) for l in tbl))
             for l in tbl:
                 # l[4]: volume (ml)
-                ml = to_float(l[4])
+                ml = self.to_float(l[4])
                 if ml < fr[0]:
                     continue
                 if ml >= fr[1]:
@@ -2132,26 +2167,110 @@ class LTP(object):
                     except StopIteration:
                         break
                 # l[5] mAU UV3 215nm
-                frac_abs[fr[2]].append(to_float(l[5]) - minabs)
+                frac_abs[fr[2]].append(self.to_float(l[5]) - minabs)
             result[ltpname] = dict((fnum, np.mean(a)) \
                 for fnum, a in frac_abs.iteritems())
-        pickle.dump(result, open(self.pprofcache, 'wb'))
-        self.pprofs = result
+        pickle.dump(result, open(cachefile, 'wb'))
+        setattr(self, propname, result)
         if correct_GLTPD1:
-            getattr(self, '_GLTPD1_profile_correction_%s' % GLTPD_correction)()
-
-    def zero_controls(self):
-        self.pprofs_original = copy.deepcopy(self.pprofs)
+            getattr(self,
+                '_GLTPD1_profile_correction_%s' % GLTPD_correction)(propname)
+    
+    def protein_profile_correction(self, propname):
         fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
-        for ltpname, sample in self.samples.iteritems():
-            for i, fr in enumerate(fracs):
-                if sample[i + 1] == 0:
-                    self.pprofs[ltpname.upper()][fr] = 0.0
-
+        for ltpname, prof in getattr(self, propname).iteritems():
+            a5 = prof['a5']
+            for frac in fracs:
+                prof[frac] -= a5
+            cmin = min(map(lambda fr: prof[fr], fracs))
+            for frac in fracs:
+                prof[frac] -= cmin
+    
+    def zero_controls(self):
+        '''
+        For protein profiles with offsets 0, 15 and 45
+        it calls protein_profile_correction() to
+        make the baseline correction, saves a copy
+        to pprof_original<offset> property, and
+        after sets the values for non LTP conatining
+        fractions to zero.
+        '''
+        offsets = [0.0, 0.015, 0.045]
+        for offset in offsets:
+            label = '' if offset == 0.0 else '%u' % int(offset * 1000)
+            propname = 'pprofs%s' % label
+            self.protein_profile_correction(propname)
+            setattr(self, 'pprofs_original%s' % label,
+                copy.deepcopy(getattr(self, propname)))
+            fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
+            for ltpname, sample in self.samples.iteritems():
+                for i, fr in enumerate(fracs):
+                    if sample[i + 1] == 0:
+                        getattr(self, propname)[ltpname.upper()][fr] = 0.0
+    
+    def protein_peak_ratios(self):
+        '''
+        Calculates the expected minimum and maximum values for
+        protein peak ratios.
+        The result contains empty dicts for proteins with only
+        one fraction, one ratio for those with 2 fractions, and
+        2 ratios for those with 3 fractions.
+        '''
+        self.ppratios = dict((protein, {}) \
+            for protein in self.samples_upper.keys())
+        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
+        for protein, sample in self.samples_upper.iteritems():
+            ratios = {}
+            ref = None
+            p15 = self.pprofs15[protein]
+            p45 = self.pprofs45[protein]
+            for i, frac in enumerate(fracs):
+                if sample[i + 1] == 1:
+                    if ref is None:
+                        ref = frac
+                    else:
+                        ratio1 = p15[ref] / p15[frac]
+                        ratio2 = p45[ref] / p45[frac]
+                        ratios[(ref, frac)] = tuple(sorted([ratio1, ratio2]))
+            self.ppratios[protein] = ratios
+    
+    def intensity_peak_ratios(self):
+        '''
+        Calculates the intensity peak ratios which are to be
+        compared with the protein peak ratios.
+        For each protein for each mode a new array named `ipr`
+        will be created with one row for each feature and
+        0, 1 or 2 columns depending on the number of protein
+        containing fractions.
+        '''
+        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
+        for protein, d in self.valids.iteritems():
+            sample = self.samples_upper[protein]
+            for mode, tbl in d.iteritems():
+                ratios = []
+                for fe in tbl['no']:
+                    ref = None
+                    j = 0
+                    refj = 0
+                    ratio = []
+                    for i, frac in enumerate(fracs):
+                        if sample[i + 1] == 1:
+                            if ref is None:
+                                ref = frac
+                                refj = j
+                            else:
+                                ratio.append(
+                                    fe[refj] / fe[j]
+                                )
+                        if sample[i + 1] is not None:
+                            j += 1
+                    ratios.append(ratio)
+                tbl['ipr'] = np.array(ratios)
+    
     def one_sample(self):
         self.singles = [k.upper() for k, v in self.samples.iteritems() \
             if sum((i for i in v if i is not None)) == 1]
-
+    
     def write_pptable(self):
         '''
         Writes protein profiles in a table, so we don't need to read
@@ -3057,7 +3176,7 @@ class LTP(object):
             for pn, tbl in d.iteritems():
                 tbl['are'] = np.nanmax(tbl['lip'], 1) >= area
 
-    def peaksize_filter(self, peakmin = 2.0, peakmax = 5.0, area = 10000):
+    def peaksize_filter(self, peakmin = 2.0, peakmax = 2.0, area = 10000):
         # minimum and maximum of all intensities over all proteins:
         mini = min(
             map(lambda tb:
@@ -3076,6 +3195,16 @@ class LTP(object):
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 prg.step()
+                tbl['peaksize'] = np.nanmax(tbl['lip'], 1) / \
+                    (np.nanmax(tbl['ctr'], 1) + 0.001)
+                tbl['pslim02'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
+                        (2.0 - peakmin) + peakmin)
+                tbl['pslim05'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
+                        (5.0 - peakmin) + peakmin)
+                tbl['pslim10'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
+                        (10.0 - peakmin) + peakmin)
+                tbl['pslim510'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
+                        (10.0 - 5.0) + 5.0)
                 tbl['pks'] = (
                     # the peaksize:
                     np.nanmax(tbl['lip'], 1) / \
@@ -3660,7 +3789,8 @@ class LTP(object):
             if fname is None else fname
         sys.stdout.write('\t:: Saving auxiliary data to %s ...\n' % fname)
         sys.stdout.flush()
-        pickle.dump((self.datafiles, self.samples, self.pprofs),
+        pickle.dump((self.datafiles, self.samples, self.pprofs,
+                self.pprofs15, self.pprofs45),
             open(fname, 'wb'))
         sys.stdout.write('\t:: Data has been saved to %s.\n' % fname)
         sys.stdout.flush()
@@ -3671,7 +3801,8 @@ class LTP(object):
         sys.stdout.write('\t:: Loading auxiliary data '\
             'from %s ...\n' % fname)
         sys.stdout.flush()
-        self.datafiles, self.samples, self.pprofs = \
+        self.datafiles, self.samples, self.pprofs, \
+            self.pprofs15, self.pprofs45 = \
             pickle.load(open(fname, 'rb'))
 
     '''
@@ -4179,7 +4310,7 @@ class LTP(object):
                 # fatty acid -CO2- fragments:
                 lst += self.auto_fragment_list(
                     FattyFragment, -1, minus = ['H', 'CO2'], name = 'FA')
-                lst += self.auto_fragment_list(FAAlkenylminusH, -1)
+                lst += self.auto_fragment_list(FAAlkylminusH, -1)
                 for hg in ('PE', 'PC', 'PS', 'PI'):
                     lst += self.auto_fragment_list(
                         globals()['Lyso%s' % hg], -1
@@ -4888,6 +5019,7 @@ class LTP(object):
                 prg.step()
                 tbl['ms2f'] = {}
                 tbl['ms2i'] = {}
+                tbl['ms2i2'] = {}
                 for i, oi in enumerate(tbl['i']):
                     if oi in tbl['ms2']:
                         tbl['ms2f'][oi] = Feature(self, protein, mode, oi)
@@ -4896,6 +5028,17 @@ class LTP(object):
                         tbl['ms2i'][oi] = tbl['ms2f'][oi].identities
                         tbl['ms2i2'][oi] = tbl['ms2f'][oi].identities2
         prg.terminate()
+    
+    def ms2_get_hgs(self):
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                tbl['ms2i3'] = {}
+                for oi, ms2results in tbl['ms2i2'].iteritems():
+                    tbl['ms2i3'][oi] = set([])
+                    for hg, ms2res in ms2results.iteritems():
+                        if sum(map(lambda i: i['score'], ms2res)) > 0:
+                            if hg in tbl['ms1hg'][oi]:
+                                tbl['ms2i3'][oi].add(hg)
     
     '''
     END: New identification methods
@@ -5078,6 +5221,8 @@ class LTP(object):
                     np.array(tbl['raw'][tbl['vld'], 1])
                 self.valids[ltp.upper()][pn]['rt'] = \
                     np.array(tbl['raw'][tbl['vld'], 2:4])
+                for key in ['peaksize', 'pslim02', 'pslim05', 'pslim10', 'pslim510']:
+                    self.valids[ltp.upper()][pn][key] = np.array(tbl[key][tbl['vld']])
                 self.valids[ltp.upper()][pn]['i'] = np.where(tbl['vld'])[0]
         self.norm_all()
         pickle.dump(self.valids, open(self.validscache, 'wb'))
@@ -5099,24 +5244,34 @@ class LTP(object):
     '''
     Distance metrics
     '''
-
-    def profiles_corr(self, metric, prfx):
+    
+    def profiles_corr(self, metric, prfx, pprofs = ''):
         '''
         Calculates custom correlation metric
         between each feature and the protein profile.
         '''
         frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
+        pprs = getattr(self, 'pprofs%s' % pprofs)
         for ltp, d in self.valids.iteritems():
-            ppr = np.array([self.pprofs[ltp.upper()][frs[i]] \
-                for i, fr in enumerate(self.samples_upper[ltp]) \
-                    if fr is not None and i != 0])
+            ppr = \
+                np.array(
+                    map(
+                        lambda (i, s):
+                            pprs[ltp][frs[i]],
+                        filter(
+                            lambda (i, s):
+                                i != 0 and s is not None,
+                            enumerate(self.samples_upper[ltp])
+                        )
+                    )
+                )
             ppr = self.norm_profile(ppr).astype(np.float64)
             for pn, tbl in d.iteritems():
                 if 'no' not in tbl:
                     self.norm_all()
-                tbl['%sv'%prfx] = np.zeros((tbl['no'].shape[0],),
+                tbl['%sv%s' % (prfx, pprofs)] = np.zeros((tbl['no'].shape[0],),
                     dtype = np.float64)
-                tbl['%sp'%prfx] = np.zeros((tbl['no'].shape[0],),
+                tbl['%sp%s' % (prfx, pprofs)] = np.zeros((tbl['no'].shape[0],),
                     dtype = np.float64)
                 for i, fe in enumerate(tbl['no']):
                     # if one feature is not detected
@@ -5132,8 +5287,8 @@ class LTP(object):
                         vp = (np.nan, 0.0)
                     else:
                         vp = metric(fe, ppr)
-                    tbl['%sv'%prfx][i] = vp[0]
-                    tbl['%sp'%prfx][i] = vp[1]
+                    tbl['%sv%s' % (prfx, pprofs)][i] = vp[0]
+                    tbl['%sp%s' % (prfx, pprofs)][i] = vp[1]
 
     def gkgamma(self, x, y):
         '''
@@ -5190,7 +5345,7 @@ class LTP(object):
         return (sp.spatial.distance.euclidean(_x, _y) / len(_x), 0.0) \
             if len(_x) > 0 else (1.0, 0.0)
 
-    def profiles_corrs(self):
+    def profiles_corrs(self, pprofs = ''):
         '''
         Calculates an array of similarity/correlation
         metrics between each MS intensity profile and 
@@ -5209,7 +5364,7 @@ class LTP(object):
         ]
         for metric, prfx in metrics:
             sys.stdout.write('Calculating %s\n' % metric.__name__)
-            self.profiles_corr(metric, prfx)
+            self.profiles_corr(metric, prfx, pprofs)
 
     def inconsistent(self, valids, metric = 'en'):
         attr = '%sv'%metric
@@ -5722,7 +5877,7 @@ class LTP(object):
                 result[l[0]].append(l)
         return result
 
-    def spec_sens(self, valids, ltp, pos, metric, asc):
+    def spec_sens(self, protein, pos, metric, asc):
         '''
         Calculates specificity, sensitivity, precision,
         false discovery rate as a function of critical
@@ -5731,27 +5886,28 @@ class LTP(object):
         '''
         result = {'spec': [], 'sens': [], 'prec': [],
             'fdr': [], 'cutoff': [], 'n': 0}
-        tbl = valids[ltp][pos]
+        tbl = self.valids[protein][pos]
         ioffset = 0 if pos == 'pos' else 6
-        if len(tbl['std']) > 0:
-            _sort_all(tbl, metric, asc)
-            p = len(tbl['std'])
+        if len(tbl['_std']) > 0:
+            self._sort_all(tbl, metric, asc)
+            p = len(tbl['_std'])
             for i, cutoff in enumerate(tbl[metric]):
-                tp = sum([1 for oi in tbl['i'][:i + 1] if oi in tbl['std']])
+                tp = sum([1 for oi in tbl['i'][:i + 1] if oi in tbl['_std']])
                 fp = sum([1 for oi in tbl['i'][:i + 1] \
-                    if oi not in tbl['std']])
-                fn = sum([1 for oi in tbl['i'][i + 1:] if oi in tbl['std']])
+                    if oi not in tbl['_std']])
+                fn = sum([1 for oi in tbl['i'][i + 1:] if oi in tbl['_std']])
                 tn = sum([1 for oi in tbl['i'][i + 1:] \
-                    if oi not in tbl['std']])
+                    if oi not in tbl['_std']])
                 result['cutoff'].append(cutoff)
                 result['spec'].append(tn / float(tn + fp))
                 result['sens'].append(tp / float(tp + fn))
                 result['prec'].append(tp / float(tp + fp))
                 result['fdr'].append(fp / float(tp + fp))
             result['n'] = p
+            self._sort_all(tbl, 'mz')
         return result
 
-    def evaluate_scores(self, valids, stdltps):
+    def evaluate_scores(self, tasks = None, stdltps = None):
         '''
         Calculates specificity, sensitivity, precision,
         false discovery rate as a function of critical
@@ -5761,23 +5917,40 @@ class LTP(object):
         LTPs/modes/metrics/performance metrics.
         E.g. result['STARD10']['pos']['ktv']['sens']
         '''
+        stdltps = self.known_binders_detected if stdltps is None else stdltps
         result = dict((ltp, {'pos': {}, 'neg': {}}) for ltp in stdltps)
-        metrics = [
-            ('Kendall\'s tau', 'ktv', False),
-            ('Spearman corr.', 'spv', False),
-            ('Pearson corr.', 'pev', False),
-            ('Euclidean dist.', 'euv', True),
-            ('Robust corr.', 'rcv', False),
-            ('Goodman-Kruskal\'s gamma', 'gkv', False),
-            ('Difference', 'dfv', True)
-        ]
+        metrics = \
+            [
+                ('Kendall\'s tau', 'ktv', False),
+                ('Spearman corr.', 'spv', False),
+                ('Pearson corr.', 'pev', False),
+                ('Euclidean dist.', 'euv', True),
+                ('Robust corr.', 'rcv', False),
+                ('Goodman-Kruskal\'s gamma', 'gkv', False),
+                ('Difference', 'dfv', True)
+            ] if tasks == 'old' else \
+            [
+                ('Euclidean, +0 mcl', 'env', True),
+                ('Euclidean, +15 mcl', 'env15', True),
+                ('Euclidean, +45 mcl', 'env45', True),
+                ('Peak ratio', 'prs', True)
+            ]
         for ltp in stdltps:
             for pos in ['pos', 'neg']:
-                tbl = valids[ltp][pos]
+                tbl = self.valids[ltp][pos]
                 for m in metrics:
                     result[ltp][pos][m[1]] = \
-                        spec_sens(valids, ltp, pos, m[1], m[2])
-        return result
+                        self.spec_sens(ltp, pos, m[1], m[2])
+        self.scores_eval = result
+    
+    def known_binders_as_standard(self):
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                if 'known_binder' in tbl:
+                    try:
+                        tbl['_std'] = set(tbl['i'][np.where(tbl['known_binder'])])
+                    except TypeError:
+                        print protein, mode
 
     def count_threshold_filter(self, valids, score, threshold, count = 10,
         threshold_type = 'fix', asc = True):
@@ -5903,8 +6076,7 @@ class LTP(object):
         prg.terminate()
         plt.close()
 
-    def fractions_barplot(self, samples, pprofs,
-        pprofs_original, features = False,
+    def fractions_barplot(self, features = False,
         valids = None, highlight = False, highlight2 = False,
         all_features = True, pdfname = None):
         if pdfname is None:
@@ -5914,15 +6086,15 @@ class LTP(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        ltps = sorted(samples.keys())
+        ltps = sorted(self.samples_upper.keys())
         prg = progress.Progress(len(ltps), 'Plotting profiles', 1,
             percent = False)
         for i in xrange(len(ltps)):
             prg.step()
             ax = axs[i / 8, i % 8]
             ltpname = ltps[i]
-            ppr = np.array([pprofs[ltpname][fr] for fr in fracs])
-            ppr_o = np.array([pprofs_original[ltpname][fr] for fr in fracs])
+            ppr = np.array([self.pprofs[ltpname][fr] for fr in fracs])
+            ppr_o = np.array([self.pprofs_original[ltpname][fr] for fr in fracs])
             if features:
                 ppmax = np.nanmax(ppr_o)
                 ppmin = np.nanmin(ppr_o)
@@ -5935,13 +6107,13 @@ class LTP(object):
             col = ['#6EA945' if s == 1 else \
                     '#B6B7B9' if s is None else \
                     '#007B7F' \
-                for s in samples[ltpname][1:]]
+                for s in self.samples_upper[ltpname][1:]]
             ax.bar(np.arange(len(ppr)), ppr_o, color = col, alpha = 0.1,
                 edgecolor = 'none')
             ax.bar(np.arange(len(ppr)), ppr, color = col, edgecolor = 'none')
-            if features and valids is not None:
+            if features and self.valids is not None:
                 for pn in ['pos', 'neg']:
-                    for fi, fe in enumerate(valids[ltpname][pn]['no']):
+                    for fi, fe in enumerate(self.valids[ltpname][pn]['no']):
                         alpha = 0.20
                         lwd = 0.1
                         lst = '-'
@@ -5984,7 +6156,234 @@ class LTP(object):
         fig.savefig(pdfname)
         prg.terminate()
         plt.close()
-
+    
+    def fractions_barplot2(self, features = False,
+        valids = None, highlight = False, highlight2 = False,
+        all_features = True, pdfname = None):
+        if pdfname is None:
+            pdfname = 'protein_profiles%s2.pdf' % \
+                ('' if not features else '_features')
+        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
+        font_family = 'Helvetica Neue LT Std'
+        sns.set(font = font_family)
+        fig, axs = plt.subplots(8, 8, figsize = (20, 20))
+        ltps = sorted(self.samples_upper.keys())
+        prg = progress.Progress(len(ltps), 'Plotting profiles', 1,
+            percent = False)
+        offsets = [0.0, 0.015, 0.045]
+        width = 0.3
+        for i in xrange(len(ltps)):
+            prg.step()
+            ax = axs[i / 8, i % 8]
+            ltpname = ltps[i].upper()
+            for w, offset in enumerate(offsets):
+                label = '' if offset == 0.0 else '%u' % int(offset * 1000)
+                ppr = np.array([getattr(self, 'pprofs%s' % label)\
+                    [ltpname][fr] for fr in fracs])
+                ppr_o = np.array([getattr(self, 'pprofs_original%s' % label)\
+                    [ltpname][fr] for fr in fracs])
+                if features:
+                    ppmax = np.nanmax(ppr_o)
+                    ppmin = np.nanmin(ppr_o)
+                    ppr = (ppr - ppmin) / (ppmax - ppmin)
+                    ppr[ppr < 0.0] = 0.0
+                    ppr_o = (ppr_o - ppmin) / (ppmax - ppmin)
+                #B6B7B9 gray (not measured)
+                #6EA945 mantis (protein sample)
+                #007B7F teal (control/void)
+                col = ['#6EA945' if s == 1 else \
+                        '#B6B7B9' if s is None else \
+                        '#007B7F' \
+                    for s in self.samples_upper[ltpname][1:]]
+                ax.bar(np.arange(len(ppr)) + width * w, ppr_o, width,
+                    color = col, alpha = 0.1, edgecolor = 'none')
+                ax.bar(np.arange(len(ppr)) + width * w, ppr, width,
+                    color = col, edgecolor = 'none')
+            if features and self.valids is not None:
+                for pn in ['pos', 'neg']:
+                    for fi, fe in enumerate(self.valids[ltpname][pn]['no']):
+                        alpha = 0.20
+                        lwd = 0.1
+                        lst = '-'
+                        plot_this = False
+                        color = '#FFCCCC' if pn == 'pos' else '#CCCCFF'
+                        try:
+                            def _feg(self, fe):
+                                for fei in fe:
+                                    yield fei
+                            feg = _feg(fe)
+                            if highlight2 and \
+                                valids[ltpname][pn][highlight2][fi]:
+                                color = '#FF0000' if pn == 'pos' else '#0000FF'
+                                alpha = 0.15
+                                lwd = 0.4
+                                lst = ':'
+                                plot_this = True
+                            if highlight and \
+                                valids[ltpname][pn][highlight][fi]:
+                                color = '#FF0000' if pn == 'pos' else '#0000FF'
+                                alpha = 0.75
+                                lwd = 0.4
+                                lst = '-'
+                                plot_this = True
+                            if all_features or plot_this:
+                                ax.plot(np.arange(len(ppr)) + 0.4,
+                                    np.array([feg.next() \
+                                        if s is not None else 0.0 \
+                                        for s in samples[ltpname][1:]]),
+                                    linewidth = lwd, markersize = 0.07,
+                                    linestyle = lst, 
+                                    color = color, alpha = alpha, marker = 'o')
+                        except ValueError:
+                            print 'Unequal length dimensions: %s, %s' % \
+                                (ltpname, pn)
+            ax.set_xticks(np.arange(len(ppr)) + 0.4)
+            ax.set_xticklabels(fracs)
+            ax.set_title('%s protein conc.'%ltpname)
+        fig.tight_layout()
+        fig.savefig(pdfname)
+        prg.terminate()
+        plt.close()
+    
+    def peak_ratios_histo(self, lower = 0.5, pdfname = None):
+        upper = 1.0 / lower
+        if pdfname is None:
+            pdfname = 'peak_ratios.pdf'
+        font_family = 'Helvetica Neue LT Std'
+        sns.set(font = font_family)
+        fig, axs = plt.subplots(8, 8, figsize = (20, 20))
+        ltps = sorted(self.samples_upper.keys())
+        prg = progress.Progress(len(ltps), 'Plotting peak ratios', 1,
+            percent = False)
+        width = 0.3
+        for i in xrange(len(ltps)):
+            prg.step()
+            ax = axs[i / 8, i % 8]
+            ltpname = ltps[i].upper()
+            if self.valids[ltpname]['pos']['ipr'].shape[1] > 0:
+                ppr = np.array(list(self.ppratios[ltpname]\
+                    [sorted(self.ppratios[ltpname].keys())[0]]))
+                x1 = self.valids[ltpname]['pos']['ipr'][:,0]
+                x1 = x1[np.isfinite(x1)]
+                x2 = self.valids[ltpname]['neg']['ipr'][:,0]
+                x2 = x2[np.isfinite(x2)]
+                bins = np.linspace(ppr[0] * 0.25, ppr[1] * 1.50, 15)
+                ax.hist(x1, bins, color = '#6EA945', alpha = 0.2, edgecolor = 'none')
+                ax.hist(x2, bins, color = '#007B7F', alpha = 0.2, edgecolor = 'none')
+                ax.scatter(ppr, np.array([0.0, 0.0]), c = '#DA0025',
+                    alpha = 0.5, edgecolor = 'none')
+                ax.axvline(x = ppr[0] * lower, c = '#DA0025', linewidth = 0.2, alpha = 0.5, linestyle = '-.')
+                ax.axvline(x = ppr[1] * upper, c = '#DA0025', linewidth = 0.2, alpha = 0.5, linestyle = '-.')
+                ax.set_xlim((ppr[0] * 0.25, ppr[1] * 2.50))
+                x1a = x1[np.where((x1 > ppr[0] * lower) & (x1 < ppr[1] * upper))]
+                m1 = np.mean(x1a)
+                std1 = np.std(x1a)
+                x2a = x2[np.where((x2 > ppr[0] * lower) & (x2 < ppr[1] * upper))]
+                m2 = np.mean(x2a)
+                std2 = np.std(x2a)
+                x3 = list(x1a)
+                x3.extend(list(x2a))
+                m3 = np.mean(x3)
+                std3 = np.std(x3)
+                
+                # positive: mean, 1SD, 2SD
+                ax.axvline(x = m1, c = '#6EA945', linewidth = 0.2, alpha = 0.5)
+                ax.axvline(x = m1 + std1, c = '#6EA945', linewidth = 0.2, alpha = 0.5, linestyle = ':')
+                ax.axvline(x = m1 - std1, c = '#6EA945', linewidth = 0.2, alpha = 0.5, linestyle = ':')
+                #ax.axvline(x = m1 + 2 * std1, c = '#6EA945', linewidth = 0.2, alpha = 0.5, linestyle = ':')
+                #ax.axvline(x = m1 - 2 * std1, c = '#6EA945', linewidth = 0.2, alpha = 0.5, linestyle = ':')
+                
+                # negative: mean, 1SD, 2SD
+                ax.axvline(x = m2, c = '#007B7F', linewidth = 0.2, alpha = 0.5)
+                ax.axvline(x = m2 + std2, c = '#007B7F', linewidth = 0.2, alpha = 0.5, linestyle = ':')
+                ax.axvline(x = m2 - std2, c = '#007B7F', linewidth = 0.2, alpha = 0.5, linestyle = ':')
+                #ax.axvline(x = m2 + 2 * std2, c = '#007B7F', linewidth = 0.2, alpha = 0.5, linestyle = ':')
+                #ax.axvline(x = m2 - 2 * std2, c = '#007B7F', linewidth = 0.2, alpha = 0.5, linestyle = ':')
+                
+                # both: mean, 1SD, 2SD
+                ax.axvline(x = m3, c = '#996A44', linewidth = 0.2, alpha = 0.5)
+                ax.axvline(x = m3 + std3, c = '#996A44', linewidth = 0.2, alpha = 0.5, linestyle = ':')
+                ax.axvline(x = m3 - std3, c = '#996A44', linewidth = 0.2, alpha = 0.5, linestyle = ':')
+            ax.set_title('%s int. peak ratios'%ltpname)
+        fig.tight_layout()
+        fig.savefig(pdfname)
+        prg.terminate()
+        plt.close()
+    
+    def peak_ratio_score(self, lower = 0.5):
+        upper = 1.0 / lower
+        ltps = sorted(self.samples_upper.keys())
+        for i in xrange(len(ltps)):
+            ltpname = ltps[i].upper()
+            if self.valids[ltpname]['pos']['ipr'].shape[1] > 0:
+                scores = []
+                keys = sorted(self.ppratios[ltpname].keys())
+                ppr1 = np.array(list(self.ppratios[ltpname][keys[0]]))
+                if len(keys) > 1:
+                    ppr2 = np.array(list(self.ppratios[ltpname][keys[1]]))
+                p1 = self.valids[ltpname]['pos']['ipr'][:,0]
+                p1a = p1[np.isfinite(p1)]
+                n1 = self.valids[ltpname]['neg']['ipr'][:,0]
+                n1a = n1[np.isfinite(n1)]
+                a1 = np.concatenate((p1a, n1a))
+                a1 = a1[np.where((a1 > ppr1[0] * lower) & (a1 < ppr1[1] * upper))]
+                m1 = np.mean(a1)
+                s1 = np.std(a1)
+                if self.valids[ltpname]['pos']['ipr'].shape[1] > 1:
+                    p2 = self.valids[ltpname]['pos']['ipr'][:,1]
+                    p2a = p2[np.isfinite(p2)]
+                    n2 = self.valids[ltpname]['neg']['ipr'][:,1]
+                    n2a = n2[np.isfinite(n2)]
+                    a2 = np.concatenate((p2a, n2a))
+                    a1 = a2[np.where((a2 > ppr2[0] * lower) & (a2 < ppr2[1] * upper))]
+                    m2 = np.mean(a2)
+                    s2 = np.std(a2)
+                    scp2 = np.abs(p2 - m2) / s2
+                    scn2 = np.abs(n2 - m2) / s2
+                scp1 = np.abs(p1 - m1) / s1
+                scn1 = np.abs(n1 - m1) / s1
+                if self.valids[ltpname]['pos']['ipr'].shape[1] > 1:
+                    scp1 = (scp1 + scp2) / 2.0
+                    scn1 = (scn1 + scn2) / 2.0
+            else:
+                scp1 = np.zeros((self.valids[ltpname]['pos']['ipr'].shape[0],), dtype = np.float)
+                scn1 = np.zeros((self.valids[ltpname]['neg']['ipr'].shape[0],), dtype = np.float)
+            self.valids[ltpname]['pos']['prs'] = scp1
+            self.valids[ltpname]['neg']['prs'] = scn1
+    
+    def peak_ratio_score_hist(self, pdfname = None):
+        if pdfname is None:
+            pdfname = 'peak_ratios_hist.pdf'
+        font_family = 'Helvetica Neue LT Std'
+        sns.set(font = font_family)
+        fig, axs = plt.subplots(8, 8, figsize = (20, 20))
+        ltps = sorted(self.samples_upper.keys())
+        prg = progress.Progress(len(ltps), 'Plotting peak ratio scores', 1,
+            percent = False)
+        width = 0.3
+        for i in xrange(len(ltps)):
+            prg.step()
+            ax = axs[i / 8, i % 8]
+            ltpname = ltps[i].upper()
+            p = self.valids[ltpname]['pos']['prs']
+            n = self.valids[ltpname]['neg']['prs']
+            p = p[np.isfinite(p)]
+            n = n[np.isfinite(n)]
+            bins = np.linspace(0.0, 5.0, 25)
+            ax.hist(p, bins, color = '#6EA945', alpha = 0.2, edgecolor = 'none')
+            ax.hist(n, bins, color = '#007B7F', alpha = 0.2, edgecolor = 'none')
+            ax.set_xlim((0.0, 5.0))
+            ax.set_title('%s p/r scores'%ltpname)
+        fig.tight_layout()
+        fig.savefig(pdfname)
+        prg.terminate()
+        plt.close()
+    
+    def peak_ratio_score_bool(self, threshold = 1.0):
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                tbl['prs1'] = tbl['prs'] <= threshold
+    
     # ltp.fractions_barplot(samples_upper, pprofs)
 
     def plot_score_performance(self, perf):
@@ -6027,7 +6426,7 @@ class LTP(object):
                 plt.subplots_adjust(top = 0.95)
                 fig.savefig('score_performance_%s-%s.pdf'%(ltp, pos))
                 plt.close(fig)
-
+    
     def plot_roc(self, perf):
         metrics = [
             ('Kendall\'s tau', 'ktv', False),
@@ -6038,14 +6437,13 @@ class LTP(object):
             ('Goodman-Kruskal\'s gamma', 'gkv', False),
             ('Difference', 'dfv', True)
         ]
-        def colors(self, ):
+        def colors():
             _colors = ['#6EA945', '#FCCC06', '#DA0025', 
                 '#007B7F', '#454447', '#996A44']
             for c in _colors:
                 yield c
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
-        # plt.gca().set_color_cycle(['red', 'green', 'blue', 'yellow'])
         fig, axs = plt.subplots((len(metrics) + len(metrics) % 2) / 2, 2,
             figsize = (10, 20), sharex = False, sharey = False)
         plt.suptitle('Reciever operating characteristics', size = 16)
@@ -6067,7 +6465,75 @@ class LTP(object):
         plt.subplots_adjust(top = 0.95)
         fig.savefig('roc.pdf')
         plt.close(fig)
-
+    
+    def plot_roc2(self):
+        metrics = [
+            ('Euclidean, +0 mcl', 'env', True),
+            ('Euclidean, +15 mcl', 'env15', True),
+            ('Euclidean, +45 mcl', 'env45', True),
+            ('Peak ratio', 'prs', True)
+        ]
+        def colors():
+            _colors = ['#6EA945', '#FCCC06', '#DA0025', 
+                '#007B7F', '#454447', '#996A44']
+            for c in _colors:
+                yield c
+        font_family = 'Helvetica Neue LT Std'
+        sns.set(font = font_family)
+        nplots = sum(
+            map(
+                lambda protein:
+                    len(
+                        filter(
+                            lambda mode:
+                                len(self.valids[protein][mode]['_std']),
+                            ['pos', 'neg']
+                        )
+                    ),
+                self.known_binders_detected
+            )
+        )
+        nrows = int(np.ceil(np.sqrt(nplots)))
+        fig, axs = plt.subplots(nrows, nrows,
+            figsize = (nrows * 5, nrows * 5),
+            sharex = False, sharey = False)
+        plt.suptitle('Reciever operating characteristics', size = 16)
+        i = 0
+        for protein in self.known_binders_detected:
+            for mode in ['pos', 'neg']:
+                n = len(self.valids[protein][mode]['_std'])
+                if n:
+                    #
+                    x1, y1 = self.get_cutoff_coo(
+                        self.scores_eval[protein][mode]['prs'], 1.0)
+                    #
+                    c = colors()
+                    ax = axs[i/nrows][i%nrows]
+                    for m in metrics:
+                        d2 = self.scores_eval[protein][mode]
+                        ax.plot(1 - np.array(d2[m[1]]['spec']),
+                            np.array(d2[m[1]]['sens']),
+                            '-', linewidth = 0.33, color = c.next(),
+                            label = m[0])
+                    ax.scatter([x1], [y1], c = '#007B7F', alpha = 0.5,
+                        label = 'Peak ratio score = 1.0', edgecolors = 'none')
+                    ax.plot([0,1], [0,1], '--', linewidth = 0.33, color = '#777777')
+                    leg = ax.legend(loc = 4)
+                    ax.set_ylabel('Sensitivity')
+                    ax.set_xlabel('1 - Specificity')
+                    ax.set_title('ROC :: %s :: %s :: n = %u' % (protein, mode, n))
+                    i += 1
+        fig.tight_layout()
+        plt.subplots_adjust(top = 0.95)
+        fig.savefig('roc2.pdf')
+        plt.close(fig)
+    
+    def get_cutoff_coo(self, d, value):
+        for i, val in enumerate(d['cutoff']):
+            if val >= value:
+                return 1 - d['spec'][i], d['sens'][i]
+        return 1.0, 1.0
+    
     def best_combined(self, valids, scores, best = 10, ubiquity_treshold = 5):
         for ltp, d in valids.iteritems():
             for pn, tbl in d.iteritems():
@@ -7184,12 +7650,14 @@ class LTP(object):
         with open(filename, 'w') as f:
             f.write(table)
     
-    def identities_latex_table(self, data,
-        filename = 'ms1ms2hcheadgroups.tex', break_half = True):
+    def identities_latex_table(self, filename = 'ms1ms2hcheadgroups2.tex', break_half = True, include = 'cl70pct'):
         allhgs = set([])
-        for protein, d in data.iteritems():
-            for hgs in d.values():
-                allhgs = allhgs | hgs
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                for oi, ms2results in tbl['ms2i2'].iteritems():
+                    for hg, ms2result in ms2results.iteritems():
+                        if sum(map(lambda i: i['score'], ms2result)) > 0:
+                            allhgs.add(hg)
         colnames = sorted(list(allhgs))
         tablerow = '\t%s\\\\\n'
         table = '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
@@ -7202,20 +7670,28 @@ class LTP(object):
             )
         )
         table += tablerow % hdr
-        for i, protein in enumerate(sorted(data.keys())):
+        for l, protein in enumerate(sorted(self.valids.keys())):
             row = [protein]
             for hg in colnames:
-                if hg in data[protein]['pos'] and \
-                    hg in data[protein]['neg']:
+                detected = {'neg': False, 'pos': False}
+                for mode in ['neg', 'pos']:
+                    for i, oi in enumerate(self.valids[protein][mode]['i']):
+                        if oi in self.valids[protein][mode]['ms2i3']:
+                            ms2results = self.valids[protein][mode]['ms2i3'][oi]
+                            if not include or self.valids[protein][mode][include][i]:
+                                if hg in ms2results:
+                                    detected[mode] = True
+                if detected['pos'] and \
+                    detected['neg']:
                     row.append('\\cellcolor{emblyellow!75}')
-                elif hg in data[protein]['neg']:
+                elif detected['neg']:
                     row.append('\\cellcolor{emblpetrol!75}')
-                elif hg in data[protein]['pos']:
+                elif detected['pos']:
                     row.append('\\cellcolor{emblgreen!75}')
                 else:
                     row.append('')
             table += tablerow % ' & '.join(row)
-            if break_half and i == np.ceil(len(self.valids) / 2.0):
+            if break_half and l == np.ceil(len(self.valids) / 2.0):
                 table += '\\end{tabular}\n\quad\n'
                 table += '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
                 table += tablerow % hdr
@@ -7409,7 +7885,7 @@ class LTP(object):
                     [tbl['enr'][classif]['fn'], tbl['enr'][classif]['tn']]])
                 tbl['enr'][classif]['fisher'] = \
                     sp.stats.fisher_exact(tbl['enr'][classif]['contab'])
-
+    
     def enrichment_barplot(self, valids, classif = 'cl5pct', 
         outf = 'known_binders_enrichment.pdf'):
         w = 0.45
@@ -7528,7 +8004,7 @@ class LTP(object):
                         comb = tuple(comb)
                         values[combinations[comb]] += 1
         return values
-
+    
     '''
     {'MS1 both +/-, MS2 +': 7, 'Only MS2 -': 0, 'MS1 - and MS2 +': 2,
      'MS1 both +/-, MS2 -': 1, 'MS1 +, MS2 both +/-': 0, '+/- Total': 46,
@@ -7539,7 +8015,7 @@ class LTP(object):
      'MS1 -, MS2 both +/-': 1, 'Total': 448, 'Only - Total': 104,
      'Only MS1 +': 68, 'Only MS2 +': 23}
     '''
-
+    
     def plot_identification_levels(self, idlevels, ltp, hg,
         fname = '%s-%s-classes.pdf'):
         fname = fname % (ltp, hg)
@@ -7575,7 +8051,45 @@ class LTP(object):
         fig.tight_layout()
         cvs.print_figure(fname)
         fig.clf()
-
+    
+    def find_known_binders(self):
+        classes = set(['PA', 'PC', 'PE', 'PG', 'PS', 'PI', 'SM', 'Cer'])
+        having_binders = filter(
+            lambda protein:
+                len(self.bindprop[protein] & classes),
+            self.valids.keys()
+        )
+        self.having_known_binders = having_binders
+        self.known_binders_detected = set([])
+        for protein in self.having_known_binders:
+            d = self.valids[protein]
+            for mode, tbl in d.iteritems():
+                is_known_binder = []
+                for i, oi in enumerate(tbl['i']):
+                    if oi not in tbl['ms2i2']:
+                        is_known_binder.append(False)
+                    else:
+                        binders = \
+                            set(
+                                map(
+                                    lambda (hg, ms2i):
+                                        hg,
+                                    filter(
+                                        lambda (hg, ms2i):
+                                            len(filter(
+                                                lambda ms2is:
+                                                    ms2is['score'] > 0,
+                                                ms2i
+                                            )),
+                                        tbl['ms2i2'][oi].iteritems()
+                                    )
+                                )
+                            )
+                        is_known_binder.append(bool(len(binders & self.bindprop[protein])))
+                tbl['known_binder'] = np.array(is_known_binder)
+                if sum(is_known_binder) > 0:
+                    self.known_binders_detected.add(protein)
+    
     def mz_report(self, ltp, mode, mz):
         self.sort_alll('mz')
         tbl = self.valids[ltp][mode]
@@ -7609,14 +8123,14 @@ class LTP(object):
             ', '.join(list(tbl['combined_hg'][oi]))
             )
         )
-
+    
     def _database_details_list(self, lip):
         if lip is None: lip = []
         return '\n'.join(map(lambda l:
             '⚫ %s\t%.04f\t%s' % (l[4], l[5], l[2]),
             lip
         ))
-
+    
     def _fragment_details_list(self, ms2r, ms2files, path):
         fractions = {9: 'A09', 10: 'A10', 11: 'A11', 12: 'A12', 1: 'B01'}
         if ms2r is not None:
@@ -7636,7 +8150,7 @@ class LTP(object):
                 sort
             )
         ))
-
+    
     def _features_table_row(self, ltp, mod, tbl, oi, i, fits_profile, drift):
         tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s'\
             '\n\t\t\t</td>\n'
@@ -7704,6 +8218,20 @@ class LTP(object):
             ', '.join(list(tbl['combined_hg'][oi])) \
                 if len(tbl['combined_hg'][oi]) else '')
         )
+        peaks = [
+            'Peaksize > 2.0--5.0: %s' % (tbl['peaksize'][i] > tbl['pslim05'][i]),
+            'Peaksize > 2.0--10.0: %s' % (tbl['peaksize'][i] > tbl['pslim10'][i]),
+            'Peaksize > 5.0--10.0: %s' % (tbl['peaksize'][i] > tbl['pslim510'][i])
+        ]
+        row.append(tablecell % \
+            ('nothing clickable',
+            '\n'.join(peaks),
+            '!' if (
+                not (tbl['peaksize'][i] > tbl['pslim05'][i]) or \
+                not (tbl['peaksize'][i] > tbl['pslim10'][i]) or \
+                not (tbl['peaksize'][i] > tbl['pslim510'][i])
+            ) else ''
+        ))
         row.append(tablecell % (
             'positive' if tbl[fits_profile][i] else 'nothing',
             'Fits protein profile' if tbl[fits_profile][i] \
@@ -7713,16 +8241,18 @@ class LTP(object):
         return row
 
     def features_table(self, filename = None,
-        fits_profile = 'cl70pct'):
+        fits_profile = 'prs1'):
         hdr = ['+m/z', '+Database', '+MS1 HGs',
             '+MS2 frags', '+MS2 HGs', '+ID',
             '+MS1 FAs', '+MS2 FAs',
             '+MS1&2',
+            '+Psize',
             '+Fits protein',
             '-m/z', '-Database', '-MS1 HGs',
             '-MS2 frags', '-MS2 HGs', '-ID',
             '-MS1 FAs', '-MS2 FAs',
             '-MS1&2',
+            '-Psize',
             '-Fits protein']
         
         filename = 'results_%s_identities_details' % self.today() \
@@ -8039,3 +8569,37 @@ class LTP(object):
         )
         with open(outfile, 'w') as f:
             f.write(tbl % (colalign, hdr, cells))
+    
+    def hg_fa_list(self, filename = 'headgroups_fattya.tex', include = 'cl70pct'):
+        out = '\\begin{itemize}'
+        allhgs = set([])
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                for oi, ms2results in tbl['ms2i2'].iteritems():
+                    for hg, ms2result in ms2results.iteritems():
+                        if sum(map(lambda i: i['score'], ms2result)) > 0:
+                            allhgs.add(hg)
+        allhgs = sorted(list(allhgs))
+        for protein in sorted(self.valids.keys()):
+            d = self.valids[protein]
+            thisProtein = '\n  \\item %s' % protein
+            rows = []
+            for hg in allhgs:
+                thisRow = set([])
+                for mode, tbl in d.iteritems():
+                    for i, oi in enumerate(tbl['i']):
+                        if oi in tbl['ms2i2']:
+                            for res in tbl['ms2i2'][oi][hg]:
+                                if res['score'] > 0:
+                                    thisRow = thisRow | res['fattya']
+                                    if not len(res['fattya']) and hg in tbl['ms1fa'][oi]:
+                                        thisRow = thisRow | tbl['ms1fa'][oi][hg]
+                if len(thisRow):
+                    thisRow = '    \\item %s: %s' % (hg, ', '.join(sorted(list(thisRow))))
+                    rows.append(thisRow)
+            if len(rows):
+                thisProtein += '\n  \\begin{itemize}\n%s\n  \\end{itemize}' % '\n'.join(rows)
+            out += thisProtein
+        out += '\n\\end{itemize}'
+        with open(filename, 'w') as f:
+            f.write(out)

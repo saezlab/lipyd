@@ -38,7 +38,7 @@ l = ltp2.LTP()
 '''
 Initializing from the beginning.
 '''
-l.init_from_scratch()
+#l.init_from_scratch()
 
 '''
 Here we reload the workspace including all the data from the pickle:
@@ -50,7 +50,7 @@ l.load_data()
 '''
 Apply basic filters, and obtain the valid features.
 '''
-l.valid_features()
+l.valid_features(cache = False)
 '''
 Processing standards from mzML
 Calculating drifts
@@ -70,6 +70,20 @@ Correlation and similarity metrics between features and
 protein concentration profile.
 '''
 l.profiles_corrs()
+l.profiles_corrs(pprofs = '15')
+l.profiles_corrs(pprofs = '45')
+
+l.ms2_scans_identify()
+l.find_known_binders()
+l.known_binders_as_standard()
+
+l.protein_peak_ratios()
+l.intensity_peak_ratios()
+l.peak_ratio_score()
+l.peak_ratio_score_bool()
+
+l.evaluate_scores()
+
 
 '''
 Clustering features based on euclidean distance
@@ -94,6 +108,22 @@ l.ms1_table_html_simple()
 l.ms2_table_html_simple()
 l.ms1_ms2_table_html_simple()
 l.features_table()
+
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'bool_env',
+    highlight2 = False,
+    all_features = True,
+    pdfname = 'protein_profiles_features_all_mean_33pct.pdf')
+
+bs = ltp.fractions_barplot(samples_upper, pprofs, pprofs_original,
+    features = True, valids = valids, 
+    highlight = 'bool_env',
+    highlight2 = False,
+    all_features = False,
+    pdfname = 'protein_profiles_features_mean_33pct.pdf')
+
 
 idlevels = {
     'All': ltp.identification_levels(valids, 'STARD10', 'PC'),

@@ -11,16 +11,16 @@
 189.0402270	PG headgroup+NH3 (NL 189.0402)	NL positive mode	PG;BMP
 259.0218940	PI headgroup (NL 259.0219)	NL positive mode	PI
 369.3515760	CE headgroup (369.3516)	[M+H]+	CE
-109.1011770	C8H13 FA fragment (C8:1)	[M]+
-123.1168270	C9H15 FA fragment (C9:1)	[M]+
-81.0698768	C6H9 FA fragment (C6:1)	[M]+
-97.1011768	C7H13 FA fragment (C7:1)	[M]+
-95.0855268	C7H11 FA fragment (C7:1)	[M]+
-67.0542266	C5H7 FA fragment (C5:1)	[M]+
-55.0542266	C4H7 FA fragment (C4:0)	[M]+
+109.1011770	C8H13fragment (C8:1)	[M]+
+123.1168270	C9H15fragment (C9:1)	[M]+
+81.0698768	C6H9fragment (C6:1)	[M]+
+97.1011768	C7H13fragment (C7:1)	[M]+
+95.0855268	C7H11fragment (C7:1)	[M]+
+67.0542266	C5H7fragment (C5:1)	[M]+
+55.0542266	C4H7fragment (C4:0)	[M]+
 57.0698767	C4H9 FA fragemnt (C4:0)	[M]+
-43.0542266	C3H7 FA fragment (C3:0)	[M]+
-41.0385766	C3H5 FA fragment (C3:0)	[M]+
+43.0542266	C3H7fragment (C3:0)	[M]+
+41.0385766	C3H5fragment (C3:0)	[M]+
 89.0597060	C4H8O2	[M+H]+
 133.0859210	C6H12O3	[M+H]+
 71.0855268	C5H11	[M]+
