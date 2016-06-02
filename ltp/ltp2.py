@@ -1579,6 +1579,7 @@ class LTP(object):
             'nfragmentsfile': 'lipid_fragments_negative_mode_v3.txt',
             'featurescache': 'features.pickle',
             'pprofcache': 'pprofiles_raw.pickle',
+            'marco_dir': 'marco',
             'auxcache': 'save.pickle',
             'stdcachefile': 'calibrations.pickle',
             'validscache': 'valids.pickle',
@@ -1649,7 +1650,7 @@ class LTP(object):
         self.in_basedir = ['samplesf', 'ppfracf', 'seqfile',
             'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
-            'auxcache', 'stdcachefile', 'validscache']
+            'auxcache', 'stdcachefile', 'validscache', 'marco_dir']
         
         for attr, val in self.defaults.iteritems():
             if attr in kwargs:
@@ -1720,6 +1721,9 @@ class LTP(object):
                     }
                     .both {
                         background: linear-gradient(120deg, #D04870, #3A7AB3);
+                        background: -moz-linear-gradient(120deg, #D04870, #3A7AB3);
+                        background: -webkit-linear-gradient(120deg, #D04870, #3A7AB3);
+                        background: -o-linear-gradient(120deg, #D04870, #3A7AB3);
                         color: #FFFFFF;
                     }
                     .matching {
@@ -2334,6 +2338,7 @@ class LTP(object):
         Generic function to read MS Excel XLS file, and convert one sheet
         to CSV, or return as a list of lists
         '''
+        table = None
         try:
             book = xlrd.open_workbook(xls_file, on_demand = True)
             try:
@@ -2373,9 +2378,78 @@ class LTP(object):
                 csv.write('\n'.join(['\t'.join(r) for r in table]))
         if not return_table:
             table = None
-        book.release_resources()
+        if 'book' in locals() and hasattr(book, 'release_resources'):
+            book.release_resources()
         return table
     
+    def mz2oi(self, protein, mode, mz):
+        protein = self.protein_name_upper2mixed(protein)
+        try:
+            tbl = self.data[protein[mode]][mode]
+        except KeyError:
+            print protein, mode
+        ui = tbl['raw'][:,1].searchsorted(mz)
+        du = 999.0 if ui == tbl['raw'].shape[0] else tbl['raw'][ui,1] - mz
+        dl = 999.0 if ui == 0 else mz - tbl['raw'][ui - 1,1]
+        d = min(du, dl)
+        if d < 0.0001:
+            oi = ui if du < dl else ui - 1
+        else:
+            oi = None
+        return oi
+    
+    def marco_standards(self):
+        result = {}
+        files = filter(
+            lambda fname:
+                fname[-4:] == 'xlsx',
+            os.listdir(self.marco_dir)
+        )
+        def tbl2mzs(tbl):
+            return filter(
+                lambda x:
+                    type(x) is float,
+                map(
+                    lambda row:
+                        self.to_float(row[2]),
+                    tbl
+                )
+            )
+        def mzs2ois(protein, mode, mzs):
+            ois = set([])
+            for mz in mzs:
+                oi = self.mz2oi(protein, mode, mz)
+                if oi is None:
+                    sys.stdout.write('\t:: m/z not found: %.05f (%s, %s)\n' % \
+                        (mz, protein, mode))
+                    sys.stdout.flush()
+                else:
+                    ois.add(oi)
+            return ois
+        def ois2attr(protein, mode, ois):
+            tbl = self.valids[protein][mode]
+            tbl['marco'] = \
+                np.array(
+                    map(
+                        lambda i:
+                            i in ois,
+                        tbl['i']
+                    )
+                )
+        for fname in files:
+            protein = fname.split('_')[0]
+            result[protein] = {'pos': [], 'neg': []}
+            pos_table = self.read_xls(
+                os.path.join(self.marco_dir, fname), sheet = 0)
+            neg_table = self.read_xls(
+                os.path.join(self.marco_dir, fname), sheet = 1)
+            pos_mzs = tbl2mzs(pos_table[1:])
+            neg_mzs = tbl2mzs(neg_table[1:])
+            pos_ois = mzs2ois(protein, 'pos', pos_mzs)
+            neg_ois = mzs2ois(protein, 'neg', neg_mzs)
+            ois2attr(protein, 'pos', pos_ois)
+            ois2attr(protein, 'neg', neg_ois)
+
     #
     # reading in a small table for keeping track which fractions are samples 
     # and which ones are controls
@@ -3202,13 +3276,19 @@ class LTP(object):
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['crg'] = np.array(tbl['raw'][:,4] == charge)
+    
+    def rt1_filter(self, rtmin = 1.0):
+        for ltp, d in self.data.iteritems():
+            for pn, tbl in d.iteritems():
+                tbl['rtm'] = (tbl['raw'][:,2] + tbl['raw'][:,3]) / 2.0
+                tbl['rt1'] = np.array(tbl['rtm'] > rtmin)
 
     def area_filter(self, area = 10000.0):
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['are'] = np.nanmean(tbl['lip'], 1) >= area
 
-    def peaksize_filter(self, peakmin = 5.0, peakmax = 5.0, area = 10000):
+    def peaksize_filter(self, peakmin = 2.0, peakmax = 5.0, area = 10000):
         # minimum and maximum of all intensities over all proteins:
         mini = min(
             map(lambda tb:
@@ -3623,16 +3703,20 @@ class LTP(object):
     
     @combine_filters
     def validity_filter(self, tbl):
-        tbl['vld'] = np.logical_and(
+        tbl['vld'] = \
             np.logical_and(
                 np.logical_and(
-                    tbl['qly'],
-                    tbl['crg']
+                    np.logical_and(
+                        np.logical_and(
+                            tbl['qly'],
+                            tbl['crg']
+                        ),
+                        tbl['are']
+                    ),
+                    tbl['pks']
                 ),
-                tbl['are']
-            ),
-            tbl['pks']
-        )
+                tbl['rt1']
+            )
 
     @combine_filters
     def val_ubi_filter(self, tbl, ubiquity = 7):
@@ -3724,7 +3808,7 @@ class LTP(object):
 
 
     def apply_filters(self,
-        filters = ['quality', 'charge', 'area', 'peaksize'],
+        filters = ['quality', 'charge', 'area', 'peaksize', 'rt1'],
         param = {}):
         for f in filters:
             p = param[f] if f in param else {}
@@ -3918,7 +4002,7 @@ class LTP(object):
         return None, None, None
 
     def fattyacid_from_lipid_name(self, lip, _sum = True):
-        refa = re.compile(r'([dl]?)([0-9]+:[0-9])\(?([,0-9EZ]+)?\)?')
+        refa = re.compile(r'([dl]?)([0-9]+:[0-9]{1,2})\(?([,0-9EZ]+)?\)?')
         _fa = None
         if lip[0][0] == 'L':
             names = lip[2].split('|')
@@ -4283,6 +4367,7 @@ class LTP(object):
         self.ms1_headgroups()
         self.negative_positive2()
         self.headgroups_negative_positive('ms1')
+        self.marco_standards()
     
     '''
     END: lipid databases lookup
@@ -4299,6 +4384,8 @@ class LTP(object):
         self.ms2_headgroups()
         self.headgroups_by_fattya()
         self.identity_combined()
+        self.ms2_scans_identify()
+        self.ms2_headgroups2()
     
     def identify(self):
         self.headgroups_by_fattya()
@@ -5281,7 +5368,7 @@ class LTP(object):
             setup = 'from __main__ import negative_positive, lipids',
             number = 1)
 
-    def valid_features(self, cache = True):
+    def valid_features(self, cache = False):
         '''
         Creates new dict of arrays with only valid features.
         Keys:
@@ -5303,7 +5390,8 @@ class LTP(object):
                     np.array(tbl['raw'][tbl['vld'], 1])
                 self.valids[ltp.upper()][pn]['rt'] = \
                     np.array(tbl['raw'][tbl['vld'], 2:4])
-                for key in ['peaksize', 'pslim02', 'pslim05', 'pslim10', 'pslim510']:
+                for key in ['peaksize', 'pslim02', 'pslim05',
+                    'pslim10', 'pslim510', 'rtm']:
                     self.valids[ltp.upper()][pn][key] = np.array(tbl[key][tbl['vld']])
                 self.valids[ltp.upper()][pn]['i'] = np.where(tbl['vld'])[0]
         self.norm_all()
@@ -8237,12 +8325,17 @@ class LTP(object):
         sys.stdout.flush()
     
     def protein_name_upper2mixed(self, protein):
+        protein_original = {}
         for protein_name in self.data.keys():
             if protein_name.upper() == protein:
-                return protein_name
+                for mode in ['neg', 'pos']:
+                    if mode in self.data[protein_name]:
+                        protein_original[mode] = protein_name
+        return protein_original
     
     def mz_report_raw(self, protein, mode, mz):
         protein = self.protein_name_upper2mixed(protein)
+        protein = protein[mode]
         tbl = self.data[protein][mode]
         ui = tbl['raw'][:,1].searchsorted(mz)
         du = 999.0 if ui == tbl['raw'].shape[0] else tbl['raw'][ui,1] - mz
@@ -8314,14 +8407,16 @@ class LTP(object):
         original_mz = tbl['mz'][i] / drift
         # m/z
         row.append(tablecell % \
-            ('positive' \
+            (   'both' \
+                if 'marco' in tbl and tbl['marco'][i] \
+                else 'positive' \
                 if tbl['aaa'][i] > self.aaa_threshold[mod] or (
                     oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
                     len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi])
                 )\
                 else 'nothing',
                 'm/z measured; %s, %s mode; raw: %.07f, '\
-                'recalibrated: %.07f; original index: %u; %s%s' % \
+                'recalibrated: %.07f; original index: %u; %s%s %s' % \
                 (
                     ltp,
                     'negative' if mod == 'neg' else 'positive',
@@ -8344,9 +8439,11 @@ class LTP(object):
                             if oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
                                 len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi]) \
                             else 'does not have'
-                        )
+                        ),
+                    '%sn Marco\'s standards.' % \
+                        ('I' if 'marco' in tbl and tbl['marco'][i] else 'Not i')
                 ),
-            '%.04f (%.04f)' % (tbl['mz'][i], original_mz)))
+                '%.04f (%.04f)' % (tbl['mz'][i], original_mz)))
         # RT
         row.append(tablecell % (
                 'nothing',
