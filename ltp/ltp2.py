@@ -4714,7 +4714,8 @@ class LTP(object):
         return result
 
     def ms2_match(self, ms1Mzs, ms1Rts, ms1is, ltp, pos,
-        verbose = False, outfile = None, drift = 1.0):
+        verbose = False, outfile = None, drift = 1.0,
+        rt_tolerance = 1.0):
         '''
         Looks up matching pepmasses for a list of MS1 m/z's.
         '''
@@ -4739,6 +4740,8 @@ class LTP(object):
                     ms1Mz,
                     ms2tbl[iu - 1, 0] if iu > 0 else 0.0,
                     ms2tbl[iu, 0] if iu < ms2tbl.shape[0] else 0.0))
+            rt_mean = np.mean(rt)
+            rt = (rt_mean - rt_tolerance, rt_mean + rt_tolerance)
             u = 0
             if iu < ms2tbl.shape[0]:
                 while iu + u < ms2tbl.shape[0]:
