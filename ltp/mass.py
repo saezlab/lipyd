@@ -1,6 +1,17 @@
-
-#!/usr/bin/python2
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
+
+#
+#  Copyright (c) 2015-2016 - EMBL-EBI
+#
+#  File author(s): Dénes Türei (denes@ebi.ac.uk)
+#
+#  This code is not for public use.
+#  Please do not redistribute.
+#  For permission please contact me.
+#
+#  Website: http://www.ebi.ac.uk/~denes
+#
 
 import urllib2
 import bs4

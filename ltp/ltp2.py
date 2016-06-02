@@ -1868,8 +1868,9 @@ class LTP(object):
             'pubchem_cid', 'common_name']
         record = {}
         expect = False
-        lmapsf = _curl.curl(self.lipidmaps_url, large = True,
+        c = _curl.Curl(self.lipidmaps_url, large = True,
             silent = False, files_needed = [self.lipidmaps_fname])
+        lmapsf = c.result
         for l in lmapsf.values()[0]:
             if expect:
                 record[expect] = l.strip() \
@@ -1954,8 +1955,9 @@ class LTP(object):
         if type(adducts) is list:
             adducts = set(adducts)
         readd = re.compile(r'.*(\[.*)')
-        swl = _curl.curl(self.swisslipids_url, silent = False,
+        c = _curl.Curl(self.swisslipids_url, silent = False,
             compr = 'gz', large = True)
+        swl = c.result
         swl.fileobj.seek(-4, 2)
         ucsize = struct.unpack('I', swl.fileobj.read(4))[0]
         swl.fileobj.seek(0)
@@ -2003,8 +2005,9 @@ class LTP(object):
         Returns numpy array with only exact mass values.
         '''
         readd = re.compile(r'.*(\[.*)')
-        swl = _curl.curl(self.swisslipids_url, silent = False,
+        c = _curl.Curl(self.swisslipids_url, silent = False,
             compr = 'gz', large = True)
+        swl = c.result
         swl.fileobj.seek(-4, 2)
         ucsize = struct.unpack('I', swl.fileobj.read(4))[0]
         swl.fileobj.seek(0)
@@ -5250,7 +5253,36 @@ class LTP(object):
                     self.valids[ltp.upper()][pn][key] = np.array(tbl[key][tbl['vld']])
                 self.valids[ltp.upper()][pn]['i'] = np.where(tbl['vld'])[0]
         self.norm_all()
+        self.get_area()
         pickle.dump(self.valids, open(self.validscache, 'wb'))
+    
+    def get_area(self):
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                try:
+                    tbl['are'] = np.nanmax(tbl['fe'], 1)
+                except ValueError:
+                    print protein, mode
+    
+    def data2valids(self, key):
+        for protein_l, dd in self.data.iteritems():
+            for mode, tbld in dd.iteritems():
+                if key in tbld:
+                    tbl = self.valids[protein_l.upper()][mode]
+                    valids_array = []
+                    for oi in tbl['i']:
+                        valids_array.append(tbld[key][(oi,)])
+                    tbl[key] = np.array(valids_array)
+    
+    def delete_array(self, key):
+        '''
+        Deletes the data belonging to one key
+        from all tables (at every protein in each modes).
+        '''
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                if key in tbl:
+                    del tbl[key]
 
     def norm_all(self):
         '''
@@ -8330,6 +8362,7 @@ class LTP(object):
                 xrange(len(hdr) - 1)
             )
             table += (tablerow % '\n'.join(thisRow))
+            self.sort_alll('')
             for mod, tbl in d.iteritems():
                 opp_mod = 'neg' if mod == 'pos' else 'pos'
                 drift = 1.0 if not self.ltps_drifts \
