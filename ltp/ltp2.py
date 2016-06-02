@@ -1693,6 +1693,11 @@ class LTP(object):
         self.exacts = None
         self.ltps_drifts = None
         
+        self.aaa_threshold = {
+            'neg': 30000.0,
+            'pos': 150000.0
+        }
+        
         self.html_table_template = '''<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -3201,9 +3206,9 @@ class LTP(object):
     def area_filter(self, area = 10000.0):
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
-                tbl['are'] = np.nanmax(tbl['lip'], 1) >= area
+                tbl['are'] = np.nanmean(tbl['lip'], 1) >= area
 
-    def peaksize_filter(self, peakmin = 2.0, peakmax = 2.0, area = 10000):
+    def peaksize_filter(self, peakmin = 5.0, peakmax = 5.0, area = 10000):
         # minimum and maximum of all intensities over all proteins:
         mini = min(
             map(lambda tb:
@@ -3222,14 +3227,20 @@ class LTP(object):
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 prg.step()
+                mini = np.nanmin(
+                    np.nanmax(
+                        tbl['int'][np.nanmean(tbl['lip'], 1) > 10000,:], 1
+                    )
+                )
+                maxi = np.nanmax(tbl['int'])
                 tbl['peaksize'] = np.nanmax(tbl['lip'], 1) / \
                     (np.nanmax(tbl['ctr'], 1) + 0.001)
                 tbl['pslim02'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
-                        (2.0 - peakmin) + peakmin)
+                        (2.0 - 2.0) + peakmin)
                 tbl['pslim05'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
-                        (5.0 - peakmin) + peakmin)
+                        (5.0 - 2.0) + peakmin)
                 tbl['pslim10'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
-                        (10.0 - peakmin) + peakmin)
+                        (10.0 - 2.0) + peakmin)
                 tbl['pslim510'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
                         (10.0 - 5.0) + 5.0)
                 tbl['pks'] = (
@@ -3807,7 +3818,7 @@ class LTP(object):
     def load_data(self, fname = None):
         fname = os.path.join(self.basedir, self.featurescache) \
             if fname is None else fname
-        sys.stdout.write('\t:: Loading data from data to %s ...\n' % fname)
+        sys.stdout.write('\t:: Loading data from %s ...\n' % fname)
         sys.stdout.flush()
         self.data = pickle.load(open(fname, 'rb'))
 
@@ -4257,7 +4268,17 @@ class LTP(object):
         tbl['pos']['neg_lip'][poi][noi] = result
         tbl['neg']['pos_lip'][noi][poi] = result
     
+    def average_area_5(self):
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                tbl['aaa'] = np.nansum(tbl['fe'], 1) / 5.0
+    
     def ms1(self):
+        self.average_area_5()
+        self.protein_peak_ratios()
+        self.intensity_peak_ratios()
+        self.peak_ratio_score()
+        self.peak_ratio_score_bool(threshold = 1.5)
         self.lipid_lookup_exact()
         self.ms1_headgroups()
         self.negative_positive2()
@@ -4863,7 +4884,40 @@ class LTP(object):
             unknowns = fragments[fragments[:,7] == 'Unknown',:]
             result += [('Unknown', l[2], l[1]) for l in unknowns]
         return result
-
+    
+    def ms2_headgroups2(self):
+        '''
+        This collects the possible headgroups from the
+        advanced MS2 identification (done by ms2_scans_identify()).
+        '''
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                tbl['ms2hg2'] = {}
+                for oi, ms2i in tbl['ms2i2'].iteritems():
+                    tbl['ms2hg2'][oi] = set(
+                        map(
+                            lambda (hg, sumscore):
+                                hg,
+                            filter(
+                                lambda (hg, sumscore):
+                                    sumscore > 0,
+                                map(
+                                    lambda (hg, scans):
+                                        (hg,
+                                            sum(
+                                                map(
+                                                    lambda scan:
+                                                        scan['score'],
+                                                    scans
+                                                )
+                                            )
+                                        ),
+                                    tbl['ms2i2'][oi].iteritems()
+                                )
+                            )
+                        )
+                    )
+    
     def ms2_headgroups(self):
         '''
         Creates dictionaries named ms2hg having the
@@ -6941,7 +6995,7 @@ class LTP(object):
                                         sys.stdout.flush()
                                     tbl['ms1hg'][oi].add(hg)
                                     if fa is not None:
-                                        if hg  not in tbl['ms1fa']:
+                                        if hg not in tbl['ms1fa'][oi]:
                                             tbl['ms1fa'][oi][hg] = set([])
                                         tbl['ms1fa'][oi][hg].add(fa)
                                 else:
@@ -8216,12 +8270,58 @@ class LTP(object):
             '\n\t\t\t\t%s\n\t\t\t</td>\n'
         row = []
         original_mz = tbl['mz'][i] / drift
+        # m/z
         row.append(tablecell % \
-            ('nothing', 'm/z measured; %s, %s mode; raw: %.07f, '\
-                'recalibrated: %.07f' % \
-                (ltp, 'negative' if mod == 'neg' else 'positive',
-                    original_mz, tbl['mz'][i]),
+            ('positive' \
+                if tbl['aaa'][i] > self.aaa_threshold[mod] or (
+                    oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
+                    len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi])
+                )\
+                else 'nothing',
+                'm/z measured; %s, %s mode; raw: %.07f, '\
+                'recalibrated: %.07f; original index: %u; %s%s' % \
+                (
+                    ltp,
+                    'negative' if mod == 'neg' else 'positive',
+                    original_mz,
+                    tbl['mz'][i],
+                    oi,
+                    'This feature has %s intensity (%u) than'\
+                        ' the threshold in %s mode (%u), ' % \
+                        (
+                            'larger' if tbl['aaa'][i] > \
+                                self.aaa_threshold[mod] else 'lower',
+                            tbl['aaa'][i],
+                            'positive' if mod == 'pos' else 'negative',
+                            self.aaa_threshold[mod]
+                        ),
+                    '%s %s MS2 confirmed identification.' % \
+                        ('but' if tbl['aaa'][i] <= self.aaa_threshold[mod] \
+                            else 'and',
+                        'has' \
+                            if oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
+                                len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi]) \
+                            else 'does not have'
+                        )
+                ),
             '%.04f (%.04f)' % (tbl['mz'][i], original_mz)))
+        # RT
+        row.append(tablecell % (
+                'nothing',
+                'Retention time range (mean): %.02f-%.02f (%.02f)' % \
+                    (tbl['rt'][i,0], tbl['rt'][i,1], np.mean(tbl['rt'][i,])),
+                '%.02f' % np.mean(tbl['rt'][i,])
+            )
+        )
+        # intensity
+        row.append(tablecell % (
+                'nothing' \
+                    if tbl['aaa'][i] < self.aaa_threshold[mod] \
+                    else 'positive',
+                'Average intensity: %u' % int(tbl['aaa'][i]),
+                '%u' % int(tbl['aaa'][i] / 1000.0)
+            )
+        )
         row.append(tableccell % (
             ('nothing clickable',
                 self._database_details_list(tbl['lip'][oi]),
@@ -8246,9 +8346,9 @@ class LTP(object):
         )
         row.append(tablecell % \
             ('nothing', 'Possible MS2 headgroups based on fragmets lookup',
-            ', '.join(tbl['ms2hg'][oi] \
-                if oi in tbl['ms2hg'] and tbl['ms2hg'][oi] is not None else '')
-        ))
+            ', '.join(list(tbl['ms2hg2'][oi])) \
+                if oi in tbl['ms2hg2'] and tbl['ms2hg2'][oi] is not None else '')
+        )
         row.append(tablecell % \
             ('nothing', 'MS2 headroups and fatty acids identified based on '\
                 'MS1 and MS2 new rule sets.',
@@ -8299,13 +8399,13 @@ class LTP(object):
 
     def features_table(self, filename = None,
         fits_profile = 'prs1'):
-        hdr = ['+m/z', '+Database', '+MS1 HGs',
+        hdr = ['+m/z', 'RT', 'Int', '+Database', '+MS1 HGs',
             '+MS2 frags', '+MS2 HGs', '+ID',
             '+MS1 FAs', '+MS2 FAs',
             '+MS1&2',
             '+Psize',
             '+Fits protein',
-            '-m/z', '-Database', '-MS1 HGs',
+            '-m/z', 'RT', 'Int', '-Database', '-MS1 HGs',
             '-MS2 frags', '-MS2 HGs', '-ID',
             '-MS1 FAs', '-MS2 FAs',
             '-MS1&2',
@@ -8362,7 +8462,7 @@ class LTP(object):
                 xrange(len(hdr) - 1)
             )
             table += (tablerow % '\n'.join(thisRow))
-            self.sort_alll('')
+            self.sort_alll('aaa', asc = False)
             for mod, tbl in d.iteritems():
                 opp_mod = 'neg' if mod == 'pos' else 'pos'
                 drift = 1.0 if not self.ltps_drifts \

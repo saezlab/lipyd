@@ -13,9 +13,10 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
-import urllib2
 import bs4
 import re
+
+import _curl
 
 urlMasses = 'http://www.ciaaw.org/atomic-masses.htm'
 urlWeights = 'http://www.ciaaw.org/atomic-weights.htm'
@@ -27,8 +28,9 @@ electron = 0.00054857990924
 
 # ##
 def getMasses(url):
-    reqMasses = urllib2.urlopen(url)
-    soupMasses = bs4.BeautifulSoup(reqMasses.read(), 'lxml')
+    c = _curl.Curl(url, silent = False)
+    reqMasses = c.result
+    soupMasses = bs4.BeautifulSoup(reqMasses, 'lxml')
 
     mass = {}
     symbol = None
@@ -73,8 +75,9 @@ def getWeightStd():
     globals()['weightsStd'] = getMasses(urlWeights)
 
 def getFreqIso():
-    reqAbundances = urllib2.urlopen(urlAbundances)
-    soupAbundances = bs4.BeautifulSoup(reqAbundances.read(), 'lxml')
+    c = _curl.Curl(urlAbundances, silent = False)
+    reqAbundances = c.result
+    soupAbundances = bs4.BeautifulSoup(reqAbundances, 'lxml')
 
     freqIso = {}
     symbol = None
