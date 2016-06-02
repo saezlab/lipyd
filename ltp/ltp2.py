@@ -4362,7 +4362,7 @@ class LTP(object):
         self.protein_peak_ratios()
         self.intensity_peak_ratios()
         self.peak_ratio_score()
-        self.peak_ratio_score_bool(threshold = 1.5)
+        self.peak_ratio_score_bool(threshold = 1.0)
         self.lipid_lookup_exact()
         self.ms1_headgroups()
         self.negative_positive2()
@@ -8410,10 +8410,10 @@ class LTP(object):
             (   'both' \
                 if 'marco' in tbl and tbl['marco'][i] \
                 else 'positive' \
-                if tbl['aaa'][i] > self.aaa_threshold[mod] or (
+                if (tbl['aaa'][i] > self.aaa_threshold[mod] or (
                     oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
                     len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi])
-                )\
+                )) and tbl['prs'][i] <= 1.0 and tbl['peaksize'][i] >= 5.0 \
                 else 'nothing',
                 'm/z measured; %s, %s mode; raw: %.07f, '\
                 'recalibrated: %.07f; original index: %u; %s%s %s' % \
@@ -8515,23 +8515,26 @@ class LTP(object):
                 if len(tbl['combined_hg'][oi]) else '')
         )
         peaks = [
+            'Peaksize = %.02f' % tbl['peaksize'][i],
             'Peaksize > 2.0--5.0: %s' % (tbl['peaksize'][i] > tbl['pslim05'][i]),
             'Peaksize > 2.0--10.0: %s' % (tbl['peaksize'][i] > tbl['pslim10'][i]),
             'Peaksize > 5.0--10.0: %s' % (tbl['peaksize'][i] > tbl['pslim510'][i])
         ]
         row.append(tablecell % \
             ('nothing clickable',
-            '\n'.join(peaks),
-            '!' if (
-                not (tbl['peaksize'][i] > tbl['pslim05'][i]) or \
-                not (tbl['peaksize'][i] > tbl['pslim10'][i]) or \
-                not (tbl['peaksize'][i] > tbl['pslim510'][i])
-            ) else ''
-        ))
+                '\n'.join(peaks),
+                '!' if (
+                    not (tbl['peaksize'][i] > tbl['pslim05'][i]) or \
+                    not (tbl['peaksize'][i] > tbl['pslim10'][i]) or \
+                    not (tbl['peaksize'][i] > tbl['pslim510'][i])
+                ) else ''
+            )
+        )
         row.append(tablecell % (
             'positive' if tbl[fits_profile][i] else 'nothing',
-            'Fits protein profile' if tbl[fits_profile][i] \
-                else 'Does not fit protein profile',
+            '%s protein profile. Peak size ratio score: %.04f' % \
+                ('Fit' if tbl[fits_profile][i] else 'Does not fit',
+                    tbl['prs'][i]),
             'Yes' if tbl[fits_profile][i] else 'No'
         ))
         return row
