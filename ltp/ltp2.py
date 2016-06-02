@@ -2375,12 +2375,12 @@ class LTP(object):
             table = None
         book.release_resources()
         return table
-
+    
     #
     # reading in a small table for keeping track which fractions are samples 
     # and which ones are controls
     #
-
+    
     def read_samples(self):
         '''
         Reads from file sample/control annotations 
@@ -8234,6 +8234,48 @@ class LTP(object):
             ', '.join(list(tbl['combined_hg'][oi]))
             )
         )
+        sys.stdout.flush()
+    
+    def protein_name_upper2mixed(self, protein):
+        for protein_name in self.data.keys():
+            if protein_name.upper() == protein:
+                return protein_name
+    
+    def mz_report_raw(self, protein, mode, mz):
+        protein = self.protein_name_upper2mixed(protein)
+        tbl = self.data[protein][mode]
+        ui = tbl['raw'][:,1].searchsorted(mz)
+        du = 999.0 if ui == tbl['raw'].shape[0] else tbl['raw'][ui,1] - mz
+        dl = 999.0 if ui == 0 else mz - tbl['raw'][ui - 1,1]
+        i = ui if du < dl else ui - 1
+        sys.stdout.write('\n\t:: Looking up %.08f\n'\
+            '\t -- The closest m/z found is %.08f\n'\
+            '\t -- Original index is %u\n'\
+            '\t -- Retention time range is %.02f--%.02f\n'\
+            '\t -- Protein containing fractions intensities:\n'\
+            '\t\t%s\n'\
+            '\t -- Control fractions intensities:\n'\
+            '\t\t%s\n'\
+            '\t -- Peak size:\t%.02f\t(%s)\n'\
+            '\t -- Quality:\t%.02f\t(%s)\n'\
+            '\t -- Charge:\t%u\t(%s)\n\n' % \
+            (
+                mz,
+                tbl['raw'][i,1],
+                i,
+                tbl['raw'][i,2],
+                tbl['raw'][i,3],
+                str(list(tbl['lip'][i,:])),
+                str(list(tbl['ctr'][i,:])),
+                tbl['peaksize'][i],
+                tbl['pks'][i],
+                tbl['raw'][i,0],
+                tbl['qly'][i],
+                tbl['raw'][i,4],
+                tbl['crg'][i]
+            )
+        )
+        sys.stdout.flush()
     
     def _database_details_list(self, lip):
         if lip is None: lip = []
