@@ -1005,6 +1005,53 @@ class MS2Scan(object):
              table)
         )
     
+    def html_table(self):
+        table = '\t\t<table class="scantbl">%s\t\t</table>\n'
+        th = '\t\t\t<th>\t\t\t%s</th>\n'
+        ttl = '\t\t\t<th>\t\t\t<td colspan="4">%s<td></th>\n'
+        tr = '\t\t\t<tr class="%s">%s\t\t\t</tr>\n'
+        td = '\t\t\t\t<td>%s\t\t\t\t</td>\n'
+        ms1mz = self.tbl['mz'][self.i]
+        fri = self.scan_id[1] - 9 if self.scan_id[1] != 1 else 4
+        rows = ttl % (
+            'scantitle',
+            'Scan %u (fraction %s%u; %s %s; '\
+            'intensity = %.01f (%.02f%%%%)):' % (
+                self.scan_id[0],
+                'A' if 8 < self.scan_id[1] < 13 else 'B',
+                self.scan_id[1],
+                'contains' \
+                    if self.feature.main.samples_upper[self.feature.protein]\
+                        [fri + 1] == 1 \
+                    else 'does not contain',
+                self.feature.protein,
+                self.tbl['fe'][self.i, fri] \
+                    if fri < self.tbl['fe'].shape[1] else np.nan,
+                (self.tbl['fe'][self.i, fri] \
+                    if fri < self.tbl['fe'].shape[1] else np.nan) / \
+                    np.nanmax(self.tbl['fe'][self.i, :]) * 100.0,
+            )
+        )
+        rows += tr % (
+            'scanhdr',
+            map(
+                lambda cname:
+                    th % cname,
+                ['Frag m/z', 'Intensity', 'Identity', 'NL mass']
+            )
+        )
+        for row in self.scan:
+            rows += tr % (
+                'fragrow',
+                ''.join([
+                    td % ('%.04f' % row[1]),
+                    td % ('%.02f' % row[2]),
+                    td % row[7],
+                    td % ('%.04f' % ms1mz - row[1])
+                ])
+        )
+        return table % rows
+    
     def most_abundant_mz(self):
         result = self.scan[0,1]
         self.feature.msg('\t\t  -- Most abundant m/z is %.03f\n' % result)
