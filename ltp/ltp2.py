@@ -859,7 +859,7 @@ class Feature(object):
         self.msg('\n::: MS2 scans available (%u):\n\n' % len(self.scans))
         
         for sc in self.scans:
-            self.print_scan(sc)
+            sc.print_scan()
     
     def print_db_species(self):
         return ', '.join(
@@ -906,37 +906,8 @@ class Feature(object):
             )
         )
     
-    def print_scan(self, scan):
-        ms1mz = self.tbl['mz'][self.i]
-        header = '\tFrag. m/z\tIntensity\tIdentity%sNL mass\n'\
-            '\t%s\n' % (' ' * 26, '=' * 73)
-        table = '\n\t'.join(
-            map(
-                lambda sc:
-                    '%9.4f\t%10.2f\t%s%s%9.4f' % \
-                        tuple(list(sc[[1, 2, 7]]) + \
-                            [' ' * (32 - len(sc[7])), ms1mz - sc[1]]),
-                self.scans[scan]
-            )
-        )
-        # fraction index (A09-B01)
-        fri = scan[1] - 9 if scan[1] != 1 else 4
-        self.msg('\tScan %u (fraction %s%u; %s %s; intensity = %.01f (%.02f%%)):\n\n%s\t%s\n\n' % \
-            (scan[0],
-             'A' if 8 < scan[1] < 13 else 'B',
-             scan[1],
-             'contains' \
-                if self.main.samples_upper[self.protein][fri + 1] == 1 \
-                else 'does not contain',
-             self.protein,
-             self.tbl['fe'][self.i, fri] \
-                 if fri < self.tbl['fe'].shape[1] else np.nan,
-             (self.tbl['fe'][self.i, fri] \
-                 if fri < self.tbl['fe'].shape[1] else np.nan) / \
-                 np.nanmax(self.tbl['fe'][self.i, :]) * 100.0,
-             header,
-             table)
-        )
+    def html_table(self):
+        pass
     
     def msg(self, text):
         if self.log:
@@ -981,9 +952,11 @@ class Feature(object):
 
 class MS2Scan(object):
     
-    def __init__(self, scan, feature):
+    def __init__(self, scan, feature, i):
         self.scan = scan
         self.feature = feature
+        self.i = self.feature.i
+        self.tbl = self.feature.tbl
         self.insmax = self.scan[0,2]
         self.recc = re.compile(r'.*[^0-9]([0-9]{1,2}):([0-9]).*')
         self.fa = {}
@@ -997,6 +970,39 @@ class MS2Scan(object):
         reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
+    def print_scan(self):
+        ms1mz = self.tbl['mz'][self.i]
+        header = '\tFrag. m/z\tIntensity\tIdentity%sNL mass\n'\
+            '\t%s\n' % (' ' * 26, '=' * 73)
+        table = '\n\t'.join(
+            map(
+                lambda sc:
+                    '%9.4f\t%10.2f\t%s%s%9.4f' % \
+                        tuple(list(sc[[1, 2, 7]]) + \
+                            [' ' * (32 - len(sc[7])), ms1mz - sc[1]]),
+                self.scan
+            )
+        )
+        # fraction index (A09-B01)
+        fri = self.scan[1] - 9 if self.scan[1] != 1 else 4
+        self.feature.msg('\tScan %u (fraction %s%u; %s %s; '\
+            'intensity = %.01f (%.02f%%)):\n\n%s\t%s\n\n' % \
+            (self.scan[0],
+             'A' if 8 < self.scan[1] < 13 else 'B',
+             self.scan[1],
+             'contains' \
+                if self.feature.main.samples_upper[self.feature.protein][fri + 1] == 1 \
+                else 'does not contain',
+             self.feature.protein,
+             self.tbl['fe'][self.i, fri] \
+                 if fri < self.tbl['fe'].shape[1] else np.nan,
+             (self.tbl['fe'][self.i, fri] \
+                 if fri < self.tbl['fe'].shape[1] else np.nan) / \
+                 np.nanmax(self.tbl['fe'][self.i, :]) * 100.0,
+             header,
+             table)
+        )
     
     def most_abundant_mz(self):
         result = self.scan[0,1]
