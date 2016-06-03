@@ -1155,32 +1155,33 @@ class MS2Scan(object):
     def fa_combinations(self, hg, sphingo = False):
         result = set([])
         if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
-            cc = list(self.feature.ms1fa[hg])[0]
+            ccs = list(self.feature.ms1fa[hg])
         else:
             return result
         self.build_fa_list()
-        for frag1 in self.fa_list:
-            for frag2 in self.fa_list:
-                if frag1[0][0] is not None and frag2[0][0] is not None and \
-                    (frag1[1] is None or hg in frag1[1]) and \
-                    (frag2[1] is None or hg in frag2[1]) and \
-                    (not sphingo or frag1[3] or frag2[3]):
-                    if self.sum_cc_is(frag1[0], frag2[0], cc):
-                        ether_1 = 'O-' if frag1[2] else ''
-                        ether_2 = 'O-' if frag2[2] else ''
-                        fa_1 = '%s%u:%u' % (ether_1, frag1[0][0], frag1[0][1])
-                        fa_2 = '%s%u:%u' % (ether_2, frag2[0][0], frag2[0][1])
-                        if frag1[3]:
-                            fa_1 = 'd%s' % fa_1
-                        elif frag2[3]:
-                            sph = 'd%s' % fa_2
-                            fa_2 = fa_1
-                            fa_1 = sph
-                        if not frag1[3] and not frag2[3]:
-                            fa = tuple(sorted([fa_1, fa_2]))
-                        else:
-                            fa = (fa_1, fa_2)
-                        result.add('%s/%s' % fa)
+        for cc in ccs:
+            for frag1 in self.fa_list:
+                for frag2 in self.fa_list:
+                    if frag1[0][0] is not None and frag2[0][0] is not None and \
+                        (frag1[1] is None or hg in frag1[1]) and \
+                        (frag2[1] is None or hg in frag2[1]) and \
+                        (not sphingo or frag1[3] or frag2[3]):
+                        if self.sum_cc_is(frag1[0], frag2[0], cc):
+                            ether_1 = 'O-' if frag1[2] else ''
+                            ether_2 = 'O-' if frag2[2] else ''
+                            fa_1 = '%s%u:%u' % (ether_1, frag1[0][0], frag1[0][1])
+                            fa_2 = '%s%u:%u' % (ether_2, frag2[0][0], frag2[0][1])
+                            if frag1[3]:
+                                fa_1 = 'd%s' % fa_1
+                            elif frag2[3]:
+                                sph = 'd%s' % fa_2
+                                fa_2 = fa_1
+                                fa_1 = sph
+                            if not frag1[3] and not frag2[3]:
+                                fa = tuple(sorted([fa_1, fa_2]))
+                            else:
+                                fa = (fa_1, fa_2)
+                            result.add('%s/%s' % fa)
         return result
     
     def matching_fa_frags_of_type(self, hg, typ, sphingo = False,
@@ -1195,22 +1196,22 @@ class MS2Scan(object):
         result = set([])
         details = {}
         if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
-            cc = list(self.feature.ms1fa[hg])[0]
-            self.build_fa_list()
-            for frag1 in self.fa_list:
-                for frag2 in self.fa_list:
-                    if frag1[0][0] is not None and \
-                        frag2[0][0] is not None and \
-                        (frag1[1] is None or hg in frag1[1]) and \
-                        (frag2[1] is None or hg in frag2[1]) and \
-                        (not sphingo or frag1[3]):
-                        if typ in self.scan[frag1[5],7] and \
-                            self.sum_cc_is(frag1[0], frag2[0], cc):
-                            result.add(frag1[0])
-                            if return_details:
-                                if frag1[0] not in details:
-                                    details[frag1[0]] = set([])
-                                details[frag1[0]].add(self.scan[frag2[5],7])
+            for cc in self.feature.ms1fa[hg]:
+                self.build_fa_list()
+                for frag1 in self.fa_list:
+                    for frag2 in self.fa_list:
+                        if frag1[0][0] is not None and \
+                            frag2[0][0] is not None and \
+                            (frag1[1] is None or hg in frag1[1]) and \
+                            (frag2[1] is None or hg in frag2[1]) and \
+                            (not sphingo or frag1[3]):
+                            if self.fa_type_is(frag1[5], typ) and \
+                                self.sum_cc_is(frag1[0], frag2[0], cc):
+                                result.add(frag1[0])
+                                if return_details:
+                                    if frag1[0] not in details:
+                                        details[frag1[0]] = set([])
+                                    details[frag1[0]].add(self.scan[frag2[5],7])
         if return_details:
             return (result, details)
         else:
@@ -1356,7 +1357,7 @@ class MS2Scan(object):
                 for fa_other in [
                     '[Lyso-PE(C%u:%u)-]-',
                     '[Lyso-PE-alkyl(C%u:%u)-H2O]-',
-                    '[Lyso-PE-alkyl(C%u:%u)-]-'
+                    '[Lyso-PE-alkyl(C%u:%u)-]-',
                     '[FA(C%u:%u)-H-CO2]-']:
                     if self.frag_name_present(fa_other % fa_h_cc):
                         score += 1
@@ -8409,14 +8410,16 @@ class LTP(object):
         row = []
         original_mz = tbl['mz'][i] / drift
         # m/z
-        row.append(tablecell % \
-            (   'both' \
-                if 'marco' in tbl and tbl['marco'][i] \
-                else 'positive' \
-                if (tbl['aaa'][i] > self.aaa_threshold[mod] or (
+        marco = 'marco' in tbl and tbl['marco'][i]
+        denes = (tbl['aaa'][i] > self.aaa_threshold[mod] or (
                     oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
                     len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi])
-                )) and tbl['prs'][i] <= 1.0 and tbl['peaksize'][i] >= 5.0 \
+                )) and tbl['prs'][i] <= 1.0 and tbl['peaksize'][i] >= 5.0
+        row.append(tablecell % \
+            (   'both' \
+                if marco and denes \
+                else 'positive' if denes \
+                else 'negative' if marco \
                 else 'nothing',
                 'm/z measured; %s, %s mode; raw: %.07f, '\
                 'recalibrated: %.07f; original index: %u; %s%s %s' % \
@@ -8444,7 +8447,7 @@ class LTP(object):
                             else 'does not have'
                         ),
                     '%sn Marco\'s standards.' % \
-                        ('I' if 'marco' in tbl and tbl['marco'][i] else 'Not i')
+                        ('I' if marco else 'Not i')
                 ),
                 '%.04f (%.04f)' % (tbl['mz'][i], original_mz)))
         # RT
