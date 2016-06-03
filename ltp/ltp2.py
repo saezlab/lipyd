@@ -805,7 +805,7 @@ class Feature(object):
                 lambda (k, v):
                     (
                         k,
-                        MS2Scan(v, self)
+                        MS2Scan(v, k, self)
                     ),
                 self.scans.iteritems()
             )
@@ -858,7 +858,7 @@ class Feature(object):
         )
         self.msg('\n::: MS2 scans available (%u):\n\n' % len(self.scans))
         
-        for sc in self.scans:
+        for sc in self._scans.values():
             sc.print_scan()
     
     def print_db_species(self):
@@ -952,8 +952,9 @@ class Feature(object):
 
 class MS2Scan(object):
     
-    def __init__(self, scan, feature, i):
+    def __init__(self, scan, scan_id, feature):
         self.scan = scan
+        self.scan_id = scan_id
         self.feature = feature
         self.i = self.feature.i
         self.tbl = self.feature.tbl
@@ -985,12 +986,12 @@ class MS2Scan(object):
             )
         )
         # fraction index (A09-B01)
-        fri = self.scan[1] - 9 if self.scan[1] != 1 else 4
+        fri = self.scan_id[1] - 9 if self.scan_id[1] != 1 else 4
         self.feature.msg('\tScan %u (fraction %s%u; %s %s; '\
             'intensity = %.01f (%.02f%%)):\n\n%s\t%s\n\n' % \
-            (self.scan[0],
-             'A' if 8 < self.scan[1] < 13 else 'B',
-             self.scan[1],
+            (self.scan_id[0],
+             'A' if 8 < self.scan_id[1] < 13 else 'B',
+             self.scan_id[1],
              'contains' \
                 if self.feature.main.samples_upper[self.feature.protein][fri + 1] == 1 \
                 else 'does not contain',
