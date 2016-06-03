@@ -1700,14 +1700,25 @@ class LTP(object):
             'pos': 150000.0
         }
         
-        self.html_table_template = '''<!DOCTYPE html>
+        fonts = open('fonts.css', 'r')
+        self.html_table_template = """<!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="utf-8">
                 <title>%s</title>
+            """ \
+            + """
                 <style type="text/css">
+                    %s
+                    html {
+                        font-family: di;
+                    }
                     table {
-                        border
+                        border-width: 0px;
+                    }
+                    table, tr, th, td {
+                        border: 1px solid #777777;
+                        border-collapse: collapse;
                     }
                     th, .rowname {
                         font-weight: bold;
@@ -1723,8 +1734,8 @@ class LTP(object):
                     .both {
                         background: linear-gradient(120deg, #D04870, #3A7AB3);
                         background: -moz-linear-gradient(120deg, #D04870, #3A7AB3);
-                        background: -webkit-linear-gradient(120deg, #D04870, #3A7AB3);
-                        background: -o-linear-gradient(120deg, #D04870, #3A7AB3);
+                        /*background: -webkit-linear-gradient(120deg, #D04870, #3A7AB3);
+                        background: -o-linear-gradient(120deg, #D04870, #3A7AB3);*/
                         color: #FFFFFF;
                     }
                     .matching {
@@ -1742,6 +1753,37 @@ class LTP(object):
                     td, th {
                         border: 1px solid #CCCCCC;
                     }
+                    #ms2spectra {
+                        position: relative;
+                        width: 70%%%%;
+                        height: 70%%%%;
+                        overflow-x: auto;
+                        overflow-y: auto;
+                        top: 15%%%%;
+                        left: 15%%%%;
+                        font-size: small;
+                        background-color: #FFFFFF;
+                        padding: 5px;
+                    }
+                    .close {
+                        cursor: pointer;
+                        display: inline-block;
+                        position: relative;
+                        float: right;
+                    }
+                    .ms2cell {
+                        cursor: pointer;
+                    }
+                    #shade {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        background: rgba(1,1,1,0.6);
+                        z-index: 5;
+                        width: 100%%%%;
+                        height: 100%%%%;
+                        display: none;
+                    }
                 </style>
                 <script type="text/javascript">
                     function showTooltip(e) {
@@ -1752,14 +1794,32 @@ class LTP(object):
                         if (text !== undefined) alert(text);
                     }
                 </script>
-            </head>
+                <script type="text/javascript" src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+                <script type="text/javascript">
+                    $(document).on("click.ms2cell", ".ms2cell", $(this).attr("ms2spectra"), function(e){
+                        console.log("ms2cell clicked")
+                        $("#shade").fadeIn();
+                    });
+                    $(document).on("click.close", ".close", function(e){
+                        $("#shade").fadeOut();
+                    });
+                </script>
+            </head>""" % (fonts.read()) \
+        + '''
             <body>
+                <div id="shade">
+                    <div id="ms2spectra">
+                        <div class="close">(x)</div>
+                        <h2>MS2 spectra</h2>
+                    </div>
+                </div>
                 <h1>%s</h1>
-                <table border="0">
+                <table id="features" border="0">
                     %s
                 </table>
             </body>
             </html>'''
+        fonts.close()
         
         self.colors = [
             '#B81466', # blue maguerite
@@ -8481,8 +8541,8 @@ class LTP(object):
         row.append(tablecell % \
             ('nothing', 'Possible headgroups based on database records',
             ', '.join(tbl['ms1hg'][oi])))
-        row.append(tableccell % \
-            (('nothing clickable',
+        row.append(tablecell % \
+            (('nothing ms2cell" ms2spectra="%s' % 'foo bar',
                     self._fragment_details_list(tbl['ms2r'][oi],
                         self.ms2files[ltp][mod], self.ltpdirs[0]),
                     'see MS2 frags.') \
