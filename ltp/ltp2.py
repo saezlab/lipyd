@@ -15,7 +15,7 @@
 
 #
     # filtering features accross samples and fractions
-    # to find those relevant ones 
+    # to find those relevant ones
     # belonging to LTP bound lipids
 #
 
@@ -800,6 +800,17 @@ class Feature(object):
                 self.scans.iteritems()
             )
         )
+        self.deltart = dict(
+            map(
+                lambda (k, v):
+                    (
+                        k,
+                        self.tbl['rtm'][self.i] - v[0,11]
+                    ),
+                self.scans.iteritems()
+            )
+        )
+        self.select_best_scan()
         self._scans = dict(
             map(
                 lambda (k, v):
@@ -860,6 +871,16 @@ class Feature(object):
         
         for sc in self._scans.values():
             sc.print_scan()
+    
+    def select_best_scan(self):
+        min_deltart = 999.0
+        self.best_scan = None
+        for scan_num, fr in self.scans.keys():
+            fr_name = 'a%u' % fr if fr != 13 else 'b1'
+            if fr_name in self.main.fractions[self.protein]['prim']:
+                if abs(self.deltart[(scan_num, fr)]) < min_deltart:
+                    self.best_scan = (scan_num, fr)
+                    min_deltart = abs(self.deltart[(scan_num, fr)])
     
     def print_db_species(self):
         return ', '.join(
@@ -1006,7 +1027,7 @@ class MS2Scan(object):
         )
     
     def html_table(self):
-        table = '\t\t<table class="scantbl">%s\t\t</table>\n'
+        table = '\t\t<table id="%s" class="scantbl %s">%s\t\t</table>\n'
         th = '\t\t\t<th>\t\t\t%s</th>\n'
         ttl = '\t\t\t<th>\t\t\t<td colspan="4">%s<td></th>\n'
         tr = '\t\t\t<tr class="%s">%s\t\t\t</tr>\n'
@@ -1050,7 +1071,11 @@ class MS2Scan(object):
                     td % ('%.04f' % ms1mz - row[1])
                 ])
         )
-        return table % rows
+        return table % ('%u_%u_%u' % (
+            self.tbl['i'][self.i], self.scan_id[0], self.scan_id[1]),
+            'primary' if self.scan_id == self.feature.best_scan else 'secondary',
+            rows
+        )
     
     def most_abundant_mz(self):
         result = self.scan[0,1]
@@ -2356,8 +2381,56 @@ class LTP(object):
             fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
             for ltpname, sample in self.samples.iteritems():
                 for i, fr in enumerate(fracs):
-                    if sample[i + 1] == 0:
+                    if sample[i + 1] == 0 or sample[i + 1] is None:
                         getattr(self, propname)[ltpname.upper()][fr] = 0.0
+    
+    def protein_containing_fractions(self, protein):
+        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
+        with_protein = []
+        sample = self.samples_upper[protein]
+        for i, fr in enumerate(fracs):
+            if sample[i + 1] == 1:
+                with_protein.append(fr)
+        return with_protein
+    
+    def fractions_by_protein_amount(self):
+        def order(protein, with_protein, pprofs):
+            return \
+                sorted(
+                    filter(
+                        lambda (fr, q):
+                            fr in with_protein,
+                        pprofs[protein].iteritems()
+                    ),
+                    key = lambda (fr, q): q,
+                    reverse = True
+                )
+        self.fracs_order15 = {}
+        self.fracs_order45 = {}
+        for protein in self.pprofs15.keys():
+            with_protein = self.protein_containing_fractions(protein)
+            self.fracs_order15[protein] = \
+                order(protein, with_protein, self.pprofs15)
+            self.fracs_order45[protein] = \
+                order(protein, with_protein, self.pprofs45)
+    
+    def primary_fractions(self):
+        self.fractions = dict(
+            map(
+                lambda p:
+                    (p, {'prim': set([]), 'sec': set([])}),
+                self.samples_upper.keys()
+            )
+        )
+        for protein, d in self.fractions.iteritems():
+            d['prim'].add(self.fracs_order15[protein][0][0])
+            d['prim'].add(self.fracs_order45[protein][0][0])
+            for fr, c in self.fracs_order15[protein]:
+                if fr not in d['prim']:
+                    d['sec'].add(fr)
+            for fr, c in self.fracs_order45[protein]:
+                if fr not in d['prim']:
+                    d['sec'].add(fr)
     
     def protein_peak_ratios(self):
         '''
@@ -4473,6 +4546,8 @@ class LTP(object):
                 tbl['aaa'] = np.nansum(tbl['fe'], 1) / 5.0
     
     def ms1(self):
+        self.fractions_by_protein_amount()
+        self.primary_fractions()
         self.average_area_5()
         self.protein_peak_ratios()
         self.intensity_peak_ratios()
