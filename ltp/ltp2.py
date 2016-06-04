@@ -928,7 +928,23 @@ class Feature(object):
         )
     
     def html_table(self):
-        pass
+        container = '\t<div id="%s" class="ms2tblcontainer">\n%s%s\n\t</div>'
+        header = '\t\t<div class="ms2hdr">\n\t\t'\
+            'MS2 scans of feature %.04f\n\t\t</div>\n' % \
+            self.tbl['mz'][self.i]
+        html = []
+        html.append(self._scans[self.best_scan].html_table())
+        for sc in sorted(self._scans.values(), key = lambda sc: abs(sc.deltart)):
+            if sc.in_primary and sc.scan_id != self.best_scan:
+                html.append(sc.html_table())
+        for sc in sorted(self._scans.values(), key = lambda sc: abs(sc.deltart)):
+            if not sc.in_primary and sc.scan_id != self.best_scan:
+                html.append(sc.html_table())
+        html = '\n\t\t<br />\n'.join(html)
+        return container % ('ms2c_%u' % self.oi, header, html)
+    
+    def html_table_b64(self):
+        return base64.encodestring(self.html_table()).replace('\n', '')
     
     def msg(self, text):
         if self.log:
@@ -977,6 +993,12 @@ class MS2Scan(object):
         self.scan = scan
         self.scan_id = scan_id
         self.feature = feature
+        self.deltart = self.feature.deltart[self.scan_id]
+        self.frac_name = 'a%s' % self.scan_id[1] if self.scan_id[1] != 13 else 'b1'
+        self.in_primary = self.frac_name in \
+            self.feature.main.fractions[self.feature.protein]['prim']
+        self.in_secondary = self.frac_name in \
+            self.feature.main.fractions[self.feature.protein]['sec']
         self.i = self.feature.i
         self.tbl = self.feature.tbl
         self.insmax = self.scan[0,2]
@@ -1012,7 +1034,7 @@ class MS2Scan(object):
             'intensity = %.01f (%.02f%%)):\n\n%s\t%s\n\n' % \
             (self.scan_id[0],
              'A' if 8 < self.scan_id[1] < 13 else 'B',
-             self.scan_id[1],
+             '1' if self.scan_id[1] == 13 else self.scan_id[1],
              'contains' \
                 if self.feature.main.samples_upper[self.feature.protein][fri + 1] == 1 \
                 else 'does not contain',
@@ -1027,25 +1049,25 @@ class MS2Scan(object):
         )
     
     def html_table(self):
-        table = '\t\t<table id="%s" class="scantbl %s">%s\t\t</table>\n'
-        th = '\t\t\t<th>\t\t\t%s</th>\n'
-        ttl = '\t\t\t<th>\t\t\t<td colspan="4">%s<td></th>\n'
-        tr = '\t\t\t<tr class="%s">%s\t\t\t</tr>\n'
-        td = '\t\t\t\t<td>%s\t\t\t\t</td>\n'
+        table = '\t\t<table id="%s" class="scantbl %s">\n%s\n\t\t</table>\n'
+        th = '\t\t\t\t<th>\n\t\t\t\t\t%s\n\t\t\t\t</th>\n'
+        ttl = '\t\t\t<tr class="%s">\n\t\t\t\t<th colspan="4">\n\t\t\t\t\t%s'\
+            '\n\t\t\t\t</th>\n\t\t\t</tr>\n'
+        tr = '\t\t\t<tr class="%s">\n%s\n\t\t\t</tr>\n'
+        td = '\t\t\t\t<td>\n\t\t\t\t\t%s\n\t\t\t\t</td>\n'
         ms1mz = self.tbl['mz'][self.i]
         fri = self.scan_id[1] - 9 if self.scan_id[1] != 1 else 4
         rows = ttl % (
             'scantitle',
-            'Scan %u (fraction %s%u; %s %s; '\
-            'intensity = %.01f (%.02f%%%%)):' % (
+            'Scan %u (%s, %s; '\
+            'intensity = %.01f (%.02f%%))' % (
                 self.scan_id[0],
-                'A' if 8 < self.scan_id[1] < 13 else 'B',
-                self.scan_id[1],
-                'contains' \
-                    if self.feature.main.samples_upper[self.feature.protein]\
-                        [fri + 1] == 1 \
-                    else 'does not contain',
-                self.feature.protein,
+                self.frac_name,
+                'the highest fraction' if self.in_primary \
+                    else 'not the highest, but contains %s' % \
+                        self.feature.protein if self.in_secondary \
+                    else 'does not contain %s' % \
+                        self.feature.protein,
                 self.tbl['fe'][self.i, fri] \
                     if fri < self.tbl['fe'].shape[1] else np.nan,
                 (self.tbl['fe'][self.i, fri] \
@@ -1055,25 +1077,28 @@ class MS2Scan(object):
         )
         rows += tr % (
             'scanhdr',
-            map(
-                lambda cname:
-                    th % cname,
-                ['Frag m/z', 'Intensity', 'Identity', 'NL mass']
+            ''.join(
+                map(
+                    lambda cname:
+                        th % cname,
+                    ['Frag m/z', 'Intensity', 'Identity', 'NL mass']
+                )
             )
         )
-        for row in self.scan:
+        for rn, row in enumerate(self.scan):
             rows += tr % (
-                'fragrow',
+                'fragrow %s' % ('first5' if rn < 5 else 'after5'),
                 ''.join([
                     td % ('%.04f' % row[1]),
                     td % ('%.02f' % row[2]),
                     td % row[7],
-                    td % ('%.04f' % ms1mz - row[1])
+                    td % ('%.04f' % (ms1mz - row[1]))
                 ])
         )
         return table % ('%u_%u_%u' % (
             self.tbl['i'][self.i], self.scan_id[0], self.scan_id[1]),
-            'primary' if self.scan_id == self.feature.best_scan else 'secondary',
+            'best' if self.scan_id == self.feature.best_scan \
+                else 'primary' if self.in_primary else 'secondary',
             rows
         )
     
@@ -8671,9 +8696,8 @@ class LTP(object):
             ('nothing', 'Possible headgroups based on database records',
             ', '.join(tbl['ms1hg'][oi])))
         row.append(tablecell % \
-            (('nothing ms2cell" ms2spectra="%s' % 'foo bar',
-                    self._fragment_details_list(tbl['ms2r'][oi],
-                        self.ms2files[ltp][mod], self.ltpdirs[0]),
+            (('nothing ms2cell" ms2spectra="%s' % tbl['ms2f'][oi].html_table_b64(),
+                    'Click to open MS2 spectra in pop-up viewer',
                     'see MS2 frags.') \
                 if oi in tbl['ms2r'] else \
             ('nothing', 'No MS2 results for this feature', 'No MS2'))
