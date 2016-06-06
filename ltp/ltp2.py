@@ -927,21 +927,48 @@ class Feature(object):
             )
         )
     
+    def get_header_div(self):
+        return '\t\t<div class="ms2hdr">\n\t\t'\
+            'MS2 scans of feature %.04f'\
+            '\n\t\t\t|<span class="scansbutton morescans1"'\
+                ' title="Show/hide scans from fractions with '\
+                'highest protein concentration">scans+</span>\n'\
+            '\n\t\t\t|<span class="scansbutton morescans2"'\
+                ' title="Show/hide scans from other protein '\
+                'containing fractions">scans++</span>\n'\
+            '\n\t\t\t|<span class="scansbutton morescans3"'\
+                ' title="Show/hide scans from non protein '\
+                'containing fractions">scans+++</span>\n'\
+            '\n\t\t\t|<span class="scansbutton morefrags"'\
+                ' title="Show/hide fragments after 5 highest'\
+                '">frags+</span>\n'\
+            '\n\t\t\t|<span class="scansbutton remove"'\
+                ' title="Remove scans of this feature'\
+                '">remove</span>\n'\
+            '\t\t</div>\n' % \
+            self.tbl['mz'][self.i]
+    
     def html_table(self):
         container = '\t<div id="%s" class="ms2tblcontainer">\n%s%s\n\t</div>'
-        header = '\t\t<div class="ms2hdr">\n\t\t'\
-            'MS2 scans of feature %.04f\n\t\t</div>\n' % \
-            self.tbl['mz'][self.i]
+        header = self.get_header_div()
         html = []
-        html.append(self._scans[self.best_scan].html_table())
+        if self.best_scan is not None:
+            html.append(self._scans[self.best_scan].html_table())
+        else:
+            html.append('<div class="noscans">No scans '\
+                'from fractions with highest protein concentration.</div>')
         for sc in sorted(self._scans.values(), key = lambda sc: abs(sc.deltart)):
             if sc.in_primary and sc.scan_id != self.best_scan:
                 html.append(sc.html_table())
         for sc in sorted(self._scans.values(), key = lambda sc: abs(sc.deltart)):
             if not sc.in_primary and sc.scan_id != self.best_scan:
                 html.append(sc.html_table())
-        html = '\n\t\t<br />\n'.join(html)
-        return container % ('ms2c_%u' % self.oi, header, html)
+        for sc in sorted(self._scans.values(), key = lambda sc: abs(sc.deltart)):
+            if not sc.in_primary and not sc.in_secondary:
+                html.append(sc.html_table())
+        html = '\n'.join(html)
+        return container % ('ms2c_%u_%u' % \
+            (int(self.tbl['aaa'][self.i]), self.oi), header, html)
     
     def html_table_b64(self):
         return base64.encodestring(self.html_table()).replace('\n', '')
@@ -1060,7 +1087,7 @@ class MS2Scan(object):
         rows = ttl % (
             'scantitle',
             'Scan %u (%s, %s; '\
-            'intensity = %.01f (%.02f%%))' % (
+            'intensity = %.01f (%.02f%%); dRT = %.03f min)' % (
                 self.scan_id[0],
                 self.frac_name,
                 'the highest fraction' if self.in_primary \
@@ -1073,6 +1100,7 @@ class MS2Scan(object):
                 (self.tbl['fe'][self.i, fri] \
                     if fri < self.tbl['fe'].shape[1] else np.nan) / \
                     np.nanmax(self.tbl['fe'][self.i, :]) * 100.0,
+                self.deltart
             )
         )
         rows += tr % (
@@ -1098,7 +1126,9 @@ class MS2Scan(object):
         return table % ('%u_%u_%u' % (
             self.tbl['i'][self.i], self.scan_id[0], self.scan_id[1]),
             'best' if self.scan_id == self.feature.best_scan \
-                else 'primary' if self.in_primary else 'secondary',
+                else 'primary' if self.in_primary \
+                else 'secondary' if self.in_secondary \
+                else 'noprotein',
             rows
         )
     
@@ -1816,6 +1846,8 @@ class LTP(object):
                     %s
                     html {
                         font-family: di;
+                        color: #333333;
+                        padding-top: 40px;
                     }
                     table {
                         border-width: 0px;
@@ -1828,18 +1860,18 @@ class LTP(object):
                         font-weight: bold;
                     }
                     .positive {
-                        background-color: #D04870;
+                        background-color: #E25C49;
                         color: #FFFFFF;
                     }
-                    .negative {
-                        background-color: #3A7AB3;
+                    .negative, .ms2tbl tr th {
+                        background-color: #49969A;
                         color: #FFFFFF;
                     }
                     .both {
-                        background: linear-gradient(120deg, #D04870, #3A7AB3);
-                        background: -moz-linear-gradient(120deg, #D04870, #3A7AB3);
-                        /*background: -webkit-linear-gradient(120deg, #D04870, #3A7AB3);
-                        background: -o-linear-gradient(120deg, #D04870, #3A7AB3);*/
+                        background: linear-gradient(120deg, #E25C49, #49969A);
+                        background: -moz-linear-gradient(120deg, #E25C49, #49969A);
+                        /*background: -webkit-linear-gradient(120deg, #E25C49, #49969A);
+                        background: -o-linear-gradient(120deg, #E25C49, #49969A);*/
                         color: #FFFFFF;
                     }
                     .matching {
@@ -1857,17 +1889,26 @@ class LTP(object):
                     td, th {
                         border: 1px solid #CCCCCC;
                     }
+                    #ms2main {
+                        position: fixed;
+                        display: none;
+                        top: 0px;
+                    }
+                    h1, h2, h3, strong, th {
+                        font-weight: normal;
+                    }
                     #ms2spectra {
-                        position: relative;
-                        width: 70%%%%;
-                        height: 70%%%%;
-                        overflow-x: auto;
-                        overflow-y: auto;
-                        top: 15%%%%;
-                        left: 15%%%%;
+                        display: none;
+                        width: auto;
+                        max-height: 60vh;
+                        overflow-y: scroll;
+                        overflow-x: hidden;
                         font-size: small;
                         background-color: #FFFFFF;
-                        padding: 5px;
+                        color: #333333;
+                        padding: 5px 20px 5px 5px;
+                        cursor: default;
+                        position: relative;
                     }
                     .close {
                         cursor: pointer;
@@ -1888,6 +1929,68 @@ class LTP(object):
                         height: 100%%%%;
                         display: none;
                     }
+                    .after5 {
+                        display: none;
+                    }
+                    .ms2hdr {
+                        font-size: larger;
+                        color: #FFFFFF;
+                        background-color: #333333;
+                        padding: 3px;
+                    }
+                    #ms2button {
+                        position: fixed;
+                        top: 0px;
+                        left: 0px;
+                        display: inline-block;
+                        padding: 7px;
+                        font-size: larger;
+                        background-color: #6EA945;
+                        color: #FFFFFF;
+                        cursor: pointer;
+                        max-height: 70vh;
+                    }
+                    .scansbutton {
+                        display: inline-block;
+                        color: #333333;
+                        background-color: #FFFFFF;
+                        padding: 3px;
+                        margin: 3px;
+                        cursor: pointer;
+                    }
+                    #heighthelper {
+                        height: 100vh;
+                        overflow: auto;
+                        max-height: 60vh;
+                    }
+                    .scantbl {
+                        width: 100%%%%;
+                        margin-bottom: 5px;
+                    }
+                    .scantbl table tr td,th:nth-child(2){
+                        width: 100px;
+                    }
+                    .scantbl table tr td,th:nth-child(1){
+                        width: 100px;
+                    }
+                    .scantbl table tr td,th:nth-child(4){
+                        width: 100px;
+                    }
+                    .ms2hdr {
+                        width: 650px;
+                    }
+                    .primary {
+                        display: none;
+                    }
+                    .secondary {
+                        display: none;
+                    }
+                    .noprotein {
+                        display: none;
+                    }
+                    .ms2tblcontainer {
+                        margin-bottom: 5px;
+                    }
                 </style>
                 <script type="text/javascript">
                     function showTooltip(e) {
@@ -1900,22 +2003,58 @@ class LTP(object):
                 </script>
                 <script type="text/javascript" src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
                 <script type="text/javascript">
+                    function SortScans(){
+                        $("div[id^=ms2c_]").sort(function(a, b){
+                            return ~~a.id.split("_")[1] < ~~b.id.split("_")[1]
+                        }).appendTo("#ms2spectra");
+                    }
                     $(document).on("click.ms2cell", ".ms2cell", $(this).attr("ms2spectra"), function(e){
-                        console.log("ms2cell clicked")
-                        $("#shade").fadeIn();
+                        $("#ms2spectra").append(
+                            decodeURIComponent(
+                                escape(
+                                    window.atob(
+                                        $(e.target).attr("ms2spectra")
+                                    )
+                                )
+                            )
+                        );
+                        $("#ms2spectra").fadeIn();
+                        SortScans();
                     });
-                    $(document).on("click.close", ".close", function(e){
-                        $("#shade").fadeOut();
+                    $(document).on("click.ms2button", "#ms2button", function(e){
+                        if(e.target.id == "ms2button"){
+                            $("#ms2spectra").toggle();
+                        }
+                    });
+                    $(document).on("click.morefrags", ".morefrags", function(e){
+                        e.stopPropagation();
+                        $(".after5").toggle();
+                    });
+                    $(document).on("click.remove", ".remove", function(e){
+                        e.stopPropagation();
+                        $(this).closest(".ms2tblcontainer").remove();
+                        if(! $(".ms2tblcontainer").length ){
+                            $("#ms2spectra").fadeOut();
+                        }
+                    });
+                    $(document).on("click.scansp", ".morescans1", function(e){
+                        e.stopPropagation();
+                        $(this).closest(".ms2tblcontainer").children(".primary").toggle();
+                    });
+                    $(document).on("click.scansp", ".morescans2", function(e){
+                        e.stopPropagation();
+                        $(this).closest(".ms2tblcontainer").children(".secondary").toggle();
+                    });
+                    $(document).on("click.scansp", ".morescans3", function(e){
+                        e.stopPropagation();
+                        $(this).closest(".ms2tblcontainer").children(".noprotein").toggle();
                     });
                 </script>
             </head>""" % (fonts.read()) \
         + '''
             <body>
-                <div id="shade">
-                    <div id="ms2spectra">
-                        <div class="close">(x)</div>
-                        <h2>MS2 spectra</h2>
-                    </div>
+                <div id="ms2button">MS2 spectra<br />
+                    <div id="ms2spectra"></div>
                 </div>
                 <h1>%s</h1>
                 <table id="features" border="0">
@@ -1930,7 +2069,7 @@ class LTP(object):
             '#C441B3', # slate blue
             '#D6708B', # pale violet red
             '#69B3D6', # viking
-            '#3A7AB3', # chetwode blue
+            '#49969A', # chetwode blue
             '#608784', # gothic
             '#03928C', # java
             '#CF5836', # mandy
@@ -2308,6 +2447,7 @@ class LTP(object):
     
     def protein_profiles(self, **kwargs):
         offsets = [0.0, 0.015, 0.045]
+        self.secfracs = {}
         for offset in offsets:
             self._protein_profiles(offset = offset, **kwargs)
     
@@ -2345,6 +2485,7 @@ class LTP(object):
                         )
                     )
                 )
+        self.secfracs['%u' % int(offset * 1000)] = frac
         for fname in fnames:
             ltpname = reltp.findall(fname)[0]
             frac_abs = dict((i[2], []) for i in frac)
@@ -2515,6 +2656,19 @@ class LTP(object):
                             j += 1
                     ratios.append(ratio)
                 tbl['ipr'] = np.array(ratios)
+    
+    def ratios_in_range(self):
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                if len(self.ppratios[protein]):
+                    in_range = []
+                    ppr = self.ppratios[protein]\
+                        [sorted(self.ppratios[protein].keys())[0]]
+                    for ipr in tbl['ipr']:
+                        in_range.append(ppr[0] < ipr[0] < ppr[1])
+                    tbl['prr'] = in_range
+                else:
+                    tbl['prr'] = None
     
     def one_sample(self):
         self.singles = [k.upper() for k, v in self.samples.iteritems() \
@@ -4576,6 +4730,7 @@ class LTP(object):
         self.average_area_5()
         self.protein_peak_ratios()
         self.intensity_peak_ratios()
+        self.ratio_in_range()
         self.peak_ratio_score()
         self.peak_ratio_score_bool(threshold = 1.0)
         self.lipid_lookup_exact()
@@ -8749,17 +8904,32 @@ class LTP(object):
                 ) else ''
             )
         )
-        row.append(tablecell % (
-            'positive' if tbl[fits_profile][i] else 'nothing',
-            '%s protein profile. Peak size ratio score: %.04f' % \
-                ('Fit' if tbl[fits_profile][i] else 'Does not fit',
-                    tbl['prs'][i]),
-            'Yes' if tbl[fits_profile][i] else 'No'
-        ))
+        if tbl['prr'] is None:
+            row.append(tablecell % (
+                'nothing',
+                'Only one protein containing fraction, '\
+                    'could not calculate peak ratio.',
+                '--'
+            ))
+        else:
+            row.append(tablecell % (
+                'positive' if tbl[fits_profile][i] else 'nothing',
+                '%s protein profile. Peak size ratio score: %.04f. '\
+                'Peak ratio%s in expected range.' % \
+                    ('Fits' if tbl[fits_profile][i] else 'Does not fit',
+                        tbl['prs'][i], '' if tbl['prr'][i] else ' not'),
+                'Yes%s' % ('*' if tbl['prr'][i] else '') \
+                    if tbl[fits_profile][i] \
+                    else 'No%s' % ('*' if tbl['prr'][i] else '')
+            ))
         return row
 
     def features_table(self, filename = None,
         fits_profile = 'prs1'):
+        
+        prg = progress.Progress(len(self.valids),
+                                'Generating HTML tables', 1, percent = False)
+        
         hdr = ['+m/z', 'RT', 'Int', '+Database', '+MS1 HGs',
             '+MS2 frags', '+MS2 HGs', '+ID',
             '+MS1 FAs', '+MS2 FAs',
@@ -8807,6 +8977,7 @@ class LTP(object):
             f.write(self.html_table_template % (title, title, navhtml))
         
         for ltp, d in self.valids.iteritems():
+            prg.step()
             title = '%s: identities for all features, detailed' % ltp
             thisFilename = '%s/%s_%s.html' % (filename, filename, ltp)
             table = ''
@@ -8816,13 +8987,6 @@ class LTP(object):
             hrow = tablerow % hrow
             table = hrow
             visited = {'pos': set([]), 'neg': set([])}
-            thisRow = []
-            thisRow.append(tablecell % ('rowname', ltp, ltp))
-            thisRow += map(lambda i:
-                tablecell % ('nothing', '', ''),
-                xrange(len(hdr) - 1)
-            )
-            table += (tablerow % '\n'.join(thisRow))
             self.sort_alll('aaa', asc = False)
             for mod, tbl in d.iteritems():
                 opp_mod = 'neg' if mod == 'pos' else 'pos'
@@ -8876,6 +9040,7 @@ class LTP(object):
                                     #print neg_row
             with open(thisFilename, 'w') as f:
                 f.write(self.html_table_template % (title, title, table))
+        prg.terminate()
 
     def combined_table(self, valids, filename = 'headgroups_combined.html',
         include = 'cl70pct', identity = 'combined_hg'):
@@ -8955,6 +9120,42 @@ class LTP(object):
     def oi2i(self, protein, mode, oi):
         i = np.where(self.valids[protein][mode]['i'] == oi)[0]
         return i[0] if len(i) > 0 else None
+    
+    def ppratios_table(self):
+        with open('protein_peak_ratios.txt', 'w') as f:
+            f.write('%s\n' % '\t'.join([
+                'Protein',
+                'Fractions',
+                'Lower',
+                'Upper'
+            ]))
+            for protein, pr in self.ppratios.iteritems():
+                for fracs, prs in pr.iteritems():
+                    f.write('%s\n' % '\t'.join([
+                        protein,
+                        '%s:%s' % fracs,
+                        '%.04f' % prs[0],
+                        '%.04f' % prs[1]
+                    ]))
+    
+    def pprofs_table(self, fname = 'protein_profiles.txt', original = True):
+        original = '_original' if original else ''
+        renondigit = re.compile(r'[^\d]+')
+        with open(fname, 'w') as f:
+            f.write('%s\n' % '\t'.join([
+                'Protein',
+                'Fraction',
+                'Cc_0.015',
+                'Cc_0.045'
+            ]))
+            for protein, prof in getattr(self, 'pprofs%s15'%original).iteritems():
+                for frac in sorted(prof.keys(), key = lambda x: (x[0], int(renondigit.sub('', x)))):
+                    f.write('%s\n' % '\t'.join([
+                        protein,
+                        frac,
+                        '%.04f' % getattr(self, 'pprofs%s15'%original)[protein][frac],
+                        '%.04f' % getattr(self, 'pprofs%s45'%original)[protein][frac]
+                    ]))
     
     def ms2identities_summary(self, string = False):
         result = \
