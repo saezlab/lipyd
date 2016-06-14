@@ -38,6 +38,7 @@ import re
 
 import xlrd
 import openpyxl
+import xlsxwriter
 import lxml.etree
 
 import zlib
@@ -1021,7 +1022,10 @@ class MS2Scan(object):
         self.scan_id = scan_id
         self.feature = feature
         self.deltart = self.feature.deltart[self.scan_id]
-        self.frac_name = 'a%s' % self.scan_id[1] if self.scan_id[1] != 13 else 'b1'
+        self.frac_name = 'a%02u' % self.scan_id[1] \
+            if self.scan_id[1] != 13 and self.scan_id[1] != 1 else 'b01'
+        self.ms2_file = self.feature.main.ms2files\
+            [self.feature.protein][self.feature.mode][self.frac_name.upper()]
         self.in_primary = self.frac_name in \
             self.feature.main.fractions[self.feature.protein]['prim']
         self.in_secondary = self.frac_name in \
@@ -1131,6 +1135,39 @@ class MS2Scan(object):
                 else 'noprotein',
             rows
         )
+    
+    def get_by_rank(self, rank = 1):
+        this_rank = 0
+        return_next = False
+        prev_mz = 0.0
+        intensity = ''
+        ids = []
+        for r in self.scan:
+            if abs(r[1] - prev_mz) > 0.0001:
+                prev_mz = r[1]
+                this_rank += 1
+            if this_rank == rank:
+                return_next = True
+                intensity = '%.04f(%u)' % (r[1], r[2])
+                ids.append('%s (%.03f)' % (r[7], r[1]))
+            elif this_rank != rank and return_next:
+                return intensity, '; '.join(ids)
+        return '', ''
+    
+    def full_list_str(self):
+        result = []
+        prev_mz = self.scan[0,1]
+        intensity = self.scan[0,2]
+        names = set([])
+        for i, r in enumerate(self.scan):
+            if abs(r[1] - prev_mz) > 0.0001:
+                result.append('%s (%u)' % ('/'.join(sorted(list(names))), intensity))
+                names = set([])
+                intensity = r[2]
+                prev_mz = r[1]
+            names.add(r[7])
+        result.append('%s (%u)' % ('/'.join(sorted(list(names))), intensity))
+        return '; '.join(result)
     
     def most_abundant_mz(self):
         result = self.scan[0,1]
@@ -1714,12 +1751,18 @@ class LTP(object):
             'nfragmentsfile': 'lipid_fragments_negative_mode_v3.txt',
             'featurescache': 'features.pickle',
             'pprofcache': 'pprofiles_raw.pickle',
+            'abscache': 'absorbances.pickle',
             'marco_dir': 'marco',
             'auxcache': 'save.pickle',
             'stdcachefile': 'calibrations.pickle',
             'validscache': 'valids.pickle',
             'ms2log': 'ms2identities.log',
             'swl_levels': ['Species'],
+            'background_ltps': set(['BNIPL', 'OSBP', 'SEC14L1']),
+            'aa_threshold': {
+                'neg': 30000.0,
+                'pos': 150000.0
+            },
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.02,
             'std_tolerance': 0.02,
@@ -1785,7 +1828,8 @@ class LTP(object):
         self.in_basedir = ['samplesf', 'ppfracf', 'seqfile',
             'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
-            'auxcache', 'stdcachefile', 'validscache', 'marco_dir']
+            'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
+            'abscache']
         
         for attr, val in self.defaults.iteritems():
             if attr in kwargs:
@@ -1828,6 +1872,7 @@ class LTP(object):
         self.pAdducts = None
         self.exacts = None
         self.ltps_drifts = None
+        self.pp_zeroed = False
         
         self.aaa_threshold = {
             'neg': 30000.0,
@@ -2445,13 +2490,206 @@ class LTP(object):
         getattr(self, propname)['GLTPD1']['a11'] = a12
         getattr(self, propname)['GLTPD1']['a12'] = a11
     
-    def protein_profiles(self, **kwargs):
+    def pp(self, **kwargs):
         offsets = [0.0, 0.015, 0.045]
         self.secfracs = {}
         for offset in offsets:
-            self._protein_profiles(offset = offset, **kwargs)
+            self._pp(offset = offset, **kwargs)
     
-    def _protein_profiles(self, offset = 0.0, cache = True,
+    def raw_sec_absorbances(self, cache = True):
+        self.pp_zeroed = False
+        if cache and os.path.exists(self.abscache):
+            self.absorb = pickle.load(open(self.abscache, 'rb'))
+            return None
+        reltp = re.compile(r'.*[\s_-]([A-Za-z0-9]{3,})\.xls')
+        self.absorb = {}
+        secdir = os.path.join(self.basedir, self.ppsecdir)
+        fnames = os.listdir(secdir)
+        for fname in fnames:
+            ltpname = reltp.findall(fname)[0]
+            try:
+                tbl = self.read_xls(os.path.join(secdir, fname))[3:]
+            except xlrd.biffh.XLRDError:
+                sys.stdout.write('Error reading XLS:\n\t%s\n' % \
+                    os.path.join(self.basedir, fname))
+                continue
+            self.absorb[ltpname] = \
+                np.array(
+                    map(
+                        lambda l:
+                            map(
+                                lambda num:
+                                    self.to_float(num),
+                                l[:6]
+                            ),
+                        tbl
+                    )
+                )
+        pickle.dump(self.absorb, open(self.abscache, 'wb'))
+    
+    def pp2(self, offsets = [0.015, 0.045]):
+        self.raw_sec_absorbances()
+        self.absorbances_by_fractions(offsets = offsets)
+        self.pp_baseline_correction()
+        self.pp_background()
+        self.pp_background_correction()
+        self.mean_pp()
+        self.zero_controls()
+    
+    def absorbances_by_fractions(self, offsets = [0.015, 0.045]):
+        result = {}
+        def get_segment(protein, c, lo, hi):
+            a = self.absorb[protein]
+            return np.nanmean(a[np.where(np.logical_and(a[:,c - 1] < hi,
+                                                     a[:,c - 1] >= lo)),c])
+        self.read_fraction_limits()
+        abs_cols = [1, 3, 5]
+        for protein in self.absorb.keys():
+            result[protein] = {}
+            for lim in self.fraclim:
+                result[protein][lim[2]] = {}
+                for c in abs_cols:
+                    result[protein][lim[2]][c] = []
+                    for o in offsets:
+                        result[protein][lim[2]][c].append(
+                            get_segment(protein, c, lim[0] + o, lim[1] + o)
+                        )
+        self.abs_by_frac = result
+    
+    def pp_baseline_correction(self, base = 'a5'):
+        result = dict(map(lambda p: (p, {}), self.abs_by_frac.keys()))
+        for protein, d in self.abs_by_frac.iteritems():
+            for fr, d2 in d.iteritems():
+                result[protein][fr] = \
+                    dict(
+                        map(
+                            lambda (c, ab):
+                                (
+                                    c,
+                                    [
+                                        ab[0] - d[base][c][0],
+                                        ab[1] - d[base][c][1]
+                                    ]
+                                 ),
+                            d2.iteritems()
+                        )
+                    )
+        self.abs_by_frac_b = result
+    
+    def pp_background_correction(self):
+        self.abs_by_frac_c = \
+            dict(
+                map(
+                    lambda (protein, d):
+                        (
+                            protein,
+                            dict(
+                                map(
+                                    lambda (fr, d2):
+                                        (
+                                            fr,
+                                            dict(
+                                                map(
+                                                    lambda (c, vals):
+                                                        (
+                                                            c,
+                                                            map(
+                                                                lambda (o, v):
+                                                                    v - self.profile_background[fr][c][o],
+                                                                enumerate(vals)
+                                                            )
+                                                        ),
+                                                    d2.iteritems()
+                                                )
+                                            )
+                                        ),
+                                    d.iteritems()
+                                )
+                            )
+                        ),
+                    self.abs_by_frac_b.iteritems()
+                )
+            )
+    
+    def pp_background(self):
+        self.profile_background = \
+            dict(
+                map(
+                    lambda fr:
+                        (
+                            fr,
+                            dict(
+                                map(
+                                    lambda c:
+                                        (
+                                            c,
+                                            map(
+                                                lambda o:
+                                                    np.mean(
+                                                        map(
+                                                            lambda prot:
+                                                                prot[fr][c][o],
+                                                            self.abs_by_frac_b.values()
+                                                        )
+                                                    ),
+                                                [0, 1]
+                                            )
+                                        ),
+                                    self.abs_by_frac_b.values()[0][fr].keys()
+                                )
+                            )
+                        ),
+                    self.abs_by_frac_b.values()[0].keys()
+                )
+            )
+    
+    def mean_pp(self, offsets = [0.015, 0.045]):
+        pprofs_o1 = 'pprofs%u' % int(offsets[0] * 1000)
+        pprofs_o2 = 'pprofs%u' % int(offsets[1] * 1000)
+        self.pprofs = {}
+        setattr(self, pprofs_o1, {})
+        setattr(self, pprofs_o2, {})
+        def get_mean(attr, get_val):
+            getattr(self, attr)[protein] = \
+                dict(
+                    map(
+                        lambda (fr, d2):
+                            (
+                                fr,
+                                np.nanmean(
+                                    map(
+                                        lambda vals:
+                                            get_val(vals),
+                                        d2.values()
+                                    )
+                                )
+                            ),
+                        d.iteritems()
+                    )
+                )
+        for protein, d in self.abs_by_frac_c.iteritems():
+            get_mean('pprofs', np.nanmean)
+            get_mean(pprofs_o1, lambda x: x[0])
+            get_mean(pprofs_o2, lambda x: x[1])
+    
+    def read_fraction_limits(self):
+        with open(self.ppfracf, 'r') as f:
+            self.fraclim = \
+                map(
+                    lambda i:
+                        (self.to_float(i[0]), self.to_float(i[1]), i[2]),
+                    filter(
+                        lambda l:
+                            len(l) == 3,
+                        map(
+                            lambda l:
+                                l.split(';'),
+                            f.read().split('\n')
+                        )
+                    )
+                )
+    
+    def _pp(self, offset = 0.0, cache = True,
         correct_GLTPD1 = True, GLTPD_correction = 'eq'):
         '''
         For each protein, for each fraction, calculates the mean of 
@@ -2537,6 +2775,11 @@ class LTP(object):
         after sets the values for non LTP conatining
         fractions to zero.
         '''
+        if self.pp_zeroed:
+            sys.stdout.write('\t:: Looks like controls already set to zero, '\
+                'please set `pp_zeroed` to False to override.\n')
+            sys.stdout.flush()
+            return None
         offsets = [0.0, 0.015, 0.045]
         for offset in offsets:
             label = '' if offset == 0.0 else '%u' % int(offset * 1000)
@@ -2549,6 +2792,7 @@ class LTP(object):
                 for i, fr in enumerate(fracs):
                     if sample[i + 1] == 0 or sample[i + 1] is None:
                         getattr(self, propname)[ltpname.upper()][fr] = 0.0
+        self.pp_zeroed = True
     
     def protein_containing_fractions(self, protein):
         fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
@@ -2621,6 +2865,39 @@ class LTP(object):
                     else:
                         ratio1 = p15[ref] / p15[frac]
                         ratio2 = p45[ref] / p45[frac]
+                        ratios[(ref, frac)] = tuple(sorted([ratio1, ratio2]))
+            self.ppratios[protein] = ratios
+    
+    def protein_peak_ratios2(self):
+        '''
+        Calculates the expected minimum and maximum values for
+        protein peak ratios.
+        The result contains empty dicts for proteins with only
+        one fraction, one ratio for those with 2 fractions, and
+        2 ratios for those with 3 fractions.
+        '''
+        self.ppratios = dict((protein, {}) \
+            for protein in self.samples_upper.keys())
+        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
+        def get_ratio(protein, ref, frac, o):
+            return \
+                np.mean(
+                    map(
+                        lambda (c, vals):
+                            self.abs_by_frac_c[protein][ref][c][o] / vals[o],
+                        self.abs_by_frac_c[protein][frac].iteritems()
+                    )
+                )
+        for protein, sample in self.samples_upper.iteritems():
+            ratios = {}
+            ref = None
+            for i, frac in enumerate(fracs):
+                if sample[i + 1] == 1:
+                    if ref is None:
+                        ref = frac
+                    else:
+                        ratio1 = get_ratio(protein, ref, frac, 0)
+                        ratio2 = get_ratio(protein, ref, frac, 1)
                         ratios[(ref, frac)] = tuple(sorted([ratio1, ratio2]))
             self.ppratios[protein] = ratios
     
@@ -2755,9 +3032,9 @@ class LTP(object):
             tbl = self.data[protein[mode]][mode]
         except KeyError:
             print protein, mode
-        ui = tbl['raw'][:,1].searchsorted(mz)
-        du = 999.0 if ui == tbl['raw'].shape[0] else tbl['raw'][ui,1] - mz
-        dl = 999.0 if ui == 0 else mz - tbl['raw'][ui - 1,1]
+        ui = tbl['raw'][:,2].searchsorted(mz)
+        du = 999.0 if ui == tbl['raw'].shape[0] else tbl['raw'][ui,2] - mz
+        dl = 999.0 if ui == 0 else mz - tbl['raw'][ui - 1,2]
         d = min(du, dl)
         if d < 0.0001:
             oi = ui if du < dl else ui - 1
@@ -3538,7 +3815,7 @@ class LTP(object):
                 scols[c[2]][fnum] = c
             for l in f:
                 l = [i.strip() for i in l.split(',')][1:]
-                vals = [self.to_float(l[0]), self.to_float(l[2])] + \
+                vals = [self.to_float(l[0]), self.to_float(l[1]), self.to_float(l[2])] + \
                     [self.to_float(i.strip()) for i in l[3].split('-')] + \
                     [self.to_float(l[4])]
                 for var, scol in scols.iteritems():
@@ -3551,7 +3828,7 @@ class LTP(object):
                                 # col offset is 6 !
                                 vals.append(self.to_float(l[scol[s][0] + 6]))
                 data.append(vals)
-        data.sort(key = lambda x: x[1])
+        data.sort(key = lambda x: x[2])
         return np.ma.masked_array(data, dtype = 'float64')
 
     def read_data(self):
@@ -3574,7 +3851,7 @@ class LTP(object):
                     sys.stdout.write('\nerror reading file: %s\n' % fname)
                     sys.stdout.flush()
                 # making a view with the intensities:
-                data[ltp][p]['int'] = data[ltp][p]['raw'][:, 5:]
+                data[ltp][p]['int'] = data[ltp][p]['raw'][:, 6:]
                 # mask non measured:
                 data[ltp][p]['mes'] = data[ltp][p]['int'].view()
                 data[ltp][p]['mes'].mask = \
@@ -3642,12 +3919,12 @@ class LTP(object):
     def charge_filter(self, charge = 1):
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
-                tbl['crg'] = np.array(tbl['raw'][:,4] == charge)
+                tbl['crg'] = np.array(tbl['raw'][:,5] == charge)
     
     def rt1_filter(self, rtmin = 1.0):
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
-                tbl['rtm'] = (tbl['raw'][:,2] + tbl['raw'][:,3]) / 2.0
+                tbl['rtm'] = (tbl['raw'][:,3] + tbl['raw'][:,4]) / 2.0
                 tbl['rt1'] = np.array(tbl['rtm'] > rtmin)
 
     def area_filter(self, area = 10000.0):
@@ -3802,23 +4079,23 @@ class LTP(object):
                         ltp2t = data[ltp2][pn]
                         if 'ubi' not in ltp1t:
                             ltp1t['ubi'] = \
-                                np.zeros([ltp1t['raw'].shape[0], 1], \
+                                np.zeros([ltp1t['raw'].shape[0], 2], \
                                 dtype = np.int8)
                         if 'ubi' not in ltp2t:
                             ltp2t['ubi'] = \
-                                np.zeros([ltp2t['raw'].shape[0], 1], \
+                                np.zeros([ltp2t['raw'].shape[0], 2], \
                                 dtype = np.int8)
-                        for i1, mz1 in np.ndenumerate(ltp1t['raw'][:,1]):
-                            i2u = ltp2t['raw'][:,1].searchsorted(mz1)
+                        for i1, mz1 in np.ndenumerate(ltp1t['raw'][:,2]):
+                            i2u = ltp2t['raw'][:,2].searchsorted(mz1)
                             if i2u < ltp2t['raw'].shape[0] and \
-                                ltp2t['raw'][i2u,1] - mz1 <= self.ms1_tlr:
+                                ltp2t['raw'][i2u,2] - mz1 <= self.ms1_tlr:
                                 if i1 not in ltp1s:
                                     ltp1t['ubi'][i1] += 1
                                     ltp1s.add(i1)
                                 if i2u not in ltp2s:
                                     ltp2t['ubi'][i2u] += 1
                                     ltp2s.add(i2u)
-                            if mz1 - ltp2t['raw'][i2u - 1,1] <= self.ms1_tlr:
+                            if mz1 - ltp2t['raw'][i2u - 1,2] <= self.ms1_tlr:
                                 if i1 not in ltp1s:
                                     ltp1t['ubi'][i1] += 1
                                     ltp1s.add(i1)
@@ -4273,13 +4550,12 @@ class LTP(object):
         sys.stdout.flush()
         self.data = pickle.load(open(fname, 'rb'))
 
-    def save(self, fname = 'save.pickle'):
+    def save(self, fname = None):
         fname = os.path.join(self.basedir, self.auxcache) \
             if fname is None else fname
         sys.stdout.write('\t:: Saving auxiliary data to %s ...\n' % fname)
         sys.stdout.flush()
-        pickle.dump((self.datafiles, self.samples, self.pprofs,
-                self.pprofs15, self.pprofs45),
+        pickle.dump((self.datafiles, self.samples),
             open(fname, 'wb'))
         sys.stdout.write('\t:: Data has been saved to %s.\n' % fname)
         sys.stdout.flush()
@@ -4290,8 +4566,7 @@ class LTP(object):
         sys.stdout.write('\t:: Loading auxiliary data '\
             'from %s ...\n' % fname)
         sys.stdout.flush()
-        self.datafiles, self.samples, self.pprofs, \
-            self.pprofs15, self.pprofs45 = \
+        self.datafiles, self.samples = \
             pickle.load(open(fname, 'rb'))
 
     '''
@@ -4730,7 +5005,7 @@ class LTP(object):
         self.average_area_5()
         self.protein_peak_ratios()
         self.intensity_peak_ratios()
-        self.ratio_in_range()
+        self.ratios_in_range()
         self.peak_ratio_score()
         self.peak_ratio_score_bool(threshold = 1.0)
         self.lipid_lookup_exact()
@@ -5657,10 +5932,10 @@ class LTP(object):
         self.get_filenames()
         self.read_samples()
         # at first run, after reading from saved textfile
-        self.protein_profiles()
+        self.small_inputs()
+        self.pp2()
         self.write_pptable()
         del self.datafiles['ctrl']
-        self.small_inputs()
         self.save()
         self.read_data()
         self.save_data()
@@ -5674,12 +5949,12 @@ class LTP(object):
         if data:
             self.load_data()
         self.small_inputs()
+        self.pp2()
         
     def small_inputs(self):
         self.samples_with_controls()
         self.upper_samples()
         self.one_sample()
-        self.zero_controls()
         self.read_lipid_names()
         self.read_binding_properties()
 
@@ -5760,9 +6035,15 @@ class LTP(object):
             for pn, tbl in d.iteritems():
                 self.valids[ltp.upper()][pn]['fe'] = np.array(tbl['smp'][tbl['vld']])
                 self.valids[ltp.upper()][pn]['mz'] = \
+                    np.array(tbl['raw'][tbl['vld'], 2])
+                self.valids[ltp.upper()][pn]['qua'] = \
+                    np.array(tbl['raw'][tbl['vld'], 0])
+                self.valids[ltp.upper()][pn]['sig'] = \
                     np.array(tbl['raw'][tbl['vld'], 1])
+                self.valids[ltp.upper()][pn]['z'] = \
+                    np.array(tbl['raw'][tbl['vld'], 5])
                 self.valids[ltp.upper()][pn]['rt'] = \
-                    np.array(tbl['raw'][tbl['vld'], 2:4])
+                    np.array(tbl['raw'][tbl['vld'], 3:5])
                 for key in ['peaksize', 'pslim02', 'pslim05',
                     'pslim10', 'pslim510', 'rtm']:
                     self.valids[ltp.upper()][pn][key] = np.array(tbl[key][tbl['vld']])
@@ -6652,7 +6933,7 @@ class LTP(object):
         valids = None, highlight = False, highlight2 = False,
         all_features = True, pdfname = None):
         if pdfname is None:
-            pdfname = 'protein_profiles%s.pdf' % \
+            pdfname = 'pp%s.pdf' % \
                 ('' if features is None else '_features')
         fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
         font_family = 'Helvetica Neue LT Std'
@@ -6733,7 +7014,7 @@ class LTP(object):
         valids = None, highlight = False, highlight2 = False,
         all_features = True, pdfname = None):
         if pdfname is None:
-            pdfname = 'protein_profiles%s2.pdf' % \
+            pdfname = 'pp%s3.pdf' % \
                 ('' if not features else '_features')
         fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
         font_family = 'Helvetica Neue LT Std'
@@ -8710,9 +8991,9 @@ class LTP(object):
         protein = self.protein_name_upper2mixed(protein)
         protein = protein[mode]
         tbl = self.data[protein][mode]
-        ui = tbl['raw'][:,1].searchsorted(mz)
-        du = 999.0 if ui == tbl['raw'].shape[0] else tbl['raw'][ui,1] - mz
-        dl = 999.0 if ui == 0 else mz - tbl['raw'][ui - 1,1]
+        ui = tbl['raw'][:,2].searchsorted(mz)
+        du = 999.0 if ui == tbl['raw'].shape[0] else tbl['raw'][ui,2] - mz
+        dl = 999.0 if ui == 0 else mz - tbl['raw'][ui - 1,2]
         i = ui if du < dl else ui - 1
         sys.stdout.write('\n\t:: Looking up %.08f\n'\
             '\t -- The closest m/z found is %.08f\n'\
@@ -8727,17 +9008,17 @@ class LTP(object):
             '\t -- Charge:\t%u\t(%s)\n\n' % \
             (
                 mz,
-                tbl['raw'][i,1],
-                i,
                 tbl['raw'][i,2],
+                i,
                 tbl['raw'][i,3],
+                tbl['raw'][i,4],
                 str(list(tbl['lip'][i,:])),
                 str(list(tbl['ctr'][i,:])),
                 tbl['peaksize'][i],
                 tbl['pks'][i],
                 tbl['raw'][i,0],
                 tbl['qly'][i],
-                tbl['raw'][i,4],
+                tbl['raw'][i,5],
                 tbl['crg'][i]
             )
         )
@@ -9138,7 +9419,7 @@ class LTP(object):
                         '%.04f' % prs[1]
                     ]))
     
-    def pprofs_table(self, fname = 'protein_profiles.txt', original = True):
+    def pprofs_table(self, fname = 'pp.txt', original = True):
         original = '_original' if original else ''
         renondigit = re.compile(r'[^\d]+')
         with open(fname, 'w') as f:
@@ -9323,3 +9604,170 @@ class LTP(object):
         out += '\n\\end{itemize}'
         with open(filename, 'w') as f:
             f.write(out)
+    
+    def std_layout_tables_xls(self):
+        xlsdir = 'top_features'
+        if not os.path.exists(xlsdir):
+            os.mkdir(xlsdir)
+        for fname in os.listdir(xlsdir):
+            os.remove(os.path.join(xlsdir, fname))
+        self.sort_alll('aaa', asc = False)
+        prg = progress.Progress(len(self.valids), 'Exporting xlsx tables', 1, percent = False)
+        for protein in self.valids.keys():
+            prg.step()
+            xlsname = os.path.join(xlsdir, '%s_top_features.xls' % protein)
+            tbl_pos = self.std_layout_table(protein, 'pos')
+            tbl_neg = self.std_layout_table(protein, 'neg')
+            xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True})
+            pos = xls.add_worksheet('%s_positive' % protein)
+            bold = xls.add_format({'bold': True})
+            for i, content in enumerate(tbl_pos[0]):
+                pos.write(0, i, content, bold)
+            for j, row in enumerate(tbl_pos[1:]):
+                for i, content in enumerate(row):
+                    pos.write(j + 1, i, content)
+            neg = xls.add_worksheet('%s_negative' % protein)
+            bold = xls.add_format({'bold': True})
+            for i, content in enumerate(tbl_neg[0]):
+                neg.write(0, i, content, bold)
+            for j, row in enumerate(tbl_neg[1:]):
+                for i, content in enumerate(row):
+                    neg.write(j + 1, i, content)
+            xls.close()
+        prg.terminate()
+    
+    def std_layout_table(self, protein, mode):
+        rows = []
+        hdr = [
+            'Quality',
+            'Significance',
+            'm.z',
+            'Avg..Area',
+            'RT.range',
+            'RT.mean',
+            'Retention.Time..mins.secs',
+            'delta_RT',
+            'protein_peak_ratio',
+            'lipid_.M.H.' if mode == 'pos' else 'lipid_.M.H..',
+            'lipid_.NH4' if mode == 'pos' else 'lipid_.M.COOH..',
+            'lipid_.M.Na' if mode == 'pos' else '',
+            'm.z_corrected',
+            'Peptide.Mass',
+            'MS2.Ion.1.Mass.Intensity',
+            'Fragments.matching.MS2.Ion.1.Mass..Observed.Mass.',
+            'MS2.Ion.2.Mass.Intensity',
+            'Fragments.matching.MS2.Ion.2.Mass..Observed.Mass.',
+            'MS2.Ion.3.Mass.Intensity',
+            'Fragments.matching.MS2.Ion.3.Mass..Observed.Mass.',
+            'Group.Profile..Ratio.',
+            'z',
+            'MS2.file',
+            'Scan',
+            'All.Fragments.Matched..maximum.MS2.intensity',
+            'swisslipid_ID',
+            'check_protein_peak_ratio'
+        ]
+        
+        rows.append(hdr)
+        
+        tbl = self.valids[protein][mode]
+        drift = 1.0 if not self.ltps_drifts \
+                    or 'recalibrated' not in tbl \
+                    or not tbl['recalibrated'] \
+                    else self.ppm2ratio(np.nanmedian(
+                        np.array(self.ltps_drifts[protein][mode].values())
+                    ))
+        
+        def get_lipids(lips, add):
+            return None if lips is None else \
+                '; '.join(
+                    uniqList(
+                        map(
+                            lambda r:
+                                '%s(%u:%u)' % (r[7], r[8][0], r[8][1]) \
+                                    if r[8] is not None else '%s' % r[7],
+                            filter(
+                                lambda r:
+                                    r[7] is not None and r[4] == add,
+                                lips
+                            )
+                        )
+                    )
+                )
+        
+        for i, oi in enumerate(tbl['i']):
+            thisRow = []
+            
+            ms2_best = None if oi not in tbl['ms2f'] or \
+                    tbl['ms2f'][oi].best_scan is None else \
+                    tbl['ms2f'][oi].best_scan
+            
+            ms2_rt = 'NA' \
+                if ms2_best is None else '%.02f' % \
+                tbl['ms2f'][oi].scans[ms2_best][0,11]
+            delta_rt = 'NA' \
+                if ms2_best is None else '%.02f' % \
+                tbl['ms2f'][oi]._scans[ms2_best].deltart
+            lips1 = get_lipids(tbl['lip'][oi], '[M+H]+') if mode == 'pos' \
+                else get_lipids(tbl['lip'][oi], '[M-H]-')
+            lips2 = get_lipids(tbl['lip'][oi], '[M+NH4]+') if mode == 'pos' \
+                else get_lipids(tbl['lip'][oi], '[M+Fo]-')
+            ms2_mz = 'NA' if ms2_best is None else \
+                '%.04f' % tbl['ms2f'][oi].scans[ms2_best][0,0]
+            
+            ms2i1, ms2f1 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(1) \
+                if ms2_best is not None else ('', '')
+            ms2i2, ms2f2 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(2) \
+                if ms2_best is not None else ('', '')
+            ms2i3, ms2f3 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(3) \
+                if ms2_best is not None else ('', '')
+            
+            ms2_file = '' if ms2_best is None else \
+                tbl['ms2f'][oi]._scans[ms2_best].ms2_file
+            
+            ms2_scan = '' if ms2_best is None else \
+                '%u' % tbl['ms2f'][oi]._scans[ms2_best].scan_id[0]
+            
+            ms2_full = '' if ms2_best is None else \
+                tbl['ms2f'][oi]._scans[ms2_best].full_list_str()
+            
+            mz_original = tbl['mz'][i] / drift
+            
+            rows.append([
+                tbl['qua'][i],
+                tbl['sig'][i],
+                mz_original,
+                tbl['aaa'][i],
+                '%.02f - %.02f' % (tbl['rt'][i][0], tbl['rt'][i][1]),
+                tbl['rtm'][i],
+                # '%u:%u' % (int(tbl['rtm'][i]) / 60, tbl['rtm'][i] % 60),
+                ms2_rt,
+                delta_rt,
+                tbl['ipr'][i,0] if tbl['ipr'].shape[1] > 0 \
+                    and not np.isinf(tbl['ipr'][i,0]) \
+                    and not np.isnan(tbl['ipr'][i,0]) else 'NA',
+                lips1,
+                lips2,
+                '', # TODO: sodium adducts in positive mode
+                tbl['mz'][i],
+                ms2_mz,
+                ms2i1,
+                ms2f1,
+                ms2i2,
+                ms2f2,
+                ms2i3,
+                ms2f3,
+                '', # TODO: what is group profile ratio?
+                tbl['z'][i],
+                ms2_file.split('/')[-1],
+                ms2_scan,
+                ms2_full,
+                '%s: %s --%s: %s' % (
+                    '[M+H]+' if mode == 'pos' else '[M-H]-',
+                    lips1,
+                    '[M+NH4]+' if mode == 'pos' else '[M+Fo]-',
+                    lips2),
+                'NA' if tbl['prr'] is None else \
+                    'protein_peak_ratio_OK' if tbl['prr'][i] else 'not_OK'
+            ])
+        return rows
