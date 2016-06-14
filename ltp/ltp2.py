@@ -2878,19 +2878,35 @@ class LTP(object):
         '''
         self.ppratios = dict((protein, {}) \
             for protein in self.samples_upper.keys())
+        self.first_ratio = dict((protein, {}) \
+            for protein in self.samples_upper.keys())
         fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
+        ifracs = dict(map(lambda (i, fr): (fr, i), enumerate(fracs)))
         def get_ratio(protein, ref, frac, o):
             return \
                 np.mean(
                     map(
-                        lambda (c, vals):
-                            self.abs_by_frac_c[protein][ref][c][o] / vals[o],
-                        self.abs_by_frac_c[protein][frac].iteritems()
+                        lambda w:
+                            self.abs_by_frac_c[protein][ref][c][o] / \
+                                self.abs_by_frac_c[protein][frac][c][o],
+                        [1, 5]
                     )
                 )
+        def is_higher(prev, frac):
+            return prev is None or \
+                np.mean([
+                    self.abs_by_frac_c[frac][1],
+                    self.abs_by_frac_c[frac][5]
+                ]) > \
+                np.mean([
+                    self.abs_by_frac_c[highest][1],
+                    self.abs_by_frac_c[highest][5]
+                ])
         for protein, sample in self.samples_upper.iteritems():
             ratios = {}
             ref = None
+            highest = None
+            second = None
             for i, frac in enumerate(fracs):
                 if sample[i + 1] == 1:
                     if ref is None:
@@ -2899,7 +2915,14 @@ class LTP(object):
                         ratio1 = get_ratio(protein, ref, frac, 0)
                         ratio2 = get_ratio(protein, ref, frac, 1)
                         ratios[(ref, frac)] = tuple(sorted([ratio1, ratio2]))
+                    if is_higher(highest, frac):
+                        second = highest
+                        highest = frac
+                    elif is_higher(second, frac):
+                        second = frac
             self.ppratios[protein] = ratios
+            self.first_ratio = None if second is None else \
+                tuple(sorted([first, second], key = lambda fr: ifracs[fr]))
     
     def intensity_peak_ratios(self):
         '''
@@ -9665,7 +9688,11 @@ class LTP(object):
             'Scan',
             'All.Fragments.Matched..maximum.MS2.intensity',
             'swisslipid_ID',
-            'check_protein_peak_ratio'
+            'check_protein_peak_ratio',
+            'intensity_peak_ratio',
+            'protein_peak_ratio',
+            'ratio_of_fractions',
+            
         ]
         
         rows.append(hdr)
