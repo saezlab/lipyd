@@ -2627,9 +2627,13 @@ class LTP(object):
                                                 lambda o:
                                                     np.mean(
                                                         map(
-                                                            lambda prot:
-                                                                prot[fr][c][o],
-                                                            self.abs_by_frac_b.values()
+                                                            lambda (prot, ab):
+                                                                ab[fr][c][o],
+                                                            filter(
+                                                                lambda (prot, ab):
+                                                                    prot in self.background_ltps,
+                                                                self.abs_by_frac_b.iteritems()
+                                                            )
                                                         )
                                                     ),
                                                 [0, 1]
