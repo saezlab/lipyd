@@ -38,14 +38,14 @@ l = ltp2.LTP()
 '''
 Initializing from the beginning.
 '''
-#l.init_from_scratch()
+l.init_from_scratch()
 
 '''
 Here we reload the workspace including all the data from the pickle:
 '''
-l.init_reinit()
+#l.init_reinit()
 
-l.load_data()
+#l.load_data()
 
 '''
 Apply basic filters, and obtain the valid features.
@@ -63,6 +63,9 @@ Lookup lipids for all the valid features. (variable name: `lip`)
 '''
 l.ms1()
 l.ms2()
+
+l.std_layout_tables_xls()
+
 l.identify()
 
 '''

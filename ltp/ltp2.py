@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+﻿#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -708,6 +708,14 @@ class Mz():
     def add_nh4(self):
         m = MolWeight('NH4')
         return self.adduct(m - mass.electron)
+    
+    def add_na(self):
+        m = MolWeight('Na')
+        return self.adduct(m - mass.electron)
+    
+    def remove_na(self):
+        m = MolWeight('Na')
+        return self.adduct(m + mass_electron)
     
     def reload(self):
         modname = self.__class__.__module__
@@ -1770,7 +1778,8 @@ class LTP(object):
                 1: {
                     'pos': {
                         '[M+H]+': 'remove_h',
-                        '[M+NH4]+': 'remove_nh4'
+                        '[M+NH4]+': 'remove_nh4',
+                        '[M+Na]+': 'remove_na',
                     },
                     'neg': {
                         '[M-H]-': 'add_h',
@@ -1794,7 +1803,8 @@ class LTP(object):
                 1: {
                     'pos': {
                         '[M+H]+': 'add_h',
-                        '[M+NH4]+': 'add_nh4'
+                        '[M+NH4]+': 'add_nh4',
+                        '[M+Na]+': 'add_na'
                     },
                     'neg': {
                         '[M-H]-': 'remove_h',
@@ -2387,6 +2397,18 @@ class LTP(object):
             if self.exacts is None \
             else np.vstack((self.exacts, _exacts))
         self.exacts = self.exacts[self.exacts[:,-1].argsort()]
+    
+    def add_nonidet(self):
+        self.nonidet_mzs = [528.37402, 484.34353, 572.39251,
+                            616.36121, 660.44410]
+        nonidet = []
+        for mz in self.nonidet_mzs:
+            nonidet.append(['SLM:999999999', 'Species', 'Nonidet P-40', '', '', mz])
+        nonidet = np.array(nonidet, dtype = np.object)
+        self.exacts = nonidet \
+            if self.exacts is None \
+            else np.vstack((self.exacts, nonidet))
+        self.exacts = self.exacts[self.exacts[:,-1].argsort()]
 
     def database_set(self, exacts, names, levels = ['Species']):
         levels = [levels] if type(levels) in [str, unicode] else levels
@@ -2891,42 +2913,41 @@ class LTP(object):
                 np.mean(
                     map(
                         lambda w:
-                            self.abs_by_frac_c[protein][ref][c][o] / \
-                                self.abs_by_frac_c[protein][frac][c][o],
+                            self.abs_by_frac_c[protein][ref][w][o] / \
+                                self.abs_by_frac_c[protein][frac][w][o],
                         [1, 5]
                     )
                 )
-        def is_higher(prev, frac):
+        def is_higher(protein, prev, frac):
             return prev is None or \
                 np.mean([
-                    self.abs_by_frac_c[frac][1],
-                    self.abs_by_frac_c[frac][5]
+                    self.abs_by_frac_c[protein][frac][1],
+                    self.abs_by_frac_c[protein][frac][5]
                 ]) > \
                 np.mean([
-                    self.abs_by_frac_c[highest][1],
-                    self.abs_by_frac_c[highest][5]
+                    self.abs_by_frac_c[protein][highest][1],
+                    self.abs_by_frac_c[protein][highest][5]
                 ])
         for protein, sample in self.samples_upper.iteritems():
             ratios = {}
             ref = None
             highest = None
             second = None
-            for i, frac in enumerate(fracs):
+            for i, frac1 in enumerate(fracs):
                 if sample[i + 1] == 1:
-                    if ref is None:
-                        ref = frac
-                    else:
-                        ratio1 = get_ratio(protein, ref, frac, 0)
-                        ratio2 = get_ratio(protein, ref, frac, 1)
-                        ratios[(ref, frac)] = tuple(sorted([ratio1, ratio2]))
-                    if is_higher(highest, frac):
+                    for j, frac2 in enumerate(fracs):
+                        if sample[j + 1] == 1 and i != j:
+                            ratio1 = get_ratio(protein, frac1, frac2, 0)
+                            ratio2 = get_ratio(protein, frac1, frac2, 1)
+                            ratios[(frac1, frac2)] = (ratio1, ratio2)
+                    if is_higher(protein, highest, frac1):
                         second = highest
-                        highest = frac
-                    elif is_higher(second, frac):
-                        second = frac
+                        highest = frac1
+                    elif is_higher(protein, second, frac1):
+                        second = frac1
             self.ppratios[protein] = ratios
-            self.first_ratio = None if second is None else \
-                tuple(sorted([first, second], key = lambda fr: ifracs[fr]))
+            self.first_ratio[protein] = None if second is None else \
+                tuple(sorted([highest, second], key = lambda fr: ifracs[fr]))
     
     def intensity_peak_ratios(self):
         '''
@@ -2942,35 +2963,38 @@ class LTP(object):
             sample = self.samples_upper[protein]
             for mode, tbl in d.iteritems():
                 ratios = []
+                indices = {}
                 for fe in tbl['no']:
-                    ref = None
-                    j = 0
-                    refj = 0
                     ratio = []
-                    for i, frac in enumerate(fracs):
+                    for i, frac1 in enumerate(fracs):
                         if sample[i + 1] == 1:
-                            if ref is None:
-                                ref = frac
-                                refj = j
-                            else:
-                                ratio.append(
-                                    fe[refj] / fe[j]
-                                )
-                        if sample[i + 1] is not None:
-                            j += 1
+                            for j, frac2 in enumerate(fracs):
+                                if sample[j + 1] == 1 and i != j:
+                                    ii = len(filter(lambda x: x is None, sample[1:i+1]))
+                                    jj = len(filter(lambda x: x is None, sample[1:j+1]))
+                                    ratio.append(
+                                        fe[i - ii] / fe[j - jj]
+                                    )
+                                    indices[(frac1, frac2)] = len(ratio) - 1
                     ratios.append(ratio)
                 tbl['ipr'] = np.array(ratios)
+                tbl['ipri'] = indices
+                
+                if self.first_ratio[protein] is not None:
+                    fi = tbl['ipri'][self.first_ratio[protein]]
+                    tbl['iprf'] = tbl['ipr'][:,fi]
+                else:
+                    tbl['iprf'] = None
     
     def ratios_in_range(self):
         for protein, d in self.valids.iteritems():
             for mode, tbl in d.iteritems():
                 if len(self.ppratios[protein]):
                     in_range = []
-                    ppr = self.ppratios[protein]\
-                        [sorted(self.ppratios[protein].keys())[0]]
-                    for ipr in tbl['ipr']:
-                        in_range.append(ppr[0] < ipr[0] < ppr[1])
-                    tbl['prr'] = in_range
+                    ppr = sorted(self.ppratios[protein][self.first_ratio[protein]])
+                    for ipr in tbl['iprf']:
+                        in_range.append(ppr[0] < ipr < ppr[1])
+                    tbl['prr'] = np.array(in_range)
                 else:
                     tbl['prr'] = None
     
@@ -5030,7 +5054,7 @@ class LTP(object):
         self.fractions_by_protein_amount()
         self.primary_fractions()
         self.average_area_5()
-        self.protein_peak_ratios()
+        self.protein_peak_ratios2()
         self.intensity_peak_ratios()
         self.ratios_in_range()
         self.peak_ratio_score()
@@ -5058,6 +5082,7 @@ class LTP(object):
         self.identity_combined()
         self.ms2_scans_identify()
         self.ms2_headgroups2()
+        self.consensus_indentity()
     
     def identify(self):
         self.headgroups_by_fattya()
@@ -5679,6 +5704,42 @@ class LTP(object):
                             )
                         )
                     )
+    
+    def consensus_indentity(self):
+        for protein, d in self.valids.iteritems():
+            for mode, tbl in d.iteritems():
+                ids = {}
+                for oi, ms2i in tbl['ms2i2'].iteritems():
+                    this_id = []
+                    for hg, ms2ii in ms2i.iteritems():
+                        fa_level_id = False
+                        hg_in_ms2 = False
+                        for ms2iii in ms2ii:
+                            if ms2iii['score'] > 0:
+                                hg_in_ms2 = True
+                                for ms2fa in ms2iii['fattya']:
+                                    sumcc = reduce(
+                                        lambda cc1, cc2:
+                                            (cc1[0] + cc2[0], cc1[1] + cc2[1]),
+                                        map(
+                                            lambda cc:
+                                                (int(cc.split(':')[0]), int(cc.split(':')[1])),
+                                            ms2fa.replace('O-', '').replace('d', '').split('/')
+                                        )
+                                    )
+                                    sumccstr = '%u:%u' % sumcc
+                                    if hg in tbl['ms1fa'][oi] and \
+                                        sumccstr in tbl['ms1fa'][oi][hg]:
+                                            this_id.append('%s(%s)' % (hg, ms2fa))
+                                            fa_level_id = True
+                        if hg_in_ms2 and not fa_level_id:
+                            if hg in tbl['ms1fa'][oi]:
+                                for ms1fa in tbl['ms1fa'][oi][hg]:
+                                    this_id.append('%s(%s)' % (hg, ms1fa))
+                            elif hg in tbl['ms1hg'][oi]:
+                                this_id.append(hg)
+                    ids[oi] = this_id
+                tbl['cid'] = ids
     
     def ms2_headgroups(self):
         '''
@@ -7198,24 +7259,26 @@ class LTP(object):
             if self.valids[ltpname]['pos']['ipr'].shape[1] > 0:
                 scores = []
                 keys = sorted(self.ppratios[ltpname].keys())
-                ppr1 = np.array(list(self.ppratios[ltpname][keys[0]]))
+                ppr1 = np.array(sorted(list(self.ppratios[ltpname][keys[0]])))
+                ipri1 = self.valids[ltpname]['pos']['ipri'][keys[0]]
                 if len(keys) > 1:
-                    ppr2 = np.array(list(self.ppratios[ltpname][keys[1]]))
-                p1 = self.valids[ltpname]['pos']['ipr'][:,0]
+                    ppr2 = np.array(sorted(list(self.ppratios[ltpname][keys[1]])))
+                    ipri2 = self.valids[ltpname]['pos']['ipri'][keys[1]]
+                p1 = self.valids[ltpname]['pos']['ipr'][:,ipri1]
                 p1a = p1[np.isfinite(p1)]
-                n1 = self.valids[ltpname]['neg']['ipr'][:,0]
+                n1 = self.valids[ltpname]['neg']['ipr'][:,ipri1]
                 n1a = n1[np.isfinite(n1)]
                 a1 = np.concatenate((p1a, n1a))
                 a1 = a1[np.where((a1 > ppr1[0] * lower) & (a1 < ppr1[1] * upper))]
                 m1 = np.mean(a1)
                 s1 = np.std(a1)
                 if self.valids[ltpname]['pos']['ipr'].shape[1] > 1:
-                    p2 = self.valids[ltpname]['pos']['ipr'][:,1]
+                    p2 = self.valids[ltpname]['pos']['ipr'][:,ipri2]
                     p2a = p2[np.isfinite(p2)]
-                    n2 = self.valids[ltpname]['neg']['ipr'][:,1]
+                    n2 = self.valids[ltpname]['neg']['ipr'][:,ipri2]
                     n2a = n2[np.isfinite(n2)]
                     a2 = np.concatenate((p2a, n2a))
-                    a1 = a2[np.where((a2 > ppr2[0] * lower) & (a2 < ppr2[1] * upper))]
+                    a2 = a2[np.where((a2 > ppr2[0] * lower) & (a2 < ppr2[1] * upper))]
                     m2 = np.mean(a2)
                     s2 = np.std(a2)
                     scp2 = np.abs(p2 - m2) / s2
@@ -7608,6 +7671,7 @@ class LTP(object):
         if self.exacts is None:
             self.get_swisslipids_exact()
             self.lipidmaps_exact()
+            self.add_nonidet()
         self.find_lipids_exact(verbose = verbose,
             outfile = outfile, charge = charge)
 
@@ -9647,19 +9711,38 @@ class LTP(object):
             tbl_neg = self.std_layout_table(protein, 'neg')
             xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True})
             pos = xls.add_worksheet('%s_positive' % protein)
+            plain = xls.add_format({})
             bold = xls.add_format({'bold': True})
+            green = xls.add_format({'bg_color': '#A9C98B'})
             for i, content in enumerate(tbl_pos[0]):
                 pos.write(0, i, content, bold)
             for j, row in enumerate(tbl_pos[1:]):
                 for i, content in enumerate(row):
-                    pos.write(j + 1, i, content)
+                    if type(content) is tuple:
+                        if content[1] in locals():
+                            style = locals()[content[1]]
+                        content = content[0]
+                    else:
+                        style = plain
+                    try:
+                        pos.write(j + 1, i, content, style)
+                    except:
+                        print row
             neg = xls.add_worksheet('%s_negative' % protein)
+            plain = xls.add_format({})
             bold = xls.add_format({'bold': True})
+            green = xls.add_format({'bg_color': '#A9C98B'})
             for i, content in enumerate(tbl_neg[0]):
                 neg.write(0, i, content, bold)
             for j, row in enumerate(tbl_neg[1:]):
                 for i, content in enumerate(row):
-                    neg.write(j + 1, i, content)
+                    if type(content) is tuple:
+                        if content[1] in locals():
+                            style = locals()[content[1]]
+                        content = content[0]
+                    else:
+                        style = plain
+                    neg.write(j + 1, i, content, style)
             xls.close()
         prg.terminate()
     
@@ -9677,7 +9760,7 @@ class LTP(object):
             'protein_peak_ratio',
             'lipid_.M.H.' if mode == 'pos' else 'lipid_.M.H..',
             'lipid_.NH4' if mode == 'pos' else 'lipid_.M.COOH..',
-            'lipid_.M.Na' if mode == 'pos' else '',
+            'lipid_.M.Na' if mode == 'pos' else 'nothing',
             'm.z_corrected',
             'Peptide.Mass',
             'MS2.Ion.1.Mass.Intensity',
@@ -9694,9 +9777,14 @@ class LTP(object):
             'swisslipid_ID',
             'check_protein_peak_ratio',
             'intensity_peak_ratio',
-            'protein_peak_ratio',
+            'protein_peak_ratio_.015',
+            'protein_peak_ratio_.045',
             'ratio_of_fractions',
-            
+            'peak_ratio_score',
+            'peaksize',
+            'MS1_headgroups',
+            'MS2_headgroups',
+            'consensus_indentity'
         ]
         
         rows.append(hdr)
@@ -9710,7 +9798,7 @@ class LTP(object):
                     ))
         
         def get_lipids(lips, add):
-            return None if lips is None else \
+            return '' if lips is None else \
                 '; '.join(
                     uniqList(
                         map(
@@ -9727,24 +9815,26 @@ class LTP(object):
                 )
         
         for i, oi in enumerate(tbl['i']):
-            thisRow = []
             
             ms2_best = None if oi not in tbl['ms2f'] or \
                     tbl['ms2f'][oi].best_scan is None else \
                     tbl['ms2f'][oi].best_scan
             
             ms2_rt = 'NA' \
-                if ms2_best is None else '%.02f' % \
+                if ms2_best is None else \
                 tbl['ms2f'][oi].scans[ms2_best][0,11]
             delta_rt = 'NA' \
-                if ms2_best is None else '%.02f' % \
+                if ms2_best is None else \
                 tbl['ms2f'][oi]._scans[ms2_best].deltart
             lips1 = get_lipids(tbl['lip'][oi], '[M+H]+') if mode == 'pos' \
                 else get_lipids(tbl['lip'][oi], '[M-H]-')
             lips2 = get_lipids(tbl['lip'][oi], '[M+NH4]+') if mode == 'pos' \
                 else get_lipids(tbl['lip'][oi], '[M+Fo]-')
+            lips3 = get_lipids(tbl['lip'][oi], '[M+Na]+') if mode == 'pos' \
+                else ''
+            
             ms2_mz = 'NA' if ms2_best is None else \
-                '%.04f' % tbl['ms2f'][oi].scans[ms2_best][0,0]
+                tbl['ms2f'][oi].scans[ms2_best][0,0]
             
             ms2i1, ms2f1 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(1) \
                 if ms2_best is not None else ('', '')
@@ -9757,48 +9847,90 @@ class LTP(object):
                 tbl['ms2f'][oi]._scans[ms2_best].ms2_file
             
             ms2_scan = '' if ms2_best is None else \
-                '%u' % tbl['ms2f'][oi]._scans[ms2_best].scan_id[0]
+                tbl['ms2f'][oi]._scans[ms2_best].scan_id[0]
             
             ms2_full = '' if ms2_best is None else \
                 tbl['ms2f'][oi]._scans[ms2_best].full_list_str()
             
             mz_original = tbl['mz'][i] / drift
             
+            ms2_style = 'green' if len(ms2_full) and abs(delta_rt) < 1.0 else 'plain'
+            
+            oi = tbl['i'][i]
+            
+            good = tbl['peaksize'][i] >= 5.0 and \
+                (tbl['prr'] is None or tbl['prr'][i]) and \
+                ((tbl['aaa'][i] >= self.aa_threshold[mode] and \
+                    (len(lips1) or len(lips2))) or \
+                (oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
+                    len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi])))
+            
             rows.append([
                 tbl['qua'][i],
                 tbl['sig'][i],
-                mz_original,
-                tbl['aaa'][i],
+                (mz_original, 'green' if good else 'plain'),
+                (tbl['aaa'][i],
+                'green' if tbl['aaa'][i] >= self.aa_threshold[mode] \
+                    else 'plain'
+                ),
                 '%.02f - %.02f' % (tbl['rt'][i][0], tbl['rt'][i][1]),
                 tbl['rtm'][i],
                 # '%u:%u' % (int(tbl['rtm'][i]) / 60, tbl['rtm'][i] % 60),
                 ms2_rt,
                 delta_rt,
-                tbl['ipr'][i,0] if tbl['ipr'].shape[1] > 0 \
-                    and not np.isinf(tbl['ipr'][i,0]) \
-                    and not np.isnan(tbl['ipr'][i,0]) else 'NA',
-                lips1,
-                lips2,
-                '', # TODO: sodium adducts in positive mode
+                tbl['iprf'][i] if tbl['iprf'] is not None \
+                    and not np.isinf(tbl['iprf'][i]) \
+                    and not np.isnan(tbl['iprf'][i]) else 'NA',
+                (lips1, 'green' if len(lips1) else 'plain'),
+                (lips2, 'green' if len(lips2) else 'plain'),
+                (lips3, 'green' if len(lips3) else 'plain'),
                 tbl['mz'][i],
-                ms2_mz,
-                ms2i1,
-                ms2f1,
-                ms2i2,
-                ms2f2,
-                ms2i3,
-                ms2f3,
+                (ms2_mz, ms2_style),
+                (ms2i1, ms2_style),
+                (ms2f1, ms2_style),
+                (ms2i2, ms2_style),
+                (ms2f2, ms2_style),
+                (ms2i3, ms2_style),
+                (ms2f3, ms2_style),
                 '', # TODO: what is group profile ratio?
                 tbl['z'][i],
-                ms2_file.split('/')[-1],
-                ms2_scan,
-                ms2_full,
-                '%s: %s --%s: %s' % (
+                (ms2_file.split('/')[-1], ms2_style),
+                (ms2_scan, ms2_style),
+                (ms2_full, ms2_style),
+                ('%s: %s --%s: %s' % (
                     '[M+H]+' if mode == 'pos' else '[M-H]-',
                     lips1,
                     '[M+NH4]+' if mode == 'pos' else '[M+Fo]-',
-                    lips2),
-                'NA' if tbl['prr'] is None else \
-                    'protein_peak_ratio_OK' if tbl['prr'][i] else 'not_OK'
+                    lips2), 
+                'green' if len(lips1) or len(lips2) else 'plain'),
+                ('NA' if tbl['prr'] is None else \
+                    'protein_peak_ratio_OK' if tbl['prr'][i] else 'not_OK',
+                'plain' if tbl['prr'] is None or not tbl['prr'][i] else 'green'
+                ),
+                'NA' if self.first_ratio[protein] is None \
+                    or np.isinf(tbl['iprf'][i]) \
+                    or np.isnan(tbl['iprf'][i]) \
+                    else tbl['iprf'][i],
+                'NA' if self.first_ratio[protein] is None \
+                    else self.ppratios[protein][self.first_ratio[protein]][0],
+                'NA' if self.first_ratio[protein] is None \
+                    else self.ppratios[protein][self.first_ratio[protein]][1],
+                'NA' if self.first_ratio[protein] is None \
+                    else '%s:%s' % self.first_ratio[protein],
+                ('NA' if self.first_ratio[protein] is None \
+                    or np.isnan(tbl['prs'][i]) \
+                    else 'Inf' if np.isinf(tbl['prs'][i]) \
+                    else tbl['prs'][i],
+                'plain' if self.first_ratio[protein] is None \
+                    or tbl['prs'][i] > 1.0 \
+                    else 'green'
+                ),
+                (tbl['peaksize'][i], 'green' if tbl['peaksize'][i] >= 5.0 else 'plain'),
+                '' if oi not in tbl['ms1hg'] or not len(tbl['ms1hg'][oi]) else \
+                    (', '.join(sorted(list(tbl['ms1hg'][oi]))), 'green'),
+                '' if oi not in tbl['ms2hg2'] or not len(tbl['ms2hg2']) else \
+                    (', '.join(sorted(list(tbl['ms2hg2'][oi]))), 'green'),
+                '' if oi not in tbl['cid'] or not len(tbl['cid'][oi]) else \
+                    (', '.join(sorted(tbl['cid'][oi])), 'green')
             ])
         return rows
