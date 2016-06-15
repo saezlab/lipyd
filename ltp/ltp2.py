@@ -715,7 +715,7 @@ class Mz():
     
     def remove_na(self):
         m = MolWeight('Na')
-        return self.adduct(m + mass_electron)
+        return self.adduct(m + mass.electron)
     
     def reload(self):
         modname = self.__class__.__module__
@@ -2964,7 +2964,7 @@ class LTP(object):
             for mode, tbl in d.iteritems():
                 ratios = []
                 indices = {}
-                for fe in tbl['no']:
+                for fe in tbl['fe']:
                     ratio = []
                     for i, frac1 in enumerate(fracs):
                         if sample[i + 1] == 1:
@@ -9706,7 +9706,7 @@ class LTP(object):
         prg = progress.Progress(len(self.valids), 'Exporting xlsx tables', 1, percent = False)
         for protein in self.valids.keys():
             prg.step()
-            xlsname = os.path.join(xlsdir, '%s_top_features.xls' % protein)
+            xlsname = os.path.join(xlsdir, '%s_top_features.xlsx' % protein)
             tbl_pos = self.std_layout_table(protein, 'pos')
             tbl_neg = self.std_layout_table(protein, 'neg')
             xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True})
