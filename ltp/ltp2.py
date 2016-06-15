@@ -1771,6 +1771,8 @@ class LTP(object):
                 'neg': 30000.0,
                 'pos': 150000.0
             },
+            'fr_offsets': [0.015, 0.045],
+            'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.02,
             'std_tolerance': 0.02,
@@ -2513,10 +2515,9 @@ class LTP(object):
         getattr(self, propname)['GLTPD1']['a12'] = a11
     
     def pp(self, **kwargs):
-        offsets = [0.0, 0.015, 0.045]
         self.secfracs = {}
-        for offset in offsets:
-            self._pp(offset = offset, **kwargs)
+        for offset, label in zip([0.0] + self.fr_offsets, ['', 'L', 'U']):
+            self._pp(offset = offset, label = label, **kwargs)
     
     def raw_sec_absorbances(self, cache = True):
         self.pp_zeroed = False
@@ -2549,16 +2550,16 @@ class LTP(object):
                 )
         pickle.dump(self.absorb, open(self.abscache, 'wb'))
     
-    def pp2(self, offsets = [0.015, 0.045]):
+    def pp2(self):
         self.raw_sec_absorbances()
-        self.absorbances_by_fractions(offsets = offsets)
+        self.absorbances_by_fractions()
         self.pp_baseline_correction()
         self.pp_background()
         self.pp_background_correction()
         self.mean_pp()
         self.zero_controls()
     
-    def absorbances_by_fractions(self, offsets = [0.015, 0.045]):
+    def absorbances_by_fractions(self):
         result = {}
         def get_segment(protein, c, lo, hi):
             a = self.absorb[protein]
@@ -2572,7 +2573,7 @@ class LTP(object):
                 result[protein][lim[2]] = {}
                 for c in abs_cols:
                     result[protein][lim[2]][c] = []
-                    for o in offsets:
+                    for o in self.fr_offsets:
                         result[protein][lim[2]][c].append(
                             get_segment(protein, c, lim[0] + o, lim[1] + o)
                         )
@@ -2669,12 +2670,10 @@ class LTP(object):
                 )
             )
     
-    def mean_pp(self, offsets = [0.015, 0.045]):
-        pprofs_o1 = 'pprofs%u' % int(offsets[0] * 1000)
-        pprofs_o2 = 'pprofs%u' % int(offsets[1] * 1000)
+    def mean_pp(self):
         self.pprofs = {}
-        setattr(self, pprofs_o1, {})
-        setattr(self, pprofs_o2, {})
+        self.pprofsL =  {}
+        self.pprofsU =  {}
         def get_mean(attr, get_val):
             getattr(self, attr)[protein] = \
                 dict(
@@ -2695,8 +2694,8 @@ class LTP(object):
                 )
         for protein, d in self.abs_by_frac_c.iteritems():
             get_mean('pprofs', np.nanmean)
-            get_mean(pprofs_o1, lambda x: x[0])
-            get_mean(pprofs_o2, lambda x: x[1])
+            get_mean('pprofsL', lambda x: x[0])
+            get_mean('pprofsU', lambda x: x[1])
     
     def read_fraction_limits(self):
         with open(self.ppfracf, 'r') as f:
@@ -2715,13 +2714,12 @@ class LTP(object):
                     )
                 )
     
-    def _pp(self, offset = 0.0, cache = True,
+    def _pp(self, offset = 0.0, label = '', cache = True,
         correct_GLTPD1 = True, GLTPD_correction = 'eq'):
         '''
         For each protein, for each fraction, calculates the mean of 
         absorptions of all the measurements belonging to one fraction.
         '''
-        label = '' if offset == 0.0 else '%u' % int(offset * 1000)
         cachefile = '%s%s.pickle' % (self.pprofcache.split('.')[0], label)
         propname = 'pprofs%s' % label
         if cache and os.path.exists(cachefile):
@@ -2783,13 +2781,12 @@ class LTP(object):
                 '_GLTPD1_profile_correction_%s' % GLTPD_correction)(propname)
     
     def protein_profile_correction(self, propname):
-        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
         for ltpname, prof in getattr(self, propname).iteritems():
             a5 = prof['a5']
-            for frac in fracs:
+            for frac in self.fracs:
                 prof[frac] -= a5
-            cmin = min(map(lambda fr: prof[fr], fracs))
-            for frac in fracs:
+            cmin = min(map(lambda fr: prof[fr], self.fracs))
+            for frac in self.fracs:
                 prof[frac] -= cmin
     
     def zero_controls(self):
@@ -2806,25 +2803,22 @@ class LTP(object):
                 'please set `pp_zeroed` to False to override.\n')
             sys.stdout.flush()
             return None
-        offsets = [0.0, 0.015, 0.045]
-        for offset in offsets:
+        for offset in [0.0] + sself.fr_offsets:
             label = '' if offset == 0.0 else '%u' % int(offset * 1000)
             propname = 'pprofs%s' % label
             self.protein_profile_correction(propname)
             setattr(self, 'pprofs_original%s' % label,
                 copy.deepcopy(getattr(self, propname)))
-            fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
             for ltpname, sample in self.samples.iteritems():
-                for i, fr in enumerate(fracs):
+                for i, fr in enumerate(self.fracs):
                     if sample[i + 1] == 0 or sample[i + 1] is None:
                         getattr(self, propname)[ltpname.upper()][fr] = 0.0
         self.pp_zeroed = True
     
     def protein_containing_fractions(self, protein):
-        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
         with_protein = []
         sample = self.samples_upper[protein]
-        for i, fr in enumerate(fracs):
+        for i, fr in enumerate(self.fracs):
             if sample[i + 1] == 1:
                 with_protein.append(fr)
         return with_protein
@@ -2878,13 +2872,12 @@ class LTP(object):
         '''
         self.ppratios = dict((protein, {}) \
             for protein in self.samples_upper.keys())
-        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
         for protein, sample in self.samples_upper.iteritems():
             ratios = {}
             ref = None
             p15 = self.pprofs15[protein]
             p45 = self.pprofs45[protein]
-            for i, frac in enumerate(fracs):
+            for i, frac in enumerate(self.fracs):
                 if sample[i + 1] == 1:
                     if ref is None:
                         ref = frac
@@ -2906,8 +2899,7 @@ class LTP(object):
             for protein in self.samples_upper.keys())
         self.first_ratio = dict((protein, {}) \
             for protein in self.samples_upper.keys())
-        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
-        ifracs = dict(map(lambda (i, fr): (fr, i), enumerate(fracs)))
+        ifracs = dict(map(lambda (i, fr): (fr, i), enumerate(self.fracs)))
         def get_ratio(protein, ref, frac, o):
             return \
                 np.mean(
@@ -2958,7 +2950,6 @@ class LTP(object):
         0, 1 or 2 columns depending on the number of protein
         containing fractions.
         '''
-        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
         for protein, d in self.valids.iteritems():
             sample = self.samples_upper[protein]
             for mode, tbl in d.iteritems():
@@ -2966,9 +2957,9 @@ class LTP(object):
                 indices = {}
                 for fe in tbl['fe']:
                     ratio = []
-                    for i, frac1 in enumerate(fracs):
+                    for i, frac1 in enumerate(self.fracs):
                         if sample[i + 1] == 1:
-                            for j, frac2 in enumerate(fracs):
+                            for j, frac2 in enumerate(self.fracs):
                                 if sample[j + 1] == 1 and i != j:
                                     ii = len(filter(lambda x: x is None, sample[1:i+1]))
                                     jj = len(filter(lambda x: x is None, sample[1:j+1]))
@@ -7023,7 +7014,6 @@ class LTP(object):
         if pdfname is None:
             pdfname = 'pp%s.pdf' % \
                 ('' if features is None else '_features')
-        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
@@ -7034,8 +7024,9 @@ class LTP(object):
             prg.step()
             ax = axs[i / 8, i % 8]
             ltpname = ltps[i]
-            ppr = np.array([self.pprofs[ltpname][fr] for fr in fracs])
-            ppr_o = np.array([self.pprofs_original[ltpname][fr] for fr in fracs])
+            ppr = np.array([self.pprofs[ltpname][fr] for fr in self.fracs])
+            ppr_o = np.array([self.pprofs_original[ltpname][fr] \
+                for fr in self.fracs])
             if features:
                 ppmax = np.nanmax(ppr_o)
                 ppmin = np.nanmin(ppr_o)
@@ -7091,7 +7082,7 @@ class LTP(object):
                             print 'Unequal length dimensions: %s, %s' % \
                                 (ltpname, pn)
             ax.set_xticks(np.arange(len(ppr)) + 0.4)
-            ax.set_xticklabels(fracs)
+            ax.set_xticklabels(self.fracs)
             ax.set_title('%s protein conc.'%ltpname)
         fig.tight_layout()
         fig.savefig(pdfname)
@@ -7104,14 +7095,13 @@ class LTP(object):
         if pdfname is None:
             pdfname = 'pp%s3.pdf' % \
                 ('' if not features else '_features')
-        fracs = ['a9', 'a10', 'a11', 'a12', 'b1']
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
         ltps = sorted(self.samples_upper.keys())
         prg = progress.Progress(len(ltps), 'Plotting profiles', 1,
             percent = False)
-        offsets = [0.0, 0.015, 0.045]
+        offsets = [0.0] + self.fr_offsets
         width = 0.3
         for i in xrange(len(ltps)):
             prg.step()
@@ -7120,9 +7110,9 @@ class LTP(object):
             for w, offset in enumerate(offsets):
                 label = '' if offset == 0.0 else '%u' % int(offset * 1000)
                 ppr = np.array([getattr(self, 'pprofs%s' % label)\
-                    [ltpname][fr] for fr in fracs])
+                    [ltpname][fr] for fr in self.fracs])
                 ppr_o = np.array([getattr(self, 'pprofs_original%s' % label)\
-                    [ltpname][fr] for fr in fracs])
+                    [ltpname][fr] for fr in self.fracs])
                 if features:
                     ppmax = np.nanmax(ppr_o)
                     ppmin = np.nanmin(ppr_o)
@@ -7179,7 +7169,7 @@ class LTP(object):
                             print 'Unequal length dimensions: %s, %s' % \
                                 (ltpname, pn)
             ax.set_xticks(np.arange(len(ppr)) + 0.4)
-            ax.set_xticklabels(fracs)
+            ax.set_xticklabels(self.fracs)
             ax.set_title('%s protein conc.'%ltpname)
         fig.tight_layout()
         fig.savefig(pdfname)
@@ -9517,16 +9507,16 @@ class LTP(object):
             f.write('%s\n' % '\t'.join([
                 'Protein',
                 'Fraction',
-                'Cc_0.015',
-                'Cc_0.045'
+                'Cc_%.03f' % self.fr_offsets[0],
+                'Cc_%.03f' % self.fr_offsets[1]
             ]))
-            for protein, prof in getattr(self, 'pprofs%s15'%original).iteritems():
+            for protein, prof in getattr(self, 'pprofs%sL'%original).iteritems():
                 for frac in sorted(prof.keys(), key = lambda x: (x[0], int(renondigit.sub('', x)))):
                     f.write('%s\n' % '\t'.join([
                         protein,
                         frac,
-                        '%.04f' % getattr(self, 'pprofs%s15'%original)[protein][frac],
-                        '%.04f' % getattr(self, 'pprofs%s45'%original)[protein][frac]
+                        '%.04f' % getattr(self, 'pprofs%sL'%original)[protein][frac],
+                        '%.04f' % getattr(self, 'pprofs%sU'%original)[protein][frac]
                     ]))
     
     def ms2identities_summary(self, string = False):
