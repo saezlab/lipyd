@@ -1757,6 +1757,7 @@ class LTP(object):
                 'LMSDFDownload28Jun15FinalAll.sdf',
             'pfragmentsfile': 'lipid_fragments_positive_mode_v5.txt',
             'nfragmentsfile': 'lipid_fragments_negative_mode_v7.txt',
+            'pptable_file': 'protein_profiles.txt',
             'featurescache': 'features.pickle',
             'pprofcache': 'pprofiles_raw.pickle',
             'abscache': 'absorbances.pickle',
@@ -1773,6 +1774,7 @@ class LTP(object):
             },
             'fr_offsets': [0.015, 0.045],
             'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
+            'basefrac': 'a5',
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.02,
             'std_tolerance': 0.02,
@@ -1841,7 +1843,7 @@ class LTP(object):
             'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
-            'abscache']
+            'abscache', 'pptable_file']
         
         for attr, val in self.defaults.iteritems():
             if attr in kwargs:
@@ -2717,7 +2719,7 @@ class LTP(object):
     def _pp(self, offset = 0.0, label = '', cache = True,
         correct_GLTPD1 = True, GLTPD_correction = 'eq'):
         '''
-        For each protein, for each fraction, calculates the mean of 
+        For each protein, for each fraction, calculates the mean of
         absorptions of all the measurements belonging to one fraction.
         '''
         cachefile = '%s%s.pickle' % (self.pprofcache.split('.')[0], label)
@@ -2782,9 +2784,9 @@ class LTP(object):
     
     def protein_profile_correction(self, propname):
         for ltpname, prof in getattr(self, propname).iteritems():
-            a5 = prof['a5']
+            basefrac = prof[self.basefrac]
             for frac in self.fracs:
-                prof[frac] -= a5
+                prof[frac] -= basefrac
             cmin = min(map(lambda fr: prof[fr], self.fracs))
             for frac in self.fracs:
                 prof[frac] -= cmin
@@ -2803,8 +2805,7 @@ class LTP(object):
                 'please set `pp_zeroed` to False to override.\n')
             sys.stdout.flush()
             return None
-        for offset in [0.0] + sself.fr_offsets:
-            label = '' if offset == 0.0 else '%u' % int(offset * 1000)
+        for offset, label in zip([0.0] + sself.fr_offsets, ['', 'L', 'U']):
             propname = 'pprofs%s' % label
             self.protein_profile_correction(propname)
             setattr(self, 'pprofs_original%s' % label,
@@ -2835,14 +2836,14 @@ class LTP(object):
                     key = lambda (fr, q): q,
                     reverse = True
                 )
-        self.fracs_order15 = {}
-        self.fracs_order45 = {}
-        for protein in self.pprofs15.keys():
+        self.fracs_orderL = {}
+        self.fracs_orderU = {}
+        for protein in self.pprofsL.keys():
             with_protein = self.protein_containing_fractions(protein)
-            self.fracs_order15[protein] = \
-                order(protein, with_protein, self.pprofs15)
-            self.fracs_order45[protein] = \
-                order(protein, with_protein, self.pprofs45)
+            self.fracs_orderL[protein] = \
+                order(protein, with_protein, self.pprofsL)
+            self.fracs_orderU[protein] = \
+                order(protein, with_protein, self.pprofsU)
     
     def primary_fractions(self):
         self.fractions = dict(
@@ -2853,12 +2854,12 @@ class LTP(object):
             )
         )
         for protein, d in self.fractions.iteritems():
-            d['prim'].add(self.fracs_order15[protein][0][0])
-            d['prim'].add(self.fracs_order45[protein][0][0])
-            for fr, c in self.fracs_order15[protein]:
+            d['prim'].add(self.fracs_orderL[protein][0][0])
+            d['prim'].add(self.fracs_orderU[protein][0][0])
+            for fr, c in self.fracs_orderL[protein]:
                 if fr not in d['prim']:
                     d['sec'].add(fr)
-            for fr, c in self.fracs_order45[protein]:
+            for fr, c in self.fracs_orderU[protein]:
                 if fr not in d['prim']:
                     d['sec'].add(fr)
     
@@ -2875,15 +2876,15 @@ class LTP(object):
         for protein, sample in self.samples_upper.iteritems():
             ratios = {}
             ref = None
-            p15 = self.pprofs15[protein]
-            p45 = self.pprofs45[protein]
+            pprofL = self.pprofsL[protein]
+            pprofU = self.pprofsU[protein]
             for i, frac in enumerate(self.fracs):
                 if sample[i + 1] == 1:
                     if ref is None:
                         ref = frac
                     else:
-                        ratio1 = p15[ref] / p15[frac]
-                        ratio2 = p45[ref] / p45[frac]
+                        ratio1 = pprofL[ref] / pprofL[frac]
+                        ratio2 = pprofU[ref] / pprofU[frac]
                         ratios[(ref, frac)] = tuple(sorted([ratio1, ratio2]))
             self.ppratios[protein] = ratios
     
@@ -6779,11 +6780,11 @@ class LTP(object):
             pdfinf['ModDate'] = datetime.datetime.today()
 
     def kmeans(self, valids, pprofs, samples):
-        frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
-        prg = progress.Progress(len(valids) * 2, 
+        cfracs = ['c0'] + self.fracs
+        prg = progress.Progress(len(valids) * 2,
             'Calculating k-means', 1, percent = False)
         for ltp, d in valids.iteritems():
-            ppr = np.array([pprofs[ltp.upper()][frs[i]] \
+            ppr = np.array([pprofs[ltp.upper()][cfracs[i]] \
                 for i, fr in enumerate(samples[ltp]) if fr == 1 and i != 0])
             ppr = norm_profile(ppr).astype(np.float64)
             for pn, tbl in d.iteritems():
@@ -6884,7 +6885,7 @@ class LTP(object):
                     except TypeError:
                         print protein, mode
 
-    def count_threshold_filter(self, valids, score, threshold, count = 10,
+    def count_threshold_filter(self, score, threshold, count = 10,
         threshold_type = 'fix', asc = True):
         '''
         Builds a boolean array whether the values of a score fall below
@@ -6901,8 +6902,8 @@ class LTP(object):
             threshold
         count: the absolute maximum number of selected instances
         '''
-        sort_alll(valids, score, asc = True)
-        for ltp, d in valids.iteritems():
+        sort_alll(self.valids, score, asc = True)
+        for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 limScore = np.nanmin(tbl[score]) \
                     if asc and threshold_type =='relative' or \
@@ -6933,7 +6934,7 @@ class LTP(object):
                         boolArray.append(True)
                 tbl['bool_%s'%score] = np.array(boolArray)
 
-    def scores_plot(self, valids, score = 'env', asc = True, 
+    def scores_plot(self, score = 'env', asc = True, 
         score_name = 'Euclidean distance', pdfname = None, singles = None,
         hlines = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0],
         derivates = True):
@@ -6952,16 +6953,16 @@ class LTP(object):
             ltpname = ltps[i]
             for pn in ['pos', 'neg']:
                 col = '#CC0000' if pn == 'pos' else '#0000CC'
-                scoreMin = np.nanmin(valids[ltpname][pn][score]) if asc \
-                    else np.nanmax(valids[ltpname][pn][score])
-                ax.plot(np.arange(len(valids[ltpname][pn][score])), 
-                    valids[ltpname][pn][score], color = col,
+                scoreMin = np.nanmin(self.valids[ltpname][pn][score]) if asc \
+                    else np.nanmax(self.valids[ltpname][pn][score])
+                ax.plot(np.arange(len(self.valids[ltpname][pn][score])),
+                    self.valids[ltpname][pn][score], color = col,
                     alpha = 0.7, ls = '-',
                     linewidth = 0.3)
                 if derivates:
-                    xd = np.arange(1, len(valids[ltpname][pn][score]))
-                    yd = np.array([(valids[ltpname][pn][score][j] - \
-                            valids[ltpname][pn][score][j-1]) for j in xd])
+                    xd = np.arange(1, len(self.valids[ltpname][pn][score]))
+                    yd = np.array([(self.valids[ltpname][pn][score][j] - \
+                            self.valids[ltpname][pn][score][j-1]) for j in xd])
                     yd = yd / np.nanmax(yd)
                     if not asc:
                         yd = -1 * yd
@@ -6971,7 +6972,7 @@ class LTP(object):
                 _ylim = ax.get_ylim()
                 plt.setp(ax.xaxis.get_majorticklabels(), rotation = 90)
                 best_ones = [j for j, b in \
-                    enumerate(valids[ltpname][pn][bool_score]) if b]
+                    enumerate(self.valids[ltpname][pn][bool_score]) if b]
                 xbreak = np.nanmax(best_ones) if len(best_ones) > 0 else 0.0
                 ybreak = valids[ltpname][pn][score][int(xbreak)]
                 ax.plot([xbreak], [ybreak], marker = 'o', markersize = 2.0,
@@ -7009,7 +7010,7 @@ class LTP(object):
         plt.close()
 
     def fractions_barplot(self, features = False,
-        valids = None, highlight = False, highlight2 = False,
+        highlight = False, highlight2 = False,
         all_features = True, pdfname = None):
         if pdfname is None:
             pdfname = 'pp%s.pdf' % \
@@ -7090,7 +7091,7 @@ class LTP(object):
         plt.close()
     
     def fractions_barplot2(self, features = False,
-        valids = None, highlight = False, highlight2 = False,
+        highlight = False, highlight2 = False,
         all_features = True, pdfname = None):
         if pdfname is None:
             pdfname = 'pp%s3.pdf' % \
@@ -7101,14 +7102,13 @@ class LTP(object):
         ltps = sorted(self.samples_upper.keys())
         prg = progress.Progress(len(ltps), 'Plotting profiles', 1,
             percent = False)
-        offsets = [0.0] + self.fr_offsets
         width = 0.3
         for i in xrange(len(ltps)):
             prg.step()
             ax = axs[i / 8, i % 8]
             ltpname = ltps[i].upper()
-            for w, offset in enumerate(offsets):
-                label = '' if offset == 0.0 else '%u' % int(offset * 1000)
+            for (w, offset), label in \
+                zip(enumerate([0.0] + self.froffsets), ['', 'L', 'U']):
                 ppr = np.array([getattr(self, 'pprofs%s' % label)\
                     [ltpname][fr] for fr in self.fracs])
                 ppr_o = np.array([getattr(self, 'pprofs_original%s' % label)\
@@ -9500,10 +9500,10 @@ class LTP(object):
                         '%.04f' % prs[1]
                     ]))
     
-    def pprofs_table(self, fname = 'pp.txt', original = True):
+    def pprofs_table(self, original = True):
         original = '_original' if original else ''
         renondigit = re.compile(r'[^\d]+')
-        with open(fname, 'w') as f:
+        with open(self.pptable_file, 'w') as f:
             f.write('%s\n' % '\t'.join([
                 'Protein',
                 'Fraction',
