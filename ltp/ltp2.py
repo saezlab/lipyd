@@ -74,11 +74,12 @@ warnings.filterwarnings('error')
 warnings.filterwarnings('default')
 
 class MolWeight(object):
+    '''
     
-    #
-    # Thanks for
-    # https://github.com/bsimas/molecular-weight/blob/master/chemweight.py
-    #
+    Thanks for
+    https://github.com/bsimas/molecular-weight/blob/master/chemweight.py
+    
+    '''
     
     def __init__(self, formula = None, charge = 0, isotope = 0, **kwargs):
         '''
@@ -239,9 +240,10 @@ class FattyFragment(MolWeight, AdductCalculator):
             ';'.join(self.hg)]
 
 class LysoPEAlkenyl(FattyFragment):
-    
-    # from massbank.jp:
-    # [lyso PE(alkenyl-18:0,-)]- 464.3140997565 -417 C23H47NO6P-
+    '''
+    from massbank.jp:
+    [lyso PE(alkenyl-18:0,-)]- 464.3140997565 -417 C23H47NO6P-
+    '''
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -265,9 +267,10 @@ class LysoPEAlkenyl(FattyFragment):
         )
 
 class LysoPE(FattyFragment):
-    
-    # from massbank.jp:
-    # [lyso PE(18:0,-)]- 480.3090143786 -476 C23H47NO7P-
+    '''
+    from massbank.jp:
+    [lyso PE(18:0,-)]- 480.3090143786 -476 C23H47NO7P-
+    '''
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -314,9 +317,10 @@ class LysoPEAlkyl(FattyFragment):
         )
 
 class LysoPCAlkenyl(FattyFragment):
-    
-    # from massbank.jp:
-    # [lyso PC(alkenyl-18:0,-)]- 492.3453998849 -436 C25H51NO6P-
+    '''
+    from massbank.jp:
+    [lyso PC(alkenyl-18:0,-)]- 492.3453998849 -436 C25H51NO6P-
+    '''
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -340,9 +344,10 @@ class LysoPCAlkenyl(FattyFragment):
         )
 
 class LysoPCAlkyl(FattyFragment):
-    
-    # from massbank.jp:
-    # [lyso PC(alkyl-18:0,-)]- 494.3610499491 -143 C25H53NO6P-
+    '''
+    from massbank.jp:
+    [lyso PC(alkyl-18:0,-)]- 494.3610499491 -143 C25H53NO6P-
+    '''
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -392,9 +397,10 @@ class LysoPC(FattyFragment):
         )
 
 class LysoPS(FattyFragment):
-    
-    # from massbank.jp:
-    # [lyso PS(18:0,-)]- 437.2668152129 -358 C21H42O7P-
+    '''
+    from massbank.jp:
+    [lyso PS(18:0,-)]- 437.2668152129 -358 C21H42O7P-
+    '''
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -461,9 +467,10 @@ class LysoPSAlkyl(FattyFragment):
         )
 
 class LysoPI(FattyFragment):
-    
-    # from massbank:
-    # [lyso PI(-,18:0)]- 599.3196386444 -432 C27H52O12P-
+    '''
+    from massbank:
+    [lyso PI(-,18:0)]- 599.3196386444 -432 C27H52O12P-
+    '''
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -486,11 +493,12 @@ class LysoPI(FattyFragment):
         )
 
 class LysoPIAlkyl(FattyFragment):
-    
-    # from massbank.jp:
-    # [lyso PI(alkyl-16:1,-)-H2O]- 537.2828592076 -228 C25H46O10P-
-    # from this, derived 18:0-:
-    # [lyso PI(alkyl-18:0,-)]- 585.3403740858 -228 C27H54O11P-
+    '''
+    from massbank.jp:
+    [lyso PI(alkyl-16:1,-)-H2O]- 537.2828592076 -228 C25H46O10P-
+    from this, derived 18:0-:
+    [lyso PI(alkyl-18:0,-)]- 585.3403740858 -228 C27H54O11P-
+    '''
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -513,9 +521,10 @@ class LysoPIAlkyl(FattyFragment):
         )
 
 class LysoPG(FattyFragment):
-    
-    # from massbank:
-    # [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
+    '''
+    from massbank:
+    [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
+    '''
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -537,11 +546,38 @@ class LysoPG(FattyFragment):
             hg = ['PG']
         )
 
-class LysoPA(FattyFragment):
+class LysoPGAlkyl(FattyFragment):
+    '''
+    from massbank:
+    [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
+    '''
     
-    # from Characterization of Phospholipid 
-    # Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
-    # [lyso PA(18:1,-)]- 435.2 C21H40O7P-
+    def __init__(self, c, unsat = 0,
+        minus = [], plus = [], isotope = 0,
+        charge = -1):
+        self.counts = {
+            'C': 6,
+            'H': 14,
+            'O': 6,
+            'P': 1
+        }
+        super(LysoPGAlkyl, self).__init__(
+            charge = charge,
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus,
+            isotope = isotope,
+            name = 'Lyso-PG-alkyl',
+            hg = ['PG']
+        )
+
+class LysoPA(FattyFragment):
+    '''
+    from Characterization of Phospholipid 
+    Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
+    [lyso PA(18:1,-)]- 435.2 C21H40O7P-
+    '''
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -563,6 +599,59 @@ class LysoPA(FattyFragment):
             hg = ['PA']
         )
 
+class LysoPAAlkyl(FattyFragment):
+    '''
+    from Characterization of Phospholipid 
+    Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
+    [lyso PA(18:1,-)]- 435.2 C21H40O7P-
+    '''
+    
+    def __init__(self, c, unsat = 0,
+        minus = [], plus = [], isotope = 0,
+        charge = -1):
+        self.counts = {
+            'C': 3,
+            'H': 8,
+            'O': 4,
+            'P': 1
+        }
+        super(LysoPAAlkyl, self).__init__(
+            charge = charge,
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus,
+            isotope = isotope,
+            name = 'Lyso-PA-alkyl',
+            hg = ['PA']
+        )
+
+class CerFA(FattyFragment):
+    '''
+    https://metlin.scripps.edu/metabo_info.php?molid=6214
+    [Cer-FA(C8:0)]- 168.1382904 C8H14O1N1-
+    '''
+    
+    def __init__(self, c, unsat = 0,
+        minus = [], plus = [], isotope = 0,
+        charge = -1):
+        self.counts = {
+            'C': 2,
+            'H': 2,
+            'O': -1,
+            'N': 1
+        }
+        super(CerFA, self).__init__(
+            charge = charge,
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus,
+            isotope = isotope,
+            name = 'Cer-FA',
+            hg = ['Cer']
+        )
+
 class FAminusH(FattyFragment):
     
     def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
@@ -570,8 +659,9 @@ class FAminusH(FattyFragment):
             minus = ['H'], isotope = isotope, name = 'FA')
 
 class FAAlkylminusH(FattyFragment):
-    
-    # 18:0 = 267.2693393
+    '''
+    18:0 = 267.2693393
+    '''
     
     def __init__(self, c, unsat = 1, isotope = 0, **kwargs):
         self.counts = {
@@ -581,11 +671,29 @@ class FAAlkylminusH(FattyFragment):
         super(FAAlkylminusH, self).__init__(charge = -1, c = c, unsat = unsat,
             minus = ['H'], isotope = isotope, name = 'FA-alkyl')
 
+class NLFA(FattyFragment):
+    
+    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
+        super(NLFA, self).__init__(charge = 0, c = c, unsat = unsat,
+            isotope = isotope, name = 'NL FA')
+
 class NLFAminusH2O(FattyFragment):
     
     def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
         super(NLFAminusH2O, self).__init__(charge = 0, c = c, unsat = unsat,
-            minus = ['H2O'], isotope = isotope, name = 'NL FA-H2O')
+            minus = ['H2O'], isotope = isotope, name = 'NL FA')
+
+class NLFAplusOH(FattyFragment):
+    
+    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
+        super(NLFAplusOH, self).__init__(charge = 0, c = c, unsat = unsat,
+            plus = ['OH'], isotope = isotope, name = 'NL FA')
+
+class FAminusO(FattyFragment):
+    
+    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
+        super(FAminusO, self).__init__(charge = 1, c = c, unsat = unsat,
+            minus = ['O', 'H'], isotope = isotope, name = 'FA')
 
 class FAplusGlycerol(FattyFragment):
     
@@ -819,6 +927,7 @@ class Feature(object):
                 self.scans.iteritems()
             )
         )
+        self.sort_scans()
         self.select_best_scan()
         self._scans = dict(
             map(
@@ -881,15 +990,40 @@ class Feature(object):
         for sc in self._scans.values():
             sc.print_scan()
     
-    def select_best_scan(self):
-        min_deltart = 999.0
-        self.best_scan = None
+    def sort_scans(self):
+        '''
+        Groups the scans in 3 groups: highest consists of those from the
+        fractions with the highest protein level (there might be more than
+        one the highest, because the fraction offset limits); the secondary
+        contains scans from other protein containing fractions; while the
+        other contains the scans from non protein containing fractions.
+        Within the groups the scans are sorted from lowest to highest
+        deltaRT.
+        '''
+        self.highest = []
+        self.secondary = []
+        self.other = []
+        with_protein = self.main.protein_containing_fractions(self.protein)
         for scan_num, fr in self.scans.keys():
-            fr_name = 'a%u' % fr if fr != 13 else 'b1'
-            if fr_name in self.main.fractions[self.protein]['prim']:
-                if abs(self.deltart[(scan_num, fr)]) < min_deltart:
-                    self.best_scan = (scan_num, fr)
-                    min_deltart = abs(self.deltart[(scan_num, fr)])
+            fr_name = 'a%u' % fr if fr != 13 and fr != 1 else 'b1'
+            if fr_name in with_protein:
+                if fr_name == self.main.fracs_orderL[self.protein][0][0] or \
+                    fr_name == self.main.fracs_orderU[self.protein][0][0]:
+                    self.highest.append((scan_num, fr))
+                else:
+                    self.secondary.append((scan_num, fr))
+            else:
+                self.other.append((scan_num, fr))
+        self.highest = sorted(self.highest, key = lambda sc: abs(self._scans[sc].deltart))
+        self.secondary = sorted(self.secondary, key = lambda sc: abs(self._scans[sc].deltart))
+        self.other = sorted(self.other, key = lambda sc: abs(self._scans[sc].deltart))
+    
+    def select_best_scan(self):
+        self.best_scan = \
+            self.highest[0] if len(self.highest) else \
+            self.secondary[0] if len(self.secondary) else \
+            self.other[0] if len(self.other) else \
+            None
     
     def print_db_species(self):
         return ', '.join(
@@ -1756,8 +1890,8 @@ class LTP(object):
                 'LMSDFDownload28Jun15.tar.gz',
             'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
                 'LMSDFDownload28Jun15FinalAll.sdf',
-            'pfragmentsfile': 'lipid_fragments_positive_mode_v5.txt',
-            'nfragmentsfile': 'lipid_fragments_negative_mode_v7.txt',
+            'pfragmentsfile': 'lipid_fragments_positive_mode_v5d.txt',
+            'nfragmentsfile': 'lipid_fragments_negative_mode_v7d.txt',
             'pptable_file': 'protein_profiles.txt',
             'featurescache': 'features.pickle',
             'pprofcache': 'pprofiles_raw.pickle',
@@ -1774,7 +1908,7 @@ class LTP(object):
                 'neg': 30000.0,
                 'pos': 150000.0
             },
-            'fr_offsets': [0.015, 0.045],
+            'fr_offsets': [0.010, 0.045],
             'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
             'fracsU': ['A09', 'A10', 'A11', 'A12', 'B01'],
             'basefrac': 'a5',
@@ -2808,7 +2942,7 @@ class LTP(object):
                 'please set `pp_zeroed` to False to override.\n')
             sys.stdout.flush()
             return None
-        for offset, label in zip([0.0] + sself.fr_offsets, ['', 'L', 'U']):
+        for offset, label in zip([0.0] + self.fr_offsets, ['', 'L', 'U']):
             propname = 'pprofs%s' % label
             self.protein_profile_correction(propname)
             setattr(self, 'pprofs_original%s' % label,
@@ -2929,9 +3063,9 @@ class LTP(object):
             ref = None
             highest = None
             second = None
-            for i, frac1 in enumerate(fracs):
+            for i, frac1 in enumerate(self.fracs):
                 if sample[i + 1] == 1:
-                    for j, frac2 in enumerate(fracs):
+                    for j, frac2 in enumerate(self.fracs):
                         if sample[j + 1] == 1 and i != j:
                             ratio1 = get_ratio(protein, frac1, frac2, 0)
                             ratio2 = get_ratio(protein, frac1, frac2, 1)
@@ -3175,8 +3309,8 @@ class LTP(object):
                     seq = l.split(mode)[-1] if mode is not None else None
                     if seq is not None and len(seq) and seq[0] == '_':
                         seq = seq[1:]
-                    seq = 'A09' if seq == 'A9'
-                    seq = 'B01' if seq == 'B1'
+                    if seq == 'A9': seq = 'A09'
+                    if seq == 'B1': seq = 'B01'
                     l = l.split('_')
                     date = l[0]
                     if 'extracted' in l:
@@ -3382,6 +3516,8 @@ class LTP(object):
         self.drifts2 = drifts2
 
     def drifts2ltps(self, write_table = 'LTPs_drifts.tab'):
+        sys.stdout.write('\t:: Setting recalibration data via cache, from previously processed MzMLs\n')
+        sys.stdout.flush()
         # before doing anything, fix some inconsistencies:
         stard10fractions = ['A09', 'A10', 'A11', 'A12']
         for i, fr in zip(
@@ -3488,12 +3624,14 @@ class LTP(object):
         self.ltps_drifts =  ltps_drifts
     
     def drifts_from_marco(self):
+        sys.stdout.write('\t:: Reading recalibration data from Marco`s table\n')
+        sys.stdout.flush()
         self.ltps_drifts = {}
         with open(self.recalfile, 'r') as f:
             for _ in xrange(4):
                 null = f.readline()
             for l in f:
-                l.strip().split(',')
+                l = l.strip().split(',')
                 self.ltps_drifts[l[0]] = {'pos': {}, 'neg': {}}
                 neg_ppm = self.to_float(l[1])
                 pos_ppm = self.to_float(l[2])
@@ -3905,7 +4043,8 @@ class LTP(object):
         and controls, and other values.
         '''
         data = dict((ltp, {}) for ltp in self.datafiles.keys())
-        prg = progress.Progress(len(self.datafiles) * 2, 'Reading files', 1)
+        prg = progress.Progress(len(self.datafiles) * 2,
+                                'Reading features (MS1 data)', 1)
         for ltp, pos_neg in self.datafiles.iteritems():
             for p, fname in pos_neg.iteritems():
                 prg.step()
@@ -5155,11 +5294,12 @@ class LTP(object):
             )
         if extra_fragments:
             if 'negative' in fname:
+                lst += self.auto_fragment_list(FAminusH, -1, name = 'FA')
                 # fatty acid -CO2- fragments:
                 lst += self.auto_fragment_list(
-                    FattyFragment, -1, minus = ['H', 'CO2'], name = 'FA')
+                    FattyFragment, -1, minus = ['CO2', 'H'], name = 'FA')
                 lst += self.auto_fragment_list(FAAlkylminusH, -1)
-                for hg in ('PE', 'PC', 'PS', 'PI'):
+                for hg in ('PE', 'PC', 'PS', 'PI', 'PA', 'PG'):
                     lst += self.auto_fragment_list(
                         globals()['Lyso%s' % hg], -1
                     )
@@ -5190,12 +5330,12 @@ class LTP(object):
                         lst += self.auto_fragment_list(
                             LysoPC, -1, minus = ['CH3', 'H2O']
                         )
-                lst += self.auto_fragment_list(LysoPG, -1)
-                lst += self.auto_fragment_list(LysoPG, -1, minus = ['H2O'])
-                lst += self.auto_fragment_list(LysoPA, -1, minus = ['H2O'])
+                lst += self.auto_fragment_list(CerFA, -1)
             if 'positive' in fname:
                 lst += self.auto_fragment_list(NLFAminusH2O, 0)
-                lst += self.auto_fragment_list(FattyFragment, 0, name = 'FA')
+                lst += self.auto_fragment_list(NLFA, 0)
+                lst += self.auto_fragment_list(NLFAplusOH, 0)
+                lst += self.auto_fragment_list(FAminusO, 1)
                 lst += self.auto_fragment_list(FAplusGlycerol, 1)
                 lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O'])
                 lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O', 'H2O'])
@@ -5208,7 +5348,8 @@ class LTP(object):
             try:
                 MetabMass, MetabType, MetabCharge = Line[:3]
             except:
-                print Line
+                sys.stdout.write('\tWrong formatted fragment line:\n\t  %s\n' % str(Line))
+                sys.stdout.flush()
             hgm = rehg.match(Line[1])
             if len(Line) == 4 or hgm:
                 Hgroupfrags[MetabType] = set([])
@@ -9782,6 +9923,10 @@ class LTP(object):
             'Fragments.matching.MS2.Ion.2.Mass..Observed.Mass.',
             'MS2.Ion.3.Mass.Intensity',
             'Fragments.matching.MS2.Ion.3.Mass..Observed.Mass.',
+            'MS2.Ion.4.Mass.Intensity',
+            'Fragments.matching.MS2.Ion.4.Mass..Observed.Mass.',
+            'MS2.Ion.5.Mass.Intensity',
+            'Fragments.matching.MS2.Ion.5.Mass..Observed.Mass.',
             'Group.Profile..Ratio.',
             'z',
             'MS2.file',
@@ -9790,8 +9935,8 @@ class LTP(object):
             'swisslipid_ID',
             'check_protein_peak_ratio',
             'intensity_peak_ratio',
-            'protein_peak_ratio_.015',
-            'protein_peak_ratio_.045',
+            'protein_peak_ratio_%.03f' % self.fr_offsets[0],
+            'protein_peak_ratio_%.03f' % self.fr_offsets[1],
             'ratio_of_fractions',
             'peak_ratio_score',
             'peaksize',
@@ -9855,6 +10000,10 @@ class LTP(object):
                 if ms2_best is not None else ('', '')
             ms2i3, ms2f3 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(3) \
                 if ms2_best is not None else ('', '')
+            ms2i4, ms2f4 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(4) \
+                if ms2_best is not None else ('', '')
+            ms2i5, ms2f5 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(5) \
+                if ms2_best is not None else ('', '')
             
             ms2_file = '' if ms2_best is None else \
                 tbl['ms2f'][oi]._scans[ms2_best].ms2_file
@@ -9905,6 +10054,10 @@ class LTP(object):
                 (ms2f2, ms2_style),
                 (ms2i3, ms2_style),
                 (ms2f3, ms2_style),
+                (ms2i4, ms2_style),
+                (ms2f4, ms2_style),
+                (ms2i5, ms2_style),
+                (ms2f5, ms2_style),
                 '', # TODO: what is group profile ratio?
                 tbl['z'][i],
                 (ms2_file.split('/')[-1], ms2_style),
