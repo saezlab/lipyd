@@ -1,0 +1,29 @@
+58.065126	PC/SM choline (58.0651)	[M+H]+	PC
+60.080776	PC/SM choline (60.0808)	[M+H]+	PC
+86.096425	PC/SM choline (86.0964)	[M+H]+	PC;SM
+115.003447	PA headgroup+NH3 (NL 115.0034)	NL positive mode	PA
+141.019097	PE headgroup (NL 141.0191)	NL positive mode	PE
+104.106990	PC/SM choline (104.107)	[M+H]+	PC
+124.999822	PC/SM choline (125.000)	[M+H]+	PC
+185.008927	PS headgroup (NL 185.0089)	NL positive mode	PS
+183.066045	PC/SM headgroup (cholin+P) NL	NL positive mode	PC;SM
+184.073323	PC/SM headgroup (cholin+phosphate) (184.0733)	[M+H]+	PC;SM
+189.040227	PG headgroup+NH3 (NL 189.0402)	NL positive mode	PG;BMP
+259.021894	PI headgroup (NL 259.0219)	NL positive mode	PI
+277.056272	PI headgroup+NH3 NL (277.0563)	NL positive mode	PI
+369.351576	CE headgroup (369.3516)	[M+H]+	CE
+109.101177	C8H13fragment (C8:1)	[M]+
+123.116827	C9H15fragment (C9:1)	[M]+
+81.0698768	C6H9fragment (C6:1)	[M]+
+97.1011768	C7H13fragment (C7:1)	[M]+
+95.0855268	C7H11fragment (C7:1)	[M]+
+67.0542266	C5H7fragment (C5:1)	[M]+
+55.0542266	C4H7fragment (C4:0)	[M]+
+57.0698767	C4H9fragemnt (C4:0)	[M]+
+43.0542266	C3H7fragment (C3:0)	[M]+
+41.0385766	C3H5fragment (C3:0)	[M]+
+89.0597060	C4H8O2	[M+H]+
+133.085921	C6H12O3	[M+H]+
+71.0855268	C5H11	[M]+
+90.0675310	C4H10O2	[M]+
+85.1011768	C6H12	[M+H]+

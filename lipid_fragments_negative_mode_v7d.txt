@@ -1,0 +1,19 @@
+60.0211300	SM CH3+COOH (NL 60.0211)	NL negative mode	SM
+78.95905658	Cer1P/PIP/PL metaphosphate (78.9591)	[M-H]-	Cer1P;PI;PC;PE;PS;PG
+87.03202840	PS Ser-H2O (87.0320)	NL negative mode	PS
+96.96962158	Cer1P/PI phosphate (96.9696)	[M-H]-	Cer1P;PI
+140.0118206	PE headgroup (140.0118)	[M-H]-	PE
+152.9958366	PG/PA/PS/PI partial headgroup (152.9958)	[M-H]-	PG;PA;PS;PI
+168.0431206	PC/SM PO4+choline-CH3 (168.0431)	[M-H]-	PC;SM
+171.0064016	PG headgroup (171.0064)	[M-H]-	PG;BMP
+178.0274684	PE headgroup (178.0275)	[M-H]-	PE
+196.0380330	PE headgroup (196.0380)	[M-H]-	PE
+241.0118779	PI [InsP-H2O]- (241.01)	[M-H]-	PI
+259.0224425	PI [InsP-H]- (259.02)	[M-H]-	PI
+223.0013132	PI [InsP-2H2O]- (223.00)	[M-H]-	PI
+227.0326133	PG [G-P-G-H20]- (227.0326)	[M-H]-	PG;BMP
+297.0380926	PI headgroup (297.04)	[M-H]-	PI
+112.9856286	(COOH)2Na from cluster (112.98)	[M-H]-			
+67.98797358	NL COOHNa-cluster (67.99)	NL negative mode			
+135.9759472	NL 2xCOOHNa-cluster (135.98)	NL negative mode			
+203.9639207	NL 3xCOOHNa-cluster (203.96)	NL negative mode
