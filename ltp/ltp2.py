@@ -1278,13 +1278,15 @@ class MS2Scan(object):
             rows
         )
     
-    def get_by_rank(self, rank = 1):
+    def get_by_rank(self, rank = 1, min_mz = 0.0):
         this_rank = 0
         return_next = False
         prev_mz = 0.0
         intensity = ''
         ids = []
         for r in self.scan:
+            if r[1] < min_mz:
+                continue
             if abs(r[1] - prev_mz) > 0.0001:
                 prev_mz = r[1]
                 this_rank += 1
@@ -9972,6 +9974,8 @@ class LTP(object):
                     )
                 )
         
+        min_ms2_mz = 70.0 if mode == 'neg' else 170.0
+        
         for i, oi in enumerate(tbl['i']):
             
             ms2_best = None if oi not in tbl['ms2f'] or \
@@ -9994,15 +9998,20 @@ class LTP(object):
             ms2_mz = 'NA' if ms2_best is None else \
                 tbl['ms2f'][oi].scans[ms2_best][0,0]
             
-            ms2i1, ms2f1 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(1) \
+            ms2i1, ms2f1 = \
+                tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(1, min_ms2_mz) \
                 if ms2_best is not None else ('', '')
-            ms2i2, ms2f2 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(2) \
+            ms2i2, ms2f2 = \
+                tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(2, min_ms2_mz) \
                 if ms2_best is not None else ('', '')
-            ms2i3, ms2f3 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(3) \
+            ms2i3, ms2f3 = \
+                tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(3, min_ms2_mz) \
                 if ms2_best is not None else ('', '')
-            ms2i4, ms2f4 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(4) \
+            ms2i4, ms2f4 = \
+                tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(4, min_ms2_mz) \
                 if ms2_best is not None else ('', '')
-            ms2i5, ms2f5 = tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(5) \
+            ms2i5, ms2f5 = \
+                tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(5, min_ms2_mz) \
                 if ms2_best is not None else ('', '')
             
             ms2_file = '' if ms2_best is None else \
