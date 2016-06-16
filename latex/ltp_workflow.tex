@@ -36,7 +36,7 @@
     pdfkeywords={lipid, human, lipid transfer protein, LTP, mass spectrometry, MS1, MS2, AP-MS},
     pdfcreator={XeTeX}}
 
-\title{Mass spectrometry analysis of lipid binding properties of human lipid transfer proteins}
+\title{Data analysis of MS screening on the lipid binding properties of human lipid transfer proteins}
 \author{Dénes Türei}
 \date{\today}
 
@@ -121,51 +121,56 @@ minus 1.5\fontdimen4\font
         \subsection{MS1 intensities}
             In subdirectories named \texttt{<LTP name>\_[neg|pos][ update]?} under \texttt{/ga\-vin/ pro\-jects/hu\-man\_LTPS} and in \texttt{2015\_06\_Popeye} under the former, we collected all files named \texttt{fea\-tu\-res/*LA\-BEL\-FREE*/[fea\-ture|<LTP na\-me>].csv}, except those of the controls (having \textit{'ctrl'} instead of the LTP name in the directory names).\par
             
-            \fknbox{ltp.get\_filenames()}
+            \fknbox{ltp.LTP.get\_filenames()}
             
             From the column headers, sample IDs \textit{(a09, a10, a11, a12, b01)} and variable types \textit{(\nicefrac{m}{z}, RT mean, Normalized Area)} were determined. Quality values were read then from the \nth{2} col, \nicefrac{m}{z} values from the \nth{4}, retention time ranges from the \nth{5} and charges from the \nth{6} column. The order of the samples is indifferent, the order of the variables should be always the same, starting from the \nth{7} column. Now we read in only the \textit{normalized areas,} because \textit{retention times} should be in the range specified in \nth{5} column, and the \nicefrac{m}{z}'s should be the same across all the fractions. Note: some typos occurring in the headers of certain files have been also corrected.\par
             
-            \fknbox{ltp.read\_data()\\
-                ltp.read\_file\_np()}
+            \fknbox{ltp.LTP.read\_data()\\
+                ltp.LTP.read\_file\_np()}
             
         \subsection{Time of measurements}
             
             Theoretic masses of lipids in the standard we read from \textit{Metabolites.xlsx.} From the same sheet, measured masses of the most abundant ions are read, so we calculated drift values by day.
             
-            \fknbox{ltp.standards\_theoretic\_masses()}
+            \fknbox{ltp.LTP.standards\_theoretic\_masses()}
             
             \todobox{\textbf{TODO:} Read the time of each measurement from a file provided by Marco. Read the features from all measurements of the standard.}
             
         \subsection{LTP containing samples}
             The file \texttt{control\_sample.csv} for each LTP and for each fraction contains 0/1 values telling whether a fraction contains the LTP or not based on SDS pages. This file has been manually compiled by Antonella. Missing values are non-measured fractions (those will have \textit{None} values later in Python, so can be distinguished from zeros).\par
-            \fknbox{ltp.read\_samples()}
+            \fknbox{ltp.LTP.read\_samples()}
         
         \subsection{Fractions boundaries}
             The elution volume boundaries for each fraction are defined in a small \textit{csv} file called \texttt{fractions.csv}. E.g. fraction \textit{a6} is from 0.60 to 0.75$\,$ml, and so on.\par
             
-            \fknbox{ltp.protein\_profiles()}
+            \fknbox{ltp.LTP.protein\_profiles()}
             
         \subsection{UV absorbance values}
             In \texttt{SEC\_profiles} directory, all \textit{xls} files visited and based on the fraction boundaries, all measured absorbance values are looked up for each fraction. The minimum absorbance at each LTP subtracted from every value, because these are often negative, what is nonsense. Then the mean of absorbance values are calculated for each fraction. Hereafter the series of these values for fractions \textit{a9--b1} are referred as \textit{protein profiles,} and saved to the file \texttt{pro\-te\-ins\_by\_frac\-ti\-on.csv} for further use.\par
             
             \fknbox{ltp.protein\_profiles()\\
-                ltp.write\_pptable()}
+                ltp.LTP.write\_pptable()}
             
         \subsection{Known binders}
             One table from the review containing the literature curated binding properties of the LTPs has been saved to \texttt{binding\_properties.csv}, with adding one column containing the lipid class abbreviations used everywhere later across this analysis. After the classification and identification of features, we calculated the enrichment of the known binders among the features classified as binder (Fisher's exact test).\par
             
-            \fknbox{ltp.read\_binding\_properties()}
+            \fknbox{ltp.LTP.read\_binding\_properties()}
             
         \subsection{Exact masses from SwissLipids}
             The whole SwissLipids database was downloaded from \href{http://www.swisslipids.org/php/export.php?action=get&file=lipids.csv}{here}. We read in SwissLipids IDs, names and classification levels with monoisotopic exact masses (\nth{15} column).\par
             
-            \fknbox{ltp.get\_swisslipids\_exact()}
+            \fknbox{ltp.LTP.get\_swisslipids\_exact()}
             
         \subsection{Exact masses from LipidMaps}
             The whole LipidMaps database was downloaded from \href{http://www.lipidmaps.org/resources/downloads/LMSDFDownload28Jun15.tar.gz}{here}. From the extracted file \texttt{LMSDFDownload28Jun15FinalAll.sdf}, LipidMaps IDs, names, synonyms and monoisotopic exact masses have been read in.\par
             
-            \fknbox{ltp.get\_lipidmaps()\\
-                ltp.lipidmaps\_exact()}
+            \fknbox{ltp.LTP.get\_lipidmaps()\\
+                ltp.LTP.lipidmaps\_exact()}
+            
+        \subsection{Additional exact masses}
+            Masses of certain detergent contaminants like Nonidet P-40 we added to the mass lookup array. These are currently set as a list in \texttt{defaults['nonidet\_mzs']}.\par
+            
+            \fknbox{ltp.LTP.add\_nonidet()}
              
         \subsection{Lipid names and most abundant adducts\label{sec:lipname}}
             These data are being read from \texttt{lipid\_names.csv}. This table is from Antonella's thesis, with addition of 2 columns helping the classification of database records.\par
@@ -173,7 +178,7 @@ minus 1.5\fontdimen4\font
             \fknbox{ltp.read\_lipid\_names()}
             
         \subsection{MS2 fragments}
-            The MS2 fragment masses have been annotated by Marco and Antonella based on the MS2 runs of the lipid standard (headgroup fragments), and calculated values of fatty acid fragments (files \texttt{lipid\_fragments\_positive\_mode.txt} and \texttt{lipid\_fragments\_negative\_mode.txt}). An extra column has been added to the lines of the headgroup fragments, listing the lipid classes where the  fragment appears.\par
+            The MS2 fragment masses have been annotated by Marco and Antonella based on the MS2 runs of the lipid standard (headgroup fragments), and calculated values of fatty acid fragments (files \texttt{lipid\_fragments\_positive\_mode\_\{version\}.txt} and \texttt{lipid\_fragments\_negative\_mode\_\{version\}.txt}). An extra column has been added to the lines of the headgroup fragments, listing the lipid classes where the  fragment appears.\par
             
             \fknbox{ltp.read\_metabolite\_lines()}
             
@@ -220,13 +225,14 @@ minus 1.5\fontdimen4\font
             \fknbox{ltp.area\_filter()}
             
         \subsection{Peak size}
-             The maximum intensity of protein containing fractions should be at least 2$\,\times$ higher than the highest value of any other samples (non protein containing fractions, controls).\par
+             The maximum intensity of protein containing fractions should be at least 5$\,\times$ higher than the highest value of any other samples (non protein containing fractions, controls). Features above peak size 2.0 are included in the {LTP.valids} array, because at some lower abundant proteins and lipid species these might be interesting. These can be filtered out later at any output.\par
              
-             \fknbox{ltp.peaksize\_filter()}
+             \fknbox{ltp.LTP.peaksize\_filter()}
              
              \todobox{\textbf{TODO:} Apply higher peak size ratio up to 5.0, depending on the area.}
              
     \section{Similarity of protein profiles and feature intensity profiles}
+        We attempted to find the specific binders by directly comparing the protein UV-absorbance and the MS intensity profiles. These approaches later proved to be not satisfying, as due to the low number of data points and the large noise and variability, they perform either good, bad or random at different proteins.\par
         
         \subsection{Removing non LTP containing mean absorbance values}
             All absorbance values from samples assumed to not contain the LTP have been replaced with zero.\par
@@ -240,51 +246,55 @@ minus 1.5\fontdimen4\font
                 ltp.norm\_profiles()}
             
         \subsection{All intensities vs. protein profile}
-            The distance or similarity between intensity profiles and the protein profile have been computed using the following metrics: Spearman correlation, Pearson rank correlation, Robust Rank Correlation, Goodman-Kruskal's gamma, Kendall's tau and Euclidean distance. We divided the Euclidean distance by the number of values. At the current version these are not used except the last one.\par
+            The distance or similarity between intensity profiles and the protein profile have been computed using the following metrics: Spearman correlation, Pearson rank correlation, Robust Rank Correlation, Goodman-Kruskal's gamma, Kendall's tau and Euclidean distance. We divided the Euclidean distance by the number of values. At the current version these are not used.\par
             
             \fknbox{ltp.profiles\_corrs()\\
-                ltp.roco()\\
-                ltp.euclidean\_dist()\\
-                ltp.euclidean\_dist\_norm()}
+                ltp.LTP.roco()\\
+                ltp.LTP.euclidean\_dist()\\
+                ltp.LTP.euclidean\_dist\_norm()}
             
         \subsection{Calculating Euclidean distances}
             We built an all-to-all distance matrix of all the intensity profiles plus the protein profile, just like the protein profile was one of the intensity profiles.\par
             
             \fknbox{ltp.euclide
-                ltp.distance\_matrix()}
+                ltp.LTP.distance\_matrix()}
             
         \subsection{Clustering features}
             Using the distance matrix, we clustered the features applying Ward's linkage method. To select the cluster of those features most similar to the protein profile, we need to set a threshold. We tested thresholds based on the desired number of clusters and the percentage of the maximum distance. Currently the latter is used.\par
             
-            \fknbox{ltp.features\_clustering()}
+            \fknbox{ltp.LTP.features\_clustering()}
             
             \todobox{\textbf{TODO: }In some cases expected known binders do not cluster together with the protein profile. In addition, the uncertainity of the UV absorbance profiles, and the low number of data points we use for calculating the distance, makes this step the most problematic point of the analysis. To resolve this issue, alternatively we should look at those features clustering together with known binders. Known binders are already known from the literature, this should be complemented with the results of the HPTLC experiments.}
+     
+     \section{UV absorbance and MS intensity ratios}
+         The UV absorbance was measured in the eluted flow of the SEC column, after the outlet was divided into fractions of 150$\,\mathrm{\mu l}$. As a consequence of this setup, the constant distance between the UV measurement and the outlet, and the stochastic size of the hanging droplet at shifting fractions must be taken into account. To 
+         
             
      \section{Comparing positive and negative modes}
          We look for matches between exact masses of positive and negative features. Here we consider the combinations of all possible adducts.\par
          
-         \fknbox{ltp.negative\_positive2()}
+         \fknbox{ltp.LTP.negative\_positive2()}
             
     \section{Lipid database lookup\label{sec:lipdb}}
         For each MS1 \nicefrac{m}{z} the exact masses have been calculated assuming all possible adducts. Those have been matched against the exact masses of all \textit{Species} level entities in the databases. We tried to identify the class for each resulted hit, and dropped those where the assumed adduct was different than the most abundant adduct for the given lipid class, or the lipid class found to not ionize in the given mode. We kept all matching records where we could not identify the lipid class, or we did not know about the ionization and adduct formation characteristics of the lipid class.\par
         
-        \fknbox{ltp.lipid\_lookup\_exact()}
+        \fknbox{ltp.LTP.lipid\_lookup\_exact()}
             
     \section{Headgroup identification}
         \subsection{From MS1 database records}
             We identified lipid classes (headgroups) for all records found matching one \nicefrac{m}{z} by looking up a set of keywords in their names and synonyms. These keywords were manually collected by Denes and read from the file described at \ref{sec:lipname}.\par
             
-            \fknbox{ltp.ms1\_headgroups()}
+            \fknbox{ltp.LTP.ms1\_headgroups()}
             
         \subsection{From MS2 data}
             We identified the headgroups as the intersection of the sets of possible headgroups for all the detected headgroup fragments. If the intersection is empty, then we kept the union of all possible headgroups. If the intersection was of size one, then the identification is unambiguous.\par
             With identification of the fatty acids in MS2, we limited the possible headgroups to those with these fatty acids might give the detected total mass.
             To achieve this, we compared the sum of the carbon count and unsaturated bound count of the fatty acids detected in MS2 with the same numbers extracted from the database records.\par
             
-            \fknbox{ltp.ms2\_headgroups()\\
-                ltp.headgroups\_by\_fattya()\\
-                ltp.identity\_combined()\\
-                ltp.combined\_table()}
+            \fknbox{ltp.LTP.ms2\_headgroups()\\
+                ltp.LTP.headgroups\_by\_fattya()\\
+                ltp.LTP.identity\_combined()\\
+                ltp.LTP.combined\_table()}
             
             \todobox{\textbf{TODO: } Distinguish PG and BMP based on intensities of different fragments.}
             

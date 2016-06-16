@@ -1748,6 +1748,7 @@ class LTP(object):
             'pptablef': 'proteins_by_fraction.csv',
             'lipnamesf': 'lipid_names_v2.csv',
             'bindpropf': 'binding_properties.csv',
+            'recalfile': 'Recalibration_values_LTP.csv',
             'metabsf': 'Metabolites.xlsx',
             'swisslipids_url': 'http://www.swisslipids.org/php/'\
                 'export.php?action=get&file=lipids.csv',
@@ -1767,6 +1768,7 @@ class LTP(object):
             'validscache': 'valids.pickle',
             'ms2log': 'ms2identities.log',
             'swl_levels': ['Species'],
+            'recal_source': 'marco',
             'background_ltps': set(['BNIPL', 'OSBP', 'SEC14L1']),
             'aa_threshold': {
                 'neg': 30000.0,
@@ -1774,6 +1776,7 @@ class LTP(object):
             },
             'fr_offsets': [0.015, 0.045],
             'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
+            'fracsU': ['A09', 'A10', 'A11', 'A12', 'B01'],
             'basefrac': 'a5',
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.02,
@@ -1843,7 +1846,7 @@ class LTP(object):
             'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
-            'abscache', 'pptable_file']
+            'abscache', 'pptable_file', 'recalfile']
         
         for attr, val in self.defaults.iteritems():
             if attr in kwargs:
@@ -3172,6 +3175,8 @@ class LTP(object):
                     seq = l.split(mode)[-1] if mode is not None else None
                     if seq is not None and len(seq) and seq[0] == '_':
                         seq = seq[1:]
+                    seq = 'A09' if seq == 'A9'
+                    seq = 'B01' if seq == 'B1'
                     l = l.split('_')
                     date = l[0]
                     if 'extracted' in l:
@@ -3181,6 +3186,7 @@ class LTP(object):
                             protein = '#STD'
                     elif refrac.match(l[-1]) or refrac.match(l[-2]):
                         protein = l[4]
+                        # fix typo in filename
                         if protein == 'ORP9STARD15':
                             protein = protein[4:]
                     else:
@@ -3193,13 +3199,16 @@ class LTP(object):
         self.seq = result
     
     def recalibration(self):
-        self.standards_filenames()
-        self.read_seq()
-        self.standards_theoretic_masses()
-        self.read_standards()
-        self.drifts_by_standard()
-        self.drifts_by_date()
-        self.drifts2ltps()
+        if self.recal_source == 'marco':
+            self.drifts_from_marco()
+        else:
+            self.standards_filenames()
+            self.read_seq()
+            self.standards_theoretic_masses()
+            self.read_standards()
+            self.drifts_by_standard()
+            self.drifts_by_date()
+            self.drifts2ltps()
         self.recalibrate()
     
     def standards_filenames(self):
@@ -3477,6 +3486,20 @@ class LTP(object):
                 )
             sys.stdout.write('\n\t:: Table written to file %s\n\n'%write_table)
         self.ltps_drifts =  ltps_drifts
+    
+    def drifts_from_marco(self):
+        self.ltps_drifts = {}
+        with open(self.recalfile, 'r') as f:
+            for _ in xrange(4):
+                null = f.readline()
+            for l in f:
+                l.strip().split(',')
+                self.ltps_drifts[l[0]] = {'pos': {}, 'neg': {}}
+                neg_ppm = self.to_float(l[1])
+                pos_ppm = self.to_float(l[2])
+                for frac in ['ctrl'] + self.fracsU:
+                    self.ltps_drifts[l[0]]['pos'][frac] = pos_ppm
+                    self.ltps_drifts[l[0]]['neg'][frac] = neg_ppm
 
     def remove_outliers(self, data, m = 2):
         return data[np.where(abs(data - np.nanmean(data)) < \
