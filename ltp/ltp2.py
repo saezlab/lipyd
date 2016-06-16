@@ -9853,6 +9853,25 @@ class LTP(object):
             f.write(out)
     
     def std_layout_tables_xls(self):
+        def add_sheet(xls, tbl, name):
+            sheet = xls.add_worksheet('%s_positive' % protein)
+            plain = xls.add_format({})
+            bold = xls.add_format({'bold': True})
+            green = xls.add_format({'bg_color': '#A9C98B'})
+            for i, content in enumerate(tbl[0]):
+                sheet.write(0, i, content, bold)
+            for j, row in enumerate(tbl[1:]):
+                for i, content in enumerate(row):
+                    if type(content) is tuple:
+                        if content[1] in locals():
+                            style = locals()[content[1]]
+                        content = content[0]
+                    else:
+                        style = plain
+                    try:
+                        sheet.write(j + 1, i, content, style)
+                    except:
+                        print row
         xlsdir = 'top_features'
         if not os.path.exists(xlsdir):
             os.mkdir(xlsdir)
@@ -9866,43 +9885,16 @@ class LTP(object):
             tbl_pos = self.std_layout_table(protein, 'pos')
             tbl_neg = self.std_layout_table(protein, 'neg')
             xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True})
-            pos = xls.add_worksheet('%s_positive' % protein)
-            plain = xls.add_format({})
-            bold = xls.add_format({'bold': True})
-            green = xls.add_format({'bg_color': '#A9C98B'})
-            for i, content in enumerate(tbl_pos[0]):
-                pos.write(0, i, content, bold)
-            for j, row in enumerate(tbl_pos[1:]):
-                for i, content in enumerate(row):
-                    if type(content) is tuple:
-                        if content[1] in locals():
-                            style = locals()[content[1]]
-                        content = content[0]
-                    else:
-                        style = plain
-                    try:
-                        pos.write(j + 1, i, content, style)
-                    except:
-                        print row
-            neg = xls.add_worksheet('%s_negative' % protein)
-            plain = xls.add_format({})
-            bold = xls.add_format({'bold': True})
-            green = xls.add_format({'bg_color': '#A9C98B'})
-            for i, content in enumerate(tbl_neg[0]):
-                neg.write(0, i, content, bold)
-            for j, row in enumerate(tbl_neg[1:]):
-                for i, content in enumerate(row):
-                    if type(content) is tuple:
-                        if content[1] in locals():
-                            style = locals()[content[1]]
-                        content = content[0]
-                    else:
-                        style = plain
-                    neg.write(j + 1, i, content, style)
+            add_sheet(xls, tbl_pos, '%s_positive' % protein)
+            add_sheet(xls, tbl_neg, '%s_negative' % protein)
+            tbl_pos = self.std_layout_table(protein, 'pos', only_best = True)
+            tbl_neg = self.std_layout_table(protein, 'neg', only_best = True)
+            add_sheet(xls, tbl_pos, '%s_positive_best' % protein)
+            add_sheet(xls, tbl_neg, '%s_negative_best' % protein)
             xls.close()
         prg.terminate()
     
-    def std_layout_table(self, protein, mode):
+    def std_layout_table(self, protein, mode, only_best = False):
         rows = []
         hdr = [
             'Quality',
@@ -10035,77 +10027,79 @@ class LTP(object):
                     (len(lips1) or len(lips2))) or \
                 (oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
                     len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi])))
-            
-            rows.append([
-                tbl['qua'][i],
-                tbl['sig'][i],
-                (mz_original, 'green' if good else 'plain'),
-                (tbl['aaa'][i],
-                'green' if tbl['aaa'][i] >= self.aa_threshold[mode] \
-                    else 'plain'
-                ),
-                '%.02f - %.02f' % (tbl['rt'][i][0], tbl['rt'][i][1]),
-                tbl['rtm'][i],
-                # '%u:%u' % (int(tbl['rtm'][i]) / 60, tbl['rtm'][i] % 60),
-                ms2_rt,
-                delta_rt,
-                tbl['iprf'][i] if tbl['iprf'] is not None \
-                    and not np.isinf(tbl['iprf'][i]) \
-                    and not np.isnan(tbl['iprf'][i]) else 'NA',
-                (lips1, 'green' if len(lips1) else 'plain'),
-                (lips2, 'green' if len(lips2) else 'plain'),
-                (lips3, 'green' if len(lips3) else 'plain'),
-                tbl['mz'][i],
-                (ms2_mz, ms2_style),
-                (ms2i1, ms2_style),
-                (ms2f1, ms2_style),
-                (ms2i2, ms2_style),
-                (ms2f2, ms2_style),
-                (ms2i3, ms2_style),
-                (ms2f3, ms2_style),
-                (ms2i4, ms2_style),
-                (ms2f4, ms2_style),
-                (ms2i5, ms2_style),
-                (ms2f5, ms2_style),
-                '', # TODO: what is group profile ratio?
-                tbl['z'][i],
-                (ms2_file.split('/')[-1], ms2_style),
-                (ms2_scan, ms2_style),
-                (ms2_full, ms2_style),
-                ('%s: %s --%s: %s' % (
-                    '[M+H]+' if mode == 'pos' else '[M-H]-',
-                    lips1,
-                    '[M+NH4]+' if mode == 'pos' else '[M+Fo]-',
-                    lips2), 
-                'green' if len(lips1) or len(lips2) else 'plain'),
-                ('NA' if tbl['prr'] is None else \
-                    'protein_peak_ratio_OK' if tbl['prr'][i] else 'not_OK',
-                'plain' if tbl['prr'] is None or not tbl['prr'][i] else 'green'
-                ),
-                'NA' if self.first_ratio[protein] is None \
-                    or np.isinf(tbl['iprf'][i]) \
-                    or np.isnan(tbl['iprf'][i]) \
-                    else tbl['iprf'][i],
-                'NA' if self.first_ratio[protein] is None \
-                    else self.ppratios[protein][self.first_ratio[protein]][0],
-                'NA' if self.first_ratio[protein] is None \
-                    else self.ppratios[protein][self.first_ratio[protein]][1],
-                'NA' if self.first_ratio[protein] is None \
-                    else '%s:%s' % self.first_ratio[protein],
-                ('NA' if self.first_ratio[protein] is None \
-                    or np.isnan(tbl['prs'][i]) \
-                    else 'Inf' if np.isinf(tbl['prs'][i]) \
-                    else tbl['prs'][i],
-                'plain' if self.first_ratio[protein] is None \
-                    or tbl['prs'][i] > 1.0 \
-                    else 'green'
-                ),
-                (tbl['peaksize'][i], 'green' if tbl['peaksize'][i] >= 5.0 else 'plain'),
-                '' if oi not in tbl['ms1hg'] or not len(tbl['ms1hg'][oi]) else \
-                    (', '.join(sorted(list(tbl['ms1hg'][oi]))), 'green'),
-                '' if oi not in tbl['ms2hg2'] or not len(tbl['ms2hg2']) else \
-                    (', '.join(sorted(list(tbl['ms2hg2'][oi]))), 'green'),
-                '' if oi not in tbl['cid'] or not len(tbl['cid'][oi]) else \
-                    (', '.join(sorted(tbl['cid'][oi])), 'green')
-            ])
+            if not only_best or good:
+                rows.append([
+                    tbl['qua'][i],
+                    tbl['sig'][i],
+                    (mz_original, 'green' if good else 'plain'),
+                    (tbl['aaa'][i],
+                    'green' if tbl['aaa'][i] >= self.aa_threshold[mode] \
+                        else 'plain'
+                    ),
+                    '%.02f - %.02f' % (tbl['rt'][i][0], tbl['rt'][i][1]),
+                    tbl['rtm'][i],
+                    # '%u:%u' % (int(tbl['rtm'][i]) / 60, tbl['rtm'][i] % 60),
+                    ms2_rt,
+                    delta_rt,
+                    tbl['iprf'][i] if tbl['iprf'] is not None \
+                        and not np.isinf(tbl['iprf'][i]) \
+                        and not np.isnan(tbl['iprf'][i]) else 'NA',
+                    (lips1, 'green' if len(lips1) else 'plain'),
+                    (lips2, 'green' if len(lips2) else 'plain'),
+                    (lips3, 'green' if len(lips3) else 'plain'),
+                    tbl['mz'][i],
+                    (ms2_mz, ms2_style),
+                    (ms2i1, ms2_style),
+                    (ms2f1, ms2_style),
+                    (ms2i2, ms2_style),
+                    (ms2f2, ms2_style),
+                    (ms2i3, ms2_style),
+                    (ms2f3, ms2_style),
+                    (ms2i4, ms2_style),
+                    (ms2f4, ms2_style),
+                    (ms2i5, ms2_style),
+                    (ms2f5, ms2_style),
+                    '', # TODO: what is group profile ratio?
+                    tbl['z'][i],
+                    (ms2_file.split('/')[-1], ms2_style),
+                    (ms2_scan, ms2_style),
+                    (ms2_full, ms2_style),
+                    ('%s: %s --%s: %s' % (
+                        '[M+H]+' if mode == 'pos' else '[M-H]-',
+                        lips1,
+                        '[M+NH4]+' if mode == 'pos' else '[M+Fo]-',
+                        lips2), 
+                    'green' if len(lips1) or len(lips2) else 'plain'),
+                    ('NA' if tbl['prr'] is None else \
+                        'protein_peak_ratio_OK' if tbl['prr'][i] else 'not_OK',
+                    'plain' if tbl['prr'] is None or not tbl['prr'][i] \
+                        else 'green'
+                    ),
+                    'NA' if self.first_ratio[protein] is None \
+                        or np.isinf(tbl['iprf'][i]) \
+                        or np.isnan(tbl['iprf'][i]) \
+                        else tbl['iprf'][i],
+                    'NA' if self.first_ratio[protein] is None else \
+                        self.ppratios[protein][self.first_ratio[protein]][0],
+                    'NA' if self.first_ratio[protein] is None else \
+                        self.ppratios[protein][self.first_ratio[protein]][1],
+                    'NA' if self.first_ratio[protein] is None \
+                        else '%s:%s' % self.first_ratio[protein],
+                    ('NA' if self.first_ratio[protein] is None \
+                        or np.isnan(tbl['prs'][i]) \
+                        else 'Inf' if np.isinf(tbl['prs'][i]) \
+                        else tbl['prs'][i],
+                    'plain' if self.first_ratio[protein] is None \
+                        or tbl['prs'][i] > 1.0 \
+                        else 'green'
+                    ),
+                    (tbl['peaksize'][i], 'green' \
+                        if tbl['peaksize'][i] >= 5.0 else 'plain'),
+                    '' if oi not in tbl['ms1hg'] or not len(tbl['ms1hg'][oi]) else \
+                        (', '.join(sorted(list(tbl['ms1hg'][oi]))), 'green'),
+                    '' if oi not in tbl['ms2hg2'] or not len(tbl['ms2hg2']) else \
+                        (', '.join(sorted(list(tbl['ms2hg2'][oi]))), 'green'),
+                    '' if oi not in tbl['cid'] or not len(tbl['cid'][oi]) else \
+                        (', '.join(sorted(tbl['cid'][oi])), 'green')
+                ])
         return rows
