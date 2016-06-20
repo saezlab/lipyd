@@ -648,7 +648,141 @@ class CerFA(FattyFragment):
             minus = minus,
             plus = plus,
             isotope = isotope,
-            name = 'Cer-FA',
+            name = 'CerFA',
+            hg = ['Cer']
+        )
+
+class CerFAminusC2H5N(FattyFragment):
+    
+    # 209 at C14:0 FA, 263 at C18:1
+    
+    def __init__(self, c, unsat = 0,
+        minus = [], plus = [], isotope = 0,
+        charge = -1):
+        self.counts = {
+            'C': 0,
+            'H': -3,
+            'O': -1
+        }
+        super(CerFAminusC2H5N, self).__init__(
+            charge = charge,
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus,
+            isotope = isotope,
+            name = 'CerFA-C2N',
+            hg = ['Cer']
+        )
+
+class CerFAminusC(FattyFragment):
+    
+    # 226 at C14:0 FA, 280 at C18:1
+    
+    def __init__(self, c, unsat = 0,
+        minus = [], plus = [], isotope = 0,
+        charge = -1):
+        self.counts = {
+            'C': 0,
+            'H': 0,
+            'O': -1,
+            'N': 1
+        }
+        super(CerFAminusC, self).__init__(
+            charge = charge,
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus,
+            isotope = isotope,
+            name = 'CerFA-C',
+            hg = ['Cer']
+        )
+
+class CerFAminusN(FattyFragment):
+    
+    # 227 at C14:0 FA, 281 at C18:1
+    
+    def __init__(self, c, unsat = 0,
+        minus = [], plus = [], isotope = 0,
+        charge = -1):
+        self.counts = {
+            'C': 0,
+            'H': -1,
+            'O': 0,
+        }
+        super(CerFAminusN, self).__init__(
+            charge = charge,
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus,
+            isotope = isotope,
+            name = 'CerFA-N',
+            hg = ['Cer']
+        )
+
+class CerSphiMinusN(FattyFragment):
+    
+    def __init__(self, c, unsat = 0,
+        minus = [], plus = [], isotope = 0,
+        charge = -1):
+        self.counts = {
+            'C': -2,
+            'H': -5,
+            'O': -1
+        }
+        super(CerSphiMinusN, self).__init__(
+            charge = charge,
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus,
+            isotope = isotope,
+            name = 'CerSphi-N',
+            hg = ['Cer']
+        )
+
+class CerSphiMinusNO(FattyFragment):
+    
+    def __init__(self, c, unsat = 0,
+        minus = [], plus = [], isotope = 0,
+        charge = -1):
+        self.counts = {
+            'C': 0,
+            'H': -3,
+            'O': -1
+        }
+        super(CerSphiMinusNO, self).__init__(
+            charge = charge,
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus,
+            isotope = isotope,
+            name = 'CerSphi-N-H2O',
+            hg = ['Cer']
+        )
+
+class CerSphi(FattyFragment):
+    
+    def __init__(self, c, unsat = 0,
+        minus = [], plus = [], isotope = 0,
+        charge = -1):
+        self.counts = {
+            'C': -2,
+            'H': -4,
+            'O': 0,
+            'N': 1
+        }
+        super(CerSphi, self).__init__(
+            charge = charge,
+            c = c,
+            unsat = unsat,
+            minus = minus,
+            plus = plus,
+            isotope = isotope,
+            name = 'CerSphi',
             hg = ['Cer']
         )
 
@@ -927,8 +1061,6 @@ class Feature(object):
                 self.scans.iteritems()
             )
         )
-        self.sort_scans()
-        self.select_best_scan()
         self._scans = dict(
             map(
                 lambda (k, v):
@@ -959,6 +1091,8 @@ class Feature(object):
                 self.scans.iteritems()
             )
         )
+        self.sort_scans()
+        self.select_best_scan()
         self.msg('\n::: Analysing feature: %s :: %s :: index = %u ::'\
                 ' m/z = %.03f :: number of MS2 scans: %u\n' % \
             (self.protein, self.mode, self.oi, self.tbl['mz'][self.i],
@@ -1178,6 +1312,8 @@ class MS2Scan(object):
         self.recc = re.compile(r'.*[^0-9]([0-9]{1,2}):([0-9]).*')
         self.fa = {}
         self.fa1 = {}
+        self._order = None
+        self.sort_by_i()
         self.fa_list = None
         self.build_fa_list()
     
@@ -1321,6 +1457,22 @@ class MS2Scan(object):
     def mz_match(self, mz_detected, mz):
         return abs(mz_detected - mz) <= self.feature.main.ms2_tlr
     
+    def sort_by_mz(self):
+        self._order = self._order[self.scan[:,1].argsort()]
+        self.scan = self.scan[self.scan[:,1].argsort(),:]
+    
+    def sort_by_i(self, return_order = False):
+        if self._order is None:
+            order = self.scan[:,2].argsort()[::-1]
+            self.scan = self.scan[order,:]
+            self._order = np.array(xrange(self.scan.shape[0]), dtype = np.int)
+        else:
+            order = self._order.argsort()
+            self.scan = self.scan[order,:]
+            self._order = self._order[order]
+        if return_order:
+            return order
+    
     def mz_lookup(self, mz):
         '''
         Returns the index of the closest m/z value
@@ -1329,7 +1481,7 @@ class MS2Scan(object):
         '''
         du = 999.0
         dl = 999.0
-        self.scan = self.scan[self.scan[:,1].argsort(),:]
+        self.sort_by_mz()
         ui = self.scan[:,1].searchsorted(mz)
         if ui < self.scan.shape[0]:
             du = self.scan[ui,1] - mz
@@ -1337,10 +1489,9 @@ class MS2Scan(object):
             dl = mz - self.scan[ui - 1,1]
         i = ui if du < dl else ui - 1
         i = i if self.mz_match(self.scan[i,1], mz) else None
-        sort = self.scan[:,2].argsort()[::-1]
+        sort = self.sort_by_i(return_order = True)
         if i is not None:
             i = np.where(sort == i)[0][0]
-        self.scan = self.scan[sort,:]
         return i
     
     def has_mz(self, mz):
@@ -1410,7 +1561,7 @@ class MS2Scan(object):
     
     def is_fa(self, i, sphingo = False):
         result = 'FA' in self.scan[i,7] or 'Lyso' in self.scan[i,7] or \
-            (sphingo and 'Sphingosine' in self.scan[i,7])
+            (sphingo and 'Sphi' in self.scan[i,7])
         self.feature.msg('\t\t  -- Fragment #%u (%s): is fatty acid? '\
             '-- %s\n' % (i, self.scan[i,7], str(result)))
         return result
@@ -1467,6 +1618,12 @@ class MS2Scan(object):
     def sum_cc_is(self, cc1, cc2, cc):
         return self.cc2str(self.sum_cc([cc1, cc2])) == cc
     
+    def cer_fa_test(self, frag1, frag2):
+        return \
+            self.fa_type_is(frag1[5], 'CerFA(') and \
+            self.fa_type_is(frag2[5], 'CerSphi-N(') and \
+            frag1[4] > frag2[4] * 2
+    
     def fa_combinations(self, hg, sphingo = False):
         result = set([])
         if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
@@ -1477,6 +1634,10 @@ class MS2Scan(object):
         for cc in ccs:
             for frag1 in self.fa_list:
                 for frag2 in self.fa_list:
+                    if hg == 'Cer' and not self.cer_fa_test(frag1, frag2):
+                        # where not the 'CerFA' is the most intensive
+                        # those are clearly false
+                        continue
                     if frag1[0][0] is not None and frag2[0][0] is not None and \
                         (frag1[1] is None or hg in frag1[1]) and \
                         (frag2[1] is None or hg in frag2[1]) and \
@@ -1532,6 +1693,24 @@ class MS2Scan(object):
         else:
             return result
     
+    def cer_matching_fa(self, cer_fa):
+        score = 0
+        if 'Cer' in self.feature.ms1fa:
+            cer_cc = self.get_cc(cer_fa)
+            for cc in self.feature.ms1fa['Cer']:
+                cc = self.get_cc(cc)
+                carb = cc[0] - cer_cc[0]
+                unsat = cc[1] - cer_cc[1] + 2
+                if self.frag_name_present(
+                    '[FA-alkyl(C%u:%u)-H]-' % (carb, unsat)):
+                    score += 1
+                carb = cc[0] - cer_cc[0] - 2
+                unsat = cc[1] - cer_cc[1] + 1
+                if self.frag_name_present(
+                    '[FA-alkyl(C%u:%u)-H]-' % (carb, unsat)):
+                    score += 1
+        return score
+    
     def build_fa_list(self, rebuild = False):
         '''
         Returns list with elements:
@@ -1547,7 +1726,7 @@ class MS2Scan(object):
                     cc = self.get_cc(frag[7])
                     hgs = self.get_hg(frag[7])
                     is_ether = 'alk' in frag[7]
-                    is_sphingo = 'Sphingosine' in frag[7]
+                    is_sphingo = 'Sphi' in frag[7]
                     self.fa_list.append([cc, hgs, is_ether, is_sphingo, frag[2], i])
     
     def get_hg(self, frag_name):
@@ -1752,6 +1931,21 @@ class MS2Scan(object):
             score += 5
         return {'score': score, 'fattya': fattya}
     
+    def cer_neg_1(self):
+        score = 0
+        fattya = set([])
+        if self.fa_among_most_abundant('CerFA', n = 2):
+            score += 5
+            fattya = self.fa_combinations('Cer', sphingo = True)
+            fa_h_ccs = self.matching_fa_frags_of_type('Cer', 'CerFA(')
+            for fa_h_cc in fa_h_ccs:
+                for fa_other in [
+                    '[CerFA-N(C%u:%u)-]-',
+                    '[CerFA-C2N(C%u:%u)-]-']:
+                    if self.frag_name_present(fa_other % fa_h_cc):
+                        score += 1
+        return {'score': score, 'fattya': fattya}
+    
     def pc_pos_1(self):
         score = 0
         fattya = set([])
@@ -1786,7 +1980,7 @@ class MS2Scan(object):
                         score += 1
                     if '-O]+' in fa_frag_name:
                         score += 1
-                    if fa_frag_name[:2] == 'NL':
+                    if 'NL' in fa_frag_name:
                         score += 1
             for sph_cc in sph_ccs:
                 for fa_other in [
@@ -1796,12 +1990,20 @@ class MS2Scan(object):
                         score += 1
             if not len(
                 filter(
-                    lambda mz: 
+                    lambda mz:
                         self.has_mz(mz),
                     [58.065126, 104.106990, 124.999822, 184.073323]
                 )
             ):
                 score += 1
+            score += len(
+                filter(
+                    lambda mz:
+                        self.has_mz(mz),
+                    [60.0443902, 70.0651257, 82.0651257, 96.0807757,
+                     107.072951, 121.088601, 135.104251, 149.119901]
+                )
+            )
         return {'score': score, 'fattya': fattya}
     
     def sm_pos_1(self):
@@ -1816,6 +2018,11 @@ class MS2Scan(object):
             )
         ):
             score += 5
+        return {'score': score, 'fattya': fattya}
+    
+    def vd_pos_1(self):
+        score = 0
+        fattya = set([])
         return {'score': score, 'fattya': fattya}
     
     def is_pe(self):
@@ -5333,6 +5540,12 @@ class LTP(object):
                             LysoPC, -1, minus = ['CH3', 'H2O']
                         )
                 lst += self.auto_fragment_list(CerFA, -1)
+                lst += self.auto_fragment_list(CerFAminusC, -1)
+                lst += self.auto_fragment_list(CerFAminusN, -1)
+                lst += self.auto_fragment_list(CerFAminusC2H5N, -1)
+                lst += self.auto_fragment_list(CerSphi, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
+                lst += self.auto_fragment_list(CerSphiMinusN, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
+                lst += self.auto_fragment_list(CerSphiMinusNO, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
             if 'positive' in fname:
                 lst += self.auto_fragment_list(NLFAminusH2O, 0)
                 lst += self.auto_fragment_list(NLFA, 0)
@@ -5353,7 +5566,7 @@ class LTP(object):
                 sys.stdout.write('\tWrong formatted fragment line:\n\t  %s\n' % str(Line))
                 sys.stdout.flush()
             hgm = rehg.match(Line[1])
-            if len(Line) == 4 or hgm:
+            if (len(Line) == 4 and len(Line[3])) or hgm:
                 Hgroupfrags[MetabType] = set([])
                 if len(Line) == 4:
                     Hgroupfrags[MetabType] = Hgroupfrags[MetabType] | \
@@ -5374,8 +5587,14 @@ class LTP(object):
                     if hg not in Headgroups:
                         Headgroups[hg] = set([])
                     Headgroups[hg].add(frag)
-        return np.array(sorted(Metabolites, key = lambda x: x[0]),
-            dtype = np.object), Hgroupfrags, Headgroups
+        Metabolites = \
+            np.array(
+                sorted(Metabolites,
+                    key = lambda x: x[0]
+                ),
+                dtype = np.object
+            )
+        return Metabolites, Hgroupfrags, Headgroups
     
     def auto_fragment_list(self, typ, charge, cmin = 2, unsatmin = 0,
         cmax = 36, unsatmax = 6, minus = [], plus = [], **kwargs):
@@ -5432,7 +5651,7 @@ class LTP(object):
         stRpos = 'pos'
         stRneg = 'neg'
         redgt = re.compile(r'[AB]([\d]+)$')
-        result = dict((ltp.upper(), {'pos': None, 'neg': None, 
+        result = dict((ltp.upper(), {'pos': None, 'neg': None,
                 'ms2files': {'pos': {}, 'neg': {}}}) \
             for ltp, d in self.ms2files.iteritems())
         prg = progress.Progress(len(self.ms2files) * 2, 'Indexing MS2 data', 1,

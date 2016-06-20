@@ -17,3 +17,6 @@
 67.98797358	NL COOHNa-cluster (67.99)	NL negative mode			
 135.9759472	NL 2xCOOHNa-cluster (135.98)	NL negative mode			
 203.9639207	NL 3xCOOHNa-cluster (203.96)	NL negative mode
+162.0528234	NL hexose (162.053)	NL negative mode	HexCer
+180.0633881	NL hexose+H2O (180.063)	NL negative mode	HexCer
+324.1056468	NL 2hexose (324.106)	NL negative mode	HexCer
