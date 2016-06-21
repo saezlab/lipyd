@@ -10073,7 +10073,7 @@ class LTP(object):
     
     def std_layout_tables_xls(self):
         def add_sheet(xls, tbl, name):
-            sheet = xls.add_worksheet('%s_positive' % protein)
+            sheet = xls.add_worksheet(name)
             plain = xls.add_format({})
             bold = xls.add_format({'bold': True})
             green = xls.add_format({'bg_color': '#A9C98B'})

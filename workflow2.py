@@ -66,6 +66,25 @@ l.ms2()
 
 l.std_layout_tables_xls()
 
+recal_marco = l.ltps_drifts
+l.recal_source = 'denes'
+l.recalibration()
+
+with open('recalibration.txt', 'w') as f:
+    for mode in ['neg', 'pos']:
+        for protein in sorted(l.ltps_drifts.keys()):
+            for frac in sorted(l.ltps_drifts[protein][mode].keys()):
+                if frac not in recal_marco[protein.upper()][mode]:
+                    print protein, mode, frac
+                else:
+                    f.write(
+                        '%s\t%s\t%s\t%.03f\t%.03f\n' % (
+                            protein.upper(), mode, frac,
+                            recal_marco[protein.upper()][mode][frac],
+                            l.ltps_drifts[protein][mode][frac]
+                        )
+                    )
+
 l.identify()
 
 '''
