@@ -2099,8 +2099,8 @@ class LTP(object):
                 'LMSDFDownload28Jun15.tar.gz',
             'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
                 'LMSDFDownload28Jun15FinalAll.sdf',
-            'pfragmentsfile': 'lipid_fragments_positive_mode_v5d.txt',
-            'nfragmentsfile': 'lipid_fragments_negative_mode_v7d.txt',
+            'pfragmentsfile': 'lipid_fragments_positive_mode_v6d.txt',
+            'nfragmentsfile': 'lipid_fragments_negative_mode_v8d.txt',
             'pptable_file': 'protein_profiles.txt',
             'featurescache': 'features.pickle',
             'pprofcache': 'pprofiles_raw.pickle',
