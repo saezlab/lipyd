@@ -2106,6 +2106,7 @@ class LTP(object):
             'pprofcache': 'pprofiles_raw.pickle',
             'abscache': 'absorbances.pickle',
             'marco_dir': 'marco',
+            'manual_ppratios_xls': 'Proteins_Overview_03b.xlsx',
             'auxcache': 'save.pickle',
             'stdcachefile': 'calibrations.pickle',
             'validscache': 'valids.pickle',
@@ -2189,7 +2190,7 @@ class LTP(object):
             'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
-            'abscache', 'pptable_file', 'recalfile']
+            'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls']
         
         for attr, val in self.defaults.iteritems():
             if attr in kwargs:
@@ -3234,6 +3235,24 @@ class LTP(object):
                         ratios[(ref, frac)] = tuple(sorted([ratio1, ratio2]))
             self.ppratios[protein] = ratios
     
+    def read_manual_ppratios(self):
+        refracs = re.compile(r'.*([AB])([0-9]{1,2})-([AB])([0-9]{1,2}).*')
+        nondigit = re.compile(r'[^\d\.-]+')
+        tbl = self.read_xls(self.manual_ppratios_xls)[1:]
+        ppratios = {}
+        for l in tbl:
+            protein = l[2].split('=')[0]
+            ppratios[protein] = {}
+            frm = refracs.findall(l[4])
+            if frm is not None:
+                for i, (fr1l, fr1n, fr2l, fr2n) in enumerate(frm):
+                    fr1 = '%s%u' % (fr1l.lower(), int(fr1n))
+                    fr2 = '%s%u' % (fr2l.lower(), int(fr2n))
+                    lower = float(nondigit.sub('', l[8].split('/')[i]))
+                    upper = float(nondigit.sub('', l[9].split('/')[i]))
+                    ppratios[protein][(fr1, fr2)] = (lower, upper)
+        return ppratios
+    
     def protein_peak_ratios2(self):
         '''
         Calculates the expected minimum and maximum values for
@@ -3401,7 +3420,7 @@ class LTP(object):
                 sheet.max_column, sheet.max_row)
             table = map(lambda row:
                 map(lambda c:
-                    str(c.value),
+                    unicode(c.value),
                     row
                 ),
                 cells
