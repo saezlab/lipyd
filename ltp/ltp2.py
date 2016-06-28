@@ -2240,6 +2240,8 @@ class LTP(object):
             'pos': 150000.0
         }
         
+        self.use_manual_ppratios = True
+        
         fonts = open('fonts.css', 'r')
         self.html_table_template = """<!DOCTYPE html>
             <html lang="en">
@@ -3240,8 +3242,9 @@ class LTP(object):
         nondigit = re.compile(r'[^\d\.-]+')
         tbl = self.read_xls(self.manual_ppratios_xls)[1:]
         ppratios = {}
+        first = {}
         for l in tbl:
-            protein = l[2].split('=')[0]
+            protein = l[2].split('=')[0].strip()
             ppratios[protein] = {}
             frm = refracs.findall(l[4])
             if frm is not None:
@@ -3251,7 +3254,45 @@ class LTP(object):
                     lower = float(nondigit.sub('', l[8].split('/')[i]))
                     upper = float(nondigit.sub('', l[9].split('/')[i]))
                     ppratios[protein][(fr1, fr2)] = (lower, upper)
-        return ppratios
+                    if i == 0:
+                        first[protein] = (fr1, fr2)
+        self.ppratios_manual = ppratios
+        self.first_ratio_manual = first
+    
+    def ppratios_replace_manual(self):
+        epsilon = 0.0000000000001
+        for protein, pprs in self.ppratios_manual.iteritems():
+            for fr, ratios in pprs.iteritems():
+                self.ppratios[protein][fr] = ratios
+                frr = (fr[1], fr[0])
+                ratiosr = (1.0 / (ratios[0] + epsilon),
+                           1.0 / (ratios[1] + epsilon))
+                self.ppratios[protein][frr] = ratiosr
+            if protein in self.first_ratio_manual:
+                fr1i = self.fracs.index(self.first_ratio_manual[protein][0]) + 1
+                fr2i = self.fracs.index(self.first_ratio_manual[protein][1]) + 1
+                if self.samples_upper[protein][fr1i] == 1 and \
+                    self.samples_upper[protein][fr2i] == 1:
+                    self.first_ratio[protein] = self.first_ratio_manual[protein]
+    
+    def sample_fractions_marco(self):
+        self.samples_original = copy.deepcopy(self.samples_upper)
+        refrac = re.compile(r'.*([AB])([0-9]{1,2}).*')
+        tbl = self.read_xls(self.manual_ppratios_xls)[1:]
+        for l in tbl:
+            protein = l[2].split('=')[0].strip()
+            fracs = set(map(
+                lambda fr:
+                    '%s%u' % (fr[0].lower(), int(fr[1])),
+                refrac.findall(l[3])
+            ))
+            for i, fr in enumerate(self.fracs):
+                if fr in fracs:
+                    if self.samples_upper[protein][i + 1] != 1:
+                        sys.stdout.write('\t:: Setting fraction %s at %s to 1, '\
+                            'this was %s before\n' % \
+                            (fr, protein, self.samples_upper[protein][i + 1]))
+                        self.samples_upper[protein][i + 1] = 1
     
     def protein_peak_ratios2(self):
         '''
@@ -3337,7 +3378,8 @@ class LTP(object):
                 tbl['ipr'] = np.array(ratios)
                 tbl['ipri'] = indices
                 
-                if self.first_ratio[protein] is not None:
+                if self.first_ratio[protein] is not None and \
+                    self.first_ratio[protein] in tbl['ipri']:
                     fi = tbl['ipri'][self.first_ratio[protein]]
                     tbl['iprf'] = tbl['ipr'][:,fi]
                 else:
@@ -3346,7 +3388,7 @@ class LTP(object):
     def ratios_in_range(self):
         for protein, d in self.valids.iteritems():
             for mode, tbl in d.iteritems():
-                if len(self.ppratios[protein]):
+                if len(self.ppratios[protein]) and tbl['iprf'] is not None:
                     in_range = []
                     ppr = sorted(self.ppratios[protein][self.first_ratio[protein]])
                     for ipr in tbl['iprf']:
@@ -5433,10 +5475,14 @@ class LTP(object):
                 tbl['aaa'] = np.nansum(tbl['fe'], 1) / 5.0
     
     def ms1(self):
+        self.sample_fractions_marco()
         self.fractions_by_protein_amount()
         self.primary_fractions()
         self.average_area_5()
         self.protein_peak_ratios2()
+        if self.use_manual_ppratios:
+            self.read_manual_ppratios()
+            self.ppratios_replace_manual()
         self.intensity_peak_ratios()
         self.ratios_in_range()
         self.peak_ratio_score()
