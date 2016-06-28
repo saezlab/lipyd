@@ -5508,19 +5508,20 @@ class LTP(object):
                 lst += self.auto_fragment_list(
                     FattyFragment, -1, minus = ['CO2', 'H'], name = 'FA')
                 lst += self.auto_fragment_list(FAAlkylminusH, -1)
-                for hg in ('PE', 'PC', 'PS', 'PI', 'PA', 'PG'):
+                for hg in ('PE', 'PC', 'PS', 'PI', 'PG', 'PA'):
                     lst += self.auto_fragment_list(
                         globals()['Lyso%s' % hg], -1
                     )
                     lst += self.auto_fragment_list(
                         globals()['Lyso%s' % hg], -1, minus = ['H2O']
                     )
-                    lst += self.auto_fragment_list(
-                        globals()['Lyso%sAlkyl' % hg], -1
-                    )
-                    lst += self.auto_fragment_list(
-                        globals()['Lyso%sAlkyl' % hg], -1, minus = ['H2O']
-                    )
+                    if hg != 'PA' and hg != 'PG':
+                        lst += self.auto_fragment_list(
+                            globals()['Lyso%sAlkyl' % hg], -1
+                        )
+                        lst += self.auto_fragment_list(
+                            globals()['Lyso%sAlkyl' % hg], -1, minus = ['H2O']
+                        )
                     if hg == 'PI':
                         lst += self.auto_fragment_list(
                             LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
