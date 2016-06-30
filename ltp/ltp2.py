@@ -10258,7 +10258,7 @@ class LTP(object):
                     uniqList(
                         map(
                             lambda r:
-                                '%s(%u:%u)' % (r[7], 'O-' if r[9] else '',
+                                '%s(%s%u:%u)' % (r[7], 'O-' if r[9] else '',
                                                r[8][0], r[8][1]) \
                                     if r[8] is not None else '%s' % r[7],
                             filter(
