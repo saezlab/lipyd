@@ -823,6 +823,12 @@ class NLFAplusOH(FattyFragment):
         super(NLFAplusOH, self).__init__(charge = 0, c = c, unsat = unsat,
             plus = ['OH'], isotope = isotope, name = 'NL FA')
 
+class NLFAplusNH3(FattyFragment):
+    
+    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
+        super(NLFAplusNH3, self).__init__(charge = 0, c = c, unsat = unsat,
+            plus = ['NH3'], isotope = isotope, name = 'NL FA')
+
 class FAminusO(FattyFragment):
     
     def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
@@ -5613,15 +5619,17 @@ class LTP(object):
                 lst += self.auto_fragment_list(CerSphiMinusN, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
                 lst += self.auto_fragment_list(CerSphiMinusNO, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
             if 'positive' in fname:
-                lst += self.auto_fragment_list(NLFAminusH2O, 0)
-                lst += self.auto_fragment_list(NLFA, 0)
-                lst += self.auto_fragment_list(NLFAplusOH, 0)
-                lst += self.auto_fragment_list(FAminusO, 1)
+                if not self.only_marcos_fragments:
+                    lst += self.auto_fragment_list(NLFAminusH2O, 0)
+                    lst += self.auto_fragment_list(NLFA, 0)
+                    lst += self.auto_fragment_list(FAminusO, 1)
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H5'])
                 lst += self.auto_fragment_list(FAplusGlycerol, 1)
+                lst += self.auto_fragment_list(NLFAplusOH, 0)
+                lst += self.auto_fragment_list(NLFAplusNH3, 0)
                 lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O'])
                 lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O', 'H2O'])
                 lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
-                lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H5'])
             if return_fraglines:
                 return lst
             
