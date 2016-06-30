@@ -2105,8 +2105,8 @@ class LTP(object):
                 'LMSDFDownload28Jun15.tar.gz',
             'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
                 'LMSDFDownload28Jun15FinalAll.sdf',
-            'pfragmentsfile': 'lipid_fragments_positive_mode_v6d.txt',
-            'nfragmentsfile': 'lipid_fragments_negative_mode_v8d.txt',
+            'pfragmentsfile': 'lipid_fragments_positive_mode_v10d.txt',
+            'nfragmentsfile': 'lipid_fragments_negative_mode_v10d.txt',
             'pptable_file': 'protein_profiles.txt',
             'featurescache': 'features.pickle',
             'pprofcache': 'pprofiles_raw.pickle',
@@ -5574,50 +5574,55 @@ class LTP(object):
             )
         if extra_fragments:
             if 'negative' in fname:
-                lst += self.auto_fragment_list(FAminusH, -1, name = 'FA')
-                # fatty acid -CO2- fragments:
-                lst += self.auto_fragment_list(
-                    FattyFragment, -1, minus = ['CO2', 'H'], name = 'FA')
-                lst += self.auto_fragment_list(FAAlkylminusH, -1)
-                for hg in ('PE', 'PC', 'PS', 'PI', 'PG', 'PA'):
+                if not self.only_marcos_fragments:
+                    lst += self.auto_fragment_list(FAminusH, -1, name = 'FA')
+                    # fatty acid -CO2- fragments:
                     lst += self.auto_fragment_list(
-                        globals()['Lyso%s' % hg], -1
-                    )
-                    lst += self.auto_fragment_list(
-                        globals()['Lyso%s' % hg], -1, minus = ['H2O']
-                    )
-                    if hg != 'PA' and hg != 'PG':
+                        FattyFragment, -1, minus = ['CO2', 'H'], name = 'FA')
+                    lst += self.auto_fragment_list(FAAlkylminusH, -1)
+                    for hg in ('PE', 'PC', 'PS', 'PI', 'PG', 'PA'):
                         lst += self.auto_fragment_list(
-                            globals()['Lyso%sAlkyl' % hg], -1
+                            globals()['Lyso%s' % hg], -1
                         )
                         lst += self.auto_fragment_list(
-                            globals()['Lyso%sAlkyl' % hg], -1, minus = ['H2O']
+                            globals()['Lyso%s' % hg], -1, minus = ['H2O']
                         )
-                    if hg == 'PI':
-                        lst += self.auto_fragment_list(
-                            LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
-                        )
-                        lst += self.auto_fragment_list(
-                            LysoPI, -1, minus = ['CO2']
-                        )
-                    if hg == 'PE':
-                        lst += self.auto_fragment_list(
-                            LysoPE, -1, minus = ['CO2']
-                        )
-                    if hg == 'PC':
-                        lst += self.auto_fragment_list(
-                            LysoPC, -1, minus = ['CH3']
-                        )
-                        lst += self.auto_fragment_list(
-                            LysoPC, -1, minus = ['CH3', 'H2O']
-                        )
-                lst += self.auto_fragment_list(CerFA, -1)
-                lst += self.auto_fragment_list(CerFAminusC, -1)
-                lst += self.auto_fragment_list(CerFAminusN, -1)
-                lst += self.auto_fragment_list(CerFAminusC2H5N, -1)
-                lst += self.auto_fragment_list(CerSphi, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
-                lst += self.auto_fragment_list(CerSphiMinusN, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
-                lst += self.auto_fragment_list(CerSphiMinusNO, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
+                        if hg != 'PA' and hg != 'PG':
+                            lst += self.auto_fragment_list(
+                                globals()['Lyso%sAlkyl' % hg], -1
+                            )
+                            lst += self.auto_fragment_list(
+                                globals()['Lyso%sAlkyl' % hg], -1, minus = ['H2O']
+                            )
+                        if hg == 'PI':
+                            lst += self.auto_fragment_list(
+                                LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
+                            )
+                            lst += self.auto_fragment_list(
+                                LysoPI, -1, minus = ['CO2']
+                            )
+                        if hg == 'PE':
+                            lst += self.auto_fragment_list(
+                                LysoPE, -1, minus = ['CO2']
+                            )
+                        if hg == 'PC':
+                            lst += self.auto_fragment_list(
+                                LysoPC, -1, minus = ['CH3']
+                            )
+                            lst += self.auto_fragment_list(
+                                LysoPC, -1, minus = ['CH3', 'H2O']
+                            )
+                    lst += self.auto_fragment_list(CerFA, -1)
+                    lst += self.auto_fragment_list(CerFAminusC, -1)
+                    lst += self.auto_fragment_list(CerFAminusN, -1)
+                    lst += self.auto_fragment_list(CerFAminusC2H5N, -1)
+                    lst += self.auto_fragment_list(CerSphi, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
+                    lst += self.auto_fragment_list(CerSphiMinusN, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
+                    lst += self.auto_fragment_list(CerSphiMinusNO, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
+                else:
+                    lst += self.auto_fragment_list(FAminusH, -1)
+                    lst += self.auto_fragment_list(LysoPA, -1, minus = ['H2O'])
+                    lst += self.auto_fragment_list(CerFA, -1)
             if 'positive' in fname:
                 if not self.only_marcos_fragments:
                     lst += self.auto_fragment_list(NLFAminusH2O, 0)

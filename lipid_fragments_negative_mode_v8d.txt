@@ -14,9 +14,12 @@
 227.0326133	PG [G-P-G-H20]- (227.0326)	[M-H]-	PG;BMP
 297.0380926	PI headgroup (297.04)	[M-H]-	PI
 112.9856286	(COOH)2Na from cluster (112.98)	[M-H]-
+180.9730536	(COOH)3Na2 from cluster (180.97)	[M-H]-
+248.9604786	(COOH)4Na3 from cluster (248.96)	[M-H]-
 67.98797358	NL COOHNa-cluster (67.99)	NL negative mode
 135.9759472	NL 2xCOOHNa-cluster (135.98)	NL negative mode
 203.9639207	NL 3xCOOHNa-cluster (203.96)	NL negative mode
+271.9518943	NL 4xCOOHNa-cluster (271.95)	NL negative mode
 162.0528234	NL hexose (162.053)	NL negative mode	HexCer
 180.0633881	NL hexose+H2O (180.063)	NL negative mode	HexCer
 324.1056468	NL 2hexose (324.106)	NL negative mode	HexCer
