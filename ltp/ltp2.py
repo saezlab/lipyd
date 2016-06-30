@@ -2132,6 +2132,7 @@ class LTP(object):
             'ms2_tolerance': 0.05,
             'std_tolerance': 0.02,
             'only_marcos_fragments': True,
+            'adducts_constraints': False,
             'ad2ex': {
                 1: {
                     'pos': {
@@ -2818,8 +2819,8 @@ class LTP(object):
                     'full_name': l[1],
                     'swl': self.process_db_keywords(l[2]),
                     'lmp': self.process_db_keywords(l[3]),
-                    'pos_adduct': l[4] if l[4] != 'ND' else None,
-                    'neg_adduct': l[5] if l[5] != 'ND' else None
+                    'pos_adduct': l[4] if l[4] != 'ND' and self.adducts_constraints else None,
+                    'neg_adduct': l[5] if l[5] != 'ND' and self.adducts_constraints else None
                 }
         self.lipnames = result
 
