@@ -2129,8 +2129,9 @@ class LTP(object):
             'fracsU': ['A09', 'A10', 'A11', 'A12', 'B01'],
             'basefrac': 'a5',
             'ms1_tolerance': 0.01,
-            'ms2_tolerance': 0.02,
+            'ms2_tolerance': 0.05,
             'std_tolerance': 0.02,
+            'only_marcos_fragments': True,
             'ad2ex': {
                 1: {
                     'pos': {
