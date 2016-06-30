@@ -5092,7 +5092,7 @@ class LTP(object):
                         swlipids = self.adduct_lookup(tbl[0][i,1], adducts)
                         if swlipids is not None:
                             for lip in swlipids:
-                                hg, p_add, n_add = \
+                                hg, p_add, n_add, ether = \
                                     self.headgroup_from_lipid_name(lip)
                                 fa = self.fattyacid_from_lipid_name(lip)
                                 result.append(np.concatenate(
@@ -5123,8 +5123,9 @@ class LTP(object):
                     sum(matched) > 0:
                     matched = [kw in lip[2] for kw in kwset['neg']]
                     if sum(matched) == 0:
-                        return shortname, spec['pos_adduct'], spec['neg_adduct']
-        return None, None, None
+                        ether = '(O-' in lip[2]
+                        return shortname, spec['pos_adduct'], spec['neg_adduct'], ether
+        return None, None, None, None
 
     def fattyacid_from_lipid_name(self, lip, _sum = True):
         refa = re.compile(r'([dl]?)([0-9]+:[0-9]{1,2})\(?([,0-9EZ]+)?\)?')
@@ -5219,11 +5220,12 @@ class LTP(object):
                     if self.exacts[iu + u,-1] - addMz <= self.ms1_tlr:
                         if self.exacts[iu + u,1] in self.swl_levels:
                             lip = self.exacts[iu + u,:]
-                            hg, p_add, n_add = \
+                            hg, p_add, n_add, ether = \
                                 self.headgroup_from_lipid_name(lip)
                             fa = self.fattyacid_from_lipid_name(lip)
                             lip = np.concatenate((lip,
-                                np.array([addMz, hg, fa], dtype = np.object)),
+                                np.array([addMz, hg, fa, ether],
+                                    dtype = np.object)),
                                 axis = 0)
                             lip[4] = addName
                             if verbose:
@@ -5242,11 +5244,12 @@ class LTP(object):
                             lip = self.exacts[iu - l,:]
                             # headgroup and fatty acid guess from lipid name
                             # happens here!
-                            hg, p_add, n_add = \
+                            hg, p_add, n_add, ether = \
                                 self.headgroup_from_lipid_name(lip)
                             fa = self.fattyacid_from_lipid_name(lip)
                             lip = np.concatenate((lip, 
-                                np.array([addMz, hg, fa], dtype = np.object)),
+                                np.array([addMz, hg, fa, ether],
+                                    dtype = np.object)),
                                 axis = 0)
                             lip[4] = addName
                             if verbose:
@@ -10255,7 +10258,8 @@ class LTP(object):
                     uniqList(
                         map(
                             lambda r:
-                                '%s(%u:%u)' % (r[7], r[8][0], r[8][1]) \
+                                '%s(%u:%u)' % (r[7], 'O-' if r[9] else '',
+                                               r[8][0], r[8][1]) \
                                     if r[8] is not None else '%s' % r[7],
                             filter(
                                 lambda r:
