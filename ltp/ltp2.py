@@ -2143,7 +2143,7 @@ class LTP(object):
                     },
                     'neg': {
                         '[M-H]-': 'add_h',
-                        '[M+Fo]-': 'remove_fo'
+                        '[M+HCOO]-': 'remove_fo'
                     }
                 },
                 2: {
@@ -2168,7 +2168,7 @@ class LTP(object):
                     },
                     'neg': {
                         '[M-H]-': 'remove_h',
-                        '[M+Fo]-': 'add_fo'
+                        '[M+HCOO]-': 'add_fo'
                     }
                 },
                 2: {
@@ -2634,7 +2634,7 @@ class LTP(object):
                     '[M-H]-', Mz(l[5]).remove_h()])
                 _nAdducts.append([l[0], 'Species', \
                     '|'.join([str(l[10]), str(l[1]), str(l[2])]), l[6],
-                    '[M+Fo]-', Mz(l[5]).add_fo()])
+                    '[M+HCOO]-', Mz(l[5]).add_fo()])
         _pAdducts = np.array(sorted(_pAdducts, key = lambda x: x[-1]),
             dtype = np.object)
         _nAdducts = np.array(sorted(_nAdducts, key = lambda x: x[-1]),
@@ -2679,7 +2679,7 @@ class LTP(object):
             '[M+OAc]-': 'add_ac',
             '[M+H]+': 'add_h',
             '[M-H]-': 'remove_h',
-            '[M+Fo]-': 'add_fo',
+            '[M+HCOO]-': 'add_fo',
             '[M+NH4]+': 'add_nh4'
         }
         if type(adducts) is list:
@@ -2710,7 +2710,7 @@ class LTP(object):
                                 if formiate:
                                     mzfo = Mz(mz).add_fo()
                                     foline = [l[0], l[1], l[2],
-                                        l[10], '[M+Fo]-', mzfo]
+                                        l[10], '[M+HCOO]-', mzfo]
                                     negatives.append(foline)
                                 if exact_mass:
                                     exact_masses.append([l[0], l[1], l[2],
@@ -5293,12 +5293,12 @@ class LTP(object):
             if 'neg' in tbl and 'pos' in tbl:
                 for neg in tbl['neg']:
                     adds = [neg[add_col]] \
-                        if neg[add_col] != 'Unknown' else ['[M-H]-', '[M+Fo]-']
+                        if neg[add_col] != 'Unknown' else ['[M-H]-', '[M+HCOO]-']
                     for add in adds:
                         if add == '[M-H]-':
                             poshmz = Mz(Mz(neg[mz_col]).add_h()).add_h()
                             posnh3mz = Mz(Mz(neg[mz_col]).add_h()).add_nh4()
-                        elif add == '[M+Fo]-':
+                        elif add == '[M+HCOO]-':
                             poshmz = Mz(Mz(neg[mz_col]).remove_fo()).add_h()
                             posnh3mz = Mz(Mz(neg[mz_col]).\
                                 remove_fo()).add_nh4()
@@ -10292,7 +10292,7 @@ class LTP(object):
             lips1 = get_lipids(tbl['lip'][oi], '[M+H]+') if mode == 'pos' \
                 else get_lipids(tbl['lip'][oi], '[M-H]-')
             lips2 = get_lipids(tbl['lip'][oi], '[M+NH4]+') if mode == 'pos' \
-                else get_lipids(tbl['lip'][oi], '[M+Fo]-')
+                else get_lipids(tbl['lip'][oi], '[M+HCOO]-')
             lips3 = get_lipids(tbl['lip'][oi], '[M+Na]+') if mode == 'pos' \
                 else ''
             
@@ -10376,7 +10376,7 @@ class LTP(object):
                     ('%s: %s --%s: %s' % (
                         '[M+H]+' if mode == 'pos' else '[M-H]-',
                         lips1,
-                        '[M+NH4]+' if mode == 'pos' else '[M+Fo]-',
+                        '[M+NH4]+' if mode == 'pos' else '[M+HCOO]-',
                         lips2), 
                     'green' if len(lips1) or len(lips2) else 'plain'),
                     ('NA' if tbl['prr'] is None else \
