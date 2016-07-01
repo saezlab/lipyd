@@ -1447,7 +1447,10 @@ class MS2Scan(object):
         names = set([])
         for i, r in enumerate(self.scan):
             if abs(r[1] - prev_mz) > 0.0001:
-                result.append('%s (%u)' % ('/'.join(sorted(list(names))), intensity))
+                if len(names) == 1 and  list(names)[0] == 'unknown':
+                    result.append('%s (%.03f) (%u)' % ('/'.join(sorted(list(names))), r[1], intensity))
+                else:
+                    result.append('%s (%u)' % ('/'.join(sorted(list(names))), intensity))
                 names = set([])
                 intensity = r[2]
                 prev_mz = r[1]
@@ -10156,12 +10159,14 @@ class LTP(object):
         with open(filename, 'w') as f:
             f.write(out)
     
-    def std_layout_tables_xls(self):
-        def add_sheet(xls, tbl, name):
+    def std_layout_tables_xlsx(self):
+        def add_sheet(xls, tbl, name, colws = None):
             sheet = xls.add_worksheet(name)
             plain = xls.add_format({})
-            bold = xls.add_format({'bold': True})
+            bold = xls.add_format({'bold': True, 'rotation': 90})
             green = xls.add_format({'bg_color': '#A9C98B'})
+            sheet.set_row(row = 0, height = 115.0)
+            sheet.freeze_panes(1, 0)
             for i, content in enumerate(tbl[0]):
                 sheet.write(0, i, content, bold)
             for j, row in enumerate(tbl[1:]):
@@ -10175,75 +10180,88 @@ class LTP(object):
                     try:
                         sheet.write(j + 1, i, content, style)
                     except:
-                        print row
+                        sys.stdout.write('\t:: Could not write row to xlsx:\n')
+                        sys.stdout.write('\t\t%s\n' % row)
+            if colws is not None:
+                for coln, colw in enumerate(colws):
+                    sheet.set_column(coln, coln, colw * 2.5)
+            #sheet.set_row(row = 0, height = 115.0)
         xlsdir = 'top_features'
         if not os.path.exists(xlsdir):
             os.mkdir(xlsdir)
         for fname in os.listdir(xlsdir):
             os.remove(os.path.join(xlsdir, fname))
         self.sort_alll('aaa', asc = False)
-        prg = progress.Progress(len(self.valids), 'Exporting xlsx tables', 1, percent = False)
+        prg = progress.Progress(len(self.valids), 'Exporting xlsx tables',
+                                1, percent = False)
         for protein in self.valids.keys():
             prg.step()
             xlsname = os.path.join(xlsdir, '%s_top_features.xlsx' % protein)
-            tbl_pos = self.std_layout_table(protein, 'pos')
-            tbl_neg = self.std_layout_table(protein, 'neg')
+            tbl_pos, colw_pos = self.std_layout_table(protein,
+                                                      'pos', colws = True)
+            tbl_neg, colw_neg = self.std_layout_table(protein,
+                                            'neg', colws = True)
             xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True})
-            add_sheet(xls, tbl_pos, '%s_positive' % protein)
-            add_sheet(xls, tbl_neg, '%s_negative' % protein)
-            tbl_pos = self.std_layout_table(protein, 'pos', only_best = True)
-            tbl_neg = self.std_layout_table(protein, 'neg', only_best = True)
-            add_sheet(xls, tbl_pos, '%s_positive_best' % protein)
-            add_sheet(xls, tbl_neg, '%s_negative_best' % protein)
+            add_sheet(xls, tbl_pos, '%s_positive' % protein, colw_pos)
+            add_sheet(xls, tbl_neg, '%s_negative' % protein, colw_neg)
+            tbl_pos, colw_pos = self.std_layout_table(protein, 'pos',
+                                            only_best = True, colws = True)
+            tbl_neg, colw_pos = self.std_layout_table(protein, 'neg',
+                                            only_best = True, colws = True)
+            add_sheet(xls, tbl_pos, '%s_positive_best' % protein, colw_pos)
+            add_sheet(xls, tbl_neg, '%s_negative_best' % protein, colw_neg)
             xls.close()
         prg.terminate()
     
-    def std_layout_table(self, protein, mode, only_best = False):
+    def std_layout_table(self, protein, mode,
+                         only_best = False, colws = False):
         rows = []
         hdr = [
-            'Quality',
-            'Significance',
-            'm/z',
-            'Avg. Area',
-            'Has MS2',
-            'RT range',
-            'RT mean',
-            'RT (MS2 closest)',
-            'dRT',
-            'Protein Peak Ratio',
-            '[M+H]+ Lipids' if mode == 'pos' else '[M-H]- Lipids',
-            '[M+NH4]+ Lipids' if mode == 'pos' else '[M+HCOO]- Lipids',
-            '[M+Na]+ Lipids' if mode == 'pos' else 'Nothing',
-            'm/z corrected',
-            'MS2 precursor mass',
-            '#1 MS2 Ion Mass (intensity)',
-            '#1 MS2 Fragment (mass)',
-            '#2 MS2 Ion Mass (intensity)',
-            '#2 MS2 Fragment (mass)',
-            '#3 MS2 Ion Mass (intensity)',
-            '#3 MS2 Fragment (mass)',
-            '#4 MS2 Ion Mass (intensity)',
-            '#4 MS2 Fragment (mass)',
-            '#5 MS2 Ion Mass (intensity)',
-            '#5 MS2 Fragment (mass)',
-            'z',
-            'MS2 File',
-            'Scan num.',
-            'MS2 All Fragments',
-            'Database ID',
-            'Protein Ratio',
-            'Lipid Intensity Ratio',
-            'Protein Ratio Limit %.03f' % self.fr_offsets[0],
-            'Protein Ratio Limit %.03f' % self.fr_offsets[1],
-            'Protein Ratio from Fractions',
-            'Protein Ratio Score',
-            'Peaksize',
-            'MS1 Headgroups (automatic identification)',
-            'MS2 Headgroups (automatic identification)',
-            'Identity (automatically assigned)'
+            ('Quality', 1.0),
+            ('Significance', 1.2),
+            ('m/z', 2.1),
+            ('Avg. Area', 2.2),
+            ('Has MS2', 1.0),
+            ('RT range', 3.1),
+            ('RT mean', 1.55),
+            ('RT (MS2 closest)', 1.55),
+            ('dRT', 1.55),
+            ('Protein Ratio', 1.44),
+            ('[M+H]+ Lipids' if mode == 'pos' else '[M-H]- Lipids', 5.0),
+            ('[M+NH4]+ Lipids' if mode == 'pos' else '[M+HCOO]- Lipids', 5.0),
+            ('[M+Na]+ Lipids' if mode == 'pos' else 'Nothing', 5.0),
+            ('m/z corrected', 2.1),
+            ('MS2 precursor mass', 2.1),
+            ('1 MS2 Ion Mass (intensity)', 2.1),
+            ('1 MS2 Fragment (mass)', 5.0),
+            ('2 MS2 Ion Mass (intensity)', 2.1),
+            ('2 MS2 Fragment (mass)', 5.0),
+            ('3 MS2 Ion Mass (intensity)', 2.1),
+            ('3 MS2 Fragment (mass)', 5.0),
+            ('4 MS2 Ion Mass (intensity)', 2.1),
+            ('4 MS2 Fragment (mass)', 5.0),
+            ('5 MS2 Ion Mass (intensity)', 2.1),
+            ('5 MS2 Fragment (mass)', 5.0),
+            ('z', 0.55),
+            ('MS2 File', 0.80),
+            ('Scan num.', 0.80),
+            ('MS2 All Fragments', 1.2),
+            ('Database Names', 0.80),
+            ('Protein Ratio OK', 0.90),
+            ('Lipid Intensity Ratio', 1.44),
+            ('Protein Ratio Limit %.03f' % self.fr_offsets[0], 1.2),
+            ('Protein Ratio Limit %.03f' % self.fr_offsets[1], 1.2),
+            ('Protein Ratio from Fractions', 1.8),
+            ('Protein Ratio Score', 1.44),
+            ('Peaksize', 1.44),
+            ('MS1 Headgroups (automatic identification)', 2.1),
+            ('MS2 Headgroups (automatic identification)', 2.1),
+            ('Identity (automatically assigned)', 5.5)
         ]
         
-        rows.append(hdr)
+        colw = list(map(lambda f: f[1], hdr))
+        
+        rows.append(list(map(lambda f: f[0], hdr)))
         
         tbl = self.valids[protein][mode]
         drift = 1.0 if not self.ltps_drifts \
@@ -10254,7 +10272,7 @@ class LTP(object):
                     ))
         
         def get_lipids(lips, add):
-            return '' if lips is None else \
+            return 'nothing' if lips is None else \
                 '; '.join(
                     uniqList(
                         map(
@@ -10373,14 +10391,15 @@ class LTP(object):
                     (ms2_file.split('/')[-1], ms2_style),
                     (ms2_scan, ms2_style),
                     (ms2_full, ms2_style),
-                    ('%s: %s --%s: %s' % (
+                    ('%s: %s /// %s: %s%s' % (
                         '[M+H]+' if mode == 'pos' else '[M-H]-',
                         lips1,
                         '[M+NH4]+' if mode == 'pos' else '[M+HCOO]-',
-                        lips2), 
+                        lips2,
+                        '' if mode == 'neg' else ' /// %s: %s' % ('[M+Na]+', lips3)),
                     'green' if len(lips1) or len(lips2) else 'plain'),
                     ('NA' if tbl['prr'] is None else \
-                        'protein_peak_ratio_OK' if tbl['prr'][i] else 'not_OK',
+                        'OK' if tbl['prr'][i] else 'NOT_OK',
                     'plain' if tbl['prr'] is None or not tbl['prr'][i] \
                         else 'green'
                     ),
@@ -10411,4 +10430,7 @@ class LTP(object):
                     '' if oi not in tbl['cid'] or not len(tbl['cid'][oi]) else \
                         (', '.join(sorted(tbl['cid'][oi])), 'green')
                 ])
-        return rows
+        if colws:
+            return rows, colw
+        else:
+            return rows
