@@ -2133,6 +2133,7 @@ class LTP(object):
             'std_tolerance': 0.02,
             'only_marcos_fragments': True,
             'adducts_constraints': False,
+            'marco_lipnames_from_db': True,
             'ad2ex': {
                 1: {
                     'pos': {
@@ -10258,12 +10259,16 @@ class LTP(object):
                     uniqList(
                         map(
                             lambda r:
+                                r[2].split('|')[0] \
+                                    if self.marco_lipnames_from_db else \
                                 '%s(%s%u:%u)' % (r[7], 'O-' if r[9] else '',
                                                r[8][0], r[8][1]) \
                                     if r[8] is not None else '%s' % r[7],
                             filter(
                                 lambda r:
-                                    r[7] is not None and r[4] == add,
+                                    (r[7] is not None or \
+                                        self.marco_lipnames_from_db) \
+                                    and r[4] == add,
                                 lips
                             )
                         )
