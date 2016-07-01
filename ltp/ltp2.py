@@ -2666,7 +2666,28 @@ class LTP(object):
             if self.exacts is None \
             else np.vstack((self.exacts, _exacts))
         self.exacts = self.exacts[self.exacts[:,-1].argsort()]
-
+    
+    def export_lipidmaps(self, fname = 'lipidmaps.tab'):
+        with open(fname, 'w') as f:
+            f.write('%s\t%s\t%s\t%s\t%s\t%s\n' % \
+                ('ID', 'Name1', 'Name2', 'Name3',
+                 'Constitution', 'MonoisotopicMass'))
+            for l in self.exacts:
+                if l[0][0] == 'L':
+                    names = l[2].split('|')
+                    f.write('%s\t%s\t%s\t%s\t%s\t%.06f\n' % \
+                        (l[0], names[0], names[1], names[2],
+                         l[3], l[5]))
+    
+    def export_swisslipids(self, fname = 'swisslipids.tab'):
+        with open(fname, 'w') as f:
+            f.write('%s\t%s\t%s\t%s\n' % \
+                ('ID', 'Name', 'Constitution', 'MonoisotopicMass'))
+            for l in self.exacts:
+                if l[0][0] == 'S' and l[1] == 'Species' and l[5] is not None:
+                    f.write('%s\t%s\t%s\t%.06f\n' % \
+                        (l[0], l[2], l[3], l[5]))
+    
     def get_swisslipids(self, adducts = None,
         exact_mass = False):
         '''
@@ -5638,12 +5659,19 @@ class LTP(object):
                     lst += self.auto_fragment_list(NLFA, 0)
                     lst += self.auto_fragment_list(FAminusO, 1)
                     lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H5'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
                 lst += self.auto_fragment_list(FAplusGlycerol, 1)
                 lst += self.auto_fragment_list(NLFAplusOH, 0)
                 lst += self.auto_fragment_list(NLFAplusNH3, 0)
-                lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O'])
-                lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O', 'H2O'])
-                lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
+                if self.only_marcos_fragments:
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 14, unsatmax = 3, minus = ['H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 14, unsatmax = 3, minus = ['H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 14, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
             if return_fraglines:
                 return lst
             
@@ -10251,7 +10279,7 @@ class LTP(object):
             ('Lipid Intensity Ratio', 1.44),
             ('Protein Ratio Limit %.03f' % self.fr_offsets[0], 1.2),
             ('Protein Ratio Limit %.03f' % self.fr_offsets[1], 1.2),
-            ('Protein Ratio from Fractions', 1.8),
+            ('Protein Ratio from Fractions', 2.7),
             ('Protein Ratio Score', 1.44),
             ('Peaksize', 1.44),
             ('MS1 Headgroups (automatic identification)', 2.1),
@@ -10271,13 +10299,19 @@ class LTP(object):
                         np.array(self.ltps_drifts[protein][mode].values())
                     ))
         
+        def lipid_name(lip):
+            names = lip[2].split('|')
+            for name in names:
+                if name is not None:
+                    return name
+        
         def get_lipids(lips, add):
             return 'nothing' if lips is None else \
                 '; '.join(
                     uniqList(
                         map(
                             lambda r:
-                                r[2].split('|')[0] \
+                                lipid_name(r) \
                                     if self.marco_lipnames_from_db else \
                                 '%s(%s%u:%u)' % (r[7], 'O-' if r[9] else '',
                                                r[8][0], r[8][1]) \
