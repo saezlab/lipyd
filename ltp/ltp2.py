@@ -2667,17 +2667,26 @@ class LTP(object):
             else np.vstack((self.exacts, _exacts))
         self.exacts = self.exacts[self.exacts[:,-1].argsort()]
     
-    def export_lipidmaps(self, fname = 'lipidmaps.tab'):
+    def export_lipidmaps(self, fname = 'lipidmaps.tab', one_name = False):
         with open(fname, 'w') as f:
-            f.write('%s\t%s\t%s\t%s\t%s\t%s\n' % \
-                ('ID', 'Name1', 'Name2', 'Name3',
-                 'Constitution', 'MonoisotopicMass'))
+            hdr = ['ID']
+            if one_name:
+                hdr.append('Name')
+            else:
+                hdr.extend(['Name1', 'Name2', 'Name3'])
+            hdr.extend(['Constitution', 'MonoisotopicMass'])
+            f.write('%s\n' % '\t'.join(hdr))
             for l in self.exacts:
                 if l[0][0] == 'L':
                     names = l[2].split('|')
-                    f.write('%s\t%s\t%s\t%s\t%s\t%.06f\n' % \
-                        (l[0], names[0], names[1], names[2],
-                         l[3], l[5]))
+                    if one_name:
+                        for name in names:
+                            if name is not None:
+                                names = [name]
+                                break
+                    f.write('%s\n' % \
+                            '\t'.join([l[0]], names + [l[3], '%.06f' % l[5]])
+                         )
     
     def export_swisslipids(self, fname = 'swisslipids.tab'):
         with open(fname, 'w') as f:
@@ -4278,7 +4287,9 @@ class LTP(object):
         Reads one MS file, returns numpy masked array, 
         with void mask.
         Column order:
-        quality, m/z, rt-min, rt-max, charge, control, a9, a10, a11, a12, b1
+        quality, m/z, significance,
+        rt-min, rt-max, charge, rtmean,
+        control, a9, a10, a11, a12, b1
         '''
         # typos in the headers what need to be fixed
         typos = {
@@ -4301,11 +4312,21 @@ class LTP(object):
         # col nums for each variable, for each fraction
         scols = dict([(var, dict([(i, None) for i in sname])) \
             for var in vname.keys()])
+        rtmkey = ('RT', 'mean')
+        rtmcol = None
         with open(fname, 'r') as f:
             hdr = retyp.sub(lambda x:
                     typos[x.group()],
-                f.readline()
+                f.readline().replace('"', '')
             ).split(',')[1:]
+            for i, h in enumerate(hdr):
+                this_hdr = rehdr.match(h)
+                if this_hdr is not None and this_hdr.groups(0) == rtmkey:
+                    rtmcol = i
+            if rtmcol is None:
+                sys.stdout.write('\t:: Could not find RT mean'
+                                    ' column in file %s\n' % fname)
+                sys.stdout.flush()
             cols = [tuple([i] + [x.strip() \
                     for x in list(rehdr.match(h).groups(0))]) \
                 for i, h in enumerate(hdr[6:-7])]
@@ -4324,7 +4345,7 @@ class LTP(object):
                 l = [i.strip() for i in l.split(',')][1:]
                 vals = [self.to_float(l[0]), self.to_float(l[1]), self.to_float(l[2])] + \
                     [self.to_float(i.strip()) for i in l[3].split('-')] + \
-                    [self.to_float(l[4])]
+                    [self.to_float(l[4]), self.to_float(l[rtmcol - 1])]
                 for var, scol in scols.iteritems():
                     # number of columns depends on which variables we need
                     if var in read_vars:
@@ -4359,7 +4380,7 @@ class LTP(object):
                     sys.stdout.write('\nerror reading file: %s\n' % fname)
                     sys.stdout.flush()
                 # making a view with the intensities:
-                data[ltp][p]['int'] = data[ltp][p]['raw'][:, 6:]
+                data[ltp][p]['int'] = data[ltp][p]['raw'][:, 7:]
                 # mask non measured:
                 data[ltp][p]['mes'] = data[ltp][p]['int'].view()
                 data[ltp][p]['mes'].mask = \
@@ -4432,7 +4453,7 @@ class LTP(object):
     def rt1_filter(self, rtmin = 1.0):
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
-                tbl['rtm'] = (tbl['raw'][:,3] + tbl['raw'][:,4]) / 2.0
+                tbl['rtm'] = tbl['raw'][:,6]
                 tbl['rt1'] = np.array(tbl['rtm'] > rtmin)
 
     def area_filter(self, area = 10000.0):
@@ -5666,12 +5687,12 @@ class LTP(object):
                 lst += self.auto_fragment_list(NLFAplusOH, 0)
                 lst += self.auto_fragment_list(NLFAplusNH3, 0)
                 if self.only_marcos_fragments:
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 14, unsatmax = 3, minus = ['H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 14, unsatmax = 3, minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 14, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 16, unsatmin = 0, cmax = 16, unsatmax = 3, minus = ['H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 16, unsatmin = 0, cmax = 16, unsatmax = 3, minus = ['H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 16, unsatmin = 0, cmax = 16, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 18, unsatmax = 3, minus = ['H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 18, unsatmax = 3, minus = ['H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 18, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
             if return_fraglines:
                 return lst
             
@@ -10191,9 +10212,11 @@ class LTP(object):
         def add_sheet(xls, tbl, name, colws = None):
             sheet = xls.add_worksheet(name)
             plain = xls.add_format({})
-            bold = xls.add_format({'bold': True, 'rotation': 90})
+            bold = xls.add_format({'bold': True,
+                                   #'rotation': 90
+                                   })
             green = xls.add_format({'bg_color': '#A9C98B'})
-            sheet.set_row(row = 0, height = 115.0)
+            #sheet.set_row(row = 0, height = 115.0)
             sheet.freeze_panes(1, 0)
             for i, content in enumerate(tbl[0]):
                 sheet.write(0, i, content, bold)
@@ -10251,14 +10274,14 @@ class LTP(object):
             ('Avg. Area', 2.2),
             ('Has MS2', 1.0),
             ('RT range', 3.1),
-            ('RT mean', 1.55),
+            ('RT mean', 6.57),
             ('RT (MS2 closest)', 1.55),
             ('dRT', 1.55),
             ('Protein Ratio', 1.44),
-            ('[M+H]+ Lipids' if mode == 'pos' else '[M-H]- Lipids', 5.0),
-            ('[M+NH4]+ Lipids' if mode == 'pos' else '[M+HCOO]- Lipids', 5.0),
-            ('[M+Na]+ Lipids' if mode == 'pos' else 'Nothing', 5.0),
-            ('m/z corrected', 2.1),
+            ('[M+H]+ Lipids' if mode == 'pos' else '[M-H]- Lipids', 14.47),
+            ('[M+NH4]+ Lipids' if mode == 'pos' else '[M+HCOO]- Lipids', 14.47),
+            ('[M+Na]+ Lipids' if mode == 'pos' else 'Nothing', 14.47),
+            ('m/z corrected', 8.55),
             ('MS2 precursor mass', 2.1),
             ('1 MS2 Ion Mass (intensity)', 2.1),
             ('1 MS2 Fragment (mass)', 5.0),
@@ -10272,7 +10295,7 @@ class LTP(object):
             ('5 MS2 Fragment (mass)', 5.0),
             ('z', 0.55),
             ('MS2 File', 0.80),
-            ('Scan num.', 0.80),
+            ('Scan num.', 5.26),
             ('MS2 All Fragments', 1.2),
             ('Database Names', 0.80),
             ('Protein Ratio OK', 0.90),
@@ -10284,7 +10307,13 @@ class LTP(object):
             ('Peaksize', 1.44),
             ('MS1 Headgroups (automatic identification)', 2.1),
             ('MS2 Headgroups (automatic identification)', 2.1),
-            ('Identity (automatically assigned)', 5.5)
+            ('Identity (automatically assigned)', 5.5),
+            ('[M+H]+ Lipids (LipidMaps)' if mode == 'pos' \
+                else '[M-H]- Lipids (LipidMaps)', 5.0),
+            ('[M+NH4]+ Lipids (LipidMaps)' if mode == 'pos' \
+                else '[M+HCOO]- Lipids (LipidMaps)', 5.0),
+            ('[M+Na]+ Lipids (LipidMaps)' if mode == 'pos' \
+                else 'Nothing', 5.0)
         ]
         
         colw = list(map(lambda f: f[1], hdr))
@@ -10305,7 +10334,7 @@ class LTP(object):
                 if name is not None:
                     return name
         
-        def get_lipids(lips, add):
+        def get_lipids(lips, add, db = None):
             return 'nothing' if lips is None else \
                 '; '.join(
                     uniqList(
@@ -10319,7 +10348,10 @@ class LTP(object):
                             filter(
                                 lambda r:
                                     (r[7] is not None or \
-                                        self.marco_lipnames_from_db) \
+                                        (self.marco_lipnames_from_db and \
+                                            (db is None or r[0][0] == db)
+                                        )
+                                    ) \
                                     and r[4] == add,
                                 lips
                             )
@@ -10341,11 +10373,18 @@ class LTP(object):
             delta_rt = 'NA' \
                 if ms2_best is None else \
                 tbl['ms2f'][oi]._scans[ms2_best].deltart
-            lips1 = get_lipids(tbl['lip'][oi], '[M+H]+') if mode == 'pos' \
-                else get_lipids(tbl['lip'][oi], '[M-H]-')
-            lips2 = get_lipids(tbl['lip'][oi], '[M+NH4]+') if mode == 'pos' \
-                else get_lipids(tbl['lip'][oi], '[M+HCOO]-')
-            lips3 = get_lipids(tbl['lip'][oi], '[M+Na]+') if mode == 'pos' \
+            lips1 = get_lipids(tbl['lip'][oi], '[M+H]+', 'S') if mode == 'pos' \
+                else get_lipids(tbl['lip'][oi], '[M-H]-', 'S')
+            lips2 = get_lipids(tbl['lip'][oi], '[M+NH4]+', 'S') if mode == 'pos' \
+                else get_lipids(tbl['lip'][oi], '[M+HCOO]-', 'S')
+            lips3 = get_lipids(tbl['lip'][oi], '[M+Na]+', 'S') if mode == 'pos' \
+                else ''
+            
+            lips1l = get_lipids(tbl['lip'][oi], '[M+H]+', 'L') if mode == 'pos' \
+                else get_lipids(tbl['lip'][oi], '[M-H]-', 'L')
+            lips2l = get_lipids(tbl['lip'][oi], '[M+NH4]+', 'L') if mode == 'pos' \
+                else get_lipids(tbl['lip'][oi], '[M+HCOO]-', 'L')
+            lips3l = get_lipids(tbl['lip'][oi], '[M+Na]+', 'L') if mode == 'pos' \
                 else ''
             
             ms2_mz = 'NA' if ms2_best is None else \
@@ -10425,13 +10464,16 @@ class LTP(object):
                     (ms2_file.split('/')[-1], ms2_style),
                     (ms2_scan, ms2_style),
                     (ms2_full, ms2_style),
-                    ('%s: %s /// %s: %s%s' % (
+                    (('%s: %s /// %s: %s%s' % (
                         '[M+H]+' if mode == 'pos' else '[M-H]-',
                         lips1,
                         '[M+NH4]+' if mode == 'pos' else '[M+HCOO]-',
                         lips2,
-                        '' if mode == 'neg' else ' /// %s: %s' % ('[M+Na]+', lips3)),
-                    'green' if len(lips1) or len(lips2) else 'plain'),
+                        '' if mode == 'neg' else ' /// %s: %s' % \
+                            ('[M+Na]+', lips3))) \
+                        if len(lips1) or len(lips2) or len(lips3) \
+                            else 'unknown',
+                    'green' if len(lips1) or len(lips2) or len(lips3) else 'plain'),
                     ('NA' if tbl['prr'] is None else \
                         'OK' if tbl['prr'][i] else 'NOT_OK',
                     'plain' if tbl['prr'] is None or not tbl['prr'][i] \
@@ -10462,7 +10504,10 @@ class LTP(object):
                     '' if oi not in tbl['ms2hg2'] or not len(tbl['ms2hg2']) else \
                         (', '.join(sorted(list(tbl['ms2hg2'][oi]))), 'green'),
                     '' if oi not in tbl['cid'] or not len(tbl['cid'][oi]) else \
-                        (', '.join(sorted(tbl['cid'][oi])), 'green')
+                        (', '.join(sorted(tbl['cid'][oi])), 'green'),
+                    (lips1l, 'green' if len(lips1l) else 'plain'),
+                    (lips2l, 'green' if len(lips2l) else 'plain'),
+                    (lips3l, 'green' if len(lips3l) else 'plain'),
                 ])
         if colws:
             return rows, colw
