@@ -10203,44 +10203,44 @@ class LTP(object):
         hdr = [
             'Quality',
             'Significance',
-            'm.z',
-            'Avg..Area',
-            'RT.range',
-            'RT.mean',
-            'Retention.Time..mins.secs',
-            'delta_RT',
-            'protein_peak_ratio',
-            'lipid_.M.H.' if mode == 'pos' else 'lipid_.M.H..',
-            'lipid_.NH4' if mode == 'pos' else 'lipid_.M.COOH..',
-            'lipid_.M.Na' if mode == 'pos' else 'nothing',
-            'm.z_corrected',
-            'Peptide.Mass',
-            'MS2.Ion.1.Mass.Intensity',
-            'Fragments.matching.MS2.Ion.1.Mass..Observed.Mass.',
-            'MS2.Ion.2.Mass.Intensity',
-            'Fragments.matching.MS2.Ion.2.Mass..Observed.Mass.',
-            'MS2.Ion.3.Mass.Intensity',
-            'Fragments.matching.MS2.Ion.3.Mass..Observed.Mass.',
-            'MS2.Ion.4.Mass.Intensity',
-            'Fragments.matching.MS2.Ion.4.Mass..Observed.Mass.',
-            'MS2.Ion.5.Mass.Intensity',
-            'Fragments.matching.MS2.Ion.5.Mass..Observed.Mass.',
-            'Group.Profile..Ratio.',
+            'm/z',
+            'Avg. Area',
+            'Has MS2',
+            'RT range',
+            'RT mean',
+            'RT (MS2 closest)',
+            'dRT',
+            'Protein Peak Ratio',
+            '[M+H]+ Lipids' if mode == 'pos' else '[M-H]- Lipids',
+            '[M+NH4]+ Lipids' if mode == 'pos' else '[M+HCOO]- Lipids',
+            '[M+Na]+ Lipids' if mode == 'pos' else 'Nothing',
+            'm/z corrected',
+            'MS2 precursor mass',
+            '#1 MS2 Ion Mass (intensity)',
+            '#1 MS2 Fragment (mass)',
+            '#2 MS2 Ion Mass (intensity)',
+            '#2 MS2 Fragment (mass)',
+            '#3 MS2 Ion Mass (intensity)',
+            '#3 MS2 Fragment (mass)',
+            '#4 MS2 Ion Mass (intensity)',
+            '#4 MS2 Fragment (mass)',
+            '#5 MS2 Ion Mass (intensity)',
+            '#5 MS2 Fragment (mass)',
             'z',
-            'MS2.file',
-            'Scan',
-            'All.Fragments.Matched..maximum.MS2.intensity',
-            'swisslipid_ID',
-            'check_protein_peak_ratio',
-            'intensity_peak_ratio',
-            'protein_peak_ratio_%.03f' % self.fr_offsets[0],
-            'protein_peak_ratio_%.03f' % self.fr_offsets[1],
-            'ratio_of_fractions',
-            'peak_ratio_score',
-            'peaksize',
-            'MS1_headgroups',
-            'MS2_headgroups',
-            'consensus_indentity'
+            'MS2 File',
+            'Scan num.',
+            'MS2 All Fragments',
+            'Database ID',
+            'Protein Ratio',
+            'Lipid Intensity Ratio',
+            'Protein Ratio Limit %.03f' % self.fr_offsets[0],
+            'Protein Ratio Limit %.03f' % self.fr_offsets[1],
+            'Protein Ratio from Fractions',
+            'Protein Ratio Score',
+            'Peaksize',
+            'MS1 Headgroups (automatic identification)',
+            'MS2 Headgroups (automatic identification)',
+            'Identity (automatically assigned)'
         ]
         
         rows.append(hdr)
@@ -10297,7 +10297,7 @@ class LTP(object):
                 else ''
             
             ms2_mz = 'NA' if ms2_best is None else \
-                tbl['ms2f'][oi].scans[ms2_best][0,0]
+                tbl['ms2f'][oi].scans[ms2_best][0,9]
             
             ms2i1, ms2f1 = \
                 tbl['ms2f'][oi]._scans[ms2_best].get_by_rank(1, min_ms2_mz) \
@@ -10345,6 +10345,7 @@ class LTP(object):
                     'green' if tbl['aaa'][i] >= self.aa_threshold[mode] \
                         else 'plain'
                     ),
+                    ('yes' if len(ms2_full) else 'no', ms2_style),
                     '%.02f - %.02f' % (tbl['rt'][i][0], tbl['rt'][i][1]),
                     tbl['rtm'][i],
                     # '%u:%u' % (int(tbl['rtm'][i]) / 60, tbl['rtm'][i] % 60),
@@ -10368,7 +10369,6 @@ class LTP(object):
                     (ms2f4, ms2_style),
                     (ms2i5, ms2_style),
                     (ms2f5, ms2_style),
-                    '', # TODO: what is group profile ratio?
                     tbl['z'][i],
                     (ms2_file.split('/')[-1], ms2_style),
                     (ms2_scan, ms2_style),
