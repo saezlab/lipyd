@@ -5686,8 +5686,8 @@ class LTP(object):
                     lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O'])
                     lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O', 'H2O'])
                     lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
+                    lst += self.auto_fragment_list(NLFAplusOH, 0)
                 lst += self.auto_fragment_list(FAplusGlycerol, 1)
-                lst += self.auto_fragment_list(NLFAplusOH, 0)
                 lst += self.auto_fragment_list(NLFAplusNH3, 0)
                 if self.only_marcos_fragments:
                     lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 16, unsatmin = 0, cmax = 16, unsatmax = 3, minus = ['H2O'])
