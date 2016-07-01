@@ -1,0 +1,24 @@
+58.065126	PC/SM choline (58.0651)	[M+H]+	PC
+60.080776	PC/SM choline (60.0808)	[M+H]+	PC
+86.096425	PC/SM ethyl-triethylammonium (86.096)	[M+H]+	PC;SM
+104.106990	PC/SM choline (104.107)	[M+H]+	PC
+115.003447	PA headgroup+NH3 (NL 115.0034)	NL positive mode	PA
+124.999822	PC/SM choline (125.000)	[M+H]+	PC
+141.019097	PE headgroup (NL 141.0191)	NL positive mode	PE
+146.981769	PC/SM Na-cyclophosphane (146.98)	[M+H]+	PC;SM
+185.008927	PS headgroup (NL 185.0089)	NL positive mode	PS
+183.066045	PC/SM headgroup (cholin+P) NL	NL positive mode	PC;SM
+184.073323	PC/SM headgroup (cholin+phosphate) (184.0733)	[M+H]+	PC;SM
+189.040227	PG headgroup+NH3 (NL 189.0402)	NL positive mode	PG;BMP
+259.021894	PI headgroup (NL 259.0219)	NL positive mode	PI
+277.056272	PI headgroup+NH3 NL (277.0563)	NL positive mode	PI
+198.073955	Hexose+H2O (NL 198.07)	NL positive mode	HexCer
+180.06339	Hexose (NL 180.06)	NL positive mode	HexCer
+162.052825	Hexose-H2O (NL 162.05)	NL positive mode	HexCer
+369.351576	CE headgroup (369.3516)	[M+H]+	CE
+165.091006	alpha-Vit.E (165.09)	[M+H]+	VE
+151.075356	beta/gamma-Vit.E (151.08)	[M+H]+	VE
+137.059706	delta-Vit.E (137.06)	[M+H]+	VE
+165.091006	Nonidet P40 Substitute-H2O-C9H28 n=2	[M+H]+	P40
+247.205641	Nonidet P40 Substitute-H2O  n=1	[M+H]+	P40
+291.231856	Nonidet P40 Substitute-H2O  n=2	[M+H]+	P40

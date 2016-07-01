@@ -2108,7 +2108,7 @@ class LTP(object):
                 'LMSDFDownload28Jun15.tar.gz',
             'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
                 'LMSDFDownload28Jun15FinalAll.sdf',
-            'pfragmentsfile': 'lipid_fragments_positive_mode_v10d.txt',
+            'pfragmentsfile': 'lipid_fragments_positive_mode_v10d%s.txt',
             'nfragmentsfile': 'lipid_fragments_negative_mode_v10d.txt',
             'pptable_file': 'protein_profiles.txt',
             'featurescache': 'features.pickle',
@@ -2209,6 +2209,9 @@ class LTP(object):
                 setattr(self, attr, kwargs[attr])
             else:
                 setattr(self, attr, val)
+        
+        self.pfragmentsfile = \
+            self.pfragmentsfile % ('m' if self.only_marcos_fragments else '')
         
         self.basedir = os.path.join(*([self.path_root] + self.basedir)) \
             if type(self.basedir) is list \
