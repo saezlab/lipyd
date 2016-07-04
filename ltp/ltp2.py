@@ -2680,16 +2680,23 @@ class LTP(object):
             hdr.extend(['Constitution', 'MonoisotopicMass'])
             f.write('%s\n' % '\t'.join(hdr))
             for l in self.exacts:
-                if l[0][0] == 'L':
+                if l[0][0] == 'L' and l[5] is not None and l[5] > 0.0:
                     names = l[2].split('|')
                     if one_name:
                         for name in names:
-                            if name is not None:
+                            if name != 'None':
                                 names = [name]
                                 break
-                    f.write('%s\n' % \
-                            '\t'.join([l[0]], names + [l[3], '%.06f' % l[5]])
-                         )
+                        names = [names[0]]
+                    formula = '' if l[3] is None else l[3]
+                    names = list(map(lambda x: '' if x == 'None' else x, names))
+                    seq = [l[0]] + names + [l[3], '%.06f' % l[5]]
+                    try:
+                        f.write('%s\n' % \
+                                '\t'.join([l[0]] + names + [formula, '%.06f' % l[5]])
+                            )
+                    except:
+                        print seq
     
     def export_swisslipids(self, fname = 'swisslipids.tab'):
         with open(fname, 'w') as f:
@@ -4348,7 +4355,7 @@ class LTP(object):
                 l = [i.strip() for i in l.split(',')][1:]
                 vals = [self.to_float(l[0]), self.to_float(l[1]), self.to_float(l[2])] + \
                     [self.to_float(i.strip()) for i in l[3].split('-')] + \
-                    [self.to_float(l[4]), self.to_float(l[rtmcol - 1])]
+                    [self.to_float(l[4]), self.to_float(l[rtmcol])]
                 for var, scol in scols.iteritems():
                     # number of columns depends on which variables we need
                     if var in read_vars:
@@ -10271,20 +10278,20 @@ class LTP(object):
                          only_best = False, colws = False):
         rows = []
         hdr = [
-            ('Quality', 1.0),
+            ('Quality', 1.2),
             ('Significance', 1.2),
             ('m/z', 2.1),
             ('Avg. Area', 2.2),
             ('Has MS2', 1.0),
             ('RT range', 3.1),
-            ('RT mean', 6.57),
+            ('RT mean', 2.8),
             ('RT (MS2 closest)', 1.55),
             ('dRT', 1.55),
             ('Protein Ratio', 1.44),
             ('[M+H]+ Lipids' if mode == 'pos' else '[M-H]- Lipids', 14.47),
             ('[M+NH4]+ Lipids' if mode == 'pos' else '[M+HCOO]- Lipids', 14.47),
             ('[M+Na]+ Lipids' if mode == 'pos' else 'Nothing', 14.47),
-            ('m/z corrected', 8.55),
+            ('m/z corrected', 5.13),
             ('MS2 precursor mass', 2.1),
             ('1 MS2 Ion Mass (intensity)', 2.1),
             ('1 MS2 Fragment (mass)', 5.0),
@@ -10338,7 +10345,7 @@ class LTP(object):
                     return name
         
         def get_lipids(lips, add, db = None):
-            return 'nothing' if lips is None else \
+            return '' if lips is None else \
                 '; '.join(
                     uniqList(
                         map(
@@ -10469,11 +10476,11 @@ class LTP(object):
                     (ms2_full, ms2_style),
                     (('%s: %s /// %s: %s%s' % (
                         '[M+H]+' if mode == 'pos' else '[M-H]-',
-                        lips1,
+                        lips1 if len(lips1) else 'nothing',
                         '[M+NH4]+' if mode == 'pos' else '[M+HCOO]-',
-                        lips2,
-                        '' if mode == 'neg' else ' /// %s: %s' % \
-                            ('[M+Na]+', lips3))) \
+                        lips2 if len(lips2) else 'nothing',
+                        '' if mode == 'neg' else ' /// (%s: %s' % \
+                            ('[M+Na]+', lips3) if len(lips3) else 'nothing')) \
                         if len(lips1) or len(lips2) or len(lips3) \
                             else 'unknown',
                     'green' if len(lips1) or len(lips2) or len(lips3) else 'plain'),
