@@ -64,7 +64,7 @@ Lookup lipids for all the valid features. (variable name: `lip`)
 l.ms1()
 l.ms2()
 
-l.std_layout_tables_xls()
+l.std_layout_tables_xlsx()
 
 recal_marco = l.ltps_drifts
 l.recal_source = 'denes'

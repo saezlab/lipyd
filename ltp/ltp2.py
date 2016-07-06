@@ -6158,14 +6158,15 @@ class LTP(object):
         dl = None
         iu = fragments[:,0].searchsorted(mass)
         if iu < len(fragments) and \
-            (compl and 'NL' in fragments[iu,2] or \
-            not compl and ('+' in fragments[iu,2] or \
-                '-' in fragments[iu,2])):
+            ((compl and 'NL' in fragments[iu,2]) or \
+            (not compl and ('+' in fragments[iu,2] or \
+            '-' in fragments[iu,2]) and 'NL' not in fragments[iu,2])):
             du = fragments[iu,0] - mass
         if iu > 0 and \
-            (compl and 'NL' in fragments[iu - 1,2] or \
-            not compl and ('+' in fragments[iu - 1,2] or \
-                '-' in fragments[iu - 1,2])):
+            ((compl and 'NL' in fragments[iu - 1,2]) or \
+            (not compl and ('+' in fragments[iu - 1,2] or \
+            '-' in fragments[iu - 1,2]) \
+            and 'NL' not in fragments[iu - 1,2])):
             dl = mass - fragments[iu - 1,0]
         if du is not None and (du < dl or dl is None) and du < self.ms2_tlr:
             i = iu
@@ -6175,8 +6176,12 @@ class LTP(object):
             st = -1
         val = fragments[i,0]
         while len(fragments) > i >= 0 and fragments[i,0] == val:
-            result.append(fragments[i,:])
-            i += st
+            if (compl and 'NL' in fragments[i,2]) or \
+                (not compl and \
+                ('-' in fragments[i,2] or '+' in fragments[i,2]) \
+                and 'NL' not in fragments[i,2]):
+                result.append(fragments[i,:])
+                i += st
         return result
 
     def ms2_collect(self, ms2matches, ms1mz, unknown = False):
@@ -10357,10 +10362,12 @@ class LTP(object):
                                     if r[8] is not None else '%s' % r[7],
                             filter(
                                 lambda r:
-                                    (r[7] is not None or \
+                                    (
+                                        (not self.marco_lipnames_from_db and \
+                                        r[7] is not None)
+                                            or \
                                         (self.marco_lipnames_from_db and \
-                                            (db is None or r[0][0] == db)
-                                        )
+                                        (db is None or r[0][0] == db))
                                     ) \
                                     and r[4] == add,
                                 lips
@@ -10433,15 +10440,23 @@ class LTP(object):
             
             good = tbl['peaksize'][i] >= 5.0 and \
                 (tbl['prr'] is None or tbl['prr'][i]) and \
+                (tbl['aaa'][i] >= self.aa_threshold[mode] or \
+                (oi in tbl['ms2f'] and len(tbl['ms2f'][oi].deltart) and \
+                    min(map(abs, tbl['ms2f'][oi].deltart.values())) <= 1.0))
+            
+            _good = tbl['peaksize'][i] >= 5.0 and \
+                (tbl['prr'] is None or tbl['prr'][i]) and \
                 ((tbl['aaa'][i] >= self.aa_threshold[mode] and \
-                    (len(lips1) or len(lips2))) or \
+                    (any(map(len, [lips1, lips2, lips3, lips1l, lips2l, lips3l])))) or \
                 (oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
                     len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi])))
+            
             if not only_best or good:
+                
                 rows.append([
                     tbl['qua'][i],
                     tbl['sig'][i],
-                    (mz_original, 'green' if good else 'plain'),
+                    (mz_original, 'green' if _good else 'plain'),
                     (tbl['aaa'][i],
                     'green' if tbl['aaa'][i] >= self.aa_threshold[mode] \
                         else 'plain'
