@@ -963,7 +963,7 @@ class Mz():
     
     def remove_na(self):
         m = MolWeight('Na')
-        return self.adduct(m + mass.electron)
+        return self.adduct(-m + mass.electron)
     
     def reload(self):
         modname = self.__class__.__module__
