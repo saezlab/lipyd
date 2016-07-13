@@ -2134,6 +2134,7 @@ class LTP(object):
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.05,
             'std_tolerance': 0.02,
+            'ms2_precursor_charge': None,
             'only_marcos_fragments': True,
             'adducts_constraints': False,
             'marco_lipnames_from_db': True,
@@ -5794,7 +5795,7 @@ class LTP(object):
                                 os.path.join(*([d] + fpath + [f]))
         self.ms2files = fnames
 
-    def ms2_map(self, charge = 1):
+    def ms2_map(self):
         stRpos = 'pos'
         stRneg = 'neg'
         redgt = re.compile(r'[AB]([\d]+)$')
@@ -5814,7 +5815,8 @@ class LTP(object):
                 for fr, fl in files.iteritems():
                     fr = int(redgt.match(fr).groups()[0])
                     #fractions.add(fr)
-                    mm = self.ms2_index(fl, fr, charge = charge)
+                    mm = self.ms2_index(fl, fr,
+                                        charge = self.ms2_precursor_charge)
                     m = np.vstack(mm)
                     features.extend(mm)
                     result[ultp]['ms2files'][pn][int(fr)] = fl
@@ -5849,6 +5851,7 @@ class LTP(object):
         reln = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
         features = []
         offset = 0
+        cap_next = False
         with open(fl, 'rb', 8192) as f:
             for l in f:
                 if not l[0].isdigit() and \
@@ -5866,16 +5869,21 @@ class LTP(object):
                         if m[0] == stRpepmass:
                             pepmass = float(m[1])
                             intensity = 0.0 if m[2] == stRempty else float(m[2])
-                    if l[:2] == stRch:
+                            if charge is None:
+                                cap_next = True
+                    else:
                         _charge = int(l[7]) if len(l) >= 8 else None
-                        if _charge == charge:
-                            features.append([pepmass, intensity,
-                                rtime, scan, offset + len(l), fr])
-                            scan = None
-                            rtime = None
-                            intensity = None
-                            pepmass = None
-                            _charge = None
+                        if charge is None or _charge == charge:
+                            cap_next = True
+                elif cap_next:
+                    features.append([pepmass, intensity,
+                        rtime, scan, offset, fr])
+                    scan = None
+                    rtime = None
+                    intensity = None
+                    pepmass = None
+                    _charge = None
+                    cap_next = False
                 offset += len(l)
         return features
 
@@ -5893,15 +5901,15 @@ class LTP(object):
                 # we look up the real measured MS1 m/z's in MS2,
                 # so will divide recalibrated values by the drift ratio
                 drift = 1.0 \
-                    if not hasattr(self, 'ltp_drifts') \
+                    if not hasattr(self, 'ltps_drifts') \
                     or 'recalibrated' not in tbl \
                     or not tbl['recalibrated'] \
                     else self.ppm2ratio(np.nanmedian(
-                            np.array(self.ltp_drifts[ltp][pn].values())
+                            np.array(self.ltps_drifts[ltp][pn].values())
                         ))
                 ms2matches = self.ms2_match(tbl['mz'],
                     tbl['rt'], tbl['i'],
-                    ltp, pn, drift = drift)
+                    ltp, pn, drift = drift, verbose = verbose)
                 # this already returns final result, from protein containing
                 # fractions and with the relevant retention times
                 tbl['ms2'] = self.ms2_lookup(ltp, pn, ms2matches)
