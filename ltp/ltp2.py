@@ -10294,7 +10294,6 @@ class LTP(object):
             ('Quality', 1.2),
             ('Significance', 1.2),
             ('m/z', 2.1),
-            ('Avg. Area', 2.2),
             ('Has MS2', 1.0),
             ('RT range', 3.1),
             ('RT mean', 2.8),
@@ -10304,7 +10303,12 @@ class LTP(object):
             ('[M+H]+ Lipids' if mode == 'pos' else '[M-H]- Lipids', 14.47),
             ('[M+NH4]+ Lipids' if mode == 'pos' else '[M+HCOO]- Lipids', 14.47),
             ('[M+Na]+ Lipids' if mode == 'pos' else 'Nothing', 14.47),
+            ('Avg. Area', 2.2),
             ('m/z corrected', 5.13),
+            ('SwissLipids Identification', 0.80),
+            ('Class', 2.1),
+            ('Confirmed by MS2', 2.1),
+            ('Comment', 2.1),
             ('MS2 precursor mass', 2.1),
             ('1 MS2 Ion Mass (intensity)', 2.1),
             ('1 MS2 Fragment (mass)', 5.0),
@@ -10320,7 +10324,6 @@ class LTP(object):
             ('MS2 File', 0.80),
             ('Scan num.', 5.26),
             ('MS2 All Fragments', 1.2),
-            ('Database Names', 0.80),
             ('Protein Ratio OK', 0.90),
             ('Lipid Intensity Ratio', 1.44),
             ('Protein Ratio Limit %.03f' % self.fr_offsets[0], 1.2),
@@ -10465,10 +10468,7 @@ class LTP(object):
                     tbl['qua'][i],
                     tbl['sig'][i],
                     (mz_original, 'green' if _good else 'plain'),
-                    (tbl['aaa'][i],
-                    'green' if tbl['aaa'][i] >= self.aa_threshold[mode] \
-                        else 'plain'
-                    ),
+                    
                     ('yes' if len(ms2_full) else 'no', ms2_style),
                     '%.02f - %.02f' % (tbl['rt'][i][0], tbl['rt'][i][1]),
                     tbl['rtm'][i],
@@ -10481,7 +10481,25 @@ class LTP(object):
                     (lips1, 'green' if len(lips1) else 'plain'),
                     (lips2, 'green' if len(lips2) else 'plain'),
                     (lips3, 'green' if len(lips3) else 'plain'),
+                    (tbl['aaa'][i],
+                    'green' if tbl['aaa'][i] >= self.aa_threshold[mode] \
+                        else 'plain'
+                    ),
                     tbl['mz'][i],
+                    (('%s: %s /// %s: %s%s' % (
+                        '[M+H]+' if mode == 'pos' else '[M-H]-',
+                        lips1 if len(lips1) else 'nothing',
+                        '[M+NH4]+' if mode == 'pos' else '[M+HCOO]-',
+                        lips2 if len(lips2) else 'nothing',
+                        '' if mode == 'neg' else ' /// (%s: %s' % \
+                            ('[M+Na]+', lips3) if len(lips3) else 'nothing')) \
+                        if len(lips1) or len(lips2) or len(lips3) \
+                            else 'unknown',
+                    'green' if len(lips1) or len(lips2) or len(lips3) else 'plain'),
+                    # 3 empty cols to be filled manually
+                    '', # Class
+                    '', # Confirmed by MS2
+                    '', # Comment
                     (ms2_mz, ms2_style),
                     (ms2i1, ms2_style),
                     (ms2f1, ms2_style),
@@ -10497,16 +10515,6 @@ class LTP(object):
                     (ms2_file.split('/')[-1], ms2_style),
                     (ms2_scan, ms2_style),
                     (ms2_full, ms2_style),
-                    (('%s: %s /// %s: %s%s' % (
-                        '[M+H]+' if mode == 'pos' else '[M-H]-',
-                        lips1 if len(lips1) else 'nothing',
-                        '[M+NH4]+' if mode == 'pos' else '[M+HCOO]-',
-                        lips2 if len(lips2) else 'nothing',
-                        '' if mode == 'neg' else ' /// (%s: %s' % \
-                            ('[M+Na]+', lips3) if len(lips3) else 'nothing')) \
-                        if len(lips1) or len(lips2) or len(lips3) \
-                            else 'unknown',
-                    'green' if len(lips1) or len(lips2) or len(lips3) else 'plain'),
                     ('NA' if tbl['prr'] is None else \
                         'OK' if tbl['prr'][i] else 'NOT_OK',
                     'plain' if tbl['prr'] is None or not tbl['prr'][i] \
