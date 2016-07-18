@@ -2141,6 +2141,7 @@ class LTP(object):
             'only_marcos_fragments': True,
             'adducts_constraints': False,
             'marco_lipnames_from_db': True,
+            'use_original_average_area': True,
             'ad2ex': {
                 1: {
                     'pos': {
@@ -3299,14 +3300,18 @@ class LTP(object):
         tbl = self.read_xls(self.manual_ppratios_xls)[1:]
         ppratios = {}
         first = {}
+        samples = {}
         for l in tbl:
             protein = l[2].split('=')[0].strip()
             ppratios[protein] = {}
             frm = refracs.findall(l[4])
+            samples[protein] = set([])
             if frm is not None:
                 for i, (fr1l, fr1n, fr2l, fr2n) in enumerate(frm):
                     fr1 = '%s%u' % (fr1l.lower(), int(fr1n))
                     fr2 = '%s%u' % (fr2l.lower(), int(fr2n))
+                    samples[protein].add(fr1)
+                    samples[protein].add(fr2)
                     lower = float(nondigit.sub('', l[8].split('/')[i]))
                     upper = float(nondigit.sub('', l[9].split('/')[i]))
                     ppratios[protein][(fr1, fr2)] = (lower, upper)
@@ -3314,6 +3319,7 @@ class LTP(object):
                         first[protein] = (fr1, fr2)
         self.ppratios_manual = ppratios
         self.first_ratio_manual = first
+        self.samples_manual = samples
     
     def ppratios_replace_manual(self):
         epsilon = 0.0000000000001
@@ -3333,14 +3339,14 @@ class LTP(object):
     
     def sample_fractions_marco(self):
         self.samples_original = copy.deepcopy(self.samples_upper)
-        refrac = re.compile(r'.*([AB])([0-9]{1,2}).*')
+        refrac = re.compile(r'([AB])([0-9]{1,2})')
         tbl = self.read_xls(self.manual_ppratios_xls)[1:]
         for l in tbl:
             protein = l[2].split('=')[0].strip()
             fracs = set(map(
                 lambda fr:
                     '%s%u' % (fr[0].lower(), int(fr[1])),
-                refrac.findall(l[3])
+                refrac.findall(l[4])
             ))
             for i, fr in enumerate(self.fracs):
                 if fr in fracs:
@@ -3349,6 +3355,11 @@ class LTP(object):
                             'this was %s before\n' % \
                             (fr, protein, self.samples_upper[protein][i + 1]))
                         self.samples_upper[protein][i + 1] = 1
+                elif self.samples_upper[protein][i + 1] == 1:
+                    sys.stdout.write('\t:: Setting fraction %s at %s to 0, '\
+                        'this was %s before\n' % \
+                        (fr, protein, self.samples_upper[protein][i + 1]))
+                    self.samples_upper[protein][i + 1] = 0
     
     def protein_peak_ratios2(self):
         '''
@@ -4249,7 +4260,7 @@ class LTP(object):
         with void mask.
         Column order:
         quality, m/z, significance,
-        rt-min, rt-max, charge, rtmean,
+        rt-min, rt-max, charge, rtmean, avg.area,
         control, a9, a10, a11, a12, b1
         '''
         # typos in the headers what need to be fixed
@@ -4306,7 +4317,7 @@ class LTP(object):
                 l = [i.strip() for i in l.split(',')][1:]
                 vals = [self.to_float(l[0]), self.to_float(l[1]), self.to_float(l[2])] + \
                     [self.to_float(i.strip()) for i in l[3].split('-')] + \
-                    [self.to_float(l[4]), self.to_float(l[rtmcol])]
+                    [self.to_float(l[4]), self.to_float(l[rtmcol]), self.to_float(l[5])]
                 for var, scol in scols.iteritems():
                     # number of columns depends on which variables we need
                     if var in read_vars:
@@ -4341,7 +4352,7 @@ class LTP(object):
                     sys.stdout.write('\nerror reading file: %s\n' % fname)
                     sys.stdout.flush()
                 # making a view with the intensities:
-                data[ltp][p]['int'] = data[ltp][p]['raw'][:, 7:]
+                data[ltp][p]['int'] = data[ltp][p]['raw'][:, 8:]
                 # mask non measured:
                 data[ltp][p]['mes'] = data[ltp][p]['int'].view()
                 data[ltp][p]['mes'].mask = \
@@ -4362,6 +4373,8 @@ class LTP(object):
                     np.array([False] + [x is not None \
                         for x in self.samples[ltp][1:]] * \
                         (data[ltp][p]['mes'].shape[1] / 6))]
+                # average area:
+                data[ltp][p]['aa'] = data[ltp][p]['raw'][:,7]
         prg.terminate()
         self.data = data
 
@@ -4429,7 +4442,10 @@ class LTP(object):
     def area_filter(self, area = 10000.0):
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
-                tbl['are'] = np.nanmean(tbl['lip'], 1) >= area
+                if self.use_original_average_area:
+                    tbl['are'] = np.nanmean(tbl['lip'], 1) >= area
+                else:
+                    tbl['are'] = tbl['aa'] >= area
 
     def peaksize_filter(self, peakmin = 2.0, peakmax = 5.0, area = 10000):
         # minimum and maximum of all intensities over all proteins:
@@ -6628,6 +6644,8 @@ class LTP(object):
                     np.array(tbl['raw'][tbl['vld'], 5])
                 self.valids[ltp.upper()][pn]['rt'] = \
                     np.array(tbl['raw'][tbl['vld'], 3:5])
+                self.valids[ltp.upper()][pn]['aa'] = \
+                    np.array(tbl['aa'][tbl['vld']])
                 for key in ['peaksize', 'pslim02', 'pslim05',
                     'pslim10', 'pslim510', 'rtm']:
                     self.valids[ltp.upper()][pn][key] = np.array(tbl[key][tbl['vld']])
@@ -9589,6 +9607,7 @@ class LTP(object):
             '\t -- Control fractions intensities:\n'\
             '\t\t%s\n'\
             '\t -- Peak size:\t%.02f\t(%s)\n'\
+            '\t -- Avg. area:\t%u\t(%s)\n'\
             '\t -- Quality:\t%.02f\t(%s)\n'\
             '\t -- Charge:\t%u\t(%s)\n\n' % \
             (
@@ -9601,6 +9620,8 @@ class LTP(object):
                 str(list(tbl['ctr'][i,:])),
                 tbl['peaksize'][i],
                 tbl['pks'][i],
+                tbl['aa'][i],
+                int(tbl['are'][i]),
                 tbl['raw'][i,0],
                 tbl['qly'][i],
                 tbl['raw'][i,5],
@@ -10408,6 +10429,8 @@ class LTP(object):
             
             oi = tbl['i'][i]
             
+            aaa = tbl['aa'][i] if self.use_original_average_area else tbl['aaa']
+            
             good = tbl['peaksize'][i] >= 5.0 and \
                 (tbl['prr'] is None or tbl['prr'][i]) and \
                 (tbl['aaa'][i] >= self.aa_threshold[mode] or \
@@ -10440,8 +10463,8 @@ class LTP(object):
                     (lips1, 'green' if len(lips1) else 'plain'),
                     (lips2, 'green' if len(lips2) else 'plain'),
                     (lips3, 'green' if len(lips3) else 'plain'),
-                    (tbl['aaa'][i],
-                    'green' if tbl['aaa'][i] >= self.aa_threshold[mode] \
+                    (aaa,
+                    'green' if aaa >= self.aa_threshold[mode] \
                         else 'plain'
                     ),
                     tbl['mz'][i],
@@ -10611,7 +10634,7 @@ class LTP(object):
                 result[protein]['pos'] = self.read_xls(
                     os.path.join(self.marco_dir, fname), sheet = 0)
                 result[protein]['neg'] = self.read_xls(
-                    os.path.join(self.marco_dir, fname), sheet = 0)
+                    os.path.join(self.marco_dir, fname), sheet = 1)
         
         for fname in csvfiles:
             protein = fname.split('_')[0]
@@ -10675,8 +10698,10 @@ class LTP(object):
             if mcol is None:
                 log('\t\t[ !! ] Column `%s` could not be found at Marco' % colname)
             else:
+                print m[mcol], d[dcol]
                 mval = mfun(m[mcol])
                 dval = dfun(d[dcol])
+                print mval, dval, type(mval), type(dval)
                 ok = fun((mval, dval))
                 if ok:
                     log('\t\t[ OK ] %s is the same at Marco & Denes' % name)
@@ -10688,7 +10713,7 @@ class LTP(object):
         
         for protein, d in iteritems(self.marco_std_data):
             for mode, mtbl in iteritems(d):
-                log('=== %s, %s mode ================================' % \
+                log('===[ %s, %s mode ]=======================================8' % \
                     (protein, 'positive' if mode == 'pos' else 'negative'))
                 dtbl = self.std_layout_table_stripped(protein, mode, only_best = True)[1:]
                 
@@ -10701,7 +10726,7 @@ class LTP(object):
                     allmzs.extend(list(mmzs[:,1]))
                 if len(dmzs):
                     allmzs.extend(list(dmzs[:,1]))
-                allmzs = sorted(allmzs)
+                allmzs = sorted(list(set(allmzs)))
                 for mz in allmzs:
                     di = mz_lookup(mz, dmzs) if len(dmzs) else None
                     mi = mz_lookup(mz, mmzs) if len(mmzs) else None
@@ -10718,7 +10743,7 @@ class LTP(object):
                     mii = int(mmzs[mi][0])
                     dii = int(dmzs[di][0])
                     compare(mtbl[mii], dtbl[dii], 'm.z_corrected', 13, 'recalibrated m/z',
-                            lambda v: abs(v[0] - v[1]) < 0.0005,
+                            lambda v: abs(v[0] - v[1]) < 0.005,
                             mfun = lambda x: self.to_float(x))
                     
                     compare(mtbl[mii], dtbl[dii], 'RT.mean', 5, 'RT mean',
@@ -10752,7 +10777,7 @@ class LTP(object):
                     if mode == 'pos':
                         compare(mtbl[mii], dtbl[dii],
                             'lipid_.M.Na.',
-                            10, '[M+Na]+ lipids',
+                            11, '[M+Na]+ lipids',
                             lambda v: len(v[0] ^ v[1]) == 0,
                             mfun = lambda x: set(list(map(lambda i: i.strip(), x.split(';')))),
                             dfun = lambda x: set(list(map(lambda i: i.strip(), x.split(';'))))
@@ -10786,12 +10811,12 @@ class LTP(object):
                             compare(mtbl[mii], dtbl[dii], 'MS2.Ion.%u.Mass.Intensity.' % (i + 1), 19 + i * 2,
                                     'MS2 ion #%u mass' % (i + 1),
                                     lambda v: abs(v[0] - v[1]) < 0.01,
-                                    mfun = lambda x: self.to_float(x.split('(')[0]),
-                                    dfun = lambda x: self.to_float(x.split('(')[0]))
+                                    mfun = lambda x: self.to_float(x.split('(')[0]) if len(x) else 0.0,
+                                    dfun = lambda x: self.to_float(x.split('(')[0]) if len(x) else 0.0)
                             compare(mtbl[mii], dtbl[dii], 'MS2.Ion.%u.Mass.Intensity.' % (i + 1), 19 + i * 2,
                                     'MS2 ion #%u intensity' % (i + 1),
                                     lambda v: abs(v[0] - v[1]) < 1,
-                                    mfun = lambda x: self.to_int(x.split('(')[1][:-1]),
-                                    dfun = lambda x: self.to_int(x.split('(')[1][:-1]))
+                                    mfun = lambda x: self.to_int(x.split('(')[1][:-1]) if len(x) else 0,
+                                    dfun = lambda x: self.to_int(x.split('(')[1][:-1]) if len(x) else 0)
         
         logf.close()
