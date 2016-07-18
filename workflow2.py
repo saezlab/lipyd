@@ -33,7 +33,7 @@ from common import *
 
 from ltp import ltp2
 
-l = ltp2.LTP(recal_source = 'denes', only_marcos_fragments = False, marco_lipnames_from_db = False)
+#l = ltp2.LTP(recal_source = 'denes', only_marcos_fragments = False, marco_lipnames_from_db = False)
 l = ltp2.LTP()
 
 

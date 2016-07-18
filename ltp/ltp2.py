@@ -19,6 +19,9 @@
     # belonging to LTP bound lipids
 #
 
+from future.utils import iteritems
+from past.builtins import xrange, range, reduce
+
 import os
 import sys
 import copy
@@ -3544,59 +3547,6 @@ class LTP(object):
         else:
             oi = None
         return oi
-    
-    def marco_standards(self):
-        result = {}
-        files = filter(
-            lambda fname:
-                fname[-4:] == 'xlsx',
-            os.listdir(self.marco_dir)
-        )
-        def tbl2mzs(tbl):
-            return filter(
-                lambda x:
-                    type(x) is float,
-                map(
-                    lambda row:
-                        self.to_float(row[2]),
-                    tbl
-                )
-            )
-        def mzs2ois(protein, mode, mzs):
-            ois = set([])
-            for mz in mzs:
-                oi = self.mz2oi(protein, mode, mz)
-                if oi is None:
-                    sys.stdout.write('\t:: m/z not found: %.05f (%s, %s)\n' % \
-                        (mz, protein, mode))
-                    sys.stdout.flush()
-                else:
-                    ois.add(oi)
-            return ois
-        def ois2attr(protein, mode, ois):
-            tbl = self.valids[protein][mode]
-            tbl['marco'] = \
-                np.array(
-                    map(
-                        lambda i:
-                            i in ois,
-                        tbl['i']
-                    )
-                )
-        for fname in files:
-            protein = fname.split('_')[0]
-            result[protein] = {'pos': [], 'neg': []}
-            pos_table = self.read_xls(
-                os.path.join(self.marco_dir, fname), sheet = 0)
-            neg_table = self.read_xls(
-                os.path.join(self.marco_dir, fname), sheet = 1)
-            pos_mzs = tbl2mzs(pos_table[1:])
-            neg_mzs = tbl2mzs(neg_table[1:])
-            pos_ois = mzs2ois(protein, 'pos', pos_mzs)
-            neg_ois = mzs2ois(protein, 'neg', neg_mzs)
-            ois2attr(protein, 'pos', pos_ois)
-            ois2attr(protein, 'neg', neg_ois)
-
     #
     # reading in a small table for keeping track which fractions are samples 
     # and which ones are controls
@@ -4423,12 +4373,21 @@ class LTP(object):
         '''
         Extracts float from string, or returns None.
         '''
-        renum = re.compile(r'([-]?[0-9]*[\.]?[0-9]+[eE]?[-]?[0-9]*)')
-        num = renum.match(num.strip())
-        if num:
-            return float(num.groups(0)[0])
-        else:
+        if type(num) is float or type(num) is np.float64:
             return num
+        num = num.strip()
+        renum = re.compile(r'([-]?[0-9]*[\.]?[0-9]+[eE]?[-\+]?[0-9]*)')
+        fnum = renum.match(num)
+        if fnum:
+            return float(fnum.groups(0)[0])
+        else:
+            if type(num) is str:
+                if num.lower() == 'inf':
+                    return np.inf
+                if num.lower() == '-inf':
+                    return -np.inf
+            else:
+                return None
 
     def to_int(self, num):
         '''
@@ -10554,3 +10513,285 @@ class LTP(object):
             return rows, colw
         else:
             return rows
+    
+    def std_layout_table_stripped(self, protein, mode, only_best = False):
+        tbl = self.std_layout_table(protein, mode, only_best = only_best)
+        tbl = \
+            list(
+                map(
+                    lambda l:
+                        list(
+                            map(
+                                lambda c:
+                                    c[0] if type(c) is tuple else c,
+                                l
+                            )
+                        ),
+                    tbl
+                )
+            )
+        return tbl
+    
+    def marco_standards(self):
+        result = {}
+        files = filter(
+            lambda fname:
+                fname[-4:] == 'xlsx',
+            os.listdir(self.marco_dir)
+        )
+        def tbl2mzs(tbl):
+            return filter(
+                lambda x:
+                    type(x) is float,
+                map(
+                    lambda row:
+                        self.to_float(row[2]),
+                    tbl
+                )
+            )
+        def mzs2ois(protein, mode, mzs):
+            ois = set([])
+            for mz in mzs:
+                oi = self.mz2oi(protein, mode, mz)
+                if oi is None:
+                    sys.stdout.write('\t:: m/z not found: %.05f (%s, %s)\n' % \
+                        (mz, protein, mode))
+                    sys.stdout.flush()
+                else:
+                    ois.add(oi)
+            return ois
+        def ois2attr(protein, mode, ois):
+            tbl = self.valids[protein][mode]
+            tbl['marco'] = \
+                np.array(
+                    map(
+                        lambda i:
+                            i in ois,
+                        tbl['i']
+                    )
+                )
+        for fname in files:
+            protein = fname.split('_')[0]
+            result[protein] = {'pos': [], 'neg': []}
+            pos_table = self.read_xls(
+                os.path.join(self.marco_dir, fname), sheet = 0)
+            neg_table = self.read_xls(
+                os.path.join(self.marco_dir, fname), sheet = 1)
+            pos_mzs = tbl2mzs(pos_table[1:])
+            neg_mzs = tbl2mzs(neg_table[1:])
+            pos_ois = mzs2ois(protein, 'pos', pos_mzs)
+            neg_ois = mzs2ois(protein, 'neg', neg_mzs)
+            ois2attr(protein, 'pos', pos_ois)
+            ois2attr(protein, 'neg', neg_ois)
+    
+    def read_marco_standards(self):
+        result = {}
+        xlsfiles = filter(
+            lambda fname:
+                fname[-4:] == 'xlsx',
+            os.listdir(self.marco_dir)
+        )
+        
+        csvfiles = filter(
+            lambda fname:
+                fname[-3:] == 'csv',
+            os.listdir(self.marco_dir)
+        )
+        
+        for fname in xlsfiles:
+            protein = fname.split('_')[0]
+            mode = fname.split('_')[1]
+            xls = openpyxl.load_workbook(os.path.join(self.marco_dir, fname),
+                                         read_only = True)
+            if protein not in result:
+                result[protein] = {}
+            if len(xls.worksheets) == 1:
+                result[protein] = {mode: self.read_xls(os.path.join(self.marco_dir, fname), sheet = 0)}
+            else:
+                result[protein]['pos'] = self.read_xls(
+                    os.path.join(self.marco_dir, fname), sheet = 0)
+                result[protein]['neg'] = self.read_xls(
+                    os.path.join(self.marco_dir, fname), sheet = 0)
+        
+        for fname in csvfiles:
+            protein = fname.split('_')[0]
+            mode = fname.split('_')[1]
+            with open(os.path.join(self.marco_dir, fname), 'r') as f:
+                tbl = list(map(lambda l: list(map(lambda c: c.replace('"', ''), l.strip().split(','))), f))
+            if not tbl[0][0] == '' and not tbl[0][1] == '':
+                if protein not in result:
+                    result[protein] = {}
+                result[protein][mode] = tbl
+        
+        self.marco_std_data = result
+    
+    def standards_crosscheck(self, logfile = 'crosscheck.log'):
+        def log(msg):
+            logf.write('%s\n' % msg)
+        
+        def lookup_column(tbl, name):
+            for i, colname in enumerate(tbl[0]):
+                if colname.strip() == name:
+                    return i
+        
+        def get_mmzs(tbl):
+            mzcol = lookup_column(tbl, 'm.z')
+            mzs = list(filter(lambda mz: mz[1] is not None,
+                                map(lambda l: (l[0], self.to_float(l[1][mzcol])),
+                            enumerate(tbl))))
+            return np.array(list(map(list, sorted(mzs, key = lambda mz: mz[1]))))
+        
+        def get_dmzs(tbl):
+            return np.array(list(map(list, sorted(
+                    list(map(lambda l: (l[0], l[1][2]), enumerate(tbl))),
+                    key = lambda mz: mz[1]
+                ))))
+        
+        def mz_lookup(mz, lst):
+            ui = lst[:,1].searchsorted(mz)
+            du = None
+            dl = None
+            if ui < lst.shape[0]:
+                if lst[ui,1] - mz < 0.01:
+                    du = lst[ui,1] - mz
+            if ui > 0:
+                if mz - lst[ui - 1,1] < 0.01:
+                    dl = mz - lst[ui - 1,1]
+            if du is not None and dl is not None:
+                if du < dl:
+                    return ui
+                else:
+                    return ui - 1
+            elif du is not None:
+                return ui
+            elif dl is not None:
+                return ui - 1
+            else:
+                return None
+        
+        def compare(m, d, colname, dcol, name, fun,
+                    mfun = lambda x: x, dfun = lambda x: x):
+            mcol = lookup_column(mtbl, colname)
+            if mcol is None:
+                log('\t\t[ !! ] Column `%s` could not be found at Marco' % colname)
+            else:
+                mval = mfun(m[mcol])
+                dval = dfun(d[dcol])
+                ok = fun((mval, dval))
+                if ok:
+                    log('\t\t[ OK ] %s is the same at Marco & Denes' % name)
+                else:
+                    log('\t\t[ !! ] %s mismatch: %s at Marco, %s at Denes' % \
+                        (name, str(mval), str(dval)))
+        
+        logf = open(logfile, 'w')
+        
+        for protein, d in iteritems(self.marco_std_data):
+            for mode, mtbl in iteritems(d):
+                log('=== %s, %s mode ================================' % \
+                    (protein, 'positive' if mode == 'pos' else 'negative'))
+                dtbl = self.std_layout_table_stripped(protein, mode, only_best = True)[1:]
+                
+                reccol = lookup_column(mtbl, 'm.z_corrected')
+                
+                mmzs = get_mmzs(mtbl)
+                dmzs = get_dmzs(dtbl)
+                allmzs = []
+                if len(mmzs):
+                    allmzs.extend(list(mmzs[:,1]))
+                if len(dmzs):
+                    allmzs.extend(list(dmzs[:,1]))
+                allmzs = sorted(allmzs)
+                for mz in allmzs:
+                    di = mz_lookup(mz, dmzs) if len(dmzs) else None
+                    mi = mz_lookup(mz, mmzs) if len(mmzs) else None
+                    if mi is None:
+                        log('\t[ !! ] m/z %.04f present only at Denes' % mz)
+                        dii = dmzs[di][0]
+                        # something to tell about features missing from Marco
+                        continue
+                    if di is None:
+                        log('\t[ !! ] m/z %.04f present only at Marco' % mz)
+                        continue
+                    else:
+                        log('\t[ OK ] m/z %.04f present at both Marco & Denes' % mz)
+                    mii = int(mmzs[mi][0])
+                    dii = int(dmzs[di][0])
+                    compare(mtbl[mii], dtbl[dii], 'm.z_corrected', 13, 'recalibrated m/z',
+                            lambda v: abs(v[0] - v[1]) < 0.0005,
+                            mfun = lambda x: self.to_float(x))
+                    
+                    compare(mtbl[mii], dtbl[dii], 'RT.mean', 5, 'RT mean',
+                            lambda v: abs(v[0] - v[1]) < 0.1,
+                            mfun = lambda x: self.to_float(x))
+                    compare(mtbl[mii], dtbl[dii], 'protein_peak_ratio', 8,
+                            'Lipid intensity ratio',
+                            lambda v: abs(v[0] - v[1]) < 0.1,
+                            mfun = lambda x: 1.0 if x == 'NA' else self.to_float(x),
+                            dfun = lambda x: 1.0 if x == 'NA' else self.to_float(x))
+                    compare(mtbl[mii], dtbl[dii], 'Avg..Area', 12, 'Average area',
+                            lambda v: abs(v[0] - v[1]) < max(v[0], v[1]) * 0.1,
+                            mfun = lambda x: self.to_float(x),
+                            dfun = lambda x: self.to_float(x))
+                    compare(mtbl[mii], dtbl[dii],
+                            'lipid_.M.H.' if mode == 'pos' else 'lipid_.M.H..',
+                            9, '[M+H]+ lipids' if mode == 'pos' else '[M-H]- lipids',
+                            lambda v: len(v[0] ^ v[1]) == 0,
+                            mfun = lambda x: set(list(map(lambda i: i.strip(), x.split(';')))),
+                            dfun = lambda x: set(list(map(lambda i: i.strip(), x.split(';'))))
+                        )
+                    
+                    compare(mtbl[mii], dtbl[dii],
+                            'lipid_.M.NH4.' if mode == 'pos' else 'lipid_.M.COOH..',
+                            10, '[M+NH4]+ lipids' if mode == 'pos' else '[M+HCOO]- lipids',
+                            lambda v: len(v[0] ^ v[1]) == 0,
+                            mfun = lambda x: set(list(map(lambda i: i.strip(), x.split(';')))),
+                            dfun = lambda x: set(list(map(lambda i: i.strip(), x.split(';'))))
+                        )
+                    
+                    if mode == 'pos':
+                        compare(mtbl[mii], dtbl[dii],
+                            'lipid_.M.Na.',
+                            10, '[M+Na]+ lipids',
+                            lambda v: len(v[0] ^ v[1]) == 0,
+                            mfun = lambda x: set(list(map(lambda i: i.strip(), x.split(';')))),
+                            dfun = lambda x: set(list(map(lambda i: i.strip(), x.split(';'))))
+                        )
+                    
+                    mms2 = self.to_float(mtbl[mii][lookup_column(mtbl, 'Scan')]) is not None
+                    dms2 = type(dtbl[dii][31]) is int
+                    
+                    if mms2 and not dms2:
+                        log('\t\t[ !! ] MS2 missing from Denes. Scan num at Marco is %s' % \
+                            mtbl[mii][lookup_column(mtbl, 'Scan')])
+                    if dms2 and not mms2:
+                        log('\t\t[ !! ] MS2 missing from Marco. Scan num at Denes is %u' % \
+                            dtbl[dii][31])
+                    
+                    if mms2 and dms2:
+                        compare(mtbl[mii], dtbl[dii], 'Peptide.Mass', 18, 'MS2 precursor mass',
+                                lambda v: abs(v[0] - v[1]) < 0.0005,
+                                mfun = lambda x: self.to_float(x))
+                        compare(mtbl[mii], dtbl[dii], 'Retention.Time..mins.secs.', 6,
+                                'closest MS2 scan RT',
+                                lambda v: abs(v[0] - v[1]) < 0.1,
+                                mfun = lambda x: self.to_float(x))
+                        compare(mtbl[mii], dtbl[dii], 'delta_RT', 7, 'delta RT',
+                                lambda v: abs(v[0] - v[1]) < 0.1,
+                                mfun = lambda x: self.to_float(x))
+                        compare(mtbl[mii], dtbl[dii], 'Scan', 31, 'Best scan No.',
+                                lambda v: v[0] == v[1],
+                                mfun = lambda x: int(self.to_float(x)))
+                        for i in xrange(5):
+                            compare(mtbl[mii], dtbl[dii], 'MS2.Ion.%u.Mass.Intensity.' % (i + 1), 19 + i * 2,
+                                    'MS2 ion #%u mass' % (i + 1),
+                                    lambda v: abs(v[0] - v[1]) < 0.01,
+                                    mfun = lambda x: self.to_float(x.split('(')[0]),
+                                    dfun = lambda x: self.to_float(x.split('(')[0]))
+                            compare(mtbl[mii], dtbl[dii], 'MS2.Ion.%u.Mass.Intensity.' % (i + 1), 19 + i * 2,
+                                    'MS2 ion #%u intensity' % (i + 1),
+                                    lambda v: abs(v[0] - v[1]) < 1,
+                                    mfun = lambda x: self.to_int(x.split('(')[1][:-1]),
+                                    dfun = lambda x: self.to_int(x.split('(')[1][:-1]))
+        
+        logf.close()
