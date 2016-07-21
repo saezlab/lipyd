@@ -2142,6 +2142,8 @@ class LTP(object):
             'adducts_constraints': False,
             'marco_lipnames_from_db': True,
             'use_original_average_area': True,
+            'ms2_rt_within_range': False,
+            'ms2_only_protein_fractions' : False,
             'ad2ex': {
                 1: {
                     'pos': {
@@ -5664,7 +5666,6 @@ class LTP(object):
                 if not self.only_marcos_fragments:
                     lst += self.auto_fragment_list(NLFAminusH2O, 0)
                     lst += self.auto_fragment_list(NLFA, 0)
-                    lst += self.auto_fragment_list(FAminusO, 1)
                     lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H5'])
                     lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O'])
                     lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O', 'H2O'])
@@ -5672,6 +5673,7 @@ class LTP(object):
                     lst += self.auto_fragment_list(NLFAplusOH, 0)
                 lst += self.auto_fragment_list(FAplusGlycerol, 1)
                 lst += self.auto_fragment_list(NLFAplusNH3, 0)
+                lst += self.auto_fragment_list(FAminusO, 1)
                 if self.only_marcos_fragments:
                     lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 16, unsatmin = 0, cmax = 16, unsatmax = 3, minus = ['H2O'])
                     lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 16, unsatmin = 0, cmax = 16, unsatmax = 3, minus = ['H2O', 'H2O'])
@@ -5862,39 +5864,51 @@ class LTP(object):
                 offset += len(l)
         return features
 
-    def ms2_main(self, verbose = False):
+    def ms2_main(self, proteins = None, verbose = False, outfile = None):
         '''
         For all LTPs and modes obtains the MS2 data from original files.
         '''
         # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
-        prg = progress.Progress(len(self.valids) * 2,
+        prg = progress.Progress(
+            (len(self.valids) if proteins is None else len(proteins)) * 2,
             'Looking up MS2 fragments', 1,
             percent = False)
-        for ltp, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
-                prg.step()
-                # we look up the real measured MS1 m/z's in MS2,
-                # so will divide recalibrated values by the drift ratio
-                drift = 1.0 \
-                    if not hasattr(self, 'ltps_drifts') \
-                    or 'recalibrated' not in tbl \
-                    or not tbl['recalibrated'] \
-                    else self.ppm2ratio(np.nanmedian(
-                            np.array(self.ltps_drifts[ltp][pn].values())
-                        ))
-                ms2matches = self.ms2_match(tbl['mz'],
-                    tbl['rt'], tbl['i'],
-                    ltp, pn, drift = drift, verbose = verbose)
-                # this already returns final result, from protein containing
-                # fractions and with the relevant retention times
-                tbl['ms2'] = self.ms2_lookup(ltp, pn, ms2matches)
-                tbl['ms2r'] = self.ms2_result(tbl['ms2'])
-                if verbose:
-                    print '\n'
-                    print 'number of positive mzs:', len(posMzs)
-                    print 'negative matching:', len(pos_matches)
-                    print 'number of negative mzs:', len(negMzs)
-                    print 'negative matching:', len(neg_matches)
+        if verbose:
+            outfile = outfile if hasattr(outfile, 'write') else \
+                sys.stdout if outfile is None else open(outfile, 'w')
+        for protein, d in self.valids.iteritems():
+            if proteins is None or protein in proteins:
+                for pn, tbl in d.iteritems():
+                    prg.step()
+                    # we look up the real measured MS1 m/z's in MS2,
+                    # so will divide recalibrated values by the drift ratio
+                    drift = 1.0 \
+                        if not hasattr(self, 'ltps_drifts') \
+                        or 'recalibrated' not in tbl \
+                        or not tbl['recalibrated'] \
+                        else self.ppm2ratio(np.nanmedian(
+                                np.array(self.ltps_drifts[protein][pn].values())
+                            ))
+                    if verbose:
+                        outfile.write('\t:: Recalibrated m/z: '\
+                        '%.08f; drift = %.08f; measured m/z: %.08f\n' % \
+                            (tbl['mz'][0], drift, tbl['mz'][0] / drift))
+                    ms2matches = self.ms2_match(tbl['mz'],
+                        tbl['rt'], tbl['i'],
+                        protein, pn, drift = drift, verbose = verbose, outfile = outfile)
+                    # this already returns final result, from protein containing
+                    # fractions and with the relevant retention times
+                    tbl['ms2'] = self.ms2_lookup(protein, pn, ms2matches,
+                                                 verbose = verbose, outfile = outfile)
+                    tbl['ms2r'] = self.ms2_result(tbl['ms2'])
+                    #if verbose:
+                        #print '\n'
+                        #print 'number of positive mzs:', len(posMzs)
+                        #print 'negative matching:', len(pos_matches)
+                        #print 'number of negative mzs:', len(negMzs)
+                        #print 'negative matching:', len(neg_matches)
+        if type(outfile) is file and outfile != sys.stdout:
+            outfile.close()
         prg.terminate()
 
     def ms2_result(self, ms2matches):
@@ -5923,7 +5937,15 @@ class LTP(object):
         '''
         Looks up matching pepmasses for a list of MS1 m/z's.
         '''
-        outfile = sys.stdout if outfile is None else open(outfile, 'w')
+        opened_here = False
+        if hasattr(outfile, 'write'):
+            outfile = outfile
+        elif outfile is None:
+            outfile = sys.stdout
+        else:
+            open(outfile, 'w')
+            opened_here = True
+        
         matches = []
         ms2tbl = self.ms2map[ltp][pos]
         # iterating over MS1 m/z, MS1 original index, and retention time
@@ -5931,6 +5953,9 @@ class LTP(object):
             # drift is the ratio
             # we divide here to have the original measured MS1 m/z,
             # not the recalibrated one:
+            if verbose:
+                outfile.write('\t:: Recalibrated m/z: %.08f; drift = %.08f; m'\
+                    'easured m/z: %.08f\n' % (ms1Mz, drift, ms1Mz / drift))
             ms1Mz = ms1Mz / drift
             # if error comes here, probably MS2 files are missing
             try:
@@ -5954,8 +5979,10 @@ class LTP(object):
                             outfile.write('\t -- Next value within '\
                                 'range of tolerance: %.08f\n' % \
                                     ms2tbl[iu + u, 0])
-                            if ms2tbl[iu + u, 2] >= rt[0] \
-                                and ms2tbl[iu + u, 2] <= rt[1]:
+                            if not self.ms2_rt_within_range:
+                                outfile.write('\t -- Not checking RT\n')
+                            elif ms2tbl[iu + u, 2] >= rt[0] and \
+                                 ms2tbl[iu + u, 2] <= rt[1]:
                                 outfile.write('\t -- Retention time OK, '\
                                     'accept this match\n')
                             else:
@@ -5966,8 +5993,11 @@ class LTP(object):
                                 outfile.write('\t -- Retention time not OK, '\
                                     'drop this match\n')
                         # checking retention time
-                        if ms2tbl[iu + u, 2] >= rt[0] and \
-                            ms2tbl[iu + u, 2] <= rt[1]:
+                        if not self.ms2_rt_within_range or (
+                            ms2tbl[iu + u, 2] >= rt[0] and \
+                            ms2tbl[iu + u, 2] <= rt[1]):
+                            if verbose:
+                                outfile.write('\t -- value found at index %u\n' % (iu + u))
                             matches.append((ms1Mz, iu + u, ms1i))
                         u += 1
                     else:
@@ -5981,8 +6011,10 @@ class LTP(object):
                             outfile.write('\t -- Next value within '\
                                 'range of tolerance: %.08f\n' % \
                                     ms2tbl[iu - l, 0])
-                            if ms2tbl[iu - l, 2] >= rt[0] \
-                                and ms2tbl[iu - l, 2] <= rt[1]:
+                            if not self.ms2_rt_within_range:
+                                outfile.write('\t -- Not checking RT\n')
+                            elif ms2tbl[iu - l, 2] >= rt[0] and \
+                                 ms2tbl[iu - l, 2] <= rt[1]:
                                 outfile.write('\t -- Retention time OK, '\
                                     'accept this match\n')
                             else:
@@ -5992,23 +6024,24 @@ class LTP(object):
                                     (ms2tbl[iu - l, 2], rt[0], rt[1]))
                                 outfile.write('\t -- Retention time not OK, '\
                                     'drop this match\n')
-                        if ms2tbl[iu - l, 2] >= rt[0] and \
-                            ms2tbl[iu - l, 2] <= rt[1]:
+                        if not self.ms2_rt_within_range or (
+                            ms2tbl[iu - l, 2] >= rt[0] and \
+                            ms2tbl[iu - l, 2] <= rt[1]):
+                            if verbose:
+                                outfile.write('\t -- value found at index %u\n' % (iu - l))
                             matches.append((ms1Mz, iu - l, ms1i))
                         l += 1
                     else:
                         break
-        if type(outfile) is file and outfile != sys.stdout:
+        if opened_here and type(outfile) is file and outfile != sys.stdout:
             outfile.close()
         return sorted(uniqList(matches), key = lambda x: x[0])
 
-    def ms2_verbose(self, ltp, mode, outfile = None):
-        tbl = valids[ltp][mode]
-        ms2_match(tbl['mz'], tbl['rt'], tbl['i'],
-                ltp, mode, verbose = True,
+    def ms2_verbose(self, protein, outfile = None):
+        self.ms2_main(proteins = [protein], verbose = True,
                 outfile = outfile)
 
-    def ms2_lookup(self, ltp, mode, ms1matches):
+    def ms2_lookup(self, ltp, mode, ms1matches, verbose = False, outfile = None):
         '''
         For the matching MS2 m/z's given, reads and identifies
         the list of fragments.
@@ -6036,15 +6069,29 @@ class LTP(object):
         # Initializing dict with original indices
         ms2matches = dict((m[2], []) for m in ms1matches)
         # iterating over MS1 m/z, MS2 table index, MS1 original index
+        if verbose:
+            outfile.write('\t :: MS2 lookup starts\n')
         for ms1mz, ms2i, ms1oi in ms1matches:
             # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
             ms2item = ms2map[ms2i,:]
             fr = int(ms2item[5])
+            if verbose:
+                outfile.write('\t -- Looking up %.08f in fraction %s, '\
+                    'line %u\n' % (ms1mz, fr, ms2i))
             # only samples with the LTP
-            if samples[sample_i[fr]] == 1 and fr in files:
+            if verbose:
+                if fr in files:
+                    outfile.write('\t -- Have file for fraction %s\n' % str(fr))
+                else:
+                    outfile.write('\t -- Do not have file for fraction %s; files: %s\n' % \
+                        (str(fr), str(files.keys())))
+            if (not self.ms2_only_protein_fractions or \
+                samples[sample_i[fr]] == 1) and fr in files:
                 f = files[fr]
                 # jumping to offset
                 f.seek(int(ms2item[4]), 0)
+                if verbose:
+                    outfile.write('\t -- Reading from file %s\n' % f.name)
                 # zero means no clue about charge
                 charge = 0
                 for l in f:
@@ -6115,6 +6162,8 @@ class LTP(object):
                             ms2matches[ms1oi].append(thisRow)
                     prevl = l
                     prevp = f.tell()
+                if verbose:
+                    outfile.write('\t -- %u lines have been read\n' % len(ms2matches[ms1oi]))
         # removing file pointers
         for f in files.values():
             f.close()
@@ -10211,7 +10260,7 @@ class LTP(object):
         with open(filename, 'w') as f:
             f.write(out)
     
-    def std_layout_tables_xlsx(self):
+    def std_layout_tables_xlsx(self, check_deltart = False):
         def add_sheet(xls, tbl, name, colws = None):
             sheet = xls.add_worksheet(name)
             plain = xls.add_format({})
@@ -10252,23 +10301,28 @@ class LTP(object):
             prg.step()
             xlsname = os.path.join(xlsdir, '%s_top_features.xlsx' % protein)
             tbl_pos, colw_pos = self.std_layout_table(protein,
-                                                      'pos', colws = True)
+                                                      'pos', colws = True,
+                                                      check_deltart = check_deltart)
             tbl_neg, colw_neg = self.std_layout_table(protein,
-                                            'neg', colws = True)
+                                            'neg', colws = True,
+                                                      check_deltart = check_deltart)
             xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True})
             add_sheet(xls, tbl_pos, '%s_positive' % protein, colw_pos)
             add_sheet(xls, tbl_neg, '%s_negative' % protein, colw_neg)
             tbl_pos, colw_pos = self.std_layout_table(protein, 'pos',
-                                            only_best = True, colws = True)
+                                            only_best = True, colws = True,
+                                            check_deltart = check_deltart)
             tbl_neg, colw_pos = self.std_layout_table(protein, 'neg',
-                                            only_best = True, colws = True)
+                                            only_best = True, colws = True,
+                                            check_deltart = check_deltart)
             add_sheet(xls, tbl_pos, '%s_positive_best' % protein, colw_pos)
             add_sheet(xls, tbl_neg, '%s_negative_best' % protein, colw_neg)
             xls.close()
         prg.terminate()
     
     def std_layout_table(self, protein, mode,
-                         only_best = False, colws = False):
+                         only_best = False, colws = False,
+                         check_deltart = False):
         rows = []
         hdr = [
             ('Quality', 1.2),
@@ -10367,7 +10421,7 @@ class LTP(object):
                     )
                 )
         
-        min_ms2_mz = 70.0 if mode == 'neg' else 170.0
+        min_ms2_mz = 70.0 if mode == 'neg' else 135.0
         
         for i, oi in enumerate(tbl['i']):
             
@@ -10433,13 +10487,14 @@ class LTP(object):
             
             good = tbl['peaksize'][i] >= 5.0 and \
                 (tbl['prr'] is None or tbl['prr'][i]) and \
-                (tbl['aaa'][i] >= self.aa_threshold[mode] or \
+                (aaa >= self.aa_threshold[mode] or \
                 (oi in tbl['ms2f'] and len(tbl['ms2f'][oi].deltart) and \
-                    min(map(abs, tbl['ms2f'][oi].deltart.values())) <= 1.0))
+                    (min(map(abs, tbl['ms2f'][oi].deltart.values())) <= 1.0 or \
+                        not check_deltart)))
             
             _good = tbl['peaksize'][i] >= 5.0 and \
                 (tbl['prr'] is None or tbl['prr'][i]) and \
-                ((tbl['aaa'][i] >= self.aa_threshold[mode] and \
+                ((aaa >= self.aa_threshold[mode] and \
                     (any(map(len, [lips1, lips2, lips3, lips1l, lips2l, lips3l])))) or \
                 (oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
                     len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi])))
@@ -10648,7 +10703,7 @@ class LTP(object):
         
         self.marco_std_data = result
     
-    def standards_crosscheck(self, logfile = 'crosscheck.log'):
+    def standards_crosscheck(self, logfile = 'crosscheck.log', only_best = True):
         def log(msg):
             logf.write('%s\n' % msg)
         
@@ -10715,7 +10770,7 @@ class LTP(object):
             for mode, mtbl in iteritems(d):
                 log('===[ %s, %s mode ]=======================================8' % \
                     (protein, 'positive' if mode == 'pos' else 'negative'))
-                dtbl = self.std_layout_table_stripped(protein, mode, only_best = True)[1:]
+                dtbl = self.std_layout_table_stripped(protein, mode, only_best = only_best)[1:]
                 
                 reccol = lookup_column(mtbl, 'm.z_corrected')
                 
@@ -10794,6 +10849,8 @@ class LTP(object):
                             dtbl[dii][31])
                     
                     if mms2 and dms2:
+                        log('\t\t[ OK ] MS2 data both at Marco (scan %u) & Denes (scan %u)' % \
+                            (int(float(mtbl[mii][lookup_column(mtbl, 'Scan')])), dtbl[dii][31]))
                         compare(mtbl[mii], dtbl[dii], 'Peptide.Mass', 18, 'MS2 precursor mass',
                                 lambda v: abs(v[0] - v[1]) < 0.0005,
                                 mfun = lambda x: self.to_float(x))

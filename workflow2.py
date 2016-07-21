@@ -68,7 +68,7 @@ l.ms2()
 
 l.std_layout_tables_xlsx()
 l.read_marco_standards()
-l.standards_crosscheck()
+l.standards_crosscheck(only_best = True)
 
 recal_marco = l.ltps_drifts
 l.recal_source = 'denes'
