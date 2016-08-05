@@ -873,7 +873,7 @@ class FAFragSeries(object):
             setattr(self, attr, val)
         self.fragments = []
         if self.unsatmax is None: self.unsatmax = self.unsatmin
-        for unsat in xrange(self.unsatmin, self.unsatmax):
+        for unsat in xrange(self.unsatmin, self.unsatmax + 1):
             this_cmin = max(self.cmin, unsat * 2 + 1)
             if this_cmin <= cmax:
                 for cnum in xrange(this_cmin, cmax + 1):
