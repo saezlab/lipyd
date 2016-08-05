@@ -10287,8 +10287,12 @@ class LTP(object):
                         sys.stdout.write('\t\t%s\n' % row)
             if colws is not None:
                 for coln, colw in enumerate(colws):
-                    sheet.set_column(coln, coln, colw * 2.5)
+                    sheet.set_column(coln, coln, colw_scale(colw))
             #sheet.set_row(row = 0, height = 115.0)
+        
+        def colw_scale(w):
+            return (w - 0.1705710377055909) / 0.24899187310525259
+        
         xlsdir = 'top_features'
         if not os.path.exists(xlsdir):
             os.mkdir(xlsdir)
@@ -10325,55 +10329,55 @@ class LTP(object):
                          check_deltart = False):
         rows = []
         hdr = [
-            ('Quality', 1.2),
-            ('Significance', 1.2),
-            ('m/z', 2.1),
-            ('Has MS2', 1.0),
-            ('RT range', 3.1),
-            ('RT mean', 2.8),
-            ('RT (MS2 closest)', 1.55),
-            ('dRT', 1.55),
-            ('Protein Ratio', 1.44),
-            ('[M+H]+ Lipids' if mode == 'pos' else '[M-H]- Lipids', 14.47),
-            ('[M+NH4]+ Lipids' if mode == 'pos' else '[M+HCOO]- Lipids', 14.47),
-            ('[M+Na]+ Lipids' if mode == 'pos' else 'Nothing', 14.47),
-            ('Avg. Area', 2.2),
-            ('m/z corrected', 5.13),
-            ('SwissLipids Identification', 0.80),
-            ('Class', 2.1),
-            ('Confirmed by MS2', 2.1),
-            ('Comment', 2.1),
-            ('MS2 precursor mass', 2.1),
-            ('1 MS2 Ion Mass (intensity)', 2.1),
-            ('1 MS2 Fragment (mass)', 5.0),
-            ('2 MS2 Ion Mass (intensity)', 2.1),
-            ('2 MS2 Fragment (mass)', 5.0),
-            ('3 MS2 Ion Mass (intensity)', 2.1),
-            ('3 MS2 Fragment (mass)', 5.0),
-            ('4 MS2 Ion Mass (intensity)', 2.1),
-            ('4 MS2 Fragment (mass)', 5.0),
-            ('5 MS2 Ion Mass (intensity)', 2.1),
-            ('5 MS2 Fragment (mass)', 5.0),
-            ('z', 0.55),
-            ('MS2 File', 0.80),
-            ('Scan num.', 5.26),
-            ('MS2 All Fragments', 1.2),
-            ('Protein Ratio OK', 0.90),
-            ('Lipid Intensity Ratio', 1.44),
-            ('Protein Ratio Limit %.03f' % self.fr_offsets[0], 1.2),
-            ('Protein Ratio Limit %.03f' % self.fr_offsets[1], 1.2),
-            ('Protein Ratio from Fractions', 2.7),
-            ('Protein Ratio Score', 1.44),
-            ('Peaksize', 1.44),
-            ('MS1 Headgroups (automatic identification)', 2.1),
-            ('MS2 Headgroups (automatic identification)', 2.1),
-            ('Identity (automatically assigned)', 5.5),
+            ('Quality', 1.8),
+            ('Significance', 1.8),
+            ('m/z', 1.8),
+            ('Has MS2', 1.8),
+            ('RT range', 1.8),
+            ('RT mean', 1.8),
+            ('RT (MS2 closest)', 1.8),
+            ('dRT', 1.8),
+            ('Protein Ratio', 1.8),
+            ('[M+H]+ Lipids' if mode == 'pos' else '[M-H]- Lipids', 6.4),
+            ('[M+NH4]+ Lipids' if mode == 'pos' else '[M+HCOO]- Lipids', 6.4),
+            ('[M+Na]+ Lipids' if mode == 'pos' else 'Nothing', 6.4),
+            ('Avg. Area', 2.83),
+            ('m/z corrected', 2.83),
+            ('SwissLipids Identification', 10.77),
+            ('Class', 2.83),
+            ('Confirmed by MS2', 2.83),
+            ('Comment', 2.83),
+            ('MS2 precursor mass', 1.86),
+            ('1 MS2 Ion Mass (intensity)', 4.29),
+            ('1 MS2 Fragment (mass)', 8.60),
+            ('2 MS2 Ion Mass (intensity)', 4.29),
+            ('2 MS2 Fragment (mass)', 8.60),
+            ('3 MS2 Ion Mass (intensity)', 4.29),
+            ('3 MS2 Fragment (mass)', 8.60),
+            ('4 MS2 Ion Mass (intensity)', 4.29),
+            ('4 MS2 Fragment (mass)', 8.60),
+            ('5 MS2 Ion Mass (intensity)', 4.29),
+            ('5 MS2 Fragment (mass)', 8.60),
+            ('z', 0.48),
+            ('MS2 File', 2.12),
+            ('Scan num.', 2.83),
+            ('MS2 All Fragments', 4.29),
+            ('Protein Ratio OK', 2.12),
+            ('Lipid Intensity Ratio', 2.12),
+            ('Protein Ratio Limit %.03f' % self.fr_offsets[0], 2.12),
+            ('Protein Ratio Limit %.03f' % self.fr_offsets[1], 2.12),
+            ('Protein Ratio from Fractions', 2.12),
+            ('Protein Ratio Score', 2.12),
+            ('Peaksize', 2.12),
+            ('MS1 Headgroups (automatic identification)', 1.48),
+            ('MS2 Headgroups (automatic identification)', 1.48),
+            ('Identity (automatically assigned)', 3.62),
             ('[M+H]+ Lipids (LipidMaps)' if mode == 'pos' \
-                else '[M-H]- Lipids (LipidMaps)', 5.0),
+                else '[M-H]- Lipids (LipidMaps)', 3.31),
             ('[M+NH4]+ Lipids (LipidMaps)' if mode == 'pos' \
-                else '[M+HCOO]- Lipids (LipidMaps)', 5.0),
+                else '[M+HCOO]- Lipids (LipidMaps)', 3.31),
             ('[M+Na]+ Lipids (LipidMaps)' if mode == 'pos' \
-                else 'Nothing', 5.0)
+                else 'Nothing', 3.31)
         ]
         
         colw = list(map(lambda f: f[1], hdr))
