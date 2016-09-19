@@ -10260,7 +10260,8 @@ class LTP(object):
         with open(filename, 'w') as f:
             f.write(out)
     
-    def std_layout_tables_xlsx(self, check_deltart = False):
+    def std_layout_tables_xlsx(self, check_deltart = False, one_table = False):
+        
         def add_sheet(xls, tbl, name, colws = None):
             sheet = xls.add_worksheet(name)
             plain = xls.add_format({})
@@ -10272,6 +10273,7 @@ class LTP(object):
             sheet.freeze_panes(1, 0)
             for i, content in enumerate(tbl[0]):
                 sheet.write(0, i, content, bold)
+            
             for j, row in enumerate(tbl[1:]):
                 for i, content in enumerate(row):
                     if type(content) is tuple:
@@ -10291,7 +10293,24 @@ class LTP(object):
             #sheet.set_row(row = 0, height = 115.0)
         
         def colw_scale(w):
+            # these are empirical values to adjust the column widths
             return (w - 0.1705710377055909) / 0.24899187310525259
+        
+        def make_xls(protein, xls):
+            method = self.std_layout_table_all if protein == 'all' else \
+                     self.std_layout_table
+            _argsp = ['pos'] if protein == 'all' else [protein, 'pos']
+            _argsn = ['neg'] if protein == 'all' else [protein, 'neg']
+            _kwargs = {'colws': True, 'check_deltart': check_deltart}
+            tbl, colw = method(*_argsp, **_kwargs)
+            add_sheet(xls, tbl, '%s_positive' % protein, colw)
+            tbl, colw = method(*_argsn, **_kwargs)
+            add_sheet(xls, tbl, '%s_negative' % protein, colw)
+            _kwargs['only_best'] = True
+            tbl, colw = method(*_argsp, **_kwargs)
+            add_sheet(xls, tbl, '%s_positive_best' % protein, colw)
+            tbl, colw = method(*_argsn, **_kwargs)
+            add_sheet(xls, tbl, '%s_negative_best' % protein, colw)
         
         xlsdir = 'top_features'
         if not os.path.exists(xlsdir):
@@ -10299,34 +10318,69 @@ class LTP(object):
         for fname in os.listdir(xlsdir):
             os.remove(os.path.join(xlsdir, fname))
         self.sort_alll('aaa', asc = False)
-        prg = progress.Progress(len(self.valids), 'Exporting xlsx tables',
-                                1, percent = False)
-        for protein in self.valids.keys():
-            prg.step()
-            xlsname = os.path.join(xlsdir, '%s_top_features.xlsx' % protein)
-            tbl_pos, colw_pos = self.std_layout_table(protein,
-                                                      'pos', colws = True,
-                                                      check_deltart = check_deltart)
-            tbl_neg, colw_neg = self.std_layout_table(protein,
-                                            'neg', colws = True,
-                                                      check_deltart = check_deltart)
+        
+        if one_table:
+            
+            sys.stdout.write('\t:: Exporting xlsx table...')
+            sys.stdout.flush()
+            
+            xlsname = os.path.join(xlsdir, 'all_top_features.xlsx')
             xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True})
-            add_sheet(xls, tbl_pos, '%s_positive' % protein, colw_pos)
-            add_sheet(xls, tbl_neg, '%s_negative' % protein, colw_neg)
-            tbl_pos, colw_pos = self.std_layout_table(protein, 'pos',
-                                            only_best = True, colws = True,
-                                            check_deltart = check_deltart)
-            tbl_neg, colw_pos = self.std_layout_table(protein, 'neg',
-                                            only_best = True, colws = True,
-                                            check_deltart = check_deltart)
-            add_sheet(xls, tbl_pos, '%s_positive_best' % protein, colw_pos)
-            add_sheet(xls, tbl_neg, '%s_negative_best' % protein, colw_neg)
+            make_xls('all', xls)
             xls.close()
-        prg.terminate()
+            
+            sys.stdout.write(' Ready.\n')
+            sys.stdout.flush()
+            
+        else:
+            
+            prg = progress.Progress(len(self.valids), 'Exporting xlsx tables',
+                                    1, percent = False)
+            
+            for protein in self.valids.keys():
+                prg.step()
+                xlsname = os.path.join(xlsdir, '%s_top_features.xlsx' % protein)
+                xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True})
+                make_xls(protein, xls)
+                xls.close()
+            
+            prg.terminate()
+    
+    def std_layout_table_all(self, mode, **kwargs):
+        
+        allrows = []
+        hdr = None
+        
+        for protein in self.valids.keys():
+            rows = self.std_layout_table(protein, mode, **kwargs)
+            
+            if 'colws' in kwargs and kwargs['colws']:
+                colw = rows[1]
+                colw = [3.0] + colw
+                rows = rows[0]
+            
+            rows = list(map(lambda r: [protein] + r, rows))
+            
+            if hdr is None:
+                hdr = rows[0]
+                hdr[0] = 'Protein'
+                hdr = [hdr]
+            
+            rows = rows[1:]
+            allrows.extend(rows)
+        
+        allrows.sort(key = lambda r: r[3])
+        allrows = hdr + allrows
+        
+        if 'colws' in kwargs and kwargs['colws']:
+            return allrows, colw
+        else:
+            return allrows
     
     def std_layout_table(self, protein, mode,
                          only_best = False, colws = False,
                          check_deltart = False):
+        
         rows = []
         hdr = [
             ('Quality', 1.8),
