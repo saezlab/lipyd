@@ -14,11 +14,12 @@
 #
 
 #
-    # filtering features accross samples and fractions
+    # filtering features accross fractions and fractions
     # to find those relevant ones
     # belonging to LTP bound lipids
 #
 
+from __future__ import print_function
 from future.utils import iteritems
 from past.builtins import xrange, range, reduce
 
@@ -77,17 +78,17 @@ warnings.filterwarnings('error')
 warnings.filterwarnings('default')
 
 class MolWeight(object):
-    '''
+    """
     
     Thanks for
     https://github.com/bsimas/molecular-weight/blob/master/chemweight.py
     
-    '''
+    """
     
     def __init__(self, formula = None, charge = 0, isotope = 0, **kwargs):
-        '''
+        """
             **kwargs: elements & counts, e.g. c = 6, h = 12, o = 6...
-        '''
+        """
         if not hasattr(mass, 'massFirstIso'):
             mass.getMassFirstIso()
         self.mass = mass.massFirstIso
@@ -243,10 +244,10 @@ class FattyFragment(MolWeight, AdductCalculator):
             ';'.join(self.hg)]
 
 class LysoPEAlkenyl(FattyFragment):
-    '''
+    """
     from massbank.jp:
     [lyso PE(alkenyl-18:0,-)]- 464.3140997565 -417 C23H47NO6P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -270,10 +271,10 @@ class LysoPEAlkenyl(FattyFragment):
         )
 
 class LysoPE(FattyFragment):
-    '''
+    """
     from massbank.jp:
     [lyso PE(18:0,-)]- 480.3090143786 -476 C23H47NO7P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -320,10 +321,10 @@ class LysoPEAlkyl(FattyFragment):
         )
 
 class LysoPCAlkenyl(FattyFragment):
-    '''
+    """
     from massbank.jp:
     [lyso PC(alkenyl-18:0,-)]- 492.3453998849 -436 C25H51NO6P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -347,10 +348,10 @@ class LysoPCAlkenyl(FattyFragment):
         )
 
 class LysoPCAlkyl(FattyFragment):
-    '''
+    """
     from massbank.jp:
     [lyso PC(alkyl-18:0,-)]- 494.3610499491 -143 C25H53NO6P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -400,10 +401,10 @@ class LysoPC(FattyFragment):
         )
 
 class LysoPS(FattyFragment):
-    '''
+    """
     from massbank.jp:
     [lyso PS(18:0,-)]- 437.2668152129 -358 C21H42O7P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -470,10 +471,10 @@ class LysoPSAlkyl(FattyFragment):
         )
 
 class LysoPI(FattyFragment):
-    '''
+    """
     from massbank:
     [lyso PI(-,18:0)]- 599.3196386444 -432 C27H52O12P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -496,12 +497,12 @@ class LysoPI(FattyFragment):
         )
 
 class LysoPIAlkyl(FattyFragment):
-    '''
+    """
     from massbank.jp:
     [lyso PI(alkyl-16:1,-)-H2O]- 537.2828592076 -228 C25H46O10P-
     from this, derived 18:0-:
     [lyso PI(alkyl-18:0,-)]- 585.3403740858 -228 C27H54O11P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -524,10 +525,10 @@ class LysoPIAlkyl(FattyFragment):
         )
 
 class LysoPG(FattyFragment):
-    '''
+    """
     from massbank:
     [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -550,10 +551,10 @@ class LysoPG(FattyFragment):
         )
 
 class LysoPGAlkyl(FattyFragment):
-    '''
+    """
     from massbank:
     [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -576,11 +577,11 @@ class LysoPGAlkyl(FattyFragment):
         )
 
 class LysoPA(FattyFragment):
-    '''
+    """
     from Characterization of Phospholipid 
     Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
     [lyso PA(18:1,-)]- 435.2 C21H40O7P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -603,11 +604,11 @@ class LysoPA(FattyFragment):
         )
 
 class LysoPAAlkyl(FattyFragment):
-    '''
+    """
     from Characterization of Phospholipid 
     Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
     [lyso PA(18:1,-)]- 435.2 C21H40O7P-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -630,10 +631,10 @@ class LysoPAAlkyl(FattyFragment):
         )
 
 class CerFA(FattyFragment):
-    '''
+    """
     https://metlin.scripps.edu/metabo_info.php?molid=6214
     [Cer-FA(C8:0)]- 168.1382904 C8H14O1N1-
-    '''
+    """
     
     def __init__(self, c, unsat = 0,
         minus = [], plus = [], isotope = 0,
@@ -796,9 +797,9 @@ class FAminusH(FattyFragment):
             minus = ['H'], isotope = isotope, name = 'FA')
 
 class FAAlkylminusH(FattyFragment):
-    '''
+    """
     18:0 = 267.2693393
-    '''
+    """
     
     def __init__(self, c, unsat = 1, isotope = 0, **kwargs):
         self.counts = {
@@ -978,7 +979,7 @@ class Mz():
 # ##
 
 class Feature(object):
-    '''
+    """
     Provides additional, more sophisticated methods
     for identification of a single feature.
     
@@ -988,10 +989,10 @@ class Feature(object):
     
     Later more complex methods became necessary, so
     I created this class to group them.
-    '''
+    """
     
     def __init__(self, main, protein, mode, oi, log = True):
-        '''
+        """
         @main : ltp.LTP() instance
             One LTP() instance with MS1 and MS2 processing already done.
         
@@ -1006,7 +1007,7 @@ class Feature(object):
         
         @log : bool
             Whether output verbose messages to logfile.
-        '''
+        """
         self.main = main
         self.log = log
         self.protein = protein
@@ -1134,7 +1135,7 @@ class Feature(object):
             sc.print_scan()
     
     def sort_scans(self):
-        '''
+        """
         Groups the scans in 3 groups: highest consists of those from the
         fractions with the highest protein level (there might be more than
         one the highest, because the fraction offset limits); the secondary
@@ -1142,7 +1143,7 @@ class Feature(object):
         other contains the scans from non protein containing fractions.
         Within the groups the scans are sorted from lowest to highest
         deltaRT.
-        '''
+        """
         self.highest = []
         self.secondary = []
         self.other = []
@@ -1354,7 +1355,7 @@ class MS2Scan(object):
              'A' if 8 < self.scan_id[1] < 13 else 'B',
              '1' if self.scan_id[1] == 13 else self.scan_id[1],
              'contains' \
-                if self.feature.main.samples_upper[self.feature.protein][fri + 1] == 1 \
+                if self.feature.main.fractions_upper[self.feature.protein][fri + 1] == 1 \
                 else 'does not contain',
              self.feature.protein,
              self.tbl['fe'][self.i, fri] \
@@ -1486,11 +1487,11 @@ class MS2Scan(object):
             return order
     
     def mz_lookup(self, mz):
-        '''
+        """
         Returns the index of the closest m/z value
         detected in the scan if it is within the
         range of tolerance, otherwise None.
-        '''
+        """
         du = 999.0
         dl = 999.0
         self.sort_by_mz()
@@ -1674,13 +1675,13 @@ class MS2Scan(object):
     
     def matching_fa_frags_of_type(self, hg, typ, sphingo = False,
         return_details = False):
-        '''
+        """
         Returns carbon counts of those fragments which are of the given type
         and have complement fatty acid fragment of any type.
         
         Details is a dict with carbon counts as keys
         and fragment names as values.
-        '''
+        """
         result = set([])
         details = {}
         if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
@@ -1724,13 +1725,13 @@ class MS2Scan(object):
         return score
     
     def build_fa_list(self, rebuild = False):
-        '''
+        """
         Returns list with elements:
             carbon count, headgroups (set or None),
             esther (False) or ether (True),
             sphingosine (True) or fatty acid (False),
             fragment intensity and row index
-        '''
+        """
         if self.fa_list is None or rebuild:
             self.fa_list = []
             for i, frag in enumerate(self.scan):
@@ -2095,7 +2096,7 @@ class LTP(object):
             'basedir': ['home', 'denes', 'Documents' , 'ltp'],
             'data_basedir': None,
             'ltpdirs': [['share'], ['share', '2015_06_Popeye']],
-            'samplesf': 'control_sample.csv',
+            'fractionsf': 'control_sample.csv',
             'ppfracf': 'fractions.csv',
             'ppsecdir': 'SEC_profiles',
             'stddir': 'Standards_mzML format',
@@ -2205,7 +2206,7 @@ class LTP(object):
             ]
         }
         
-        self.in_basedir = ['samplesf', 'ppfracf', 'seqfile',
+        self.in_basedir = ['fractionsf', 'ppfracf', 'seqfile',
             'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
@@ -2481,7 +2482,7 @@ class LTP(object):
                     });
                 </script>
             </head>""" % (fonts.read()) \
-        + '''
+        + """
             <body>
                 <div id="ms2button">MS2 spectra<br />
                     <div id="ms2spectra"></div>
@@ -2491,7 +2492,7 @@ class LTP(object):
                     %s
                 </table>
             </body>
-            </html>'''
+            </html>"""
         fonts.close()
         
         self.colors = [
@@ -2542,27 +2543,27 @@ class LTP(object):
     #
 
     def which_day(self, ltp, mode = 'pos'):
-        '''
-        Which day the samples for a given LTP have been run?
-        '''
+        """
+        Which day the fractions for a given LTP have been run?
+        """
         if not hasattr(self, 'seq'):
             self.read_seq()
-        return map(lambda (date, samples):
+        return map(lambda (date, fractions):
             date,
-            filter(lambda (date, samples):
+            filter(lambda (date, fractions):
                 (ltp, mode) in map(lambda sample:
                     (sample[0], sample[1]),
-                    samples
+                    fractions
                 ),
                 self.seq.iteritems()
             )
         )
 
     def standards_theoretic_masses(self):
-        '''
+        """
         Reads the exact masses and most abundant ion masses of
         the lipid standards.
-        '''
+        """
         result = {}
         tbl = self.read_xls(self.metabsf, 9)
         hdr = tbl[0]
@@ -2703,7 +2704,7 @@ class LTP(object):
                                 '\t'.join([l[0]] + names + [formula, '%.06f' % l[5]])
                             )
                     except:
-                        print seq
+                        print(seq)
     
     def export_swisslipids(self, fname = 'swisslipids.tab'):
         with open(fname, 'w') as f:
@@ -2716,7 +2717,7 @@ class LTP(object):
     
     def get_swisslipids(self, adducts = None,
         exact_mass = False):
-        '''
+        """
         Downloads the total SwissLipids lipids dataset.
         Returns numpy array with all queried adducts and optionally exact
         masses, calculates the formate adduct m/z's on demand.
@@ -2724,7 +2725,7 @@ class LTP(object):
         from SL, while the exact masses are given for all the lipids. Also
         storing masses of many adducts of the same lipid in an array results
         extensive memory usage (couple of hundreds MB).
-        '''
+        """
         adduct_method = {
             '[M+OAc]-': 'add_ac',
             '[M+H]+': 'add_h',
@@ -2780,10 +2781,10 @@ class LTP(object):
         return positives, negatives
 
     def get_swisslipids_exact(self):
-        '''
+        """
         Downloads the total SwissLipids lipids dataset.
         Returns numpy array with only exact mass values.
-        '''
+        """
         readd = re.compile(r'.*(\[.*)')
         c = _curl.Curl(self.swisslipids_url, silent = False,
             compr = 'gz', large = True)
@@ -2860,49 +2861,13 @@ class LTP(object):
                 kwdstr.split('|')
             )
     
-    def read_lipid_names(self):
-        result = {}
-        with open(self.lipnamesf, 'r') as f:
-            nul = f.readline()
-            for l in f:
-                l = l.strip().split('\t')
-                result[l[0]] = {
-                    'full_name': l[1],
-                    'swl': self.process_db_keywords(l[2]),
-                    'lmp': self.process_db_keywords(l[3]),
-                    'pos_adduct': l[4] if l[4] != 'ND' and self.adducts_constraints else None,
-                    'neg_adduct': l[5] if l[5] != 'ND' and self.adducts_constraints else None
-                }
-        self.lipnames = result
-
-    def read_binding_properties(self):
-        result = {}
-        with open(self.bindpropf, 'r') as f:
-            data = map(lambda l:
-                l.strip('\n').split('\t'),
-                filter(lambda l:
-                    len(l),
-                    f
-                )[1:]
-            )
-        for l in data:
-            if l[2] not in result:
-                result[l[2]] = set([])
-            try:
-                for lip in l[6].split(';'):
-                    if lip != 'ND' and lip != '':
-                        result[l[2]].add(lip)
-            except IndexError:
-                print l
-        self.bindprop = result
-    
     def binders_of(self, hg):
         return map(
             lambda (k, v):
                 k,
             filter(
                 lambda (k, v):
-                    hg in v and k in self.samples_upper,
+                    hg in v and k in self.fractions_upper,
                 self.bindprop.iteritems()
             )
         )
@@ -3126,10 +3091,10 @@ class LTP(object):
     
     def _pp(self, offset = 0.0, label = '', cache = True,
         correct_GLTPD1 = True, GLTPD_correction = 'eq'):
-        '''
+        """
         For each protein, for each fraction, calculates the mean of
         absorptions of all the measurements belonging to one fraction.
-        '''
+        """
         cachefile = '%s%s.pickle' % (self.pprofcache.split('.')[0], label)
         propname = 'pprofs%s' % label
         if cache and os.path.exists(cachefile):
@@ -3200,14 +3165,14 @@ class LTP(object):
                 prof[frac] -= cmin
     
     def zero_controls(self):
-        '''
+        """
         For protein profiles with offsets 0, 15 and 45
         it calls protein_profile_correction() to
         make the baseline correction, saves a copy
         to pprof_original<offset> property, and
         after sets the values for non LTP conatining
         fractions to zero.
-        '''
+        """
         if self.pp_zeroed:
             sys.stdout.write('\t:: Looks like controls already set to zero, '\
                 'please set `pp_zeroed` to False to override.\n')
@@ -3218,7 +3183,7 @@ class LTP(object):
             self.protein_profile_correction(propname)
             setattr(self, 'pprofs_original%s' % label,
                 copy.deepcopy(getattr(self, propname)))
-            for ltpname, sample in self.samples.iteritems():
+            for ltpname, sample in self.fractions.iteritems():
                 for i, fr in enumerate(self.fracs):
                     if sample[i + 1] == 0 or sample[i + 1] is None:
                         getattr(self, propname)[ltpname.upper()][fr] = 0.0
@@ -3226,7 +3191,7 @@ class LTP(object):
     
     def protein_containing_fractions(self, protein):
         with_protein = []
-        sample = self.samples_upper[protein]
+        sample = self.fractions_upper[protein]
         for i, fr in enumerate(self.fracs):
             if sample[i + 1] == 1:
                 with_protein.append(fr)
@@ -3258,7 +3223,7 @@ class LTP(object):
             map(
                 lambda p:
                     (p, {'prim': set([]), 'sec': set([])}),
-                self.samples_upper.keys()
+                self.fractions_upper.keys()
             )
         )
         for protein, d in self.fractions.iteritems():
@@ -3272,16 +3237,16 @@ class LTP(object):
                     d['sec'].add(fr)
     
     def protein_peak_ratios(self):
-        '''
+        """
         Calculates the expected minimum and maximum values for
         protein peak ratios.
         The result contains empty dicts for proteins with only
         one fraction, one ratio for those with 2 fractions, and
         2 ratios for those with 3 fractions.
-        '''
+        """
         self.ppratios = dict((protein, {}) \
-            for protein in self.samples_upper.keys())
-        for protein, sample in self.samples_upper.iteritems():
+            for protein in self.fractions_upper.keys())
+        for protein, sample in self.fractions_upper.iteritems():
             ratios = {}
             ref = None
             pprofL = self.pprofsL[protein]
@@ -3302,18 +3267,18 @@ class LTP(object):
         tbl = self.read_xls(self.manual_ppratios_xls)[1:]
         ppratios = {}
         first = {}
-        samples = {}
+        fractions = {}
         for l in tbl:
             protein = l[2].split('=')[0].strip()
             ppratios[protein] = {}
             frm = refracs.findall(l[4])
-            samples[protein] = set([])
+            fractions[protein] = set([])
             if frm is not None:
                 for i, (fr1l, fr1n, fr2l, fr2n) in enumerate(frm):
                     fr1 = '%s%u' % (fr1l.lower(), int(fr1n))
                     fr2 = '%s%u' % (fr2l.lower(), int(fr2n))
-                    samples[protein].add(fr1)
-                    samples[protein].add(fr2)
+                    fractions[protein].add(fr1)
+                    fractions[protein].add(fr2)
                     lower = float(nondigit.sub('', l[8].split('/')[i]))
                     upper = float(nondigit.sub('', l[9].split('/')[i]))
                     ppratios[protein][(fr1, fr2)] = (lower, upper)
@@ -3321,7 +3286,7 @@ class LTP(object):
                         first[protein] = (fr1, fr2)
         self.ppratios_manual = ppratios
         self.first_ratio_manual = first
-        self.samples_manual = samples
+        self.fractions_manual = fractions
     
     def ppratios_replace_manual(self):
         epsilon = 0.0000000000001
@@ -3335,12 +3300,12 @@ class LTP(object):
             if protein in self.first_ratio_manual:
                 fr1i = self.fracs.index(self.first_ratio_manual[protein][0]) + 1
                 fr2i = self.fracs.index(self.first_ratio_manual[protein][1]) + 1
-                if self.samples_upper[protein][fr1i] == 1 and \
-                    self.samples_upper[protein][fr2i] == 1:
+                if self.fractions_upper[protein][fr1i] == 1 and \
+                    self.fractions_upper[protein][fr2i] == 1:
                     self.first_ratio[protein] = self.first_ratio_manual[protein]
     
     def sample_fractions_marco(self):
-        self.samples_original = copy.deepcopy(self.samples_upper)
+        self.fractions_original = copy.deepcopy(self.fractions_upper)
         refrac = re.compile(r'([AB])([0-9]{1,2})')
         tbl = self.read_xls(self.manual_ppratios_xls)[1:]
         for l in tbl:
@@ -3352,29 +3317,29 @@ class LTP(object):
             ))
             for i, fr in enumerate(self.fracs):
                 if fr in fracs:
-                    if self.samples_upper[protein][i + 1] != 1:
+                    if self.fractions_upper[protein][i + 1] != 1:
                         sys.stdout.write('\t:: Setting fraction %s at %s to 1, '\
                             'this was %s before\n' % \
-                            (fr, protein, self.samples_upper[protein][i + 1]))
-                        self.samples_upper[protein][i + 1] = 1
-                elif self.samples_upper[protein][i + 1] == 1:
+                            (fr, protein, self.fractions_upper[protein][i + 1]))
+                        self.fractions_upper[protein][i + 1] = 1
+                elif self.fractions_upper[protein][i + 1] == 1:
                     sys.stdout.write('\t:: Setting fraction %s at %s to 0, '\
                         'this was %s before\n' % \
-                        (fr, protein, self.samples_upper[protein][i + 1]))
-                    self.samples_upper[protein][i + 1] = 0
+                        (fr, protein, self.fractions_upper[protein][i + 1]))
+                    self.fractions_upper[protein][i + 1] = 0
     
     def protein_peak_ratios2(self):
-        '''
+        """
         Calculates the expected minimum and maximum values for
         protein peak ratios.
         The result contains empty dicts for proteins with only
         one fraction, one ratio for those with 2 fractions, and
         2 ratios for those with 3 fractions.
-        '''
+        """
         self.ppratios = dict((protein, {}) \
-            for protein in self.samples_upper.keys())
+            for protein in self.fractions_upper.keys())
         self.first_ratio = dict((protein, {}) \
-            for protein in self.samples_upper.keys())
+            for protein in self.fractions_upper.keys())
         ifracs = dict(map(lambda (i, fr): (fr, i), enumerate(self.fracs)))
         def get_ratio(protein, ref, frac, o):
             return \
@@ -3396,7 +3361,7 @@ class LTP(object):
                     self.abs_by_frac_c[protein][highest][1],
                     self.abs_by_frac_c[protein][highest][5]
                 ])
-        for protein, sample in self.samples_upper.iteritems():
+        for protein, sample in self.fractions_upper.iteritems():
             ratios = {}
             ref = None
             highest = None
@@ -3418,16 +3383,16 @@ class LTP(object):
                 tuple(sorted([highest, second], key = lambda fr: ifracs[fr]))
     
     def intensity_peak_ratios(self):
-        '''
+        """
         Calculates the intensity peak ratios which are to be
         compared with the protein peak ratios.
         For each protein for each mode a new array named `ipr`
         will be created with one row for each feature and
         0, 1 or 2 columns depending on the number of protein
         containing fractions.
-        '''
+        """
         for protein, d in self.valids.iteritems():
-            sample = self.samples_upper[protein]
+            sample = self.fractions_upper[protein]
             for mode, tbl in d.iteritems():
                 ratios = []
                 indices = {}
@@ -3466,15 +3431,11 @@ class LTP(object):
                 else:
                     tbl['prr'] = None
     
-    def one_sample(self):
-        self.singles = [k.upper() for k, v in self.samples.iteritems() \
-            if sum((i for i in v if i is not None)) == 1]
-    
     def write_pptable(self):
-        '''
+        """
         Writes protein profiles in a table, so we don't need to read
         all the 60 XLS files every time.
-        '''
+        """
         with open(self.pptablef, 'w') as f:
             f.write('\t%s%s' % ('\t'.join(
                 sorted(self.pprofs.values()[0].keys(),
@@ -3487,9 +3448,9 @@ class LTP(object):
             ))
 
     def read_pptable(self):
-        '''
+        """
         Reads protein profiles from table.
-        '''
+        """
         with open(self.pptablef, 'r') as f:
             header = f.readline().strip().split('\t')
             return dict((ll[0], dict(zip(header, self.float_lst(ll[1:])))) \
@@ -3497,10 +3458,10 @@ class LTP(object):
 
     def read_xls(self, xls_file, sheet = 0, csv_file = None,
         return_table = True):
-        '''
+        """
         Generic function to read MS Excel XLS file, and convert one sheet
         to CSV, or return as a list of lists
-        '''
+        """
         table = None
         try:
             book = xlrd.open_workbook(xls_file, on_demand = True)
@@ -3550,7 +3511,7 @@ class LTP(object):
         try:
             tbl = self.data[protein[mode]][mode]
         except KeyError:
-            print protein, mode
+            print(protein, mode)
         ui = tbl['raw'][:,2].searchsorted(mz)
         du = 999.0 if ui == tbl['raw'].shape[0] else tbl['raw'][ui,2] - mz
         dl = 999.0 if ui == 0 else mz - tbl['raw'][ui - 1,2]
@@ -3560,25 +3521,7 @@ class LTP(object):
         else:
             oi = None
         return oi
-    #
-    # reading in a small table for keeping track which fractions are samples 
-    # and which ones are controls
-    #
     
-    def read_samples(self):
-        '''
-        Reads from file sample/control annotations 
-        for each proteins.
-        '''
-        data = {}
-        with open(self.samplesf, 'r') as f:
-            null = f.readline()
-            for l in f:
-                l = l.split(',')
-                data[l[0].replace('"', '')] = \
-                    np.array([self.to_int(x) \
-                        if x != '' else None for x in l[1:]])
-        self.samples = data
 
     def read_seq(self):
         refrac = re.compile(r'[AB][9120]{1,2}')
@@ -3697,8 +3640,8 @@ class LTP(object):
             (date, {}),
             self.stdfiles.keys()
         ))
-        for date, samples in self.stdfiles.iteritems():
-            for sample, fname in samples.iteritems():
+        for date, fractions in self.stdfiles.iteritems():
+            for sample, fname in fractions.iteritems():
                 if sample[0] == '#STD':
                     time, scans, centroids = self.read_mzml(fname)
                     peaks = self.find_peaks(scans, centroids, accuracy)
@@ -3712,13 +3655,13 @@ class LTP(object):
         self.std_measured = result
 
     def drifts_by_standard(self, write_table = 'drifts_ppm.tab'):
-        drifts = dict(map(lambda (date, samples):
+        drifts = dict(map(lambda (date, fractions):
             (date, dict(map(lambda (sample, lipids):
                 (sample, dict(map(lambda lipid:
                     (lipid, None),
                     lipids.keys()))
                 ),
-                samples.iteritems()))
+                fractions.iteritems()))
             ),
             self.std_measured.iteritems())
         )
@@ -3726,9 +3669,9 @@ class LTP(object):
             'measured', 'ratio', 'ppm']
         tab = [hdr]
         for date in sorted(self.std_measured.keys()):
-            samples = self.std_measured[date]
-            for sample in sorted(samples.keys()):
-                lipids = samples[sample]
+            fractions = self.std_measured[date]
+            for sample in sorted(fractions.keys()):
+                lipids = fractions[sample]
                 for lipid in sorted(lipids.keys()):
                     mmz = lipids[lipid]
                     mode = sample[1]
@@ -3758,8 +3701,8 @@ class LTP(object):
     def drifts_table(self, outfile = 'drifts_ppm.tab'):
         hdr = ['date', 'run', 'mode', 'lipid', 'ppm']
         tab = [hdr]
-        for date, samples in self.drifts.iteritems():
-            for sample, lipids in samples.iteritems():
+        for date, fractions in self.drifts.iteritems():
+            for sample, lipids in fractions.iteritems():
                 for lipid, ppm in lipids.iteritems():
                     tab.append([
                         '20%s-%s-%s' % (date[:2], date[2:4], date[4:6]),
@@ -3776,15 +3719,15 @@ class LTP(object):
             f.write(tab)
 
     def drifts_by_date(self):
-        drifts2 = dict(map(lambda (date, samples):
+        drifts2 = dict(map(lambda (date, fractions):
             (date, dict(map(lambda sample:
                 (sample, None),
-                samples.keys()))
+                fractions.keys()))
             ),
             self.drifts.iteritems())
         )
-        for date, samples in self.drifts.iteritems():
-            for sample, lipids in samples.iteritems():
+        for date, fractions in self.drifts.iteritems():
+            for sample, lipids in fractions.iteritems():
                 drifts2[date][sample] = \
                 np.nanmedian(
                     self.remove_outliers(
@@ -3976,10 +3919,10 @@ class LTP(object):
         return name, arr
 
     def _centroid(self, raw):
-        '''
+        """
         Perform a Gauss fit to centroid the peaks for the property
         Code from http://pymzml.github.io/_modules/spec.html
-        '''
+        """
         peaks = []
         if 'm/z' in raw and 'intensity' in raw:
             intensity = raw['intensity']
@@ -4034,7 +3977,7 @@ class LTP(object):
         return np.array(peaks, dtype = np.float32)
 
     def find_peaks(self, scans, centroids, accuracy = 5, dope = False):
-        '''
+        """
         Finds peaks detected in consecutive scans.
         Returns list of dicts with centroid m/z,
         cumulative intensity and RT range for
@@ -4049,7 +3992,7 @@ class LTP(object):
             m/z values to be distinct.
         
         # values order: (rt, mz, int)
-        '''
+        """
         accuracy = 1000000.0 / accuracy
         for scan, c in centroids.iteritems():
             centroids[scan]['centroids'] = \
@@ -4083,19 +4026,19 @@ class LTP(object):
                         ld = cons_centroid_mz - _scan[ui - 1, 0]
                     ci = ui if ud < ld else ui - 1
                     if dope and _dope(cons_centroid_mz):
-                        print '\n\t:: This mz looks DOPE: %f, closest in'\
+                        print('\n\t:: This mz looks DOPE: %f, closest in'\
                             ' this scan (%u): %f; accuracy: %f' % \
-                            (cons_centroid_mz, scan, _scan[ci, 0], 
-                                cons_centroid_mz / accuracy)
+                            (cons_centroid_mz, scan, _scan[ci, 0],
+                                cons_centroid_mz / accuracy))
                     if abs(_scan[ci, 0] - cons_centroid_mz) <= \
                         cons_centroid_mz / accuracy:
                         # same m/z detected in another consecutive scan:
                         consecutive[peakid].append(
                             (rt, _scan[ci, 0], _scan[ci, 1]))
                         if dope and _dope(_scan[ci, 0]):
-                            print '\n\t:: DOPE found in next scan, '\
+                            print('\n\t:: DOPE found in next scan, '\
                                 'appended to consecutive series: %u, %f' % \
-                                    (scan, _scan[ci,0])
+                                    (scan, _scan[ci,0]))
                         # this index won't initiate a new consecutive series:
                         added.add(ci)
                     else:
@@ -4110,9 +4053,9 @@ class LTP(object):
                             len(cons)
                         ])
                         if dope and _dope(cons_centroid_mz):
-                            print '\n\t:: DOPE series interrupted, moved to '\
+                            print('\n\t:: DOPE series interrupted, moved to '\
                                 'peaks stack: %f, %f' % \
-                                (cons_centroid_mz, cons_in.sum())
+                                (cons_centroid_mz, cons_in.sum()))
                         to_remove.add(peakid)
                 for peakid in to_remove & set(consecutive.keys()):
                     del consecutive[peakid]
@@ -4121,10 +4064,10 @@ class LTP(object):
                         peakid = _peakid.next()
                         consecutive[peakid] = [(rt, mz, ins)]
                         if dope and _dope(mz):
-                            print '\n\t:: New DOPE found, '\
+                            print('\n\t:: New DOPE found, '\
                                 'new consecutive series started'\
                                 ': scan %u, m/z = %f, peakid = %u' % \
-                                (scan, mz, peakid)
+                                (scan, mz, peakid))
         prg.terminate()
         peaks = np.array(peaks, dtype = np.float32)
         peaks = peaks[peaks[:,0].argsort(),:]
@@ -4205,9 +4148,9 @@ class LTP(object):
         return time, scans, centroids
 
     def dope(self, c):
-        '''
+        """
         Tells whether if a series of m/z's might be DOPE.
-        '''
+        """
         return np.any(np.logical_and(c[:,0] > 742.52, c[:,0] < 742.54))
 
     #
@@ -4215,12 +4158,12 @@ class LTP(object):
     #
 
     def get_filenames(self):
-        '''
+        """
         Files are placed in 2 root directories, in specific subdirectories,
         positive and negative MS mode in separate files.
         This function collects all the file paths and returns them 
         in a dict of dicts. Keys are LTP names, and 'pos'/'neg'.
-        '''
+        """
         redirname = re.compile(r'(^[0-9a-zA-Z]+)[ _]')
         fnames = {}
         ltpdlsts = \
@@ -4257,14 +4200,14 @@ class LTP(object):
         self.datafiles = fnames
 
     def read_file_np(self, fname, read_vars = ['Normalized Area']):
-        '''
+        """
         Reads one MS file, returns numpy masked array, 
         with void mask.
         Column order:
         quality, m/z, significance,
         rt-min, rt-max, charge, rtmean, avg.area,
         control, a9, a10, a11, a12, b1
-        '''
+        """
         # typos in the headers what need to be fixed
         typos = {
             'Sample 5': '',
@@ -4274,7 +4217,7 @@ class LTP(object):
         rehdr = re.compile(r'([_0-9a-zA-Z]+)[_\s]([/0-9a-zA-Z\s]+)')
         refra = re.compile(r'.*_[ab]{1,2}([0-9]{,2}).*')
         retyp = re.compile(r'(' + '|'.join(typos.keys()) + r')')
-        # order of samples (fractions)
+        # order of fractions (fractions)
         sname = [0, 9, 10, 11, 12, 1]
         # variable names
         vname = {
@@ -4334,12 +4277,12 @@ class LTP(object):
         return np.ma.masked_array(data, dtype = 'float64')
 
     def read_data(self):
-        '''
+        """
         Iterates through dict of dicts with file paths, reads
         each file, and makes array view and masks to make it easy
-        to handle missing data, and access m/z values of samples 
+        to handle missing data, and access m/z values of fractions 
         and controls, and other values.
-        '''
+        """
         data = dict((ltp, {}) for ltp in self.datafiles.keys())
         prg = progress.Progress(len(self.datafiles) * 2,
                                 'Reading features (MS1 data)', 1)
@@ -4358,22 +4301,22 @@ class LTP(object):
                 # mask non measured:
                 data[ltp][p]['mes'] = data[ltp][p]['int'].view()
                 data[ltp][p]['mes'].mask = \
-                    np.array([[x is None for x in self.samples[ltp]] * \
+                    np.array([[x is None for x in self.fractions[ltp]] * \
                         ((data[ltp][p]['int'].shape[1] - 5) / 6)] * \
                     data[ltp][p]['int'].shape[0])
                 data[ltp][p]['mes'] = np.ma.masked_invalid(data[ltp][p]['mes'])
                 # controls:
                 data[ltp][p]['ctr'] = data[ltp][p]['mes'][:,
-                    np.array([x == 0 for x in self.samples[ltp]] * \
+                    np.array([x == 0 for x in self.fractions[ltp]] * \
                         (data[ltp][p]['mes'].shape[1] / 6))]
-                # samples with lipids:
+                # fractions with lipids:
                 data[ltp][p]['lip'] = data[ltp][p]['mes'][:,
-                    np.array([x == 1 for x in self.samples[ltp]] * \
+                    np.array([x == 1 for x in self.fractions[ltp]] * \
                         (data[ltp][p]['mes'].shape[1] / 6))]
-                # all samples except blank control:
+                # all fractions except blank control:
                 data[ltp][p]['smp'] = data[ltp][p]['mes'][:,
                     np.array([False] + [x is not None \
-                        for x in self.samples[ltp][1:]] * \
+                        for x in self.fractions[ltp][1:]] * \
                         (data[ltp][p]['mes'].shape[1] / 6))]
                 # average area:
                 data[ltp][p]['aa'] = data[ltp][p]['raw'][:,7]
@@ -4385,9 +4328,9 @@ class LTP(object):
     #
 
     def to_float(self, num):
-        '''
+        """
         Extracts float from string, or returns None.
-        '''
+        """
         if type(num) is float or type(num) is np.float64:
             return num
         num = num.strip()
@@ -4405,9 +4348,9 @@ class LTP(object):
                 return None
 
     def to_int(self, num):
-        '''
+        """
         Extracts int from string or returns None.
-        '''
+        """
         renum = re.compile(r'([-]?[0-9]+[\.]?[0-9]*)')
         num = renum.match(num.strip())
         if num:
@@ -4416,14 +4359,14 @@ class LTP(object):
             return num
 
     def float_lst(self, l):
-        '''
+        """
         Converts elements of a list to floats.
-        '''
+        """
         return [self.to_float(x) for x in l]
 
-    '''
+    """
     Filtering functions
-    '''
+    """
 
     def quality_filter(self, threshold = 0.2):
         for ltp, d in self.data.iteritems():
@@ -4513,7 +4456,7 @@ class LTP(object):
                     continue
                 # i != 0 : we always drop the blank control
                 ppr = np.array([self.pprofs[ltp.upper()][frs[i]] \
-                    for i, fr in enumerate(self.samples[ltp]) \
+                    for i, fr in enumerate(self.fractions[ltp]) \
                         if fr == 1 and i != 0])
                 ppr = self.norm_profile(ppr).astype(np.float64)
                 prr = stats.rankdata(ppr)
@@ -4677,18 +4620,18 @@ class LTP(object):
         prg.terminate()
     
     def remove_filter(self, attr_name):
-        '''
+        """
         Deletes the result of a previously done filtering.
-        '''
+        """
         for ltp, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 if attr_name in tbl:
                     del tbl[attr_name]
     
     def rprofile_filter(self):
-        '''
+        """
         Dummy function for eval_filter()
-        '''
+        """
         pass
     
     class get_hits(object):
@@ -4699,7 +4642,7 @@ class LTP(object):
         def __call__(self, data, **kwargs):
             result = empty_dict(data)
             for ltp in data.keys():
-                print ltp
+                print(ltp)
                 for pn, tbl in data[ltp].iteritems():
                     result[ltp][pn] = self.fun(tbl, **kwargs)
                     if result[ltp][pn] is None:
@@ -4753,13 +4696,13 @@ class LTP(object):
     @get_hits
     def val_ubi_prf_rpr_hits(self, tbl, ubiquity = 7, treshold = 0.15,
         tresholdB = 0.25, profile_best = False):
-        '''
+        """
         Column order:
         quality, m/z, rt_min, rt_max, charge, control, a9, a10, a11, a12, b1,
         profile_score, control_profile_score, rank_profile_boolean,
         ubiquity_score, ubiquity_score,
         original_index
-        '''
+        """
         prf = 'cprf' if tbl['lip'][1,:].count() == 1 else 'prf'
         _treshold = (treshold, tresholdB)
         if prf not in tbl:
@@ -4799,7 +4742,7 @@ class LTP(object):
                 score_treshold = prf_values[min(profile_best - 1,
                     len(prf_values) - 1)][1]
             except IndexError:
-                print prf_values
+                print(prf_values)
                 return None
             # comments?
             indices = np.array(sorted(map(lambda x: x[0], \
@@ -4817,12 +4760,12 @@ class LTP(object):
     @get_hits
     def pass_through(self, tbl, ubiquity = 7, treshold = 0.15,
         tresholdB = 0.25, profile_best = False):
-        '''
+        """
         Column order:
         quality, m/z, rt_min, rt_max, charge, control, a9, a10, a11, a12, b1,
         profile_score, control_profile_score, rank_profile_boolean,
         ubiquity_score, ubiquity_score
-        '''
+        """
         prf = 'cprf' if tbl['lip'][1,:].count() == 1 else 'prf'
         _treshold = (treshold, tresholdB)
         if prf not in tbl:
@@ -4845,7 +4788,7 @@ class LTP(object):
                 score_treshold = prf_values[min(profile_best - 1,
                     len(prf_values) - 1)][1]
             except IndexError:
-                print prf_values
+                print(prf_values)
                 return None
             # comments?
             indices = np.array(sorted(map(lambda x: x[0], \
@@ -4855,8 +4798,8 @@ class LTP(object):
             # match less then or equal to treshold
             indices = np.array(sorted((i for i, v in prf_values.iteritems() \
                 if v <= _treshold)))
-        print 'Selected: ', np.nansum(tbl['cprf'][indices])
-        print 'Total: ', np.nansum(tbl['cprf'])
+        print('Selected: ', np.nansum(tbl['cprf'][indices]))
+        print('Total: ', np.nansum(tbl['cprf']))
         return (tbl['raw'][indices,:], tbl['prf'][indices],
             tbl['cprf'][indices],
             tbl['rpr'][indices], tbl['ubi'][indices], tbl['uby'][indices] \
@@ -5047,9 +4990,9 @@ class LTP(object):
                 sys.stdout.write('\n')
         return hits
 
-    '''
+    """
     Save and reload functions
-    '''
+    """
 
     def save_data(self, fname = None):
         fname = os.path.join(self.basedir, self.featurescache) \
@@ -5072,7 +5015,7 @@ class LTP(object):
             if fname is None else fname
         sys.stdout.write('\t:: Saving auxiliary data to %s ...\n' % fname)
         sys.stdout.flush()
-        pickle.dump((self.datafiles, self.samples),
+        pickle.dump((self.datafiles, self.fractions),
             open(fname, 'wb'))
         sys.stdout.write('\t:: Data has been saved to %s.\n' % fname)
         sys.stdout.flush()
@@ -5083,19 +5026,19 @@ class LTP(object):
         sys.stdout.write('\t:: Loading auxiliary data '\
             'from %s ...\n' % fname)
         sys.stdout.flush()
-        self.datafiles, self.samples = \
+        self.datafiles, self.fractions = \
             pickle.load(open(fname, 'rb'))
 
-    '''
+    """
     END: save & reload
-    '''
+    """
 
-    '''
+    """
     Lipid databases lookup functions
-    '''
+    """
 
     def find_lipids(self, hits, lipnames):
-        '''
+        """
         Column order:
         
         in:
@@ -5113,7 +5056,7 @@ class LTP(object):
         ubiquity_score, swisslipids_ac, level,
         lipid_name, lipid_formula, adduct, 
         adduct_m/z
-        '''
+        """
         # levels: 'Structural subspecies', 'Isomeric subspecies',
         # 'Species', 'Molecular subspecies'
         lipids = dict((ltp.upper(), {}) for ltp in hits.keys())
@@ -5145,10 +5088,10 @@ class LTP(object):
         self.lipids = lipids
 
     def headgroup_from_lipid_name(self, lip):
-        '''
+        """
         For one database record attempts to identify the lipid class
         by looking up keywords.
-        '''
+        """
         db = 'lmp' if lip[0][0] == 'L' else 'swl'
         for shortname, spec in self.lipnames.iteritems():
             for kwset in spec[db]:
@@ -5182,11 +5125,11 @@ class LTP(object):
 
     def find_lipids_exact(self, verbose = False,
         outfile = None, ltps = None, charge = 1):
-        '''
+        """
         Looks up lipids by m/z among database entries in
         `exacts`, and stores the result in dict under key
         `lip`, where keys are the original indices (`i`).
-        '''
+        """
         
         if verbose:
             outfile = sys.stdout if outfile is None else open(outfile, 'w')
@@ -5203,11 +5146,11 @@ class LTP(object):
             outfile.close()
 
     def adduct_lookup(self, mz, adducts):
-        '''
+        """
         Looks up m/z values in the table containing the reference database
         already converted to a pool of all possible adducts.
         (Does not convert the m/z to other adducts.)
-        '''
+        """
         result = []
         iu = adducts[:,-1].searchsorted(mz)
         if adducts.shape[0] > iu:
@@ -5232,10 +5175,10 @@ class LTP(object):
 
     def adduct_lookup_exact(self, mz, mode, verbose = False,
         outfile = None, charge = 1):
-        '''
+        """
         Looks up m/z values in the table containing the reference database
         casting the m/z to specific adducts.
-        '''
+        """
         if verbose and outfile is None:
             outfile = sys.stdout
         result = []
@@ -5296,7 +5239,7 @@ class LTP(object):
         return None if len(result) == 0 else np.vstack(result)
 
     def negative_positive(self, add_col = 12, mz_col = 1, swl_col = 8):
-        '''
+        """
         Column order:
         
         in:
@@ -5317,7 +5260,7 @@ class LTP(object):
         [17] neg_ubiquity_score, neg_ubiquity_score, neg_original_index,
         [18] neg_swisslipids_ac, neg_level,
         [22] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z
-        '''
+        """
         result = dict((ltp.upper(), []) for ltp in self.lipids.keys())
         prg = progress.Progress(len(result), 'Matching positive & negative',
             1, percent = False)
@@ -5417,11 +5360,11 @@ class LTP(object):
         return result
 
     def negative_positive2(self):
-        '''
+        """
         Results in dicts ['pos']['neg'] and ['neg']['pos'].
         Values in each array: assumed positive adduct, assumed negative adduct, 
             measured positive m/z, measured negative m/z
-        '''
+        """
         ad2ex = self.ad2ex[1]
         ex2ad = self.ex2ad[1]
         self.sort_alll('mz')
@@ -5483,7 +5426,7 @@ class LTP(object):
         prg.terminate()
 
     def negative_positive_lipids(self, tbl, poi, noi, pos_add, neg_add):
-        '''
+        """
         Result columns:
         database id positive, database id negative,
         lipid name positive, lipid name negative,
@@ -5493,7 +5436,7 @@ class LTP(object):
         headgroup positive, headgroup negative,
         fatty acids positive, fatty acids negative,
         dominant adduct positive, dominant adduct negative
-        '''
+        """
         result = []
         if tbl['pos']['lip'][poi] is not None and \
             tbl['neg']['lip'][noi] is not None:
@@ -5538,13 +5481,13 @@ class LTP(object):
         self.headgroups_negative_positive('ms1')
         self.marco_standards()
     
-    '''
+    """
     END: lipid databases lookup
-    '''
+    """
 
-    '''
+    """
     Functions for MS2
-    '''
+    """
     def ms2(self):
         self.ms2_metabolites()
         self.ms2_filenames()
@@ -5590,10 +5533,10 @@ class LTP(object):
             )
     
     def ms2_read_metabolites(self, fname, extra_fragments = True, return_fraglines = False):
-        '''
+        """
         In part from Toby Hodges.
         Reads metabolite fragments data.
-        '''
+        """
         Metabolites = []
         Hgroupfrags = {}
         rehg = re.compile(r'.*\(([\+;A-Z]+)\).*')
@@ -5729,12 +5672,12 @@ class LTP(object):
         return(series.iterfraglines())
 
     def ms2_filenames(self):
-        '''
+        """
         Files are placed in 2 root directories, in specific subdirectories,
         positive and negative MS mode in separate files.
         This function collects all the file paths and returns them 
         in a dict of dicts. Keys are LTP names, and 'pos'/'neg'.
-        '''
+        """
         redirname = re.compile(r'(^[0-9a-zA-Z]+)[ _](pos|neg)')
         refractio = re.compile(r'.*_([AB][0-9]{1,2}).*')
         fnames = {}
@@ -5807,7 +5750,7 @@ class LTP(object):
         self.ms2map = result
 
     def ms2_index(self, fl, fr, charge = 1):
-        '''
+        """
         Looking up offsets in one MS2 mgf file.
         
         Columns:
@@ -5817,7 +5760,7 @@ class LTP(object):
             -- scan num
             -- offset in file
             -- fraction num
-        '''
+        """
         stRrtinseconds = 'RTINSECONDS'
         stRtitle = 'TITLE'
         stRbe = 'BE'
@@ -5837,7 +5780,7 @@ class LTP(object):
                         try:
                             m = reln.match(l).groups()
                         except:
-                            print fl, l
+                            print(fl, l)
                             continue
                         if m[0] == stRtitle:
                             scan = float(m[1])
@@ -5865,9 +5808,9 @@ class LTP(object):
         return features
 
     def ms2_main(self, proteins = None, verbose = False, outfile = None):
-        '''
+        """
         For all LTPs and modes obtains the MS2 data from original files.
-        '''
+        """
         # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
         prg = progress.Progress(
             (len(self.valids) if proteins is None else len(proteins)) * 2,
@@ -5902,17 +5845,17 @@ class LTP(object):
                                                  verbose = verbose, outfile = outfile)
                     tbl['ms2r'] = self.ms2_result(tbl['ms2'])
                     #if verbose:
-                        #print '\n'
-                        #print 'number of positive mzs:', len(posMzs)
-                        #print 'negative matching:', len(pos_matches)
-                        #print 'number of negative mzs:', len(negMzs)
-                        #print 'negative matching:', len(neg_matches)
+                        #print('\n')
+                        #print('number of positive mzs:', len(posMzs))
+                        #print('negative matching:', len(pos_matches))
+                        #print('number of negative mzs:', len(negMzs))
+                        #print('negative matching:', len(neg_matches))
         if type(outfile) is file and outfile != sys.stdout:
             outfile.close()
         prg.terminate()
 
     def ms2_result(self, ms2matches):
-        '''
+        """
         Extracts the most relevant information from the MS2
         result arrays, throwing away the rest.
         
@@ -5920,7 +5863,7 @@ class LTP(object):
             # MS2 fragment name, MS2 adduct name, (0-1)
             # MS2 fragment m/z, MS2 fragment intensity (2-3)
             # fraction number, scan number (4-5)
-        '''
+        """
         result = dict((oi, []) for oi in ms2matches.keys())
         for oi, ms2s in ms2matches.iteritems():
             for ms2i in ms2s:
@@ -5934,9 +5877,9 @@ class LTP(object):
     def ms2_match(self, ms1Mzs, ms1Rts, ms1is, ltp, pos,
         verbose = False, outfile = None, drift = 1.0,
         rt_tolerance = 1.0):
-        '''
+        """
         Looks up matching pepmasses for a list of MS1 m/z's.
-        '''
+        """
         opened_here = False
         if hasattr(outfile, 'write'):
             outfile = outfile
@@ -6042,7 +5985,7 @@ class LTP(object):
                 outfile = outfile)
 
     def ms2_lookup(self, ltp, mode, ms1matches, verbose = False, outfile = None):
-        '''
+        """
         For the matching MS2 m/z's given, reads and identifies
         the list of fragments.
         
@@ -6053,12 +5996,12 @@ class LTP(object):
             # MS2 adduct name, (8)
             # MS1 pepmass, MS1 intensity, rtime, MS2 scan, (9-12)
             # MS2 file offset, fraction number (13-14)
-        '''
+        """
         # indices of fraction numbers
         fragments = self.pFragments if mode == 'pos' else self.nFragments
         ms2map = self.ms2map[ltp][mode]
         ms2files = self.ms2map[ltp]['ms2files'][mode]
-        samples = self.samples_upper[ltp]
+        fractions = self.fractions_upper[ltp]
         sample_i = {
             9: 1, 10: 2, 11: 3, 12: 4, 1: 5
         }
@@ -6078,7 +6021,7 @@ class LTP(object):
             if verbose:
                 outfile.write('\t -- Looking up %.08f in fraction %s, '\
                     'line %u\n' % (ms1mz, fr, ms2i))
-            # only samples with the LTP
+            # only fractions with the LTP
             if verbose:
                 if fr in files:
                     outfile.write('\t -- Have file for fraction %s\n' % str(fr))
@@ -6086,7 +6029,7 @@ class LTP(object):
                     outfile.write('\t -- Do not have file for fraction %s; files: %s\n' % \
                         (str(fr), str(files.keys())))
             if (not self.ms2_only_protein_fractions or \
-                samples[sample_i[fr]] == 1) and fr in files:
+                fractions[sample_i[fr]] == 1) and fr in files:
                 f = files[fr]
                 # jumping to offset
                 f.seek(int(ms2item[4]), 0)
@@ -6108,17 +6051,17 @@ class LTP(object):
                         try:
                             mass = float(mi[0])
                         except ValueError:
-                            print '\n:::\n'
-                            print l[0].isdigit()
-                            print prevp
-                            print prevl
-                            print f.tell()
-                            print l
+                            print('\n:::\n')
+                            print(l[0].isdigit())
+                            print(prevp)
+                            print(prevl)
+                            print(f.tell())
+                            print(l)
                             f.seek(f.tell(), 0)
-                            print f.read(10)
+                            print(f.read(10))
                             f.seek(prevp, 0)
-                            print f.read(10)
-                            print ':::\n'
+                            print(f.read(10))
+                            print(':::\n')
                         intensity = float(mi[1]) if len(mi) > 1 else np.nan
                         # matching fragment --- direct
                         ms2hit1 = self.ms2_identify(mass, fragments,
@@ -6176,14 +6119,14 @@ class LTP(object):
         return ms2matches
 
     def ms2_identify(self, mass, fragments, compl):
-        '''
+        """
         Looks up one MS2 m/z value in list of known fragments masses.
         Either with matching between MS2 m/z and fragment m/z within
         a given tolerance, or between the fragment mass and the
         residual mass after substracting MS2 m/z from MS1 m/z.
         Returns the fragment's mass, name and adduct type, or None
         in case of no match.
-        '''
+        """
         result = []
         i = -1
         du = None
@@ -6217,9 +6160,9 @@ class LTP(object):
         return result
 
     def ms2_collect(self, ms2matches, ms1mz, unknown = False):
-        '''
+        """
         Deprecated.
-        '''
+        """
         result = []
         fragments = ms2matches[ms2matches[:,0] == ms1mz,:]
         for frag in uniqList(fragments[:,7]):
@@ -6234,10 +6177,10 @@ class LTP(object):
         return result
     
     def ms2_headgroups2(self):
-        '''
+        """
         This collects the possible headgroups from the
         advanced MS2 identification (done by ms2_scans_identify()).
-        '''
+        """
         for protein, d in self.valids.iteritems():
             for mode, tbl in d.iteritems():
                 tbl['ms2hg2'] = {}
@@ -6303,11 +6246,11 @@ class LTP(object):
                 tbl['cid'] = ids
     
     def ms2_headgroups(self):
-        '''
+        """
         Creates dictionaries named ms2hg having the
         original IDs as keys and the sets of the
         identified possible headgroups as values.
-        '''
+        """
         for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['ms2hg'] = {}
@@ -6328,12 +6271,12 @@ class LTP(object):
                     tbl['ms2fas'][oi] = ms2fas
 
     def ms2_headgroup(self, ms2r, hgfrags, headgroups):
-        '''
+        """
         Identifies headgroups from MS2 results for one
         feature, based on dictionary of fragments and
         the characteristic combinations of fragments
         identifying headgroups.
-        '''
+        """
         hgroups = None
         frags = set([])
         # collecting all possible headgroups for
@@ -6355,12 +6298,12 @@ class LTP(object):
         return hgroups
 
     def ms2_headgroup2(self, ms2r, hgfrags, headgroups):
-        '''
+        """
         Identifies headgroups from MS2 results for one
         feature, based on dictionary of fragments and
         the characteristic combinations of fragments
         identifying headgroups.
-        '''
+        """
         _hgroups = []
         _hgroups2 = []
         hgroups = set([])
@@ -6387,7 +6330,7 @@ class LTP(object):
         return hgroups
 
     def headgroups_negative_positive(self, ms):
-        '''
+        """
         Creates dictionaries named ms1hg_pos, ms1hg_neg,
         ms2hg_pos or ms2hg_neg with the original
         IDs of the given mode as keys, with dicts as
@@ -6396,7 +6339,7 @@ class LTP(object):
         values. The combined set is the intersection of
         those detected in the 2 modes, or the union, if
         there is no intersection.
-        '''
+        """
         for ltp, d in self.valids.iteritems():
             d['pos']['%shg_neg'%ms] = {}
             d['neg']['%shg_pos'%ms] = {}
@@ -6421,10 +6364,10 @@ class LTP(object):
                                         combined
 
     def ms2_fattya(self, ms2r, highest = 2):
-        '''
+        """
         Identifies the fatty acids with highest intensities.
         Returns only number of `highest` fatty acids.
-        '''
+        """
         recnum = re.compile(r'.*[^0-9]([0-9]+:[0-9]+).*')
         # reverse sort by intensities
         ms2fa = set([])
@@ -6458,13 +6401,13 @@ class LTP(object):
                 ms2fas = '%u:%u' % (carbs, unsats)
         return ms2fa, ms2fai, ms2fas
     
-    '''
+    """
     END: MS2 functions
-    '''
+    """
     
-    '''
+    """
     BEGIN: New identification methods
-    '''
+    """
     
     def ms2_scans_identify(self):
         prg = progress.Progress(len(self.valids) * 2,
@@ -6506,16 +6449,16 @@ class LTP(object):
                             if hg in tbl['ms1hg'][oi]:
                                 tbl['ms2i3'][oi].add(hg)
     
-    '''
+    """
     END: New identification methods
-    '''
+    """
     
-    '''
+    """
     Pipeline elements
-    '''
+    """
     
     def write_out(self, matches, fname):
-        '''
+        """
         In:
         [0] pos_m/z, pos_profile_score, 
         [2] pos_control_profile_score, pos_rank_profile_boolean,
@@ -6527,7 +6470,7 @@ class LTP(object):
         [17] neg_ubiquity_score, neg_ubiquity_score, neg_original_index,
         [20] neg_swisslipids_ac, neg_level,
         [22] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z
-        '''
+        """
         with open(fname, 'w') as f:
             hdr = ['LTP',
                 'Positive_m/z', 'Positive_m/z_in_SwissLipids',
@@ -6541,7 +6484,7 @@ class LTP(object):
                     f.write('\t'.join([ltp, '%08f'%l[0],
                         '%08f'%l[12], l[11], '%08f'%l[13],
                         '%08f'%l[25], l[24], l[7], l[10], str(l[9])]) + '\n')
-
+    
     def counts_redundancy_table(self, lipids, unknowns):
         with open('unique_features_counts.csv', 'w') as f:
             f.write('\t'.join(['LTP-mode', 'unknown_features', 
@@ -6556,32 +6499,21 @@ class LTP(object):
                     for a in b.values()],
                 [len(list(a[:,7])) for b in lipids.values() \
                     for a in b.values()])))
-
-    def samples_with_controls(self):
-        self.csamples = dict((
-                k,
-                np.array([1 if x is not None else None for x in v])
-            )
-            for k, v in self.samples.iteritems())
-
-    def upper_samples(self):
-        '''
-        Creates the dict `samples_upper` of samples with
-        uppercase LTP names.
-        '''
-        self.samples_upper = \
-            dict((l.upper(), s) for l, s in self.samples.iteritems())
-
+    
+    """
+    These are the highest level methods for reading all data and annotations,
+    making sure everything is ready to run the analysis.
+    """
+    
     def init_from_scratch(self):
-        '''
+        """
         Does all the initial preprocessing.
         Saves intermediate data, so it can be loaded faster 
         for next sessions.
-        '''
+        """
         self.get_filenames()
-        self.read_samples()
         # at first run, after reading from saved textfile
-        self.small_inputs()
+        self.read_annotations()
         self.pp2()
         self.write_pptable()
         del self.datafiles['ctrl']
@@ -6590,27 +6522,141 @@ class LTP(object):
         self.save_data()
 
     def init_reinit(self, data = False):
-        '''
+        """
         Initializing from preprocessed and dumped data.
         Pickle file has a 2.0GB size.
-        '''
+        """
         self.load()
         if data:
             self.load_data()
-        self.small_inputs()
+        self.read_annotations()
         self.pp2()
-        
-    def small_inputs(self):
-        self.samples_with_controls()
-        self.upper_samples()
-        self.one_sample()
+    
+    #
+    # Reading annotations
+    #
+    
+    def read_annotations(self):
+        """
+        Reads all additional annotations necessary for data processing.
+        These are:
+            * fractions: which fraction is protein containing,
+            control, or have not been measured
+            * lipid names: short notations, database keywords and most
+            abundant adducts for lipid classes
+            * binding properties: known binders of lipid classes
+        """
+        self.read_fractions()
+        self.set_measured()
+        self.upper_fractions()
+        self.set_onepfraction()
         self.read_lipid_names()
         self.read_binding_properties()
+    
+    def read_fractions(self):
+        """
+        Reads from file sample/control annotations 
+        for each proteins.
+        """
+        data = {}
+        with open(self.fractionsf, 'r') as f:
+            null = f.readline()
+            for l in f:
+                l = l.split(',')
+                data[l[0].replace('"', '')] = \
+                    np.array([self.to_int(x) \
+                        if x != '' else None for x in l[1:]])
+        self.fractions = data
+    
+    def set_measured(self):
+        """
+        Creates a dict of arrays with value 1 if the fracion is either
+        protein containing or control (i.e. measured), or `None` otherwise.
+        
+        The result is stored in `measured` attribute.
+        """
+        self.measured = dict((
+                k,
+                np.array([1 if x is not None else None for x in v])
+            )
+            for k, v in self.fractions.iteritems())
 
+    def upper_fractions(self):
+        """
+        Creates the dict `fractions_upper` of fractions with
+        uppercase LTP names, with same content as `fractions`.
+        """
+        self.fractions_upper = \
+            dict((l.upper(), s) for l, s in self.fractions.iteritems())
+    
+    def set_onepfraction(self):
+        """
+        Creates a list of those proteins present only in one fraction.
+        Abundance ratio for these can not be calculated.
+        
+        The result stored in `onepfraction` attribute.
+        """
+        self.onepfraction = [k.upper() for k, v in self.fractions.iteritems() \
+            if sum((i for i in v if i is not None)) == 1]
+    
+    def read_lipid_names(self):
+        """
+        Reads annotations for lipid classes:
+            * full names
+            * short notations
+            * database keywords
+            (to process long names from SwissLipids and LipidMaps)
+            * most abundant adducts
+        
+        The input file is given by the `lipnamesf` attribute.
+        """
+        result = {}
+        with open(self.lipnamesf, 'r') as f:
+            nul = f.readline()
+            for l in f:
+                l = l.strip().split('\t')
+                result[l[0]] = {
+                    'full_name': l[1],
+                    'swl': self.process_db_keywords(l[2]),
+                    'lmp': self.process_db_keywords(l[3]),
+                    'pos_adduct': l[4] if l[4] != 'ND' and self.adducts_constraints else None,
+                    'neg_adduct': l[5] if l[5] != 'ND' and self.adducts_constraints else None
+                }
+        self.lipnames = result
+
+    def read_binding_properties(self):
+        """
+        Reads the known binders for each lipid class.
+        The input file name is provided by `bindpropf` attribute.
+        """
+        result = {}
+        with open(self.bindpropf, 'r') as f:
+            data = map(lambda l:
+                l.strip('\n').split('\t'),
+                filter(lambda l:
+                    len(l),
+                    f
+                )[1:]
+            )
+        for l in data:
+            if l[2] not in result:
+                result[l[2]] = set([])
+            try:
+                for lip in l[6].split(';'):
+                    if lip != 'ND' and lip != '':
+                        result[l[2]].add(lip)
+            except IndexError:
+                print(l)
+        self.bindprop = result
+    
+    #
+    # END: Reading annotations
+    #
+    
     def basic_filters(self, profile_treshold = 0.25, ubiquity_treshold = 7):
-        '''
+        """
         Deprecated with new data structure.
-        '''
+        """
         self.apply_filters()
         self.validity_filter()
         self.profile_filter()
@@ -6627,9 +6673,9 @@ class LTP(object):
 
     def basic_filters_with_evaluation(self,
         profile_treshold = 0.25, ubiquity_treshold = 7):
-        '''
+        """
         Deprecated with new data structure.
-        '''
+        """
         filtr_results = {}
         for f in ['quality', 'charge', 'area', 'peaksize', 'validity']:
             filtr_results[f] = self.eval_filter(f)
@@ -6666,13 +6712,13 @@ class LTP(object):
             number = 1)
 
     def valid_features(self, cache = False):
-        '''
+        """
         Creates new dict of arrays with only valid features.
         Keys:
             'fe': features
             'mz': m/z values
             'i': original index
-        '''
+        """
         if cache and os.path.exists(self.validscache):
             self.valids = pickle.load(open(self.validscache, 'rb'))
             return None
@@ -6709,7 +6755,7 @@ class LTP(object):
                 try:
                     tbl['are'] = np.nanmax(tbl['fe'], 1)
                 except ValueError:
-                    print protein, mode
+                    print(protein, mode)
     
     def data2valids(self, key):
         for protein_l, dd in self.data.iteritems():
@@ -6722,38 +6768,38 @@ class LTP(object):
                     tbl[key] = np.array(valids_array)
     
     def delete_array(self, key):
-        '''
+        """
         Deletes the data belonging to one key
         from all tables (at every protein in each modes).
-        '''
+        """
         for protein, d in self.valids.iteritems():
             for mode, tbl in d.iteritems():
                 if key in tbl:
                     del tbl[key]
 
     def norm_all(self):
-        '''
+        """
         Creates table with all the profiles normalized
         Keys:
             'no': normalized profiles
-        '''
+        """
         for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['no'] = self.norm_profiles(tbl['fe'])
 
-    '''
+    """
     END: pipeline elements
-    '''
+    """
 
-    '''
+    """
     Distance metrics
-    '''
+    """
     
     def profiles_corr(self, metric, prfx, pprofs = ''):
-        '''
+        """
         Calculates custom correlation metric
         between each feature and the protein profile.
-        '''
+        """
         frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
         pprs = getattr(self, 'pprofs%s' % pprofs)
         for ltp, d in self.valids.iteritems():
@@ -6765,7 +6811,7 @@ class LTP(object):
                         filter(
                             lambda (i, s):
                                 i != 0 and s is not None,
-                            enumerate(self.samples_upper[ltp])
+                            enumerate(self.fractions_upper[ltp])
                         )
                     )
                 )
@@ -6784,7 +6830,7 @@ class LTP(object):
                     if np.any(np.isnan(\
                             fe[np.where(\
                                 [fr == 1 \
-                                    for fr in self.samples_upper[ltp][1:] \
+                                    for fr in self.fractions_upper[ltp][1:] \
                                     if fr is not None]
                             )]
                         )):
@@ -6795,20 +6841,20 @@ class LTP(object):
                     tbl['%sp%s' % (prfx, pprofs)][i] = vp[1]
 
     def gkgamma(self, x, y):
-        '''
+        """
         Calls Goodman-Kruskal's gamma from vcdExtra
         R package.
-        '''
+        """
         gkg = rvcd.GKgamma(rbase.matrix(rbase.c(*(list(x) + list(y))),
             nrow = 2))
         # gamma, 0.0, C, D, sigma, CIlevel, CI
         return tuple([gkg[0][0], 0.0] + [i[0] for i in gkg[1:]])
 
     def roco(self, x, y):
-        '''
+        """
         Calls R function robust correlation coefficient
         with test from rococo R package.
-        '''
+        """
         _x = x[np.where(~np.logical_or(np.isnan(x), np.isnan(y)))]
         _y = y[np.where(~np.logical_or(np.isnan(x), np.isnan(y)))]
         if _x.size == 0 or _y.size == 0 or \
@@ -6826,35 +6872,35 @@ class LTP(object):
         return rt.slots['sample.gamma'][0], rt.slots['p.value'][0]
 
     def _diff_profiles(self, x, y):
-        '''
+        """
         Wrapper for diff_profiles() to return a tuple.
-        '''
+        """
         return self.diff_profiles(x, y), 0.0
 
     def euclidean_dist(self, x, y):
-        '''
+        """
         Calculates simple euclidean distance after removing NaN values.
-        '''
+        """
         _x = x[np.where(~np.logical_or(np.isnan(x), np.isnan(y)))]
         _y = y[np.where(~np.logical_or(np.isnan(x), np.isnan(y)))]
         return (sp.spatial.distance.euclidean(_x, _y), 0.0) \
             if len(_x) > 0 else (np.inf, 0.0)
 
     def euclidean_dist_norm(self, x, y):
-        '''
+        """
         This euclidean distance is normalized by the number of dimensions.
-        '''
+        """
         _x = x[np.where(~np.logical_or(np.isnan(x), np.isnan(y)))]
         _y = y[np.where(~np.logical_or(np.isnan(x), np.isnan(y)))]
         return (sp.spatial.distance.euclidean(_x, _y) / len(_x), 0.0) \
             if len(_x) > 0 else (1.0, 0.0)
 
     def profiles_corrs(self, pprofs = ''):
-        '''
+        """
         Calculates an array of similarity/correlation
         metrics between each MS intensity profile and 
         the corresponding protein concentration profile.
-        '''
+        """
         metrics = [
             (stats.spearmanr, 'sp'),
             (stats.kendalltau, 'kt'),
@@ -6891,13 +6937,13 @@ class LTP(object):
                     np.diff(tbl['%sde'%metric])), axis = 0)
                 tbl[target] = inco
 
-    '''
+    """
     END: disctance metrics
-    '''
+    """
 
-    '''
+    """
     Functions for clustering
-    '''
+    """
 
     def distance_matrix(self, metrics = ['eu'], with_pprof = False, ltps = None):
         _metrics = {
@@ -6915,7 +6961,7 @@ class LTP(object):
                 if ltps is None or ltp in ltps:
                     if with_pprof:
                         ppr = np.array([self.pprofs[ltp.upper()][frs[i]] \
-                            for i, fr in enumerate(self.samples_upper[ltp]) \
+                            for i, fr in enumerate(self.fractions_upper[ltp]) \
                                 if i != 0 and fr is not None])
                         ppr = self.norm_profile(ppr).astype(np.float64)
                     for pn, tbl in d.iteritems():
@@ -6944,11 +6990,11 @@ class LTP(object):
         sys.stdout.flush()
 
     def features_clustering(self, dist = 'en', method = 'ward', ltps = None):
-        '''
+        """
         Using the distance matrices calculated by
         `distance_matrix()`, builds clusters using
         the linkage method given by `method` arg.
-        '''
+        """
         prg = progress.Progress(len(self.valids)*2 \
             if ltps is None else len(ltps)*2,
             'Calculating clusters', 1, percent = False)
@@ -7079,7 +7125,7 @@ class LTP(object):
         fc = sp.cluster.hierarchy.fcluster(clustering, threshold, 
             criterion = 'maxclust_monocrit', monocrit = maxincons)
         nodes = set(np.where(fc == fc[-1])[0])
-        print 'nodes in same cluster as protein: %u' % len(nodes)
+        print('nodes in same cluster as protein: %u' % len(nodes))
         _threshold = max(
             map(lambda i: 
                 clustering[i,2],
@@ -7114,10 +7160,10 @@ class LTP(object):
         coloring = 'corr', threshold = None,
         threshold_type = 'percent',
         save_selection = None, pca = False):
-        '''
+        """
         For each LTP plots heatmaps and dendrograms.
         Thanks to http://stackoverflow.com/a/3011894/854988
-        '''
+        """
         all_hgs = set()
         for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
@@ -7145,7 +7191,7 @@ class LTP(object):
             for ltp, d in self.valids.iteritems():
                 if ltps is None or ltp in ltps:
                     ppr = np.array([self.pprofs[ltp.upper()][frs[i]] \
-                        for i, fr in enumerate(self.samples_upper[ltp]) \
+                        for i, fr in enumerate(self.fractions_upper[ltp]) \
                             if i != 0 and fr is not None])
                     ppr = self.norm_profile(ppr).astype(np.float64)
                     for pn, tbl in d.iteritems():
@@ -7256,7 +7302,7 @@ class LTP(object):
                             'clustering valid features; '\
                             'features in highlighted cluster: %u' % \
                             (ltp, pn, len(protein_fc) - 1),
-                            color = '#AA0000' if ltp in self.singles else '#000000')
+                            color = '#AA0000' if ltp in self.onepfraction else '#000000')
                         
                         cvs.draw()
                         fig.tight_layout()
@@ -7288,7 +7334,7 @@ class LTP(object):
                                 linewidth = 0.0, alpha = 0.7)
                             ax.set_title('%s :: %s mode :: PCA' % (ltp, pn),
                                 color = '#AA0000' \
-                                    if ltp in singles else '#000000')
+                                    if ltp in onepfraction else '#000000')
                             cvs.draw()
                             fig.tight_layout()
                             cvs.print_figure(pdf)
@@ -7309,11 +7355,11 @@ class LTP(object):
         sys.stdout.write('\t:: Plots saved to %s\n'%fname)
         sys.stdout.flush()
 
-    '''
+    """
     END: Clustering
-    '''
+    """
 
-    def plot_increment(self, valids, singles, metric = 'en',
+    def plot_increment(self, valids, onepfraction, metric = 'en',
         fname = 'increments.pdf'):
         with mpl.backends.backend_pdf.PdfPages(fname) as pdf:
             for ltp, d in valids.iteritems():
@@ -7336,7 +7382,7 @@ class LTP(object):
                     ax.legend(handles, labels)
                     ax.set_title('%s :: %s mode :: distance increments' % \
                         (ltp, pn),
-                        color = '#AA0000' if ltp in singles else '#000000')
+                        color = '#AA0000' if ltp in onepfraction else '#000000')
                     ax.set_xlim([3.0, 50.0])
                     cvs.print_figure(pdf)
                     fig.clf()
@@ -7350,13 +7396,13 @@ class LTP(object):
             pdfinf['CreationDate'] = datetime.datetime(2016, 02, 22)
             pdfinf['ModDate'] = datetime.datetime.today()
 
-    def kmeans(self, valids, pprofs, samples):
+    def kmeans(self, valids, pprofs, fractions):
         cfracs = ['c0'] + self.fracs
         prg = progress.Progress(len(valids) * 2,
             'Calculating k-means', 1, percent = False)
         for ltp, d in valids.iteritems():
             ppr = np.array([pprofs[ltp.upper()][cfracs[i]] \
-                for i, fr in enumerate(samples[ltp]) if fr == 1 and i != 0])
+                for i, fr in enumerate(fractions[ltp]) if fr == 1 and i != 0])
             ppr = norm_profile(ppr).astype(np.float64)
             for pn, tbl in d.iteritems():
                 prg.step()
@@ -7367,10 +7413,10 @@ class LTP(object):
         prg.terminate()
 
     def read_positives(self, basedir, fname = 'manual_positive.csv'):
-        '''
+        """
         Reads manually annotated positive hits
         from file.
-        '''
+        """
         with open(os.path.join(basedir, fname), 'r') as f:
             _result = [[c.strip() for c in l.split('\t')] \
                 for l in f.read().split('\n')]
@@ -7382,12 +7428,12 @@ class LTP(object):
         return result
 
     def spec_sens(self, protein, pos, metric, asc):
-        '''
+        """
         Calculates specificity, sensitivity, precision,
         false discovery rate as a function of critical
         values of a score, for one LTP for one mode.
         Returns dict of lists.
-        '''
+        """
         result = {'spec': [], 'sens': [], 'prec': [],
             'fdr': [], 'cutoff': [], 'n': 0}
         tbl = self.valids[protein][pos]
@@ -7412,7 +7458,7 @@ class LTP(object):
         return result
 
     def evaluate_scores(self, tasks = None, stdltps = None):
-        '''
+        """
         Calculates specificity, sensitivity, precision,
         false discovery rate as a function of critical
         values of each scores, for all LTPs with manual
@@ -7420,7 +7466,7 @@ class LTP(object):
         Returns 4x embedded dicts of
         LTPs/modes/metrics/performance metrics.
         E.g. result['STARD10']['pos']['ktv']['sens']
-        '''
+        """
         stdltps = self.known_binders_detected if stdltps is None else stdltps
         result = dict((ltp, {'pos': {}, 'neg': {}}) for ltp in stdltps)
         metrics = \
@@ -7454,11 +7500,11 @@ class LTP(object):
                     try:
                         tbl['_std'] = set(tbl['i'][np.where(tbl['known_binder'])])
                     except TypeError:
-                        print protein, mode
+                        print(protein, mode)
 
     def count_threshold_filter(self, score, threshold, count = 10,
         threshold_type = 'fix', asc = True):
-        '''
+        """
         Builds a boolean array whether the values of a score fall below
         or above certain critical value. The critical value can be defined
         as a fix value,
@@ -7472,7 +7518,7 @@ class LTP(object):
             the maximum, at descending the minimum will be multiplied by the
             threshold
         count: the absolute maximum number of selected instances
-        '''
+        """
         sort_alll(self.valids, score, asc = True)
         for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
@@ -7506,7 +7552,7 @@ class LTP(object):
                 tbl['bool_%s'%score] = np.array(boolArray)
 
     def scores_plot(self, score = 'env', asc = True, 
-        score_name = 'Euclidean distance', pdfname = None, singles = None,
+        score_name = 'Euclidean distance', pdfname = None, onepfraction = None,
         hlines = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0],
         derivates = True):
         pdfname = 'scores_%s.pdf' % score if pdfname is None else pdfname
@@ -7571,7 +7617,7 @@ class LTP(object):
                 ax.set_xlim(_xlim)
                 ax.set_ylim(_ylim)
             ax.set_title(ltpname, color = '#CC0000' \
-                if singles is not None and ltpname in singles else '#000000')
+                if onepfraction is not None and ltpname in onepfraction else '#000000')
             ax.set_ylabel(score_name)
             ax.set_xlabel('Features (ordered %s)' % \
                 'ascending' if asc else 'descending')
@@ -7589,7 +7635,7 @@ class LTP(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        ltps = sorted(self.samples_upper.keys())
+        ltps = sorted(self.fractions_upper.keys())
         prg = progress.Progress(len(ltps), 'Plotting profiles', 1,
             percent = False)
         for i in xrange(len(ltps)):
@@ -7611,7 +7657,7 @@ class LTP(object):
             col = ['#6EA945' if s == 1 else \
                     '#B6B7B9' if s is None else \
                     '#007B7F' \
-                for s in self.samples_upper[ltpname][1:]]
+                for s in self.fractions_upper[ltpname][1:]]
             ax.bar(np.arange(len(ppr)), ppr_o, color = col, alpha = 0.1,
                 edgecolor = 'none')
             ax.bar(np.arange(len(ppr)), ppr, color = col, edgecolor = 'none')
@@ -7646,13 +7692,13 @@ class LTP(object):
                                 ax.plot(np.arange(len(ppr)) + 0.4,
                                     np.array([feg.next() \
                                         if s is not None else 0.0 \
-                                        for s in samples[ltpname][1:]]),
+                                        for s in fractions[ltpname][1:]]),
                                     linewidth = lwd, markersize = 0.07,
                                     linestyle = lst, 
                                     color = color, alpha = alpha, marker = 'o')
                         except ValueError:
-                            print 'Unequal length dimensions: %s, %s' % \
-                                (ltpname, pn)
+                            print('Unequal length dimensions: %s, %s' % \
+                                (ltpname, pn))
             ax.set_xticks(np.arange(len(ppr)) + 0.4)
             ax.set_xticklabels(self.fracs)
             ax.set_title('%s protein conc.'%ltpname)
@@ -7670,7 +7716,7 @@ class LTP(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        ltps = sorted(self.samples_upper.keys())
+        ltps = sorted(self.fractions_upper.keys())
         prg = progress.Progress(len(ltps), 'Plotting profiles', 1,
             percent = False)
         width = 0.3
@@ -7696,7 +7742,7 @@ class LTP(object):
                 col = ['#6EA945' if s == 1 else \
                         '#B6B7B9' if s is None else \
                         '#007B7F' \
-                    for s in self.samples_upper[ltpname][1:]]
+                    for s in self.fractions_upper[ltpname][1:]]
                 ax.bar(np.arange(len(ppr)) + width * w, ppr_o, width,
                     color = col, alpha = 0.1, edgecolor = 'none')
                 ax.bar(np.arange(len(ppr)) + width * w, ppr, width,
@@ -7732,13 +7778,13 @@ class LTP(object):
                                 ax.plot(np.arange(len(ppr)) + 0.4,
                                     np.array([feg.next() \
                                         if s is not None else 0.0 \
-                                        for s in samples[ltpname][1:]]),
+                                        for s in fractions[ltpname][1:]]),
                                     linewidth = lwd, markersize = 0.07,
                                     linestyle = lst, 
                                     color = color, alpha = alpha, marker = 'o')
                         except ValueError:
-                            print 'Unequal length dimensions: %s, %s' % \
-                                (ltpname, pn)
+                            print('Unequal length dimensions: %s, %s' % \
+                                (ltpname, pn))
             ax.set_xticks(np.arange(len(ppr)) + 0.4)
             ax.set_xticklabels(self.fracs)
             ax.set_title('%s protein conc.'%ltpname)
@@ -7754,7 +7800,7 @@ class LTP(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        ltps = sorted(self.samples_upper.keys())
+        ltps = sorted(self.fractions_upper.keys())
         prg = progress.Progress(len(ltps), 'Plotting peak ratios', 1,
             percent = False)
         width = 0.3
@@ -7814,7 +7860,7 @@ class LTP(object):
     
     def peak_ratio_score(self, lower = 0.5):
         upper = 1.0 / lower
-        ltps = sorted(self.samples_upper.keys())
+        ltps = sorted(self.fractions_upper.keys())
         for i in xrange(len(ltps)):
             ltpname = ltps[i].upper()
             if self.valids[ltpname]['pos']['ipr'].shape[1] > 0:
@@ -7861,7 +7907,7 @@ class LTP(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        ltps = sorted(self.samples_upper.keys())
+        ltps = sorted(self.fractions_upper.keys())
         prg = progress.Progress(len(ltps), 'Plotting peak ratio scores', 1,
             percent = False)
         width = 0.3
@@ -7888,7 +7934,7 @@ class LTP(object):
             for mode, tbl in d.iteritems():
                 tbl['prs1'] = tbl['prs'] <= threshold
     
-    # ltp.fractions_barplot(samples_upper, pprofs)
+    # ltp.fractions_barplot(fractions_upper, pprofs)
 
     def plot_score_performance(self, perf):
         metrics = [
@@ -8091,12 +8137,12 @@ class LTP(object):
 
     def true_positives(self, valids, stdpos, ltp, pos = 'pos',
         tolerance = 0.01):
-        '''
+        """
         For one LTP having known binders looks up these
         among the valid features either in positive OR
         negative mode. (So you need to run twice, once
         for +, once for -.)
-        '''
+        """
         ioffset = 0 if pos == 'pos' else 6
         valids[ltp][pos]['std'] = {}
         for fe in stdpos[ltp]:
@@ -8118,13 +8164,13 @@ class LTP(object):
                     identify_feature(valids[ltp][pos], fe, i, ioffset)
 
     def identify_feature(self, tbl, fe, i, ioffset):
-        '''
+        """
         For one feature looks up if the lipid database ID
         and the adduct do match.
         Adds the matching record from the gold standard
         to lists in the `std` dict. There can be accessed
         by the original index.
-        '''
+        """
         result = []
         oi = tbl['i'][i]
         if len(np.logical_and(tbl['lip'][oi][:,0] == fe[1 + ioffset], \
@@ -8139,11 +8185,11 @@ class LTP(object):
             sys.stdout.flush()
 
     def sortby_score(self, tbl, attr, asc = True):
-        '''
+        """
         Returns sorted views of normalized features,
         m/z's and the attribute the sorting carried
         out by.
-        '''
+        """
         sorted_no = tbl['no'][np.argsort(tbl[attr]),:]
         sorted_mz = tbl['mz'][np.argsort(tbl[attr])]
         sorted_attr = np.sort(tbl[attr])
@@ -8153,11 +8199,11 @@ class LTP(object):
             return sorted_no[::-1], sorted_mz[::-1], sorted_attr[::-1]
 
     def _sort_all(self, tbl, attr, asc = True):
-        '''
+        """
         Sorts all arrays in one table by one specified 
         attribute.
         Either ascending or descending.
-        '''
+        """
         ind = tbl[attr].argsort()
         dim = tbl[attr].shape[0]
         for k, a in tbl.iteritems():
@@ -8178,11 +8224,11 @@ class LTP(object):
             tbl[attr] = tbl[attr][::-1]
 
     def sort_alll(self, attr, asc = True):
-        '''
+        """
         Sorts all arrays in all tables by one specified 
         attribute.
         Either ascending or descending.
-        '''
+        """
         for d in self.valids.values():
             for tbl in d.values():
                 self._sort_all(tbl, attr, asc)
@@ -8199,14 +8245,14 @@ class LTP(object):
                     hits_upper[l.upper()][pn] = tbl
         return hits_upper
 
-    '''
+    """
     MS1 lipid identification
-    '''
+    """
 
     def lipid_lookup(self, stage0, runtime = None):
-        '''
+        """
         Obtains full SwissLipids data
-        '''
+        """
         pAdducts, nAdducts = get_swisslipids(
             adducts = ['[M+H]+', '[M+NH4]+', '[M-H]-'],
             formiate = True)
@@ -8219,7 +8265,7 @@ class LTP(object):
         return pAdducts, nAdducts, lipids, runtime
 
     def lipid_lookup_exact(self, verbose = False, outfile = None, charge = 1):
-        '''
+        """
         Fetches data from SwissLipids and LipidMaps
         if not given.
         Looks up lipids based on exact masses (but
@@ -8228,7 +8274,7 @@ class LTP(object):
         original indices as keys.
         Returns an array of lipid databases with exact
         masses.
-        '''
+        """
         if self.exacts is None:
             self.get_swisslipids_exact()
             self.lipidmaps_exact()
@@ -8236,22 +8282,22 @@ class LTP(object):
         self.find_lipids_exact(verbose = verbose,
             outfile = outfile, charge = charge)
 
-    def evaluate_results(self, stage0, stage2, lipids, samples_upper,
+    def evaluate_results(self, stage0, stage2, lipids, fractions_upper,
         letter = 'e'):
-        '''
+        """
         Tracks the number of features/lipids along stages.
         Does some plotting.
-        '''
+        """
         stage3 = [(
                 l.upper(), 
                 [len(i['neg']), len(i['pos'])], 
                 len(stage2[l.upper()]), 
                 [len(stage0[l]['neg'][0]), len(stage0[l]['pos'][0])], 
-                np.nansum([x for x in samples_upper[l] if x is not None])
+                np.nansum([x for x in fractions_upper[l] if x is not None])
             ) if len(i.values()) > 0 \
             else (
                 l.upper(), 0, 0, 0,
-                np.nansum([x for x in samples_upper[l] if x is not None])
+                np.nansum([x for x in fractions_upper[l] if x is not None])
             ) \
             for l, i in lipids.iteritems()]
         #
@@ -8353,10 +8399,10 @@ class LTP(object):
         plt.close()
 
     def ms1_headgroups(self, verbose = False):
-        '''
+        """
         Identifies headgroups by keywords and fatty acids
         from database record names.
-        '''
+        """
         for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['ms1hg'] = {}
@@ -8415,11 +8461,11 @@ class LTP(object):
                                         sys.stdout.flush()
 
     def headgroups_by_fattya(self, verbose = False):
-        '''
+        """
         Limits the number of possible headgroups based on detected
         MS2 fatty acids.
         Creates dict `hgfa`.
-        '''
+        """
         for ltp, d in self.valids.iteritems():
             for mod, tbl in d.iteritems():
                 tbl['hgfa'] = {}
@@ -8447,11 +8493,11 @@ class LTP(object):
                                             hg, oi, ltp, mod))
 
     def identity_combined(self):
-        '''
+        """
         Combined identification based on MS1 database lookup,
         MS2 headgroup fragments and MS2 fatty acids.
         Creates dicts `combined_hg` and `combined_fa`.
-        '''
+        """
         for ltp, d in self.valids.iteritems():
             for mod, tbl in d.iteritems():
                 tbl['combined_hg'] = {}
@@ -8482,11 +8528,11 @@ class LTP(object):
                             # maybe later we need those with less evidence
 
     def identity_combined_ms2(self):
-        '''
+        """
         Combined identification based on MS1 database lookup,
         MS2 headgroup fragments and MS2 fatty acids.
         Creates dicts `combined_hg` and `combined_fa`.
-        '''
+        """
         for ltp, d in self.valids.iteritems():
             for mod, tbl in d.iteritems():
                 tbl['combined_hg_ms2'] = {}
@@ -8610,10 +8656,10 @@ class LTP(object):
             f.write(self.html_table_template % (title, title, table))
 
     def ms1_table_html_simple(self, filename = None, include = 'cl70pct'):
-        '''
+        """
         Outputs a HTML table LTPs vs lipid classes (headgroups)
         based on MS1 identifications.
-        '''
+        """
         filename = 'results_%s_ms1hg.html' % self.today() \
             if filename is None \
             else filename
@@ -8662,10 +8708,10 @@ class LTP(object):
             f.write(self.html_table_template % (title, title, table))
     
     def ms1_table_latex_simple(self, filename = 'ms1headgroups.tex', include = 'cl70pct', break_half = True):
-        '''
+        """
         Outputs a LaTeX table LTPs vs lipid classes (headgroups)
         based on MS1 identifications.
-        '''
+        """
         colnames, ms1tab = self.ms1_table(include = include)
         table = '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
         tablerow = '\t%s\\\\\n'
@@ -8714,15 +8760,15 @@ class LTP(object):
         with open(filename, 'w') as f:
             f.write(table)
 
-    '''
+    """
     END: MS1 lipid identification
-    '''
+    """
 
     def ms2_table_html_simple(self, filename = None, include = 'cl70pct'):
-        '''
+        """
         Outputs a HTML table LTPs vs lipid classes (headgroups)
         based on MS2 identifications.
-        '''
+        """
         filename = 'results_%s_ms2hg.html' % self.today() \
             if filename is None \
             else filename
@@ -8812,10 +8858,10 @@ class LTP(object):
             f.write(self.html_table_template % (title, title, table))
 
     def ms2_table_latex_simple(self, filename = 'ms2headgroups.tex', include = 'cl70pct', break_half = True):
-        '''
+        """
         Outputs a LaTeX table LTPs vs lipid classes (headgroups)
         based on MS2 identifications.
-        '''
+        """
         colnames = set([])
         for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
@@ -8885,10 +8931,10 @@ class LTP(object):
             f.write(table)
 
     def ms1_ms2_table_html_simple(self, filename = None, include = 'cl70pct'):
-        '''
+        """
         Outputs a HTML table LTPs vs lipid classes (headgroups)
         based on MS1 and MS2 identifications.
-        '''
+        """
         filename = 'results_%s_ms1ms2hg.html' % self.today() \
             if filename is None \
             else filename
@@ -9031,10 +9077,10 @@ class LTP(object):
     
     def ms1_ms2_table_latex_simple(self, filename = 'ms1ms2headgroups.tex',
         include = 'cl70pct', break_half = True):
-        '''
+        """
         Outputs a LaTeX table LTPs vs lipid classes (headgroups)
         based on MS1 and MS2 identifications.
-        '''
+        """
         colnames = set([])
         for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
@@ -9205,12 +9251,12 @@ class LTP(object):
             f.write(table)
     
     def feature_identity_table(self):
-        '''
+        """
         Creates dictionaries named `identity`, having
         original IDs as keys and 4 element dictionaries
         as values with keys ms1_pos, ms2_pos, ms1_neg, ms2_neg,
         each having a boolean value.
-        '''
+        """
         self.sort_alll('mz')
         for ltp, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
@@ -9510,7 +9556,7 @@ class LTP(object):
                         values[combinations[comb]] += 1
         return values
     
-    '''
+    """
     {'MS1 both +/-, MS2 +': 7, 'Only MS2 -': 0, 'MS1 - and MS2 +': 2,
      'MS1 both +/-, MS2 -': 1, 'MS1 +, MS2 both +/-': 0, '+/- Total': 46,
      'MS2 both +/-, no MS1': 0, 'Non PC': 79, 'Nothing': 221,
@@ -9519,7 +9565,7 @@ class LTP(object):
      'MS1 + and MS2 -': 0, 'MS1 both +/-, no MS2': 17,
      'MS1 -, MS2 both +/-': 1, 'Total': 448, 'Only - Total': 104,
      'Only MS1 +': 68, 'Only MS2 +': 23}
-    '''
+    """
     
     def plot_identification_levels(self, idlevels, ltp, hg,
         fname = '%s-%s-classes.pdf'):
@@ -9692,7 +9738,7 @@ class LTP(object):
             try:
                 sort = ms2r[:,3].argsort()[::-1]
             except:
-                print ms2r.shape
+                print(ms2r.shape)
         else:
             sort = []
         return '\n'.join(map(lambda i:
@@ -9965,15 +10011,15 @@ class LTP(object):
                                         )
                                     )
                         except KeyError:
-                            print ltp, mod, opp_mod
+                            print(ltp, mod, opp_mod)
                         for pos_row in thisRow['pos']:
                             for neg_row in thisRow['neg']:
                                 #try:
                                 table += tablerow % ('\n%s\n%s\n' % \
                                     ('\n'.join(pos_row), '\n'.join(neg_row)))
                                 #except TypeError:
-                                    #print pos_row
-                                    #print neg_row
+                                    #print(pos_row)
+                                    #print(neg_row)
             with open(thisFilename, 'w') as f:
                 f.write(self.html_table_template % (title, title, table))
         prg.terminate()
@@ -10176,24 +10222,24 @@ class LTP(object):
                             lips,
                         filter(
                             lambda (protein, lips):
-                                not only_with_ms_data or protein in self.samples_upper,
+                                not only_with_ms_data or protein in self.fractions_upper,
                             self.bindprop.iteritems()
                         )
                     )
                 )
             )
         )
-        tbl = r'''\begin{tabular}{l%s}
+        tbl = r"""\begin{tabular}{l%s}
             & %s \\
             %s \\
         \end{tabular}
-        '''
+        """
         colalign = 'l' * len(allhgs)
         rownames = \
         sorted(
             filter(
                 lambda protein:
-                    not only_with_ms_data or protein in self.samples_upper,
+                    not only_with_ms_data or protein in self.fractions_upper,
                 self.bindprop.keys()
             )
         )
@@ -10811,10 +10857,10 @@ class LTP(object):
             if mcol is None:
                 log('\t\t[ !! ] Column `%s` could not be found at Marco' % colname)
             else:
-                print m[mcol], d[dcol]
+                print(m[mcol], d[dcol])
                 mval = mfun(m[mcol])
                 dval = dfun(d[dcol])
-                print mval, dval, type(mval), type(dval)
+                print(mval, dval, type(mval), type(dval))
                 ok = fun((mval, dval))
                 if ok:
                     log('\t\t[ OK ] %s is the same at Marco & Denes' % name)
