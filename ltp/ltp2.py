@@ -984,7 +984,7 @@ class Feature(object):
     for identification of a single feature.
     
     In the original concept all methods for identification
-    based on MS1 and MS2 took place in class LTP(),
+    based on MS1 and MS2 took place in class Screening(),
     as those could simply iterate through the arrays.
     
     Later more complex methods became necessary, so
@@ -993,8 +993,8 @@ class Feature(object):
     
     def __init__(self, main, protein, mode, oi, log = True):
         """
-        @main : ltp.LTP() instance
-            One LTP() instance with MS1 and MS2 processing already done.
+        @main : ltp.Screening() instance
+            One Screening() instance with MS1 and MS2 processing already done.
         
         @protein : str
             Protein name
@@ -2088,14 +2088,14 @@ class MS2Scan(object):
 
 # ##
 
-class LTP(object):
+class Screening(object):
     
     def __init__(self, **kwargs):
         self.defaults = {
             'path_root': '/',
             'basedir': ['home', 'denes', 'Documents' , 'ltp'],
             'data_basedir': None,
-            'ltpdirs': [['share'], ['share', '2015_06_Popeye']],
+            'datadirs': [['share'], ['share', '2015_06_Popeye']],
             'fractionsf': 'control_sample.csv',
             'ppfracf': 'fractions.csv',
             'ppsecdir': 'SEC_profiles',
@@ -2126,7 +2126,7 @@ class LTP(object):
             'ms2log': 'ms2identities.log',
             'swl_levels': ['Species'],
             'recal_source': 'marco',
-            'background_ltps': set(['BNIPL', 'OSBP', 'SEC14L1']),
+            'background_proteins': set(['BNIPL', 'OSBP', 'SEC14L1']),
             'aa_threshold': {
                 'neg': 30000.0,
                 'pos': 150000.0
@@ -2234,12 +2234,12 @@ class LTP(object):
         self.data_basedir = self.basedir \
             if self.data_basedir is None else self.data_basedir
         
-        self.ltpdirs = map(lambda p:
+        self.datadirs = map(lambda p:
             os.path.join(*([self.data_basedir] + p)) if type(p) is list else p,
-            self.ltpdirs
+            self.datadirs
         )
         
-        self.stddir = os.path.join(self.ltpdirs[0], self.stddir)
+        self.stddir = os.path.join(self.datadirs[0], self.stddir)
         
         self.paths_exist()
         
@@ -2255,7 +2255,7 @@ class LTP(object):
         self.nAdducts = None
         self.pAdducts = None
         self.exacts = None
-        self.ltps_drifts = None
+        self.proteins_drifts = None
         self.pp_zeroed = False
         
         self.aaa_threshold = {
@@ -2525,7 +2525,7 @@ class LTP(object):
         paths = map(lambda name:
             getattr(self, name),
             self.in_basedir
-        ) + self.ltpdirs
+        ) + self.datadirs
         for path in paths:
             if not os.path.exists(path) and path[-6:] != 'pickle':
                 sys.stdout.write('\t:: Missing input file/path: %s\n' % path)
@@ -2542,7 +2542,7 @@ class LTP(object):
     # read standards data
     #
 
-    def which_day(self, ltp, mode = 'pos'):
+    def which_day(self, protein, mode = 'pos'):
         """
         Which day the fractions for a given LTP have been run?
         """
@@ -2551,7 +2551,7 @@ class LTP(object):
         return map(lambda (date, fractions):
             date,
             filter(lambda (date, fractions):
-                (ltp, mode) in map(lambda sample:
+                (protein, mode) in map(lambda sample:
                     (sample[0], sample[1]),
                     fractions
                 ),
@@ -2899,19 +2899,19 @@ class LTP(object):
         if cache and os.path.exists(self.abscache):
             self.absorb = pickle.load(open(self.abscache, 'rb'))
             return None
-        reltp = re.compile(r'.*[\s_-]([A-Za-z0-9]{3,})\.xls')
+        reprotein = re.compile(r'.*[\s_-]([A-Za-z0-9]{3,})\.xls')
         self.absorb = {}
         secdir = os.path.join(self.basedir, self.ppsecdir)
         fnames = os.listdir(secdir)
         for fname in fnames:
-            ltpname = reltp.findall(fname)[0]
+            protein_name = reprotein.findall(fname)[0]
             try:
                 tbl = self.read_xls(os.path.join(secdir, fname))[3:]
             except xlrd.biffh.XLRDError:
                 sys.stdout.write('Error reading XLS:\n\t%s\n' % \
                     os.path.join(self.basedir, fname))
                 continue
-            self.absorb[ltpname] = \
+            self.absorb[protein_name] = \
                 np.array(
                     map(
                         lambda l:
@@ -3029,7 +3029,7 @@ class LTP(object):
                                                                 ab[fr][c][o],
                                                             filter(
                                                                 lambda (prot, ab):
-                                                                    prot in self.background_ltps,
+                                                                    prot in self.background_proteins,
                                                                 self.abs_by_frac_b.iteritems()
                                                             )
                                                         )
@@ -3103,7 +3103,7 @@ class LTP(object):
                 getattr(self,
                     '_GLTPD1_profile_correction_%s' % GLTPD_correction)(propname)
             return None
-        reltp = re.compile(r'.*[\s_-]([A-Za-z0-9]{3,})\.xls')
+        reprotein = re.compile(r'.*[\s_-]([A-Za-z0-9]{3,})\.xls')
         result = {}
         secdir = os.path.join(self.basedir, self.ppsecdir)
         fnames = os.listdir(secdir)
@@ -3124,7 +3124,7 @@ class LTP(object):
                 )
         self.secfracs['%u' % int(offset * 1000)] = frac
         for fname in fnames:
-            ltpname = reltp.findall(fname)[0]
+            protein_name = reprotein.findall(fname)[0]
             frac_abs = dict((i[2], []) for i in frac)
             gfrac = (i for i in frac)
             fr = gfrac.next()
@@ -3147,7 +3147,7 @@ class LTP(object):
                         break
                 # l[5] mAU UV3 215nm
                 frac_abs[fr[2]].append(self.to_float(l[5]) - minabs)
-            result[ltpname] = dict((fnum, np.mean(a)) \
+            result[protein_name] = dict((fnum, np.mean(a)) \
                 for fnum, a in frac_abs.iteritems())
         pickle.dump(result, open(cachefile, 'wb'))
         setattr(self, propname, result)
@@ -3156,7 +3156,7 @@ class LTP(object):
                 '_GLTPD1_profile_correction_%s' % GLTPD_correction)(propname)
     
     def protein_profile_correction(self, propname):
-        for ltpname, prof in getattr(self, propname).iteritems():
+        for protein_name, prof in getattr(self, propname).iteritems():
             basefrac = prof[self.basefrac]
             for frac in self.fracs:
                 prof[frac] -= basefrac
@@ -3183,10 +3183,10 @@ class LTP(object):
             self.protein_profile_correction(propname)
             setattr(self, 'pprofs_original%s' % label,
                 copy.deepcopy(getattr(self, propname)))
-            for ltpname, sample in self.fractions.iteritems():
+            for protein_name, sample in self.fractions.iteritems():
                 for i, fr in enumerate(self.fracs):
                     if sample[i + 1] == 0 or sample[i + 1] is None:
-                        getattr(self, propname)[ltpname.upper()][fr] = 0.0
+                        getattr(self, propname)[protein_name.upper()][fr] = 0.0
         self.pp_zeroed = True
     
     def protein_containing_fractions(self, protein):
@@ -3441,10 +3441,10 @@ class LTP(object):
                 sorted(self.pprofs.values()[0].keys(),
                 key = lambda x: (x[0], int(x[1:])))), '\n'))
             f.write('\n'.join('%s\t%s' % (
-                    ltp,
+                    protein,
                     '\t'.join('%.20f' % d[fr] for fr in sorted(d.keys(),
                         key = lambda x: (x[0], int(x[1:]))))) \
-                for ltp, d in self.pprofs.iteritems()
+                for protein, d in self.pprofs.iteritems()
             ))
 
     def read_pptable(self):
@@ -3571,7 +3571,7 @@ class LTP(object):
             self.read_standards()
             self.drifts_by_standard()
             self.drifts_by_date()
-            self.drifts2ltps()
+            self.drifts2proteins()
         self.recalibrate()
     
     def standards_filenames(self):
@@ -3612,25 +3612,25 @@ class LTP(object):
                     'again,\n'\
                     '\t   reload the original data.\n\n')
                 sys.stdout.flush()
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for mode, tbl in d.iteritems():
                 if 'recalibrated' not in tbl or \
                 (not tbl['recalibrated'] and missing):
-                    if ltp in self.ltps_drifts:
-                        if mode in self.ltps_drifts[ltp]:
+                    if protein in self.proteins_drifts:
+                        if mode in self.proteins_drifts[protein]:
                             ppm = np.median(
-                                self.ltps_drifts[ltp][mode].values())
+                                self.proteins_drifts[protein][mode].values())
                             ratio = self.ppm2ratio(ppm)
                             tbl['mz'] = tbl['mz'] * ratio
                             tbl['recalibrated'] = True
                         else:
                             tbl['recalibrated'] = False
                             sys.stdout.write('\t:: No drift value '\
-                                'for %s in mode %s :(\n' % (ltp, mode))
+                                'for %s in mode %s :(\n' % (protein, mode))
                     else:
                         tbl['recalibrated'] = False
                         sys.stdout.write('\t:: No drift values'\
-                            ' for %s-%s :(\n' % (ltp, mode))
+                            ' for %s-%s :(\n' % (protein, mode))
 
     def read_standards(self, accuracy = 5, cache = True):
         if os.path.exists(self.stdcachefile) and cache:
@@ -3744,7 +3744,7 @@ class LTP(object):
                         (date, str(sample)))
         self.drifts2 = drifts2
 
-    def drifts2ltps(self, write_table = 'LTPs_drifts.tab'):
+    def drifts2proteins(self, write_table = 'LTPs_drifts.tab'):
         sys.stdout.write('\t:: Setting recalibration data via cache, from previously processed MzMLs\n')
         sys.stdout.flush()
         # before doing anything, fix some inconsistencies:
@@ -3762,7 +3762,7 @@ class LTP(object):
             self.seq['150310'][i] = \
                 (self.seq['150310'][i][0], self.seq['150310'][i][1], fr)
         #
-        ltps_drifts = {}
+        proteins_drifts = {}
         hdr = ['LTP', 'mode', 'fraction', 'ratio', 'ppm']
         tab = [hdr]
         def standard_indices(mode, se):
@@ -3775,9 +3775,9 @@ class LTP(object):
                     )
                 )
             )
-        def add_row(tab, ltp, mode, fr, d):
+        def add_row(tab, protein, mode, fr, d):
             tab.append([
-                ltp,
+                protein,
                 'positive' if mode == 'pos' else 'negative',
                 fr,
                 '%.09f' % self.ppm2ratio(d),
@@ -3831,14 +3831,14 @@ class LTP(object):
                     if typ == '#BUF':
                         lastbuf[mode] = d
                     else:
-                        if typ not in ltps_drifts:
-                            ltps_drifts[typ] = {}
-                        if mode not in ltps_drifts[typ]:
-                            ltps_drifts[typ][mode] = {}
+                        if typ not in proteins_drifts:
+                            proteins_drifts[typ] = {}
+                        if mode not in proteins_drifts[typ]:
+                            proteins_drifts[typ][mode] = {}
                         if prev != typ:
-                            ltps_drifts[typ][mode]['ctrl'] = lastbuf[mode]
+                            proteins_drifts[typ][mode]['ctrl'] = lastbuf[mode]
                             tab = add_row(tab, typ, mode, 'CTL', lastbuf[mode])
-                        ltps_drifts[typ][mode][sample[2]] = d
+                        proteins_drifts[typ][mode][sample[2]] = d
                         tab = add_row(tab, typ, mode, sample[2], d)
                     prev = typ
         if write_table and type(write_table) in charTypes:
@@ -3850,23 +3850,23 @@ class LTP(object):
                     )
                 )
             sys.stdout.write('\n\t:: Table written to file %s\n\n'%write_table)
-        self.ltps_drifts =  ltps_drifts
+        self.proteins_drifts =  proteins_drifts
     
     def drifts_from_marco(self):
         sys.stdout.write('\t:: Reading recalibration data from Marco`s table\n')
         sys.stdout.flush()
-        self.ltps_drifts = {}
+        self.proteins_drifts = {}
         with open(self.recalfile, 'r') as f:
             for _ in xrange(4):
                 null = f.readline()
             for l in f:
                 l = l.strip().split(',')
-                self.ltps_drifts[l[0]] = {'pos': {}, 'neg': {}}
+                self.proteins_drifts[l[0]] = {'pos': {}, 'neg': {}}
                 neg_ppm = self.to_float(l[1])
                 pos_ppm = self.to_float(l[2])
                 for frac in ['ctrl'] + self.fracsU:
-                    self.ltps_drifts[l[0]]['pos'][frac] = pos_ppm
-                    self.ltps_drifts[l[0]]['neg'][frac] = neg_ppm
+                    self.proteins_drifts[l[0]]['pos'][frac] = pos_ppm
+                    self.proteins_drifts[l[0]]['neg'][frac] = neg_ppm
 
     def remove_outliers(self, data, m = 2):
         return data[np.where(abs(data - np.nanmean(data)) < \
@@ -4166,25 +4166,25 @@ class LTP(object):
         """
         redirname = re.compile(r'(^[0-9a-zA-Z]+)[ _]')
         fnames = {}
-        ltpdlsts = \
+        datadlsts = \
             map(lambda d:
                 filter(lambda dd:
                     os.path.isdir(os.path.join(d, dd)),
                     os.listdir(d)
                 ),
-                self.ltpdirs
+                self.datadirs
             )
-        if sum(map(len, ltpdlsts)) == 0:
+        if sum(map(len, datadlsts)) == 0:
             sys.stdout.write('\t:: Please mount the shared folder!\n')
             return fnames
-        for path, ltpdl in zip(self.ltpdirs, ltpdlsts):
-            for ltpd in ltpdl:
-                ltpname = redirname.findall(ltpd)
-                pos = 'pos' if 'pos' in ltpd \
-                    else 'neg' if 'neg' in ltpd else None
-                if pos is not None and len(ltpname) > 0:
-                    ltpname = ltpname[0]
-                    fpath = [ltpd, 'features']
+        for path, proteindl in zip(self.datadirs, datadlsts):
+            for proteind in proteindl:
+                protein = redirname.findall(proteind)
+                pos = 'pos' if 'pos' in proteind \
+                    else 'neg' if 'neg' in proteind else None
+                if pos is not None and len(protein) > 0:
+                    protein = protein[0]
+                    fpath = [proteind, 'features']
                     for f in os.listdir(os.path.join(path, *fpath)):
                         if 'LABELFREE' in f:
                             fpath.append(f)
@@ -4193,10 +4193,10 @@ class LTP(object):
                         if f.endswith('.csv'):
                             fpath.append(f)
                             break
-                    if ltpname not in fnames:
-                        fnames[ltpname] = {}
-                    if pos not in fnames[ltpname] or ltpd.endswith('update'):
-                        fnames[ltpname][pos] = os.path.join(path, *fpath)
+                    if protein not in fnames:
+                        fnames[protein] = {}
+                    if pos not in fnames[protein] or proteind.endswith('update'):
+                        fnames[protein][pos] = os.path.join(path, *fpath)
         self.datafiles = fnames
 
     def read_file_np(self, fname, read_vars = ['Normalized Area']):
@@ -4371,23 +4371,23 @@ class LTP(object):
     """
 
     def quality_filter(self, threshold = 0.2):
-        for ltp, d in self.data.iteritems():
+        for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['qly'] = np.array(tbl['raw'][:,0] >= threshold)
 
     def charge_filter(self, charge = 1):
-        for ltp, d in self.data.iteritems():
+        for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['crg'] = np.array(tbl['raw'][:,5] == charge)
     
     def rt1_filter(self, rtmin = 1.0):
-        for ltp, d in self.data.iteritems():
+        for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['rtm'] = tbl['raw'][:,6]
                 tbl['rt1'] = np.array(tbl['rtm'] > rtmin)
 
     def area_filter(self, area = 10000.0):
-        for ltp, d in self.data.iteritems():
+        for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 if self.use_original_average_area:
                     tbl['are'] = np.nanmean(tbl['lip'], 1) >= area
@@ -4410,7 +4410,7 @@ class LTP(object):
             )
         )
         prg = progress.Progress(len(self.data) * 2, 'Peak size filter', 1)
-        for ltp, d in self.data.iteritems():
+        for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 prg.step()
                 mini = np.nanmin(
@@ -4450,15 +4450,15 @@ class LTP(object):
         cols = 'smp' if prfx == 'c' else 'lip'
         prg = progress.Progress(len(data) * 2, 'Profile filter', 1,
             percent = False)
-        for ltp, d in self.data.iteritems():
+        for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 prg.step()
-                if ltp.upper() not in self.pprofs:
-                    notf.append(ltp)
+                if protein.upper() not in self.pprofs:
+                    notf.append(protein)
                     continue
                 # i != 0 : we always drop the blank control
-                ppr = np.array([self.pprofs[ltp.upper()][frs[i]] \
-                    for i, fr in enumerate(self.fractions[ltp]) \
+                ppr = np.array([self.pprofs[protein.upper()][frs[i]] \
+                    for i, fr in enumerate(self.fractions[protein]) \
                         if fr == 1 and i != 0])
                 ppr = self.norm_profile(ppr).astype(np.float64)
                 prr = stats.rankdata(ppr)
@@ -4529,93 +4529,93 @@ class LTP(object):
 
     def ubiquity_filter_old(self, only_valid = True):
         prg = progress.Progress(len(data)**2, 'Ubiquity filter', 1)
-        ltps = sorted(self.data.keys())
+        proteins = sorted(self.data.keys())
         for pn in ['pos', 'neg']:
-            for i, ltp1 in enumerate(ltps):
-                for ltp2 in ltps[i+1:]:
-                    ltp1s = set([])
-                    ltp2s = set([])
+            for i, protein1 in enumerate(proteins):
+                for protein2 in proteins[i+1:]:
+                    protein1s = set([])
+                    protein2s = set([])
                     prg.step()
-                    if pn in data[ltp1] and pn in data[ltp2]:
-                        ltp1t = data[ltp1][pn]
-                        ltp2t = data[ltp2][pn]
-                        if 'ubi' not in ltp1t:
-                            ltp1t['ubi'] = \
-                                np.zeros([ltp1t['raw'].shape[0], 2], \
+                    if pn in data[protein1] and pn in data[protein2]:
+                        protein1t = data[protein1][pn]
+                        protein2t = data[protein2][pn]
+                        if 'ubi' not in protein1t:
+                            protein1t['ubi'] = \
+                                np.zeros([protein1t['raw'].shape[0], 2], \
                                 dtype = np.int8)
-                        if 'ubi' not in ltp2t:
-                            ltp2t['ubi'] = \
-                                np.zeros([ltp2t['raw'].shape[0], 2], \
+                        if 'ubi' not in protein2t:
+                            protein2t['ubi'] = \
+                                np.zeros([protein2t['raw'].shape[0], 2], \
                                 dtype = np.int8)
-                        for i1, mz1 in np.ndenumerate(ltp1t['raw'][:,2]):
-                            i2u = ltp2t['raw'][:,2].searchsorted(mz1)
-                            if i2u < ltp2t['raw'].shape[0] and \
-                                ltp2t['raw'][i2u,2] - mz1 <= self.ms1_tlr:
-                                if i1 not in ltp1s:
-                                    ltp1t['ubi'][i1] += 1
-                                    ltp1s.add(i1)
-                                if i2u not in ltp2s:
-                                    ltp2t['ubi'][i2u] += 1
-                                    ltp2s.add(i2u)
-                            if mz1 - ltp2t['raw'][i2u - 1,2] <= self.ms1_tlr:
-                                if i1 not in ltp1s:
-                                    ltp1t['ubi'][i1] += 1
-                                    ltp1s.add(i1)
-                                if i2u - 1 not in ltp2s:
-                                    ltp2t['ubi'][i2u - 1] += 1
-                                    ltp2s.add(i2u - 1)
+                        for i1, mz1 in np.ndenumerate(protein1t['raw'][:,2]):
+                            i2u = protein2t['raw'][:,2].searchsorted(mz1)
+                            if i2u < protein2t['raw'].shape[0] and \
+                                protein2t['raw'][i2u,2] - mz1 <= self.ms1_tlr:
+                                if i1 not in protein1s:
+                                    protein1t['ubi'][i1] += 1
+                                    protein1s.add(i1)
+                                if i2u not in protein2s:
+                                    protein2t['ubi'][i2u] += 1
+                                    protein2s.add(i2u)
+                            if mz1 - protein2t['raw'][i2u - 1,2] <= self.ms1_tlr:
+                                if i1 not in protein1s:
+                                    protein1t['ubi'][i1] += 1
+                                    protein1s.add(i1)
+                                if i2u - 1 not in protein2s:
+                                    protein2t['ubi'][i2u - 1] += 1
+                                    protein2s.add(i2u - 1)
         prg.terminate()
 
     def ubiquity_filter(self, only_valid = True):
         prg = progress.Progress(len(self.valids)**2, 'Ubiquity filter', 1)
-        ltps = sorted(self.valids.keys())
+        proteins = sorted(self.valids.keys())
         for pn in ['pos', 'neg']:
-            for i, ltp1 in enumerate(ltps):
-                for ltp2 in ltps[i+1:]:
-                    ltp1s = set([])
-                    ltp2s = set([])
+            for i, protein1 in enumerate(proteins):
+                for protein2 in proteins[i+1:]:
+                    protein1s = set([])
+                    protein2s = set([])
                     prg.step()
-                    if pn in self.valids[ltp1] and pn in self.valids[ltp2]:
-                        ltp1t = self.valids[ltp1][pn]
-                        ltp2t = self.valids[ltp2][pn]
-                        if 'ubi' not in ltp1t:
-                            ltp1t['ubi'] = np.zeros(ltp1t['mz'].shape[0],
+                    if pn in self.valids[protein1] and pn in self.valids[protein2]:
+                        protein1t = self.valids[protein1][pn]
+                        protein2t = self.valids[protein2][pn]
+                        if 'ubi' not in protein1t:
+                            protein1t['ubi'] = np.zeros(protein1t['mz'].shape[0],
                                 dtype = np.int8)
-                        if 'ubi' not in ltp2t:
-                            ltp2t['ubi'] = np.zeros(ltp2t['mz'].shape[0],
+                        if 'ubi' not in protein2t:
+                            protein2t['ubi'] = np.zeros(protein2t['mz'].shape[0],
                                 dtype = np.int8)
-                        for i1, mz1 in np.ndenumerate(ltp1t['mz']):
-                            if ltp1t['cpv'][i1] or not only_valid:
-                                i2u = ltp2t['mz'].searchsorted(mz1)
+                        for i1, mz1 in np.ndenumerate(protein1t['mz']):
+                            if protein1t['cpv'][i1] or not only_valid:
+                                i2u = protein2t['mz'].searchsorted(mz1)
                                 u = 0
                                 while True:
-                                    if i2u + u < ltp2t['mz'].shape[0] and \
-                                        ltp2t['mz'][i2u + u] - mz1 <= \
+                                    if i2u + u < protein2t['mz'].shape[0] and \
+                                        protein2t['mz'][i2u + u] - mz1 <= \
                                         self.ms1_tlr:
-                                        if ltp2t['cpv'][i2u + u] or \
+                                        if protein2t['cpv'][i2u + u] or \
                                             not only_valid:
-                                            if i1 not in ltp1s:
-                                                ltp1t['ubi'][i1] += 1
-                                                ltp1s.add(i1)
-                                            if i2u + u not in ltp2s:
-                                                ltp2t['ubi'][i2u + u] += 1
-                                                ltp2s.add(i2u + u)
+                                            if i1 not in protein1s:
+                                                protein1t['ubi'][i1] += 1
+                                                protein1s.add(i1)
+                                            if i2u + u not in protein2s:
+                                                protein2t['ubi'][i2u + u] += 1
+                                                protein2s.add(i2u + u)
                                         u += 1
                                     else:
                                         break
                                 l = 1
                                 while True:
                                     if i2u - l >= 0 and \
-                                        mz1 - ltp2t['mz'][i2u - l] <= \
+                                        mz1 - protein2t['mz'][i2u - l] <= \
                                         self.ms1_tlr:
-                                        if ltp2t['cpv'][i2u - l] or \
+                                        if protein2t['cpv'][i2u - l] or \
                                             not only_valid:
-                                            if i1 not in ltp1s:
-                                                ltp1t['ubi'][i1] += 1
-                                                ltp1s.add(i1)
-                                            if i2u - l not in ltp2s:
-                                                ltp2t['ubi'][i2u - l] += 1
-                                                ltp2s.add(i2u - l)
+                                            if i1 not in protein1s:
+                                                protein1t['ubi'][i1] += 1
+                                                protein1s.add(i1)
+                                            if i2u - l not in protein2s:
+                                                protein2t['ubi'][i2u - l] += 1
+                                                protein2s.add(i2u - l)
                                         l += 1
                                     else:
                                         break
@@ -4625,7 +4625,7 @@ class LTP(object):
         """
         Deletes the result of a previously done filtering.
         """
-        for ltp, d in self.data.iteritems():
+        for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 if attr_name in tbl:
                     del tbl[attr_name]
@@ -4643,13 +4643,13 @@ class LTP(object):
         
         def __call__(self, data, **kwargs):
             result = empty_dict(data)
-            for ltp in data.keys():
-                print(ltp)
-                for pn, tbl in data[ltp].iteritems():
-                    result[ltp][pn] = self.fun(tbl, **kwargs)
-                    if result[ltp][pn] is None:
+            for protein in data.keys():
+                print(protein)
+                for pn, tbl in data[protein].iteritems():
+                    result[protein][pn] = self.fun(tbl, **kwargs)
+                    if result[protein][pn] is None:
                         sys.stdout.write('No profile info for %s, %s, %s()\n' \
-                            % (ltp, pn, self.fun.__name__))
+                            % (protein, pn, self.fun.__name__))
             return result
     
     class combine_filters(object):
@@ -4658,8 +4658,8 @@ class LTP(object):
             self.fun = fun
         
         def __call__(self, **kwargs):
-            for ltp in self.obj.data.keys():
-                for pn, tbl in self.obj.data[ltp].iteritems():
+            for protein in self.obj.data.keys():
+                for pn, tbl in self.obj.data[protein].iteritems():
                     try:
                         self.fun(self.obj, tbl, **kwargs)
                     except:
@@ -4679,11 +4679,11 @@ class LTP(object):
         def __call__(self, **kwargs):
             hits = self.obj.empty_dict(self.obj.data)
             phits = self.obj.empty_dict(self.obj.data)
-            for ltp in self.obj.data.keys():
-                for pn, tbl in self.obj.data[ltp].iteritems():
+            for protein in self.obj.data.keys():
+                for pn, tbl in self.obj.data[protein].iteritems():
                     try:
-                        hits[ltp][pn] = self.fun(tbl, **kwargs)
-                        phits[ltp][pn] = self.fun(tbl, **kwargs) / \
+                        hits[protein][pn] = self.fun(tbl, **kwargs)
+                        phits[protein][pn] = self.fun(tbl, **kwargs) / \
                             float(len(tbl[kwargs['name']])) * 100
                     except:
                         pass
@@ -4922,8 +4922,8 @@ class LTP(object):
             fun(**p)
 
     def empty_dict(self):
-        return dict((ltp, {'pos': None, 'neg': None}) \
-            for ltp in self.data.keys())
+        return dict((protein, {'pos': None, 'neg': None}) \
+            for protein in self.data.keys())
 
     def eval_filter(self, filtr, param = {}, runtime = True,
         repeat = 3, number = 10, hit = lambda x: x):
@@ -4982,11 +4982,11 @@ class LTP(object):
             ).sum()
         hits = counter(self.data)
         if verbose:
-            sys.stdout.write('\n\tLTP\t\t+\t-\n\t%s\n'%('='*30))
-            for ltp in sorted(hits.keys()):
-                sys.stdout.write('\t%s\t'%ltp)
+            sys.stdout.write('\n\tprotein\t\t+\t-\n\t%s\n'%('='*30))
+            for protein in sorted(hits.keys()):
+                sys.stdout.write('\t%s\t'%protein)
                 for pn in ['pos', 'neg']:
-                    num = hits[ltp][pn]
+                    num = hits[protein][pn]
                     sys.stdout.write('\t%s' % \
                         (str(num) if num is not None else 'n/a'))
                 sys.stdout.write('\n')
@@ -5052,7 +5052,7 @@ class LTP(object):
         [5] ubiquity_score
         
         out:
-        ltp_name, m/z, 
+        protein_name, m/z, 
         profile_score, control_profile_score,
         rank_profile_boolean, ubiquity_score,
         ubiquity_score, swisslipids_ac, level,
@@ -5061,8 +5061,8 @@ class LTP(object):
         """
         # levels: 'Structural subspecies', 'Isomeric subspecies',
         # 'Species', 'Molecular subspecies'
-        lipids = dict((ltp.upper(), {}) for ltp in hits.keys())
-        for ltp, d in hits.iteritems():
+        lipids = dict((protein.upper(), {}) for protein in hits.keys())
+        for protein, d in hits.iteritems():
             for pn, tbl in d.iteritems():
                 adducts = self.pAdducts if pn == 'pos' else self.nAdducts
                 result = []
@@ -5077,7 +5077,7 @@ class LTP(object):
                                 result.append(np.concatenate(
                                     # tbl[1] and tbl[2] are the profile 
                                     # and cprofile scores
-                                    (np.array([ltp.upper(), tbl[0][i,1],
+                                    (np.array([protein.upper(), tbl[0][i,1],
                                         tbl[1][i], tbl[2][i],
                                         tbl[3][i], tbl[4][i],
                                         tbl[5][i]],
@@ -5085,7 +5085,7 @@ class LTP(object):
                                     lip,
                                     np.array(hg, fa, dtype = np.object)),
                                     axis = 0))
-                    lipids[ltp.upper()][pn] = np.vstack(
+                    lipids[protein.upper()][pn] = np.vstack(
                         sorted(result, key = lambda x: x[1]))
         self.lipids = lipids
 
@@ -5126,7 +5126,7 @@ class LTP(object):
         return _fa
 
     def find_lipids_exact(self, verbose = False,
-        outfile = None, ltps = None, charge = 1):
+        outfile = None, proteins = None, charge = 1):
         """
         Looks up lipids by m/z among database entries in
         `exacts`, and stores the result in dict under key
@@ -5135,8 +5135,8 @@ class LTP(object):
         
         if verbose:
             outfile = sys.stdout if outfile is None else open(outfile, 'w')
-        for ltp, d in self.valids.iteritems():
-            if ltps is None or ltp in ltps:
+        for protein, d in self.valids.iteritems():
+            if proteins is None or protein in proteins:
                 for pn, tbl in d.iteritems():
                     tbl['lip'] = {}
                     for i in xrange(tbl['mz'].shape[0]):
@@ -5263,10 +5263,10 @@ class LTP(object):
         [18] neg_swisslipids_ac, neg_level,
         [22] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z
         """
-        result = dict((ltp.upper(), []) for ltp in self.lipids.keys())
+        result = dict((protein.upper(), []) for protein in self.lipids.keys())
         prg = progress.Progress(len(result), 'Matching positive & negative',
             1, percent = False)
-        for ltp, tbl in self.lipids.iteritems():
+        for protein, tbl in self.lipids.iteritems():
             prg.step()
             if 'neg' in tbl and 'pos' in tbl:
                 for neg in tbl['neg']:
@@ -5294,7 +5294,7 @@ class LTP(object):
                                             == '[M+H]+' or \
                                         tbl['pos'][iu + u,add_col] \
                                             == 'Unknown':
-                                        result[ltp].append(np.concatenate(
+                                        result[protein].append(np.concatenate(
                                             (tbl['pos'][iu + u,1:], neg[1:]),
                                                 axis = 0
                                         ))
@@ -5312,7 +5312,7 @@ class LTP(object):
                                             == '[M+H]+' or \
                                         tbl['pos'][iu - l,add_col] \
                                             == 'Unknown':
-                                        result[ltp].append(np.concatenate(
+                                        result[protein].append(np.concatenate(
                                             (tbl['pos'][iu - l,1:], neg[1:]),
                                             axis = 0
                                         ))
@@ -5331,7 +5331,7 @@ class LTP(object):
                                             == '[M+NH4]+' or \
                                         tbl['pos'][iu + u,add_col] \
                                             == 'Unknown':
-                                        result[ltp].append(np.concatenate(
+                                        result[protein].append(np.concatenate(
                                             (tbl['pos'][iu + u,1:], neg[1:]),
                                             axis = 0
                                         ))
@@ -5349,15 +5349,15 @@ class LTP(object):
                                             == '[M+NH4]+' or \
                                         tbl['pos'][iu - l,add_col] \
                                             == 'Unknown':
-                                        result[ltp].append(np.concatenate(
+                                        result[protein].append(np.concatenate(
                                             (tbl['pos'][iu - l,1:], neg[1:]),
                                             axis = 0
                                         ))
                                     l += 1
                                 else:
                                     break
-                if len(result[ltp]) > 0:
-                    result[ltp] = np.vstack(result[ltp])
+                if len(result[protein]) > 0:
+                    result[protein] = np.vstack(result[protein])
         prg.terminate()
         return result
 
@@ -5370,7 +5370,7 @@ class LTP(object):
         ad2ex = self.ad2ex[1]
         ex2ad = self.ex2ad[1]
         self.sort_alll('mz')
-        for ltp, tbl in self.valids.iteritems():
+        for protein, tbl in self.valids.iteritems():
             tbl['pos']['neg'] = dict((i, {}) for i in tbl['pos']['i'])
             tbl['pos']['neg_lip'] = dict((i, {}) for i in tbl['pos']['i'])
             tbl['neg']['pos'] = dict((i, {}) for i in tbl['neg']['i'])
@@ -5378,7 +5378,7 @@ class LTP(object):
         prg = progress.Progress(len(self.valids),
             'Matching positive & negative',
             1, percent = False)
-        for ltp, tbl in self.valids.iteritems():
+        for protein, tbl in self.valids.iteritems():
             prg.step()
             for pi, poi in enumerate(tbl['pos']['i']):
                 measured_pos_mz = tbl['pos']['mz'][pi]
@@ -5683,24 +5683,24 @@ class LTP(object):
         redirname = re.compile(r'(^[0-9a-zA-Z]+)[ _](pos|neg)')
         refractio = re.compile(r'.*_([AB][0-9]{1,2}).*')
         fnames = {}
-        for d in self.ltpdirs:
-            ltpdd = os.listdir(d)
-            ltpdd = [i for i in ltpdd if os.path.isdir(os.path.join(d, i))]
-            if len(ltpdd) == 0:
+        for d in self.datadirs:
+            proteindd = os.listdir(d)
+            proteindd = [i for i in proteindd if os.path.isdir(os.path.join(d, i))]
+            if len(proteindd) == 0:
                 sys.stdout.write('\t:: Please mount the shared folder!\n')
                 return fnames
-            for ltpd in ltpdd:
+            for proteind in proteindd:
                 try:
-                    ltpname, pos = redirname.findall(ltpd)[0]
-                    ltpname = ltpname.upper()
-                    if ltpname not in fnames:
-                        fnames[ltpname] = {}
-                    if pos not in fnames[ltpname] or ltpd.endswith('update'):
-                        fnames[ltpname][pos] = {}
+                    proteinname, pos = redirname.findall(proteind)[0]
+                    proteinname = proteinname.upper()
+                    if proteinname not in fnames:
+                        fnames[proteinname] = {}
+                    if pos not in fnames[proteinname] or proteind.endswith('update'):
+                        fnames[proteinname][pos] = {}
                 except:
                     # other dirs are irrelevant:
                     continue
-                fpath = [ltpd, 'Results']
+                fpath = [proteind, 'Results']
                 if os.path.isdir(os.path.join(d, *fpath)):
                     for f in os.listdir(os.path.join(d, *fpath)):
                         if f.endswith('mgf') and 'buffer' not in f:
@@ -5713,7 +5713,7 @@ class LTP(object):
                             fr = 'B01' if fr == 'B1' \
                                 else 'A09' if fr == 'A9' \
                                 else fr
-                            fnames[ltpname][pos][fr] = \
+                            fnames[proteinname][pos][fr] = \
                                 os.path.join(*([d] + fpath + [f]))
         self.ms2files = fnames
 
@@ -5721,15 +5721,15 @@ class LTP(object):
         stRpos = 'pos'
         stRneg = 'neg'
         redgt = re.compile(r'[AB]([\d]+)$')
-        result = dict((ltp.upper(), {'pos': None, 'neg': None,
+        result = dict((protein.upper(), {'pos': None, 'neg': None,
                 'ms2files': {'pos': {}, 'neg': {}}}) \
-            for ltp, d in self.ms2files.iteritems())
+            for protein, d in self.ms2files.iteritems())
         prg = progress.Progress(len(self.ms2files) * 2, 'Indexing MS2 data', 1,
             percent = False)
-        for ltp, d in self.ms2files.iteritems():
+        for protein, d in self.ms2files.iteritems():
             pFeatures = []
             nFeatures = []
-            ultp = ltp.upper()
+            uprotein = protein.upper()
             for pn, files in d.iteritems():
                 prg.step()
                 features = pFeatures if pn == stRpos else nFeatures
@@ -5741,13 +5741,13 @@ class LTP(object):
                                         charge = self.ms2_precursor_charge)
                     m = np.vstack(mm)
                     features.extend(mm)
-                    result[ultp]['ms2files'][pn][int(fr)] = fl
+                    result[uprotein]['ms2files'][pn][int(fr)] = fl
             pFeatures = np.array(sorted(pFeatures, key = lambda x: x[0]),
                 dtype = np.float64)
             nFeatures = np.array(sorted(nFeatures, key = lambda x: x[0]),
                 dtype = np.float64)
-            result[ultp]['pos'] = pFeatures
-            result[ultp]['neg'] = nFeatures
+            result[uprotein]['pos'] = pFeatures
+            result[uprotein]['neg'] = nFeatures
         prg.terminate()
         self.ms2map = result
 
@@ -5828,11 +5828,11 @@ class LTP(object):
                     # we look up the real measured MS1 m/z's in MS2,
                     # so will divide recalibrated values by the drift ratio
                     drift = 1.0 \
-                        if not hasattr(self, 'ltps_drifts') \
+                        if not hasattr(self, 'proteins_drifts') \
                         or 'recalibrated' not in tbl \
                         or not tbl['recalibrated'] \
                         else self.ppm2ratio(np.nanmedian(
-                                np.array(self.ltps_drifts[protein][pn].values())
+                                np.array(self.proteins_drifts[protein][pn].values())
                             ))
                     if verbose:
                         outfile.write('\t:: Recalibrated m/z: '\
@@ -5876,7 +5876,7 @@ class LTP(object):
             result[oi].shape = (len(result[oi]), 6)
         return result
 
-    def ms2_match(self, ms1Mzs, ms1Rts, ms1is, ltp, pos,
+    def ms2_match(self, ms1Mzs, ms1Rts, ms1is, protein, pos,
         verbose = False, outfile = None, drift = 1.0,
         rt_tolerance = 1.0):
         """
@@ -5892,7 +5892,7 @@ class LTP(object):
             opened_here = True
         
         matches = []
-        ms2tbl = self.ms2map[ltp][pos]
+        ms2tbl = self.ms2map[protein][pos]
         # iterating over MS1 m/z, MS1 original index, and retention time
         for ms1Mz, ms1i, rt in zip(ms1Mzs, ms1is, ms1Rts):
             # drift is the ratio
@@ -5907,7 +5907,7 @@ class LTP(object):
                 iu = ms2tbl[:,0].searchsorted(ms1Mz)
             except IndexError:
                 sys.stdout.write('\nMissing MS2 files for %s-%s?\n' % \
-                    (ltp, pos))
+                    (protein, pos))
             if verbose:
                 outfile.write('\t:: Looking up MS1 m/z %.08f. '\
                     'Closest values found: %.08f and %.08f\n' % (
@@ -5986,7 +5986,7 @@ class LTP(object):
         self.ms2_main(proteins = [protein], verbose = True,
                 outfile = outfile)
 
-    def ms2_lookup(self, ltp, mode, ms1matches, verbose = False, outfile = None):
+    def ms2_lookup(self, protein, mode, ms1matches, verbose = False, outfile = None):
         """
         For the matching MS2 m/z's given, reads and identifies
         the list of fragments.
@@ -6001,9 +6001,9 @@ class LTP(object):
         """
         # indices of fraction numbers
         fragments = self.pFragments if mode == 'pos' else self.nFragments
-        ms2map = self.ms2map[ltp][mode]
-        ms2files = self.ms2map[ltp]['ms2files'][mode]
-        fractions = self.fractions_upper[ltp]
+        ms2map = self.ms2map[protein][mode]
+        ms2files = self.ms2map[protein]['ms2files'][mode]
+        fractions = self.fractions_upper[protein]
         sample_i = {
             9: 1, 10: 2, 11: 3, 12: 4, 1: 5
         }
@@ -6023,7 +6023,7 @@ class LTP(object):
             if verbose:
                 outfile.write('\t -- Looking up %.08f in fraction %s, '\
                     'line %u\n' % (ms1mz, fr, ms2i))
-            # only fractions with the LTP
+            # only fractions with the protein
             if verbose:
                 if fr in files:
                     outfile.write('\t -- Have file for fraction %s\n' % str(fr))
@@ -6342,7 +6342,7 @@ class LTP(object):
         those detected in the 2 modes, or the union, if
         there is no intersection.
         """
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             d['pos']['%shg_neg'%ms] = {}
             d['neg']['%shg_pos'%ms] = {}
             for poi, nois in d['pos']['neg'].iteritems():
@@ -6726,27 +6726,27 @@ class LTP(object):
             return None
         self.apply_filters()
         self.validity_filter()
-        self.valids = dict((ltp.upper(), {'pos': {}, 'neg': {}}) \
-            for ltp in self.data.keys())
-        for ltp, d in self.data.iteritems():
+        self.valids = dict((protein.upper(), {'pos': {}, 'neg': {}}) \
+            for protein in self.data.keys())
+        for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
-                self.valids[ltp.upper()][pn]['fe'] = np.array(tbl['smp'][tbl['vld']])
-                self.valids[ltp.upper()][pn]['mz'] = \
+                self.valids[protein.upper()][pn]['fe'] = np.array(tbl['smp'][tbl['vld']])
+                self.valids[protein.upper()][pn]['mz'] = \
                     np.array(tbl['raw'][tbl['vld'], 2])
-                self.valids[ltp.upper()][pn]['qua'] = \
+                self.valids[protein.upper()][pn]['qua'] = \
                     np.array(tbl['raw'][tbl['vld'], 0])
-                self.valids[ltp.upper()][pn]['sig'] = \
+                self.valids[protein.upper()][pn]['sig'] = \
                     np.array(tbl['raw'][tbl['vld'], 1])
-                self.valids[ltp.upper()][pn]['z'] = \
+                self.valids[protein.upper()][pn]['z'] = \
                     np.array(tbl['raw'][tbl['vld'], 5])
-                self.valids[ltp.upper()][pn]['rt'] = \
+                self.valids[protein.upper()][pn]['rt'] = \
                     np.array(tbl['raw'][tbl['vld'], 3:5])
-                self.valids[ltp.upper()][pn]['aa'] = \
+                self.valids[protein.upper()][pn]['aa'] = \
                     np.array(tbl['aa'][tbl['vld']])
                 for key in ['peaksize', 'pslim02', 'pslim05',
                     'pslim10', 'pslim510', 'rtm']:
-                    self.valids[ltp.upper()][pn][key] = np.array(tbl[key][tbl['vld']])
-                self.valids[ltp.upper()][pn]['i'] = np.where(tbl['vld'])[0]
+                    self.valids[protein.upper()][pn][key] = np.array(tbl[key][tbl['vld']])
+                self.valids[protein.upper()][pn]['i'] = np.where(tbl['vld'])[0]
         self.norm_all()
         self.get_area()
         pickle.dump(self.valids, open(self.validscache, 'wb'))
@@ -6785,7 +6785,7 @@ class LTP(object):
         Keys:
             'no': normalized profiles
         """
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['no'] = self.norm_profiles(tbl['fe'])
 
@@ -6804,16 +6804,16 @@ class LTP(object):
         """
         frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
         pprs = getattr(self, 'pprofs%s' % pprofs)
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             ppr = \
                 np.array(
                     map(
                         lambda (i, s):
-                            pprs[ltp][frs[i]],
+                            pprs[protein][frs[i]],
                         filter(
                             lambda (i, s):
                                 i != 0 and s is not None,
-                            enumerate(self.fractions_upper[ltp])
+                            enumerate(self.fractions_upper[protein])
                         )
                     )
                 )
@@ -6832,7 +6832,7 @@ class LTP(object):
                     if np.any(np.isnan(\
                             fe[np.where(\
                                 [fr == 1 \
-                                    for fr in self.fractions_upper[ltp][1:] \
+                                    for fr in self.fractions_upper[protein][1:] \
                                     if fr is not None]
                             )]
                         )):
@@ -6922,7 +6922,7 @@ class LTP(object):
         attr = '%sv'%metric
         target = '%si'%metric
         sort_alll(valids, attr)
-        for ltp, d in valids.iteritems():
+        for protein, d in valids.iteritems():
             for pn, tbl in d.iteritems():
                 vals = tbl[attr]
                 incs = np.diff(vals)
@@ -6947,7 +6947,7 @@ class LTP(object):
     Functions for clustering
     """
 
-    def distance_matrix(self, metrics = ['eu'], with_pprof = False, ltps = None):
+    def distance_matrix(self, metrics = ['eu'], with_pprof = False, proteins = None):
         _metrics = {
             'eu': ('euclidean distance', self.euclidean_dist),
             'en': ('normalized euclidean distance', self.euclidean_dist_norm)
@@ -6956,14 +6956,14 @@ class LTP(object):
         t0 = time.time()
         for m in metrics:
             prg = progress.Progress(
-                len(self.valids) * 2 if ltps is None else len(ltps) * 2,
+                len(self.valids) * 2 if proteins is None else len(proteins) * 2,
                 'Calculating %s' % _metrics[m][0],
                 1, percent = False)
-            for ltp, d in self.valids.iteritems():
-                if ltps is None or ltp in ltps:
+            for protein, d in self.valids.iteritems():
+                if proteins is None or protein in proteins:
                     if with_pprof:
-                        ppr = np.array([self.pprofs[ltp.upper()][frs[i]] \
-                            for i, fr in enumerate(self.fractions_upper[ltp]) \
+                        ppr = np.array([self.pprofs[protein.upper()][frs[i]] \
+                            for i, fr in enumerate(self.fractions_upper[protein]) \
                                 if i != 0 and fr is not None])
                         ppr = self.norm_profile(ppr).astype(np.float64)
                     for pn, tbl in d.iteritems():
@@ -6991,17 +6991,17 @@ class LTP(object):
         sys.stdout.write('\t:: Time elapsed: %us\n'%(time.time() - t0))
         sys.stdout.flush()
 
-    def features_clustering(self, dist = 'en', method = 'ward', ltps = None):
+    def features_clustering(self, dist = 'en', method = 'ward', proteins = None):
         """
         Using the distance matrices calculated by
         `distance_matrix()`, builds clusters using
         the linkage method given by `method` arg.
         """
         prg = progress.Progress(len(self.valids)*2 \
-            if ltps is None else len(ltps)*2,
+            if proteins is None else len(proteins)*2,
             'Calculating clusters', 1, percent = False)
-        for ltp, d in self.valids.iteritems():
-            if ltps is None or ltp in ltps:
+        for protein, d in self.valids.iteritems():
+            if proteins is None or protein in proteins:
                 for pn, tbl in d.iteritems():
                     prg.step()
                     tbl['_%sc'%dist] = fastcluster.linkage(tbl['_%sd'%dist],
@@ -7010,7 +7010,7 @@ class LTP(object):
         prg.terminate()
 
     def distance_corr(self, valids, dist = 'en'):
-        for ltp, d in valids.iteritems():
+        for protein, d in valids.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['_%sdc'%dist] = np.array([
                         sp.stats.pearsonr(tbl['_%sd'%dist][:,i],
@@ -7157,17 +7157,17 @@ class LTP(object):
         pass
 
     def plot_heatmaps_dendrograms(self, dist = 'en', 
-        fname = None, ltps = None, cmap = None,
+        fname = None, proteins = None, cmap = None,
         highlight_color = '#FFAA00', base_color = '#000000',
         coloring = 'corr', threshold = None,
         threshold_type = 'percent',
         save_selection = None, pca = False):
         """
-        For each LTP plots heatmaps and dendrograms.
+        For each protein plots heatmaps and dendrograms.
         Thanks to http://stackoverflow.com/a/3011894/854988
         """
         all_hgs = set()
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 for ids in tbl['identity'].values():
                     for hg in ids.keys():
@@ -7188,12 +7188,12 @@ class LTP(object):
         frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
         with mpl.backends.backend_pdf.PdfPages(fname) as pdf:
             prg = progress.Progress(len(self.valids) * 2 \
-                if ltps is None else len(ltps)*2,
+                if proteins is None else len(proteins)*2,
                 'Plotting heatmaps with dendrograms', 1, percent = False)
-            for ltp, d in self.valids.iteritems():
-                if ltps is None or ltp in ltps:
-                    ppr = np.array([self.pprofs[ltp.upper()][frs[i]] \
-                        for i, fr in enumerate(self.fractions_upper[ltp]) \
+            for protein, d in self.valids.iteritems():
+                if proteins is None or protein in proteins:
+                    ppr = np.array([self.pprofs[protein.upper()][frs[i]] \
+                        for i, fr in enumerate(self.fractions_upper[protein]) \
                             if i != 0 and fr is not None])
                     ppr = self.norm_profile(ppr).astype(np.float64)
                     for pn, tbl in d.iteritems():
@@ -7201,7 +7201,7 @@ class LTP(object):
                         if coloring == 'dist':
                             _threshold = self._dendrogram_get_threshold(tbl, dist,
                                 threshold, threshold_type)
-                        labels = ['%u'%(f) for f in tbl['_%so'%dist]] + [ltp]
+                        labels = ['%u'%(f) for f in tbl['_%so'%dist]] + [protein]
                         names = map(lambda oi:
                             ', '.join(sorted(map(lambda (hg, m):
                                 hg,
@@ -7211,7 +7211,7 @@ class LTP(object):
                                 )
                             ))) or oi,
                             labels[:-1]
-                        ) + [ltp]
+                        ) + [protein]
                         
                         
                         if coloring == 'corr':
@@ -7259,7 +7259,7 @@ class LTP(object):
                         null = [(tl.set_color(highlight_color),
                                 tl.set_fontweight('bold'),
                                 tl.set_fontsize(4)) \
-                            for tl in ax1.get_yticklabels() if tl._text == ltp]
+                            for tl in ax1.get_yticklabels() if tl._text == protein]
                         if _threshold is not None:
                             ax1.axvline(x = _threshold,
                                 c = '#FFAA00', alpha = 0.5)
@@ -7282,7 +7282,7 @@ class LTP(object):
                         null = [(tl.set_color(highlight_color), 
                                 tl.set_fontweight('bold'),
                                 tl.set_fontsize(4)) \
-                            for tl in ax2.get_xticklabels() if tl._text == ltp]
+                            for tl in ax2.get_xticklabels() if tl._text == protein]
                         if _threshold is not None:
                             ax2.axhline(y = _threshold, c = '#FFAA00',
                                 alpha = 0.5)
@@ -7303,8 +7303,8 @@ class LTP(object):
                         fig.suptitle('%s :: %s mode\n'\
                             'clustering valid features; '\
                             'features in highlighted cluster: %u' % \
-                            (ltp, pn, len(protein_fc) - 1),
-                            color = '#AA0000' if ltp in self.onepfraction else '#000000')
+                            (protein, pn, len(protein_fc) - 1),
+                            color = '#AA0000' if protein in self.onepfraction else '#000000')
                         
                         cvs.draw()
                         fig.tight_layout()
@@ -7334,9 +7334,9 @@ class LTP(object):
                             ax = fig.gca()
                             ax.scatter(coo[:,0], coo[:,1], c = col, 
                                 linewidth = 0.0, alpha = 0.7)
-                            ax.set_title('%s :: %s mode :: PCA' % (ltp, pn),
+                            ax.set_title('%s :: %s mode :: PCA' % (protein, pn),
                                 color = '#AA0000' \
-                                    if ltp in onepfraction else '#000000')
+                                    if protein in onepfraction else '#000000')
                             cvs.draw()
                             fig.tight_layout()
                             cvs.print_figure(pdf)
@@ -7347,7 +7347,7 @@ class LTP(object):
             pdfinf['Author'] = 'Dénes Türei'.decode('utf-8')
             pdfinf['Subject'] = 'Clustering MS1 features '\
                 'based on Euclidean distances'
-            pdfinf['Keywords'] = 'lipid transfer protein, LTP,'\
+            pdfinf['Keywords'] = 'lipid transfer protein, protein,'\
                 ' lipidomics, mass spectrometry'
             pdfinf['CreationDate'] = datetime.datetime(2016, 02, 22)
             pdfinf['ModDate'] = datetime.datetime.today()
@@ -7364,7 +7364,7 @@ class LTP(object):
     def plot_increment(self, valids, onepfraction, metric = 'en',
         fname = 'increments.pdf'):
         with mpl.backends.backend_pdf.PdfPages(fname) as pdf:
-            for ltp, d in valids.iteritems():
+            for protein, d in valids.iteritems():
                 for pn, tbl in d.iteritems():
                     fig = mpl.figure.Figure(figsize = (8,8))
                     cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
@@ -7383,8 +7383,8 @@ class LTP(object):
                     handles, labels = ax.get_legend_handles_labels()
                     ax.legend(handles, labels)
                     ax.set_title('%s :: %s mode :: distance increments' % \
-                        (ltp, pn),
-                        color = '#AA0000' if ltp in onepfraction else '#000000')
+                        (protein, pn),
+                        color = '#AA0000' if protein in onepfraction else '#000000')
                     ax.set_xlim([3.0, 50.0])
                     cvs.print_figure(pdf)
                     fig.clf()
@@ -7393,7 +7393,7 @@ class LTP(object):
             pdfinf['Title'] = 'Features distance increment'
             pdfinf['Author'] = 'Dénes Türei'.decode('utf-8')
             pdfinf['Subject'] = 'Features distance increment'
-            pdfinf['Keywords'] = 'lipid transfer protein, LTP,'\
+            pdfinf['Keywords'] = 'lipid transfer protein, protein,'\
                 ' lipidomics, mass spectrometry'
             pdfinf['CreationDate'] = datetime.datetime(2016, 02, 22)
             pdfinf['ModDate'] = datetime.datetime.today()
@@ -7402,9 +7402,9 @@ class LTP(object):
         cfracs = ['c0'] + self.fracs
         prg = progress.Progress(len(valids) * 2,
             'Calculating k-means', 1, percent = False)
-        for ltp, d in valids.iteritems():
-            ppr = np.array([pprofs[ltp.upper()][cfracs[i]] \
-                for i, fr in enumerate(fractions[ltp]) if fr == 1 and i != 0])
+        for protein, d in valids.iteritems():
+            ppr = np.array([pprofs[protein.upper()][cfracs[i]] \
+                for i, fr in enumerate(fractions[protein]) if fr == 1 and i != 0])
             ppr = norm_profile(ppr).astype(np.float64)
             for pn, tbl in d.iteritems():
                 prg.step()
@@ -7422,7 +7422,7 @@ class LTP(object):
         with open(os.path.join(basedir, fname), 'r') as f:
             _result = [[c.strip() for c in l.split('\t')] \
                 for l in f.read().split('\n')]
-        result = dict((ltp, []) for ltp in uniqList([x[0] \
+        result = dict((protein, []) for protein in uniqList([x[0] \
             for x in _result if x[0] != '']))
         for l in _result:
             if l[0] != '':
@@ -7469,8 +7469,8 @@ class LTP(object):
         LTPs/modes/metrics/performance metrics.
         E.g. result['STARD10']['pos']['ktv']['sens']
         """
-        stdltps = self.known_binders_detected if stdltps is None else stdltps
-        result = dict((ltp, {'pos': {}, 'neg': {}}) for ltp in stdltps)
+        std_proteins = self.known_binders_detected if std_proteins is None else std_proteins
+        result = dict((protein, {'pos': {}, 'neg': {}}) for protein in std_proteins)
         metrics = \
             [
                 ('Kendall\'s tau', 'ktv', False),
@@ -7487,12 +7487,12 @@ class LTP(object):
                 ('Euclidean, +45 mcl', 'env45', True),
                 ('Peak ratio', 'prs', True)
             ]
-        for ltp in stdltps:
+        for protein in std_proteins:
             for pos in ['pos', 'neg']:
-                tbl = self.valids[ltp][pos]
+                tbl = self.valids[protein][pos]
                 for m in metrics:
-                    result[ltp][pos][m[1]] = \
-                        self.spec_sens(ltp, pos, m[1], m[2])
+                    result[protein][pos][m[1]] = \
+                        self.spec_sens(protein, pos, m[1], m[2])
         self.scores_eval = result
     
     def known_binders_as_standard(self):
@@ -7522,7 +7522,7 @@ class LTP(object):
         count: the absolute maximum number of selected instances
         """
         sort_alll(self.valids, score, asc = True)
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 limScore = np.nanmin(tbl[score]) \
                     if asc and threshold_type =='relative' or \
@@ -7562,26 +7562,26 @@ class LTP(object):
         sns.set(font = font_family)
         sort_alll(valids, score, asc = asc)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        ltps = sorted(valids.keys())
+        proteins = sorted(valids.keys())
         bool_score = 'bool_%s' % score
-        prg = progress.Progress(len(ltps), 'Plotting scores', 1,
+        prg = progress.Progress(len(proteins), 'Plotting scores', 1,
             percent = False)
-        for i in xrange(len(ltps)):
+        for i in xrange(len(proteins)):
             prg.step()
             ax = axs[i / 8, i % 8]
-            ltpname = ltps[i]
+            proteinname = proteins[i]
             for pn in ['pos', 'neg']:
                 col = '#CC0000' if pn == 'pos' else '#0000CC'
-                scoreMin = np.nanmin(self.valids[ltpname][pn][score]) if asc \
-                    else np.nanmax(self.valids[ltpname][pn][score])
-                ax.plot(np.arange(len(self.valids[ltpname][pn][score])),
-                    self.valids[ltpname][pn][score], color = col,
+                scoreMin = np.nanmin(self.valids[proteinname][pn][score]) if asc \
+                    else np.nanmax(self.valids[proteinname][pn][score])
+                ax.plot(np.arange(len(self.valids[proteinname][pn][score])),
+                    self.valids[proteinname][pn][score], color = col,
                     alpha = 0.7, ls = '-',
                     linewidth = 0.3)
                 if derivates:
-                    xd = np.arange(1, len(self.valids[ltpname][pn][score]))
-                    yd = np.array([(self.valids[ltpname][pn][score][j] - \
-                            self.valids[ltpname][pn][score][j-1]) for j in xd])
+                    xd = np.arange(1, len(self.valids[proteinname][pn][score]))
+                    yd = np.array([(self.valids[proteinname][pn][score][j] - \
+                            self.valids[proteinname][pn][score][j-1]) for j in xd])
                     yd = yd / np.nanmax(yd)
                     if not asc:
                         yd = -1 * yd
@@ -7591,9 +7591,9 @@ class LTP(object):
                 _ylim = ax.get_ylim()
                 plt.setp(ax.xaxis.get_majorticklabels(), rotation = 90)
                 best_ones = [j for j, b in \
-                    enumerate(self.valids[ltpname][pn][bool_score]) if b]
+                    enumerate(self.valids[proteinname][pn][bool_score]) if b]
                 xbreak = np.nanmax(best_ones) if len(best_ones) > 0 else 0.0
-                ybreak = valids[ltpname][pn][score][int(xbreak)]
+                ybreak = valids[proteinname][pn][score][int(xbreak)]
                 ax.plot([xbreak], [ybreak], marker = 'o', markersize = 2.0,
                     markerfacecolor = col, alpha = 0.7)
                 ax.annotate(
@@ -7618,8 +7618,8 @@ class LTP(object):
                             linewidth = 0.2, alpha = 0.5, color = col)
                 ax.set_xlim(_xlim)
                 ax.set_ylim(_ylim)
-            ax.set_title(ltpname, color = '#CC0000' \
-                if onepfraction is not None and ltpname in onepfraction else '#000000')
+            ax.set_title(proteinname, color = '#CC0000' \
+                if onepfraction is not None and proteinname in onepfraction else '#000000')
             ax.set_ylabel(score_name)
             ax.set_xlabel('Features (ordered %s)' % \
                 'ascending' if asc else 'descending')
@@ -7637,15 +7637,15 @@ class LTP(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        ltps = sorted(self.fractions_upper.keys())
-        prg = progress.Progress(len(ltps), 'Plotting profiles', 1,
+        proteins = sorted(self.fractions_upper.keys())
+        prg = progress.Progress(len(proteins), 'Plotting profiles', 1,
             percent = False)
-        for i in xrange(len(ltps)):
+        for i in xrange(len(proteins)):
             prg.step()
             ax = axs[i / 8, i % 8]
-            ltpname = ltps[i]
-            ppr = np.array([self.pprofs[ltpname][fr] for fr in self.fracs])
-            ppr_o = np.array([self.pprofs_original[ltpname][fr] \
+            protein_name = proteins[i]
+            ppr = np.array([self.pprofs[protein_name][fr] for fr in self.fracs])
+            ppr_o = np.array([self.pprofs_original[protein_name][fr] \
                 for fr in self.fracs])
             if features:
                 ppmax = np.nanmax(ppr_o)
@@ -7659,13 +7659,13 @@ class LTP(object):
             col = ['#6EA945' if s == 1 else \
                     '#B6B7B9' if s is None else \
                     '#007B7F' \
-                for s in self.fractions_upper[ltpname][1:]]
+                for s in self.fractions_upper[protein_name][1:]]
             ax.bar(np.arange(len(ppr)), ppr_o, color = col, alpha = 0.1,
                 edgecolor = 'none')
             ax.bar(np.arange(len(ppr)), ppr, color = col, edgecolor = 'none')
             if features and self.valids is not None:
                 for pn in ['pos', 'neg']:
-                    for fi, fe in enumerate(self.valids[ltpname][pn]['no']):
+                    for fi, fe in enumerate(self.valids[protein_name][pn]['no']):
                         alpha = 0.20
                         lwd = 0.1
                         lst = '-'
@@ -7677,14 +7677,14 @@ class LTP(object):
                                     yield fei
                             feg = _feg(fe)
                             if highlight2 and \
-                                valids[ltpname][pn][highlight2][fi]:
+                                valids[protein_name][pn][highlight2][fi]:
                                 color = '#FF0000' if pn == 'pos' else '#0000FF'
                                 alpha = 0.15
                                 lwd = 0.4
                                 lst = ':'
                                 plot_this = True
                             if highlight and \
-                                valids[ltpname][pn][highlight][fi]:
+                                valids[protein_name][pn][highlight][fi]:
                                 color = '#FF0000' if pn == 'pos' else '#0000FF'
                                 alpha = 0.75
                                 lwd = 0.4
@@ -7694,16 +7694,16 @@ class LTP(object):
                                 ax.plot(np.arange(len(ppr)) + 0.4,
                                     np.array([feg.next() \
                                         if s is not None else 0.0 \
-                                        for s in fractions[ltpname][1:]]),
+                                        for s in fractions[protein_name][1:]]),
                                     linewidth = lwd, markersize = 0.07,
                                     linestyle = lst, 
                                     color = color, alpha = alpha, marker = 'o')
                         except ValueError:
                             print('Unequal length dimensions: %s, %s' % \
-                                (ltpname, pn))
+                                (protein_name, pn))
             ax.set_xticks(np.arange(len(ppr)) + 0.4)
             ax.set_xticklabels(self.fracs)
-            ax.set_title('%s protein conc.'%ltpname)
+            ax.set_title('%s protein conc.'%protein_name)
         fig.tight_layout()
         fig.savefig(pdfname)
         prg.terminate()
@@ -7718,20 +7718,20 @@ class LTP(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        ltps = sorted(self.fractions_upper.keys())
-        prg = progress.Progress(len(ltps), 'Plotting profiles', 1,
+        proteins = sorted(self.fractions_upper.keys())
+        prg = progress.Progress(len(proteins), 'Plotting profiles', 1,
             percent = False)
         width = 0.3
-        for i in xrange(len(ltps)):
+        for i in xrange(len(proteins)):
             prg.step()
             ax = axs[i / 8, i % 8]
-            ltpname = ltps[i].upper()
+            protein_name = proteins[i].upper()
             for (w, offset), label in \
                 zip(enumerate([0.0] + self.froffsets), ['', 'L', 'U']):
                 ppr = np.array([getattr(self, 'pprofs%s' % label)\
-                    [ltpname][fr] for fr in self.fracs])
+                    [protein_name][fr] for fr in self.fracs])
                 ppr_o = np.array([getattr(self, 'pprofs_original%s' % label)\
-                    [ltpname][fr] for fr in self.fracs])
+                    [protein_name][fr] for fr in self.fracs])
                 if features:
                     ppmax = np.nanmax(ppr_o)
                     ppmin = np.nanmin(ppr_o)
@@ -7744,14 +7744,14 @@ class LTP(object):
                 col = ['#6EA945' if s == 1 else \
                         '#B6B7B9' if s is None else \
                         '#007B7F' \
-                    for s in self.fractions_upper[ltpname][1:]]
+                    for s in self.fractions_upper[protein_name][1:]]
                 ax.bar(np.arange(len(ppr)) + width * w, ppr_o, width,
                     color = col, alpha = 0.1, edgecolor = 'none')
                 ax.bar(np.arange(len(ppr)) + width * w, ppr, width,
                     color = col, edgecolor = 'none')
             if features and self.valids is not None:
                 for pn in ['pos', 'neg']:
-                    for fi, fe in enumerate(self.valids[ltpname][pn]['no']):
+                    for fi, fe in enumerate(self.valids[protein_name][pn]['no']):
                         alpha = 0.20
                         lwd = 0.1
                         lst = '-'
@@ -7763,14 +7763,14 @@ class LTP(object):
                                     yield fei
                             feg = _feg(fe)
                             if highlight2 and \
-                                valids[ltpname][pn][highlight2][fi]:
+                                valids[protein_name][pn][highlight2][fi]:
                                 color = '#FF0000' if pn == 'pos' else '#0000FF'
                                 alpha = 0.15
                                 lwd = 0.4
                                 lst = ':'
                                 plot_this = True
                             if highlight and \
-                                valids[ltpname][pn][highlight][fi]:
+                                valids[protein_name][pn][highlight][fi]:
                                 color = '#FF0000' if pn == 'pos' else '#0000FF'
                                 alpha = 0.75
                                 lwd = 0.4
@@ -7780,16 +7780,16 @@ class LTP(object):
                                 ax.plot(np.arange(len(ppr)) + 0.4,
                                     np.array([feg.next() \
                                         if s is not None else 0.0 \
-                                        for s in fractions[ltpname][1:]]),
+                                        for s in fractions[protein_name][1:]]),
                                     linewidth = lwd, markersize = 0.07,
                                     linestyle = lst, 
                                     color = color, alpha = alpha, marker = 'o')
                         except ValueError:
                             print('Unequal length dimensions: %s, %s' % \
-                                (ltpname, pn))
+                                (protein_name, pn))
             ax.set_xticks(np.arange(len(ppr)) + 0.4)
             ax.set_xticklabels(self.fracs)
-            ax.set_title('%s protein conc.'%ltpname)
+            ax.set_title('%s protein conc.'%protein_name)
         fig.tight_layout()
         fig.savefig(pdfname)
         prg.terminate()
@@ -7802,20 +7802,20 @@ class LTP(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        ltps = sorted(self.fractions_upper.keys())
-        prg = progress.Progress(len(ltps), 'Plotting peak ratios', 1,
+        proteins = sorted(self.fractions_upper.keys())
+        prg = progress.Progress(len(proteins), 'Plotting peak ratios', 1,
             percent = False)
         width = 0.3
-        for i in xrange(len(ltps)):
+        for i in xrange(len(proteins)):
             prg.step()
             ax = axs[i / 8, i % 8]
-            ltpname = ltps[i].upper()
-            if self.valids[ltpname]['pos']['ipr'].shape[1] > 0:
-                ppr = np.array(list(self.ppratios[ltpname]\
-                    [sorted(self.ppratios[ltpname].keys())[0]]))
-                x1 = self.valids[ltpname]['pos']['ipr'][:,0]
+            protein_name = proteins[i].upper()
+            if self.valids[protein_name]['pos']['ipr'].shape[1] > 0:
+                ppr = np.array(list(self.ppratios[protein_name]\
+                    [sorted(self.ppratios[protein_name].keys())[0]]))
+                x1 = self.valids[protein_name]['pos']['ipr'][:,0]
                 x1 = x1[np.isfinite(x1)]
-                x2 = self.valids[ltpname]['neg']['ipr'][:,0]
+                x2 = self.valids[protein_name]['neg']['ipr'][:,0]
                 x2 = x2[np.isfinite(x2)]
                 bins = np.linspace(ppr[0] * 0.25, ppr[1] * 1.50, 15)
                 ax.hist(x1, bins, color = '#6EA945', alpha = 0.2, edgecolor = 'none')
@@ -7854,7 +7854,7 @@ class LTP(object):
                 ax.axvline(x = m3, c = '#996A44', linewidth = 0.2, alpha = 0.5)
                 ax.axvline(x = m3 + std3, c = '#996A44', linewidth = 0.2, alpha = 0.5, linestyle = ':')
                 ax.axvline(x = m3 - std3, c = '#996A44', linewidth = 0.2, alpha = 0.5, linestyle = ':')
-            ax.set_title('%s int. peak ratios'%ltpname)
+            ax.set_title('%s int. peak ratios'%protein_name)
         fig.tight_layout()
         fig.savefig(pdfname)
         prg.terminate()
@@ -7862,29 +7862,29 @@ class LTP(object):
     
     def peak_ratio_score(self, lower = 0.5):
         upper = 1.0 / lower
-        ltps = sorted(self.fractions_upper.keys())
-        for i in xrange(len(ltps)):
-            ltpname = ltps[i].upper()
-            if self.valids[ltpname]['pos']['ipr'].shape[1] > 0:
+        proteins = sorted(self.fractions_upper.keys())
+        for i in xrange(len(proteins)):
+            protein_name = proteins[i].upper()
+            if self.valids[protein_name]['pos']['ipr'].shape[1] > 0:
                 scores = []
-                keys = sorted(self.ppratios[ltpname].keys())
-                ppr1 = np.array(sorted(list(self.ppratios[ltpname][keys[0]])))
-                ipri1 = self.valids[ltpname]['pos']['ipri'][keys[0]]
+                keys = sorted(self.ppratios[protein_name].keys())
+                ppr1 = np.array(sorted(list(self.ppratios[protein_name][keys[0]])))
+                ipri1 = self.valids[protein_name]['pos']['ipri'][keys[0]]
                 if len(keys) > 1:
-                    ppr2 = np.array(sorted(list(self.ppratios[ltpname][keys[1]])))
-                    ipri2 = self.valids[ltpname]['pos']['ipri'][keys[1]]
-                p1 = self.valids[ltpname]['pos']['ipr'][:,ipri1]
+                    ppr2 = np.array(sorted(list(self.ppratios[protein_name][keys[1]])))
+                    ipri2 = self.valids[protein_name]['pos']['ipri'][keys[1]]
+                p1 = self.valids[protein_name]['pos']['ipr'][:,ipri1]
                 p1a = p1[np.isfinite(p1)]
-                n1 = self.valids[ltpname]['neg']['ipr'][:,ipri1]
+                n1 = self.valids[protein_name]['neg']['ipr'][:,ipri1]
                 n1a = n1[np.isfinite(n1)]
                 a1 = np.concatenate((p1a, n1a))
                 a1 = a1[np.where((a1 > ppr1[0] * lower) & (a1 < ppr1[1] * upper))]
                 m1 = np.mean(a1)
                 s1 = np.std(a1)
-                if self.valids[ltpname]['pos']['ipr'].shape[1] > 1:
-                    p2 = self.valids[ltpname]['pos']['ipr'][:,ipri2]
+                if self.valids[protein_name]['pos']['ipr'].shape[1] > 1:
+                    p2 = self.valids[protein_name]['pos']['ipr'][:,ipri2]
                     p2a = p2[np.isfinite(p2)]
-                    n2 = self.valids[ltpname]['neg']['ipr'][:,ipri2]
+                    n2 = self.valids[protein_name]['neg']['ipr'][:,ipri2]
                     n2a = n2[np.isfinite(n2)]
                     a2 = np.concatenate((p2a, n2a))
                     a2 = a2[np.where((a2 > ppr2[0] * lower) & (a2 < ppr2[1] * upper))]
@@ -7894,14 +7894,14 @@ class LTP(object):
                     scn2 = np.abs(n2 - m2) / s2
                 scp1 = np.abs(p1 - m1) / s1
                 scn1 = np.abs(n1 - m1) / s1
-                if self.valids[ltpname]['pos']['ipr'].shape[1] > 1:
+                if self.valids[protein_name]['pos']['ipr'].shape[1] > 1:
                     scp1 = (scp1 + scp2) / 2.0
                     scn1 = (scn1 + scn2) / 2.0
             else:
-                scp1 = np.zeros((self.valids[ltpname]['pos']['ipr'].shape[0],), dtype = np.float)
-                scn1 = np.zeros((self.valids[ltpname]['neg']['ipr'].shape[0],), dtype = np.float)
-            self.valids[ltpname]['pos']['prs'] = scp1
-            self.valids[ltpname]['neg']['prs'] = scn1
+                scp1 = np.zeros((self.valids[protein_name]['pos']['ipr'].shape[0],), dtype = np.float)
+                scn1 = np.zeros((self.valids[protein_name]['neg']['ipr'].shape[0],), dtype = np.float)
+            self.valids[protein_name]['pos']['prs'] = scp1
+            self.valids[protein_name]['neg']['prs'] = scn1
     
     def peak_ratio_score_hist(self, pdfname = None):
         if pdfname is None:
@@ -7909,23 +7909,23 @@ class LTP(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        ltps = sorted(self.fractions_upper.keys())
-        prg = progress.Progress(len(ltps), 'Plotting peak ratio scores', 1,
+        proteins = sorted(self.fractions_upper.keys())
+        prg = progress.Progress(len(proteins), 'Plotting peak ratio scores', 1,
             percent = False)
         width = 0.3
-        for i in xrange(len(ltps)):
+        for i in xrange(len(proteins)):
             prg.step()
             ax = axs[i / 8, i % 8]
-            ltpname = ltps[i].upper()
-            p = self.valids[ltpname]['pos']['prs']
-            n = self.valids[ltpname]['neg']['prs']
+            protein_name = proteins[i].upper()
+            p = self.valids[protein_name]['pos']['prs']
+            n = self.valids[protein_name]['neg']['prs']
             p = p[np.isfinite(p)]
             n = n[np.isfinite(n)]
             bins = np.linspace(0.0, 5.0, 25)
             ax.hist(p, bins, color = '#6EA945', alpha = 0.2, edgecolor = 'none')
             ax.hist(n, bins, color = '#007B7F', alpha = 0.2, edgecolor = 'none')
             ax.set_xlim((0.0, 5.0))
-            ax.set_title('%s p/r scores'%ltpname)
+            ax.set_title('%s p/r scores'%protein_name)
         fig.tight_layout()
         fig.savefig(pdfname)
         prg.terminate()
@@ -7936,7 +7936,7 @@ class LTP(object):
             for mode, tbl in d.iteritems():
                 tbl['prs1'] = tbl['prs'] <= threshold
     
-    # ltp.fractions_barplot(fractions_upper, pprofs)
+    # Screening().fractions_barplot(fractions_upper, pprofs)
 
     def plot_score_performance(self, perf):
         metrics = [
@@ -7957,12 +7957,12 @@ class LTP(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         # plt.gca().set_color_cycle(['red', 'green', 'blue', 'yellow'])
-        for ltp, d1 in perf.iteritems():
+        for protein, d1 in perf.iteritems():
             for pos, d2 in d1.iteritems():
                 fig, axs = plt.subplots(len(metrics),
                     figsize = (10, 20), sharex = False)
                 plt.suptitle('Performance of scores :: %s, %s' % \
-                    (ltp, pos), size = 16)
+                    (protein, pos), size = 16)
                 for i, m in enumerate(metrics):
                     for pm in perfmetrics:
                         axs[i].plot(d2[m[1]]['cutoff'], d2[m[1]][pm[0]],
@@ -7976,7 +7976,7 @@ class LTP(object):
                         axs[i].set_xlim(axs[i].get_xlim()[::-1])
                 fig.tight_layout()
                 plt.subplots_adjust(top = 0.95)
-                fig.savefig('score_performance_%s-%s.pdf'%(ltp, pos))
+                fig.savefig('score_performance_%s-%s.pdf'%(protein, pos))
                 plt.close(fig)
     
     def plot_roc(self, perf):
@@ -8002,12 +8002,12 @@ class LTP(object):
         for i, m in enumerate(metrics):
             c = colors()
             ax = axs[i/2][i%2]
-            for ltp, d1 in perf.iteritems():
+            for protein, d1 in perf.iteritems():
                 for pos, d2 in d1.iteritems():
                     ax.plot(1 - np.array(d2[m[1]]['spec']),
                         np.array(d2[m[1]]['sens']),
                         '-', linewidth = 0.33, color = c.next(),
-                        label = '%s-%s n = %u' % (ltp, pos, d2[m[1]]['n']))
+                        label = '%s-%s n = %u' % (protein, pos, d2[m[1]]['n']))
             ax.plot([0,1], [0,1], '--', linewidth = 0.33, color = '#777777')
             leg = ax.legend(loc = 4)
             ax.set_ylabel('Sensitivity')
@@ -8087,7 +8087,7 @@ class LTP(object):
         return 1.0, 1.0
     
     def best_combined(self, valids, scores, best = 10, ubiquity_treshold = 5):
-        for ltp, d in valids.iteritems():
+        for protein, d in valids.iteritems():
             for pn, tbl in d.iteritems():
                 sorted_scores = []
                 for sc in scores:
@@ -8119,51 +8119,51 @@ class LTP(object):
         best_combined(valids, [('gkv', False), ('euv', True)], best = best)
 
     def best_table(self, valids, fname, pos, best = 10):
-        hdr = ['LTP', 'm/z', 'Database_ID', 'Level', 'Full_name',
+        hdr = ['protein', 'm/z', 'Database_ID', 'Level', 'Full_name',
                'Formula', 'Adduct', 'Database_m/z', 'Adduct_m/z']
         sort_alll(valids, 'mz')
         with open(fname, 'w') as f:
             f.write('\t'.join(hdr) + '\n')
-            for ltp, d in valids.iteritems():
+            for protein, d in valids.iteritems():
                 tbl = d[pos]
                 for oi in tbl['best%u'%best]:
                     i = np.where(tbl['i'] == oi)[0]
                     mz = tbl['mz'][i]
                     if tbl['lip'][oi] is not None:
                         for lip in tbl['lip'][oi]:
-                            f.write('\t'.join([ltp, '%.08f'%mz] + \
+                            f.write('\t'.join([protein, '%.08f'%mz] + \
                                 [str(x) for x in list(lip)]) + '\n')
                     else:
-                        f.write('\t'.join([ltp, '%.08f'%mz] + \
+                        f.write('\t'.join([protein, '%.08f'%mz] + \
                             ['unknown']*6) + '\n')
 
-    def true_positives(self, valids, stdpos, ltp, pos = 'pos',
+    def true_positives(self, valids, stdpos, protein, pos = 'pos',
         tolerance = 0.01):
         """
-        For one LTP having known binders looks up these
+        For one protein having known binders looks up these
         among the valid features either in positive OR
         negative mode. (So you need to run twice, once
         for +, once for -.)
         """
         ioffset = 0 if pos == 'pos' else 6
-        valids[ltp][pos]['std'] = {}
-        for fe in stdpos[ltp]:
+        valids[protein][pos]['std'] = {}
+        for fe in stdpos[protein]:
             if fe[4 + ioffset] != '':
                 mz = float(fe[ioffset + 4])
-                iu = valids[ltp][pos]['mz'].searchsorted(mz)
+                iu = valids[protein][pos]['mz'].searchsorted(mz)
                 idx = []
-                if iu < len(valids[ltp][pos]['mz']):
+                if iu < len(valids[protein][pos]['mz']):
                     u = 0
-                    while valids[ltp][pos]['mz'][iu + u] - mz <= tolerance:
+                    while valids[protein][pos]['mz'][iu + u] - mz <= tolerance:
                         idx.append(iu + u)
                         u += 1
                 if iu > 0:
                     l = 1
-                    while mz - valids[ltp][pos]['mz'][iu -l] <= tolerance:
+                    while mz - valids[protein][pos]['mz'][iu -l] <= tolerance:
                         idx.append(iu - l)
                         l += 1
                 for i in idx:
-                    identify_feature(valids[ltp][pos], fe, i, ioffset)
+                    identify_feature(valids[protein][pos], fe, i, ioffset)
 
     def identify_feature(self, tbl, fe, i, ioffset):
         """
@@ -8405,7 +8405,7 @@ class LTP(object):
         Identifies headgroups by keywords and fatty acids
         from database record names.
         """
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 tbl['ms1hg'] = {}
                 tbl['ms1fa'] = {}
@@ -8418,7 +8418,7 @@ class LTP(object):
                                 if verbose:
                                     sys.stdout.write('\t:: %s-%s: '\
                                         'found %s\n' % \
-                                        (ltp, pn, lip[7]))
+                                        (protein, pn, lip[7]))
                                     sys.stdout.flush()
                                 posAdd = self.lipnames[lip[7]]['pos_adduct']
                                 negAdd = self.lipnames[lip[7]]['neg_adduct']
@@ -8433,7 +8433,7 @@ class LTP(object):
                                         sys.stdout.write('\t\taccepting '\
                                             '%s-%s for'\
                                             ' %s-%s\n' % \
-                                            (hg, lip[4], ltp, pn))
+                                            (hg, lip[4], protein, pn))
                                         sys.stdout.flush()
                                     tbl['ms1hg'][oi].add(hg)
                                     if fa is not None:
@@ -8448,7 +8448,7 @@ class LTP(object):
                                             ' in %s mode' % (
                                                 lip[7],
                                                 lip[4],
-                                                ltp,
+                                                protein,
                                                     '%s is the main adduct' % \
                                                     thisModeAdd \
                                                     if thisModeAdd \
@@ -8468,7 +8468,7 @@ class LTP(object):
         MS2 fatty acids.
         Creates dict `hgfa`.
         """
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for mod, tbl in d.iteritems():
                 tbl['hgfa'] = {}
                 for oi in tbl['i']:
@@ -8484,7 +8484,7 @@ class LTP(object):
                                         'ty acids (%s) for %s based on MS1, '\
                                         'for feature %u at %s-%s \n' % \
                                         (ms2fa, ', '.join(list(ms1fa)), 
-                                            hg, oi, ltp, mod))
+                                            hg, oi, protein, mod))
                             else:
                                 if verbose:
                                     sys.stdout.write('\t%s not among '\
@@ -8492,7 +8492,7 @@ class LTP(object):
                                         'ty acids (%s) for %s based on MS1, '\
                                         'for feature %u at %s-%s \n' % \
                                         (ms2fa, ', '.join(list(ms1fa)), 
-                                            hg, oi, ltp, mod))
+                                            hg, oi, protein, mod))
 
     def identity_combined(self):
         """
@@ -8500,7 +8500,7 @@ class LTP(object):
         MS2 headgroup fragments and MS2 fatty acids.
         Creates dicts `combined_hg` and `combined_fa`.
         """
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for mod, tbl in d.iteritems():
                 tbl['combined_hg'] = {}
                 tbl['combined_fa'] = {}
@@ -8535,7 +8535,7 @@ class LTP(object):
         MS2 headgroup fragments and MS2 fatty acids.
         Creates dicts `combined_hg` and `combined_fa`.
         """
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for mod, tbl in d.iteritems():
                 tbl['combined_hg_ms2'] = {}
                 for oi in tbl['i']:
@@ -8547,13 +8547,13 @@ class LTP(object):
                         tbl['combined_hg_ms2'][oi] = hgs
 
     def ms1_table(self, include = 'cl70pct'):
-        ltps = sorted(self.valids.keys())
+        proteins = sorted(self.valids.keys())
         # collecting primary and secondary column names
         # and cell values
-        result = dict((ltp, {}) for ltp in ltps)
+        result = dict((protein, {}) for protein in proteins)
         colnames = {}
-        for ltp in ltps:
-            for pn, tbl in self.valids[ltp].iteritems():
+        for protein in proteins:
+            for pn, tbl in self.valids[protein].iteritems():
                 _np = 'pos' if pn == 'neg' else 'neg'
                 nptbl = tbl[_np]
                 for i, oi in enumerate(tbl['i']):
@@ -8569,21 +8569,21 @@ class LTP(object):
                                         colnames[hg] = set([])
                                     colnames[hg].add(fa)
                                     # cells
-                                    if hg not in result[ltp]:
-                                        result[ltp][hg] = {}
-                                    if fa not in result[ltp][hg]:
+                                    if hg not in result[protein]:
+                                        result[protein][hg] = {}
+                                    if fa not in result[protein][hg]:
                                         # 3 bool values: +, -,
                                         # both + & - at same exact mass
-                                        result[ltp][hg][fa] = \
+                                        result[protein][hg][fa] = \
                                             [False, False, False]
                                     # cell values
                                     if pn == 'pos':
-                                        result[ltp][hg][fa][0] = True
+                                        result[protein][hg][fa][0] = True
                                     elif pn == 'neg':
-                                        result[ltp][hg][fa][1] = True
+                                        result[protein][hg][fa][1] = True
                                     for _oi, pnlips in \
                                         tbl['%s_lip'%_np][oi].iteritems():
-                                        if not result[ltp][hg][fa][2] and \
+                                        if not result[protein][hg][fa][2] and \
                                             pnlips is not None:
                                             for pnlip in pnlips:
                                                 pfa = '%u:%u' % \
@@ -8597,7 +8597,7 @@ class LTP(object):
                                                 if pfa == fa and nfa == fa and \
                                                     pnlip[10] == hg and \
                                                     pnlip[11] == hg:
-                                                    result[ltp][hg][fa][2] = \
+                                                    result[protein][hg][fa][2] = \
                                                         True
                                                     break
         return colnames, result
@@ -8625,48 +8625,48 @@ class LTP(object):
                 th2 += tablehcell % fa
         table += tablerow % th1
         table += tablerow % th2
-        for ltp in sorted(self.valids.keys()):
-            row = tablecell % ('rowname', ltp, ltp)
+        for protein in sorted(self.valids.keys()):
+            row = tablecell % ('rowname', protein, protein)
             for hg in sorted(colnames.keys()):
                 for fa in sorted(colnames[hg]):
-                    if hg in ms1tab[ltp] and fa in ms1tab[ltp][hg]:
-                        if ms1tab[ltp][hg][fa][2]:
+                    if hg in ms1tab[protein] and fa in ms1tab[protein][hg]:
+                        if ms1tab[protein][hg][fa][2]:
                             row += tablecell % ('matching', 
                                 '%s (%s) detected in '\
                                 'Positive & Negative modes at %s' % \
-                                    (hg, fa, ltp),
+                                    (hg, fa, protein),
                                 '')
-                        elif ms1tab[ltp][hg][fa][0] and \
-                            ms1tab[ltp][hg][fa][1]:
+                        elif ms1tab[protein][hg][fa][0] and \
+                            ms1tab[protein][hg][fa][1]:
                             row += tablecell % ('both', '%s (%s) detected in '\
                                 'Positive & Negative modes at %s' % \
-                                    (hg, fa, ltp),
+                                    (hg, fa, protein),
                                 '')
-                        elif ms1tab[ltp][hg][fa][0]:
+                        elif ms1tab[protein][hg][fa][0]:
                             row += tablecell % ('positive',
                                 '%s (%s) detected '\
-                                'in Positive mode at %s' % (hg, fa, ltp), '')
-                        elif ms1tab[ltp][hg][fa][1]:
+                                'in Positive mode at %s' % (hg, fa, protein), '')
+                        elif ms1tab[protein][hg][fa][1]:
                             row += tablecell % ('negative',
                                 '%s (%s) detected '\
-                                'in Negative mode at %s' % (hg, fa, ltp), '')
+                                'in Negative mode at %s' % (hg, fa, protein), '')
                     else:
                         row += tablecell % ('empty',
-                            '%s (%s) not detected at %s' % (hg, fa, ltp), '')
+                            '%s (%s) not detected at %s' % (hg, fa, protein), '')
             table += tablerow % row
         with open(filename, 'w') as f:
             f.write(self.html_table_template % (title, title, table))
 
     def ms1_table_html_simple(self, filename = None, include = 'cl70pct'):
         """
-        Outputs a HTML table LTPs vs lipid classes (headgroups)
+        Outputs a HTML table proteins vs lipid classes (headgroups)
         based on MS1 identifications.
         """
         filename = 'results_%s_ms1hg.html' % self.today() \
             if filename is None \
             else filename
         colnames, ms1tab = self.ms1_table(include = include)
-        title = 'Binding specificities of LTPs by headgroups detected in MS1'
+        title = 'Binding specificities of proteins by headgroups detected in MS1'
         table = ''
         tablerow = '\t\t<tr>\n%s\t\t</tr>\n'
         tablehcell = '\t\t\t<th>\n\t\t\t\t%s\n\t\t\t</th>\n'
@@ -8676,22 +8676,22 @@ class LTP(object):
         for hg in sorted(colnames.keys()):
             th1 += tablehcell % hg
         table += tablerow % th1
-        for ltp in sorted(self.valids.keys()):
-            row = tablecell % ('rowname', ltp, ltp)
+        for protein in sorted(self.valids.keys()):
+            row = tablecell % ('rowname', protein, protein)
             for hg in sorted(colnames.keys()):
                 pos_neg = False
                 pos = False
                 neg = False
                 for fa in sorted(colnames[hg]):
-                    if hg in ms1tab[ltp] and fa in ms1tab[ltp][hg]:
-                        if ms1tab[ltp][hg][fa][2]:
+                    if hg in ms1tab[protein] and fa in ms1tab[protein][hg]:
+                        if ms1tab[protein][hg][fa][2]:
                             pos_neg = True
-                        elif ms1tab[ltp][hg][fa][0] and \
-                            ms1tab[ltp][hg][fa][1]:
+                        elif ms1tab[protein][hg][fa][0] and \
+                            ms1tab[protein][hg][fa][1]:
                             pos_neg = True
-                        elif ms1tab[ltp][hg][fa][0]:
+                        elif ms1tab[protein][hg][fa][0]:
                             pos = True
-                        elif ms1tab[ltp][hg][fa][1]:
+                        elif ms1tab[protein][hg][fa][1]:
                             neg = True
                 if pos_neg:
                     row += tablecell % ('matching', 
@@ -8728,22 +8728,22 @@ class LTP(object):
             )
         )
         table += tablerow % hdr
-        for i, ltp in enumerate(sorted(self.valids.keys())):
-            row = [ltp]
+        for i, protein in enumerate(sorted(self.valids.keys())):
+            row = [protein]
             for hg in sorted(colnames.keys()):
                 pos_neg = False
                 pos = False
                 neg = False
                 for fa in sorted(colnames[hg]):
-                    if hg in ms1tab[ltp] and fa in ms1tab[ltp][hg]:
-                        if ms1tab[ltp][hg][fa][2]:
+                    if hg in ms1tab[protein] and fa in ms1tab[protein][hg]:
+                        if ms1tab[protein][hg][fa][2]:
                             pos_neg = True
-                        elif ms1tab[ltp][hg][fa][0] and \
-                            ms1tab[ltp][hg][fa][1]:
+                        elif ms1tab[protein][hg][fa][0] and \
+                            ms1tab[protein][hg][fa][1]:
                             pos_neg = True
-                        elif ms1tab[ltp][hg][fa][0]:
+                        elif ms1tab[protein][hg][fa][0]:
                             pos = True
-                        elif ms1tab[ltp][hg][fa][1]:
+                        elif ms1tab[protein][hg][fa][1]:
                             neg = True
                 if pos_neg:
                     row.append('\\cellcolor{emblyellow!75}')
@@ -8780,9 +8780,9 @@ class LTP(object):
         tablehcell = '\t\t\t<th>\n\t\t\t\t%s\n\t\t\t</th>\n'
         tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s'\
             '\n\t\t\t</td>\n'
-        th1 = tablehcell % 'LTP'
+        th1 = tablehcell % 'protein'
         colnames = set([])
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 for hg in tbl['ms2hg'].values():
                     if hg is not None:
@@ -8791,8 +8791,8 @@ class LTP(object):
         for hg in colnames:
             th1 += tablehcell % hg
         table += tablerow % th1
-        for ltp in sorted(self.valids.keys()):
-            row = tablecell % ('rowname', ltp, ltp)
+        for protein in sorted(self.valids.keys()):
+            row = tablecell % ('rowname', protein, protein)
             for hg in colnames:
                 pos_neg_same = False
                 pos_neg = False
@@ -8802,7 +8802,7 @@ class LTP(object):
                 neg_unambig = False
                 pos_neg_same_unambig = False
                 pos_neg_unambig = False
-                for pn, tbl in self.valids[ltp].iteritems():
+                for pn, tbl in self.valids[protein].iteritems():
                     for ms2hg in tbl['ms2hg'].values():
                         if ms2hg is not None and hg in ms2hg:
                             if pn == 'pos':
@@ -8817,7 +8817,7 @@ class LTP(object):
                     pos_neg = True
                 if pos_unambig or neg_unambig:
                     pos_neg_unambig = True
-                for ms2hgs in self.valids[ltp]['pos']['ms2hg_neg'].values():
+                for ms2hgs in self.valids[protein]['pos']['ms2hg_neg'].values():
                     for ms2hg in ms2hgs.values():
                         if hg in ms2hg:
                             pos_neg_same = True
@@ -8865,7 +8865,7 @@ class LTP(object):
         based on MS2 identifications.
         """
         colnames = set([])
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 for hg in tbl['ms2hg'].values():
                     if hg is not None:
@@ -8883,8 +8883,8 @@ class LTP(object):
             )
         )
         table += tablerow % hdr
-        for i, ltp in enumerate(sorted(self.valids.keys())):
-            row = [ltp]
+        for i, protein in enumerate(sorted(self.valids.keys())):
+            row = [protein]
             for hg in colnames:
                 pos_neg_same = False
                 pos_neg = False
@@ -8894,7 +8894,7 @@ class LTP(object):
                 neg_unambig = False
                 pos_neg_same_unambig = False
                 pos_neg_unambig = False
-                for pn, tbl in self.valids[ltp].iteritems():
+                for pn, tbl in self.valids[protein].iteritems():
                     for ms2hg in tbl['ms2hg'].values():
                         if ms2hg is not None and hg in ms2hg:
                             if pn == 'pos':
@@ -8909,7 +8909,7 @@ class LTP(object):
                     pos_neg = True
                 if pos_unambig or neg_unambig:
                     pos_neg_unambig = True
-                for ms2hgs in self.valids[ltp]['pos']['ms2hg_neg'].values():
+                for ms2hgs in self.valids[protein]['pos']['ms2hg_neg'].values():
                     for ms2hg in ms2hgs.values():
                         if hg in ms2hg:
                             pos_neg_same = True
@@ -8949,7 +8949,7 @@ class LTP(object):
             '\n\t\t\t</td>\n'
         th1 = tablehcell % 'LTP'
         colnames = set([])
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 for hgs in tbl['identity'].values():
                     for hg, ids in hgs.iteritems():
@@ -8961,9 +8961,9 @@ class LTP(object):
         for hg in colnames:
             th1 += tablehcell % hg
         table += tablerow % th1
-        # rows by LTP
-        for ltp in sorted(self.valids.keys()):
-            row = tablecell % ('rowname', ltp, ltp)
+        # rows by protein
+        for protein in sorted(self.valids.keys()):
+            row = tablecell % ('rowname', protein, protein)
             for hg in colnames:
                 pos = False
                 neg = False
@@ -8973,7 +8973,7 @@ class LTP(object):
                 pos_neg_same_unambig = False
                 pos_neg_unambig = False
                 pos_neg_same = False
-                tbl = self.valids[ltp]['pos']
+                tbl = self.valids[protein]['pos']
                 for oi in tbl['i'][np.where(tbl[include])[0]]:
                     if hg in tbl['identity'][oi]:
                         this_hg = tbl['identity'][oi][hg]
@@ -8982,12 +8982,12 @@ class LTP(object):
                             if this_hg['ms1_neg'] and this_hg['ms2_neg']:
                                 pos_neg_same = True
                                 for noi in tbl['neg'][oi].keys():
-                                    if hg in valids[ltp]['neg']\
+                                    if hg in valids[protein]['neg']\
                                         ['identity'][noi]:
-                                        if self.valids[ltp]['neg']['identity']\
+                                        if self.valids[protein]['neg']['identity']\
                                             [noi][hg]['ms1_neg'] \
                                                 and \
-                                            self.valids[ltp]['neg']['identity']\
+                                            self.valids[protein]['neg']['identity']\
                                             [noi][hg]['ms2_neg']:
                                             pos_neg = True
                                             if sum(map(lambda (_hg, this_hg):
@@ -8996,7 +8996,7 @@ class LTP(object):
                                                         this_hg['ms1_neg'] \
                                                             and \
                                                         this_hg['ms2_neg'],
-                                                    valids[ltp]['neg']\
+                                                    valids[protein]['neg']\
                                                         ['identity']\
                                                         [noi].iteritems()
                                                 )) == 0:
@@ -9007,7 +9007,7 @@ class LTP(object):
                                     tbl['identity'][oi].iteritems()
                                 )) == 0:
                                 pos_unambig = True
-                tbl = self.valids[ltp]['neg']
+                tbl = self.valids[protein]['neg']
                 for oi in tbl['i'][np.where(tbl[include])[0]]:
                     if hg in tbl['identity'][oi]:
                         this_hg = tbl['identity'][oi][hg]
@@ -9016,11 +9016,11 @@ class LTP(object):
                             if this_hg['ms1_pos'] and this_hg['ms2_pos']:
                                 pos_neg_same = True
                                 for noi in tbl['pos'][oi].keys():
-                                    if hg in self.valids[ltp]['pos']\
+                                    if hg in self.valids[protein]['pos']\
                                         ['identity'][noi]:
-                                        if valids[ltp]['pos']['identity']\
+                                        if valids[protein]['pos']['identity']\
                                             [noi][hg]['ms1_pos'] and \
-                                            self.valids[ltp]['pos']['identity']\
+                                            self.valids[protein]['pos']['identity']\
                                                 [noi][hg]['ms2_pos']:
                                             pos_neg = True
                                             if sum(map(lambda (_hg, this_hg):
@@ -9028,7 +9028,7 @@ class LTP(object):
                                                         this_hg['ms1_pos'] \
                                                             and \
                                                         this_hg['ms2_pos'],
-                                                    valids[ltp]['pos']\
+                                                    valids[protein]['pos']\
                                                         ['identity']\
                                                         [noi].iteritems()
                                                 )) == 0:
@@ -9105,8 +9105,8 @@ class LTP(object):
         )
         table += tablerow % hdr
         # rows by LTP
-        for i, ltp in enumerate(sorted(self.valids.keys())):
-            row = [ltp]
+        for i, protein in enumerate(sorted(self.valids.keys())):
+            row = [protein]
             for hg in colnames:
                 pos = False
                 neg = False
@@ -9116,7 +9116,7 @@ class LTP(object):
                 pos_neg_same_unambig = False
                 pos_neg_unambig = False
                 pos_neg_same = False
-                tbl = self.valids[ltp]['pos']
+                tbl = self.valids[protein]['pos']
                 for oi in tbl['i'][np.where(tbl[include])[0]]:
                     if hg in tbl['identity'][oi]:
                         this_hg = tbl['identity'][oi][hg]
@@ -9125,12 +9125,12 @@ class LTP(object):
                             if this_hg['ms1_neg'] and this_hg['ms2_neg']:
                                 pos_neg_same = True
                                 for noi in tbl['neg'][oi].keys():
-                                    if hg in valids[ltp]['neg']\
+                                    if hg in valids[protein]['neg']\
                                         ['identity'][noi]:
-                                        if self.valids[ltp]['neg']['identity']\
+                                        if self.valids[protein]['neg']['identity']\
                                             [noi][hg]['ms1_neg'] \
                                                 and \
-                                            self.valids[ltp]['neg']['identity']\
+                                            self.valids[protein]['neg']['identity']\
                                             [noi][hg]['ms2_neg']:
                                             pos_neg = True
                                             if sum(map(lambda (_hg, this_hg):
@@ -9139,7 +9139,7 @@ class LTP(object):
                                                         this_hg['ms1_neg'] \
                                                             and \
                                                         this_hg['ms2_neg'],
-                                                    valids[ltp]['neg']\
+                                                    valids[protein]['neg']\
                                                         ['identity']\
                                                         [noi].iteritems()
                                                 )) == 0:
@@ -9150,7 +9150,7 @@ class LTP(object):
                                     tbl['identity'][oi].iteritems()
                                 )) == 0:
                                 pos_unambig = True
-                tbl = self.valids[ltp]['neg']
+                tbl = self.valids[protein]['neg']
                 for oi in tbl['i'][np.where(tbl[include])[0]]:
                     if hg in tbl['identity'][oi]:
                         this_hg = tbl['identity'][oi][hg]
@@ -9159,11 +9159,11 @@ class LTP(object):
                             if this_hg['ms1_pos'] and this_hg['ms2_pos']:
                                 pos_neg_same = True
                                 for noi in tbl['pos'][oi].keys():
-                                    if hg in self.valids[ltp]['pos']\
+                                    if hg in self.valids[protein]['pos']\
                                         ['identity'][noi]:
-                                        if valids[ltp]['pos']['identity']\
+                                        if valids[protein]['pos']['identity']\
                                             [noi][hg]['ms1_pos'] and \
-                                            self.valids[ltp]['pos']['identity']\
+                                            self.valids[protein]['pos']['identity']\
                                                 [noi][hg]['ms2_pos']:
                                             pos_neg = True
                                             if sum(map(lambda (_hg, this_hg):
@@ -9171,7 +9171,7 @@ class LTP(object):
                                                         this_hg['ms1_pos'] \
                                                             and \
                                                         this_hg['ms2_pos'],
-                                                    valids[ltp]['pos']\
+                                                    valids[protein]['pos']\
                                                         ['identity']\
                                                         [noi].iteritems()
                                                 )) == 0:
@@ -9260,7 +9260,7 @@ class LTP(object):
         each having a boolean value.
         """
         self.sort_alll('mz')
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             for pn, tbl in d.iteritems():
                 opp_mode = 'neg' if pn == 'pos' else 'pos'
                 tbl['identity'] = {}
@@ -9306,7 +9306,7 @@ class LTP(object):
         table = hrow
         empty_ids = {'': {'ms1_pos': False, 'ms2_pos': False, 
             'ms1_neg': False, 'ms2_neg': False}}
-        for ltp, d in valids.iteritems():
+        for protein, d in valids.iteritems():
             for pn, tbl in d.iteritems():
                 _np = 'pos' if pn == 'neg' else 'neg'
                 for i, oi in enumerate(tbl['i']):
@@ -9314,7 +9314,7 @@ class LTP(object):
                         if len(tbl['identity'][oi]) > 0 \
                         else empty_ids.iteritems()):
                         this_row = ''
-                        this_row += tablecell % ('rowname', '', ltp)
+                        this_row += tablecell % ('rowname', '', protein)
                         this_row += tablecell % \
                             ('nothing', '', '%.05f'%tbl['mz'][i])
                         this_row += tablecell % ('nothing', '', 
@@ -9350,12 +9350,12 @@ class LTP(object):
                                     ' protein profile or not available',
                             '')
                         this_row += tablecell % (
-                            'positive' if hg in bindprop[ltp] else 'nothing',
-                            '%s is known binder of %s' % (hg, ltp) \
-                                if hg in bindprop[ltp] \
+                            'positive' if hg in bindprop[protein] else 'nothing',
+                            '%s is known binder of %s' % (hg, protein) \
+                                if hg in bindprop[protein] \
                                 else 'No literature data '\
                                     'about %s binding %s' % \
-                                    (ltp, hg),
+                                    (protein, hg),
                             hg)
                         this_row += tablecell % (
                             'positive' if ids['ms1_pos'] else 'nothing',
@@ -9385,9 +9385,9 @@ class LTP(object):
                         table += this_row
         with open(outf, 'w') as f:
             f.write(html_table_template % (title, title, table))
-
+    
     def known_binders_enrichment(self, valids, bindprop, classif = 'cl5pct'):
-        for ltp, d in valids.iteritems():
+        for protein, d in valids.iteritems():
             for pn, tbl in d.iteritems():
                 if 'enr' not in tbl:
                     tbl['enr'] = {}
@@ -9396,7 +9396,7 @@ class LTP(object):
                 tbl['enr'][classif]['tp'] = len(
                     filter(lambda (i, oi):
                         tbl[classif][i] and \
-                            len(bindprop[ltp] & \
+                            len(bindprop[protein] & \
                                 set(tbl['identity'][oi].keys())) > 0,
                         enumerate(tbl['i'])
                     )
@@ -9404,7 +9404,7 @@ class LTP(object):
                 tbl['enr'][classif]['fp'] = len(
                     filter(lambda (i, oi):
                         tbl[classif][i] and \
-                            len(bindprop[ltp] & \
+                            len(bindprop[protein] & \
                                 set(tbl['identity'][oi].keys())) == 0,
                         enumerate(tbl['i'])
                     )
@@ -9412,7 +9412,7 @@ class LTP(object):
                 tbl['enr'][classif]['tn'] = len(
                     filter(lambda (i, oi):
                         not tbl[classif][i] and \
-                            len(bindprop[ltp] & \
+                            len(bindprop[protein] & \
                                 set(tbl['identity'][oi].keys())) == 0,
                         enumerate(tbl['i'])
                     )
@@ -9420,7 +9420,7 @@ class LTP(object):
                 tbl['enr'][classif]['fn'] = len(
                     filter(lambda (i, oi):
                         not tbl[classif][i] and \
-                            len(bindprop[ltp] & \
+                            len(bindprop[protein] & \
                                 set(tbl['identity'][oi].keys())) > 0,
                         enumerate(tbl['i'])
                     )
@@ -9442,27 +9442,27 @@ class LTP(object):
     def enrichment_barplot(self, valids, classif = 'cl5pct', 
         outf = 'known_binders_enrichment.pdf'):
         w = 0.45
-        labels = sorted(filter(lambda ltp:
-            valids[ltp]['pos']['enr'][classif]['tp'] + \
-                valids[ltp]['pos']['enr'][classif]['fn'] > 0 or \
-            valids[ltp]['neg']['enr'][classif]['tp'] + \
-                valids[ltp]['neg']['enr'][classif]['fn'] > 0,
+        labels = sorted(filter(lambda protein:
+            valids[protein]['pos']['enr'][classif]['tp'] + \
+                valids[protein]['pos']['enr'][classif]['fn'] > 0 or \
+            valids[protein]['neg']['enr'][classif]['tp'] + \
+                valids[protein]['neg']['enr'][classif]['fn'] > 0,
             valids.keys()
         ))
-        ppvals = map(lambda ltp:
-            '%.03f' % valids[ltp]['pos']['enr'][classif]['fisher'][1],
+        ppvals = map(lambda protein:
+            '%.03f' % valids[protein]['pos']['enr'][classif]['fisher'][1],
             labels
         )
-        npvals = map(lambda ltp:
-            '%.03f' % valids[ltp]['neg']['enr'][classif]['fisher'][1],
+        npvals = map(lambda protein:
+            '%.03f' % valids[protein]['neg']['enr'][classif]['fisher'][1],
             labels
         )
-        pors = map(lambda ltp:
-            '%.03f' % valids[ltp]['pos']['enr'][classif]['fisher'][0],
+        pors = map(lambda protein:
+            '%.03f' % valids[protein]['pos']['enr'][classif]['fisher'][0],
             labels
         )
-        nors = map(lambda ltp:
-            '%.03f' % valids[ltp]['neg']['enr'][classif]['fisher'][0],
+        nors = map(lambda protein:
+            '%.03f' % valids[protein]['neg']['enr'][classif]['fisher'][0],
             labels
         )
         fig = mpl.figure.Figure(figsize = (8, 4))
@@ -9480,7 +9480,7 @@ class LTP(object):
         cvs.print_figure(outf)
         fig.clf()
 
-    def identification_levels(self, ltp = 'STARD10',
+    def identification_levels(self, protein = 'STARD10',
         hg = 'PC', classif = None):
         visited = {'neg': set([]), 'pos': set([])}
         labels = ['MS1 & MS2 both +/-', 
@@ -9513,8 +9513,8 @@ class LTP(object):
             (False, True, True, True): 'MS1 -, MS2 both +/-'
         }
         for mode, opp_mod in [('pos', 'neg'), ('neg', 'pos')]:
-            tbl = valids[ltp][mode]
-            opp_tbl = self.valids[ltp][opp_mod]
+            tbl = valids[protein][mode]
+            opp_tbl = self.valids[protein][opp_mod]
             for i, oi in enumerate(tbl['i']):
                 if oi not in visited[mode] and \
                     (classif is None or tbl[classif][i]):
@@ -9569,9 +9569,9 @@ class LTP(object):
      'Only MS1 +': 68, 'Only MS2 +': 23}
     """
     
-    def plot_identification_levels(self, idlevels, ltp, hg,
+    def plot_identification_levels(self, idlevels, protein, hg,
         fname = '%s-%s-classes.pdf'):
-        fname = fname % (ltp, hg)
+        fname = fname % (protein, hg)
         w = 0.8 / len(idlevels)
         cols = ['#97BE73', '#49969A', '#996A44', '#FDD73F']
         labels = ['MS1 & MS2 both +/-', 
@@ -9643,9 +9643,9 @@ class LTP(object):
                 if sum(is_known_binder) > 0:
                     self.known_binders_detected.add(protein)
     
-    def mz_report(self, ltp, mode, mz):
+    def mz_report(self, protein, mode, mz):
         self.sort_alll('mz')
-        tbl = self.valids[ltp][mode]
+        tbl = self.valids[protein][mode]
         ui = tbl['mz'].searchsorted(mz)
         i = ui if tbl['mz'][ui] - mz < mz - tbl['mz'][ui - 1] else ui - 1
         oi = tbl['i'][i]
@@ -9754,7 +9754,7 @@ class LTP(object):
             )
         ))
     
-    def _features_table_row(self, ltp, mod, tbl, oi, i, fits_profile, drift):
+    def _features_table_row(self, protein, mod, tbl, oi, i, fits_profile, drift):
         tablecell = '\t\t\t<td class="%s" title="%s">\n\t\t\t\t%s'\
             '\n\t\t\t</td>\n'
         tableccell = '\t\t\t<td class="%s" title="%s"'\
@@ -9777,7 +9777,7 @@ class LTP(object):
                 'm/z measured; %s, %s mode; raw: %.07f, '\
                 'recalibrated: %.07f; original index: %u; %s%s %s' % \
                 (
-                    ltp,
+                    protein,
                     'negative' if mod == 'neg' else 'positive',
                     original_mz,
                     tbl['mz'][i],
@@ -9849,8 +9849,8 @@ class LTP(object):
         row.append(tablecell % \
             ('nothing', 'MS2 headroups and fatty acids identified based on '\
                 'MS1 and MS2 new rule sets.',
-            '' if oi not in self.valids[ltp][mod]['ms2f'] \
-                else str(self.valids[ltp][mod]['ms2f'][oi])
+            '' if oi not in self.valids[protein][mod]['ms2f'] \
+                else str(self.valids[protein][mod]['ms2f'][oi])
         ))
         row.append(tablecell % \
             ('nothing',
@@ -9950,20 +9950,20 @@ class LTP(object):
                 thisRow.append(tablecell % \
                     (('nothing',
                     'See identifications for all features of %s' % \
-                        (ltps[j*navrnum + i]),
+                        (proteins[j*navrnum + i]),
                     '<a href="%s/%s_%s.html">%s</a>' % \
                         (filename, filename, 
-                        ltps[j*navrnum + i], ltps[j*navrnum + i])
-                    ) if j*navrnum + i < len(ltps) else ('nothing', '', ''))
+                        proteins[j*navrnum + i], proteins[j*navrnum + i])
+                    ) if j*navrnum + i < len(proteins) else ('nothing', '', ''))
                 )
             navhtml += tablerow % '\n'.join(thisRow)
         with open(navigation, 'w') as f:
             f.write(self.html_table_template % (title, title, navhtml))
         
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
             prg.step()
-            title = '%s: identities for all features, detailed' % ltp
-            thisFilename = '%s/%s_%s.html' % (filename, filename, ltp)
+            title = '%s: identities for all features, detailed' % protein
+            thisFilename = '%s/%s_%s.html' % (filename, filename, protein)
             table = ''
             hrow = ''
             for coln in hdr:
@@ -9974,24 +9974,24 @@ class LTP(object):
             self.sort_alll('aaa', asc = False)
             for mod, tbl in d.iteritems():
                 opp_mod = 'neg' if mod == 'pos' else 'pos'
-                drift = 1.0 if not self.ltps_drifts \
+                drift = 1.0 if not self.proteins_drifts \
                     or 'recalibrated' not in tbl \
                     or not tbl['recalibrated'] \
                     else self.ppm2ratio(np.nanmedian(
-                        np.array(self.ltps_drifts[ltp][mod].values())
+                        np.array(self.proteins_drifts[protein][mod].values())
                     ))
-                opp_drift = 1.0 if not self.ltps_drifts \
+                opp_drift = 1.0 if not self.proteins_drifts \
                     or 'recalibrated' not in tbl \
                     or not tbl['recalibrated'] \
                     else self.ppm2ratio(np.nanmedian(
-                        np.array(self.ltps_drifts[ltp][opp_mod].values())
+                        np.array(self.proteins_drifts[protein][opp_mod].values())
                     ))
                 for i, oi in enumerate(tbl['i']):
                     if oi not in visited[mod]:
                         thisRow = {'pos': [], 'neg': []}
                         visited[mod].add(oi)
                         thisRow[mod].append(
-                            self._features_table_row(ltp, mod, tbl,
+                            self._features_table_row(protein, mod, tbl,
                                 oi, i, fits_profile, drift))
                         try:
                             if len(tbl[opp_mod][oi]) == 0:
@@ -10007,13 +10007,13 @@ class LTP(object):
                                         opp_oi)[0][0]
                                     thisRow[opp_mod].append(
                                         self._features_table_row(
-                                            ltp, opp_mod, d[opp_mod],
+                                            protein, opp_mod, d[opp_mod],
                                             opp_oi, opp_i, fits_profile,
                                             opp_drift
                                         )
                                     )
                         except KeyError:
-                            print(ltp, mod, opp_mod)
+                            print(protein, mod, opp_mod)
                         for pos_row in thisRow['pos']:
                             for neg_row in thisRow['neg']:
                                 #try:
@@ -10038,20 +10038,20 @@ class LTP(object):
         title = 'Headgroups, combined identification'
         sort_alll(valids, 'mz')
         all_hgs = set([])
-        for ltp, d in valids.iteritems():
+        for protein, d in valids.iteritems():
             for mod, tbl in d.iteritems():
                 for i, oi in enumerate(tbl['i']):
                     if tbl[include][i]:
                         all_hgs = all_hgs | tbl[identity][oi]
         all_hgs = sorted(list(all_hgs))
-        data = dict(map(lambda ltp:
-                (ltp, dict(map(lambda hg:
+        data = dict(map(lambda protein:
+                (protein, dict(map(lambda hg:
                     (hg, []), 
                     all_hgs
                 ))),
                 valids.keys()
             ))
-        for ltp, d in valids.iteritems():
+        for protein, d in valids.iteritems():
             for mod, tbl in d.iteritems():
                 for i, oi in enumerate(tbl['i']):
                     if tbl[include][i]:
@@ -10065,7 +10065,7 @@ class LTP(object):
                                 if hg in tbl['combined_fa'][oi] else \
                                 tbl['ms2fas'][oi] if oi in tbl['ms2fas'] else \
                                 ','.join(list(tbl['ms1fa'][oi][hg]))
-                            data[ltp][hg].append(
+                            data[protein][hg].append(
                                 ['%.04f' % tbl['mz'][i], adds, fa]
                             )
         hdr = map(lambda hg:
@@ -10073,10 +10073,10 @@ class LTP(object):
             all_hgs
         )
         table = tablerow % '\n'.join([tablehcell % ('')] + hdr)
-        for ltp in sorted(valids.keys()):
-            thisRow = [tablecell % ('rowname', '', ltp)]
+        for protein in sorted(valids.keys()):
+            thisRow = [tablecell % ('rowname', '', protein)]
             for hg in all_hgs:
-                c = data[ltp][hg]
+                c = data[protein][hg]
                 if not c.__len__():
                     thisRow.append(tablecell % ('nothing', '', ''))
                 else:
@@ -10487,11 +10487,11 @@ class LTP(object):
         rows.append(list(map(lambda f: f[0], hdr)))
         
         tbl = self.valids[protein][mode]
-        drift = 1.0 if not self.ltps_drifts \
+        drift = 1.0 if not self.proteins_drifts \
                     or 'recalibrated' not in tbl \
                     or not tbl['recalibrated'] \
                     else self.ppm2ratio(np.nanmedian(
-                        np.array(self.ltps_drifts[protein][mode].values())
+                        np.array(self.proteins_drifts[protein][mode].values())
                     ))
         
         def lipid_name(lip):
