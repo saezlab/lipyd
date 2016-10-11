@@ -1313,9 +1313,9 @@ class MS2Scan(object):
         self.ms2_file = self.feature.main.ms2files\
             [self.feature.protein][self.feature.mode][self.frac_name.upper()]
         self.in_primary = self.frac_name in \
-            self.feature.main.fractions[self.feature.protein]['prim']
+            self.feature.main.fracs_order[self.feature.protein]['prim']
         self.in_secondary = self.frac_name in \
-            self.feature.main.fractions[self.feature.protein]['sec']
+            self.feature.main.fracs_order[self.feature.protein]['sec']
         self.i = self.feature.i
         self.tbl = self.feature.tbl
         self.insmax = self.scan[0,2]
@@ -3219,14 +3219,14 @@ class LTP(object):
                 order(protein, with_protein, self.pprofsU)
     
     def primary_fractions(self):
-        self.fractions = dict(
+        self.fracs_order = dict(
             map(
                 lambda p:
                     (p, {'prim': set([]), 'sec': set([])}),
                 self.fractions_upper.keys()
             )
         )
-        for protein, d in self.fractions.iteritems():
+        for protein, d in self.fracs_order.iteritems():
             d['prim'].add(self.fracs_orderL[protein][0][0])
             d['prim'].add(self.fracs_orderU[protein][0][0])
             for fr, c in self.fracs_orderL[protein]:
