@@ -4283,43 +4283,45 @@ class LTP(object):
         to handle missing data, and access m/z values of fractions 
         and controls, and other values.
         """
-        data = dict((ltp, {}) for ltp in self.datafiles.keys())
+        data = dict((protein.upper(), {}) for protein in self.datafiles.keys())
         prg = progress.Progress(len(self.datafiles) * 2,
                                 'Reading features (MS1 data)', 1)
-        for ltp, pos_neg in self.datafiles.iteritems():
+        for _protein, pos_neg in self.datafiles.iteritems():
+            protein = _protein.upper()
             for p, fname in pos_neg.iteritems():
                 prg.step()
                 try:
-                    data[ltp][p] = {}
+                    data[protein][p] = {}
                     # this returns a masked array:
-                    data[ltp][p]['raw'] = self.read_file_np(fname)
+                    data[protein][p]['raw'] = self.read_file_np(fname)
                 except:
                     sys.stdout.write('\nerror reading file: %s\n' % fname)
                     sys.stdout.flush()
                 # making a view with the intensities:
-                data[ltp][p]['int'] = data[ltp][p]['raw'][:, 8:]
+                data[protein][p]['int'] = data[protein][p]['raw'][:, 8:]
                 # mask non measured:
-                data[ltp][p]['mes'] = data[ltp][p]['int'].view()
-                data[ltp][p]['mes'].mask = \
-                    np.array([[x is None for x in self.fractions[ltp]] * \
-                        ((data[ltp][p]['int'].shape[1] - 5) / 6)] * \
-                    data[ltp][p]['int'].shape[0])
-                data[ltp][p]['mes'] = np.ma.masked_invalid(data[ltp][p]['mes'])
+                data[protein][p]['mes'] = data[protein][p]['int'].view()
+                data[protein][p]['mes'].mask = \
+                    np.array([[x is None for x in self.fractions[protein]] * \
+                        ((data[protein][p]['int'].shape[1] - 5) / 6)] * \
+                    data[protein][p]['int'].shape[0])
+                data[protein][p]['mes'] = \
+                    np.ma.masked_invalid(data[protein][p]['mes'])
                 # controls:
-                data[ltp][p]['ctr'] = data[ltp][p]['mes'][:,
-                    np.array([x == 0 for x in self.fractions[ltp]] * \
-                        (data[ltp][p]['mes'].shape[1] / 6))]
+                data[protein][p]['ctr'] = data[protein][p]['mes'][:,
+                    np.array([x == 0 for x in self.fractions[protein]] * \
+                        (data[protein][p]['mes'].shape[1] / 6))]
                 # fractions with lipids:
-                data[ltp][p]['lip'] = data[ltp][p]['mes'][:,
-                    np.array([x == 1 for x in self.fractions[ltp]] * \
-                        (data[ltp][p]['mes'].shape[1] / 6))]
+                data[protein][p]['lip'] = data[protein][p]['mes'][:,
+                    np.array([x == 1 for x in self.fractions[protein]] * \
+                        (data[protein][p]['mes'].shape[1] / 6))]
                 # all fractions except blank control:
-                data[ltp][p]['smp'] = data[ltp][p]['mes'][:,
+                data[protein][p]['smp'] = data[protein][p]['mes'][:,
                     np.array([False] + [x is not None \
-                        for x in self.fractions[ltp][1:]] * \
-                        (data[ltp][p]['mes'].shape[1] / 6))]
+                        for x in self.fractions[protein][1:]] * \
+                        (data[protein][p]['mes'].shape[1] / 6))]
                 # average area:
-                data[ltp][p]['aa'] = data[ltp][p]['raw'][:,7]
+                data[protein][p]['aa'] = data[protein][p]['raw'][:,7]
         prg.terminate()
         self.data = data
 
