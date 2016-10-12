@@ -34,7 +34,7 @@ from common import *
 from ltp import ltp2
 
 #l = ltp2.LTP(recal_source = 'denes', only_marcos_fragments = False, marco_lipnames_from_db = False)
-l = ltp2.LTP()
+l = ltp2.Screening()
 
 
 '''
@@ -69,6 +69,100 @@ l.ms2()
 l.std_layout_tables_xlsx()
 l.read_marco_standards()
 l.standards_crosscheck(only_best = True)
+
+ptpn9 = [338.1387, 784.6218, 756.5908, 518.3639, 730.5754, 758.6063, 520.3788, 492.3486]
+
+from ltp import ltp2
+
+ptpn9 = \
+    [
+        [338.143, 292.1328],           # ??
+        [492.354, 255.2299],           # 16:0
+        [518.370, 281.2452],           # 18:1
+        [520.385, 283.2607],           # 18:0
+        [730.584, 255.2298, 283.2610], # 16:0, 18:0
+        [756.600, 281.2451, 255.2298], # 18:1, 16:0
+        [756.600, 253.2142, 283.2604], # 16:1, 18:0
+        [758.615, 283.2610, 255.2298], # 18:0, 16:0
+        [784.622, 281.2452, 283.2607], # 18:1, 18:0
+        [804.570, 281.2465, 255.2309]  # control: PC(18:1/16:0),
+                                       # returns gly+P+choline (223.09734506418)
+                                       # assuming formiate adduct
+    ]
+
+def get_headgroup_mass(m, ads = ['h', 'fo']):
+    """
+    Returns residual mass after calculating exact mass
+    and removing fatty acid masses.
+    
+    :param list ads: Adducts assumed.
+    """
+    return \
+        list(
+            map(
+            lambda ad:
+                (
+                    ad,
+                    getattr(ltp2.Mz(m[0]), 'remove_%s' % ad)() - sum(m[1:]),
+                ),
+                ads
+            )
+        )
+
+headgroups = \
+    list(
+        map(
+            get_headgroup_mass,
+            ptpn9
+        )
+    )
+
+# resulted:
+#[
+    #[('h', 45.00292353322999),   ('fo', 1.0119971474307476)], # this does not make sense
+    
+    #[('h', 236.11682353323),     ('fo', 192.12589714743075)], # for 492.4, 518.4, 520.4:
+    #[('h', 236.11752353322998),  ('fo', 192.12659714743074)], # headgroup has a mass
+    #[('h', 236.11702353323),     ('fo', 192.12609714743076)], # either 236 or 192
+    
+    #[('h', 191.0859235332299),   ('fo', 147.09499714743072)], # 730.6 apparently does not
+                                                               # fit in these series
+    
+    #[('h', 219.11782353323008),  ('fo', 175.1268971474309)],  # for 756.6, 758.6, 784.6:
+    #[('h', 219.11812353323),     ('fo', 175.12719714743082)], # headgroup has a mass
+    #[('h', 219.11692353322996),  ('fo', 175.12599714743078)], # either 219 or 175
+    #[('h', 219.10882353322995),  ('fo', 175.11789714743077)],
+    #[('h', 267.08532353323005),  ('fo', 223.09439714743087)]  # control, gly+P+choline mass correct
+#]
+
+def find_constitutions(
+                    target,
+                    elems = ['C', 'H', 'O', 'N', 'P', 'S'],
+                    tolerance = 0.02,
+                    maxcnts = None,
+                    counts = None,
+                    results = []
+    ):
+    c = int(np.ceil((target - 2) / ltp2.MolWeight('CH2').weight))
+    h = ltp2.mas.mass['H']
+    counts = dict(zip(elems, [0] * len(elems)))
+    counts['C'] = c
+    counts['H'] = int(np.round((target - ltp2.MolWeight('C%u' % c)) / h))
+    
+    
+    maxcnts = \
+        maxcnts or \
+        list(map(lambda e: int(target / ltp2.MolWeight('%s' % e).weight), elems))
+    counts = counts or [0] * (len(elems) - 1)
+    const = ''.join(map(lambda e: '%s%u' % e, zip(elems, counts)))
+    w = ltp2.MolWeight(const).weight
+    if w >= target + tolerance
+    for i in xrange(len(elems)):
+        if counts[i] < maxcnts[i]:
+            counts[i] += 1
+            break
+    
+
 
 recal_marco = l.ltps_drifts
 l.recal_source = 'denes'

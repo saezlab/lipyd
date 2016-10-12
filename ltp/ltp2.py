@@ -3304,7 +3304,7 @@ class Screening(object):
                     self.fractions_upper[protein][fr2i] == 1:
                     self.first_ratio[protein] = self.first_ratio_manual[protein]
     
-    def sample_fractions_marco(self):
+    def fractions_marco(self):
         self.fractions_original = copy.deepcopy(self.fractions_upper)
         refrac = re.compile(r'([AB])([0-9]{1,2})')
         tbl = self.read_xls(self.manual_ppratios_xls)[1:]
@@ -3485,7 +3485,7 @@ class Screening(object):
                 if type(sheet) is int:
                     sheet = book.worksheets[sheet]
                 else:
-                    sheet = book.get_sheet_by_name(sheet)
+                    sheet = book[sheet]
             except:
                 sheet = book.worksheets[0]
             cells = sheet.get_squared_range(1, 1,
@@ -5465,7 +5465,7 @@ class Screening(object):
                 tbl['aaa'] = np.nansum(tbl['fe'], 1) / 5.0
     
     def ms1(self):
-        self.sample_fractions_marco()
+        self.fractions_marco()
         self.fractions_by_protein_amount()
         self.primary_fractions()
         self.average_area_5()
@@ -6549,8 +6549,9 @@ class Screening(object):
             * binding properties: known binders of lipid classes
         """
         self.read_fractions()
-        self.set_measured()
         self.upper_fractions()
+        self.fractions_marco()
+        self.set_measured()
         self.set_onepfraction()
         self.read_lipid_names()
         self.read_binding_properties()
@@ -6565,7 +6566,7 @@ class Screening(object):
             null = f.readline()
             for l in f:
                 l = l.split(',')
-                data[l[0].replace('"', '')] = \
+                data[l[0].replace('"', '').upper()] = \
                     np.array([self.to_int(x) \
                         if x != '' else None for x in l[1:]])
         self.fractions = data
@@ -6721,6 +6722,7 @@ class Screening(object):
             'mz': m/z values
             'i': original index
         """
+        self.fractions_marco()
         if cache and os.path.exists(self.validscache):
             self.valids = pickle.load(open(self.validscache, 'rb'))
             return None
