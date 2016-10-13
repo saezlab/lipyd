@@ -2100,6 +2100,7 @@ class Screening(object):
             'ppfracf': 'fractions.csv',
             'ppsecdir': 'SEC_profiles',
             'stddir': 'Standards_mzML format',
+            'manualdir': 'Processed_files',
             'seqfile': 'Sequence_list_LTP_screen_2015.csv',
             'pptablef': 'proteins_by_fraction.csv',
             'lipnamesf': 'lipid_names_v2.csv',
@@ -2210,7 +2211,8 @@ class Screening(object):
             'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
-            'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls']
+            'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
+            'manualdir']
         
         for attr, val in self.defaults.iteritems():
             if attr in kwargs:
@@ -3462,7 +3464,7 @@ class Screening(object):
         Generic function to read MS Excel XLS file, and convert one sheet
         to CSV, or return as a list of lists
         """
-        table = None
+        table = []
         try:
             book = xlrd.open_workbook(xls_file, on_demand = True)
             try:
@@ -3472,15 +3474,21 @@ class Screening(object):
                     sheet = book.sheet_by_name(sheet)
             except xlrd.biffh.XLRDError:
                 sheet = book.sheet_by_index(0)
-            table = [[str(c.value) \
+            table = [[unicode(c.value) \
                 for c in sheet.row(i)] \
                 for i in xrange(sheet.nrows)]
         except IOError:
             sys.stdout.write('No such file: %s\n' % xls_file)
             sys.stdout.flush()
         except:
-            book = openpyxl.load_workbook(filename = xls_file,
-                read_only = True)
+            try:
+                book = openpyxl.load_workbook(filename = xls_file,
+                    read_only = True)
+            except:
+                sys.stdout.write('\tCould not open xls: %s\n' % xls_file)
+                if not os.path.exists(xls_file):
+                    sys.stdout.write('\tFile does not exist.\n')
+                sys.stdout.flush()
             try:
                 if type(sheet) is int:
                     sheet = book.worksheets[sheet]
@@ -10985,3 +10993,59 @@ class Screening(object):
                                     dfun = lambda x: self.to_int(x.split('(')[1][:-1]) if len(x) else 0)
         
         logf.close()
+    
+    #
+    # Process manually curated results
+    #
+    
+    def read_manual(self):
+        
+        reclass = re.compile(r'(^[IV]*\.?[0-9]?).*')
+        
+        def read_line(l):
+            if len(l[17]) and len(l[12]) and len(l[13]):
+                return \
+                    [
+                        float(l[13]),
+                        reclass.match(l[17]).groups()[0],
+                        l[14],
+                        l[15],
+                        int(float(l[12]))
+                    ]
+        
+        def read_table(tbl):
+            return \
+                list(
+                    filter(
+                        lambda l:
+                            l is not None,
+                        map(
+                            read_line,
+                            tbl
+                        ),
+                    )
+                )
+        
+        data = {}
+        
+        fnames = \
+            list(
+                filter(
+                    lambda f:
+                        f.endswith('final.xlsx'),
+                    os.listdir(self.manualdir)
+                )
+            )
+        for f in fnames:
+            protein = f.split('_')[0]
+            xlsname = os.path.join(self.manualdir, f)
+            tblneg = self.read_xls(xlsname,
+                                   sheet = '%s_negative_best' % protein)
+            tblpos = self.read_xls(xlsname,
+                                   sheet = '%s_positive_best' % protein)
+            data[protein] = {}
+            data[protein]['neg'] = read_table(tblneg[1:])
+            data[protein]['pos'] = read_table(tblpos[1:])
+        
+        self.manual = data
+    
