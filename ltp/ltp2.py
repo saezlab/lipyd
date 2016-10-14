@@ -10387,7 +10387,10 @@ class Screening(object):
             os.mkdir(xlsdir)
         for fname in os.listdir(xlsdir):
             os.remove(os.path.join(xlsdir, fname))
-        self.sort_alll('aaa', asc = False)
+        if self.use_original_average_area:
+            self.sort_alll('aa', asc = False)
+        else:
+            self.sort_alll('aaa', asc = False)
         
         if one_table:
             
