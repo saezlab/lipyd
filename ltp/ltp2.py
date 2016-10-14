@@ -11069,7 +11069,7 @@ class Screening(object):
     #
     
     def features_xls_diff(self, dir1, dir2,
-                          outdir = 'top_features_diff', e = 0.001):
+                          outdir = 'top_features_diff', e = 0.0005):
         
         def get_xls(d, f):
             return openpyxl.load_workbook(os.path.join(d, f), read_only = True)
@@ -11088,7 +11088,7 @@ class Screening(object):
                     list(
                         map(
                             lambda r:
-                                list(map(fun(c), r)),
+                                list(map(lambda c: fun(c), r)),
                             sheet.iter_rows()
                         )
                     )
@@ -11097,7 +11097,7 @@ class Screening(object):
                 return tbl
             
             content = table_cell_attr(sheet, lambda c: c.value)
-            colors = table_cell_attr(sheet, lambda c: c.fill.bgColor.rgb[:6])
+            colors = table_cell_attr(sheet, lambda c: str(c.fill.bgColor.rgb)[:6])
             
             index = \
                 np.array(
@@ -11116,7 +11116,7 @@ class Screening(object):
                             )
                         )
                     )
-                )
+                ).reshape(len(content), 3)
             
             index = index[index[:,1].argsort()]
             
@@ -11126,12 +11126,18 @@ class Screening(object):
             
             result = {}
             
-            for s in xls1.sheetnames:
+            for s in sorted(xls1.sheetnames):
                 
                 if s not in xls2.sheetnames:
                     sys.stdout.write('\tSheet `%s` missing!\n' % s)
                 
-                result[s] = sdiff(sheet1, sheet2)
+                sheet1 = xls1[s]
+                sheet2 = xls2[s]
+                
+                try:
+                    result[s] = sdiff(sheet1, sheet2)
+                except:
+                    print(s)
                 
             return result
         
@@ -11144,7 +11150,7 @@ class Screening(object):
             missing = []
             
             for i in i1:
-                ui = i2[:1].searchsorted(i[1])
+                ui = i2[:,1].searchsorted(i[1])
                 if ui < i2.shape[0]:
                     if abs(i2[ui,1] - i[1]) < e:
                         continue
@@ -11153,16 +11159,20 @@ class Screening(object):
                         continue
                 missing.append([i[0], i[2]])
             
-            missing = np.array(missing)
+            nmissg = len(missing)
+            missing = np.array(missing).reshape(nmissg, 2)
             
             # ordering by intensities desc
+            
             missing = missing[missing[:,1].argsort()[::-1]]
             
             # ordering all outputs the same way
             return \
-                list(map(lambda i: dat1[i], missing[:,0])), \
-                list(map(lambda i: col1[i], missing[:,0])), \
-                i1[missing[:,0],]
+                list(map(lambda i: dat1[i],
+                         missing[:,0].astype(np.int, copy = False))), \
+                list(map(lambda i: col1[i],
+                         missing[:,0].astype(np.int, copy = False))), \
+                      i1[missing[:,0].astype(np.int, copy = False),]
         
         # starting with empty outdir
         if not os.path.exists(outdir):
@@ -11214,7 +11224,9 @@ class Screening(object):
             xls = xlsxwriter.Workbook(difffname, {'constant_memory': True})
             
             for typ, d in [('new', new), ('false', old)]:
-                for sh, data in iteritems(d):
+                
+                for sh in sorted(d.keys()):
+                    
                     tbl = \
                         list(
                             map(
@@ -11228,12 +11240,13 @@ class Screening(object):
                                             zip(r[0], r[1])
                                         )
                                     ),
-                                zip(data[0], data[1])
+                                zip(d[sh][0], d[sh][1])
                             )
                         )
-                
-                sheet_name = '%s_%s' % (sh, typ)
-                add_sheet(xls, tbl, sheet_name, colws)
+                    
+                    sheet_name = '%s_%s' % (sh, typ)
+                    hdr = nhdr if 'negative' in sheet_name else phdr
+                    self.add_sheet(xls, [hdr] + tbl, sheet_name, colws)
             
             xls.close()
         
