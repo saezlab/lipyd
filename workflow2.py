@@ -70,6 +70,13 @@ l.std_layout_tables_xlsx()
 l.read_marco_standards()
 l.standards_crosscheck(only_best = True)
 
+### Diff between recent and old erroneous output
+
+l = ltp2.Screening()
+l.features_xls_diff('top_features_July2016_backup', 'top_features')
+
+### PTPN9 unknown headgroups
+
 ptpn9 = [338.1387, 784.6218, 756.5908, 518.3639, 730.5754, 758.6063, 520.3788, 492.3486]
 
 from ltp import ltp2

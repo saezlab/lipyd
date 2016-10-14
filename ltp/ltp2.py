@@ -10318,41 +10318,53 @@ class Screening(object):
         with open(filename, 'w') as f:
             f.write(out)
     
+    @staticmethod
+    def colw_scale(w):
+        """
+        Scales column widths for xlsxwriter output.
+        Below are empirical values to adjust the column widths.
+        """
+        return (w - 0.1705710377055909) / 0.24899187310525259
+    
+    def add_sheet(self, xls, tbl, name, colws = None):
+        """
+        Converts a table to xls worksheet, with formatting.
+        
+        :param xls: xlsxwriter workbook
+        :param list tbl: table as list of lists
+        :param str name: worksheet name
+        :param list colws: column widths, list of floats
+        """
+        sheet = xls.add_worksheet(name)
+        plain = xls.add_format({})
+        bold = xls.add_format({'bold': True,
+                                #'rotation': 90
+                                })
+        green = xls.add_format({'bg_color': '#A9C98B'})
+        #sheet.set_row(row = 0, height = 115.0)
+        sheet.freeze_panes(1, 0)
+        for i, content in enumerate(tbl[0]):
+            sheet.write(0, i, content, bold)
+        
+        for j, row in enumerate(tbl[1:]):
+            for i, content in enumerate(row):
+                if type(content) is tuple:
+                    if content[1] in locals():
+                        style = locals()[content[1]]
+                    content = content[0]
+                else:
+                    style = plain
+                try:
+                    sheet.write(j + 1, i, content, style)
+                except:
+                    sys.stdout.write('\t:: Could not write row to xlsx:\n')
+                    sys.stdout.write('\t\t%s\n' % row)
+        if colws is not None:
+            for coln, colw in enumerate(colws):
+                sheet.set_column(coln, coln, self.colw_scale(colw))
+        #sheet.set_row(row = 0, height = 115.0)
+    
     def std_layout_tables_xlsx(self, check_deltart = False, one_table = False):
-        
-        def add_sheet(xls, tbl, name, colws = None):
-            sheet = xls.add_worksheet(name)
-            plain = xls.add_format({})
-            bold = xls.add_format({'bold': True,
-                                   #'rotation': 90
-                                   })
-            green = xls.add_format({'bg_color': '#A9C98B'})
-            #sheet.set_row(row = 0, height = 115.0)
-            sheet.freeze_panes(1, 0)
-            for i, content in enumerate(tbl[0]):
-                sheet.write(0, i, content, bold)
-            
-            for j, row in enumerate(tbl[1:]):
-                for i, content in enumerate(row):
-                    if type(content) is tuple:
-                        if content[1] in locals():
-                            style = locals()[content[1]]
-                        content = content[0]
-                    else:
-                        style = plain
-                    try:
-                        sheet.write(j + 1, i, content, style)
-                    except:
-                        sys.stdout.write('\t:: Could not write row to xlsx:\n')
-                        sys.stdout.write('\t\t%s\n' % row)
-            if colws is not None:
-                for coln, colw in enumerate(colws):
-                    sheet.set_column(coln, coln, colw_scale(colw))
-            #sheet.set_row(row = 0, height = 115.0)
-        
-        def colw_scale(w):
-            # these are empirical values to adjust the column widths
-            return (w - 0.1705710377055909) / 0.24899187310525259
         
         def make_xls(protein, xls):
             method = self.std_layout_table_all if protein == 'all' else \
@@ -10361,14 +10373,14 @@ class Screening(object):
             _argsn = ['neg'] if protein == 'all' else [protein, 'neg']
             _kwargs = {'colws': True, 'check_deltart': check_deltart}
             tbl, colw = method(*_argsp, **_kwargs)
-            add_sheet(xls, tbl, '%s_positive' % protein, colw)
+            self.add_sheet(xls, tbl, '%s_positive' % protein, colw)
             tbl, colw = method(*_argsn, **_kwargs)
-            add_sheet(xls, tbl, '%s_negative' % protein, colw)
+            self.add_sheet(xls, tbl, '%s_negative' % protein, colw)
             _kwargs['only_best'] = True
             tbl, colw = method(*_argsp, **_kwargs)
-            add_sheet(xls, tbl, '%s_positive_best' % protein, colw)
+            self.add_sheet(xls, tbl, '%s_positive_best' % protein, colw)
             tbl, colw = method(*_argsn, **_kwargs)
-            add_sheet(xls, tbl, '%s_negative_best' % protein, colw)
+            self.add_sheet(xls, tbl, '%s_negative_best' % protein, colw)
         
         xlsdir = 'top_features'
         if not os.path.exists(xlsdir):
@@ -10995,7 +11007,7 @@ class Screening(object):
         logf.close()
     
     #
-    # Process manually curated results
+    # Processing manually curated results
     #
     
     def read_manual(self):
@@ -11049,3 +11061,177 @@ class Screening(object):
         
         self.manual = data
     
+    #
+    # Methods for preparing a diff between 2 sets of xls outputs
+    #
+    
+    def features_xls_diff(self, dir1, dir2,
+                          outdir = 'top_features_diff', e = 0.001):
+        
+        def get_xls(d, f):
+            return openpyxl.load_workbook(os.path.join(d, f), read_only = True)
+        
+        def get_header(xls, sheet_name = 0):
+            """
+            Returns values in header row of one sheet
+            """
+            sheet = xls[sheet_name]
+            return list(map(lambda c: c.value, next(sheet.iter_rows())))
+        
+        def index_sheet(sheet):
+            
+            def table_cell_attr(sheet, fun, strip_header = True):
+                tbl = \
+                    list(
+                        map(
+                            lambda r:
+                                list(map(fun(c), r)),
+                            sheet.iter_rows()
+                        )
+                    )
+                if strip_header:
+                    tbl = tbl[1:]
+                return tbl
+            
+            content = table_cell_attr(sheet, lambda c: c.value)
+            colors = table_cell_attr(sheet, lambda c: c.fill.bgColor.rgb[:6])
+            
+            index = \
+                np.array(
+                    list(
+                        map(
+                            lambda i:
+                                # [n, n, n] from (n, (n, n))
+                                [i[0], i[1][0], i[1][1]],
+                            enumerate(
+                                map(
+                                    lambda r:
+                                        # m/z and intensity
+                                        (float(r[2]), float(r[12])),
+                                    content
+                                )
+                            )
+                        )
+                    )
+                )
+            
+            index = index[index[:,1].argsort()]
+            
+            return content, colors, index
+        
+        def diff(xls1, xls2):
+            
+            result = {}
+            
+            for s in xls1.sheetnames:
+                
+                if s not in xls2.sheetnames:
+                    sys.stdout.write('\tSheet `%s` missing!\n' % s)
+                
+                result[s] = sdiff(sheet1, sheet2)
+                
+            return result
+        
+        def sdiff(sheet1, sheet2):
+            """
+            Returns rows in 1 missing from 2.
+            """
+            dat1, col1, i1 = index_sheet(sheet1)
+            dat2, col2, i2 = index_sheet(sheet2)
+            missing = []
+            
+            for i in i1:
+                ui = i2[:1].searchsorted(i[1])
+                if ui < i2.shape[0]:
+                    if abs(i2[ui,1] - i[1]) < e:
+                        continue
+                if ui > 0:
+                    if abs(i2[ui - 1,1] - i[1]) < e:
+                        continue
+                missing.append([i[0], i[2]])
+            
+            missing = np.array(missing)
+            
+            # ordering by intensities desc
+            missing = missing[missing[:,1].argsort()[::-1]]
+            
+            # ordering all outputs the same way
+            return \
+                list(map(lambda i: dat1[i], missing[:,0])), \
+                list(map(lambda i: col1[i], missing[:,0])), \
+                i1[missing[:,0],]
+        
+        # starting with empty outdir
+        if not os.path.exists(outdir):
+            os.mkdir(outdir)
+        
+        for f in os.listdir(outdir):
+            os.remove(os.path.join(outdir, f))
+        
+        # column widths as set in the original method:
+        colws = [
+            1.8, 1.8, 1.8, 1.8, 1.8, 1.8, 1.8, 1.8, 1.8, 6.4, 6.4, 6.4, 2.83,
+            2.83, 10.77, 2.83, 2.83, 2.83, 1.86, 4.29, 8.60, 4.29, 8.60, 4.29,
+            8.60, 4.29, 8.60, 4.29, 8.60, 0.48, 2.12, 2.83, 4.29, 2.12, 2.12,
+            2.12, 2.12, 2.12, 2.12, 2.12, 1.48, 1.48, 3.62, 3.31, 3.31, 3.31
+        ]
+        
+        
+        
+        fnames1 = \
+            list(
+                filter(
+                    lambda f:
+                        f.endswith('_top_features.xlsx'),
+                    os.listdir(dir1)
+                )
+            )
+        
+        prg = progress.Progress(len(fnames1),
+                                'Compiling diffs, generating xls',
+                                1, percent = False)
+        
+        for f in fnames1:
+            
+            prg.step()
+            
+            protein = f.split('_')[0]
+            xls1 = get_xls(dir1, f)
+            xls2 = get_xls(dir2, f)
+            nhdr = get_header(xls1, '%s_negative' % protein)
+            phdr = get_header(xls1, '%s_positive' % protein)
+            # new records in recent tables:
+            new = diff(xls2, xls1)
+            # false records in old tables:
+            old = diff(xls1, xls2)
+            
+            difffname = '%s_diff.xlsx' % protein
+            difffname = os.path.join(outdir, difffname)
+            
+            xls = xlsxwriter.Workbook(difffname, {'constant_memory': True})
+            
+            for typ, d in [('new', new), ('false', old)]:
+                for sh, data in iteritems(d):
+                    tbl = \
+                        list(
+                            map(
+                                lambda r:
+                                    list(
+                                        map(
+                                            lambda c:
+                                                (c[0], 'plain') \
+                                                    if c[1] == '000000' else \
+                                                (c[0], 'green'),
+                                            zip(r[0], r[1])
+                                        )
+                                    ),
+                                zip(data[0], data[1])
+                            )
+                        )
+                
+                sheet_name = '%s_%s' % (sh, typ)
+                add_sheet(xls, tbl, sheet_name, colws)
+            
+            xls.close()
+        
+        prg.terminate()
