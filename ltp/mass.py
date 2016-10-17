@@ -25,6 +25,7 @@ reNonDigit = re.compile(r'[^\d.]+')
 
 proton = 1.00727646677
 electron = 0.00054857990924
+neutron = 1.00866491588
 
 # ##
 def getMasses(url):

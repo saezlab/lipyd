@@ -59,6 +59,10 @@ import matplotlib as mpl
 import matplotlib.backends.backend_pdf
 import matplotlib.pyplot as plt
 import seaborn as sns
+import plotly.offline as pl
+import plotly.graph_objs as go
+import plotly.tools
+
 import rpy2.robjects.packages as rpackages
 rvcd = rpackages.importr('vcdExtra')
 rbase = rpackages.importr('base')
@@ -11014,6 +11018,11 @@ class Screening(object):
     #
     
     def read_manual(self):
+        """
+        Reads adequate columns from manually annotated tables.
+        Provides data in `Screening().manual` attribute.
+        """
+        
         
         reclass = re.compile(r'(^[IV]*\.?[0-9]?).*')
         
@@ -11063,6 +11072,134 @@ class Screening(object):
             data[protein]['pos'] = read_table(tblpos[1:])
         
         self.manual = data
+    
+    def piecharts_plotly(self, by_class = True, main_title = 'Lipid classes by protein'):
+        """
+        Plots piecharts of detected lipids for each protein based on manually
+        annotated results.
+        Uses plotly, output accessible in Jupyter notebook.
+        """
+        recount1 = re.compile(r'\((O?-?[0-9]{1,2}:[0-9]{1,2})\)')
+        recount2 = re.compile(r'\((O?-?[0-9]{1,2}:[0-9]{1,2}/O?-?[0-9]{1,2}:[0-9]{1,2})\)')
+        
+        def get_names(r, by_class = True):
+            
+            counts = []
+            
+            for lips in r[2].split('///'):
+                
+                for lip in lips.split(';'):
+                    
+                    if 'nothing' in lip or not len(lip.strip()):
+                        continue
+                    
+                    cl = self.headgroup_from_lipid_name(['S', None, lip])[0]
+                    
+                    if cl is None:
+                        cl = lip.split('(')[0]
+                    
+                    if by_class:
+                        cc = recount2.findall(lip)
+                        
+                        if not len(cc):
+                            cc = recount1.findall(lip)
+                        
+                        cc = cc[0] if len(cc) else '?'
+                    else:
+                        cc = ''
+                    
+                    counts.append('%s(%s)' % (cl, cc) if len(cc) else cl)
+            
+            return counts
+        
+        if not hasattr(self, 'manual') or self.manual is None:
+            self.read_manual()
+        
+        if not hasattr(self, 'lipnames') or self.lipnames is None:
+            self.read_lipid_names()
+        
+        modes = {'pos': 'positive', 'neg': 'negative'}
+        smodes = {'pos': '+', 'neg': '-'}
+        nrows = int(np.ceil(len(self.manual) / 2.0))
+        height = 500 * nrows
+        param = {
+            'data': [],
+            'layout': {
+                'title': main_title,
+                'annotations': [],
+                'autosize': False,
+                'width': 600,
+                'height': height
+            }
+        }
+        
+        traces = []
+        #fig = plotly.tools.make_subplots(rows=nrows, cols=2, print_grid = False)
+                          #subplot_titles=('First Subplot','Second Subplot', 'Third Subplot'))
+        
+        n = 0
+        for protein in sorted(self.manual.keys()):
+            
+            for mode in ['neg', 'pos']:
+                
+                
+                this_data = {}
+                this_anno = {'font': {'size': 10}, 'showarrow': False}
+                lab_val = {}
+                
+                for r in self.manual[protein][mode]:
+                    
+                    if r[1] == 'I':
+                        
+                        label = '/'.join(get_names(r, by_class = by_class))
+                        
+                        if label not in lab_val:
+                            lab_val[label] = 0.0
+                        
+                        lab_val[label] += r[4]
+                    
+                this_data['labels'], this_data['values'] = \
+                    zip(*sorted(lab_val.items(), key = lambda i: i[0])) \
+                        if len(lab_val) else (['None'], [1])
+                this_data['name'] = '%s %s, \nsum of intensities' % (protein, modes[mode])
+                this_data['type'] = 'pie'
+                this_data['hole'] = 0.4
+                this_data['hoverinfo'] = 'label+percent+name'
+                this_data['domain'] = {
+                    'x': [
+                        n % 2 / 2.0,
+                        n % 2 / 2.0 + 0.5
+                    ],
+                    'y': [
+                        1.0 - (0.48 / nrows * np.floor(n / 2) + 0.003),
+                        1.0 - (0.48 / nrows * (np.floor(n / 2) + 1) - 0.003)
+                    ]
+                }
+                this_pie = go.Pie(**this_data)
+                traces.append(this_pie)
+                
+                # print('%s: n = %u,   %s' % (protein, n, str(this_data['domain'])))
+                
+                # fig.append_trace(this_pie, int(n % 2 + 1), int(np.floor(n / 2.0) + 1))
+                this_anno['text'] = '%s [%s]' % (protein, smodes[mode])
+                this_anno['x'] = n % 2 / 2.0 + 0.25
+                this_anno['y'] = 1.0 - (0.48 / nrows * np.floor(n / 2) + 0.48 / nrows / 2.0)
+                this_anno['xanchor'] = 'center'
+                this_anno['yanchor'] = 'middle'
+                
+                param['data'].append(this_data)
+                param['layout']['annotations'].append(this_anno)
+                
+                n += 1
+        
+        layout = go.Layout(annotations = param['layout']['annotations'],
+                        height = height, title = 'Lipid classes by protein',
+                        #width = 600, autosize = False
+                        )
+        fig = go.Figure(data = traces, layout = layout)
+        # print(param)
+        #fig['layout'].update(showlegend = True, title = 'Lipid classes by protein')
+        pl.iplot(fig, show_link = False)
     
     #
     # Methods for preparing a diff between 2 sets of xls outputs
