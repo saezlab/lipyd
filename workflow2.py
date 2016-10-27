@@ -27,6 +27,8 @@ import sys
 import copy
 import cPickle as pickle
 
+from future.utils import iteritems
+
 from common import *
 
 #
@@ -73,7 +75,10 @@ l.standards_crosscheck(only_best = True)
 ### Diff between recent and old erroneous output
 
 l = ltp2.Screening()
-l.features_xls_diff('top_features_July2016_backup', 'top_features')
+# l.features_xls_diff('top_features_July2016', 'top_features')
+l.features_xls_diff('top_features_2016Oct13_backup', 'top_features')
+l.features_xls_diff('top_features_2016Oct13', 'top_features')
+
 
 ### PTPN9 unknown headgroups
 
@@ -170,6 +175,21 @@ def find_constitutions(
             break
     
 
+###
+
+# output ppratio ranges:
+    
+old_ratios = copy.deepcopy(l.first_ratio)
+
+with open('ppratio_ranges.csv', 'w') as f:
+    for protein in sorted(l.first_ratio.keys()):
+        r = l.first_ratio[protein]
+        if len(r) > 1:
+            sys.stdout.write('%s has more than 1 pairs of fractions\n' % protein)
+        fr, rng = r.items()[0]
+        f.write('%s\t%s:%s\t%.03f\t%.03f\n' % (protein, fr[0], fr[1], rng[0], rng[1]))
+
+###
 
 recal_marco = l.ltps_drifts
 l.recal_source = 'denes'

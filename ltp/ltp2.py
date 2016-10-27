@@ -25,6 +25,7 @@ from past.builtins import xrange, range, reduce
 
 import os
 import sys
+import traceback
 import copy
 import time
 import datetime
@@ -2124,7 +2125,9 @@ class Screening(object):
             'pprofcache': 'pprofiles_raw.pickle',
             'abscache': 'absorbances.pickle',
             'marco_dir': 'marco',
-            'manual_ppratios_xls': 'Proteins_Overview_03b.xlsx',
+            'manual_ppratios_xls': 'Proteins_Overview_05.xlsx',
+            #'manual_ppratios_xls_cols': [2, 4, 8, 9], # 03b
+            'manual_ppratios_xls_cols': [3, 6, 10, 11], # 05
             'auxcache': 'save.pickle',
             'stdcachefile': 'calibrations.pickle',
             'validscache': 'valids.pickle',
@@ -3267,17 +3270,23 @@ class Screening(object):
                         ratios[(ref, frac)] = tuple(sorted([ratio1, ratio2]))
             self.ppratios[protein] = ratios
     
-    def read_manual_ppratios(self):
+    def read_manual_ppratios(self, verbose = False, log = None):
         refracs = re.compile(r'.*([AB])([0-9]{1,2})-([AB])([0-9]{1,2}).*')
         nondigit = re.compile(r'[^\d\.-]+')
         tbl = self.read_xls(self.manual_ppratios_xls)[1:]
+        ix = self.manual_ppratios_xls_cols
         ppratios = {}
         first = {}
         fractions = {}
+        if verbose:
+            sys.stdout.write('\tReading manual ppratios\n')
+        if log is not None:
+            logf = open(log, 'w')
+            logf.write('%s\n' % ('\t'.join(['diff', 'protein', 'fractions', 'old_lower', 'old_upper', 'new_lower', 'new_upper'])))
         for l in tbl:
-            protein = l[2].split('=')[0].strip()
+            protein = l[ix[0]].split('=')[0].strip()
             ppratios[protein] = {}
-            frm = refracs.findall(l[4])
+            frm = refracs.findall(l[ix[1]])
             fractions[protein] = set([])
             if frm is not None:
                 for i, (fr1l, fr1n, fr2l, fr2n) in enumerate(frm):
@@ -3285,11 +3294,46 @@ class Screening(object):
                     fr2 = '%s%u' % (fr2l.lower(), int(fr2n))
                     fractions[protein].add(fr1)
                     fractions[protein].add(fr2)
-                    lower = float(nondigit.sub('', l[8].split('/')[i]))
-                    upper = float(nondigit.sub('', l[9].split('/')[i]))
+                    lower = float(nondigit.sub('', l[ix[2]].split('/')[i]))
+                    upper = l[ix[3]].split('/')[i]
+                    if upper.strip().lower() == 'inf':
+                        upper = np.inf
+                    else:
+                        upper = float(nondigit.sub('', upper))
                     ppratios[protein][(fr1, fr2)] = (lower, upper)
+                    old_lower = self.ppratios[protein][(fr1, fr2)][0]
+                    old_upper = self.ppratios[protein][(fr1, fr2)][1]
+                    if verbose:
+                        sys.stdout.write('\t\tSetting %s:%s at %s to '\
+                            '%.02f-%.02f (was %.02f-%.02f before).\n' % \
+                            (fr1, fr2, protein,
+                             lower, upper,
+                             old_lower, old_upper)
+                        )
+                    if log is not None:
+                        logf.write('%s\n' % ('\t'.join([
+                            '#' if old_lower == lower and old_upper == upper else '!',
+                            protein,
+                            '%s:%s' % (fr1, fr2),
+                            '%.03f' % old_lower,
+                            '%.03f' % old_upper,
+                            '%.03f' % lower,
+                            '%.03f' % upper
+                        ])))
                     if i == 0:
                         first[protein] = (fr1, fr2)
+            else:
+                if verbose:
+                    sys.stdout.write('\t\tCould not read '\
+                        'fraction IDs for %s\n' % protein)
+            if len(protein) and not len(frm) and log is not None:
+                fr = ':'.join(self.protein_containing_fractions(protein))
+                sys.stdout.write('\t\tProtein %s present '\
+                    'only in fraction %s\n' % (protein, fr))
+                logf.write('%s\n' % \
+                    '\t'.join(['#', protein, fr] + ['None'] * 5))
+        if log is not None:
+            logf.close()
         self.ppratios_manual = ppratios
         self.first_ratio_manual = first
         self.fractions_manual = fractions
@@ -3314,12 +3358,15 @@ class Screening(object):
         self.fractions_original = copy.deepcopy(self.fractions_upper)
         refrac = re.compile(r'([AB])([0-9]{1,2})')
         tbl = self.read_xls(self.manual_ppratios_xls)[1:]
+        ix = self.manual_ppratios_xls_cols
         for l in tbl:
-            protein = l[2].split('=')[0].strip()
+            protein = l[ix[0]].split('=')[0].strip()
+            if not len(protein):
+                continue
             fracs = set(map(
                 lambda fr:
                     '%s%u' % (fr[0].lower(), int(fr[1])),
-                refrac.findall(l[4])
+                refrac.findall(l[ix[1]])
             ))
             for i, fr in enumerate(self.fracs):
                 if fr in fracs:
@@ -5700,16 +5747,17 @@ class Screening(object):
             proteindd = [i for i in proteindd if os.path.isdir(os.path.join(d, i))]
             if len(proteindd) == 0:
                 sys.stdout.write('\t:: Please mount the shared folder!\n')
-                return fnames
+                return None
             for proteind in proteindd:
-                try:
-                    proteinname, pos = redirname.findall(proteind)[0]
+                dirname = redirname.findall(proteind)
+                if len(dirname):
+                    proteinname, pos = dirname[0]
                     proteinname = proteinname.upper()
                     if proteinname not in fnames:
                         fnames[proteinname] = {}
                     if pos not in fnames[proteinname] or proteind.endswith('update'):
                         fnames[proteinname][pos] = {}
-                except:
+                else:
                     # other dirs are irrelevant:
                     continue
                 fpath = [proteind, 'Results']
@@ -5920,6 +5968,7 @@ class Screening(object):
             except IndexError:
                 sys.stdout.write('\nMissing MS2 files for %s-%s?\n' % \
                     (protein, pos))
+                continue
             if verbose:
                 outfile.write('\t:: Looking up MS1 m/z %.08f. '\
                     'Closest values found: %.08f and %.08f\n' % (
@@ -10361,7 +10410,8 @@ class Screening(object):
                 try:
                     sheet.write(j + 1, i, content, style)
                 except:
-                    sys.stdout.write('\t:: Could not write row to xlsx:\n')
+                    traceback.print_exc()
+                    sys.stdout.write('\n\t:: Could not write row to xlsx:\n')
                     sys.stdout.write('\t\t%s\n' % row)
         if colws is not None:
             for coln, colw in enumerate(colws):
@@ -10402,7 +10452,8 @@ class Screening(object):
             sys.stdout.flush()
             
             xlsname = os.path.join(xlsdir, 'all_top_features.xlsx')
-            xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True})
+            xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True,
+                                                'nan_inf_to_errors': True})
             make_xls('all', xls)
             xls.close()
             
@@ -10416,8 +10467,10 @@ class Screening(object):
             
             for protein in self.valids.keys():
                 prg.step()
-                xlsname = os.path.join(xlsdir, '%s_top_features.xlsx' % protein)
-                xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True})
+                xlsname = os.path.join(xlsdir,
+                                       '%s_top_features.xlsx' % protein)
+                xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True,
+                                                    'nan_inf_to_errors': True})
                 make_xls(protein, xls)
                 xls.close()
             
@@ -10697,8 +10750,12 @@ class Screening(object):
                         or np.isnan(tbl['iprf'][i]) \
                         else tbl['iprf'][i],
                     'NA' if self.first_ratio[protein] is None else \
+                        'Inf' if np.isinf(self.ppratios[protein][
+                            self.first_ratio[protein]][0]) else \
                         self.ppratios[protein][self.first_ratio[protein]][0],
                     'NA' if self.first_ratio[protein] is None else \
+                        'Inf' if np.isinf(self.ppratios[protein][
+                            self.first_ratio[protein]][1]) else \
                         self.ppratios[protein][self.first_ratio[protein]][1],
                     'NA' if self.first_ratio[protein] is None \
                         else '%s:%s' % self.first_ratio[protein],
@@ -11073,7 +11130,7 @@ class Screening(object):
         
         self.manual = data
     
-    def piecharts_plotly(self, by_class = True, main_title = 'Lipid classes by protein'):
+    def piecharts_plotly(self, by_class = True, main_title = 'Lipid classes by protein', result_classes = {'I'}):
         """
         Plots piecharts of detected lipids for each protein based on manually
         annotated results.
@@ -11096,17 +11153,19 @@ class Screening(object):
                     cl = self.headgroup_from_lipid_name(['S', None, lip])[0]
                     
                     if cl is None:
-                        cl = lip.split('(')[0]
+                        cl = lip.split('(')[0].strip()
+                        if ':' in cl:
+                            cl = cl.split(':')[1].strip()
                     
                     if by_class:
+                        cc = ''
+                    else:
                         cc = recount2.findall(lip)
                         
                         if not len(cc):
                             cc = recount1.findall(lip)
                         
                         cc = cc[0] if len(cc) else '?'
-                    else:
-                        cc = ''
                     
                     counts.append('%s(%s)' % (cl, cc) if len(cc) else cl)
             
@@ -11117,6 +11176,8 @@ class Screening(object):
         
         if not hasattr(self, 'lipnames') or self.lipnames is None:
             self.read_lipid_names()
+        
+        main_title = '%s (class %s)' % (main_title, ', '.join(sorted(list(result_classes))))
         
         modes = {'pos': 'positive', 'neg': 'negative'}
         smodes = {'pos': '+', 'neg': '-'}
@@ -11149,7 +11210,7 @@ class Screening(object):
                 
                 for r in self.manual[protein][mode]:
                     
-                    if r[1] == 'I':
+                    if r[1].strip() in result_classes:
                         
                         label = '/'.join(get_names(r, by_class = by_class))
                         
@@ -11193,7 +11254,7 @@ class Screening(object):
                 n += 1
         
         layout = go.Layout(annotations = param['layout']['annotations'],
-                        height = height, title = 'Lipid classes by protein',
+                        height = height, title = main_title,
                         #width = 600, autosize = False
                         )
         fig = go.Figure(data = traces, layout = layout)
@@ -11341,6 +11402,15 @@ class Screening(object):
                                 'Compiling diffs, generating xls',
                                 1, percent = False)
         
+        # old +, new +, + new, + false, 
+        # old best +, new best +, ...
+        stats = {}
+        stats['hdr'] = ['', 'old +', 'new +', '+ new', '+ false',
+                'old best +', 'new best +', 'best + new', 'best + false',
+                'old -', 'new -', '- new', '- false',
+                'old best -', 'new best -', 'best - new', 'best - false'
+            ]
+        
         for f in fnames1:
             
             prg.step()
@@ -11350,10 +11420,24 @@ class Screening(object):
             xls2 = get_xls(dir2, f)
             nhdr = get_header(xls1, '%s_negative' % protein)
             phdr = get_header(xls1, '%s_positive' % protein)
+            nums = [protein]
             # new records in recent tables:
             new = diff(xls2, xls1)
             # false records in old tables:
             old = diff(xls1, xls2)
+            
+            for mode in ['positive', 'negative']:
+                for sel in ['', '_best']:
+                    
+                    sheet_name = '%s_%s%s' % (protein, mode, sel)
+                    nums.extend([
+                        '%u' % (xls1[sheet_name].max_row - 1),
+                        '%u' % (xls2[sheet_name].max_row - 1),
+                        '%u' % len(new[sheet_name][0]),
+                        '%u' % len(old[sheet_name][0])
+                    ])
+            
+            stats[protein] = nums
             
             difffname = '%s_diff.xlsx' % protein
             difffname = os.path.join(outdir, difffname)
@@ -11388,3 +11472,10 @@ class Screening(object):
             xls.close()
         
         prg.terminate()
+        
+        with open('diff_stats.txt', 'w') as f:
+            f.write('%s\n' % '\t'.join(stats['hdr']))
+            del stats['hdr']
+            for protein in sorted(stats.keys()):
+                f.write('%s\n' % '\t'.join(stats[protein]))
+    
