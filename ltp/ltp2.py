@@ -3198,6 +3198,28 @@ class Screening(object):
                         getattr(self, propname)[protein_name.upper()][fr] = 0.0
         self.pp_zeroed = True
     
+    def fractions_table(self, attr, fname = 'fractions_absorption.csv'):
+        fracs = ['a5', 'a6', 'a7', 'a8', 'a9', 'a10', 'a11', 'a12', 'b1']
+        values = getattr(self, attr)
+        with open(fname, 'w') as f:
+            f.write('%s\n' % '\t'.join([''] + fracs))
+            for protein in sorted(values.keys()):
+                f.write('%s\n' % \
+                    '\t'.join([protein] + list(map(lambda fr:
+                                           '%.08f' % values[protein][fr],
+                                        fracs)))
+                )
+    
+    def protein_containing_fractions_table(self, fname = 'proteins_in_fractions.csv'):
+        with open(fname, 'w') as f:
+            f.write('%s\n' % '\t'.join([''] + self.fracs))
+            for protein in sorted(self.fractions):
+                f.write('%s\n' % \
+                        '\t'.join([protein] + list(map(lambda fr:
+                                str(self.fractions[protein][fr + 1]),
+                            xrange(5))))
+                )
+    
     def protein_containing_fractions(self, protein):
         with_protein = []
         sample = self.fractions_upper[protein]
@@ -3479,7 +3501,7 @@ class Screening(object):
                     in_range = []
                     ppr = sorted(self.ppratios[protein][self.first_ratio[protein]])
                     for ipr in tbl['iprf']:
-                        in_range.append(ppr[0] < ipr < ppr[1])
+                        in_range.append(ppr[0] <= ipr <= ppr[1])
                     tbl['prr'] = np.array(in_range)
                 else:
                     tbl['prr'] = None
@@ -10700,9 +10722,10 @@ class Screening(object):
                     # '%u:%u' % (int(tbl['rtm'][i]) / 60, tbl['rtm'][i] % 60),
                     ms2_rt,
                     delta_rt,
-                    tbl['iprf'][i] if tbl['iprf'] is not None \
-                        and not np.isinf(tbl['iprf'][i]) \
-                        and not np.isnan(tbl['iprf'][i]) else 'NA',
+                    'Inf' if np.isinf(tbl['iprf'][i]) else \
+                        'NA' if np.isnan(tbl['iprf'][i]) or \
+                            tbl['iprf'] is None else \
+                        tbl['iprf'][i],
                     (lips1, 'green' if len(lips1) else 'plain'),
                     (lips2, 'green' if len(lips2) else 'plain'),
                     (lips3, 'green' if len(lips3) else 'plain'),
@@ -10746,8 +10769,8 @@ class Screening(object):
                         else 'green'
                     ),
                     'NA' if self.first_ratio[protein] is None \
-                        or np.isinf(tbl['iprf'][i]) \
                         or np.isnan(tbl['iprf'][i]) \
+                        else 'Inf' if np.isinf(tbl['iprf'][i]) \
                         else tbl['iprf'][i],
                     'NA' if self.first_ratio[protein] is None else \
                         'Inf' if np.isinf(self.ppratios[protein][
@@ -11129,6 +11152,42 @@ class Screening(object):
             data[protein]['pos'] = read_table(tblpos[1:])
         
         self.manual = data
+    
+    def read_manual2(self, fname = 'All_results_v04.xlsx'):
+        """
+        Reads manually annotated results from Marco's final table.
+        """
+        result = {}
+        reclass = re.compile(r'(^[IV]*\.?[0-9]?).*')
+        
+        tbl = self.read_xls(fname, sheet = 'final data')
+        
+        for l in tbl:
+            
+            protein, mode = l[1].split('_')
+            mode = mode[:3]
+            
+            if protein not in result:
+                result[protein] = {}
+            
+            if mode not in result[protein]:
+                result[protein][mode] = []
+            
+            if l[2].strip()[:4] == 'Qual':
+                continue
+            
+            result[protein][mode].append([
+                float(l[15]), # m/z corrected
+                reclass.match(l[19]).groups()[0], # result class
+                l[16], # SwissLipids name
+                l[17], # main headgroup class
+                int(float(l[14])), # intensity
+                float(l[4]), # m/z original
+                protein, # protein name
+                mode # ion mode
+            ])
+        
+        return result
     
     def piecharts_plotly(self, by_class = True, main_title = 'Lipid classes by protein', result_classes = {'I'}):
         """

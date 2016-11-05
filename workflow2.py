@@ -74,10 +74,10 @@ l.standards_crosscheck(only_best = True)
 
 ### Diff between recent and old erroneous output
 
-l = ltp2.Screening()
+# l = ltp2.Screening(manual_ppratios_xls = 'Proteins_Overview_03b.xlsx', manual_ppratios_xls_cols = [2, 4, 8, 9])
 # l.features_xls_diff('top_features_July2016', 'top_features')
 l.features_xls_diff('top_features_2016Oct13_backup', 'top_features')
-l.features_xls_diff('top_features_2016Oct13', 'top_features')
+l.features_xls_diff('top_features_2016Oct14', 'top_features')
 
 
 ### PTPN9 unknown headgroups
