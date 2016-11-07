@@ -51,6 +51,7 @@ import base64
 import struct
 
 import numpy as np
+import pandas as pd
 import scipy as sp
 from scipy import stats
 import scipy.cluster.hierarchy as hc
@@ -63,6 +64,7 @@ import seaborn as sns
 import plotly.offline as pl
 import plotly.graph_objs as go
 import plotly.tools
+import altair
 
 import rpy2.robjects.packages as rpackages
 rvcd = rpackages.importr('vcdExtra')
@@ -2273,6 +2275,12 @@ class Screening(object):
         }
         
         self.use_manual_ppratios = True
+        
+        self.recount1 = re.compile(r'\(([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})\)')
+        self.recount2 = re.compile(r'\(([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/'
+                                   r'([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
+                                   r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
+        self.readd = re.compile(r'(\[M[-\+][-\)\)\+A-Za-z0-9]*\][0-9]?[\-+])')
         
         fonts = open('fonts.css', 'r')
         self.html_table_template = """<!DOCTYPE html>
@@ -11187,7 +11195,224 @@ class Screening(object):
                 mode # ion mode
             ])
         
-        return result
+        self.manual = result
+    
+    def manual_df(self):
+        """
+        Creates a pandas dataframe from manual results.
+        """
+        
+        shgs = {
+            'Monoalkylmonoacylglycerol-O': 'MAG-O',
+            'hydroquinone?': 'HQ',
+            'Ganglioside GM3': 'GM3',
+            'alpha-tocopherol metabolite': 'VE',
+            r'Retinol {calculated as -H2O adduct '\
+                r'is not in applied database}': 'VA',
+            'docosapentaenoate': 'PUFA',
+            'octacosatetraenoate': 'PUFA',
+            'Sterol ester': 'SE',
+            'nothing': 'N/A',
+            'unknown': 'N/A'
+        }
+        
+        def get_names(r):
+            """
+            Extracts the lipid names and carbon counts
+            from the SwissLipids IDs field.
+            """
+            
+            counts = []
+            for lips in r.split(r'///'):
+                
+                add = self.readd.match(lips)
+                
+                if add is not None:
+                    add = add.groups()[0]
+                else:
+                    add = ''
+                
+                for lip in lips.split(';'):
+                    
+                    res = []
+                    
+                    cl = self.headgroup_from_lipid_name(['S', None, lip])[0]
+                    
+                    if cl is None:
+                        cl = lip.split('(')[0].strip()
+                        if ':' in cl:
+                            cl = cl.split(':')[1].strip()
+                    
+                    res.append(cl)
+                    
+                    cc1 = self.recount1.findall(lip)
+                    if len(cc1):
+                        
+                        res.extend([cc1[0][0], int(cc1[0][1]), int(cc1[0][2])])
+                    else:
+                        res.extend(['', np.nan, np.nan])
+                    
+                    cc2 = self.recount2.findall(lip)
+                    
+                    if len(cc2):
+                        res.extend([cc2[0][0], int(cc2[0][1]), int(cc2[0][2]),
+                                    cc2[0][3], int(cc2[0][4]), int(cc2[0][5]),
+                                    cc2[0][6],
+                                    int(cc2[0][7]) \
+                                        if len(cc2[0][7]) else np.nan,
+                                    int(cc2[0][8]) \
+                                        if len(cc2[0][8]) else np.nan])
+                    else:
+                        res.extend(['', np.nan, np.nan,
+                                    '', np.nan, np.nan,
+                                    '', np.nan, np.nan])
+                    
+                    counts.append(res)
+            
+            return counts
+        
+        if not hasattr(self, 'manual') or self.manual is None:
+            self.read_manual2()
+        
+        if not hasattr(self, 'lipnames') or self.lipnames is None:
+            self.read_lipid_names()
+        
+        result = []
+        
+        for protein, d in iteritems(self.manual):
+            for mode, tbl in iteritems(d):
+                for i, l in enumerate(tbl):
+                    
+                    counts = get_names(l[2])
+                    
+                    res = [protein, mode, i, l[0], l[5], l[4], l[1], l[3]]
+                    
+                    for cnt in counts:
+                        res1 = res[:]
+                        
+                        if cnt[1] == 'O':
+                            cnt[0] = '%s-O' % cnt[0]
+                        
+                        if cnt[0] in shgs:
+                            cnt[0] = shgs[cnt[0]]
+                        
+                        res1.extend(cnt)
+                        result.append(res1)
+        
+        self.pmanual = pd.DataFrame(result,
+                                   columns = [
+                                       'protein',
+                                       'ionm',
+                                       'id',
+                                       'mz',
+                                       'mzcorr',
+                                       'intensity',
+                                       'cls',
+                                       'headgroup1',
+                                       'headgroup',
+                                       'pref',
+                                       'carb',
+                                       'unsat',
+                                       'fa1p',
+                                       'fa1c',
+                                       'fa1u',
+                                       'fa2p',
+                                       'fa2c',
+                                       'fa2u',
+                                       'fa3p',
+                                       'fa3c',
+                                       'fa3u'
+                                    ])
+    
+    def bubble_altair(self,
+                      classes = ['I', 'II'],
+                      subtitle = '',
+                      main_title = ''):
+        
+        smodes = {'pos': '+', 'neg': '-'}
+        # select the classes
+        data = self.pmanual[self.pmanual.cls.isin(classes)]
+        
+        nrows = 0
+        ncols = len(data.ionm.unique())
+        subplot_titles = []
+        
+        allhgs = sorted(data.headgroup.unique())
+        unsat = np.arange(min(data.unsat), max(data.unsat) + 1)
+        carb = np.arange(min(data.carb), max(data.carb) + 1)
+        inte = (min(data.intensity), max(data.intensity))
+        traces = []
+        
+        xlim = [min(unsat), max(unsat)]
+        ylim = [min(carb), max(carb)]
+        
+        altair.Chart()
+    
+    def bubble_plotly(self,
+                     classes = ['I', 'II'],
+                     subtitle = '',
+                     main_title = ''):
+        
+        smodes = {'pos': '+', 'neg': '-'}
+        # select the classes
+        data = self.pmanual[self.pmanual.cls.isin(classes)]
+        
+        nrows = 0
+        ncols = len(data.ionm.unique())
+        subplot_titles = []
+        
+        allhgs = sorted(data.headgroup.unique())
+        unsat = np.arange(min(data.unsat), max(data.unsat) + 1)
+        carb = np.arange(min(data.carb), max(data.carb) + 1)
+        inte = (min(data.intensity), max(data.intensity))
+        traces = []
+        
+        xlim = [min(unsat), max(unsat)]
+        ylim = [min(carb), max(carb)]
+        
+        for protein in sorted(data.protein.unique()):
+            nrows += 1
+            
+            for mode in sorted(data.ionm.unique()):
+                
+                subplot_titles.append('%s%s%s' % (
+                    protein,
+                     smodes[mode],
+                     ', %s' % subtitle if len(subtitle) else '')
+                )
+                
+                this_data = \
+                    data[(data.protein == protein) & (data.ionm == mode)]
+                
+                vals = this_data.groupby(['carb', 'unsat'])['intensity'].sum()
+                #print(list(iteritems(vals)))
+                x = list(map(lambda i: i[0][1], iteritems(vals)))
+                y = list(map(lambda i: i[0][0], iteritems(vals)))
+                s = list(map(lambda i: i[1] / float(inte[1]), iteritems(vals)))
+                
+                #print(protein, x, y, s)
+                
+                traces.append(go.Scatter(x = x, y = y,
+                                         mode = 'markers',
+                                         marker = dict(size = s, sizemode = 'area', sizeref = 0.0001),
+                                         name = '%s%s' % (protein, smodes[mode]), fill = '#333333', showlegend = False,
+                                         xaxis = dict(range = xlim),
+                                         yaxis = dict(range = ylim))
+                                    )
+        
+        fig = plotly.tools.make_subplots(rows=nrows,
+                                         cols=ncols,
+                                         print_grid = False,
+                                         subplot_titles=subplot_titles
+                                        )
+        
+        for i, trace in enumerate(traces):
+            fig.append_trace(trace, row = int(np.floor(i / ncols) + 1), col = (i % ncols) + 1)
+        
+        fig['layout'].update(height = nrows * 500, width = 600, title = main_title,
+                             xaxis = dict(range = xlim), yaxis = dict(range = ylim))
+        
+        pl.iplot(fig, show_link = False)
     
     def piecharts_plotly(self, by_class = True, main_title = 'Lipid classes by protein', result_classes = {'I'}):
         """
@@ -11195,8 +11420,6 @@ class Screening(object):
         annotated results.
         Uses plotly, output accessible in Jupyter notebook.
         """
-        recount1 = re.compile(r'\((O?-?[0-9]{1,2}:[0-9]{1,2})\)')
-        recount2 = re.compile(r'\((O?-?[0-9]{1,2}:[0-9]{1,2}/O?-?[0-9]{1,2}:[0-9]{1,2})\)')
         
         def get_names(r, by_class = True):
             
@@ -11219,10 +11442,10 @@ class Screening(object):
                     if by_class:
                         cc = ''
                     else:
-                        cc = recount2.findall(lip)
+                        cc = self.recount2.findall(lip)
                         
                         if not len(cc):
-                            cc = recount1.findall(lip)
+                            cc = self.recount1.findall(lip)
                         
                         cc = cc[0] if len(cc) else '?'
                     
