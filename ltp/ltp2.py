@@ -61,9 +61,9 @@ import matplotlib as mpl
 import matplotlib.backends.backend_pdf
 import matplotlib.pyplot as plt
 import seaborn as sns
-import plotly.offline as pl
-import plotly.graph_objs as go
-import plotly.tools
+#import plotly.offline as pl
+#import plotly.graph_objs as go
+#import plotly.tools
 import altair
 
 import rpy2.robjects.packages as rpackages
@@ -11187,12 +11187,16 @@ class Screening(object):
             result[protein][mode].append([
                 float(l[15]), # m/z corrected
                 reclass.match(l[19]).groups()[0], # result class
-                l[16], # SwissLipids name
-                l[17], # main headgroup class
+                l[16].replace(u'−', '-'), # SwissLipids name
+                l[17].replace(u'−', '-'), # main headgroup class
                 int(float(l[14])), # intensity
                 float(l[4]), # m/z original
                 protein, # protein name
-                mode # ion mode
+                mode, # ion mode
+                float(l[7]), # RT mean
+                float(l[8]) if l[8] != 'NA' else np.nan, # RT MS2 closest
+                float(l[6].split('-')[0].strip()), # RT lower
+                float(l[6].split('-')[1].strip())  # RT greater
             ])
         
         self.manual = result
@@ -11203,17 +11207,55 @@ class Screening(object):
         """
         
         shgs = {
-            'Monoalkylmonoacylglycerol-O': 'MAG-O',
+            'Monoalkylmonoacylglycerol-O': 'DAG-O',
             'hydroquinone?': 'HQ',
             'Ganglioside GM3': 'GM3',
             'alpha-tocopherol metabolite': 'VE',
+            'alpha-tocopherol': 'VE',
             r'Retinol {calculated as -H2O adduct '\
                 r'is not in applied database}': 'VA',
             'docosapentaenoate': 'PUFA',
             'octacosatetraenoate': 'PUFA',
+            'octacosapentaenoate': 'PUFA',
+            'octadecatetraenoate': 'PUFA',
+            'octatriacontatetraenoate': 'PUFA',
+            'tetracosapentaenoate': 'PUFA',
+            'hexacosatetraenoate': 'PUFA',
+            'hexacosanoate': 'PUFA',
+            'dotriacontapentaenoate': 'PUFA',
             'Sterol ester': 'SE',
-            'nothing': 'N/A',
-            'unknown': 'N/A'
+            'nothing': 'NA',
+            'unknown': 'NA',
+            'Monoalkylglycerol-O': 'MAG-O',
+            'Monoalkyldiacylglycerol-O': 'TAG-O',
+            'Dihexosyldiacylglycerol': 'HexDAG',
+            'Monohexosyldiacylglycerol': 'HexDAG',
+            'Monoalkylmonoacylglycerol-O': 'DAG-O',
+            'Monoalkyldiacylglycerol-O': 'TAG-O',
+            'Monoalkylmonoacylglycerol': 'DAG-O',
+            '24-Hydroxy-19-norgeminivitamin D3': 'VD',
+            'NP40': 'P40',
+            'Cer1P': 'CerP'
+        }
+        
+        shgs2 = {
+            'Ganglioside': 'GM',
+            'Vit.A1': 'VA',
+            'Vit. E metabolite': 'VE',
+            'SulfohexCer': 'SHexCer',
+            'SulfoHexCer': 'SHexCer',
+            'SulfodihexCer': 'SHex2Cer',
+            'DiHexCer-OH': 'Hex2Cer-OH',
+            'DiHexCer': 'Hex2Cer',
+            'PI2xP': 'PIP2',
+            'MAMAG': 'DAG-O'
+        }
+        
+        uhgs = {
+            'Hex2Cer': 'Hex2Cer',
+            'Hex2Cer-OH': 'Hex2Cer',
+            'GM3': 'GM',
+            'Detergent': 'P40'
         }
         
         def get_names(r):
@@ -11223,7 +11265,7 @@ class Screening(object):
             """
             
             counts = []
-            for lips in r.split(r'///'):
+            for lips in r[2].split(r'///'):
                 
                 add = self.readd.match(lips)
                 
@@ -11236,6 +11278,8 @@ class Screening(object):
                     
                     res = []
                     
+                    lyso = 'Lyso' if 'lyso' in lip.lower() else ''
+                    
                     cl = self.headgroup_from_lipid_name(['S', None, lip])[0]
                     
                     if cl is None:
@@ -11243,7 +11287,25 @@ class Screening(object):
                         if ':' in cl:
                             cl = cl.split(':')[1].strip()
                     
+                    # fixing typos and inconsequent naming:
+                    clm = l[3].strip()
+                    clls = clm.lower().strip()
+                    
+                    if clls == 'ambiguous' or clls == 'ambigous':
+                        clm = 'ambiguous'
+                    
+                    if clls == 'unknown' or clls == 'unkown':
+                        clm = 'NA'
+                    
+                    if not len(clls):
+                        clm = 'NA'
+                    
+                    if len(lyso):
+                        clm = clm.replace('yso-', 'yso')
+                    # :done
+                    
                     res.append(cl)
+                    res.append(lyso)
                     
                     cc1 = self.recount1.findall(lip)
                     if len(cc1):
@@ -11267,6 +11329,16 @@ class Screening(object):
                                     '', np.nan, np.nan,
                                     '', np.nan, np.nan])
                     
+                    # a full headgroup name:
+                    fullhg = '%s%s%s' % (
+                        lyso,
+                        cl,
+                        '%s' % ('-O' if len(cc1) and cc1[0][0] == 'O' else '')
+                    )
+                    
+                    res.append(fullhg)
+                    res.append(clm)
+                    
                     counts.append(res)
             
             return counts
@@ -11283,9 +11355,13 @@ class Screening(object):
             for mode, tbl in iteritems(d):
                 for i, l in enumerate(tbl):
                     
-                    counts = get_names(l[2])
+                    counts = get_names(l)
                     
-                    res = [protein, mode, i, l[0], l[5], l[4], l[1], l[3]]
+                    if l[3].strip() in shgs2:
+                        l[3] = shgs2[l[3].strip()]
+                    
+                    res = [protein, mode, i, l[0], l[5], l[4], l[1], l[3]] + \
+                        l[8:12]
                     
                     for cnt in counts:
                         res1 = res[:]
@@ -11293,10 +11369,56 @@ class Screening(object):
                         if cnt[1] == 'O':
                             cnt[0] = '%s-O' % cnt[0]
                         
-                        if cnt[0] in shgs:
-                            cnt[0] = shgs[cnt[0]]
+                        if cnt[0].strip() in shgs:
+                            cnt[0] = shgs[cnt[0].strip()]
+                        
+                        cnt[-1] = cnt[-1].strip()
+                        
+                        for hgi in [-1, -2]:
+                            
+                            if cnt[hgi] in shgs:
+                                cnt[hgi] = shgs[cnt[hgi]]
+                            if cnt[hgi] in shgs2:
+                                cnt[hgi] = shgs2[cnt[hgi]]
+                        
+                        uhg = cnt[-1]
+                        if uhg in set(['ambiguous', 'adduct']):
+                            uhg = cnt[-2]
+                        
+                        if uhg in uhgs:
+                            uhg = uhgs[uhg]
+                        
+                        cnt.append(uhg)
+                        
+                        if not np.isnan(cnt[3]) and not np.isnan(cnt[4]):
+                            cnt.append('%s(%u:%u)' % (
+                                cnt[16],
+                                cnt[3],
+                                cnt[4]
+                            ))
+                            cnt.append('%u:%u' % (cnt[3], cnt[4]))
+                        else:
+                            cnt.append('NA')
+                            cnt.append('NA')
+                        
+                        facc = []
+                        for i in [6, 9, 12]:
+                            if not np.isnan(cnt[i]) and not np.isnan(cnt[i+1]):
+                                facc.append((cnt[i], cnt[i+1]))
+                        
+                        facc = '/'.join(map(lambda cc: '%u:%u' % cc,
+                                            sorted(facc)))
+                        
+                        if len(facc):
+                            cnt.append('%s(%s)' % (cnt[16], facc))
+                            cnt.append(facc)
+                        else:
+                            cnt.append('NA')
+                            cnt.append('NA')
+                        
                         
                         res1.extend(cnt)
+                        
                         result.append(res1)
         
         self.pmanual = pd.DataFrame(result,
@@ -11309,7 +11431,12 @@ class Screening(object):
                                        'intensity',
                                        'cls',
                                        'headgroup1',
+                                       'rtmean',
+                                       'rtms2',
+                                       'rtlow',
+                                       'rtup',
                                        'headgroup',
+                                       'lyso',
                                        'pref',
                                        'carb',
                                        'unsat',
@@ -11321,7 +11448,14 @@ class Screening(object):
                                        'fa2u',
                                        'fa3p',
                                        'fa3c',
-                                       'fa3u'
+                                       'fa3u',
+                                       'fullhgroup',
+                                       'mhgroup',
+                                       'uhgroup',
+                                       'hgcc',
+                                       'cc',
+                                       'hgfa',
+                                       'ccfa'
                                     ])
     
     def bubble_altair(self,
@@ -11346,7 +11480,33 @@ class Screening(object):
         xlim = [min(unsat), max(unsat)]
         ylim = [min(carb), max(carb)]
         
-        altair.Chart()
+        data = data.sort_values(by = ['protein', 'ionm'])
+        
+        a = altair.Chart(data).mark_point().encode(
+            row = 'protein',
+            column = 'ionm',
+            size = 'Intensity:average(intensity)',
+            x = altair.X('unsat', axis = altair.Axis(title = 'Unsaturated count')),
+            y = altair.Y('carb', axis = altair.Axis(title = 'Carbon count'))
+        )
+        
+        return a
+    
+    def export_manual(self, fname = 'final_results.csv', **kwargs):
+        """
+        Exports the results from manual curation to csv.
+        """
+        if not hasattr(self, 'pmanual') or self.pmanual is None:
+            self.manual_df()
+        
+        if 'sep' not in kwargs:
+            kwargs['sep'] = '\t'
+        if 'na_rep' not in kwargs:
+            kwargs['na_rep'] = 'NaN'
+        if 'index' not in kwargs:
+            kwargs['index'] = False
+        
+        self.pmanual.to_csv(fname, **kwargs)
     
     def bubble_plotly(self,
                      classes = ['I', 'II'],
