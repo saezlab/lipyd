@@ -562,6 +562,77 @@ theme(axis.title = element_text(size = 24),
 
 ggsave('gg_cc_protein_int_size.pdf', device = cairo_pdf, width = 18, height = 12)
 
+###
+#
+cat("\t:: Plotting `Protein vs. carbon count & unsaturation vs. intensity`.\n")
+p <- ggplot(datacc, aes(x = cc, y = protein, size = log10(intensity), color = cls)) +
+geom_point(stat = 'sum', alpha = 0.4) +
+scale_radius(guide = guide_legend(title = 'Intensity (log)')) +
+xlab('Carbon count & unsaturation') +
+ylab('Protein') +
+ggtitle('Protein vs. carbon count & unsaturation vs. intensity') +
+theme(axis.title = element_text(size = 24),
+      axis.text = element_text(size = 18),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, size = 10),
+      plot.title = element_text(size = 21),
+      strip.text = element_text(size = 18),
+      panel.grid.minor.x = element_blank())
+
+ggsave('gg_all_cc_protein_int_class_size.pdf', device = cairo_pdf, width = 18, height = 12)
+
+
+#
+cat("\t:: Plotting `Protein vs. carbon count & unsaturation vs. intensity`.\n")
+ggplot(adata12cc, aes(x = cc, y = protein, size = log10(intensity), color = cls)) +
+geom_point(stat = 'sum', alpha = 0.4) +
+scale_radius(guide = guide_legend(title = 'Intensity (log)')) +
+xlab('Carbon count & unsaturation') +
+ylab('Protein') +
+ggtitle('Protein vs. carbon count & unsaturation vs. intensity') +
+theme(axis.title = element_text(size = 24),
+      axis.text = element_text(size = 18),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, size = 10),
+      plot.title = element_text(size = 21),
+      strip.text = element_text(size = 18),
+      panel.grid.minor.x = element_blank())
+
+ggsave('gg_cc_protein_int_class_size.pdf', device = cairo_pdf, width = 18, height = 12)
+
+#
+cat("\t:: Plotting `Protein vs. carbon count & unsaturation vs. intensity`.\n")
+ggplot(adata12cc, aes(x = cc, y = protein, size = log10(intensity), color = cls)) +
+geom_point(stat = 'sum', alpha = 0.4) +
+scale_radius(guide = guide_legend(title = 'Intensity (log)')) +
+xlab('Carbon count & unsaturation') +
+ylab('Protein') +
+ggtitle('Protein vs. carbon count & unsaturation vs. intensity') +
+theme(axis.title = element_text(size = 24),
+      axis.text = element_text(size = 18),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, size = 10),
+      plot.title = element_text(size = 21),
+      strip.text = element_text(size = 18),
+      panel.grid.minor.x = element_blank())
+
+ggsave('gg_cc_protein_int_class_hg_size.pdf', device = cairo_pdf, width = 18, height = 12)
+
+#
+cat("\t:: Plotting `Protein vs. carbon count & unsaturation vs. intensity`.\n")
+p <- ggplot(adata12cc, aes(x = cc, y = protein, size = log10(intensity), color = cls, label = uhgroup)) +
+geom_text(stat = 'sum', alpha = 0.4) +
+scale_radius(guide = guide_legend(title = 'Intensity (log)')) +
+xlab('Carbon count & unsaturation') +
+ylab('Protein') +
+ggtitle('Protein vs. carbon count & unsaturation vs. intensity') +
+theme(axis.title = element_text(size = 24),
+      axis.text = element_text(size = 18),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, size = 10),
+      plot.title = element_text(size = 21),
+      strip.text = element_text(size = 18),
+      panel.grid.minor.x = element_blank())
+
+ggsave('gg_cc_protein_int_class_hg_text.pdf', device = cairo_pdf, width = 18, height = 12)
+
+###
 #
 cat("\t:: Plotting `Protein vs. fatty acids vs. intensity`.\n")
 ggplot(adata12ccfa, aes(x = ccfa, y = protein, size = log10(intensity))) +
@@ -602,6 +673,48 @@ theme(axis.title = element_text(size = 24),
       panel.grid.minor.x = element_blank())
 
 ggsave('gg_hg_cc_protein_int_size.pdf', device = cairo_pdf, width = 30, height = 9)
+
+###
+#
+cat("\t:: Plotting `Protein vs. headgroup, carbon count & unsaturation vs. intensity vs. class`.\n")
+p <- ggplot(adata12cc, aes(x = hgcc, y = protein, color = cls, size = log10(intensity))) +
+geom_point(stat = 'sum', alpha = 0.33) +
+scale_radius(guide = guide_legend(title = 'Intensity (log)')) +
+scale_color_discrete(guide = guide_legend(title = 'Class')) +
+xlab('Headgroup, carbon count & unsaturation') +
+ylab('Protein') +
+ggtitle('Protein vs. headgroup, carbon count & unsaturation vs. intensity') +
+theme(axis.title = element_text(size = 24),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, size = 9, hjust = 1),
+      axis.text.y = element_text(size = 14),
+      #axis.ticks.x = element_blank(),
+      plot.title = element_text(size = 21),
+      strip.text = element_text(size = 18),
+      #panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank())
+
+ggsave('gg_hg_cc_protein_int_class_size.pdf', device = cairo_pdf, width = 30, height = 9)
+
+#
+cat("\t:: Plotting `Protein vs. headgroup, carbon count & unsaturation vs. intensity vs. class`.\n")
+p <- ggplot(datacc, aes(x = hgcc, y = protein, color = cls, size = log10(intensity))) +
+geom_point(stat = 'sum', alpha = 0.33) +
+scale_radius(guide = guide_legend(title = 'Intensity (log)')) +
+scale_color_discrete(guide = guide_legend(title = 'Class')) +
+xlab('Headgroup, carbon count & unsaturation') +
+ylab('Protein') +
+ggtitle('Protein vs. headgroup, carbon count & unsaturation vs. intensity') +
+theme(axis.title = element_text(size = 24),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, size = 5, hjust = 1),
+      axis.text.y = element_text(size = 11),
+      #axis.ticks.x = element_blank(),
+      plot.title = element_text(size = 21),
+      strip.text = element_text(size = 18),
+      #panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank())
+
+ggsave('gg_all_hg_cc_protein_int_class_size.pdf', device = cairo_pdf, width = 49, height = 9)
+###
 
 #
 cat("\t:: Plotting `Protein vs. headgroup & fatty acids vs. intensity`.\n")
@@ -646,3 +759,26 @@ theme(axis.title = element_text(size = 24),
       panel.grid.minor.y = element_blank())
 
 ggsave('gg_hg_protein_int_raster.pdf', device = cairo_pdf, width = 9, height = 9)
+
+###
+#
+my.formula <- y ~ order(as.factor(x))
+
+cat("\t:: Plotting `RT vs. carbon count & unsaturation by headgroup`.\n")
+p <- ggplot(adata12cc, aes(x = as.integer(carb), y = rtmean, color = cls, size = log10(intensity))) +
+geom_point(stat = 'sum', alpha = 0.33) +
+stat_smooth(fullrange = TRUE, show.legend = FALSE, se = TRUE, method = lm, linetype = 2, geom = 'smooth') +
+facet_wrap( ~ uhgroup, scales = 'free') +
+scale_radius(guide = guide_legend(title = 'Intensity (log)')) +
+scale_color_discrete(guide = guide_legend(title = 'Class')) +
+xlab('Carbon count unsaturation') +
+ylab('Mean RT [min]') +
+ggtitle('RT vs. carbon count & unsaturation by headgroup') +
+theme(axis.title = element_text(size = 24),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, size = 9, hjust = 1),
+    axis.text.y = element_text(size = 11),
+    plot.title = element_text(size = 21),
+    strip.text = element_text(size = 18),
+    panel.grid.minor.x = element_blank())
+
+ggsave('gg_rt_hg_cc_unsat_int_class_lm_size.pdf', device = cairo_pdf, width = 30, height = 30)

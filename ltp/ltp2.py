@@ -64,15 +64,22 @@ import seaborn as sns
 #import plotly.offline as pl
 #import plotly.graph_objs as go
 #import plotly.tools
-import altair
+try:
+    import altair
+except:
+    sys.stdout.write('No module `altair` available.\n')
 
-import rpy2.robjects.packages as rpackages
-rvcd = rpackages.importr('vcdExtra')
-rbase = rpackages.importr('base')
-rutils = rpackages.importr('utils')
-rstats = rpackages.importr('stats')
-rococo = rpackages.importr('rococo')
+try:
+    import rpy2.robjects.packages as rpackages
+    rvcd = rpackages.importr('vcdExtra')
+    rbase = rpackages.importr('base')
+    rutils = rpackages.importr('utils')
+    rstats = rpackages.importr('stats')
+    rococo = rpackages.importr('rococo')
+except:
+    sys.stdout.write('Could not import rpy2 or some of the R packages.\n')
 
+# from this module:
 import mass
 import progress
 import _curl
@@ -2114,12 +2121,14 @@ class Screening(object):
             'bindpropf': 'binding_properties.csv',
             'recalfile': 'Recalibration_values_LTP.csv',
             'metabsf': 'Metabolites.xlsx',
+            'ltplistf': 'ltplist.csv',
             'swisslipids_url': 'http://www.swisslipids.org/php/'\
                 'export.php?action=get&file=lipids.csv',
             'lipidmaps_url': 'http://www.lipidmaps.org/resources/downloads/'\
                 'LMSDFDownload28Jun15.tar.gz',
             'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
                 'LMSDFDownload28Jun15FinalAll.sdf',
+            'comppi_url': 'http://comppi.linkgroup.hu/downloads',
             'pfragmentsfile': 'lipid_fragments_positive_mode_v10d%s.txt',
             'nfragmentsfile': 'lipid_fragments_negative_mode_v10d.txt',
             'pptable_file': 'protein_profiles.txt',
@@ -2155,6 +2164,7 @@ class Screening(object):
             'use_original_average_area': True,
             'ms2_rt_within_range': False,
             'ms2_only_protein_fractions' : False,
+            'uniprots': None,
             'ad2ex': {
                 1: {
                     'pos': {
@@ -2221,7 +2231,7 @@ class Screening(object):
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
             'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
-            'manualdir']
+            'manualdir', 'ltplistf']
         
         for attr, val in self.defaults.iteritems():
             if attr in kwargs:
@@ -11921,3 +11931,54 @@ class Screening(object):
             for protein in sorted(stats.keys()):
                 f.write('%s\n' % '\t'.join(stats[protein]))
     
+    def to_uniprot(self, protein):
+        """
+        Gets the UniProt from LTP name.
+        """
+        self.read_uniprots()
+        
+        return self.uniprots[protein]['uniprot'] \
+            if protein in self.uniprots else None
+    
+    def get_family(self, protein):
+        """
+        Returns the lipid binding domain family from LTP name.
+        """
+        self.read_uniprots()
+        
+        return self.uniprots[protein]['family'] \
+            if protein in self.uniprots else None
+    
+    def read_uniprots(self, reread = True):
+        """
+        Reads the UniProt IDs and domain families of LTPs.
+        Result stored in `uniprots` attribute.
+        """
+        if self.uniprots is None or reread:
+            with open(self.ltplistf, 'r') as f:
+                self.uniprots = dict(
+                    map(
+                        lambda l:
+                            (l[1], {'uniprot': l[2], 'family': l[0]}),
+                        map(
+                            lambda l:
+                                l.split('\t'),
+                            f
+                        )
+                    )
+                )
+    
+    def get_comppi_localizations(self):
+        """
+        Downloads localization data from ComPPI.
+        """
+        url = self.comppi_url
+        post = {
+            'fDlSet': 'protnloc',
+            'fDlSpec': '0',
+            'fDlMloc': 'all',
+            'fDlSubmit': 'Download'
+        }
+        fp = _curl.Curl(url = url, post = post,
+                        large = True, silent = False, compr = 'gz')
+        return data
