@@ -11949,6 +11949,15 @@ class Screening(object):
         return self.uniprots[protein]['family'] \
             if protein in self.uniprots else None
     
+    def get_name(self, uniprot):
+        """
+        Returns the LTP name from its UniProt.
+        """
+        self.read_uniprots()
+        
+        return self.names[uniprot] \
+            if uniprot in self.names else None
+    
     def read_uniprots(self, reread = True):
         """
         Reads the UniProt IDs and domain families of LTPs.
@@ -11962,9 +11971,18 @@ class Screening(object):
                             (l[1], {'uniprot': l[2], 'family': l[0]}),
                         map(
                             lambda l:
-                                l.split('\t'),
+                                l.strip().split('\t'),
                             f
                         )
+                    )
+                )
+            
+            self.names = \
+                dict(
+                    map(
+                        lambda i:
+                            (i[1]['uniprot'], i[0]),
+                        iteritems(self.uniprots)
                     )
                 )
     
@@ -11979,6 +11997,47 @@ class Screening(object):
             'fDlMloc': 'all',
             'fDlSubmit': 'Download'
         }
-        fp = _curl.Curl(url = url, post = post,
+        
+        c = _curl.Curl(url = url, post = post,
                         large = True, silent = False, compr = 'gz')
-        return data
+        
+        self.read_uniprots()
+        
+        ultps = set(map(lambda p: p['uniprot'], self.uniprots.values()))
+        
+        self.ulocs = \
+            dict(
+                map(
+                    lambda l:
+                        (
+                            l[0],
+                            dict(
+                                map(
+                                    lambda loc:
+                                        (
+                                            loc[0],
+                                            float(loc[1])
+                                        ),
+                                    map(
+                                        lambda loc:
+                                            loc.split(':'),
+                                        l[3].split('|')
+                                    )
+                                )
+                            )
+                        ),
+                    map(
+                        lambda l:
+                            l.strip().split('\t'),
+                        filter(
+                            lambda l:
+                                l[:6] in ultps or l[:10] in ultps,
+                            c.result
+                        )
+                    )
+                )
+            )
+        
+        self.locs = dict(map(lambda i: (self.names[i[0]], i[1]),
+                             iteritems(self.ulocs)))
+    
