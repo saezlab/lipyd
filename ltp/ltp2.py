@@ -2129,6 +2129,12 @@ class Screening(object):
             'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
                 'LMSDFDownload28Jun15FinalAll.sdf',
             'comppi_url': 'http://comppi.linkgroup.hu/downloads',
+            'goa_url': 'ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/%s/'\
+                'goa_%s.gaf.gz',
+            'quickgo_url': 'http://www.ebi.ac.uk/QuickGO/GAnnotation?format=tsv&'\
+                'limit=-1%s&termUse=%s&tax=%u&col=proteinID,goID,goName,aspect',
+            'localizationf': 'subcellular_localisation_and_binding.xlsx',
+            'membranesf': 'membranes_lipid_composition.xlsx',
             'pfragmentsfile': 'lipid_fragments_positive_mode_v10d%s.txt',
             'nfragmentsfile': 'lipid_fragments_negative_mode_v10d.txt',
             'pptable_file': 'protein_profiles.txt',
@@ -11986,9 +11992,10 @@ class Screening(object):
                     )
                 )
     
-    def get_comppi_localizations(self):
+    def get_comppi_localizations(self, minor = False):
         """
         Downloads localization data from ComPPI.
+        Results stored in `ulocs` and `locs` attributes.
         """
         url = self.comppi_url
         post = {
@@ -12041,3 +12048,94 @@ class Screening(object):
         self.locs = dict(map(lambda i: (self.names[i[0]], i[1]),
                              iteritems(self.ulocs)))
     
+    def read_membrane_constitutions(self):
+        """
+        Reads membrane lipid constitutions from Charlotte.
+        """
+        pass
+    
+    def read_manual_localizations(self):
+        """
+        Reads localization data from our manual collection.
+        """
+        abbrev = {
+            'G': 'golgi',
+            'ER': 'ER',
+            'LE/LY': 'late endosome, lysosome',
+            'Cy': 'cytosol',
+            
+        }
+        tbl = self.read_xls(self.localizationf, sheet = 1)
+        return tbl
+    
+    def get_go_goa(self, organism='human'):
+        """
+        Downloads GO annotation from UniProt GOA.
+        """
+        
+        def add_annot(a, result):
+            if a[1] not in result[a[8]]:
+                result[a[8]][a[1]] = []
+            result[a[8]][a[1]].append(a[4])
+        
+        result = {'P': {}, 'C': {}, 'F': {}}
+        
+        url = self.goa_url % (organism.upper(), organism)
+        c = _curl.Curl(url, silent=False, large = True)
+        
+        _ = \
+            list(
+                map(
+                    lambda l:
+                        add_annot(l.strip().split('\t'), result),
+                    filter(
+                        lambda l:
+                            l[0] != '!' and len(l),
+                        map(
+                            lambda l:
+                                l.decode('ascii'),
+                            c.result
+                        )
+                    )
+                )
+            )
+        
+        return result
+
+    def get_go_quick(self, organism=9606, slim=False, names_only=False):
+        """
+        Loads GO terms and annotations from QuickGO.
+        Returns 2 dicts: `names` are GO terms by their IDs,
+        `terms` are proteins GO IDs by UniProt IDs.
+        """
+        def add_term(a, terms, names, names_only):
+            if not names_only:
+                if a[0] not in terms[a[3][0]]:
+                    terms[a[3][0]][a[0]] = set([])
+                terms[a[3][0]][a[0]].add(a[1])
+            names[a[1]] = a[2]
+        
+        termuse = 'slim' if slim or slim is None else 'ancestor'
+        goslim = '' if termuse == 'ancestor' \
+            else '&goid=%s' % ','.join(get_goslim(url=slim))
+        terms = {'C': {}, 'F': {}, 'P': {}}
+        names = {}
+        url = self.quickgo_url % (goslim, termuse, organism)
+        c = _curl.Curl(url, silent=False, large=True)
+        _ = c.result.readline()
+        
+        _ = \
+            list(
+                map(
+                    lambda l:
+                        add_term(l, terms, names, names_only),
+                    map(
+                        lambda l:
+                            l.decode('ascii').strip().split('\t'),
+                        c.result
+                    )
+                )
+            )
+        
+        return {'terms': terms, 'names': names}
+
