@@ -383,6 +383,8 @@ class Curl(object):
                             self.status = 200
                             self.terminate_progress()
                             break
+                    if self.status == 200:
+                        break
             except pycurl.error as e:
                 self.status = 500
                 if self.progress is not None:

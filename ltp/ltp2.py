@@ -64,15 +64,22 @@ import seaborn as sns
 #import plotly.offline as pl
 #import plotly.graph_objs as go
 #import plotly.tools
-import altair
+try:
+    import altair
+except:
+    sys.stdout.write('No module `altair` available.\n')
 
-import rpy2.robjects.packages as rpackages
-rvcd = rpackages.importr('vcdExtra')
-rbase = rpackages.importr('base')
-rutils = rpackages.importr('utils')
-rstats = rpackages.importr('stats')
-rococo = rpackages.importr('rococo')
+try:
+    import rpy2.robjects.packages as rpackages
+    rvcd = rpackages.importr('vcdExtra')
+    rbase = rpackages.importr('base')
+    rutils = rpackages.importr('utils')
+    rstats = rpackages.importr('stats')
+    rococo = rpackages.importr('rococo')
+except:
+    sys.stdout.write('Could not import rpy2 or some of the R packages.\n')
 
+# from this module:
 import mass
 import progress
 import _curl
@@ -2114,12 +2121,20 @@ class Screening(object):
             'bindpropf': 'binding_properties.csv',
             'recalfile': 'Recalibration_values_LTP.csv',
             'metabsf': 'Metabolites.xlsx',
+            'ltplistf': 'ltplist.csv',
             'swisslipids_url': 'http://www.swisslipids.org/php/'\
                 'export.php?action=get&file=lipids.csv',
             'lipidmaps_url': 'http://www.lipidmaps.org/resources/downloads/'\
                 'LMSDFDownload28Jun15.tar.gz',
             'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
                 'LMSDFDownload28Jun15FinalAll.sdf',
+            'comppi_url': 'http://comppi.linkgroup.hu/downloads',
+            'goa_url': 'ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/%s/'\
+                'goa_%s.gaf.gz',
+            'quickgo_url': 'http://www.ebi.ac.uk/QuickGO/GAnnotation?format=tsv&'\
+                'limit=-1%s&termUse=%s&tax=%u&col=proteinID,goID,goName,aspect',
+            'localizationf': 'subcellular_localisation_and_binding.xlsx',
+            'membranesf': 'membranes_lipid_composition.xlsx',
             'pfragmentsfile': 'lipid_fragments_positive_mode_v10d%s.txt',
             'nfragmentsfile': 'lipid_fragments_negative_mode_v10d.txt',
             'pptable_file': 'protein_profiles.txt',
@@ -2155,6 +2170,7 @@ class Screening(object):
             'use_original_average_area': True,
             'ms2_rt_within_range': False,
             'ms2_only_protein_fractions' : False,
+            'uniprots': None,
             'ad2ex': {
                 1: {
                     'pos': {
@@ -2221,7 +2237,7 @@ class Screening(object):
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
             'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
-            'manualdir']
+            'manualdir', 'ltplistf']
         
         for attr, val in self.defaults.iteritems():
             if attr in kwargs:
@@ -11921,3 +11937,205 @@ class Screening(object):
             for protein in sorted(stats.keys()):
                 f.write('%s\n' % '\t'.join(stats[protein]))
     
+    def to_uniprot(self, protein):
+        """
+        Gets the UniProt from LTP name.
+        """
+        self.read_uniprots()
+        
+        return self.uniprots[protein]['uniprot'] \
+            if protein in self.uniprots else None
+    
+    def get_family(self, protein):
+        """
+        Returns the lipid binding domain family from LTP name.
+        """
+        self.read_uniprots()
+        
+        return self.uniprots[protein]['family'] \
+            if protein in self.uniprots else None
+    
+    def get_name(self, uniprot):
+        """
+        Returns the LTP name from its UniProt.
+        """
+        self.read_uniprots()
+        
+        return self.names[uniprot] \
+            if uniprot in self.names else None
+    
+    def read_uniprots(self, reread = True):
+        """
+        Reads the UniProt IDs and domain families of LTPs.
+        Result stored in `uniprots` attribute.
+        """
+        if self.uniprots is None or reread:
+            with open(self.ltplistf, 'r') as f:
+                self.uniprots = dict(
+                    map(
+                        lambda l:
+                            (l[1], {'uniprot': l[2], 'family': l[0]}),
+                        map(
+                            lambda l:
+                                l.strip().split('\t'),
+                            f
+                        )
+                    )
+                )
+            
+            self.names = \
+                dict(
+                    map(
+                        lambda i:
+                            (i[1]['uniprot'], i[0]),
+                        iteritems(self.uniprots)
+                    )
+                )
+    
+    def get_comppi_localizations(self, minor = False):
+        """
+        Downloads localization data from ComPPI.
+        Results stored in `ulocs` and `locs` attributes.
+        """
+        url = self.comppi_url
+        post = {
+            'fDlSet': 'protnloc',
+            'fDlSpec': '0',
+            'fDlMloc': 'all',
+            'fDlSubmit': 'Download'
+        }
+        
+        c = _curl.Curl(url = url, post = post,
+                        large = True, silent = False, compr = 'gz')
+        
+        self.read_uniprots()
+        
+        ultps = set(map(lambda p: p['uniprot'], self.uniprots.values()))
+        
+        self.ulocs = \
+            dict(
+                map(
+                    lambda l:
+                        (
+                            l[0],
+                            dict(
+                                map(
+                                    lambda loc:
+                                        (
+                                            loc[0],
+                                            float(loc[1])
+                                        ),
+                                    map(
+                                        lambda loc:
+                                            loc.split(':'),
+                                        l[3].split('|')
+                                    )
+                                )
+                            )
+                        ),
+                    map(
+                        lambda l:
+                            l.strip().split('\t'),
+                        filter(
+                            lambda l:
+                                l[:6] in ultps or l[:10] in ultps,
+                            c.result
+                        )
+                    )
+                )
+            )
+        
+        self.locs = dict(map(lambda i: (self.names[i[0]], i[1]),
+                             iteritems(self.ulocs)))
+    
+    def read_membrane_constitutions(self):
+        """
+        Reads membrane lipid constitutions from Charlotte.
+        """
+        pass
+    
+    def read_manual_localizations(self):
+        """
+        Reads localization data from our manual collection.
+        """
+        abbrev = {
+            'G': 'golgi',
+            'ER': 'ER',
+            'LE/LY': 'late endosome, lysosome',
+            'Cy': 'cytosol',
+            
+        }
+        tbl = self.read_xls(self.localizationf, sheet = 1)
+        return tbl
+    
+    def get_go_goa(self, organism='human'):
+        """
+        Downloads GO annotation from UniProt GOA.
+        """
+        
+        def add_annot(a, result):
+            if a[1] not in result[a[8]]:
+                result[a[8]][a[1]] = []
+            result[a[8]][a[1]].append(a[4])
+        
+        result = {'P': {}, 'C': {}, 'F': {}}
+        
+        url = self.goa_url % (organism.upper(), organism)
+        c = _curl.Curl(url, silent=False, large = True)
+        
+        _ = \
+            list(
+                map(
+                    lambda l:
+                        add_annot(l.strip().split('\t'), result),
+                    filter(
+                        lambda l:
+                            l[0] != '!' and len(l),
+                        map(
+                            lambda l:
+                                l.decode('ascii'),
+                            c.result
+                        )
+                    )
+                )
+            )
+        
+        return result
+
+    def get_go_quick(self, organism=9606, slim=False, names_only=False):
+        """
+        Loads GO terms and annotations from QuickGO.
+        Returns 2 dicts: `names` are GO terms by their IDs,
+        `terms` are proteins GO IDs by UniProt IDs.
+        """
+        def add_term(a, terms, names, names_only):
+            if not names_only:
+                if a[0] not in terms[a[3][0]]:
+                    terms[a[3][0]][a[0]] = set([])
+                terms[a[3][0]][a[0]].add(a[1])
+            names[a[1]] = a[2]
+        
+        termuse = 'slim' if slim or slim is None else 'ancestor'
+        goslim = '' if termuse == 'ancestor' \
+            else '&goid=%s' % ','.join(get_goslim(url=slim))
+        terms = {'C': {}, 'F': {}, 'P': {}}
+        names = {}
+        url = self.quickgo_url % (goslim, termuse, organism)
+        c = _curl.Curl(url, silent=False, large=True)
+        _ = c.result.readline()
+        
+        _ = \
+            list(
+                map(
+                    lambda l:
+                        add_term(l, terms, names, names_only),
+                    map(
+                        lambda l:
+                            l.decode('ascii').strip().split('\t'),
+                        c.result
+                    )
+                )
+            )
+        
+        return {'terms': terms, 'names': names}
+
