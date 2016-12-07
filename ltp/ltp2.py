@@ -2107,9 +2107,9 @@ class Screening(object):
     def __init__(self, **kwargs):
         self.defaults = {
             'path_root': '/',
-            'basedir': ['home', 'denes', 'Documents' , 'ltp'],
+            'basedir': ['home', 'denes', 'Documents' , 'enric'],
             'data_basedir': None,
-            'datadirs': [['share'], ['share', '2015_06_Popeye']],
+            'datadirs': [['share']],
             'fractionsf': 'control_sample.csv',
             'ppfracf': 'fractions.csv',
             'ppsecdir': 'SEC_profiles',
@@ -2932,30 +2932,57 @@ class Screening(object):
         if cache and os.path.exists(self.abscache):
             self.absorb = pickle.load(open(self.abscache, 'rb'))
             return None
-        reprotein = re.compile(r'.*[\s_-]([A-Za-z0-9]{3,})\.xls')
+        reprotein = re.compile(r'.*?[\s_-]?([A-Za-z0-9]{3,})\.[a-z]{3}')
         self.absorb = {}
         secdir = os.path.join(self.basedir, self.ppsecdir)
         fnames = os.listdir(secdir)
         for fname in fnames:
             protein_name = reprotein.findall(fname)[0]
-            try:
-                tbl = self.read_xls(os.path.join(secdir, fname))[3:]
-            except xlrd.biffh.XLRDError:
-                sys.stdout.write('Error reading XLS:\n\t%s\n' % \
-                    os.path.join(self.basedir, fname))
-                continue
-            self.absorb[protein_name] = \
-                np.array(
-                    map(
-                        lambda l:
+            if fname[-3:] == 'xls' or fname[-4:] == 'xlsx':
+                try:
+                    tbl = self.read_xls(os.path.join(secdir, fname))[3:]
+                except xlrd.biffh.XLRDError:
+                    sys.stdout.write('Error reading XLS:\n\t%s\n' % \
+                        os.path.join(self.secdir, fname))
+                    continue
+                self.absorb[protein_name.upper()] = \
+                    np.array(
+                        list(
                             map(
-                                lambda num:
-                                    self.to_float(num),
-                                l[:6]
-                            ),
-                        tbl
+                                lambda l:
+                                    list(
+                                        map(
+                                            lambda num:
+                                                self.to_float(num),
+                                            l[:6]
+                                        )
+                                    ),
+                                tbl
+                            )
+                        )
                     )
-                )
+            else:
+                with open(os.path.join(secdir, fname), 'r') as f:
+                    self.absorb[protein_name.upper()] = \
+                        np.array(
+                            list(
+                                map(
+                                    lambda l:
+                                        [
+                                            float(l[0].strip()),
+                                            float(l[1].strip())
+                                        ],
+                                    filter(
+                                        len,
+                                        map(
+                                            lambda l:
+                                                l.split(),
+                                            f.read().split('\n')[3:]
+                                        )
+                                    )
+                                )
+                            )
+                        )
         pickle.dump(self.absorb, open(self.abscache, 'wb'))
     
     def pp2(self):
