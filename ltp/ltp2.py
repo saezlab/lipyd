@@ -2141,6 +2141,7 @@ class Screening(object):
             'featurescache': 'features.pickle',
             'pprofcache': 'pprofiles_raw.pickle',
             'abscache': 'absorbances.pickle',
+            'flimcache': 'fraclims.pickle',
             'marco_dir': 'marco',
             'manual_ppratios_xls': 'Proteins_Overview_05.xlsx',
             #'manual_ppratios_xls_cols': [2, 4, 8, 9], # 03b
@@ -2237,7 +2238,7 @@ class Screening(object):
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
             'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
-            'manualdir', 'ltplistf']
+            'manualdir', 'ltplistf', 'flimcache']
         
         for attr, val in self.defaults.iteritems():
             if attr in kwargs:
@@ -2927,15 +2928,20 @@ class Screening(object):
         for offset, label in zip([0.0] + self.fr_offsets, ['', 'L', 'U']):
             self._pp(offset = offset, label = label, **kwargs)
     
-    def raw_sec_absorbances(self, cache = True):
+    def raw_sec_absorbances(self, cache = True, fraclim = True):
         self.pp_zeroed = False
-        if cache and os.path.exists(self.abscache):
+        if cache and os.path.exists(self.abscache) and \
+            (not fraclim or os.path.exists(self.flimcache)):
             self.absorb = pickle.load(open(self.abscache, 'rb'))
+            if fraclim:
+                self.fraclim = pickle.load(open(self.flimcache, 'rb'))
             return None
         reprotein = re.compile(r'.*?[\s_-]?([A-Za-z0-9]{3,})\.[a-z]{3}')
         self.absorb = {}
         secdir = os.path.join(self.basedir, self.ppsecdir)
         fnames = os.listdir(secdir)
+        if fraclim:
+            self.fraclim = {}
         for fname in fnames:
             protein_name = reprotein.findall(fname)[0]
             if fname[-3:] == 'xls' or fname[-4:] == 'xlsx':
@@ -2963,6 +2969,19 @@ class Screening(object):
                     )
             else:
                 with open(os.path.join(secdir, fname), 'r') as f:
+                    
+                    sec = \
+                        list(
+                            filter(
+                                len,
+                                map(
+                                    lambda l:
+                                        l.split(),
+                                    f.read().split('\n')[3:]
+                                )
+                            )
+                        )
+                    
                     self.absorb[protein_name.upper()] = \
                         np.array(
                             list(
@@ -2972,18 +2991,45 @@ class Screening(object):
                                             float(l[0].strip()),
                                             float(l[1].strip())
                                         ],
-                                    filter(
-                                        len,
-                                        map(
-                                            lambda l:
-                                                l.split(),
-                                            f.read().split('\n')[3:]
-                                        )
-                                    )
+                                    sec
                                 )
                             )
                         )
+                    
+                    if fraclim:
+                        
+                        fraclims = \
+                            list(
+                                map(
+                                    lambda l:
+                                        (
+                                            l[3],
+                                            float(l[2].strip())
+                                        ),
+                                    filter(
+                                        lambda l:
+                                            len(l) > 3,
+                                        sec
+                                    )
+                                )
+                            )
+                        
+                        self.fraclim[protein_name.upper()] = \
+                            list(
+                                map(
+                                    lambda i:
+                                        (
+                                            i[1][1], # the lower boundary
+                                            fraclims[i[0] + 1][1], # the upper
+                                            i[1][0]  # the fraction label
+                                        ),
+                                    enumerate(fraclims[:-1]) # last one is the Waste
+                                )
+                            )
+        
         pickle.dump(self.absorb, open(self.abscache, 'wb'))
+        if fraclim:
+            pickle.dump(self.fraclim, open(self.flimcache, 'wb'))
     
     def pp2(self):
         self.raw_sec_absorbances()
