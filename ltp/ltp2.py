@@ -4811,20 +4811,21 @@ class Screening(object):
     def quality_filter(self, threshold = 0.2):
         for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
-                tbl['qly'] = np.array(tbl['raw'][:,0] >= threshold)
+                tbl['qly'] = np.array(tbl['ann'][:,0] >= threshold)
 
     def charge_filter(self, charge = 1):
         for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
-                tbl['crg'] = np.array(tbl['raw'][:,5] == charge)
+                tbl['crg'] = np.array(tbl['ann'][:,5] == charge)
     
     def rt1_filter(self, rtmin = 1.0):
         for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
-                tbl['rtm'] = tbl['raw'][:,6]
+                tbl['rtm'] = tbl['ann'][:,6]
                 tbl['rt1'] = np.array(tbl['rtm'] > rtmin)
 
     def area_filter(self, area = 10000.0):
+        area = float(area)
         for protein, d in self.data.iteritems():
             for pn, tbl in d.iteritems():
                 if self.use_original_average_area:
@@ -4847,9 +4848,13 @@ class Screening(object):
                 (tbl['int'] for d in self.data.values() for tbl in d.values())
             )
         )
+        
         prg = progress.Progress(len(self.data) * 2, 'Peak size filter', 1)
+        
         for protein, d in self.data.iteritems():
+            
             for pn, tbl in d.iteritems():
+                
                 prg.step()
                 mini = np.nanmin(
                     np.nanmax(
@@ -4877,6 +4882,7 @@ class Screening(object):
                     (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
                         (peakmax - peakmin) + peakmin)
                 )
+        
         prg.terminate()
 
     def cprofile_filter(self):
@@ -5349,8 +5355,7 @@ class Screening(object):
             ),
             tbl['ubi'][:,0] <= ubiquity
         )
-
-
+    
     def apply_filters(self,
         filters = ['quality', 'charge', 'area', 'peaksize', 'rt1'],
         param = {}):
@@ -5358,11 +5363,11 @@ class Screening(object):
             p = param[f] if f in param else {}
             fun = getattr(self, '%s_filter' % f)
             fun(**p)
-
+    
     def empty_dict(self):
         return dict((protein, {'pos': None, 'neg': None}) \
             for protein in self.data.keys())
-
+    
     def eval_filter(self, filtr, param = {}, runtime = True,
         repeat = 3, number = 10, hit = lambda x: x):
         t = None
@@ -7183,16 +7188,22 @@ class Screening(object):
             'mz': m/z values
             'i': original index
         """
+        
         self.fractions_marco()
+        
         if cache and os.path.exists(self.validscache):
             self.valids = pickle.load(open(self.validscache, 'rb'))
             return None
+        
         self.apply_filters()
         self.validity_filter()
         self.valids = dict((protein.upper(), {'pos': {}, 'neg': {}}) \
             for protein in self.data.keys())
+        
         for protein, d in self.data.iteritems():
+            
             for pn, tbl in d.iteritems():
+                
                 self.valids[protein.upper()][pn]['fe'] = np.array(tbl['smp'][tbl['vld']])
                 self.valids[protein.upper()][pn]['mz'] = \
                     np.array(tbl['raw'][tbl['vld'], 2])
@@ -7210,8 +7221,10 @@ class Screening(object):
                     'pslim10', 'pslim510', 'rtm']:
                     self.valids[protein.upper()][pn][key] = np.array(tbl[key][tbl['vld']])
                 self.valids[protein.upper()][pn]['i'] = np.where(tbl['vld'])[0]
+        
         self.norm_all()
         self.get_area()
+        
         pickle.dump(self.valids, open(self.validscache, 'wb'))
     
     def get_area(self):
@@ -7220,7 +7233,8 @@ class Screening(object):
                 try:
                     tbl['are'] = np.nanmax(tbl['fe'], 1)
                 except ValueError:
-                    print(protein, mode)
+                    sys.stdout.write('\t:: WARNING: Could not'\
+                        ' calculate area: %s, %s\n' % (protein, mode))
     
     def data2valids(self, key):
         for protein_l, dd in self.data.iteritems():
