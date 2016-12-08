@@ -2157,9 +2157,21 @@ class Screening(object):
                 'neg': 30000.0,
                 'pos': 150000.0
             },
-            'fr_offsets': [0.010, 0.045],
+            'fr_offsets': [0.0],          # at Enric this is [0.0],
+                                          # at Antonella [0.010, 0.045]
+            'abs_cols': [1], # this can be [1, 3, 5] if we want to read
+                             # also the 260 and 215 nm UV profiles...
+            'fraclims_from_sec': True, # read the fraction limits from
+                                       # the same files as SEC profiles
+                                       # or simply from `fractions.csv`
+            'pp_do_correction': False, # bypass corrections
+            'pcont_fracs_from_abs': True, # determine protein containing
+                                          # fractions from the absorbances
+                                          # or read from separate file
+            'use_manual_ppratios': False,
             'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
             'fracsU': ['A09', 'A10', 'A11', 'A12', 'B01'],
+            'pp_minratio': 3,
             'basefrac': 'a5',
             'ms1_tolerance': 0.01,
             'ms2_tolerance': 0.05,
@@ -2290,8 +2302,6 @@ class Screening(object):
             'neg': 30000.0,
             'pos': 150000.0
         }
-        
-        self.use_manual_ppratios = True
         
         self.recount1 = re.compile(r'\(([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})\)')
         self.recount2 = re.compile(r'\(([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/'
@@ -3003,7 +3013,7 @@ class Screening(object):
                                 map(
                                     lambda l:
                                         (
-                                            l[3],
+                                            l[3].replace('"', ''),
                                             float(l[2].strip())
                                         ),
                                     filter(
@@ -3034,48 +3044,84 @@ class Screening(object):
     def pp2(self):
         self.raw_sec_absorbances()
         self.absorbances_by_fractions()
-        self.pp_baseline_correction()
-        self.pp_background()
-        self.pp_background_correction()
+        if self.pp_do_correction:
+            self.pp_baseline_correction()
+            self.pp_background()
+            self.pp_background_correction()
+        else:
+            self.abs_by_frac_c = self.abs_by_frac
         self.mean_pp()
+        if self.pcont_fracs_from_abs:
+            self.protein_containing_fractions_from_absorbances()
+        if not hasattr(self, 'fractions_upper'):
+            self.fractions_upper = self.fractions
+        self.fractions_marco()
+        self.set_measured()
+        self.set_onepfraction()
         self.zero_controls()
     
     def absorbances_by_fractions(self):
+        """
+        Calculates mean absorbances by fractions at
+        all offsets in `fr_offsets`.
+        """
         result = {}
         def get_segment(protein, c, lo, hi):
             a = self.absorb[protein]
             return np.nanmean(a[np.where(np.logical_and(a[:,c - 1] < hi,
                                                      a[:,c - 1] >= lo)),c])
-        self.read_fraction_limits()
-        abs_cols = [1, 3, 5]
+        
+        if not hasattr(self, 'fraclim'):
+            self.read_fraction_limits()
+        
         for protein in self.absorb.keys():
             result[protein] = {}
-            for lim in self.fraclim:
+            # whether we have uniform limits,
+            # or different for each protein
+            fraclim = self.fraclim \
+                if type(self.fraclim) is list \
+                else self.fraclim[protein]
+            
+            for lim in fraclim:
                 result[protein][lim[2]] = {}
-                for c in abs_cols:
+                for c in self.abs_cols:
                     result[protein][lim[2]][c] = []
+                    
+                    if not self.pp_do_correction:
+                        abs_min = np.nanmin(self.absorb[protein][:,c])
+                    else:
+                        abs_min = 0.0
+                    
                     for o in self.fr_offsets:
                         result[protein][lim[2]][c].append(
-                            get_segment(protein, c, lim[0] + o, lim[1] + o)
+                            get_segment(protein, c, lim[0] + o, lim[1] + o) - \
+                                abs_min
                         )
         self.abs_by_frac = result
     
     def pp_baseline_correction(self, base = 'a5'):
+        """
+        Subtracts the value of the `base` frabction from the values
+        of each fraction. The `base` considered to be void.
+        """
         result = dict(map(lambda p: (p, {}), self.abs_by_frac.keys()))
-        for protein, d in self.abs_by_frac.iteritems():
-            for fr, d2 in d.iteritems():
+        for protein, d in iteritems(self.abs_by_frac):
+            for fr, d2 in iteritems(d):
                 result[protein][fr] = \
                     dict(
                         map(
-                            lambda (c, ab):
+                            lambda c:
                                 (
-                                    c,
-                                    [
-                                        ab[0] - d[base][c][0],
-                                        ab[1] - d[base][c][1]
-                                    ]
-                                 ),
-                            d2.iteritems()
+                                    c[0],
+                                    list(
+                                        map(
+                                            lambda ab:
+                                                ab[1] - d[base][c[0]][ab[0]],
+                                            enumerate(c[1])
+                                        )
+                                    )
+                                ),
+                            iteritems(d2)
                         )
                     )
         self.abs_by_frac_b = result
@@ -3173,10 +3219,11 @@ class Screening(object):
                         d.iteritems()
                     )
                 )
+        
         for protein, d in self.abs_by_frac_c.iteritems():
             get_mean('pprofs', np.nanmean)
             get_mean('pprofsL', lambda x: x[0])
-            get_mean('pprofsU', lambda x: x[1])
+            get_mean('pprofsU', lambda x: x[-1])
     
     def read_fraction_limits(self):
         with open(self.ppfracf, 'r') as f:
@@ -3286,14 +3333,56 @@ class Screening(object):
             return None
         for offset, label in zip([0.0] + self.fr_offsets, ['', 'L', 'U']):
             propname = 'pprofs%s' % label
-            self.protein_profile_correction(propname)
+            if self.pp_do_correction:
+                self.protein_profile_correction(propname)
             setattr(self, 'pprofs_original%s' % label,
                 copy.deepcopy(getattr(self, propname)))
-            for protein_name, sample in self.fractions.iteritems():
-                for i, fr in enumerate(self.fracs):
-                    if sample[i + 1] == 0 or sample[i + 1] is None:
+            for protein_name, sample in iteritems(self.fractions):
+                for fr, val in iteritems(sample):
+                    if val == 0 or val is None:
                         getattr(self, propname)[protein_name.upper()][fr] = 0.0
         self.pp_zeroed = True
+    
+    def protein_containing_fractions_from_absorbances(self, abscol = 1):
+        """
+        Sets the protein containing fractions (`fractions`) based on
+        the UV absorbances, considering protein containing those whit a
+        value higher than the maximum / minratio.
+        """
+        self.fractions = dict(map(lambda protein: (protein, {}),
+                                  self.abs_by_frac_c.keys()))
+        
+        for protein, ab in iteritems(self.abs_by_frac_c):
+            pr = sorted(list(ab.values())[0].keys()) # the UV profile IDs,
+                                                     # e.g. 3 = 260 nm
+            abs_max = \
+                max(
+                    map(
+                        lambda a:
+                            np.mean(a[abscol]),
+                        ab.values()
+                    )
+                )
+            
+            self.fractions[protein] = \
+                dict(
+                    map(
+                        lambda f:
+                            (
+                                f[0],
+                                int(np.mean(f[1][abscol]) > \
+                                    abs_max / self.pp_minratio)
+                            ),
+                        iteritems(ab)
+                    )
+                )
+        
+        for protein, frs in iteritems(self.fractions):
+            for fr, val in iteritems(frs):
+                if fr not in self._fractions[protein]:
+                    self.fractions[protein][fr] = 0
+                else:
+                    self.fractions[protein][fr] = 1
     
     def fractions_table(self, attr, fname = 'fractions_absorption.csv'):
         fracs = ['a5', 'a6', 'a7', 'a8', 'a9', 'a10', 'a11', 'a12', 'b1']
@@ -3318,12 +3407,25 @@ class Screening(object):
                 )
     
     def protein_containing_fractions(self, protein):
-        with_protein = []
+        """
+        Returns a list of those fractions
+        """
         sample = self.fractions_upper[protein]
-        for i, fr in enumerate(self.fracs):
-            if sample[i + 1] == 1:
-                with_protein.append(fr)
-        return with_protein
+        return \
+            sorted(
+                list(
+                    map(
+                        lambda i:
+                            i[0],
+                        filter(
+                            lambda i:
+                                i[1] == 1,
+                            iteritems(self.fractions[protein])
+                        )
+                    )
+                ),
+                key = lambda f: (int(f[0]), f[1], int(f[2:]))
+            )
     
     def fractions_by_protein_amount(self):
         def order(protein, with_protein, pprofs):
@@ -3474,7 +3576,19 @@ class Screening(object):
                     self.first_ratio[protein] = self.first_ratio_manual[protein]
     
     def fractions_marco(self):
-        self.fractions_original = copy.deepcopy(self.fractions_upper)
+        """
+        Reads manually defined protein peak ratios and protein containing
+        fractions.
+        """
+        
+        self.fractions_original = \
+            copy.deepcopy(self.fractions_upper
+                          if hasattr(self, 'fractions_upper')
+                          else self.fractions)
+        
+        if not self.use_manual_ppratios:
+            return None
+        
         refrac = re.compile(r'([AB])([0-9]{1,2})')
         tbl = self.read_xls(self.manual_ppratios_xls)[1:]
         ix = self.manual_ppratios_xls_cols
@@ -4355,8 +4469,11 @@ class Screening(object):
         if sum(map(len, datadlsts)) == 0:
             sys.stdout.write('\t:: Please mount the shared folder!\n')
             return fnames
+        
         for path, proteindl in zip(self.datadirs, datadlsts):
+            
             for proteind in proteindl:
+                
                 protein = redirname.findall(proteind)
                 pos = 'pos' if 'pos' in proteind \
                     else 'neg' if 'neg' in proteind else None
@@ -4364,7 +4481,7 @@ class Screening(object):
                     protein = protein[0]
                     fpath = [proteind, 'features']
                     for f in os.listdir(os.path.join(path, *fpath)):
-                        if 'LABELFREE' in f:
+                        if 'LABELFREE' in f or 'features' in f:
                             fpath.append(f)
                             break
                     for f in os.listdir(os.path.join(path, *fpath)):
@@ -6698,7 +6815,8 @@ class Screening(object):
         self.read_annotations()
         self.pp2()
         self.write_pptable()
-        del self.datafiles['ctrl']
+        if 'ctrl' in self.datafiles:
+            del self.datafiles['ctrl']
         self.save()
         self.read_data()
         self.save_data()
@@ -6730,9 +6848,6 @@ class Screening(object):
         """
         self.read_fractions()
         self.upper_fractions()
-        self.fractions_marco()
-        self.set_measured()
-        self.set_onepfraction()
         self.read_lipid_names()
         self.read_binding_properties()
     
@@ -6741,15 +6856,30 @@ class Screening(object):
         Reads from file sample/control annotations 
         for each proteins.
         """
-        data = {}
-        with open(self.fractionsf, 'r') as f:
-            null = f.readline()
-            for l in f:
-                l = l.split(',')
-                data[l[0].replace('"', '').upper()] = \
-                    np.array([self.to_int(x) \
-                        if x != '' else None for x in l[1:]])
-        self.fractions = data
+        if not self.pcont_fracs_from_abs:
+            data = {}
+            with open(self.fractionsf, 'r') as f:
+                null = f.readline()
+                for l in f:
+                    l = l.split(',')
+                    data[l[0].replace('"', '').upper()] = \
+                        np.array([self.to_int(x) \
+                            if x != '' else None for x in l[1:]])
+            self.fractions = data
+        else:
+            with open(self.fractionsf, 'r') as f:
+                self._fractions = \
+                    dict(
+                        map(
+                            lambda l:
+                                (l[0], l[1:]),
+                            map(
+                                lambda l:
+                                    l.split(';'),
+                                f.read().split('\n')
+                            )
+                        )
+                    )
     
     def set_measured(self):
         """
@@ -6769,8 +6899,9 @@ class Screening(object):
         Creates the dict `fractions_upper` of fractions with
         uppercase LTP names, with same content as `fractions`.
         """
-        self.fractions_upper = \
-            dict((l.upper(), s) for l, s in self.fractions.iteritems())
+        if hasattr(self, 'fractions'):
+            self.fractions_upper = \
+                dict((l.upper(), s) for l, s in self.fractions.iteritems())
     
     def set_onepfraction(self):
         """
@@ -6780,7 +6911,7 @@ class Screening(object):
         The result stored in `onepfraction` attribute.
         """
         self.onepfraction = [k.upper() for k, v in self.fractions.iteritems() \
-            if sum((i for i in v if i is not None)) == 1]
+            if sum((i for i in v.values() if i is not None)) == 1]
     
     def read_lipid_names(self):
         """
@@ -7818,17 +7949,23 @@ class Screening(object):
                 ('' if features is None else '_features')
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
-        fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        proteins = sorted(self.fractions_upper.keys())
+        n = int(np.ceil(np.sqrt(len(self.pprofs))))
+        fig, axs = plt.subplots(n, n, figsize = (12 + n, 12 + n))
+        proteins = sorted(self.fractions.keys())
         prg = progress.Progress(len(proteins), 'Plotting profiles', 1,
             percent = False)
         for i in xrange(len(proteins)):
             prg.step()
-            ax = axs[i / 8, i % 8]
+            ax = axs[i / n, i % n]
             protein_name = proteins[i]
-            ppr = np.array([self.pprofs[protein_name][fr] for fr in self.fracs])
-            ppr_o = np.array([self.pprofs_original[protein_name][fr] \
-                for fr in self.fracs])
+            fracs = sorted(self.pprofs[protein_name].keys(),
+                           key = lambda i: (int(i[0]), i[1], int(i[2:])))
+            ppr = np.array([self.pprofs[protein_name][fr] for fr in fracs])
+            if hasattr(self, 'pprofs_original'):
+                ppr_o = np.array([self.pprofs_original[protein_name][fr] \
+                    for fr in self.fracs])
+            else:
+                ppr_o = ppr
             if features:
                 ppmax = np.nanmax(ppr_o)
                 ppmin = np.nanmin(ppr_o)
@@ -7838,10 +7975,10 @@ class Screening(object):
             #B6B7B9 gray (not measured)
             #6EA945 mantis (protein sample)
             #007B7F teal (control/void)
-            col = ['#6EA945' if s == 1 else \
-                    '#B6B7B9' if s is None else \
+            col = ['#6EA945' if self.fractions[protein_name][fr] == 1 else \
+                    '#B6B7B9' if self.fractions[protein_name][fr] is None else \
                     '#007B7F' \
-                for s in self.fractions_upper[protein_name][1:]]
+                for fr in fracs]
             ax.bar(np.arange(len(ppr)), ppr_o, color = col, alpha = 0.1,
                 edgecolor = 'none')
             ax.bar(np.arange(len(ppr)), ppr, color = col, edgecolor = 'none')
@@ -7884,7 +8021,7 @@ class Screening(object):
                             print('Unequal length dimensions: %s, %s' % \
                                 (protein_name, pn))
             ax.set_xticks(np.arange(len(ppr)) + 0.4)
-            ax.set_xticklabels(self.fracs)
+            ax.set_xticklabels(fracs, rotation = 90)
             ax.set_title('%s protein conc.'%protein_name)
         fig.tight_layout()
         fig.savefig(pdfname)
