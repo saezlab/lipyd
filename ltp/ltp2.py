@@ -31,6 +31,8 @@ import time
 import datetime
 
 import collections
+import itertools
+
 try:
     import cPickle as pickle
 except:
@@ -3728,15 +3730,40 @@ class Screening(object):
         all the 60 XLS files every time.
         """
         with open(self.pptablef, 'w') as f:
-            f.write('\t%s%s' % ('\t'.join(
-                sorted(self.pprofs.values()[0].keys(),
-                key = lambda x: (x[0], int(x[1:])))), '\n'))
-            f.write('\n'.join('%s\t%s' % (
-                    protein,
-                    '\t'.join('%.20f' % d[fr] for fr in sorted(d.keys(),
-                        key = lambda x: (x[0], int(x[1:]))))) \
-                for protein, d in self.pprofs.iteritems()
-            ))
+            
+            allfr = \
+                sorted(
+                    set(
+                        itertools.chain(
+                            *map(
+                                lambda d: d.keys(),
+                                self.pprofs.values()
+                            )
+                        )
+                    ),
+                    key = lambda x: (x[0], int(x[1:]))
+                )
+            
+            f.write('\t%s%s' % ('\t'.join(allfr), '\n'))
+            
+            f.write(
+                '\n'.join(
+                    map(
+                        lambda p:
+                            '%s\t%s' % (
+                                p[0],
+                                '\t'.join(
+                                    map(
+                                        lambda f:
+                                            '%.20f' % (p[1][f] if f in p[1] else np.nan),
+                                        allfr
+                                    )
+                                )
+                            ),
+                        iteritems(self.pprofs)
+                    )
+                )
+            )
 
     def read_pptable(self):
         """
