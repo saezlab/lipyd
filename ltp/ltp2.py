@@ -4597,7 +4597,8 @@ class Screening(object):
             # col nums for each variable, for each fraction
             scols = dict([(var, dict([(i, None) for i in fracs])) \
                 for var in vname.keys()])
-            # testing if order of columns is always 
+            
+            # testing if order of columns is always
             # m/z, RT, norm area; all files passed
             for i, c in enumerate(cols):
                 if c[0] % 3 != vname[c[2]]:
@@ -4607,6 +4608,10 @@ class Screening(object):
                 # assigning columns to variable->fraction slots
                 # col offsets from 6
                 scols[c[2]][fnum] = c
+            
+            # now sorting fractions:
+            fracs = sorted(set(fracs), key = lambda f: (f[0], int(f[1])))
+            
             for l in f:
                 # removing first column
                 l = [i.strip() for i in l.split(',')][1:]
@@ -4626,17 +4631,23 @@ class Screening(object):
                 
                 data['annot'].append(annot)
                 
-                for var, scol in iteritems(scols):
+                ldata = {}
+                for fr in fracs:
                     # number of columns depends on which variables we need
-                    if var in read_vars:
-                        var_data = []
-                        for s in fracs:
-                            if scol[s] is None:
-                                var_data.append(np.nan)
-                            else:
-                                # col offset is 6 !
-                                var_data.append(self.to_float(l[scol[s][0] + 6]))
-                data[var].append(var_data)
+                    for var in read_vars:
+                        if var not in ldata:
+                            ldata[var] = []
+                        
+                        cnum = scols[var][fr][0]
+                        
+                        if cnum is None:
+                            ldata[var].append(np.nan)
+                        else:
+                            # col offset is 6 !
+                            ldata[var].append(self.to_float(l[cnum + 6]))
+                
+                for var in read_vars:
+                    data[var].append(ldata[var])
         
         data = dict(map(lambda d: (d[0], np.array(d[1], dtype = np.float64)), iteritems(data)))
         mzsort = np.argsort(data['annot'][:,2])
@@ -4650,17 +4661,6 @@ class Screening(object):
                         lambda d:
                             d[1].shape[0] == datalen,
                         iteritems(data)
-                    )
-                )
-            )
-        
-        fracs = \
-            list(
-                map(
-                    lambda f: f[0],
-                    filter(
-                        lambda f: f[1][2] in read_vars,
-                        zip(fracs, cols)
                     )
                 )
             )
@@ -4715,7 +4715,7 @@ class Screening(object):
                 pdata, fracs = self.read_file_np(fname)
                 #
                 ifracs, sfracs = zip(*sort_fracs(fracs))
-                sfracs = list(map(lambda fr: '%s%u' % fr, sfracs))
+                sfracs = list(map(lambda fr: '%s%s' % fr, sfracs))
                 pfracs[protein] = np.array(sfracs)
                 # rearrange columns according to fraction sequence:
                 data[protein][p]['raw'] = \
@@ -5912,7 +5912,7 @@ class Screening(object):
     def average_area_5(self):
         for protein, d in self.valids.iteritems():
             for mode, tbl in d.iteritems():
-                tbl['aaa'] = np.nansum(tbl['fe'], 1) / 5.0
+                tbl['aaa'] = np.nansum(tbl['fe'], 1) / tbl['fe'].shape[0]
     
     def ms1(self):
         self.fractions_marco()
