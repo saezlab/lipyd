@@ -2939,6 +2939,11 @@ class Screening(object):
             self._pp(offset = offset, label = label, **kwargs)
     
     def raw_sec_absorbances(self, cache = True, fraclim = True):
+        """
+        Reads the SEC absorbance curves into numpy arrays.
+        """
+        refrac = re.compile(r'[0-9]*([A-Z][0-9]{1,2})')
+        
         self.pp_zeroed = False
         if cache and os.path.exists(self.abscache) and \
             (not fraclim or os.path.exists(self.flimcache)):
@@ -3031,7 +3036,7 @@ class Screening(object):
                                         (
                                             i[1][1], # the lower boundary
                                             fraclims[i[0] + 1][1], # the upper
-                                            i[1][0]  # the fraction label
+                                            refrac.match(i[1][0]).groups()[0] # the fraction label
                                         ),
                                     enumerate(fraclims[:-1]) # last one is the Waste
                                 )
@@ -4496,7 +4501,7 @@ class Screening(object):
 
     def read_file_np(self, fname, read_vars = ['Normalized Area']):
         """
-        Reads one MS file, returns numpy masked array, 
+        Reads one MS file, returns numpy array,
         with void mask.
         Column order:
         quality, m/z, significance,
@@ -4510,20 +4515,21 @@ class Screening(object):
             '_ ': '_'
         }
         rehdr = re.compile(r'([_0-9a-zA-Z]+)[_\s]([/0-9a-zA-Z\s]+)')
-        refra = re.compile(r'.*_[ab]{1,2}([0-9]{,2}).*')
+        refra = re.compile(r'.*_[0-9]??([a-zA-Z]?)([0-9]{1,2}).*')
         retyp = re.compile(r'(' + '|'.join(typos.keys()) + r')')
         # order of fractions (fractions)
-        sname = [0, 9, 10, 11, 12, 1]
+        prows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
         # variable names
         vname = {
             'm/z': 0,
             'RT mean': 1,
             'Normalized Area': 2
         }
-        data = []
-        # col nums for each variable, for each fraction
-        scols = dict([(var, dict([(i, None) for i in sname])) \
-            for var in vname.keys()])
+        # the dict which will be returned contains the
+        # variables to be read, and the annotations
+        data = dict(map(lambda k: (k, []), vname.keys()))
+        data['annot'] = []
+        #
         rtmkey = ('RT', 'mean')
         rtmcol = None
         with open(fname, 'r') as f:
@@ -4542,35 +4548,96 @@ class Screening(object):
             cols = [tuple([i] + [x.strip() \
                     for x in list(rehdr.match(h).groups(0))]) \
                 for i, h in enumerate(hdr[6:-7])]
+            
+            fracs = []
+            prow_prev, pcol_prev = None, None
+            for c in cols:
+                if 'ctrl' in c[1] or 'ctlr' in c[1] or 'secbuffer' in c[1]:
+                    prow, pcol = ('X', '0')
+                else:
+                    prow, pcol = refra.match(c[1]).groups()
+                    if not len(prow):
+                        if pcol_prev is not None:
+                            if int(pcol_prev) >= int(pcol) - 1:
+                                prow = prow_prev
+                            else:
+                                prow = prows[prows.index(prow_prev) + 1]
+                    prow_prev, pcol_prev = prow, pcol
+                fracs.append((prow, pcol))
+            
+            # col nums for each variable, for each fraction
+            scols = dict([(var, dict([(i, None) for i in fracs])) \
+                for var in vname.keys()])
             # testing if order of columns is always 
             # m/z, RT, norm area; all files passed
-            for c in cols:
+            for i, c in enumerate(cols):
                 if c[0] % 3 != vname[c[2]]:
                     sys.stdout.write('erroneous column order: col %u '\
                         'with header %s\n\tin file %s\n' % (c[0], c[2], fname))
-                fnum = 0 if 'ctrl' in c[1] or 'ctlr' in c[1] \
-                        else int(refra.match(c[1]).groups(0)[0])
+                fnum = fracs[i]
                 # assigning columns to variable->fraction slots
                 # col offsets from 6
                 scols[c[2]][fnum] = c
             for l in f:
+                # removing first column
                 l = [i.strip() for i in l.split(',')][1:]
-                vals = [self.to_float(l[0]), self.to_float(l[1]), self.to_float(l[2])] + \
+                # reading annotations
+                annot = \
+                    [
+                        self.to_float(l[0]),
+                        self.to_float(l[1]),
+                        self.to_float(l[2])
+                    ] + \
                     [self.to_float(i.strip()) for i in l[3].split('-')] + \
-                    [self.to_float(l[4]), self.to_float(l[rtmcol]), self.to_float(l[5])]
-                for var, scol in scols.iteritems():
+                    [
+                        self.to_float(l[4]),
+                        self.to_float(l[rtmcol]),
+                        self.to_float(l[5])
+                    ]
+                
+                data['annot'].append(annot)
+                
+                for var, scol in iteritems(scols):
                     # number of columns depends on which variables we need
                     if var in read_vars:
-                        for s in sname:
+                        var_data = []
+                        for s in fracs:
                             if scol[s] is None:
-                                vals.append(None)
+                                var_data.append(np.nan)
                             else:
                                 # col offset is 6 !
-                                vals.append(self.to_float(l[scol[s][0] + 6]))
-                data.append(vals)
-        data.sort(key = lambda x: x[2])
-        return np.ma.masked_array(data, dtype = 'float64')
-
+                                var_data.append(self.to_float(l[scol[s][0] + 6]))
+                data[var].append(var_data)
+        
+        data = dict(map(lambda d: (d[0], np.array(d[1], dtype = np.float64)), iteritems(data)))
+        mzsort = np.argsort(data['annot'][:,2])
+        datalen = data['annot'].shape[0]
+        data = \
+            dict(
+                map(
+                    lambda d:
+                        (d[0], d[1][mzsort]),
+                    filter(
+                        lambda d:
+                            d[1].shape[0] == datalen,
+                        iteritems(data)
+                    )
+                )
+            )
+        
+        fracs = \
+            list(
+                map(
+                    lambda f: f[0],
+                    filter(
+                        lambda f: f[1][2] in read_vars,
+                        zip(fracs, cols)
+                    )
+                )
+            )
+        
+        return data, fracs
+    
     def read_data(self):
         """
         Iterates through dict of dicts with file paths, reads
@@ -4578,48 +4645,95 @@ class Screening(object):
         to handle missing data, and access m/z values of fractions 
         and controls, and other values.
         """
-        data = dict((protein.upper(), {}) for protein in self.datafiles.keys())
+        
+        def sort_fracs(frs):
+            frs = map(lambda fr: (fr[0], int(fr[1])), frs)
+            return sorted(enumerate(frs),
+                          key = lambda x: (x[1][0], x[1][1]))
+        
+        def get_indices(sfracs, cfracs, fun):
+            return \
+                np.array(
+                    list(
+                        map(
+                            lambda fr:
+                                fr != 'X0' and fun(cfracs[fr]),
+                            sfracs
+                        )
+                    )
+                )
+        
+        pfracs = {}
+        data = {}
         prg = progress.Progress(len(self.datafiles) * 2,
                                 'Reading features (MS1 data)', 1)
+        
         for _protein, pos_neg in self.datafiles.iteritems():
+            
             protein = _protein.upper()
+            if protein not in data:
+                data[protein] = {}
+            
+            cfracs = self.fractions[protein]
+            
             for p, fname in pos_neg.iteritems():
+                
                 prg.step()
-                try:
-                    data[protein][p] = {}
-                    # this returns a masked array:
-                    data[protein][p]['raw'] = self.read_file_np(fname)
-                except:
-                    sys.stdout.write('\nerror reading file: %s\n' % fname)
-                    sys.stdout.flush()
+                
+                #try:
+                data[protein][p] = {}
+                # this returns an arrays and the fraction sequence:
+                pdata, fracs = self.read_file_np(fname)
+                #
+                ifracs, sfracs = zip(*sort_fracs(fracs))
+                sfracs = list(map(lambda fr: '%s%u' % fr, sfracs))
+                pfracs[protein] = np.array(sfracs)
+                # rearrange columns according to fraction sequence:
+                data[protein][p]['raw'] = \
+                    pdata['Normalized Area'][:,np.array(ifracs)]
+                #
+                # another thing we need are the annotations:
+                data[protein][p]['ann'] = pdata['annot']
+                #
                 # making a view with the intensities:
-                data[protein][p]['int'] = data[protein][p]['raw'][:, 8:]
-                # mask non measured:
-                data[protein][p]['mes'] = data[protein][p]['int'].view()
-                data[protein][p]['mes'].mask = \
-                    np.array([[x is None for x in self.fractions[protein]] * \
-                        ((data[protein][p]['int'].shape[1] - 5) / 6)] * \
-                    data[protein][p]['int'].shape[0])
-                data[protein][p]['mes'] = \
-                    np.ma.masked_invalid(data[protein][p]['mes'])
-                # controls:
-                data[protein][p]['ctr'] = data[protein][p]['mes'][:,
-                    np.array([x == 0 for x in self.fractions[protein]] * \
-                        (data[protein][p]['mes'].shape[1] / 6))]
+                # (this would not be necessary any more,
+                # it was when these were in the same array
+                # as annotations)
+                data[protein][p]['int'] = data[protein][p]['raw']
+                #
+                # making a view with measured:
+                imes = get_indices(sfracs, cfracs, lambda x: x is not None)
+                
+                data[protein][p]['mes'] = data[protein][p]['int'][:,imes]
+                #
+                # making a view with the controls:
+                ictr = get_indices(sfracs, cfracs, lambda x: x == 0)
+                
+                data[protein][p]['ctr'] = data[protein][p]['int'][:,ictr]
+                #
                 # fractions with lipids:
-                data[protein][p]['lip'] = data[protein][p]['mes'][:,
-                    np.array([x == 1 for x in self.fractions[protein]] * \
-                        (data[protein][p]['mes'].shape[1] / 6))]
+                ilip = get_indices(sfracs, cfracs, lambda x: x == 1)
+                
+                data[protein][p]['lip'] = data[protein][p]['int'][:,ilip]
+                #
                 # all fractions except blank control:
-                data[protein][p]['smp'] = data[protein][p]['mes'][:,
-                    np.array([False] + [x is not None \
-                        for x in self.fractions[protein][1:]] * \
-                        (data[protein][p]['mes'].shape[1] / 6))]
+                if sfracs[-1] == 'X0':
+                    imes[-1] = False
+                
+                data[protein][p]['smp'] = data[protein][p]['int'][:,imes]
                 # average area:
-                data[protein][p]['aa'] = data[protein][p]['raw'][:,7]
+                data[protein][p]['aa'] = data[protein][p]['ann'][:,7]
+        
         prg.terminate()
-        self.data = data
-
+        
+        if not hasattr(self, 'data'):
+            self.data = {}
+        if not hasattr(self, 'pfracs'):
+            self.pfracs = {}
+        
+        self.data.update(data)
+        self.pfracs.update(pfracs)
+    
     #
     # Generic helper functions
     #
