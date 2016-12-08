@@ -3768,6 +3768,8 @@ class Screening(object):
     def read_pptable(self):
         """
         Reads protein profiles from table.
+        
+        This method has not been updated for new fraction layout!
         """
         with open(self.pptablef, 'r') as f:
             header = f.readline().strip().split('\t')
@@ -5433,6 +5435,9 @@ class Screening(object):
     """
 
     def save_data(self, fname = None):
+        """
+        Saves the raw data into pickle.
+        """
         fname = os.path.join(self.basedir, self.featurescache) \
             if fname is None else fname
         sys.stdout.write('\t:: Saving data to %s ...\n' % fname)
@@ -5449,13 +5454,17 @@ class Screening(object):
         self.data = pickle.load(open(fname, 'rb'))
 
     def save(self, fname = None):
+        """
+        Actually this does not save anything important,
+        it was useful only some time before.
+        """
         fname = os.path.join(self.basedir, self.auxcache) \
             if fname is None else fname
         sys.stdout.write('\t:: Saving auxiliary data to %s ...\n' % fname)
         sys.stdout.flush()
         pickle.dump((self.datafiles, self.fractions),
             open(fname, 'wb'))
-        sys.stdout.write('\t:: Data has been saved to %s.\n' % fname)
+        sys.stdout.write('\t:: Some annotations has been saved to %s.\n' % fname)
         sys.stdout.flush()
 
     def load(self, fname = None):
