@@ -3415,9 +3415,9 @@ class Screening(object):
     
     def protein_containing_fractions(self, protein):
         """
-        Returns a list of those fractions
+        Returns a list of those fractions containing the protein,
+        sorted by the order of measurement (their position on the plate).
         """
-        sample = self.fractions_upper[protein]
         return \
             sorted(
                 list(
@@ -3431,7 +3431,24 @@ class Screening(object):
                         )
                     )
                 ),
-                key = lambda f: (int(f[0]), f[1], int(f[2:]))
+                key = lambda f: (f[0], int(f[1:]))
+            )
+    
+    def all_fractions(self, protein):
+        """
+        Returns a list of all fractions for one protein,
+        sorted by the order of measurement (their position on the plate).
+        """
+        return \
+            sorted(
+                list(
+                    map(
+                        lambda i:
+                            i[0],
+                        iteritems(self.fractions[protein])
+                    )
+                ),
+                key = lambda f: (f[0], int(f[1:]))
             )
     
     def fractions_by_protein_amount(self):
@@ -3439,11 +3456,11 @@ class Screening(object):
             return \
                 sorted(
                     filter(
-                        lambda (fr, q):
-                            fr in with_protein,
-                        pprofs[protein].iteritems()
+                        lambda fr:
+                            fr[0] in with_protein,
+                        iteritems(pprofs[protein])
                     ),
-                    key = lambda (fr, q): q,
+                    key = lambda fr: fr[1],
                     reverse = True
                 )
         self.fracs_orderL = {}
@@ -3633,7 +3650,9 @@ class Screening(object):
             for protein in self.fractions_upper.keys())
         self.first_ratio = dict((protein, {}) \
             for protein in self.fractions_upper.keys())
-        ifracs = dict(map(lambda (i, fr): (fr, i), enumerate(self.fracs)))
+        self.highest_ratio = dict((protein, {}) \
+            for protein in self.fractions_upper.keys())
+        
         def get_ratio(protein, ref, frac, o):
             return \
                 np.mean(
@@ -3641,39 +3660,49 @@ class Screening(object):
                         lambda w:
                             self.abs_by_frac_c[protein][ref][w][o] / \
                                 self.abs_by_frac_c[protein][frac][w][o],
-                        [1, 5]
+                        self.abs_cols
                     )
                 )
-        def is_higher(protein, prev, frac):
-            return prev is None or \
-                np.mean([
-                    self.abs_by_frac_c[protein][frac][1],
-                    self.abs_by_frac_c[protein][frac][5]
-                ]) > \
-                np.mean([
-                    self.abs_by_frac_c[protein][highest][1],
-                    self.abs_by_frac_c[protein][highest][5]
-                ])
+        
         for protein, sample in self.fractions_upper.iteritems():
+            
+            fracs = self.protein_containing_fractions(protein)
+            ifracs = dict(map(lambda fr: (fr[1], fr[0]), enumerate(fracs)))
+            
             ratios = {}
-            ref = None
-            highest = None
-            second = None
-            for i, frac1 in enumerate(self.fracs):
-                if sample[i + 1] == 1:
-                    for j, frac2 in enumerate(self.fracs):
-                        if sample[j + 1] == 1 and i != j:
-                            ratio1 = get_ratio(protein, frac1, frac2, 0)
-                            ratio2 = get_ratio(protein, frac1, frac2, 1)
-                            ratios[(frac1, frac2)] = (ratio1, ratio2)
-                    if is_higher(protein, highest, frac1):
-                        second = highest
-                        highest = frac1
-                    elif is_higher(protein, second, frac1):
-                        second = frac1
+            for i, frac1 in enumerate(fracs):
+                
+                for j, frac2 in enumerate(fracs):
+                    
+                    if frac1 != frac2:
+                        
+                        ratios[(frac1, frac2)] = \
+                            tuple(
+                                map(
+                                    lambda r:
+                                        get_ratio(
+                                            protein,
+                                            frac1, frac2, r),
+                                    xrange(len(self.fr_offsets))
+                                )
+                            )
+            
             self.ppratios[protein] = ratios
-            self.first_ratio[protein] = None if second is None else \
-                tuple(sorted([highest, second], key = lambda fr: ifracs[fr]))
+            
+            self.first_ratio[protein] = None if not len(ratios) else \
+                tuple(
+                    sorted([list(self.fracs_order[protein]['prim'])[0],
+                            self.fracs_order[protein]['sec'][0]],
+                           key = lambda fr: ifracs[fr]
+                    )
+                )
+            self.highest_ratio[protein] = None if not len(ratios) else \
+                tuple(
+                    sorted([list(self.fracs_order[protein]['prim'])[0],
+                            self.fracs_order[protein]['sec'][-1]],
+                           key = lambda fr: ifracs[fr]
+                    )
+                )
     
     def intensity_peak_ratios(self):
         """
@@ -3764,7 +3793,7 @@ class Screening(object):
                     )
                 )
             )
-
+    
     def read_pptable(self):
         """
         Reads protein profiles from table.
