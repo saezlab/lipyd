@@ -3713,33 +3713,41 @@ class Screening(object):
         0, 1 or 2 columns depending on the number of protein
         containing fractions.
         """
-        for protein, d in self.valids.iteritems():
-            sample = self.fractions_upper[protein]
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            
+            fracs = self.protein_containing_fractions(protein)
+            
+            for mode, tbl in iteritems(d):
+                
                 ratios = []
                 indices = {}
+                
                 for fe in tbl['fe']:
                     ratio = []
-                    for i, frac1 in enumerate(self.fracs):
-                        if sample[i + 1] == 1:
-                            for j, frac2 in enumerate(self.fracs):
-                                if sample[j + 1] == 1 and i != j:
-                                    ii = len(filter(lambda x: x is None, sample[1:i+1]))
-                                    jj = len(filter(lambda x: x is None, sample[1:j+1]))
-                                    ratio.append(
-                                        fe[i - ii] / fe[j - jj]
-                                    )
-                                    indices[(frac1, frac2)] = len(ratio) - 1
+                    
+                    for i in xrange(len(fracs) - 1):
+                        
+                        for j in xrange(i + 1, len(fracs)):
+                            
+                            frac1, frac2 = fracs[i], fracs[j]
+                            
+                            ratio.append(fe[i] / fe[j])
+                            indices[(frac1, frac2)] = len(ratio) - 1
+                    
                     ratios.append(ratio)
+                
                 tbl['ipr'] = np.array(ratios)
                 tbl['ipri'] = indices
                 
                 if self.first_ratio[protein] is not None and \
                     self.first_ratio[protein] in tbl['ipri']:
                     fi = tbl['ipri'][self.first_ratio[protein]]
+                    hi = tbl['ipri'][self.highest_ratio[protein]]
                     tbl['iprf'] = tbl['ipr'][:,fi]
+                    tbl['iprh'] = tbl['ipr'][:,hi]
                 else:
                     tbl['iprf'] = None
+                    tbl['iprh'] = None
     
     def ratios_in_range(self):
         for protein, d in self.valids.iteritems():
