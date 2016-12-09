@@ -2144,6 +2144,7 @@ class Screening(object):
             'pprofcache': 'pprofiles_raw.pickle',
             'abscache': 'absorbances.pickle',
             'flimcache': 'fraclims.pickle',
+            'ms2dir': 'MGFfiles',
             'marco_dir': 'marco',
             'manual_ppratios_xls': 'Proteins_Overview_05.xlsx',
             #'manual_ppratios_xls_cols': [2, 4, 8, 9], # 03b
@@ -2172,8 +2173,9 @@ class Screening(object):
                                           # or read from separate file
             'permit_profile_end_nan': True,
             'use_manual_ppratios': False,
-            'use_highest_ratio': False,
+            'use_last_ratio': False,
             'peak_ratio_range': 0.3,
+            'peak_ratio_score_threshold': 1.0,
             'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
             'fracsU': ['A09', 'A10', 'A11', 'A12', 'B01'],
             'pp_minratio': 3,
@@ -3692,11 +3694,28 @@ class Screening(object):
         one fraction, one ratio for those with 2 fractions, and
         2 ratios for those with 3 fractions.
         """
+        
+        def ratio_tuple(frac1, frac2, ifracs):
+            return tuple(
+                        sorted([frac1, frac2],
+                            key = lambda fr: ifracs[fr]
+                        )
+                    )
+        
         self.ppratios = dict((protein, {}) \
+            for protein in self.fractions_upper.keys())
+        
+        self.first_ratioL = dict((protein, {}) \
+            for protein in self.fractions_upper.keys())
+        self.last_ratioL = dict((protein, {}) \
+            for protein in self.fractions_upper.keys())
+        self.first_ratioU = dict((protein, {}) \
+            for protein in self.fractions_upper.keys())
+        self.last_ratioU = dict((protein, {}) \
             for protein in self.fractions_upper.keys())
         self.first_ratio = dict((protein, {}) \
             for protein in self.fractions_upper.keys())
-        self.highest_ratio = dict((protein, {}) \
+        self.last_ratio = dict((protein, {}) \
             for protein in self.fractions_upper.keys())
         
         def get_ratio(protein, ref, frac, o):
@@ -3735,20 +3754,38 @@ class Screening(object):
             
             self.ppratios[protein] = ratios
             
-            self.first_ratio[protein] = None if not len(ratios) else \
-                tuple(
-                    sorted([list(self.fracs_order[protein]['prim'])[0],
-                            self.fracs_order[protein]['sec'][0]],
-                           key = lambda fr: ifracs[fr]
-                    )
-                )
-            self.highest_ratio[protein] = None if not len(ratios) else \
-                tuple(
-                    sorted([list(self.fracs_order[protein]['prim'])[0],
-                            self.fracs_order[protein]['sec'][-1]],
-                           key = lambda fr: ifracs[fr]
-                    )
-                )
+            if len(self.fracs_orderL) > 1:
+                
+                highestL = self.fracs_orderL[protein][0][0]
+                secondL = self.fracs_orderL[protein][1][0]
+                lowestL = self.fracs_orderL[protein][-1][0]
+                highestU = self.fracs_orderU[protein][0][0]
+                secondU = self.fracs_orderU[protein][1][0]
+                lowestU = self.fracs_orderU[protein][-1][0]
+                
+                self.first_ratioL[protein] = \
+                    ratio_tuple(highestL, secondL, ifracs)
+                self.last_ratioL[protein] = \
+                    ratio_tuple(highestL, lowestL, ifracs)
+                self.first_ratioU[protein] = \
+                    ratio_tuple(highestU, secondU, ifracs)
+                self.last_ratioU[protein] = \
+                    ratio_tuple(highestU, lowestU, ifracs)
+                
+                self.first_ratio[protein] = \
+                    tuple(sorted(self.first_ratioL[protein],
+                                 key = lambda fr: (fr[0], int(fr[1:]))))
+                self.last_ratio[protein] = \
+                    tuple(sorted(self.last_ratioL[protein],
+                                 key = lambda fr: (fr[0], int(fr[1:]))))
+                
+            else:
+                self.first_ratioL[protein] = None
+                self.last_ratioL[protein]  = None
+                self.first_ratioU[protein] = None
+                self.last_ratioU[protein]  = None
+                self.first_ratio[protein] = None
+                self.last_ratio[protein]  = None
     
     def intensity_peak_ratios(self):
         """
@@ -3788,7 +3825,7 @@ class Screening(object):
                 if self.first_ratio[protein] is not None and \
                     self.first_ratio[protein] in tbl['ipri']:
                     fi = tbl['ipri'][self.first_ratio[protein]]
-                    hi = tbl['ipri'][self.highest_ratio[protein]]
+                    hi = tbl['ipri'][self.last_ratio[protein]]
                     tbl['iprf'] = tbl['ipr'][:,fi]
                     tbl['iprh'] = tbl['ipr'][:,hi]
                 else:
@@ -3802,28 +3839,55 @@ class Screening(object):
         or if we assume no offset, then a custom interval.
         """
         
-        ppr1 = self.highest_ratio if self.use_highest_ratio else self.first_ratio
-        iprvar = 'iprh' if self.use_highest_ratio else 'iprf'
+        ppr1 = self.last_ratio if self.use_last_ratio else self.first_ratio
+        iprvar = 'iprh' if self.use_last_ratio else 'iprf'
         
         for protein, d in iteritems(self.valids):
             
+            fracs = self.protein_containing_fractions(protein)
+            
             for mode, tbl in iteritems(d):
                 # only if we have more than one fraction:
+                
                 if len(self.ppratios[protein]) and tbl[iprvar] is not None:
                     
                     in_range = []
-                    ppr = sorted(self.ppratios[protein][ppr1[protein]])
                     
-                    # no fraction offsets:
-                    if len(ppr) == 1:
-                        ppr = (ppr[0] - ppr[0] * self.peak_ratio_range,
-                               ppr[0] + ppr[0] * self.peak_ratio_range)
+                    for i in xrange(len(fracs) - 1):
+                        
+                        for j in xrange(i + 1, len(fracs)):
+                            
+                            frac1, frac2 = fracs[i], fracs[j]
+                            fkey = (frac1, frac2)
+                            ppr = self.ppratios[protein][fkey]
+                            idx = tbl['ipri'][fkey]
+                            
+                            # no fraction offsets:
+                            if len(ppr) == 1:
+                                ppr = (ppr[0] - ppr[0] * self.peak_ratio_range,
+                                    ppr[0] + ppr[0] * self.peak_ratio_range)
+                            
+                            in_range.append(
+                                np.logical_and(
+                                    tbl['ipr'][:,idx] >= ppr[0],
+                                    tbl['ipr'][:,idx] <= ppr[1]
+                                )
+                            )
                     
-                    for ipr in tbl[iprvar]:
-                        in_range.append(ppr[0] <= ipr <= ppr[1])
-                    tbl['prr'] = np.array(in_range)
+                    tbl['prra'] = np.column_stack(in_range)
+                    fi = tbl['ipri'][self.first_ratio[protein]]
+                    hi = tbl['ipri'][self.last_ratio[protein]]
+                    tbl['prrf'] = tbl['prra'][:,fi]
+                    tbl['prrh'] = tbl['prra'][:,hi]
+                    tbl['prrv'] = np.sum(tbl['prra'], axis = 1)
+                    tbl['prr'] = tbl['prrf']
+                
                 else:
+                    tbl['prra'] = None
                     tbl['prr'] = None
+                    tbl['prrf'] = None
+                    tbl['prrv'] = None
+                    tbl['prrh'] = None
     
     def write_pptable(self):
         """
@@ -3939,9 +4003,9 @@ class Screening(object):
             tbl = self.data[protein[mode]][mode]
         except KeyError:
             print(protein, mode)
-        ui = tbl['raw'][:,2].searchsorted(mz)
-        du = 999.0 if ui == tbl['raw'].shape[0] else tbl['raw'][ui,2] - mz
-        dl = 999.0 if ui == 0 else mz - tbl['raw'][ui - 1,2]
+        ui = tbl['ann'][:,2].searchsorted(mz)
+        du = 999.0 if ui == tbl['ann'].shape[0] else tbl['ann'][ui,2] - mz
+        dl = 999.0 if ui == 0 else mz - tbl['ann'][ui - 1,2]
         d = min(du, dl)
         if d < 0.0001:
             oi = ui if du < dl else ui - 1
@@ -6019,6 +6083,7 @@ class Screening(object):
         self.fractions_marco()
         self.fractions_by_protein_amount()
         self.primary_fractions()
+        self.lookup_nans()
         self.average_area_5()
         self.protein_peak_ratios2()
         if self.use_manual_ppratios:
@@ -6027,12 +6092,13 @@ class Screening(object):
         self.intensity_peak_ratios()
         self.ratios_in_range()
         self.peak_ratio_score()
-        self.peak_ratio_score_bool(threshold = 1.0)
+        self.combine_peak_ratio_scores()
+        self.peak_ratio_score_bool()
         self.lipid_lookup_exact()
         self.ms1_headgroups()
         self.negative_positive2()
         self.headgroups_negative_positive('ms1')
-        self.marco_standards()
+        # self.marco_standards()
     
     """
     END: lipid databases lookup
@@ -6232,68 +6298,117 @@ class Screening(object):
         in a dict of dicts. Keys are LTP names, and 'pos'/'neg'.
         """
         redirname = re.compile(r'(^[0-9a-zA-Z]+)[ _](pos|neg)')
-        refractio = re.compile(r'.*_([AB][0-9]{1,2}).*')
+        remgfname = re.compile(r'(^[0-9a-zA-Z_]+)_([a-zA-Z0-9]{3,})_(pos|neg)'\
+            r'_([A-Z][0-9]{1,2})\.mgf')
+        refractio = re.compile(r'.*_([A-Z][0-9]{1,2}).*')
         fnames = {}
+        
         for d in self.datadirs:
+            
             proteindd = os.listdir(d)
-            proteindd = [i for i in proteindd if os.path.isdir(os.path.join(d, i))]
+            
+            if self.ms2dir is not None and self.ms2dir in proteindd:
+                
+                proteindd = [self.ms2dir]
+                ms2dir = True
+            
+            else:
+                proteindd = [i for i in proteindd if os.path.isdir(os.path.join(d, i))]
+                ms2dir = False
+            
             if len(proteindd) == 0:
                 sys.stdout.write('\t:: Please mount the shared folder!\n')
                 return None
+            
             for proteind in proteindd:
+                
                 dirname = redirname.findall(proteind)
+                
                 if len(dirname):
+                    
                     proteinname, pos = dirname[0]
                     proteinname = proteinname.upper()
-                    if proteinname not in fnames:
-                        fnames[proteinname] = {}
-                    if pos not in fnames[proteinname] or proteind.endswith('update'):
-                        fnames[proteinname][pos] = {}
-                else:
+                    
+                elif not ms2dir:
                     # other dirs are irrelevant:
                     continue
-                fpath = [proteind, 'Results']
+                
+                if not ms2dir:
+                    fpath = [proteind, 'Results']
+                else:
+                    fpath = [proteind]
+                
                 if os.path.isdir(os.path.join(d, *fpath)):
+                    
                     for f in os.listdir(os.path.join(d, *fpath)):
-                        if f.endswith('mgf') and 'buffer' not in f:
+                        
+                        if f.endswith('mgf') \
+                            and 'buffer' not in f \
+                            and 'TLC_STD' not in f \
+                            and 'MeOH' not in f:
+                            
                             try:
                                 fr = refractio.match(f).groups()[0]
                             except AttributeError:
                                 sys.stdout.write(
                                     'could not determine '\
                                     'fraction number: %s' % f)
+                            
+                            if ms2dir:
+                                null, proteinname, pos, fr = \
+                                    remgfname.match(f).groups()
+                            
                             fr = 'B01' if fr == 'B1' \
                                 else 'A09' if fr == 'A9' \
                                 else fr
+                            
+                            if proteinname not in fnames:
+                                fnames[proteinname] = {}
+                            
+                            if pos not in fnames[proteinname] \
+                                or proteind.endswith('update'):
+                                
+                                fnames[proteinname][pos] = {}
+                            
                             fnames[proteinname][pos][fr] = \
                                 os.path.join(*([d] + fpath + [f]))
+        
         self.ms2files = fnames
-
+    
     def ms2_map(self):
+        """
+        Maps offsets of the beginning of each scan in MS2 mgf files.
+        """
         stRpos = 'pos'
         stRneg = 'neg'
-        redgt = re.compile(r'[AB]([\d]+)$')
+        refrac = re.compile(r'([A-Z])([\d]{1,2})$')
         result = dict((protein.upper(), {'pos': None, 'neg': None,
                 'ms2files': {'pos': {}, 'neg': {}}}) \
             for protein, d in self.ms2files.iteritems())
         prg = progress.Progress(len(self.ms2files) * 2, 'Indexing MS2 data', 1,
             percent = False)
+        
         for protein, d in self.ms2files.iteritems():
             pFeatures = []
             nFeatures = []
             uprotein = protein.upper()
+            
+            ifrac = self.fraction_indices(protein)
+            
             for pn, files in d.iteritems():
                 prg.step()
                 features = pFeatures if pn == stRpos else nFeatures
                 #fractions = set([])
                 for fr, fl in files.iteritems():
-                    fr = int(redgt.match(fr).groups()[0])
+                    fr = refrac.match(fr).groups()
+                    fr = '%s%u' % (fr[0], int(fr[1]))
+                    frnum = ifrac[fr][0]
                     #fractions.add(fr)
-                    mm = self.ms2_index(fl, fr,
+                    mm = self.ms2_index(fl, frnum,
                                         charge = self.ms2_precursor_charge)
                     m = np.vstack(mm)
                     features.extend(mm)
-                    result[uprotein]['ms2files'][pn][int(fr)] = fl
+                    result[uprotein]['ms2files'][pn][fr] = fl
             pFeatures = np.array(sorted(pFeatures, key = lambda x: x[0]),
                 dtype = np.float64)
             nFeatures = np.array(sorted(nFeatures, key = lambda x: x[0]),
@@ -6370,12 +6485,17 @@ class Screening(object):
             (len(self.valids) if proteins is None else len(proteins)) * 2,
             'Looking up MS2 fragments', 1,
             percent = False)
+        
         if verbose:
             outfile = outfile if hasattr(outfile, 'write') else \
                 sys.stdout if outfile is None else open(outfile, 'w')
+        
         for protein, d in self.valids.iteritems():
+            
             if proteins is None or protein in proteins:
+                
                 for pn, tbl in d.iteritems():
+                    
                     prg.step()
                     # we look up the real measured MS1 m/z's in MS2,
                     # so will divide recalibrated values by the drift ratio
@@ -6384,19 +6504,26 @@ class Screening(object):
                         or 'recalibrated' not in tbl \
                         or not tbl['recalibrated'] \
                         else self.ppm2ratio(np.nanmedian(
-                                np.array(self.proteins_drifts[protein][pn].values())
+                                np.array(self.proteins_drifts[
+                                    protein][pn].values())
                             ))
+                    
                     if verbose:
                         outfile.write('\t:: Recalibrated m/z: '\
                         '%.08f; drift = %.08f; measured m/z: %.08f\n' % \
                             (tbl['mz'][0], drift, tbl['mz'][0] / drift))
+                    
                     ms2matches = self.ms2_match(tbl['mz'],
                         tbl['rt'], tbl['i'],
-                        protein, pn, drift = drift, verbose = verbose, outfile = outfile)
+                        protein, pn, drift = drift,
+                        verbose = verbose, outfile = outfile)
+                    
                     # this already returns final result, from protein containing
                     # fractions and with the relevant retention times
                     tbl['ms2'] = self.ms2_lookup(protein, pn, ms2matches,
-                                                 verbose = verbose, outfile = outfile)
+                                                 verbose = verbose,
+                                                 outfile = outfile)
+                    
                     tbl['ms2r'] = self.ms2_result(tbl['ms2'])
                     #if verbose:
                         #print('\n')
@@ -6404,6 +6531,7 @@ class Screening(object):
                         #print('negative matching:', len(pos_matches))
                         #print('number of negative mzs:', len(negMzs))
                         #print('negative matching:', len(neg_matches))
+        
         if type(outfile) is file and outfile != sys.stdout:
             outfile.close()
         prg.terminate()
@@ -6419,13 +6547,19 @@ class Screening(object):
             # fraction number, scan number (4-5)
         """
         result = dict((oi, []) for oi in ms2matches.keys())
+        
         for oi, ms2s in ms2matches.iteritems():
+            
             for ms2i in ms2s:
+                
                 result[oi].append(np.array([ms2i[7], ms2i[8],
                     ms2i[1], ms2i[2], ms2i[14], ms2i[12]], dtype = np.object))
+        
         for oi, ms2s in result.iteritems():
+            
             result[oi] = np.vstack(ms2s) if len(ms2s) > 0 else np.array([])
             result[oi].shape = (len(result[oi]), 6)
+        
         return result
 
     def ms2_match(self, ms1Mzs, ms1Rts, ms1is, protein, pos,
@@ -6552,47 +6686,64 @@ class Screening(object):
             # MS1 pepmass, MS1 intensity, rtime, MS2 scan, (9-12)
             # MS2 file offset, fraction number (13-14)
         """
-        # indices of fraction numbers
+        
         fragments = self.pFragments if mode == 'pos' else self.nFragments
         ms2map = self.ms2map[protein][mode]
         ms2files = self.ms2map[protein]['ms2files'][mode]
-        fractions = self.fractions_upper[protein]
+        # indices of fraction numbers
+        ifracs = self.fraction_indices(protein)
+        fracsi = dict(map(lambda fr: (fr[1][0], fr[0]), iteritems(ifracs)))
+        
         sample_i = {
             9: 1, 10: 2, 11: 3, 12: 4, 1: 5
         }
         stRcharge = 'CHARGE'
+        
         # opening all files to have file pointers ready
         files = dict((fr, open(fname, 'r')) \
             for fr, fname in ms2files.iteritems())
+        
         # Initializing dict with original indices
         ms2matches = dict((m[2], []) for m in ms1matches)
+        
         # iterating over MS1 m/z, MS2 table index, MS1 original index
         if verbose:
             outfile.write('\t :: MS2 lookup starts\n')
+        
         for ms1mz, ms2i, ms1oi in ms1matches:
+            
             # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
             ms2item = ms2map[ms2i,:]
             fr = int(ms2item[5])
+            frlab = fracsi[fr]
+            
             if verbose:
-                outfile.write('\t -- Looking up %.08f in fraction %s, '\
-                    'line %u\n' % (ms1mz, fr, ms2i))
+                outfile.write('\t -- Looking up %.08f in fraction %s (#%u), '\
+                    'line %u\n' % (ms1mz, frlab, fr, ms2i))
+            
             # only fractions with the protein
             if verbose:
-                if fr in files:
-                    outfile.write('\t -- Have file for fraction %s\n' % str(fr))
+                if frlab in files:
+                    outfile.write('\t -- Have file for fraction %s\n' % frlab)
                 else:
                     outfile.write('\t -- Do not have file for fraction %s; files: %s\n' % \
-                        (str(fr), str(files.keys())))
+                        (frlab, str(files.keys())))
+            
             if (not self.ms2_only_protein_fractions or \
-                fractions[sample_i[fr]] == 1) and fr in files:
-                f = files[fr]
+                fractions[sample_i[fr]] == 1) and frlab in files:
+                
+                f = files[frlab]
+                
                 # jumping to offset
                 f.seek(int(ms2item[4]), 0)
                 if verbose:
                     outfile.write('\t -- Reading from file %s\n' % f.name)
+                
                 # zero means no clue about charge
                 charge = 0
+                
                 for l in f:
+                    
                     if l[:6] == stRcharge:
                         # one chance to obtain the charge
                         charge = int(l.strip()[-2])
@@ -6617,6 +6768,7 @@ class Screening(object):
                             f.seek(prevp, 0)
                             print(f.read(10))
                             print(':::\n')
+                        
                         intensity = float(mi[1]) if len(mi) > 1 else np.nan
                         # matching fragment --- direct
                         ms2hit1 = self.ms2_identify(mass, fragments,
@@ -6658,19 +6810,25 @@ class Screening(object):
                             )
                             thisRow.shape = (1, 15)
                             ms2matches[ms1oi].append(thisRow)
+                    
                     prevl = l
                     prevp = f.tell()
+                
                 if verbose:
                     outfile.write('\t -- %u lines have been read\n' % len(ms2matches[ms1oi]))
+        
         # removing file pointers
         for f in files.values():
             f.close()
+        
         for oi, ms2match in ms2matches.iteritems():
+            
             if len(ms2match) > 0:
                 ms2matches[oi] = np.vstack(ms2match)
             else:
                 ms2matches[oi] = np.array([[]])
                 ms2matches[oi].shape = (0, 15)
+        
         return ms2matches
 
     def ms2_identify(self, mass, fragments, compl):
@@ -7303,25 +7461,35 @@ class Screening(object):
         
         for protein, d in self.data.iteritems():
             
+            protein = protein.upper()
+            
             for pn, tbl in d.iteritems():
                 
-                self.valids[protein.upper()][pn]['fe'] = np.array(tbl['smp'][tbl['vld']])
-                self.valids[protein.upper()][pn]['mz'] = \
-                    np.array(tbl['raw'][tbl['vld'], 2])
-                self.valids[protein.upper()][pn]['qua'] = \
-                    np.array(tbl['raw'][tbl['vld'], 0])
-                self.valids[protein.upper()][pn]['sig'] = \
-                    np.array(tbl['raw'][tbl['vld'], 1])
-                self.valids[protein.upper()][pn]['z'] = \
-                    np.array(tbl['raw'][tbl['vld'], 5])
-                self.valids[protein.upper()][pn]['rt'] = \
-                    np.array(tbl['raw'][tbl['vld'], 3:5])
-                self.valids[protein.upper()][pn]['aa'] = \
+                self.valids[protein][pn]['fe'] = \
+                    np.array(tbl['smp'][tbl['vld']])
+                
+                self.valids[protein][pn]['mz'] = \
+                    np.array(tbl['ann'][tbl['vld'], 2])
+                
+                self.valids[protein][pn]['qua'] = \
+                    np.array(tbl['ann'][tbl['vld'], 0])
+                
+                self.valids[protein][pn]['sig'] = \
+                    np.array(tbl['ann'][tbl['vld'], 1])
+                
+                self.valids[protein][pn]['z'] = \
+                    np.array(tbl['ann'][tbl['vld'], 5])
+                
+                self.valids[protein][pn]['rt'] = \
+                    np.array(tbl['ann'][tbl['vld'], 3:5])
+                
+                self.valids[protein][pn]['aa'] = \
                     np.array(tbl['aa'][tbl['vld']])
+                
                 for key in ['peaksize', 'pslim02', 'pslim05',
                     'pslim10', 'pslim510', 'rtm']:
-                    self.valids[protein.upper()][pn][key] = np.array(tbl[key][tbl['vld']])
-                self.valids[protein.upper()][pn]['i'] = np.where(tbl['vld'])[0]
+                    self.valids[protein][pn][key] = np.array(tbl[key][tbl['vld']])
+                self.valids[protein][pn]['i'] = np.where(tbl['vld'])[0]
         
         self.norm_all()
         self.get_area()
@@ -8446,7 +8614,7 @@ class Screening(object):
     
     def lookup_nans(self):
         """
-        Looks up those features having too many NaNs or zeros 
+        Looks up those features having too many NaNs or zeros
         among the protein containing fractions.
         Stores result under key `na`.
         """
@@ -8457,6 +8625,7 @@ class Screening(object):
                 pfe = self.pcont_columns(protein, mode, 'fe')
                 
                 if self.permit_profile_end_nan:
+                    
                     hasnans = np.logical_or(
                         np.logical_and(
                             np.logical_or(
@@ -8483,7 +8652,9 @@ class Screening(object):
                             )
                         ),
                     )
+                    
                 else:
+                    
                     hasnans = np.logical_or(
                                 np.sum(np.isnan(pfe),
                                     axis = 1, dtype = np.bool),
@@ -8594,7 +8765,7 @@ class Screening(object):
             for mode, tbl in iteritems(d):
                 
                 fkeyf = self.first_ratio[protein]
-                fkeyh = self.highest_ratio[protein]
+                fkeyh = self.last_ratio[protein]
                 too_many_nans = \
                     np.where(np.sum(np.isnan(tbl['prsa']), axis = 1))
                 
@@ -8604,18 +8775,25 @@ class Screening(object):
                 tbl['prsh'] = tbl['prsa'][tbl['ipri'][fkeyh]] # highest diff.
     
     def peak_ratio_score_hist(self, pdfname = None):
+        """
+        Plots a histogram for peak ratio scores.
+        """
         if pdfname is None:
             pdfname = 'peak_ratios_hist.pdf'
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
-        fig, axs = plt.subplots(8, 8, figsize = (20, 20))
+        gridsize = int(np.ceil(np.sqrt(len(self.valids))))
+        fig, axs = plt.subplots(gridsize, gridsize,
+                                figsize = (gridsize + 12, gridsize + 12))
         proteins = sorted(self.fractions_upper.keys())
         prg = progress.Progress(len(proteins), 'Plotting peak ratio scores', 1,
             percent = False)
         width = 0.3
+        
         for i in xrange(len(proteins)):
+            
             prg.step()
-            ax = axs[i / 8, i % 8]
+            ax = axs[i / gridsize, i % gridsize]
             protein_name = proteins[i].upper()
             p = self.valids[protein_name]['pos']['prs']
             n = self.valids[protein_name]['neg']['prs']
@@ -8625,16 +8803,16 @@ class Screening(object):
             ax.hist(p, bins, color = '#6EA945', alpha = 0.2, edgecolor = 'none')
             ax.hist(n, bins, color = '#007B7F', alpha = 0.2, edgecolor = 'none')
             ax.set_xlim((0.0, 5.0))
-            ax.set_title('%s p/r scores'%protein_name)
+            ax.set_title('%s p/r scores' % protein_name)
         fig.tight_layout()
         fig.savefig(pdfname)
         prg.terminate()
         plt.close()
     
-    def peak_ratio_score_bool(self, threshold = 1.0):
+    def peak_ratio_score_bool(self):
         for protein, d in self.valids.iteritems():
             for mode, tbl in d.iteritems():
-                tbl['prs1'] = tbl['prs'] <= threshold
+                tbl['prs1'] = tbl['prs'] <= self.peak_ratio_score_threshold
     
     # Screening().fractions_barplot(fractions_upper, pprofs)
     
@@ -10391,9 +10569,9 @@ class Screening(object):
         protein = self.protein_name_upper2mixed(protein)
         protein = protein[mode]
         tbl = self.data[protein][mode]
-        ui = tbl['raw'][:,2].searchsorted(mz)
-        du = 999.0 if ui == tbl['raw'].shape[0] else tbl['raw'][ui,2] - mz
-        dl = 999.0 if ui == 0 else mz - tbl['raw'][ui - 1,2]
+        ui = tbl['ann'][:,2].searchsorted(mz)
+        du = 999.0 if ui == tbl['ann'].shape[0] else tbl['ann'][ui,2] - mz
+        dl = 999.0 if ui == 0 else mz - tbl['ann'][ui - 1,2]
         i = ui if du < dl else ui - 1
         sys.stdout.write('\n\t:: Looking up %.08f\n'\
             '\t -- The closest m/z found is %.08f\n'\
@@ -10409,19 +10587,19 @@ class Screening(object):
             '\t -- Charge:\t%u\t(%s)\n\n' % \
             (
                 mz,
-                tbl['raw'][i,2],
+                tbl['ann'][i,2],
                 i,
-                tbl['raw'][i,3],
-                tbl['raw'][i,4],
+                tbl['ann'][i,3],
+                tbl['ann'][i,4],
                 str(list(tbl['lip'][i,:])),
                 str(list(tbl['ctr'][i,:])),
                 tbl['peaksize'][i],
                 tbl['pks'][i],
                 tbl['aa'][i],
                 int(tbl['are'][i]),
-                tbl['raw'][i,0],
+                tbl['ann'][i,0],
                 tbl['qly'][i],
-                tbl['raw'][i,5],
+                tbl['ann'][i,5],
                 tbl['crg'][i]
             )
         )
