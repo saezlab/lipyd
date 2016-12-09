@@ -2170,6 +2170,7 @@ class Screening(object):
             'pcont_fracs_from_abs': True, # determine protein containing
                                           # fractions from the absorbances
                                           # or read from separate file
+            'permit_profile_end_nan': True,
             'use_manual_ppratios': False,
             'use_highest_ratio': False,
             'peak_ratio_range': 0.3,
@@ -3421,19 +3422,14 @@ class Screening(object):
         sorted by the order of measurement (their position on the plate).
         """
         return \
-            sorted(
+            np.array(
                 list(
-                    map(
-                        lambda i:
-                            i[0],
-                        filter(
-                            lambda i:
-                                i[1] == 1,
-                            iteritems(self.fractions[protein])
-                        )
+                    filter(
+                        lambda fr:
+                            self.fractions[protein][fr] == 1,
+                        self.all_fractions(protein)
                     )
-                ),
-                key = lambda f: (f[0], int(f[1:]))
+                )
             )
     
     def all_fractions(self, protein):
@@ -3441,19 +3437,59 @@ class Screening(object):
         Returns a list of all fractions for one protein,
         sorted by the order of measurement (their position on the plate).
         """
+        # removing the SEC buffer control
+        return self.pfracs[protein][:-1]
+    
+    def fraction_indices(self, protein):
+        """
+        Returns a dict with column indices for all fractions
+        and a boolean value whether if it contains protein.
+        """
         return \
-            sorted(
-                list(
-                    map(
-                        lambda i:
-                            i[0],
-                        iteritems(self.fractions[protein])
-                    )
-                ),
-                key = lambda f: (f[0], int(f[1:]))
+            dict(
+                map(
+                    lambda fr:
+                        (
+                            fr[1],
+                            (fr[0], bool(self.fractions[protein][fr[1]]))
+                        ),
+                    enumerate(self.all_fractions(protein))
+                )
             )
     
+    def pcont_indices(self, protein):
+        """
+        Returns the indices of protein containing fraction columns.
+        """
+        return \
+            np.array(
+                sorted(
+                    map(
+                        lambda fr:
+                            fr[1][0],
+                        filter(
+                            lambda fr:
+                                fr[1][1],
+                            iteritems(self.fraction_indices(protein))
+                        )
+                    )
+                )
+            )
+    
+    def pcont_columns(self, protein, mode, attr = 'fe'):
+        """
+        Returns the protein containing fraction columns
+        from the features x fractions array `attr`.
+        """
+        return self.valids[protein][mode][attr][:,self.pcont_indices(protein)]
+    
     def fractions_by_protein_amount(self):
+        """
+        Orders the fractions by the amount of protein.
+        Considers fraction offsets if those are assumed,
+        and creates dicts `fracs_orderL` and fracs_orderU`
+        (these are identical if no offset assumed).
+        """
         def order(protein, with_protein, pprofs):
             return \
                 sorted(
@@ -3475,6 +3511,13 @@ class Screening(object):
                 order(protein, with_protein, self.pprofsU)
     
     def primary_fractions(self):
+        """
+        Selects the fraction with highest protein amount (primary),
+        all the others considered secondary. There might be more
+        than one primary fractions if at different fraction offsets
+        different fractions have the highest amount of protein.
+        Creates dict `fracs_order`.
+        """
         self.fracs_order = dict(
             map(
                 lambda p:
@@ -3499,6 +3542,7 @@ class Screening(object):
         The result contains empty dicts for proteins with only
         one fraction, one ratio for those with 2 fractions, and
         2 ratios for those with 3 fractions.
+        Creates dict `ppratios`.
         """
         self.ppratios = dict((protein, {}) \
             for protein in self.fractions_upper.keys())
@@ -8400,48 +8444,164 @@ class Screening(object):
         prg.terminate()
         plt.close()
     
+    def lookup_nans(self):
+        """
+        Looks up those features having too many NaNs or zeros 
+        among the protein containing fractions.
+        Stores result under key `na`.
+        """
+        for protein, d in iteritems(self.valids):
+            
+            for mode, tbl in iteritems(d):
+                
+                pfe = self.pcont_columns(protein, mode, 'fe')
+                
+                if self.permit_profile_end_nan:
+                    hasnans = np.logical_or(
+                        np.logical_and(
+                            np.logical_or(
+                                np.sum(np.isnan(pfe[:,:-1]),
+                                    axis = 1, dtype = np.bool),
+                                np.sum(pfe[:,:-1] == 0.0,
+                                    axis = 1, dtype = np.bool)
+                            ),
+                            np.logical_or(
+                                np.isnan(pfe[:,-1]),
+                                pfe[:,-1] == 0.0
+                            )
+                        ),
+                        np.logical_and(
+                            np.logical_or(
+                                np.sum(np.isnan(pfe[:,1:]),
+                                    axis = 1, dtype = np.bool),
+                                np.sum(pfe[:,1:] == 0.0,
+                                    axis = 1, dtype = np.bool)
+                            ),
+                            np.logical_or(
+                                np.isnan(pfe[:,0]),
+                                pfe[:,0] == 0.0
+                            )
+                        ),
+                    )
+                else:
+                    hasnans = np.logical_or(
+                                np.sum(np.isnan(pfe),
+                                    axis = 1, dtype = np.bool),
+                                np.sum(pfe == 0.0,
+                                    axis = 1, dtype = np.bool)
+                            )
+                
+                tbl['na'] = hasnans
+    
     def peak_ratio_score(self, lower = 0.5):
+        """
+        Calculates the difference between the mean intensity peak ratio
+        expressef in number of standard deviations.
+        The mean and the SD calculated in the range of the expected
+        ratio minus lower plus upper.
+        """
         upper = 1.0 / lower
         proteins = sorted(self.fractions_upper.keys())
+        
+        def get_score(protein, col, fkey, lower, upper):
+            # the expected value of the peak ratio:
+            ppr = self.ppratios[protein][fkey]
+            # all intensity peak ratios:
+            p = self.valids[protein]['pos']['ipr'][:,col]
+            pa = p[np.isfinite(p)]
+            n = self.valids[protein]['neg']['ipr'][:,col]
+            na = n[np.isfinite(n)]
+            # all intensity peak ratios:
+            a = np.concatenate((pa, na))
+            # range considering fraction offsets, having tolerance
+            # -/+ upper/lower
+            a = a[np.where((a > ppr[0] * lower) & (a < ppr[-1] * upper))]
+            m = np.mean(a)
+            s = np.std(a)
+            # scores: difference from mean in SD
+            scp = np.abs(p - m) / s
+            scn = np.abs(n - m) / s
+            return scp, scn
+        
+        def scores_array(protein, scores):
+            
+            return \
+                np.column_stack(
+                        tuple(
+                            map(
+                                lambda fk:
+                                    scores[fk],
+                                map(
+                                    lambda fk:
+                                        fk[0],
+                                    sorted(
+                                        iteritems(
+                                            self.valids[protein]['pos']['ipri']
+                                        ),
+                                        key = lambda fk: fk[1]
+                                    )
+                                )
+                            )
+                        )
+                    )
+        
         for i in xrange(len(proteins)):
+            
             protein_name = proteins[i].upper()
+            
             if self.valids[protein_name]['pos']['ipr'].shape[1] > 0:
-                scores = []
-                keys = sorted(self.ppratios[protein_name].keys())
-                ppr1 = np.array(sorted(list(self.ppratios[protein_name][keys[0]])))
-                ipri1 = self.valids[protein_name]['pos']['ipri'][keys[0]]
-                if len(keys) > 1:
-                    ppr2 = np.array(sorted(list(self.ppratios[protein_name][keys[1]])))
-                    ipri2 = self.valids[protein_name]['pos']['ipri'][keys[1]]
-                p1 = self.valids[protein_name]['pos']['ipr'][:,ipri1]
-                p1a = p1[np.isfinite(p1)]
-                n1 = self.valids[protein_name]['neg']['ipr'][:,ipri1]
-                n1a = n1[np.isfinite(n1)]
-                a1 = np.concatenate((p1a, n1a))
-                a1 = a1[np.where((a1 > ppr1[0] * lower) & (a1 < ppr1[1] * upper))]
-                m1 = np.mean(a1)
-                s1 = np.std(a1)
-                if self.valids[protein_name]['pos']['ipr'].shape[1] > 1:
-                    p2 = self.valids[protein_name]['pos']['ipr'][:,ipri2]
-                    p2a = p2[np.isfinite(p2)]
-                    n2 = self.valids[protein_name]['neg']['ipr'][:,ipri2]
-                    n2a = n2[np.isfinite(n2)]
-                    a2 = np.concatenate((p2a, n2a))
-                    a2 = a2[np.where((a2 > ppr2[0] * lower) & (a2 < ppr2[1] * upper))]
-                    m2 = np.mean(a2)
-                    s2 = np.std(a2)
-                    scp2 = np.abs(p2 - m2) / s2
-                    scn2 = np.abs(n2 - m2) / s2
-                scp1 = np.abs(p1 - m1) / s1
-                scn1 = np.abs(n1 - m1) / s1
-                if self.valids[protein_name]['pos']['ipr'].shape[1] > 1:
-                    scp1 = (scp1 + scp2) / 2.0
-                    scn1 = (scn1 + scn2) / 2.0
+                
+                scoresp = {}
+                scoresn = {}
+                fracs = self.protein_containing_fractions(protein_name)
+                
+                for i in xrange(len(fracs) - 1):
+                    
+                    for j in xrange(i + 1, len(fracs)):
+                        
+                        frac1, frac2 = fracs[i], fracs[j]
+                        fkey = (frac1, frac2)
+                        col = self.valids[protein_name]['pos']['ipri'][fkey]
+                        
+                        scoresp[fkey], scoresn[fkey] = \
+                            get_score(protein_name, col, fkey, lower, upper)
+                
+                self.valids[protein_name]['pos']['prsa'] = \
+                    scores_array(protein_name, scoresp)
+                self.valids[protein_name]['neg']['prsa'] = \
+                    scores_array(protein_name, scoresn)
+            
             else:
-                scp1 = np.zeros((self.valids[protein_name]['pos']['ipr'].shape[0],), dtype = np.float)
-                scn1 = np.zeros((self.valids[protein_name]['neg']['ipr'].shape[0],), dtype = np.float)
-            self.valids[protein_name]['pos']['prs'] = scp1
-            self.valids[protein_name]['neg']['prs'] = scn1
+                self.valids[protein_name]['pos']['prsa'] = \
+                    np.zeros(
+                        (self.valids[protein_name]['pos']['ipr'].shape[0],),
+                        dtype = np.float
+                    )
+                self.valids[protein_name]['neg']['prsa'] = \
+                    np.zeros(
+                        (self.valids[protein_name]['neg']['ipr'].shape[0],),
+                        dtype = np.float
+                    )
+    
+    def combine_peak_ratio_scores(self):
+        """
+        Peak ratio scores calculated for each pairs of protein containing
+        fractions. Here we take their mean and select the scores for the
+        first and highest fraction pairs.
+        """
+        for protein, d in iteritems(self.valids):
+            
+            for mode, tbl in iteritems(d):
+                
+                fkeyf = self.first_ratio[protein]
+                fkeyh = self.highest_ratio[protein]
+                too_many_nans = \
+                    np.where(np.sum(np.isnan(tbl['prsa']), axis = 1))
+                
+                tbl['prs'] = np.nanmean(tbl['prsa'], axis = 1) # mean score
+                tbl['prs'][too_many_nans] = np.inf
+                tbl['prsf'] = tbl['prsa'][tbl['ipri'][fkeyf]] # score for first
+                tbl['prsh'] = tbl['prsa'][tbl['ipri'][fkeyh]] # highest diff.
     
     def peak_ratio_score_hist(self, pdfname = None):
         if pdfname is None:
@@ -8477,7 +8637,7 @@ class Screening(object):
                 tbl['prs1'] = tbl['prs'] <= threshold
     
     # Screening().fractions_barplot(fractions_upper, pprofs)
-
+    
     def plot_score_performance(self, perf):
         metrics = [
             ('Kendall\'s tau', 'ktv', False),
