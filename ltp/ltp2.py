@@ -2171,6 +2171,8 @@ class Screening(object):
                                           # fractions from the absorbances
                                           # or read from separate file
             'use_manual_ppratios': False,
+            'use_highest_ratio': False,
+            'peak_ratio_range': 0.3,
             'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
             'fracsU': ['A09', 'A10', 'A11', 'A12', 'B01'],
             'pp_minratio': 3,
@@ -3750,12 +3752,30 @@ class Screening(object):
                     tbl['iprh'] = None
     
     def ratios_in_range(self):
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
-                if len(self.ppratios[protein]) and tbl['iprf'] is not None:
+        """
+        Creates a new boolean attribute `ppr`, which tells if the intensity
+        peak ratios are in the range expected based on the fractions offset,
+        or if we assume no offset, then a custom interval.
+        """
+        
+        ppr1 = self.highest_ratio if self.use_highest_ratio else self.first_ratio
+        iprvar = 'iprh' if self.use_highest_ratio else 'iprf'
+        
+        for protein, d in iteritems(self.valids):
+            
+            for mode, tbl in iteritems(d):
+                # only if we have more than one fraction:
+                if len(self.ppratios[protein]) and tbl[iprvar] is not None:
+                    
                     in_range = []
-                    ppr = sorted(self.ppratios[protein][self.first_ratio[protein]])
-                    for ipr in tbl['iprf']:
+                    ppr = sorted(self.ppratios[protein][ppr1[protein]])
+                    
+                    # no fraction offsets:
+                    if len(ppr) == 1:
+                        ppr = (ppr[0] - ppr[0] * self.peak_ratio_range,
+                               ppr[0] + ppr[0] * self.peak_ratio_range)
+                    
+                    for ipr in tbl[iprvar]:
                         in_range.append(ppr[0] <= ipr <= ppr[1])
                     tbl['prr'] = np.array(in_range)
                 else:
