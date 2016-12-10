@@ -1029,6 +1029,9 @@ class Feature(object):
         self.protein = protein
         self.mode = mode
         self.oi = oi
+        self.ifracs = self.main.fraction_indices(self.protein)
+        self.fracsi = dict(map(lambda fr: (fr[1][0], fr[0]),
+                               iteritems(self.ifracs)))
         self.tbl = self.main.valids[self.protein][self.mode]
         self.ms2 = self.tbl['ms2'][self.oi]
         self.i = self.main.oi2i(self.protein, self.mode, self.oi)
@@ -1038,6 +1041,7 @@ class Feature(object):
             uniqList(
                 map(
                     tuple,
+                    # scan ID, fraction ID
                     self.ms2[:,[12,14]]
                 )
             )
@@ -1051,14 +1055,16 @@ class Feature(object):
         # sorting by fractions/scans
         self.scans = dict(
             map(
-                lambda (sc, fr):
+                lambda sc_fr:
                     (
-                        (sc, fr),
+                        # scan ID, fraction ID: key
+                        (sc_fr[0], sc_fr[1]),
+                        # MS2 array slice: value
                         self.ms2[
                             np.where(
                                 np.logical_and(
-                                    self.ms2[:,12] == sc,
-                                    self.ms2[:,14] == fr
+                                    self.ms2[:,12] == sc_fr[0],
+                                    self.ms2[:,14] == sc_fr[1]
                                 )
                             )
                         ]
@@ -1069,50 +1075,52 @@ class Feature(object):
         # sorting by intensity desc
         self.scans = dict(
             map(
-                lambda (k, v):
+                lambda i:
                     (
-                        k,
-                        v[v[:,2].argsort()[::-1],:]
+                        i[0],
+                        i[1][i[1][:,2].argsort()[::-1],:]
                     ),
                 self.scans.iteritems()
             )
         )
         self.deltart = dict(
             map(
-                lambda (k, v):
+                lambda i:
                     (
-                        k,
-                        self.tbl['rtm'][self.i] - v[0,11]
+                        i[0],
+                        self.tbl['rtm'][self.i] - i[1][0,11]
                     ),
                 self.scans.iteritems()
             )
         )
         self._scans = dict(
             map(
-                lambda (k, v):
+                lambda i:
                     (
-                        k,
-                        MS2Scan(v, k, self)
+                        i[0],
+                        # i[0]: (scan ID, fraction ID)
+                        # i[1]: MS2 array slice
+                        MS2Scan(i[1], i[0], self)
                     ),
                 self.scans.iteritems()
             )
         )
         self.maxins = dict(
             map(
-                lambda (k, v):
+                lambda i:
                     (
-                        k,
-                        v[0,2]
+                        i[0],
+                        i[1][0,2]
                     ),
                 self.scans.iteritems()
             )
         )
         self.medins = dict(
             map(
-                lambda (k, v):
+                lambda i:
                     (
-                        k,
-                        np.median(v[:,2])
+                        i[0],
+                        np.median(i[1][:,2])
                     ),
                 self.scans.iteritems()
             )
@@ -1320,14 +1328,16 @@ class Feature(object):
 class MS2Scan(object):
     
     def __init__(self, scan, scan_id, feature):
+        
         self.scan = scan
         self.scan_id = scan_id
         self.feature = feature
         self.deltart = self.feature.deltart[self.scan_id]
-        self.frac_name = 'a%02u' % self.scan_id[1] \
-            if self.scan_id[1] != 13 and self.scan_id[1] != 1 else 'b01'
+        self.frac_id = self.scan_id[1]
+        self.frac_name = self.feature.fracsi[self.frac_id]
+        
         self.ms2_file = self.feature.main.ms2files\
-            [self.feature.protein][self.feature.mode][self.frac_name.upper()]
+            [self.feature.protein][self.feature.mode][self.frac_name]
         self.in_primary = self.frac_name in \
             self.feature.main.fracs_order[self.feature.protein]['prim']
         self.in_secondary = self.frac_name in \
@@ -1363,21 +1373,20 @@ class MS2Scan(object):
                 self.scan
             )
         )
-        # fraction index (A09-B01)
-        fri = self.scan_id[1] - 9 if self.scan_id[1] != 1 else 4
-        self.feature.msg('\tScan %u (fraction %s%u; %s %s; '\
+        
+        self.feature.msg('\tScan %u (fraction %s(#%u); %s %s; '\
             'intensity = %.01f (%.02f%%)):\n\n%s\t%s\n\n' % \
             (self.scan_id[0],
-             'A' if 8 < self.scan_id[1] < 13 else 'B',
-             '1' if self.scan_id[1] == 13 else self.scan_id[1],
+             self.frac_name,
+             self.frac_id,
              'contains' \
-                if self.feature.main.fractions_upper[self.feature.protein][fri + 1] == 1 \
+                if self.feature.ifracs[self.frac_name][1] \
                 else 'does not contain',
              self.feature.protein,
-             self.tbl['fe'][self.i, fri] \
-                 if fri < self.tbl['fe'].shape[1] else np.nan,
-             (self.tbl['fe'][self.i, fri] \
-                 if fri < self.tbl['fe'].shape[1] else np.nan) / \
+             self.tbl['fe'][self.i, self.frac_id] \
+                 if self.frac_id < self.tbl['fe'].shape[1] else np.nan,
+             (self.tbl['fe'][self.i, self.frac_id] \
+                 if self.frac_id < self.tbl['fe'].shape[1] else np.nan) / \
                  np.nanmax(self.tbl['fe'][self.i, :]) * 100.0,
              header,
              table)
@@ -1391,7 +1400,6 @@ class MS2Scan(object):
         tr = '\t\t\t<tr class="%s">\n%s\n\t\t\t</tr>\n'
         td = '\t\t\t\t<td>\n\t\t\t\t\t%s\n\t\t\t\t</td>\n'
         ms1mz = self.tbl['mz'][self.i]
-        fri = self.scan_id[1] - 9 if self.scan_id[1] != 1 else 4
         rows = ttl % (
             'scantitle',
             'Scan %u (%s, %s; '\
@@ -1403,9 +1411,9 @@ class MS2Scan(object):
                         self.feature.protein if self.in_secondary \
                     else 'does not contain %s' % \
                         self.feature.protein,
-                self.tbl['fe'][self.i, fri] \
+                self.tbl['fe'][self.i, self.frac_id] \
                     if fri < self.tbl['fe'].shape[1] else np.nan,
-                (self.tbl['fe'][self.i, fri] \
+                (self.tbl['fe'][self.i, self.frac_id] \
                     if fri < self.tbl['fe'].shape[1] else np.nan) / \
                     np.nanmax(self.tbl['fe'][self.i, :]) * 100.0,
                 self.deltart
@@ -6349,6 +6357,7 @@ class Screening(object):
                             
                             try:
                                 fr = refractio.match(f).groups()[0]
+                                fr = '%s%u' % (fr[0], int(fr[1:]))
                             except AttributeError:
                                 sys.stdout.write(
                                     'could not determine '\
@@ -6357,9 +6366,11 @@ class Screening(object):
                             if ms2dir:
                                 null, proteinname, pos, fr = \
                                     remgfname.match(f).groups()
+                                
+                                fr = '%s%u' % (fr[0], int(fr[1:]))
                             
-                            fr = 'B01' if fr == 'B1' \
-                                else 'A09' if fr == 'A9' \
+                            fr = 'B1' if fr == 'B01' \
+                                else 'A9' if fr == 'A09' \
                                 else fr
                             
                             if proteinname not in fnames:
@@ -11364,7 +11375,7 @@ class Screening(object):
             ('Protein Ratio OK', 2.12),
             ('Lipid Intensity Ratio', 2.12),
             ('Protein Ratio Limit %.03f' % self.fr_offsets[0], 2.12),
-            ('Protein Ratio Limit %.03f' % self.fr_offsets[1], 2.12),
+            ('Protein Ratio Limit %.03f' % self.fr_offsets[-1], 2.12),
             ('Protein Ratio from Fractions', 2.12),
             ('Protein Ratio Score', 2.12),
             ('Peaksize', 2.12),
