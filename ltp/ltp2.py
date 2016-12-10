@@ -11582,8 +11582,8 @@ class Screening(object):
                         self.ppratios[protein][self.first_ratio[protein]][0],
                     'NA' if self.first_ratio[protein] is None else \
                         'Inf' if np.isinf(self.ppratios[protein][
-                            self.first_ratio[protein]][1]) else \
-                        self.ppratios[protein][self.first_ratio[protein]][1],
+                            self.first_ratio[protein]][-1]) else \
+                        self.ppratios[protein][self.first_ratio[protein]][-1],
                     'NA' if self.first_ratio[protein] is None \
                         else '%s:%s' % self.first_ratio[protein],
                     ('NA' if self.first_ratio[protein] is None \
