@@ -2180,9 +2180,10 @@ class Screening(object):
                                           # fractions from the absorbances
                                           # or read from separate file
             'permit_profile_end_nan': True,
+            'peak_ratio_score_bandwidth': 0.25,
             'use_manual_ppratios': False,
             'use_last_ratio': False,
-            'peak_ratio_range': 0.3,
+            'peak_ratio_range': 0.5,
             'peak_ratio_score_threshold': 1.0,
             'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
             'fracsU': ['A09', 'A10', 'A11', 'A12', 'B01'],
@@ -4787,7 +4788,7 @@ class Screening(object):
             
             for l in f:
                 # removing first column
-                l = [i.strip() for i in l.split(',')][1:]
+                l = [i.strip() for i in l.replace('"', '').split(',')][1:]
                 # reading annotations
                 annot = \
                     [
@@ -8402,12 +8403,13 @@ class Screening(object):
             prg.step()
             ax = axs[i / n, i % n]
             protein_name = proteins[i]
-            fracs = sorted(self.pprofs[protein_name].keys(),
-                           key = lambda i: (int(i[0]), i[1], int(i[2:])))
+            fracs = self.all_fractions(protein_name)
+            #sorted(self.pprofs[protein_name].keys(),
+            #               key = lambda i: (i[0], int(i[1:])))
             ppr = np.array([self.pprofs[protein_name][fr] for fr in fracs])
             if hasattr(self, 'pprofs_original'):
                 ppr_o = np.array([self.pprofs_original[protein_name][fr] \
-                    for fr in self.fracs])
+                    for fr in fracs])
             else:
                 ppr_o = ppr
             if features:
@@ -8435,19 +8437,19 @@ class Screening(object):
                         plot_this = False
                         color = '#FFCCCC' if pn == 'pos' else '#CCCCFF'
                         try:
-                            def _feg(self, fe):
+                            def _feg(fe):
                                 for fei in fe:
                                     yield fei
                             feg = _feg(fe)
                             if highlight2 and \
-                                valids[protein_name][pn][highlight2][fi]:
+                                self.valids[protein_name][pn][highlight2][fi]:
                                 color = '#FF0000' if pn == 'pos' else '#0000FF'
                                 alpha = 0.15
                                 lwd = 0.4
                                 lst = ':'
                                 plot_this = True
                             if highlight and \
-                                valids[protein_name][pn][highlight][fi]:
+                                self.valids[protein_name][pn][highlight][fi]:
                                 color = '#FF0000' if pn == 'pos' else '#0000FF'
                                 alpha = 0.75
                                 lwd = 0.4
@@ -8457,7 +8459,7 @@ class Screening(object):
                                 ax.plot(np.arange(len(ppr)) + 0.4,
                                     np.array([feg.next() \
                                         if s is not None else 0.0 \
-                                        for s in fractions[protein_name][1:]]),
+                                        for s in self.all_fractions(protein_name)]),
                                     linewidth = lwd, markersize = 0.07,
                                     linestyle = lst, 
                                     color = color, alpha = alpha, marker = 'o')
@@ -8490,7 +8492,7 @@ class Screening(object):
             ax = axs[i / 8, i % 8]
             protein_name = proteins[i].upper()
             for (w, offset), label in \
-                zip(enumerate([0.0] + self.froffsets), ['', 'L', 'U']):
+                zip(enumerate([0.0, self.fr_offsets[0], self.fr_offsets[-1]]), ['', 'L', 'U']):
                 ppr = np.array([getattr(self, 'pprofs%s' % label)\
                     [protein_name][fr] for fr in self.fracs])
                 ppr_o = np.array([getattr(self, 'pprofs_original%s' % label)\
@@ -8521,7 +8523,7 @@ class Screening(object):
                         plot_this = False
                         color = '#FFCCCC' if pn == 'pos' else '#CCCCFF'
                         try:
-                            def _feg(self, fe):
+                            def _feg(fe):
                                 for fei in fe:
                                     yield fei
                             feg = _feg(fe)
@@ -8675,13 +8677,14 @@ class Screening(object):
                 
                 tbl['na'] = hasnans
     
-    def peak_ratio_score(self, lower = 0.5):
+    def peak_ratio_score(self):
         """
         Calculates the difference between the mean intensity peak ratio
         expressef in number of standard deviations.
         The mean and the SD calculated in the range of the expected
         ratio minus lower plus upper.
         """
+        lower = self.peak_ratio_score_bandwidth
         upper = 1.0 / lower
         proteins = sorted(self.fractions_upper.keys())
         
@@ -8777,11 +8780,9 @@ class Screening(object):
                 
                 fkeyf = self.first_ratio[protein]
                 fkeyh = self.last_ratio[protein]
-                too_many_nans = \
-                    np.where(np.sum(np.isnan(tbl['prsa']), axis = 1))
                 
                 tbl['prs'] = np.nanmean(tbl['prsa'], axis = 1) # mean score
-                tbl['prs'][too_many_nans] = np.inf
+                tbl['prs'][np.where(tbl['na'])] = np.inf
                 tbl['prsf'] = tbl['prsa'][tbl['ipri'][fkeyf]] # score for first
                 tbl['prsh'] = tbl['prsa'][tbl['ipri'][fkeyh]] # highest diff.
     
@@ -11387,7 +11388,8 @@ class Screening(object):
             ('[M+NH4]+ Lipids (LipidMaps)' if mode == 'pos' \
                 else '[M+HCOO]- Lipids (LipidMaps)', 3.31),
             ('[M+Na]+ Lipids (LipidMaps)' if mode == 'pos' \
-                else 'Nothing', 3.31)
+                else 'Nothing', 3.31),
+            ('Present in all protein containing fractions', 2.12)
         ]
         
         colw = list(map(lambda f: f[1], hdr))
@@ -11504,14 +11506,14 @@ class Screening(object):
                 (aaa >= self.aa_threshold[mode] or \
                 (oi in tbl['ms2f'] and len(tbl['ms2f'][oi].deltart) and \
                     (min(map(abs, tbl['ms2f'][oi].deltart.values())) <= 1.0 or \
-                        not check_deltart)))
+                        not check_deltart))) and not tbl['na'][i]
             
             _good = tbl['peaksize'][i] >= 5.0 and \
                 (tbl['prr'] is None or tbl['prr'][i]) and \
                 ((aaa >= self.aa_threshold[mode] and \
                     (any(map(len, [lips1, lips2, lips3, lips1l, lips2l, lips3l])))) or \
                 (oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
-                    len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi])))
+                    len(tbl['ms1hg'][oi] & tbl['ms2hg2'][oi]))) and not tbl['na'][i]
             
             if not only_best or good:
                 
@@ -11605,6 +11607,8 @@ class Screening(object):
                     (lips1l, 'green' if len(lips1l) else 'plain'),
                     (lips2l, 'green' if len(lips2l) else 'plain'),
                     (lips3l, 'green' if len(lips3l) else 'plain'),
+                    ('missing values' if tbl['na'][i] else 'no missing values',
+                    'plain' if tbl['na'][i] else 'green')
                 ])
         if colws:
             return rows, colw
