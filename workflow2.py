@@ -29,7 +29,7 @@ import cPickle as pickle
 
 from future.utils import iteritems
 
-from common import *
+#from common import *
 
 #
 
@@ -60,7 +60,7 @@ Processing standards from mzML
 Calculating drifts
 Recalibrating all m/z's
 '''
-l.recalibration()
+#l.recalibration()
 
 '''
 Lookup lipids for all the valid features. (variable name: `lip`)

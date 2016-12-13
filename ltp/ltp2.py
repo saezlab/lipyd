@@ -3808,6 +3808,7 @@ class Screening(object):
         for protein, d in iteritems(self.valids):
             
             fracs = self.protein_containing_fractions(protein)
+            ifracs = self.fraction_indices(protein)
             
             for mode, tbl in iteritems(d):
                 
@@ -3823,7 +3824,8 @@ class Screening(object):
                             
                             frac1, frac2 = fracs[i], fracs[j]
                             
-                            ratio.append(fe[i] / fe[j])
+                            ratio.append(fe[ifracs[frac1][0]] /
+                                         fe[ifracs[frac2][0]])
                             indices[(frac1, frac2)] = len(ratio) - 1
                     
                     ratios.append(ratio)
@@ -10534,12 +10536,21 @@ class Screening(object):
                     self.known_binders_detected.add(protein)
     
     def mz_report(self, protein, mode, mz):
+        """
+        Looks up an m/z value and prints a report about the closest one.
+        """
         self.sort_alll('mz')
         tbl = self.valids[protein][mode]
         ui = tbl['mz'].searchsorted(mz)
         i = ui if tbl['mz'][ui] - mz < mz - tbl['mz'][ui - 1] else ui - 1
         oi = tbl['i'][i]
-        sys.stdout.write('\n\t:: Looking up %.08f\n'\
+        ifracs = sorted(iteritems(self.fraction_indices(protein)),
+                        key = lambda i: i[1][0])
+        
+        sys.stdout.write(
+            
+            '\n\t:: Looking up %.08f\n'\
+            '\t %s8\n'\
             '\t -- The closest m/z found is %.08f\n'\
             '\t -- Current index is %u\n'\
             '\t -- Original index is %u\n'\
@@ -10549,8 +10560,22 @@ class Screening(object):
             '\t -- MS2 fatty acids identified: %s\n'\
             '\t -- Headgroups based on fatty acids: %s\n'\
             '\t -- Combined identity: %s\n'\
-            '\n' % \
-            (mz, tbl['mz'][i], i, oi, 
+            '\t %s8\n'\
+            '\t -- RT range: %.02f--%.02f\n'\
+            '\t -- Peak size: %.02f\n'\
+            '\t -- Avg. area: %u\n'\
+            '\t -- Protein containing fractions intensities:\n'\
+            '\t\t%s\n'\
+            '\t\t%s\n'\
+            '\t -- Control fractions intensities:\n'\
+            '\t\t%s\n'\
+            '\t\t%s\n'\
+            '\n' % (
+             mz,
+             '=' * 70,
+             tbl['mz'][i],
+             i,
+             oi,
             ', '.join(sorted(list(tbl['ms1hg'][oi]))),
             ', '.join(sorted(list(tbl['ms2hg'][oi]))) \
                 if oi in tbl['ms2hg'] and \
@@ -10563,7 +10588,20 @@ class Screening(object):
             ', '.join(list(tbl['ms2fa'][oi])) \
                 if oi in tbl['ms2fa'] else '',
             ', '.join(list(tbl['hgfa'][oi])),
-            ', '.join(list(tbl['combined_hg'][oi]))
+            ', '.join(list(tbl['combined_hg'][oi])),
+            '=' * 70,
+            tbl['rt'][i][0],
+            tbl['rt'][i][1],
+            tbl['peaksize'][i],
+            tbl['aa'][i],
+            '\t'.join(map(lambda fr: fr[0].rjust(7), filter(lambda fr: fr[1][1],
+                                                 ifracs))),
+            '\t'.join(map(lambda fr: ('%u' % int(tbl['fe'][i,fr[1][0]])).rjust(7),
+                          filter(lambda fr: fr[1][1], ifracs))),
+            '\t'.join(map(lambda fr: fr[0].rjust(7), filter(lambda fr: not fr[1][1],
+                                                 ifracs))),
+            '\t'.join(map(lambda fr: ('%u' % int(tbl['fe'][i,fr[1][0]])).rjust(7),
+                          filter(lambda fr: not fr[1][1], ifracs))),
             )
         )
         sys.stdout.flush()
@@ -11499,7 +11537,7 @@ class Screening(object):
             
             oi = tbl['i'][i]
             
-            aaa = tbl['aa'][i] if self.use_original_average_area else tbl['aaa']
+            aaa = tbl['aa'][i] if self.use_original_average_area else tbl['aaa'][i]
             
             good = tbl['peaksize'][i] >= 5.0 and \
                 (tbl['prr'] is None or tbl['prr'][i]) and \
