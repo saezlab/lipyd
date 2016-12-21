@@ -4879,7 +4879,10 @@ class Screening(object):
             if protein not in data:
                 data[protein] = {}
             
-            cfracs = self.fractions[protein]
+            if hasattr(self, 'fractions'):
+                cfracs = self.fractions[protein]
+            else:
+                cfracs = None
             
             for p, fname in pos_neg.iteritems():
                 
@@ -4887,7 +4890,7 @@ class Screening(object):
                 
                 #try:
                 data[protein][p] = {}
-                # this returns an arrays and the fraction sequence:
+                # this returns an array and the fraction sequence:
                 pdata, fracs = self.read_file_np(fname)
                 #
                 ifracs, sfracs = zip(*sort_fracs(fracs))
@@ -4906,26 +4909,30 @@ class Screening(object):
                 # as annotations)
                 data[protein][p]['int'] = data[protein][p]['raw']
                 #
-                # making a view with measured:
-                imes = get_indices(sfracs, cfracs, lambda x: x is not None)
                 
-                data[protein][p]['mes'] = data[protein][p]['int'][:,imes]
-                #
-                # making a view with the controls:
-                ictr = get_indices(sfracs, cfracs, lambda x: x == 0)
+                if cfracs is not None:
+                    # making a view with measured:
+                    imes = get_indices(sfracs, cfracs, lambda x: x is not None)
+                    
+                    data[protein][p]['mes'] = data[protein][p]['int'][:,imes]
+                    #
+                    # making a view with the controls:
+                    ictr = get_indices(sfracs, cfracs, lambda x: x == 0)
+                    
+                    data[protein][p]['ctr'] = data[protein][p]['int'][:,ictr]
+                    #
+                    # fractions with lipids:
+                    
+                    ilip = get_indices(sfracs, cfracs, lambda x: x == 1)
+                    
+                    data[protein][p]['lip'] = data[protein][p]['int'][:,ilip]
+                    #
+                    # all fractions except blank control:
+                    if sfracs[-1] == 'X0':
+                        imes[-1] = False
+                    
+                    data[protein][p]['smp'] = data[protein][p]['int'][:,imes]
                 
-                data[protein][p]['ctr'] = data[protein][p]['int'][:,ictr]
-                #
-                # fractions with lipids:
-                ilip = get_indices(sfracs, cfracs, lambda x: x == 1)
-                
-                data[protein][p]['lip'] = data[protein][p]['int'][:,ilip]
-                #
-                # all fractions except blank control:
-                if sfracs[-1] == 'X0':
-                    imes[-1] = False
-                
-                data[protein][p]['smp'] = data[protein][p]['int'][:,imes]
                 # average area:
                 data[protein][p]['aa'] = data[protein][p]['ann'][:,7]
         
@@ -12960,4 +12967,43 @@ class Screening(object):
             )
         
         return {'terms': terms, 'names': names}
-
+    
+    def count_nonzero_features(self, outf = 'nonzero_counts.tab'):
+        """
+        Counts the number of nonzero features for each fraction.
+        """
+        result = {}
+        hdr = ['protein', 'mode', 'fr', 'set', 'peak', 'cnt']
+        f = open(outf, 'w')
+        f.write('%s\n' % '\t'.join(hdr))
+        
+        for protein, d in iteritems(self.valids):
+            
+            ifracs = self.fraction_indices(protein)
+            
+            for mode, tbl in iteritems(d):
+                
+                for attr, key in [('valids', 'fe'), ('data', 'raw')]:
+                    
+                    k = (protein, mode, attr)
+                    if k not in result:
+                        result[k] = {}
+                    
+                    for fr, fi in iteritems(ifracs):
+                        
+                        cnt = np.sum(getattr(self, attr)[
+                            protein][mode][key][:,fi[0]] > 0)
+                        
+                        result[k][fr] = cnt
+                        
+                        f.write('%s\n' % \
+                            '\t'.join([protein, mode, fr,
+                                       attr,
+                                       'peak' if fi[1] else 'non-peak',
+                                       '%u' % cnt]
+                            )
+                        )
+        
+        f.close()
+        
+        self.nonzero_features = result
