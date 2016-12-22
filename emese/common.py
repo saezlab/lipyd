@@ -1,3 +1,28 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+#
+#  This file is part of the `emese` python module
+#
+#  Copyright (c) 2015-2016 - EMBL-EBI
+#
+#  File author(s): Dénes Türei (turei.denes@gmail.com)
+#
+#  This code is not for public use.
+#  Please do not redistribute.
+#  For permission please contact me.
+#
+#  Website: http://www.ebi.ac.uk/~denes
+#
+
+from __future__ import print_function
+from past.builtins import xrange, range, reduce
+
+import sys
+
+if 'unicode' not in __builtins__:
+    unicode = str
+
 simpleTypes = [int, float, str, unicode]
 
 charTypes = [str, unicode]
@@ -10,9 +35,12 @@ def uniqList(seq):
         try:
             keys[e] = 1
         except:
-            print e
-            print seq
-            print keys
+            sys.stdout.write(e)
+            sys.stdout.write('\n')
+            sys.stdout.write(seq)
+            sys.stdout.write('\n')
+            sys.stdout.write(keys)
+            sys.stdout.write('\n')
     return keys.keys()
 
 def flatList(lst):

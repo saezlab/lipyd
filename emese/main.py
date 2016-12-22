@@ -1,22 +1,18 @@
-﻿#!/usr/bin/env python2
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #
+#  This file is part of the `emese` python module
+#
 #  Copyright (c) 2015-2016 - EMBL-EBI
 #
-#  File author(s): Dénes Türei (denes@ebi.ac.uk)
+#  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
 #  This code is not for public use.
 #  Please do not redistribute.
 #  For permission please contact me.
 #
 #  Website: http://www.ebi.ac.uk/~denes
-#
-
-#
-    # filtering features accross fractions and fractions
-    # to find those relevant ones
-    # belonging to LTP bound lipids
 #
 
 from __future__ import print_function
@@ -82,10 +78,10 @@ except:
     sys.stdout.write('Could not import rpy2 or some of the R packages.\n')
 
 # from this module:
-import mass
-import progress
-import _curl
-from common import *
+import emese.mass as mass
+import emese.progress as progress
+import emese._curl as _curl
+from emese.common import *
 
 import rlcompleter, readline
 readline.parse_and_bind('tab:complete')
@@ -113,7 +109,7 @@ class MolWeight(object):
         self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
         if formula is None:
             formula = ''.join('%s%u'%(elem.capitalize(), num) \
-                for elem, num in kwargs.iteritems())
+                for elem, num in iteritems(kwargs))
         self.formula = formula
         self.calc_weight()
     
@@ -886,7 +882,7 @@ class FAFragSeries(object):
     def __init__(self, typ, charge, cmin = 2, unsatmin = 0,
         cmax = 36, unsatmax = 6,
         minus = [], plus = [], **kwargs):
-        for attr, val in locals().iteritems():
+        for attr, val in iteritems(locals()):
             setattr(self, attr, val)
         self.fragments = []
         if self.unsatmax is None: self.unsatmax = self.unsatmin
@@ -1080,7 +1076,7 @@ class Feature(object):
                         i[0],
                         i[1][i[1][:,2].argsort()[::-1],:]
                     ),
-                self.scans.iteritems()
+                iteritems(self.scans)
             )
         )
         self.deltart = dict(
@@ -1090,7 +1086,7 @@ class Feature(object):
                         i[0],
                         self.tbl['rtm'][self.i] - i[1][0,11]
                     ),
-                self.scans.iteritems()
+                iteritems(self.scans)
             )
         )
         self._scans = dict(
@@ -1102,7 +1098,7 @@ class Feature(object):
                         # i[1]: MS2 array slice
                         MS2Scan(i[1], i[0], self)
                     ),
-                self.scans.iteritems()
+                iteritems(self.scans)
             )
         )
         self.maxins = dict(
@@ -1112,7 +1108,7 @@ class Feature(object):
                         i[0],
                         i[1][0,2]
                     ),
-                self.scans.iteritems()
+                iteritems(self.scans)
             )
         )
         self.medins = dict(
@@ -1122,7 +1118,7 @@ class Feature(object):
                         i[0],
                         np.median(i[1][:,2])
                     ),
-                self.scans.iteritems()
+                iteritems(self.scans)
             )
         )
         self.sort_scans()
@@ -1226,15 +1222,15 @@ class Feature(object):
     def __str__(self):
         return ', '.join(
             map(
-                lambda (hg, fas):
+                lambda hgfas:
                     ', '.join(
                         map(
                             lambda fa:
-                                '%s(%s)' % (hg, fa),
-                            fas
+                                '%s(%s)' % (hgfas[0], fa),
+                            hgfas[1]
                         )
                     ),
-                self.fa.iteritems()
+                iteritems(self.fa)
             )
         )
     
@@ -1290,7 +1286,7 @@ class Feature(object):
                 f.write(text)
     
     def _any_scan(self, method, **kwargs):
-        for i, sc in self._scans.iteritems():
+        for i, sc in iteritems(self._scans):
             self.msg('\t\t:: Calling method %s() on scan #%u\n' % (method, i[0]))
             if getattr(sc, method)(**kwargs):
                 return True
@@ -1310,7 +1306,7 @@ class Feature(object):
             self.msg('\t>>> Attempting to identify %s in all scans\n' % (hg))
             self.identities2[hg] = []
             identified = False
-            for scanid, scan in self._scans.iteritems():
+            for scanid, scan in iteritems(self._scans):
                 method = '%s_%s_%u' % (hg.lower(), self.mode, num)
                 if hasattr(scan, method):
                     self.identities2[hg].append(getattr(scan, method)())
@@ -1799,8 +1795,8 @@ class MS2Scan(object):
         return \
             tuple(
                 reduce(
-                    lambda (c1, uns1), (c2, uns2):
-                        (c1 + c2, uns1 + uns2),
+                    lambda cuns:
+                        (cuns[0][0] + cuns[1][0], cuns[0][1] + cuns[1][1]),
                     ccs
                 )
             )
@@ -1809,8 +1805,8 @@ class MS2Scan(object):
         return self.cc2str(
             tuple(
                 reduce(
-                    lambda ((c1, uns1), ins1), ((c2, uns2), ins2):
-                        (c1 + c2, uns1 + uns2),
+                    lambda c:
+                        (c[0][0][0] + c[1][0][0], c[0][0][1] + c[1][0][1]),
                     ccs
                 )
             )
@@ -1822,16 +1818,16 @@ class MS2Scan(object):
             self.fa1[hg].add(
                 tuple(
                     map(
-                        lambda (_fa, ins):
-                            _fa,
+                        lambda fai:
+                            fai[0],
                         fa
                     )
                 )
             )
             fastr = ', '.join(
                     map(
-                        lambda (_fa, ins):
-                            self.cc2str(_fa),
+                        lambda fai:
+                            self.cc2str(fai[0]),
                         fa
                     )
                 )
@@ -2011,7 +2007,7 @@ class MS2Scan(object):
             fattya = self.fa_combinations('Cer', sphingo = True)
             sph_ccs, fa_frags = self.matching_fa_frags_of_type('Cer',
                 '-H2O-H2O+]+', sphingo = True, return_details = True)
-            for cc, fa_frag_names in fa_frags.iteritems():
+            for cc, fa_frag_names in iteritems(fa_frags):
                 for fa_frag_name in fa_frag_names:
                     if '+H]+' in fa_frag_name:
                         score += 1
@@ -2115,9 +2111,10 @@ class MS2Scan(object):
 class Screening(object):
     
     def __init__(self, **kwargs):
+        
         self.defaults = {
             'path_root': '/',
-            'basedir': ['home', 'denes', 'Documents' , 'enric'],
+            'basedir': os.getcwd(),
             'data_basedir': None,
             'datadirs': [['share']],
             'fractionsf': 'control_sample.csv',
@@ -2268,7 +2265,7 @@ class Screening(object):
             'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
             'manualdir', 'ltplistf', 'flimcache']
         
-        for attr, val in self.defaults.iteritems():
+        for attr, val in iteritems(self.defaults):
             if attr in kwargs:
                 setattr(self, attr, kwargs[attr])
             else:
@@ -2290,10 +2287,10 @@ class Screening(object):
         self.data_basedir = self.basedir \
             if self.data_basedir is None else self.data_basedir
         
-        self.datadirs = map(lambda p:
+        self.datadirs = list(map(lambda p:
             os.path.join(*([self.data_basedir] + p)) if type(p) is list else p,
             self.datadirs
-        )
+        ))
         
         self.stddir = os.path.join(self.datadirs[0], self.stddir)
         
@@ -2325,7 +2322,10 @@ class Screening(object):
                                    r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
         self.readd = re.compile(r'(\[M[-\+][-\)\)\+A-Za-z0-9]*\][0-9]?[\-+])')
         
-        fonts = open('fonts.css', 'r')
+        if os.path.exists('fonts.css'):
+            with open('fonts.css', 'r') as f:
+                fonts = f.read()
+        
         self.html_table_template = """<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -2541,7 +2541,7 @@ class Screening(object):
                         $(this).closest(".ms2tblcontainer").children(".noprotein").toggle();
                     });
                 </script>
-            </head>""" % (fonts.read()) \
+            </head>""" % (fonts) \
         + """
             <body>
                 <div id="ms2button">MS2 spectra<br />
@@ -2553,7 +2553,6 @@ class Screening(object):
                 </table>
             </body>
             </html>"""
-        fonts.close()
         
         self.colors = [
             '#B81466', # blue maguerite
@@ -2582,10 +2581,10 @@ class Screening(object):
         ]
     
     def paths_exist(self):
-        paths = map(lambda name:
+        paths = list(map(lambda name:
             getattr(self, name),
             self.in_basedir
-        ) + self.datadirs
+        )) + self.datadirs
         for path in paths:
             if not os.path.exists(path) and path[-6:] != 'pickle':
                 sys.stdout.write('\t:: Missing input file/path: %s\n' % path)
@@ -2608,14 +2607,14 @@ class Screening(object):
         """
         if not hasattr(self, 'seq'):
             self.read_seq()
-        return map(lambda (date, fractions):
-            date,
-            filter(lambda (date, fractions):
+        return map(lambda date_fr:
+            date_fr[0],
+            filter(lambda date_fr:
                 (protein, mode) in map(lambda sample:
                     (sample[0], sample[1]),
-                    fractions
+                    date_fr[1]
                 ),
-                self.seq.iteritems()
+                iteritems(self.seq)
             )
         )
 
@@ -2647,8 +2646,8 @@ class Screening(object):
                     tbl[pn[1]:pn[2]]
                 )
             )
-        for pn, dd in result.iteritems():
-            for lstd, d in dd.iteritems():
+        for pn, dd in iteritems(result):
+            for lstd, d in iteritems(dd):
                 for k in d.keys():
                     if k.isdigit():
                         d['diff_%s'%k] = d['ion'] - d[k] \
@@ -2923,12 +2922,12 @@ class Screening(object):
     
     def binders_of(self, hg):
         return map(
-            lambda (k, v):
-                k,
+            lambda i:
+                i[0],
             filter(
-                lambda (k, v):
-                    hg in v and k in self.fractions_upper,
-                self.bindprop.iteritems()
+                lambda i:
+                    hg in i[1] and i[0] in self.fractions_upper,
+                iteritems(self.bindprop)
             )
         )
 
@@ -3151,34 +3150,34 @@ class Screening(object):
         self.abs_by_frac_c = \
             dict(
                 map(
-                    lambda (protein, d):
+                    lambda prot:
                         (
-                            protein,
+                            prot[0],
                             dict(
                                 map(
-                                    lambda (fr, d2):
+                                    lambda fr:
                                         (
-                                            fr,
+                                            fr[0],
                                             dict(
                                                 map(
-                                                    lambda (c, vals):
+                                                    lambda c:
                                                         (
-                                                            c,
+                                                            c[0],
                                                             map(
-                                                                lambda (o, v):
-                                                                    v - self.profile_background[fr][c][o],
-                                                                enumerate(vals)
+                                                                lambda o:
+                                o[1] - self.profile_background[fr[0]][c[0]][o[0]],
+                                                                enumerate(c[1])
                                                             )
                                                         ),
-                                                    d2.iteritems()
+                                                    iteritems(fr[1])
                                                 )
                                             )
                                         ),
-                                    d.iteritems()
+                                    iteritems(prot[1])
                                 )
                             )
                         ),
-                    self.abs_by_frac_b.iteritems()
+                    iteritems(self.abs_by_frac_b)
                 )
             )
     
@@ -3198,12 +3197,12 @@ class Screening(object):
                                                 lambda o:
                                                     np.mean(
                                                         map(
-                                                            lambda (prot, ab):
-                                                                ab[fr][c][o],
+                                                            lambda pra:
+                                                                pra[1][fr][c][o],
                                                             filter(
-                                                                lambda (prot, ab):
-                                                                    prot in self.background_proteins,
-                                                                self.abs_by_frac_b.iteritems()
+                                                                lambda pra:
+                                                                    pra[0] in self.background_proteins,
+                                                                iteritems(self.abs_by_frac_b)
                                                             )
                                                         )
                                                     ),
@@ -3226,22 +3225,22 @@ class Screening(object):
             getattr(self, attr)[protein] = \
                 dict(
                     map(
-                        lambda (fr, d2):
+                        lambda fr:
                             (
-                                fr,
+                                fr[0],
                                 np.nanmean(
                                     map(
                                         lambda vals:
                                             get_val(vals),
-                                        d2.values()
+                                        fr[1].values()
                                     )
                                 )
                             ),
-                        d.iteritems()
+                        iteritems(d)
                     )
                 )
         
-        for protein, d in self.abs_by_frac_c.iteritems():
+        for protein, d in iteritems(self.abs_by_frac_c):
             get_mean('pprofs', np.nanmean)
             get_mean('pprofsL', lambda x: x[0])
             get_mean('pprofsU', lambda x: x[-1])
@@ -3322,7 +3321,7 @@ class Screening(object):
                 # l[5] mAU UV3 215nm
                 frac_abs[fr[2]].append(self.to_float(l[5]) - minabs)
             result[protein_name] = dict((fnum, np.mean(a)) \
-                for fnum, a in frac_abs.iteritems())
+                for fnum, a in iteritems(frac_abs))
         pickle.dump(result, open(cachefile, 'wb'))
         setattr(self, propname, result)
         if correct_GLTPD1:
@@ -3330,7 +3329,7 @@ class Screening(object):
                 '_GLTPD1_profile_correction_%s' % GLTPD_correction)(propname)
     
     def protein_profile_correction(self, propname):
-        for protein_name, prof in getattr(self, propname).iteritems():
+        for protein_name, prof in getattr(self, iteritems(propname)):
             basefrac = prof[self.basefrac]
             for frac in self.fracs:
                 prof[frac] -= basefrac
@@ -3536,7 +3535,7 @@ class Screening(object):
                 self.fractions_upper.keys()
             )
         )
-        for protein, d in self.fracs_order.iteritems():
+        for protein, d in iteritems(self.fracs_order):
             d['prim'].add(self.fracs_orderL[protein][0][0])
             d['prim'].add(self.fracs_orderU[protein][0][0])
             for fr, c in self.fracs_orderL[protein]:
@@ -3557,7 +3556,7 @@ class Screening(object):
         """
         self.ppratios = dict((protein, {}) \
             for protein in self.fractions_upper.keys())
-        for protein, sample in self.fractions_upper.iteritems():
+        for protein, sample in iteritems(self.fractions_upper):
             ratios = {}
             ref = None
             pprofL = self.pprofsL[protein]
@@ -3642,8 +3641,8 @@ class Screening(object):
     
     def ppratios_replace_manual(self):
         epsilon = 0.0000000000001
-        for protein, pprs in self.ppratios_manual.iteritems():
-            for fr, ratios in pprs.iteritems():
+        for protein, pprs in iteritems(self.ppratios_manual):
+            for fr, ratios in iteritems(pprs):
                 self.ppratios[protein][fr] = ratios
                 frr = (fr[1], fr[0])
                 ratiosr = (1.0 / (ratios[0] + epsilon),
@@ -3738,7 +3737,7 @@ class Screening(object):
                     )
                 )
         
-        for protein, sample in self.fractions_upper.iteritems():
+        for protein, sample in iteritems(self.fractions_upper):
             
             fracs = self.protein_containing_fractions(protein)
             ifracs = dict(map(lambda fr: (fr[1], fr[0]), enumerate(fracs)))
@@ -4114,8 +4113,8 @@ class Screening(object):
                     'again,\n'\
                     '\t   reload the original data.\n\n')
                 sys.stdout.flush()
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
                 if 'recalibrated' not in tbl or \
                 (not tbl['recalibrated'] and missing):
                     if protein in self.proteins_drifts:
@@ -4142,8 +4141,8 @@ class Screening(object):
             (date, {}),
             self.stdfiles.keys()
         ))
-        for date, fractions in self.stdfiles.iteritems():
-            for sample, fname in fractions.iteritems():
+        for date, fractions in iteritems(self.stdfiles):
+            for sample, fname in iteritems(fractions):
                 if sample[0] == '#STD':
                     time, scans, centroids = self.read_mzml(fname)
                     peaks = self.find_peaks(scans, centroids, accuracy)
@@ -4157,15 +4156,15 @@ class Screening(object):
         self.std_measured = result
 
     def drifts_by_standard(self, write_table = 'drifts_ppm.tab'):
-        drifts = dict(map(lambda (date, fractions):
-            (date, dict(map(lambda (sample, lipids):
-                (sample, dict(map(lambda lipid:
+        drifts = dict(map(lambda date_fr:
+            (date_fr[0], dict(map(lambda lipids:
+                (lipids[0], dict(map(lambda lipid:
                     (lipid, None),
-                    lipids.keys()))
+                    lipids[1].keys()))
                 ),
-                fractions.iteritems()))
+                iteritems(fr[1])))
             ),
-            self.std_measured.iteritems())
+            iteritems(self.std_measured))
         )
         hdr = ['date', 'run', 'mode', 'lipid', 'theoretical',
             'measured', 'ratio', 'ppm']
@@ -4203,9 +4202,9 @@ class Screening(object):
     def drifts_table(self, outfile = 'drifts_ppm.tab'):
         hdr = ['date', 'run', 'mode', 'lipid', 'ppm']
         tab = [hdr]
-        for date, fractions in self.drifts.iteritems():
-            for sample, lipids in fractions.iteritems():
-                for lipid, ppm in lipids.iteritems():
+        for date, fractions in iteritems(self.drifts):
+            for sample, lipids in iteritems(fractions):
+                for lipid, ppm in iteritems(lipids):
                     tab.append([
                         '20%s-%s-%s' % (date[:2], date[2:4], date[4:6]),
                         sample[2],
@@ -4221,15 +4220,15 @@ class Screening(object):
             f.write(tab)
 
     def drifts_by_date(self):
-        drifts2 = dict(map(lambda (date, fractions):
-            (date, dict(map(lambda sample:
+        drifts2 = dict(map(lambda date_fr:
+            (date_fr[0], dict(map(lambda sample:
                 (sample, None),
-                fractions.keys()))
+                date_fr[1].keys()))
             ),
-            self.drifts.iteritems())
+            iteritems(self.drifts))
         )
-        for date, fractions in self.drifts.iteritems():
-            for sample, lipids in fractions.iteritems():
+        for date, fractions in iteritems(self.drifts):
+            for sample, lipids in iteritems(fractions):
                 drifts2[date][sample] = \
                 np.nanmedian(
                     self.remove_outliers(
@@ -4252,10 +4251,10 @@ class Screening(object):
         # before doing anything, fix some inconsistencies:
         stard10fractions = ['A09', 'A10', 'A11', 'A12']
         for i, fr in zip(
-                map(lambda (i, sample):
-                    i,
-                    filter(lambda (i, sample):
-                        sample[0] == 'STARD10',
+                map(lambda sample:
+                    sample[0],
+                    filter(lambda sample:
+                        sample[1][0] == 'STARD10',
                         enumerate(self.seq['150310'])
                     )
                 ),
@@ -4269,10 +4268,10 @@ class Screening(object):
         tab = [hdr]
         def standard_indices(mode, se):
             return np.array(
-                map(lambda (i, s):
-                    i,
-                    filter(lambda (i, s):
-                        s[0] == '#STD' and s[1] == mode,
+                map(lambda s:
+                    s[0],
+                    filter(lambda s:
+                        s[1][0] == '#STD' and s[1][1] == mode,
                         enumerate(se)
                     )
                 )
@@ -4382,7 +4381,7 @@ class Screening(object):
 
     def standards_lookup(self, peaks, mode):
         measured = {}
-        for lipid, values in self.stdmasses[mode].iteritems():
+        for lipid, values in iteritems(self.stdmasses[mode]):
             _mz = values['ion']
             ui = peaks[:,0].searchsorted(_mz)
             ud = 999.0 if ui >= peaks.shape[0] else peaks[ui, 0] - _mz
@@ -4496,7 +4495,7 @@ class Screening(object):
         # values order: (rt, mz, int)
         """
         accuracy = 1000000.0 / accuracy
-        for scan, c in centroids.iteritems():
+        for scan, c in iteritems(centroids):
             centroids[scan]['centroids'] = \
                 c['centroids'][c['centroids'][:,0].argsort(),:]
         peaks = []
@@ -4515,7 +4514,7 @@ class Screening(object):
                 rt = centroids[scan]['rt']
                 added = set([])
                 to_remove = set([])
-                for peakid, cons in consecutive.iteritems():
+                for peakid, cons in iteritems(consecutive):
                     ld = ud = 999.0
                     cons_mz = np.array(map(lambda x: x[1], cons))
                     cons_in = np.array(map(lambda x: x[2], cons))
@@ -4873,7 +4872,7 @@ class Screening(object):
         prg = progress.Progress(len(self.datafiles) * 2,
                                 'Reading features (MS1 data)', 1)
         
-        for _protein, pos_neg in self.datafiles.iteritems():
+        for _protein, pos_neg in iteritems(self.datafiles):
             
             protein = _protein.upper()
             if protein not in data:
@@ -4884,7 +4883,7 @@ class Screening(object):
             else:
                 cfracs = None
             
-            for p, fname in pos_neg.iteritems():
+            for p, fname in iteritems(pos_neg):
                 
                 prg.step()
                 
@@ -4992,25 +4991,25 @@ class Screening(object):
     """
 
     def quality_filter(self, threshold = 0.2):
-        for protein, d in self.data.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.data):
+            for pn, tbl in iteritems(d):
                 tbl['qly'] = np.array(tbl['ann'][:,0] >= threshold)
 
     def charge_filter(self, charge = 1):
-        for protein, d in self.data.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.data):
+            for pn, tbl in iteritems(d):
                 tbl['crg'] = np.array(tbl['ann'][:,5] == charge)
     
     def rt1_filter(self, rtmin = 1.0):
-        for protein, d in self.data.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.data):
+            for pn, tbl in iteritems(d):
                 tbl['rtm'] = tbl['ann'][:,6]
                 tbl['rt1'] = np.array(tbl['rtm'] > rtmin)
 
     def area_filter(self, area = 10000.0):
         area = float(area)
-        for protein, d in self.data.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.data):
+            for pn, tbl in iteritems(d):
                 if self.use_original_average_area:
                     tbl['are'] = np.nanmean(tbl['lip'], 1) >= area
                 else:
@@ -5034,9 +5033,9 @@ class Screening(object):
         
         prg = progress.Progress(len(self.data) * 2, 'Peak size filter', 1)
         
-        for protein, d in self.data.iteritems():
+        for protein, d in iteritems(self.data):
             
-            for pn, tbl in d.iteritems():
+            for pn, tbl in iteritems(d):
                 
                 prg.step()
                 mini = np.nanmin(
@@ -5077,8 +5076,8 @@ class Screening(object):
         cols = 'smp' if prfx == 'c' else 'lip'
         prg = progress.Progress(len(data) * 2, 'Profile filter', 1,
             percent = False)
-        for protein, d in self.data.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.data):
+            for pn, tbl in iteritems(d):
                 prg.step()
                 if protein.upper() not in self.pprofs:
                     notf.append(protein)
@@ -5252,8 +5251,8 @@ class Screening(object):
         """
         Deletes the result of a previously done filtering.
         """
-        for protein, d in self.data.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.data):
+            for pn, tbl in iteritems(d):
                 if attr_name in tbl:
                     del tbl[attr_name]
     
@@ -5272,7 +5271,7 @@ class Screening(object):
             result = empty_dict(data)
             for protein in data.keys():
                 print(protein)
-                for pn, tbl in data[protein].iteritems():
+                for pn, tbl in iteritems(data[protein]):
                     result[protein][pn] = self.fun(tbl, **kwargs)
                     if result[protein][pn] is None:
                         sys.stdout.write('No profile info for %s, %s, %s()\n' \
@@ -5286,7 +5285,7 @@ class Screening(object):
         
         def __call__(self, **kwargs):
             for protein in self.obj.data.keys():
-                for pn, tbl in self.obj.data[protein].iteritems():
+                for pn, tbl in iteritems(self.obj.data[protein]):
                     try:
                         self.fun(self.obj, tbl, **kwargs)
                     except:
@@ -5307,7 +5306,7 @@ class Screening(object):
             hits = self.obj.empty_dict(self.obj.data)
             phits = self.obj.empty_dict(self.obj.data)
             for protein in self.obj.data.keys():
-                for pn, tbl in self.obj.data[protein].iteritems():
+                for pn, tbl in iteritems(self.obj.data[protein]):
                     try:
                         hits[protein][pn] = self.fun(tbl, **kwargs)
                         phits[protein][pn] = self.fun(tbl, **kwargs) / \
@@ -5379,7 +5378,7 @@ class Screening(object):
         else:
             # or select the records with profile
             # match less then or equal to treshold
-            indices = np.array(sorted((i for i, v in prf_values.iteritems() \
+            indices = np.array(sorted((i for i, v in iteritems(prf_values) \
                 if v <= _treshold)))
         return (tbl['raw'][indices,:], tbl['prf'][indices],
             tbl['cprf'][indices],
@@ -5425,7 +5424,7 @@ class Screening(object):
         else:
             # or select the records with profile
             # match less then or equal to treshold
-            indices = np.array(sorted((i for i, v in prf_values.iteritems() \
+            indices = np.array(sorted((i for i, v in iteritems(prf_values) \
                 if v <= _treshold)))
         print('Selected: ', np.nansum(tbl['cprf'][indices]))
         print('Total: ', np.nansum(tbl['cprf']))
@@ -5695,8 +5694,8 @@ class Screening(object):
         # levels: 'Structural subspecies', 'Isomeric subspecies',
         # 'Species', 'Molecular subspecies'
         lipids = dict((protein.upper(), {}) for protein in hits.keys())
-        for protein, d in hits.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(hits):
+            for pn, tbl in iteritems(d):
                 adducts = self.pAdducts if pn == 'pos' else self.nAdducts
                 result = []
                 if tbl[0] is not None:
@@ -5728,7 +5727,7 @@ class Screening(object):
         by looking up keywords.
         """
         db = 'lmp' if lip[0][0] == 'L' else 'swl'
-        for shortname, spec in self.lipnames.iteritems():
+        for shortname, spec in iteritems(self.lipnames):
             for kwset in spec[db]:
                 matched = [kw in lip[2] for kw in kwset['pos']]
                 if sum(matched) == len(kwset['pos']) and \
@@ -5768,9 +5767,9 @@ class Screening(object):
         
         if verbose:
             outfile = sys.stdout if outfile is None else open(outfile, 'w')
-        for protein, d in self.valids.iteritems():
+        for protein, d in iteritems(self.valids):
             if proteins is None or protein in proteins:
-                for pn, tbl in d.iteritems():
+                for pn, tbl in iteritems(d):
                     tbl['lip'] = {}
                     for i in xrange(tbl['mz'].shape[0]):
                         tbl['lip'][tbl['i'][i]] = self.adduct_lookup_exact(
@@ -5818,7 +5817,7 @@ class Screening(object):
             outfile = sys.stdout
         result = []
         adducts = self.ad2ex[charge][mode]
-        for addName, addFun in adducts.iteritems():
+        for addName, addFun in iteritems(adducts):
             addMz = getattr(Mz(mz), addFun)()
             if verbose:
                 outfile.write('\t:: Searching for %s adducts.\n\t '\
@@ -5899,7 +5898,7 @@ class Screening(object):
         result = dict((protein.upper(), []) for protein in self.lipids.keys())
         prg = progress.Progress(len(result), 'Matching positive & negative',
             1, percent = False)
-        for protein, tbl in self.lipids.iteritems():
+        for protein, tbl in iteritems(self.lipids):
             prg.step()
             if 'neg' in tbl and 'pos' in tbl:
                 for neg in tbl['neg']:
@@ -6003,7 +6002,7 @@ class Screening(object):
         ad2ex = self.ad2ex[1]
         ex2ad = self.ex2ad[1]
         self.sort_alll('mz')
-        for protein, tbl in self.valids.iteritems():
+        for protein, tbl in iteritems(self.valids):
             tbl['pos']['neg'] = dict((i, {}) for i in tbl['pos']['i'])
             tbl['pos']['neg_lip'] = dict((i, {}) for i in tbl['pos']['i'])
             tbl['neg']['pos'] = dict((i, {}) for i in tbl['neg']['i'])
@@ -6011,14 +6010,14 @@ class Screening(object):
         prg = progress.Progress(len(self.valids),
             'Matching positive & negative',
             1, percent = False)
-        for protein, tbl in self.valids.iteritems():
+        for protein, tbl in iteritems(self.valids):
             prg.step()
             for pi, poi in enumerate(tbl['pos']['i']):
                 measured_pos_mz = tbl['pos']['mz'][pi]
-                for pos_add, pos_add_fun in ad2ex['pos'].iteritems():
+                for pos_add, pos_add_fun in iteritems(ad2ex['pos']):
                     calculated_exact = \
                         getattr(Mz(measured_pos_mz), pos_add_fun)()
-                    for neg_add, neg_add_fun in ex2ad['neg'].iteritems():
+                    for neg_add, neg_add_fun in iteritems(ex2ad['neg']):
                         calculated_neg_mz = getattr(Mz(calculated_exact),
                             neg_add_fun)()
                         iu = tbl['neg']['mz'].searchsorted(calculated_neg_mz)
@@ -6093,8 +6092,8 @@ class Screening(object):
         tbl['neg']['pos_lip'][noi][poi] = result
     
     def average_area_5(self):
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
                 tbl['aaa'] = np.nansum(tbl['fe'], 1) / tbl['fe'].shape[0]
     
     def ms1(self):
@@ -6183,8 +6182,8 @@ class Screening(object):
             map(
                 lambda l:
                     map(
-                        lambda (i, v):
-                            v if i > 0 else self.to_float(v),
+                        lambda i:
+                            v[1] if i[0] > 0 else self.to_float(v),
                         enumerate(
                             l.strip().split('\t')
                         )
@@ -6286,7 +6285,7 @@ class Screening(object):
                     'valid charge information!\n' % \
                     MetabType)
         Headgroups = {}
-        for frag, hgs in Hgroupfrags.iteritems():
+        for frag, hgs in iteritems(Hgroupfrags):
             for hg in hgs:
                 if len(hg):
                     if hg not in Headgroups:
@@ -6405,22 +6404,22 @@ class Screening(object):
         refrac = re.compile(r'([A-Z])([\d]{1,2})$')
         result = dict((protein.upper(), {'pos': None, 'neg': None,
                 'ms2files': {'pos': {}, 'neg': {}}}) \
-            for protein, d in self.ms2files.iteritems())
+            for protein, d in iteritems(self.ms2files))
         prg = progress.Progress(len(self.ms2files) * 2, 'Indexing MS2 data', 1,
             percent = False)
         
-        for protein, d in self.ms2files.iteritems():
+        for protein, d in iteritems(self.ms2files):
             pFeatures = []
             nFeatures = []
             uprotein = protein.upper()
             
             ifrac = self.fraction_indices(protein)
             
-            for pn, files in d.iteritems():
+            for pn, files in iteritems(d):
                 prg.step()
                 features = pFeatures if pn == stRpos else nFeatures
                 #fractions = set([])
-                for fr, fl in files.iteritems():
+                for fr, fl in iteritems(files):
                     fr = refrac.match(fr).groups()
                     fr = '%s%u' % (fr[0], int(fr[1]))
                     frnum = ifrac[fr][0]
@@ -6511,11 +6510,11 @@ class Screening(object):
             outfile = outfile if hasattr(outfile, 'write') else \
                 sys.stdout if outfile is None else open(outfile, 'w')
         
-        for protein, d in self.valids.iteritems():
+        for protein, d in iteritems(self.valids):
             
             if proteins is None or protein in proteins:
                 
-                for pn, tbl in d.iteritems():
+                for pn, tbl in iteritems(d):
                     
                     prg.step()
                     # we look up the real measured MS1 m/z's in MS2,
@@ -6569,14 +6568,14 @@ class Screening(object):
         """
         result = dict((oi, []) for oi in ms2matches.keys())
         
-        for oi, ms2s in ms2matches.iteritems():
+        for oi, ms2s in iteritems(ms2matches):
             
             for ms2i in ms2s:
                 
                 result[oi].append(np.array([ms2i[7], ms2i[8],
                     ms2i[1], ms2i[2], ms2i[14], ms2i[12]], dtype = np.object))
         
-        for oi, ms2s in result.iteritems():
+        for oi, ms2s in iteritems(result):
             
             result[oi] = np.vstack(ms2s) if len(ms2s) > 0 else np.array([])
             result[oi].shape = (len(result[oi]), 6)
@@ -6722,7 +6721,7 @@ class Screening(object):
         
         # opening all files to have file pointers ready
         files = dict((fr, open(fname, 'r')) \
-            for fr, fname in ms2files.iteritems())
+            for fr, fname in iteritems(ms2files))
         
         # Initializing dict with original indices
         ms2matches = dict((m[2], []) for m in ms1matches)
@@ -6842,7 +6841,7 @@ class Screening(object):
         for f in files.values():
             f.close()
         
-        for oi, ms2match in ms2matches.iteritems():
+        for oi, ms2match in iteritems(ms2matches):
             
             if len(ms2match) > 0:
                 ms2matches[oi] = np.vstack(ms2match)
@@ -6915,41 +6914,41 @@ class Screening(object):
         This collects the possible headgroups from the
         advanced MS2 identification (done by ms2_scans_identify()).
         """
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
                 tbl['ms2hg2'] = {}
-                for oi, ms2i in tbl['ms2i2'].iteritems():
+                for oi, ms2i in iteritems(tbl['ms2i2']):
                     tbl['ms2hg2'][oi] = set(
                         map(
-                            lambda (hg, sumscore):
-                                hg,
+                            lambda hgssc:
+                                hgssc[0],
                             filter(
-                                lambda (hg, sumscore):
-                                    sumscore > 0,
+                                lambda hgssc:
+                                    hgssc[1] > 0,
                                 map(
-                                    lambda (hg, scans):
-                                        (hg,
+                                    lambda hgsca:
+                                        (hgsca[0],
                                             sum(
                                                 map(
                                                     lambda scan:
                                                         scan['score'],
-                                                    scans
+                                                    hgsca[1]
                                                 )
                                             )
                                         ),
-                                    tbl['ms2i2'][oi].iteritems()
+                                    iteritems(tbl['ms2i2'][oi])
                                 )
                             )
                         )
                     )
     
     def consensus_indentity(self):
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
                 ids = {}
-                for oi, ms2i in tbl['ms2i2'].iteritems():
+                for oi, ms2i in iteritems(tbl['ms2i2']):
                     this_id = []
-                    for hg, ms2ii in ms2i.iteritems():
+                    for hg, ms2ii in iteritems(ms2i):
                         fa_level_id = False
                         hg_in_ms2 = False
                         for ms2iii in ms2ii:
@@ -6985,8 +6984,8 @@ class Screening(object):
         original IDs as keys and the sets of the
         identified possible headgroups as values.
         """
-        for ltp, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for ltp, d in iteritems(self.valids):
+            for pn, tbl in iteritems(d):
                 tbl['ms2hg'] = {}
                 tbl['ms2fa'] = {}
                 tbl['ms2fai'] = {}
@@ -6996,7 +6995,7 @@ class Screening(object):
                 headgroups = self.pHeadgroups \
                     if pn == 'pos' else self.nHeadgroups
                 result = {}
-                for oi, ms2r in tbl['ms2r'].iteritems():
+                for oi, ms2r in iteritems(tbl['ms2r']):
                     hgroups = self.ms2_headgroup2(ms2r, hgfrags, headgroups)
                     ms2fa, ms2fai, ms2fas = self.ms2_fattya(ms2r)
                     tbl['ms2hg'][oi] = hgroups
@@ -7074,10 +7073,10 @@ class Screening(object):
         those detected in the 2 modes, or the union, if
         there is no intersection.
         """
-        for protein, d in self.valids.iteritems():
+        for protein, d in iteritems(self.valids):
             d['pos']['%shg_neg'%ms] = {}
             d['neg']['%shg_pos'%ms] = {}
-            for poi, nois in d['pos']['neg'].iteritems():
+            for poi, nois in iteritems(d['pos']['neg']):
                 if poi in d['pos']['%shg'%ms]:
                     if d['pos']['%shg'%ms][poi] is not None:
                         for noi in nois.keys():
@@ -7155,8 +7154,8 @@ class Screening(object):
                     os.remove(os.path.join(logdir,f)),
                 os.listdir(logdir)
             )
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
                 logfile = '%s-%s.txt' % (protein, mode)
                 self.ms2log = os.path.join(logdir, logfile)
                 prg.step()
@@ -7173,12 +7172,12 @@ class Screening(object):
         prg.terminate()
     
     def ms2_get_hgs(self):
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
                 tbl['ms2i3'] = {}
-                for oi, ms2results in tbl['ms2i2'].iteritems():
+                for oi, ms2results in iteritems(tbl['ms2i2']):
                     tbl['ms2i3'][oi] = set([])
-                    for hg, ms2res in ms2results.iteritems():
+                    for hg, ms2res in iteritems(ms2results):
                         if sum(map(lambda i: i['score'], ms2res)) > 0:
                             if hg in tbl['ms1hg'][oi]:
                                 tbl['ms2i3'][oi].add(hg)
@@ -7213,7 +7212,7 @@ class Screening(object):
                 'Negative_adduct',
                 'SwissLipids_AC', 'SwissLipids_formula', 'SwissLipids_name']
             f.write('\t'.join(hdr) + '\n')
-            for ltp, tbl in matches.iteritems():
+            for ltp, tbl in iteritems(matches):
                 for l in tbl:
                     f.write('\t'.join([ltp, '%08f'%l[0],
                         '%08f'%l[12], l[11], '%08f'%l[13],
@@ -7327,7 +7326,7 @@ class Screening(object):
                 k,
                 np.array([1 if x is not None else None for x in v])
             )
-            for k, v in self.fractions.iteritems())
+            for k, v in iteritems(self.fractions))
 
     def upper_fractions(self):
         """
@@ -7336,7 +7335,7 @@ class Screening(object):
         """
         if hasattr(self, 'fractions'):
             self.fractions_upper = \
-                dict((l.upper(), s) for l, s in self.fractions.iteritems())
+                dict((l.upper(), s) for l, s in iteritems(self.fractions))
     
     def set_onepfraction(self):
         """
@@ -7345,7 +7344,7 @@ class Screening(object):
         
         The result stored in `onepfraction` attribute.
         """
-        self.onepfraction = [k.upper() for k, v in self.fractions.iteritems() \
+        self.onepfraction = [k.upper() for k, v in iteritems(self.fractions) \
             if sum((i for i in v.values() if i is not None)) == 1]
     
     def read_lipid_names(self):
@@ -7480,11 +7479,11 @@ class Screening(object):
         self.valids = dict((protein.upper(), {'pos': {}, 'neg': {}}) \
             for protein in self.data.keys())
         
-        for protein, d in self.data.iteritems():
+        for protein, d in iteritems(self.data):
             
             protein = protein.upper()
             
-            for pn, tbl in d.iteritems():
+            for pn, tbl in iteritems(d):
                 
                 self.valids[protein][pn]['fe'] = \
                     np.array(tbl['smp'][tbl['vld']])
@@ -7518,8 +7517,8 @@ class Screening(object):
         pickle.dump(self.valids, open(self.validscache, 'wb'))
     
     def get_area(self):
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
                 try:
                     tbl['are'] = np.nanmax(tbl['fe'], 1)
                 except ValueError:
@@ -7527,8 +7526,8 @@ class Screening(object):
                         ' calculate area: %s, %s\n' % (protein, mode))
     
     def data2valids(self, key):
-        for protein_l, dd in self.data.iteritems():
-            for mode, tbld in dd.iteritems():
+        for protein_l, dd in iteritems(self.data):
+            for mode, tbld in iteritems(dd):
                 if key in tbld:
                     tbl = self.valids[protein_l.upper()][mode]
                     valids_array = []
@@ -7541,8 +7540,8 @@ class Screening(object):
         Deletes the data belonging to one key
         from all tables (at every protein in each modes).
         """
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
                 if key in tbl:
                     del tbl[key]
 
@@ -7552,8 +7551,8 @@ class Screening(object):
         Keys:
             'no': normalized profiles
         """
-        for protein, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for pn, tbl in iteritems(d):
                 tbl['no'] = self.norm_profiles(tbl['fe'])
 
     """
@@ -7571,21 +7570,21 @@ class Screening(object):
         """
         frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
         pprs = getattr(self, 'pprofs%s' % pprofs)
-        for protein, d in self.valids.iteritems():
+        for protein, d in iteritems(self.valids):
             ppr = \
                 np.array(
                     map(
-                        lambda (i, s):
-                            pprs[protein][frs[i]],
+                        lambda s:
+                            pprs[protein][frs[s[1]]],
                         filter(
-                            lambda (i, s):
-                                i != 0 and s is not None,
+                            lambda s:
+                                s[0] != 0 and s[1] is not None,
                             enumerate(self.fractions_upper[protein])
                         )
                     )
                 )
             ppr = self.norm_profile(ppr).astype(np.float64)
-            for pn, tbl in d.iteritems():
+            for pn, tbl in iteritems(d):
                 if 'no' not in tbl:
                     self.norm_all()
                 tbl['%sv%s' % (prfx, pprofs)] = np.zeros((tbl['no'].shape[0],),
@@ -7689,8 +7688,8 @@ class Screening(object):
         attr = '%sv'%metric
         target = '%si'%metric
         sort_alll(valids, attr)
-        for protein, d in valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(valids):
+            for pn, tbl in iteritems(d):
                 vals = tbl[attr]
                 incs = np.diff(vals)
                 inco = np.array(
@@ -7726,14 +7725,14 @@ class Screening(object):
                 len(self.valids) * 2 if proteins is None else len(proteins) * 2,
                 'Calculating %s' % _metrics[m][0],
                 1, percent = False)
-            for protein, d in self.valids.iteritems():
+            for protein, d in iteritems(self.valids):
                 if proteins is None or protein in proteins:
                     if with_pprof:
                         ppr = np.array([self.pprofs[protein.upper()][frs[i]] \
                             for i, fr in enumerate(self.fractions_upper[protein]) \
                                 if i != 0 and fr is not None])
                         ppr = self.norm_profile(ppr).astype(np.float64)
-                    for pn, tbl in d.iteritems():
+                    for pn, tbl in iteritems(d):
                         prg.step()
                         fnum = tbl['no'].shape[0]
                         # square shape matrix of all features vs all features
@@ -7767,9 +7766,9 @@ class Screening(object):
         prg = progress.Progress(len(self.valids)*2 \
             if proteins is None else len(proteins)*2,
             'Calculating clusters', 1, percent = False)
-        for protein, d in self.valids.iteritems():
+        for protein, d in iteritems(self.valids):
             if proteins is None or protein in proteins:
-                for pn, tbl in d.iteritems():
+                for pn, tbl in iteritems(d):
                     prg.step()
                     tbl['_%sc'%dist] = fastcluster.linkage(tbl['_%sd'%dist],
                         method = method, metric = 'euclidean',
@@ -7777,8 +7776,8 @@ class Screening(object):
         prg.terminate()
 
     def distance_corr(self, valids, dist = 'en'):
-        for protein, d in valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(valids):
+            for pn, tbl in iteritems(d):
                 tbl['_%sdc'%dist] = np.array([
                         sp.stats.pearsonr(tbl['_%sd'%dist][:,i],
                             tbl['_%sd'%dist][:,-1])[0] \
@@ -7934,13 +7933,13 @@ class Screening(object):
         Thanks to http://stackoverflow.com/a/3011894/854988
         """
         all_hgs = set()
-        for protein, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for pn, tbl in iteritems(d):
                 for ids in tbl['identity'].values():
                     for hg in ids.keys():
                         all_hgs.add(hg)
-        hg_cols = dict(map(lambda (i, hg): 
-            (hg, self.colors[i]),
+        hg_cols = dict(map(lambda hg: 
+            (hg[1], self.colors[hg[0]]),
             enumerate(sorted(list(all_hgs)))
         ))
         t0 = time.time()
@@ -7957,24 +7956,24 @@ class Screening(object):
             prg = progress.Progress(len(self.valids) * 2 \
                 if proteins is None else len(proteins)*2,
                 'Plotting heatmaps with dendrograms', 1, percent = False)
-            for protein, d in self.valids.iteritems():
+            for protein, d in iteritems(self.valids):
                 if proteins is None or protein in proteins:
                     ppr = np.array([self.pprofs[protein.upper()][frs[i]] \
                         for i, fr in enumerate(self.fractions_upper[protein]) \
                             if i != 0 and fr is not None])
                     ppr = self.norm_profile(ppr).astype(np.float64)
-                    for pn, tbl in d.iteritems():
+                    for pn, tbl in iteritems(d):
                         prg.step()
                         if coloring == 'dist':
                             _threshold = self._dendrogram_get_threshold(tbl, dist,
                                 threshold, threshold_type)
                         labels = ['%u'%(f) for f in tbl['_%so'%dist]] + [protein]
                         names = map(lambda oi:
-                            ', '.join(sorted(map(lambda (hg, m):
-                                hg,
-                                filter(lambda (hg, m):
-                                    m['ms1_%s'%pn] and m['ms2_%s'%pn],
-                                    tbl['identity'][int(oi)].iteritems()
+                            ', '.join(sorted(map(lambda hg:
+                                hg[0],
+                                filter(lambda hg:
+                                    hg[1]['ms1_%s'%pn] and hg[1]['ms2_%s'%pn],
+                                    iteritems(tbl['identity'][int(oi)])
                                 )
                             ))) or oi,
                             labels[:-1]
@@ -8108,7 +8107,7 @@ class Screening(object):
                             fig.tight_layout()
                             cvs.print_figure(pdf)
                             fig.clf()
-                        
+            
             pdfinf = pdf.infodict()
             pdfinf['Title'] = 'Features clustering'
             pdfinf['Author'] = 'Dénes Türei'.decode('utf-8')
@@ -8116,7 +8115,7 @@ class Screening(object):
                 'based on Euclidean distances'
             pdfinf['Keywords'] = 'lipid transfer protein, protein,'\
                 ' lipidomics, mass spectrometry'
-            pdfinf['CreationDate'] = datetime.datetime(2016, 02, 22)
+            pdfinf['CreationDate'] = datetime.datetime(2016, 2, 22)
             pdfinf['ModDate'] = datetime.datetime.today()
         
         prg.terminate()
@@ -8131,8 +8130,8 @@ class Screening(object):
     def plot_increment(self, valids, onepfraction, metric = 'en',
         fname = 'increments.pdf'):
         with mpl.backends.backend_pdf.PdfPages(fname) as pdf:
-            for protein, d in valids.iteritems():
-                for pn, tbl in d.iteritems():
+            for protein, d in iteritems(valids):
+                for pn, tbl in iteritems(d):
                     fig = mpl.figure.Figure(figsize = (8,8))
                     cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
                     ax = fig.gca()
@@ -8162,18 +8161,18 @@ class Screening(object):
             pdfinf['Subject'] = 'Features distance increment'
             pdfinf['Keywords'] = 'lipid transfer protein, protein,'\
                 ' lipidomics, mass spectrometry'
-            pdfinf['CreationDate'] = datetime.datetime(2016, 02, 22)
+            pdfinf['CreationDate'] = datetime.datetime(2016, 2, 22)
             pdfinf['ModDate'] = datetime.datetime.today()
 
     def kmeans(self, valids, pprofs, fractions):
         cfracs = ['c0'] + self.fracs
         prg = progress.Progress(len(valids) * 2,
             'Calculating k-means', 1, percent = False)
-        for protein, d in valids.iteritems():
+        for protein, d in iteritems(valids):
             ppr = np.array([pprofs[protein.upper()][cfracs[i]] \
                 for i, fr in enumerate(fractions[protein]) if fr == 1 and i != 0])
             ppr = norm_profile(ppr).astype(np.float64)
-            for pn, tbl in d.iteritems():
+            for pn, tbl in iteritems(d):
                 prg.step()
                 with_protein = np.vstack(tbl['no'], ppr)
                 whitened = sp.cluster.vq.whiten(with_protein)
@@ -8263,8 +8262,8 @@ class Screening(object):
         self.scores_eval = result
     
     def known_binders_as_standard(self):
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
                 if 'known_binder' in tbl:
                     try:
                         tbl['_std'] = set(tbl['i'][np.where(tbl['known_binder'])])
@@ -8289,8 +8288,8 @@ class Screening(object):
         count: the absolute maximum number of selected instances
         """
         sort_alll(self.valids, score, asc = True)
-        for protein, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for pn, tbl in iteritems(d):
                 limScore = np.nanmin(tbl[score]) \
                     if asc and threshold_type =='relative' or \
                         not asc and threshold_type == 'best_fraction' \
@@ -8831,8 +8830,8 @@ class Screening(object):
         plt.close()
     
     def peak_ratio_score_bool(self):
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
                 tbl['prs1'] = tbl['prs'] <= self.peak_ratio_score_threshold
     
     # Screening().fractions_barplot(fractions_upper, pprofs)
@@ -8856,8 +8855,8 @@ class Screening(object):
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         # plt.gca().set_color_cycle(['red', 'green', 'blue', 'yellow'])
-        for protein, d1 in perf.iteritems():
-            for pos, d2 in d1.iteritems():
+        for protein, d1 in iteritems(perf):
+            for pos, d2 in iteritems(d1):
                 fig, axs = plt.subplots(len(metrics),
                     figsize = (10, 20), sharex = False)
                 plt.suptitle('Performance of scores :: %s, %s' % \
@@ -8901,8 +8900,8 @@ class Screening(object):
         for i, m in enumerate(metrics):
             c = colors()
             ax = axs[i/2][i%2]
-            for protein, d1 in perf.iteritems():
-                for pos, d2 in d1.iteritems():
+            for protein, d1 in iteritems(perf):
+                for pos, d2 in iteritems(d1):
                     ax.plot(1 - np.array(d2[m[1]]['spec']),
                         np.array(d2[m[1]]['sens']),
                         '-', linewidth = 0.33, color = c.next(),
@@ -8986,8 +8985,8 @@ class Screening(object):
         return 1.0, 1.0
     
     def best_combined(self, valids, scores, best = 10, ubiquity_treshold = 5):
-        for protein, d in valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(valids):
+            for pn, tbl in iteritems(d):
                 sorted_scores = []
                 for sc in scores:
                     oi_sorted = np.copy(tbl['i'][tbl[sc[0]].argsort()])
@@ -9023,7 +9022,7 @@ class Screening(object):
         sort_alll(valids, 'mz')
         with open(fname, 'w') as f:
             f.write('\t'.join(hdr) + '\n')
-            for protein, d in valids.iteritems():
+            for protein, d in iteritems(valids):
                 tbl = d[pos]
                 for oi in tbl['best%u'%best]:
                     i = np.where(tbl['i'] == oi)[0]
@@ -9107,7 +9106,7 @@ class Screening(object):
         """
         ind = tbl[attr].argsort()
         dim = tbl[attr].shape[0]
-        for k, a in tbl.iteritems():
+        for k, a in iteritems(tbl):
             if k != attr and type(tbl[k]) == np.ndarray and \
                 tbl[k].shape[0] == dim and not k.startswith('_'):
                 if len(a.shape) == 1:
@@ -9140,8 +9139,8 @@ class Screening(object):
             for vv in hits.values() for v in vv.values()]
         hits_upper = dict((l.upper(), {'pos': None, 'neg': None}) \
             for l in hits.keys())
-        for l, d in hits.iteritems():
-            for pn, tbl in d.iteritems():
+        for l, d in iteritems(hits):
+            for pn, tbl in iteritems(d):
                 if hits_upper[l.upper()][pn] is None:
                     hits_upper[l.upper()][pn] = tbl
         return hits_upper
@@ -9200,7 +9199,7 @@ class Screening(object):
                 l.upper(), 0, 0, 0,
                 np.nansum([x for x in fractions_upper[l] if x is not None])
             ) \
-            for l, i in lipids.iteritems()]
+            for l, i in iteritems(lipids)]
         #
         [sys.stdout.write(str(i) + '\n') for i in stage3]
         sum([i[2] > 0 for i in stage3])
@@ -9304,11 +9303,11 @@ class Screening(object):
         Identifies headgroups by keywords and fatty acids
         from database record names.
         """
-        for protein, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for pn, tbl in iteritems(d):
                 tbl['ms1hg'] = {}
                 tbl['ms1fa'] = {}
-                for oi, lips in tbl['lip'].iteritems():
+                for oi, lips in iteritems(tbl['lip']):
                     tbl['ms1hg'][oi] = set([])
                     tbl['ms1fa'][oi] = {}
                     if lips is not None:
@@ -9367,14 +9366,14 @@ class Screening(object):
         MS2 fatty acids.
         Creates dict `hgfa`.
         """
-        for protein, d in self.valids.iteritems():
-            for mod, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mod, tbl in iteritems(d):
                 tbl['hgfa'] = {}
                 for oi in tbl['i']:
                     tbl['hgfa'][oi] = set([])
                     if oi in tbl['ms2fas'] and tbl['ms2fas'][oi] is not None:
                         ms2fa = tbl['ms2fas'][oi]
-                        for hg, ms1fa in tbl['ms1fa'][oi].iteritems():
+                        for hg, ms1fa in iteritems(tbl['ms1fa'][oi]):
                             if ms2fa in ms1fa:
                                 tbl['hgfa'][oi].add(hg)
                                 if verbose:
@@ -9399,8 +9398,8 @@ class Screening(object):
         MS2 headgroup fragments and MS2 fatty acids.
         Creates dicts `combined_hg` and `combined_fa`.
         """
-        for protein, d in self.valids.iteritems():
-            for mod, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mod, tbl in iteritems(d):
                 tbl['combined_hg'] = {}
                 tbl['combined_fa'] = {}
                 for oi in tbl['i']:
@@ -9434,8 +9433,8 @@ class Screening(object):
         MS2 headgroup fragments and MS2 fatty acids.
         Creates dicts `combined_hg` and `combined_fa`.
         """
-        for protein, d in self.valids.iteritems():
-            for mod, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mod, tbl in iteritems(d):
                 tbl['combined_hg_ms2'] = {}
                 for oi in tbl['i']:
                     tbl['combined_hg_ms2'][oi] = set([])
@@ -9452,7 +9451,7 @@ class Screening(object):
         result = dict((protein, {}) for protein in proteins)
         colnames = {}
         for protein in proteins:
-            for pn, tbl in self.valids[protein].iteritems():
+            for pn, tbl in iteritems(self.valids[protein]):
                 _np = 'pos' if pn == 'neg' else 'neg'
                 nptbl = tbl[_np]
                 for i, oi in enumerate(tbl['i']):
@@ -9481,7 +9480,7 @@ class Screening(object):
                                     elif pn == 'neg':
                                         result[protein][hg][fa][1] = True
                                     for _oi, pnlips in \
-                                        tbl['%s_lip'%_np][oi].iteritems():
+                                        iteritems(tbl['%s_lip'%_np][oi]):
                                         if not result[protein][hg][fa][2] and \
                                             pnlips is not None:
                                             for pnlip in pnlips:
@@ -9681,8 +9680,8 @@ class Screening(object):
             '\n\t\t\t</td>\n'
         th1 = tablehcell % 'protein'
         colnames = set([])
-        for protein, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for pn, tbl in iteritems(d):
                 for hg in tbl['ms2hg'].values():
                     if hg is not None:
                         colnames = colnames | hg
@@ -9701,7 +9700,7 @@ class Screening(object):
                 neg_unambig = False
                 pos_neg_same_unambig = False
                 pos_neg_unambig = False
-                for pn, tbl in self.valids[protein].iteritems():
+                for pn, tbl in iteritems(self.valids[protein]):
                     for ms2hg in tbl['ms2hg'].values():
                         if ms2hg is not None and hg in ms2hg:
                             if pn == 'pos':
@@ -9764,8 +9763,8 @@ class Screening(object):
         based on MS2 identifications.
         """
         colnames = set([])
-        for protein, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for pn, tbl in iteritems(d):
                 for hg in tbl['ms2hg'].values():
                     if hg is not None:
                         colnames = colnames | hg
@@ -9793,7 +9792,7 @@ class Screening(object):
                 neg_unambig = False
                 pos_neg_same_unambig = False
                 pos_neg_unambig = False
-                for pn, tbl in self.valids[protein].iteritems():
+                for pn, tbl in iteritems(self.valids[protein]):
                     for ms2hg in tbl['ms2hg'].values():
                         if ms2hg is not None and hg in ms2hg:
                             if pn == 'pos':
@@ -9848,10 +9847,10 @@ class Screening(object):
             '\n\t\t\t</td>\n'
         th1 = tablehcell % 'LTP'
         colnames = set([])
-        for protein, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for pn, tbl in iteritems(d):
                 for hgs in tbl['identity'].values():
-                    for hg, ids in hgs.iteritems():
+                    for hg, ids in iteritems(hgs):
                         if hg is not None and \
                             (ids['ms2_pos'] or ids['ms2_neg']):
                             colnames.add(hg)
@@ -9889,21 +9888,22 @@ class Screening(object):
                                             self.valids[protein]['neg']['identity']\
                                             [noi][hg]['ms2_neg']:
                                             pos_neg = True
-                                            if sum(map(lambda (_hg, this_hg):
-                                                    _hg != hg \
+                                            if sum(map(lambda _hg:
+                                                    _hg[0] != hg \
                                                             and \
-                                                        this_hg['ms1_neg'] \
+                                                        _hg[1]['ms1_neg'] \
                                                             and \
-                                                        this_hg['ms2_neg'],
-                                                    valids[protein]['neg']\
+                                                        _hg[1]['ms2_neg'],
+                                                    iteritems(
+                                                        valids[protein]['neg']\
                                                         ['identity']\
-                                                        [noi].iteritems()
+                                                        [noi])
                                                 )) == 0:
                                                 pos_neg_same_unambig = True
-                            if sum(map(lambda (_hg, this_hg):
-                                    _hg != hg and this_hg['ms1_pos'] \
-                                        and this_hg['ms2_pos'],
-                                    tbl['identity'][oi].iteritems()
+                            if sum(map(lambda _hg:
+                                    _hg[0] != hg and _hg[1]['ms1_pos'] \
+                                        and _hg[1]['ms2_pos'],
+                                    iteritems(tbl['identity'][oi])
                                 )) == 0:
                                 pos_unambig = True
                 tbl = self.valids[protein]['neg']
@@ -9922,20 +9922,21 @@ class Screening(object):
                                             self.valids[protein]['pos']['identity']\
                                                 [noi][hg]['ms2_pos']:
                                             pos_neg = True
-                                            if sum(map(lambda (_hg, this_hg):
-                                                    _hg != hg and \
-                                                        this_hg['ms1_pos'] \
+                                            if sum(map(lambda _hg:
+                                                    _hg[0] != hg and \
+                                                        _hg[1]['ms1_pos'] \
                                                             and \
-                                                        this_hg['ms2_pos'],
-                                                    valids[protein]['pos']\
+                                                        _hg[1]['ms2_pos'],
+                                                    iteritems(
+                                                        valids[protein]['pos']\
                                                         ['identity']\
-                                                        [noi].iteritems()
+                                                        [noi])
                                                 )) == 0:
                                                 pos_neg_same_unambig = True
-                            if sum(map(lambda (_hg, this_hg):
-                                    _hg != hg and this_hg['ms1_neg'] \
-                                        and this_hg['ms2_neg'],
-                                    tbl['identity'][oi].iteritems()
+                            if sum(map(lambda _hg:
+                                    _hg[0] != hg and _hg[1]['ms1_neg'] \
+                                        and _hg[1]['ms2_neg'],
+                                    iteritems(tbl['identity'][oi])
                                 )) == 0:
                                 neg_unambig = True
                 if pos_unambig and neg_unambig:
@@ -9983,10 +9984,10 @@ class Screening(object):
         based on MS1 and MS2 identifications.
         """
         colnames = set([])
-        for ltp, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for ltp, d in iteritems(self.valids):
+            for pn, tbl in iteritems(d):
                 for hgs in tbl['identity'].values():
-                    for hg, ids in hgs.iteritems():
+                    for hg, ids in iteritems(hgs):
                         if hg is not None and \
                             (ids['ms2_pos'] or ids['ms2_neg']):
                             colnames.add(hg)
@@ -10016,83 +10017,120 @@ class Screening(object):
                 pos_neg_unambig = False
                 pos_neg_same = False
                 tbl = self.valids[protein]['pos']
+                
                 for oi in tbl['i'][np.where(tbl[include])[0]]:
+                    
                     if hg in tbl['identity'][oi]:
+                        
                         this_hg = tbl['identity'][oi][hg]
+                        
                         if this_hg['ms1_pos'] and this_hg['ms2_pos']:
+                            
                             pos = True
+                            
                             if this_hg['ms1_neg'] and this_hg['ms2_neg']:
+                                
                                 pos_neg_same = True
                                 for noi in tbl['neg'][oi].keys():
+                                    
                                     if hg in valids[protein]['neg']\
                                         ['identity'][noi]:
+                                        
                                         if self.valids[protein]['neg']['identity']\
                                             [noi][hg]['ms1_neg'] \
                                                 and \
                                             self.valids[protein]['neg']['identity']\
                                             [noi][hg]['ms2_neg']:
+                                            
                                             pos_neg = True
-                                            if sum(map(lambda (_hg, this_hg):
-                                                    _hg != hg \
+                                            
+                                            if sum(map(lambda _hg:
+                                                    _hg[0] != hg \
                                                             and \
-                                                        this_hg['ms1_neg'] \
+                                                        _hg[1]['ms1_neg'] \
                                                             and \
-                                                        this_hg['ms2_neg'],
-                                                    valids[protein]['neg']\
+                                                        _hg[1]['ms2_neg'],
+                                                    iteritems(
+                                                        valids[protein]['neg']\
                                                         ['identity']\
-                                                        [noi].iteritems()
+                                                        [noi]
+                                                    )
                                                 )) == 0:
+                                                
                                                 pos_neg_same_unambig = True
-                            if sum(map(lambda (_hg, this_hg):
-                                    _hg != hg and this_hg['ms1_pos'] \
-                                        and this_hg['ms2_pos'],
-                                    tbl['identity'][oi].iteritems()
+                            
+                            if sum(map(lambda _hg:
+                                    _hg[0] != hg and _hg[1]['ms1_pos'] \
+                                        and _hg[1]['ms2_pos'],
+                                    iteritems(tbl['identity'][oi])
                                 )) == 0:
                                 pos_unambig = True
+                
                 tbl = self.valids[protein]['neg']
                 for oi in tbl['i'][np.where(tbl[include])[0]]:
+                    
                     if hg in tbl['identity'][oi]:
+                        
                         this_hg = tbl['identity'][oi][hg]
+                        
                         if this_hg['ms1_neg'] and this_hg['ms2_neg']:
+                            
                             neg = True
                             if this_hg['ms1_pos'] and this_hg['ms2_pos']:
+                                
                                 pos_neg_same = True
+                                
                                 for noi in tbl['pos'][oi].keys():
+                                    
                                     if hg in self.valids[protein]['pos']\
                                         ['identity'][noi]:
+                                        
                                         if valids[protein]['pos']['identity']\
                                             [noi][hg]['ms1_pos'] and \
                                             self.valids[protein]['pos']['identity']\
                                                 [noi][hg]['ms2_pos']:
+                                            
                                             pos_neg = True
-                                            if sum(map(lambda (_hg, this_hg):
-                                                    _hg != hg and \
-                                                        this_hg['ms1_pos'] \
+                                            
+                                            if sum(map(lambda _hg:
+                                                    _hg[0] != hg and \
+                                                        _hg[1]['ms1_pos'] \
                                                             and \
-                                                        this_hg['ms2_pos'],
-                                                    valids[protein]['pos']\
+                                                        _hg[1]['ms2_pos'],
+                                                    iteritems(
+                                                        valids[protein]['pos']\
                                                         ['identity']\
-                                                        [noi].iteritems()
+                                                        [noi]
+                                                    )
                                                 )) == 0:
+                                                
                                                 pos_neg_same_unambig = True
-                            if sum(map(lambda (_hg, this_hg):
-                                    _hg != hg and this_hg['ms1_neg'] \
-                                        and this_hg['ms2_neg'],
-                                    tbl['identity'][oi].iteritems()
+                            
+                            if sum(map(lambda _hg:
+                                    _hg[0] != hg and _hg[1]['ms1_neg'] \
+                                        and _hg[1]['ms2_neg'],
+                                    iteritems(tbl['identity'][oi])
                                 )) == 0:
                                 neg_unambig = True
+                
                 if pos_unambig and neg_unambig:
                     pos_neg_unambig = True
+                
                 if pos_neg_unambig:
                     row.append('\\cellcolor{emblyellow!75}')
+                
                 elif pos_neg:
                     row.append('\\cellcolor{emblyellow!75}')
+                
                 elif pos:
                     row.append('\\cellcolor{emblgreen!75}')
+                
                 elif neg:
                     row.append('\\cellcolor{emblpetrol!75}')
+                
                 else:
                     row.append('')
+            
             table += tablerow % ' & '.join(row)
             if break_half and i == np.ceil(len(self.valids) / 2.0):
                 table += '\\end{tabular}\n\quad\n'
@@ -10104,10 +10142,10 @@ class Screening(object):
     
     def identities_latex_table(self, filename = 'ms1ms2hcheadgroups2.tex', break_half = True, include = 'cl70pct'):
         allhgs = set([])
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
-                for oi, ms2results in tbl['ms2i2'].iteritems():
-                    for hg, ms2result in ms2results.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
+                for oi, ms2results in iteritems(tbl['ms2i2']):
+                    for hg, ms2result in iteritems(ms2results):
                         if sum(map(lambda i: i['score'], ms2result)) > 0:
                             allhgs.add(hg)
         colnames = sorted(list(allhgs))
@@ -10159,8 +10197,8 @@ class Screening(object):
         each having a boolean value.
         """
         self.sort_alll('mz')
-        for protein, d in self.valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(self.valids):
+            for pn, tbl in iteritems(d):
                 opp_mode = 'neg' if pn == 'pos' else 'pos'
                 tbl['identity'] = {}
                 for oi in tbl['i']:
@@ -10205,13 +10243,13 @@ class Screening(object):
         table = hrow
         empty_ids = {'': {'ms1_pos': False, 'ms2_pos': False, 
             'ms1_neg': False, 'ms2_neg': False}}
-        for protein, d in valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(valids):
+            for pn, tbl in iteritems(d):
                 _np = 'pos' if pn == 'neg' else 'neg'
                 for i, oi in enumerate(tbl['i']):
-                    for hg, ids in (tbl['identity'][oi].iteritems() \
+                    for hg, ids in iteritems((tbl['identity'][oi]) \
                         if len(tbl['identity'][oi]) > 0 \
-                        else empty_ids.iteritems()):
+                        else iteritems(empty_ids)):
                         this_row = ''
                         this_row += tablecell % ('rowname', '', protein)
                         this_row += tablecell % \
@@ -10219,17 +10257,17 @@ class Screening(object):
                         this_row += tablecell % ('nothing', '', 
                             '+' if pn == 'pos' else '-')
                         fits_pos = tbl[fits_pprop][i] if pn == 'pos' else \
-                            bool(sum(map(lambda (i, v): v,
-                                    filter(lambda (i, v): 
-                                        d['pos']['i'][i] in tbl['pos'][oi], 
+                            bool(sum(map(lambda _i: _i[1],
+                                    filter(lambda _i: 
+                                        d['pos']['i'][_i[0]] in tbl['pos'][oi], 
                                         enumerate(d['pos'][fits_pprop])
                                     )
                                 )
                             ))
                         fits_neg = tbl[fits_pprop][i] if pn == 'neg' else \
-                            bool(sum(map(lambda (i, v): v,
-                                    filter(lambda (i, v): 
-                                        d['neg']['i'][i] in tbl['neg'][oi], 
+                            bool(sum(map(lambda _i: _i[1],
+                                    filter(lambda _i: 
+                                        d['neg']['i'][_i[0]] in tbl['neg'][oi], 
                                         enumerate(d['neg'][fits_pprop])
                                     )
                                 )
@@ -10286,41 +10324,41 @@ class Screening(object):
             f.write(html_table_template % (title, title, table))
     
     def known_binders_enrichment(self, valids, bindprop, classif = 'cl5pct'):
-        for protein, d in valids.iteritems():
-            for pn, tbl in d.iteritems():
+        for protein, d in iteritems(valids):
+            for pn, tbl in iteritems(d):
                 if 'enr' not in tbl:
                     tbl['enr'] = {}
                 if classif not in tbl['enr']:
                     tbl['enr'][classif] = {}
                 tbl['enr'][classif]['tp'] = len(
-                    filter(lambda (i, oi):
-                        tbl[classif][i] and \
+                    filter(lambda ioi:
+                        tbl[classif][ioi[0]] and \
                             len(bindprop[protein] & \
-                                set(tbl['identity'][oi].keys())) > 0,
+                                set(tbl['identity'][ioi[1]].keys())) > 0,
                         enumerate(tbl['i'])
                     )
                 )
                 tbl['enr'][classif]['fp'] = len(
-                    filter(lambda (i, oi):
-                        tbl[classif][i] and \
+                    filter(lambda ioi:
+                        tbl[classif][ioi[0]] and \
                             len(bindprop[protein] & \
-                                set(tbl['identity'][oi].keys())) == 0,
+                                set(tbl['identity'][ioi[1]].keys())) == 0,
                         enumerate(tbl['i'])
                     )
                 )
                 tbl['enr'][classif]['tn'] = len(
-                    filter(lambda (i, oi):
-                        not tbl[classif][i] and \
+                    filter(lambda ioi:
+                        not tbl[classif][ioi[0]] and \
                             len(bindprop[protein] & \
-                                set(tbl['identity'][oi].keys())) == 0,
+                                set(tbl['identity'][ioi[1]].keys())) == 0,
                         enumerate(tbl['i'])
                     )
                 )
                 tbl['enr'][classif]['fn'] = len(
-                    filter(lambda (i, oi):
-                        not tbl[classif][i] and \
+                    filter(lambda ioi:
+                        not tbl[classif][ioi[0]] and \
                             len(bindprop[protein] & \
-                                set(tbl['identity'][oi].keys())) > 0,
+                                set(tbl['identity'][ioi[1]].keys())) > 0,
                         enumerate(tbl['i'])
                     )
                 )
@@ -10486,14 +10524,17 @@ class Screening(object):
         cvs = mpl.backends.backend_pdf.FigureCanvasPdf(fig)
         ax = fig.gca()
         i = 0
+        
         for lab in sorted(idlevels.keys()):
             ax.bar(np.arange(len(labels)) + i * w, 
                 map(lambda l: idlevels[lab][l], labels), 
                 w, color = cols[i], lw = 0.0)
             i += 1
-        lhandles = map(lambda (i, lab):
-            mpl.patches.Patch(color = cols[i], label = lab),
+        
+        lhandles = map(lambda ilab:
+            mpl.patches.Patch(color = cols[ilab[0]], label = ilab[1]),
             enumerate(sorted(idlevels.keys())))
+        
         leg = ax.legend(handles = lhandles)
         ax.set_xticks(np.arange(len(labels)) + w * i / 2.0)
         ax.set_xticklabels(labels, rotation = 90)
@@ -10515,7 +10556,7 @@ class Screening(object):
         self.known_binders_detected = set([])
         for protein in self.having_known_binders:
             d = self.valids[protein]
-            for mode, tbl in d.iteritems():
+            for mode, tbl in iteritems(d):
                 is_known_binder = []
                 for i, oi in enumerate(tbl['i']):
                     if oi not in tbl['ms2i2']:
@@ -10524,16 +10565,16 @@ class Screening(object):
                         binders = \
                             set(
                                 map(
-                                    lambda (hg, ms2i):
-                                        hg,
+                                    lambda _hg:
+                                        _hg[0],
                                     filter(
-                                        lambda (hg, ms2i):
+                                        lambda _hg:
                                             len(filter(
                                                 lambda ms2is:
                                                     ms2is['score'] > 0,
-                                                ms2i
+                                                _hg[1]
                                             )),
-                                        tbl['ms2i2'][oi].iteritems()
+                                        iteritems(tbl['ms2i2'][oi])
                                     )
                                 )
                             )
@@ -10587,9 +10628,9 @@ class Screening(object):
             ', '.join(sorted(list(tbl['ms2hg'][oi]))) \
                 if oi in tbl['ms2hg'] and \
                     type(tbl['ms2hg'][oi]) is set else '',
-            ', '.join(map(lambda (hg, fa): 
-                    '%s: %s' % (hg, ', '.join(list(fa))), 
-                    tbl['ms1fa'][oi].iteritems()
+            ', '.join(map(lambda hgfa: 
+                    '%s: %s' % (hgfa[0], ', '.join(list(hgfa[1]))), 
+                    iteritems(tbl['ms1fa'][oi])
                 )
             ),
             ', '.join(list(tbl['ms2fa'][oi])) \
@@ -10790,9 +10831,9 @@ class Screening(object):
         row.append(tablecell % \
             ('nothing',
             'Possible fatty acids based on database records',
-            '; '.join(map(lambda (hg, fa):
-                '%s: %s' % (hg, ', '.join(list(fa))),
-                tbl['ms1fa'][oi].iteritems()
+            '; '.join(map(lambda hgfa:
+                '%s: %s' % (hgfa[0], ', '.join(list(hgfa[1]))),
+                iteritems(tbl['ms1fa'][oi])
             )) if len(tbl['ms1fa'][oi]) else '')
         )
         row.append(tablecell % \
@@ -10895,7 +10936,7 @@ class Screening(object):
         with open(navigation, 'w') as f:
             f.write(self.html_table_template % (title, title, navhtml))
         
-        for protein, d in self.valids.iteritems():
+        for protein, d in iteritems(self.valids):
             prg.step()
             title = '%s: identities for all features, detailed' % protein
             thisFilename = '%s/%s_%s.html' % (filename, filename, protein)
@@ -10907,7 +10948,7 @@ class Screening(object):
             table = hrow
             visited = {'pos': set([]), 'neg': set([])}
             self.sort_alll('aaa', asc = False)
-            for mod, tbl in d.iteritems():
+            for mod, tbl in iteritems(d):
                 opp_mod = 'neg' if mod == 'pos' else 'pos'
                 drift = 1.0 if not self.proteins_drifts \
                     or 'recalibrated' not in tbl \
@@ -10973,8 +11014,8 @@ class Screening(object):
         title = 'Headgroups, combined identification'
         sort_alll(valids, 'mz')
         all_hgs = set([])
-        for protein, d in valids.iteritems():
-            for mod, tbl in d.iteritems():
+        for protein, d in iteritems(valids):
+            for mod, tbl in iteritems(d):
                 for i, oi in enumerate(tbl['i']):
                     if tbl[include][i]:
                         all_hgs = all_hgs | tbl[identity][oi]
@@ -10986,8 +11027,8 @@ class Screening(object):
                 ))),
                 valids.keys()
             ))
-        for protein, d in valids.iteritems():
-            for mod, tbl in d.iteritems():
+        for protein, d in iteritems(valids):
+            for mod, tbl in iteritems(d):
                 for i, oi in enumerate(tbl['i']):
                     if tbl[include][i]:
                         for hg in tbl[identity][oi]:
@@ -11048,8 +11089,8 @@ class Screening(object):
                 'Lower',
                 'Upper'
             ]))
-            for protein, pr in self.ppratios.iteritems():
-                for fracs, prs in pr.iteritems():
+            for protein, pr in iteritems(self.ppratios):
+                for fracs, prs in iteritems(pr):
                     f.write('%s\n' % '\t'.join([
                         protein,
                         '%s:%s' % fracs,
@@ -11067,7 +11108,7 @@ class Screening(object):
                 'Cc_%.03f' % self.fr_offsets[0],
                 'Cc_%.03f' % self.fr_offsets[1]
             ]))
-            for protein, prof in getattr(self, 'pprofs%sL'%original).iteritems():
+            for protein, prof in getattr(self, iteritems('pprofs%sL'%original)):
                 for frac in sorted(prof.keys(), key = lambda x: (x[0], int(renondigit.sub('', x)))):
                     f.write('%s\n' % '\t'.join([
                         protein,
@@ -11080,12 +11121,12 @@ class Screening(object):
         result = \
             dict(
                 map(
-                    lambda (protein, d):
-                        (protein,
+                    lambda protein:
+                        (protein[0],
                         dict(
                             map(
-                                lambda (mode, tbl):
-                                    (mode,
+                                lambda _tbl:
+                                    (_tbl[0],
                                     filter(
                                         lambda i:
                                             i is not None,
@@ -11094,19 +11135,19 @@ class Screening(object):
                                                 None \
                                                 if len(f.identities) == 0 \
                                                 else reduce(
-                                                    lambda (a, b):
-                                                        a | b,
+                                                    lambda ids:
+                                                        ids[0] | ids[1],
                                                     f.identities
                                                 ),
-                                            tbl['ms2f'].values()
+                                            _tbl[1]['ms2f'].values()
                                         ),
                                     )
                                     ),
-                                d.iteritems()
+                                iteritems(protein[1])
                             )
                             )
                         ),
-                    self.valids.iteritems()
+                    iteritems(self.valids)
                 )
             )
         
@@ -11116,14 +11157,14 @@ class Screening(object):
         result_str = \
             ''.join(
                 map(
-                    lambda (protein, d):
+                    lambda protein:
                         'Protein: %s\n%s\n' % (
-                            protein,
+                            protein[0],
                             ''.join(
                                 map(
-                                    lambda (mode, res):
+                                    lambda res:
                                         '\tMode: %s\n\t   %s\n' % (
-                                            mode,
+                                            res[0],
                                             '\n\t   '.join(
                                                 map(
                                                     lambda hg:
@@ -11131,18 +11172,18 @@ class Screening(object):
                                                             'times)' % \
                                                                 (hg,
                                                                 collections.\
-                                                                Counter(res)\
+                                                                Counter(res[1])\
                                                                     [hg]
                                                                 ),
-                                                    uniqList(res)
+                                                    uniqList(res[1])
                                                 ),
                                             )
                                         ),
-                                    d.iteritems()
+                                    iteritems(protein[1])
                                 )
                             )
                         ),
-                    result.iteritems()
+                    iteritems(result)
                 )
             )
         return result_str
@@ -11152,15 +11193,15 @@ class Screening(object):
         sorted(
             list(
                 reduce(
-                    lambda lst, lips:
-                        lst | lips,
+                    lambda llips:
+                        llips[0] | llips[1],
                     map(
-                        lambda (protein, lips):
-                            lips,
+                        lambda lips:
+                            lips[1],
                         filter(
-                            lambda (protein, lips):
-                                not only_with_ms_data or protein in self.fractions_upper,
-                            self.bindprop.iteritems()
+                            lambda lips:
+                                not only_with_ms_data or lips[0] in self.fractions_upper,
+                            iteritems(self.bindprop)
                         )
                     )
                 )
@@ -11212,10 +11253,10 @@ class Screening(object):
     def hg_fa_list(self, filename = 'headgroups_fattya.tex', include = 'cl70pct'):
         out = '\\begin{itemize}'
         allhgs = set([])
-        for protein, d in self.valids.iteritems():
-            for mode, tbl in d.iteritems():
-                for oi, ms2results in tbl['ms2i2'].iteritems():
-                    for hg, ms2result in ms2results.iteritems():
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
+                for oi, ms2results in iteritems(tbl['ms2i2']):
+                    for hg, ms2result in iteritems(ms2results):
                         if sum(map(lambda i: i['score'], ms2result)) > 0:
                             allhgs.add(hg)
         allhgs = sorted(list(allhgs))
@@ -11225,7 +11266,7 @@ class Screening(object):
             rows = []
             for hg in allhgs:
                 thisRow = set([])
-                for mode, tbl in d.iteritems():
+                for mode, tbl in iteritems(d):
                     for i, oi in enumerate(tbl['i']):
                         if oi in tbl['ms2i2']:
                             for res in tbl['ms2i2'][oi][hg]:

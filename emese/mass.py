@@ -1,10 +1,12 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #
+#  This file is part of the `emese` python module
+#
 #  Copyright (c) 2015-2016 - EMBL-EBI
 #
-#  File author(s): Dénes Türei (denes@ebi.ac.uk)
+#  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
 #  This code is not for public use.
 #  Please do not redistribute.
@@ -16,7 +18,7 @@
 import bs4
 import re
 
-import _curl
+import emese._curl as _curl
 
 urlMasses = 'http://www.ciaaw.org/atomic-masses.htm'
 urlWeights = 'http://www.ciaaw.org/atomic-weights.htm'
