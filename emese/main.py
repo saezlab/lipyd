@@ -21,6 +21,7 @@ from past.builtins import xrange, range, reduce
 
 import os
 import sys
+import imp
 import traceback
 import copy
 import time
@@ -170,8 +171,8 @@ class MolWeight(object):
     
     def reload(self):
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist = [modname.split('.')[0]])
-        reload(mod)
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
 
@@ -983,8 +984,8 @@ class Mz():
     
     def reload(self):
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist = [modname.split('.')[0]])
-        reload(mod)
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
 
@@ -1214,8 +1215,8 @@ class Feature(object):
     
     def reload(self):
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist = [modname.split('.')[0]])
-        reload(mod)
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
@@ -1351,8 +1352,8 @@ class MS2Scan(object):
     
     def reload(self):
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist = [modname.split('.')[0]])
-        reload(mod)
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
@@ -2592,8 +2593,8 @@ class Screening(object):
     
     def reload(self):
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist = [modname.split('.')[0]])
-        reload(mod)
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
@@ -2801,21 +2802,21 @@ class Screening(object):
         swl.fileobj.seek(-4, 2)
         ucsize = struct.unpack('I', swl.fileobj.read(4))[0]
         swl.fileobj.seek(0)
-        hdr = swl.readline().split('\t')
+        hdr = str(swl.readline()).split('\t')
         positives = []
         negatives = []
         exact_masses = []
         prg = progress.Progress(ucsize, 'Processing SwissLipids', 101)
         for l in swl:
             prg.step(len(l))
-            l = l.split('\t')
+            l = str(l).split('\t')
             if len(l) > 22:
                 for i in xrange(13, 23):
                     if len(l[i]) > 0:
                         add = '' if i == 13 else readd.findall(hdr[i])[0]
                         if not adducts or add in adducts or i == 13 and \
                             exact_mass or formiate and i == 13:
-                            mz = to_float(l[i])
+                            mz = self.to_float(l[i])
                             if i == 13:
                                 if formiate:
                                     mzfo = Mz(mz).add_fo()
@@ -2851,24 +2852,31 @@ class Screening(object):
         swl.fileobj.seek(-4, 2)
         ucsize = struct.unpack('I', swl.fileobj.read(4))[0]
         swl.fileobj.seek(0)
-        hdr = swl.readline().split('\t')
+        hdr = swl.readline().decode('utf-8').split('\t')
         _exacts = []
         prg = progress.Progress(ucsize, 'Processing SwissLipids', 101)
+        
         for l in swl:
+            
             prg.step(len(l))
-            l = l.split('\t')
+            l = l.decode('utf-8').split('\t')
             if len(l) > 22:
                 mz = self.to_float(l[14])
                 add = ''
-                _exacts.append([l[0], l[1], l[2], l[10], add, mz])
+                _exacts.append([l[0], l[1], l[2], l[10], add, mz or 0.0])
+        
         prg.terminate()
+        swl.fileobj.close()
         swl.close()
+        
+        del swl
         _exacts = sorted(_exacts, key = lambda x: x[-1])
         _exacts = np.array(_exacts, dtype = np.object)
         self.exacts = _exacts \
             if self.exacts is None \
             else np.vstack((self.exacts, _exacts))
         self.exacts = self.exacts[self.exacts[:,-1].argsort()]
+        
     
     def add_nonidet(self):
         self.nonidet_mzs = [528.37402, 484.34353, 572.39251,

@@ -401,7 +401,7 @@ class Curl(object):
     def progress_setup(self):
         if not self.silent and self.progress is None and not self.debug:
             self.progress = progress.Progress(name = self.title, interval = 1,
-                status = 'initializing curl')
+                status = 'initializing curl', unit = 'B')
     
     def curl_progress_setup(self):
         if self.progress is not None:
@@ -487,11 +487,9 @@ class Curl(object):
         if self.progress is not None:
             self.total = self.bytes_prefix(download_total)
             self.done = self.bytes_prefix(downloaded)
-            msg = u'%.02f%s/%.02f%s' % \
-                (self.done[0], self.done[1], self.total[0], self.total[1])
             self.progress.set_total(float(download_total))
             self.progress.set_done(float(downloaded))
-            self.progress.step(step = 0, msg = msg, status = 'downloading')
+            self.progress.step(step = 0, status = 'downloading')
     
     def terminate_progress(self):
         if self.progress is not None:
