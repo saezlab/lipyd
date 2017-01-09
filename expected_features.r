@@ -47,4 +47,4 @@ p <- ggplot(data, aes(y = cnt, x = fr, fill = peak)) +
     ylab('Non-zero values') +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
-ggsave('gg_nonzero_count_protein_mode_bar.pdf', device = cairo_pdf, width = 12, height = 24)
+ggsave('gg_nonzero_count_protein_mode_bar.pdf', device = cairo_pdf, width = 16, height = 24)
