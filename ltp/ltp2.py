@@ -2120,7 +2120,7 @@ class Screening(object):
             'basedir': ['home', 'denes', 'Documents' , 'enric'],
             'data_basedir': None,
             'datadirs': [['share']],
-            'fractionsf': 'control_sample.csv',
+            'fractionsf': 'LTPsceenprogres_v03.xlsx',
             'ppfracf': 'fractions.csv',
             'ppsecdir': 'SEC_profiles',
             'stddir': 'Standards_mzML format',
@@ -2967,7 +2967,7 @@ class Screening(object):
             if fraclim:
                 self.fraclim = pickle.load(open(self.flimcache, 'rb'))
             return None
-        reprotein = re.compile(r'.*?[\s_-]?([A-Za-z0-9]{3,})\.[a-z]{3}')
+        reprotein = re.compile(r'.*?[\s_-]?([A-Za-z0-9]{3,})_?[A-Za-z0-9]+?\.[a-z]{3}')
         self.absorb = {}
         secdir = os.path.join(self.basedir, self.ppsecdir)
         fnames = os.listdir(secdir)
@@ -3399,11 +3399,12 @@ class Screening(object):
                 )
         
         for protein, frs in iteritems(self.fractions):
-            for fr, val in iteritems(frs):
-                if fr not in self._fractions[protein]:
-                    self.fractions[protein][fr] = 0
-                else:
-                    self.fractions[protein][fr] = 1
+            if protein in self._fractions:
+                for fr, val in iteritems(frs):
+                    if fr not in self._fractions[protein]:
+                        self.fractions[protein][fr] = 0
+                    else:
+                        self.fractions[protein][fr] = 1
     
     def fractions_table(self, attr, fname = 'fractions_absorption.csv'):
         fracs = ['a5', 'a6', 'a7', 'a8', 'a9', 'a10', 'a11', 'a12', 'b1']
@@ -3514,7 +3515,12 @@ class Screening(object):
                 )
         self.fracs_orderL = {}
         self.fracs_orderU = {}
+        
         for protein in self.pprofsL.keys():
+            
+            if protein not in self.pfracs:
+                continue
+            
             with_protein = self.protein_containing_fractions(protein)
             self.fracs_orderL[protein] = \
                 order(protein, with_protein, self.pprofsL)
@@ -3537,6 +3543,10 @@ class Screening(object):
             )
         )
         for protein, d in self.fracs_order.iteritems():
+            
+            if protein not in self.pfracs:
+                continue
+            
             d['prim'].add(self.fracs_orderL[protein][0][0])
             d['prim'].add(self.fracs_orderU[protein][0][0])
             for fr, c in self.fracs_orderL[protein]:
@@ -3558,6 +3568,10 @@ class Screening(object):
         self.ppratios = dict((protein, {}) \
             for protein in self.fractions_upper.keys())
         for protein, sample in self.fractions_upper.iteritems():
+            
+            if protein not in self.pfracs:
+                continue
+            
             ratios = {}
             ref = None
             pprofL = self.pprofsL[protein]
@@ -3739,6 +3753,9 @@ class Screening(object):
                 )
         
         for protein, sample in self.fractions_upper.iteritems():
+            
+            if protein not in self.pfracs:
+                continue
             
             fracs = self.protein_containing_fractions(protein)
             ifracs = dict(map(lambda fr: (fr[1], fr[0]), enumerate(fracs)))
@@ -5018,19 +5035,6 @@ class Screening(object):
 
     def peaksize_filter(self, peakmin = 2.0, peakmax = 5.0, area = 10000):
         # minimum and maximum of all intensities over all proteins:
-        mini = min(
-            map(lambda tb:
-                np.nanmin(np.nanmax(tb, 1)),
-                (tbl['int'][np.nanmax(tbl['lip'], 1) >= area,:] \
-                    for d in self.data.values() for tbl in d.values())
-            )
-        )
-        maxi = max(
-            map(
-                np.nanmax,
-                (tbl['int'] for d in self.data.values() for tbl in d.values())
-            )
-        )
         
         prg = progress.Progress(len(self.data) * 2, 'Peak size filter', 1)
         
@@ -5039,11 +5043,16 @@ class Screening(object):
             for pn, tbl in d.iteritems():
                 
                 prg.step()
-                mini = np.nanmin(
-                    np.nanmax(
-                        tbl['int'][np.nanmean(tbl['lip'], 1) > 10000,:], 1
+                try:
+                    mini = np.nanmin(
+                        np.nanmax(
+                            tbl['int'][np.nanmean(tbl['lip'], 1) > 10000,:], 1
+                        )
                     )
-                )
+                except:
+                    print(protein, pn)
+                    continue
+                
                 maxi = np.nanmax(tbl['int'])
                 tbl['peaksize'] = np.nanmax(tbl['lip'], 1) / \
                     (np.nanmax(tbl['ctr'], 1) + 0.001)
@@ -7291,8 +7300,24 @@ class Screening(object):
         Reads from file sample/control annotations 
         for each proteins.
         """
+        
+        def get_names(names):
+            
+            return \
+                filter(
+                    lambda n:
+                        n.upper() == n,
+                    map(
+                        lambda n:
+                            n.replace(')', '').strip(),
+                        names.split('(')
+                    )
+                )
+        
         if not self.pcont_fracs_from_abs:
+            
             data = {}
+            
             with open(self.fractionsf, 'r') as f:
                 null = f.readline()
                 for l in f:
@@ -7302,19 +7327,63 @@ class Screening(object):
                             if x != '' else None for x in l[1:]])
             self.fractions = data
         else:
-            with open(self.fractionsf, 'r') as f:
+            
+            if self.fractionsf.endswith('xlsx'):
+                
+                tab = self.read_xls(self.fractionsf, sheet = 'status')
+                
                 self._fractions = \
                     dict(
-                        map(
-                            lambda l:
-                                (l[0], l[1:]),
-                            map(
+                        itertools.chain(
+                            *map(
                                 lambda l:
-                                    l.split(';'),
-                                f.read().split('\n')
+                                    list(
+                                        map(
+                                            lambda n:
+                                                (
+                                                    n,
+                                                    list(
+                                                        map(
+                                                            lambda i:
+                                                                i.strip(),
+                                                            l[15].split(',')
+                                                        )
+                                                    )
+                                                ),
+                                            get_names(l[0])
+                                        )
+                                    ),
+                                filter(
+                                    lambda l:
+                                        len(l[15]) and \
+                                            l[15].strip() != 'NA' and \
+                                            l[15][0].upper() == l[15][0] and \
+                                            l[15][1].isdigit(),
+                                    tab[1:]
+                                )
                             )
                         )
                     )
+                
+            else:
+                
+                with open(self.fractionsf, 'r') as f:
+                    
+                    self._fractions = \
+                        dict(
+                            map(
+                                lambda l:
+                                    (l[0], l[1:]),
+                                map(
+                                    lambda l:
+                                        l.split(';'),
+                                    filter(
+                                        len,
+                                        f.read().split('\n')
+                                    )
+                                )
+                            )
+                        )
     
     def set_measured(self):
         """
@@ -8695,7 +8764,7 @@ class Screening(object):
         """
         lower = self.peak_ratio_score_bandwidth
         upper = 1.0 / lower
-        proteins = sorted(self.fractions_upper.keys())
+        proteins = sorted(self.valids.keys())
         
         def get_score(protein, col, fkey, lower, upper):
             # the expected value of the peak ratio:
@@ -12991,8 +13060,12 @@ class Screening(object):
                     
                     for fr, fi in iteritems(ifracs):
                         
-                        cnt = np.sum(getattr(self, attr)[
-                            protein][mode][key][:,fi[0]] > 0)
+                        try:
+                            cnt = np.sum(getattr(self, attr)[
+                                protein][mode][key][:,fi[0]] > 0)
+                        except:
+                            print(protein, mode, fr)
+                            cnt = 0
                         
                         result[k][fr] = cnt
                         
