@@ -2120,7 +2120,7 @@ class Screening(object):
             'basedir': ['home', 'denes', 'Documents' , 'enric'],
             'data_basedir': None,
             'datadirs': [['share']],
-            'fractionsf': 'LTPsceenprogres_v03.xlsx',
+            'fractionsf': 'LTPsceenprogres_v05.xlsx',
             'ppfracf': 'fractions.csv',
             'ppsecdir': 'SEC_profiles',
             'stddir': 'Standards_mzML format',
@@ -6135,6 +6135,15 @@ class Screening(object):
     Functions for MS2
     """
     def ms2(self):
+        """
+        Calls all methods in the MS2 pipeline. This involves
+        -- reading and autogenerating the fragment lists
+        -- identifying the MS2 mgf files
+        -- mapping mgf file offsets to scans
+        -- identifying detected fragments using the lists
+        -- identifying the features based on charecteristic
+           fragments
+        """
         self.ms2_metabolites()
         self.ms2_filenames()
         self.ms2_map()
@@ -6145,6 +6154,46 @@ class Screening(object):
         self.ms2_scans_identify()
         self.ms2_headgroups2()
         self.consensus_indentity()
+    
+    def ms2_onebyone(self, callback = 'std_layout_tables_xlsx', **kwargs):
+        """
+        Does the same as `ms2()`, but after doing it for one
+        entity, it calls a callback, typically to export all
+        important outcome, and after deletes the objects to
+        free up memory. This is useful when working with so
+        large data that it would require many gigs of memory
+        otherwise.
+        """
+        self.ms2_metabolites()
+        self.ms2_filenames()
+        
+        prg = progress.Progress(len(self.valids),
+                                'Reading & analysing MS2',
+                                1, percent = False)
+        
+        for protein in self.valids.keys():
+            
+            prg.step()
+            self.ms2_map(proteins = [protein])
+            self.ms2_main(proteins = [protein])
+            self.ms2_headgroups(proteins = [protein])
+            self.headgroups_by_fattya(proteins = [protein])
+            self.identity_combined(proteins = [protein])
+            self.ms2_scans_identify(proteins = [protein])
+            self.ms2_headgroups2(proteins = [protein])
+            self.consensus_indentity(proteins = [protein])
+            
+            if hasattr(callback, '__call__'):
+                
+                callback(self, proteins = [protein], **kwargs)
+            
+            else:
+                
+                getattr(self, callback)(proteins = [protein], **kwargs)
+            
+            self.ms2_cleanup(proteins = [protein])
+        
+        prg.terminate()
     
     def identify(self):
         self.headgroups_by_fattya()
@@ -6405,7 +6454,7 @@ class Screening(object):
         
         self.ms2files = fnames
     
-    def ms2_map(self):
+    def ms2_map(self, proteins = None, silent = False):
         """
         Maps offsets of the beginning of each scan in MS2 mgf files.
         """
@@ -6415,10 +6464,20 @@ class Screening(object):
         result = dict((protein.upper(), {'pos': None, 'neg': None,
                 'ms2files': {'pos': {}, 'neg': {}}}) \
             for protein, d in self.ms2files.iteritems())
-        prg = progress.Progress(len(self.ms2files) * 2, 'Indexing MS2 data', 1,
-            percent = False)
+        
+        if proteins is not None and len(proteins) == 1:
+            silent = True
+        
+        if not silent:
+            prg = progress.Progress(len(self.ms2files) * 2,
+                                    'Indexing MS2 data', 1,
+                                    percent = False)
         
         for protein, d in self.ms2files.iteritems():
+            
+            if proteins is not None and protein not in proteins:
+                continue
+            
             pFeatures = []
             nFeatures = []
             uprotein = protein.upper()
@@ -6426,7 +6485,10 @@ class Screening(object):
             ifrac = self.fraction_indices(protein)
             
             for pn, files in d.iteritems():
-                prg.step()
+                
+                if not silent:
+                    prg.step()
+                
                 features = pFeatures if pn == stRpos else nFeatures
                 #fractions = set([])
                 for fr, fl in files.iteritems():
@@ -6445,7 +6507,10 @@ class Screening(object):
                 dtype = np.float64)
             result[uprotein]['pos'] = pFeatures
             result[uprotein]['neg'] = nFeatures
-        prg.terminate()
+        
+        if not silent:
+            prg.terminate()
+        
         self.ms2map = result
 
     def ms2_index(self, fl, fr, charge = 1):
@@ -6506,15 +6571,21 @@ class Screening(object):
                 offset += len(l)
         return features
 
-    def ms2_main(self, proteins = None, verbose = False, outfile = None):
+    def ms2_main(self, proteins = None, verbose = False, outfile = None,
+                 silent = False):
         """
         For all LTPs and modes obtains the MS2 data from original files.
         """
         # ms2map columns: pepmass, intensity, rtime, scan, offset, fraction
-        prg = progress.Progress(
-            (len(self.valids) if proteins is None else len(proteins)) * 2,
-            'Looking up MS2 fragments', 1,
-            percent = False)
+        
+        if proteins is not None and len(proteins) == 1:
+            silent = True
+        
+        if not silent:
+            prg = progress.Progress(
+                (len(self.valids) if proteins is None else len(proteins)) * 2,
+                'Looking up MS2 fragments', 1,
+                percent = False)
         
         if verbose:
             outfile = outfile if hasattr(outfile, 'write') else \
@@ -6526,7 +6597,9 @@ class Screening(object):
                 
                 for pn, tbl in d.iteritems():
                     
-                    prg.step()
+                    if not silent:
+                        prg.step()
+                    
                     # we look up the real measured MS1 m/z's in MS2,
                     # so will divide recalibrated values by the drift ratio
                     drift = 1.0 \
@@ -6564,7 +6637,9 @@ class Screening(object):
         
         if type(outfile) is file and outfile != sys.stdout:
             outfile.close()
-        prg.terminate()
+        
+        if not silent:
+            prg.terminate()
 
     def ms2_result(self, ms2matches):
         """
@@ -6919,12 +6994,16 @@ class Screening(object):
             result += [('Unknown', l[2], l[1]) for l in unknowns]
         return result
     
-    def ms2_headgroups2(self):
+    def ms2_headgroups2(self, proteins = None):
         """
         This collects the possible headgroups from the
         advanced MS2 identification (done by ms2_scans_identify()).
         """
         for protein, d in self.valids.iteritems():
+            
+            if proteins is not None and protein not in proteins:
+                continue
+            
             for mode, tbl in d.iteritems():
                 tbl['ms2hg2'] = {}
                 for oi, ms2i in tbl['ms2i2'].iteritems():
@@ -6952,8 +7031,13 @@ class Screening(object):
                         )
                     )
     
-    def consensus_indentity(self):
+    def consensus_indentity(self, proteins = None):
+        
         for protein, d in self.valids.iteritems():
+            
+            if proteins is not None and protein not in proteins:
+                continue
+            
             for mode, tbl in d.iteritems():
                 ids = {}
                 for oi, ms2i in tbl['ms2i2'].iteritems():
@@ -6988,13 +7072,17 @@ class Screening(object):
                     ids[oi] = this_id
                 tbl['cid'] = ids
     
-    def ms2_headgroups(self):
+    def ms2_headgroups(self, proteins = None):
         """
         Creates dictionaries named ms2hg having the
         original IDs as keys and the sets of the
         identified possible headgroups as values.
         """
-        for ltp, d in self.valids.iteritems():
+        for protein, d in self.valids.iteritems():
+            
+            if proteins is not None and protein not in proteins:
+                continue
+            
             for pn, tbl in d.iteritems():
                 tbl['ms2hg'] = {}
                 tbl['ms2fa'] = {}
@@ -7144,6 +7232,31 @@ class Screening(object):
                 ms2fas = '%u:%u' % (carbs, unsats)
         return ms2fa, ms2fai, ms2fas
     
+    def ms2_cleanup(self, proteins = None):
+        """
+        Removes all MS2 related objects for all proteins or
+        only those in list `proteins` in order to free up
+        memory.
+        """
+        
+        to_remove = ['ms2hg', 'ms2fa', 'ms2f',
+                     'ms2fai', 'ms2r', 'ms2i',
+                     'ms2fas', 'ms2fai', 'ms2i2',
+                     'ms2hg2', 'ms2i3']
+        
+        proteins = list(self.valids.keys()) if proteins is None else proteins
+        
+        for protein in proteins:
+            
+            del self.ms2map[protein]
+            
+            for tbl in self.valids[protein].values():
+                
+                for key in to_remove:
+                    
+                    if key in tbl:
+                        del tbl[key]
+    
     """
     END: MS2 functions
     """
@@ -7152,10 +7265,17 @@ class Screening(object):
     BEGIN: New identification methods
     """
     
-    def ms2_scans_identify(self):
-        prg = progress.Progress(len(self.valids) * 2,
-            'Analysing MS2 scans and identifying features', 1, percent = False)
+    def ms2_scans_identify(self, proteins = None, silent = False):
+        
+        if proteins is not None and len(proteins) == 1:
+            silent = True
+        
+        if not silent:
+            prg = progress.Progress(len(self.valids) * 2,
+                'Analysing MS2 scans and identifying features', 1, percent = False)
+        
         logdir = 'ms2log_%s' % self.today()
+        
         if not os.path.isdir(logdir):
             os.mkdir(logdir)
         else:
@@ -7164,11 +7284,20 @@ class Screening(object):
                     os.remove(os.path.join(logdir,f)),
                 os.listdir(logdir)
             )
+        
         for protein, d in self.valids.iteritems():
+            
+            if proteins is not None and protein not in proteins:
+                continue
+            
             for mode, tbl in d.iteritems():
+                
                 logfile = '%s-%s.txt' % (protein, mode)
                 self.ms2log = os.path.join(logdir, logfile)
-                prg.step()
+                
+                if not silent:
+                    prg.step()
+                
                 tbl['ms2f'] = {}
                 tbl['ms2i'] = {}
                 tbl['ms2i2'] = {}
@@ -7179,7 +7308,9 @@ class Screening(object):
                         tbl['ms2f'][oi].identify2()
                         tbl['ms2i'][oi] = tbl['ms2f'][oi].identities
                         tbl['ms2i2'][oi] = tbl['ms2f'][oi].identities2
-        prg.terminate()
+        
+        if not silent:
+            prg.terminate()
     
     def ms2_get_hgs(self):
         for protein, d in self.valids.iteritems():
@@ -9430,13 +9561,17 @@ class Screening(object):
                                         )
                                         sys.stdout.flush()
 
-    def headgroups_by_fattya(self, verbose = False):
+    def headgroups_by_fattya(self, proteins = None, verbose = False):
         """
         Limits the number of possible headgroups based on detected
         MS2 fatty acids.
         Creates dict `hgfa`.
         """
         for protein, d in self.valids.iteritems():
+            
+            if proteins is not None and protein not in proteins:
+                continue
+            
             for mod, tbl in d.iteritems():
                 tbl['hgfa'] = {}
                 for oi in tbl['i']:
@@ -9462,13 +9597,17 @@ class Screening(object):
                                         (ms2fa, ', '.join(list(ms1fa)), 
                                             hg, oi, protein, mod))
 
-    def identity_combined(self):
+    def identity_combined(self, proteins = None):
         """
         Combined identification based on MS1 database lookup,
         MS2 headgroup fragments and MS2 fatty acids.
         Creates dicts `combined_hg` and `combined_fa`.
         """
         for protein, d in self.valids.iteritems():
+            
+            if proteins is not None and protein not in proteins:
+                continue
+            
             for mod, tbl in d.iteritems():
                 tbl['combined_hg'] = {}
                 tbl['combined_fa'] = {}
@@ -11359,7 +11498,8 @@ class Screening(object):
                 sheet.set_column(coln, coln, self.colw_scale(colw))
         #sheet.set_row(row = 0, height = 115.0)
     
-    def std_layout_tables_xlsx(self, check_deltart = False, one_table = False):
+    def std_layout_tables_xlsx(self, check_deltart = False, one_table = False,
+                               proteins = None, silent = False):
         
         def make_xls(protein, xls):
             method = self.std_layout_table_all if protein == 'all' else \
@@ -11377,11 +11517,17 @@ class Screening(object):
             tbl, colw = method(*_argsn, **_kwargs)
             self.add_sheet(xls, tbl, '%s_negative_best' % protein, colw)
         
+        if proteins is not None and len(proteins) == 1:
+            silent = True
+        
         xlsdir = 'top_features'
         if not os.path.exists(xlsdir):
             os.mkdir(xlsdir)
-        for fname in os.listdir(xlsdir):
-            os.remove(os.path.join(xlsdir, fname))
+        
+        if proteins is None:
+            for fname in os.listdir(xlsdir):
+                os.remove(os.path.join(xlsdir, fname))
+        
         if self.use_original_average_area:
             self.sort_alll('aa', asc = False)
         else:
@@ -11393,6 +11539,10 @@ class Screening(object):
             sys.stdout.flush()
             
             xlsname = os.path.join(xlsdir, 'all_top_features.xlsx')
+            
+            if os.path.exists(xlsname):
+                os.remove(xlsname)
+            
             xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True,
                                                 'nan_inf_to_errors': True})
             make_xls('all', xls)
@@ -11403,11 +11553,19 @@ class Screening(object):
             
         else:
             
-            prg = progress.Progress(len(self.valids), 'Exporting xlsx tables',
-                                    1, percent = False)
+            if not silent:
+                prg = progress.Progress(len(self.valids),
+                                        'Exporting xlsx tables',
+                                        1, percent = False)
             
             for protein in self.valids.keys():
-                prg.step()
+                
+                if not silent:
+                    prg.step()
+                
+                if proteins is not None and protein not in proteins:
+                    continue
+                
                 xlsname = os.path.join(xlsdir,
                                        '%s_top_features.xlsx' % protein)
                 xls = xlsxwriter.Workbook(xlsname, {'constant_memory': True,
@@ -11415,7 +11573,8 @@ class Screening(object):
                 make_xls(protein, xls)
                 xls.close()
             
-            prg.terminate()
+            if not silent:
+                prg.terminate()
     
     def std_layout_table_all(self, mode, **kwargs):
         

@@ -66,7 +66,7 @@ Recalibrating all m/z's
 Lookup lipids for all the valid features. (variable name: `lip`)
 '''
 l.ms1()
-l.ms2()
+l.ms2_onebyone()
 
 l.std_layout_tables_xlsx()
 l.read_marco_standards()
