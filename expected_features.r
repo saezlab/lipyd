@@ -13,7 +13,7 @@ cldata <- read.csv(clinfile, sep = '\t', header = TRUE)
 data$fr <- factor(data$fr, levels = levels(data$fr)[order(substr(levels(data$fr), 1, 1),
                                          as.numeric(substr(levels(data$fr), 2, 3)))])
 
-cldata$fr <- factor(data$fr, levels = levels(cldata$fr)[order(substr(levels(cldata$fr), 1, 1),
+cldata$fr <- factor(cldata$fr, levels = levels(cldata$fr)[order(substr(levels(cldata$fr), 1, 1),
                                              as.numeric(substr(levels(cldata$fr), 2, 3)))])
 
 p <- ggplot(data, aes(y = i, x = fr)) +
@@ -47,4 +47,4 @@ p <- ggplot(data, aes(y = cnt, x = fr, fill = peak)) +
     ylab('Non-zero values') +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
-ggsave('gg_nonzero_count_protein_mode_bar.pdf', device = cairo_pdf, width = 12, height = 12)
+ggsave('gg_nonzero_count_protein_mode_bar.pdf', device = cairo_pdf, width = 16, height = 24)
