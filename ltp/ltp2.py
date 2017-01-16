@@ -6174,14 +6174,8 @@ class Screening(object):
         for protein in self.valids.keys():
             
             prg.step()
-            self.ms2_map(proteins = [protein])
-            self.ms2_main(proteins = [protein])
-            self.ms2_headgroups(proteins = [protein])
-            self.headgroups_by_fattya(proteins = [protein])
-            self.identity_combined(proteins = [protein])
-            self.ms2_scans_identify(proteins = [protein])
-            self.ms2_headgroups2(proteins = [protein])
-            self.consensus_indentity(proteins = [protein])
+            
+            self.ms2_oneprotein(protein)
             
             if hasattr(callback, '__call__'):
                 
@@ -6194,6 +6188,20 @@ class Screening(object):
             self.ms2_cleanup(proteins = [protein])
         
         prg.terminate()
+    
+    def ms2_oneprotein(self, protein):
+        """
+        Runs the whole MS2 workflow for only one protein.
+        """
+        
+        self.ms2_map(proteins = [protein])
+        self.ms2_main(proteins = [protein])
+        self.ms2_headgroups(proteins = [protein])
+        self.headgroups_by_fattya(proteins = [protein])
+        self.identity_combined(proteins = [protein])
+        self.ms2_scans_identify(proteins = [protein])
+        self.ms2_headgroups2(proteins = [protein])
+        self.consensus_indentity(proteins = [protein])
     
     def identify(self):
         self.headgroups_by_fattya()
@@ -10791,19 +10799,23 @@ class Screening(object):
              tbl['mz'][i],
              i,
              oi,
-            ', '.join(sorted(list(tbl['ms1hg'][oi]))),
+            ', '.join(sorted(list(tbl['ms1hg'][oi]))) \
+                if 'ms1hg' in tbl else '',
             ', '.join(sorted(list(tbl['ms2hg'][oi]))) \
-                if oi in tbl['ms2hg'] and \
+                if 'ms2hg' in tbl and \
+                    oi in tbl['ms2hg'] and \
                     type(tbl['ms2hg'][oi]) is set else '',
             ', '.join(map(lambda (hg, fa): 
                     '%s: %s' % (hg, ', '.join(list(fa))), 
                     tbl['ms1fa'][oi].iteritems()
                 )
-            ),
+            ) if 'ms1fa' in tbl else '',
             ', '.join(list(tbl['ms2fa'][oi])) \
-                if oi in tbl['ms2fa'] else '',
-            ', '.join(list(tbl['hgfa'][oi])),
-            ', '.join(list(tbl['combined_hg'][oi])),
+                if 'ms2fa' in tbl and oi in tbl['ms2fa'] else '',
+            ', '.join(list(tbl['hgfa'][oi])) \
+                if 'hgfa' in tbl else '',
+            ', '.join(list(tbl['combined_hg'][oi])) \
+                if 'combined_hg' in tbl else '',
             '=' * 70,
             tbl['rt'][i][0],
             tbl['rt'][i][1],
