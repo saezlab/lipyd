@@ -10765,7 +10765,7 @@ class Screening(object):
         self.sort_alll('mz')
         tbl = self.valids[protein][mode]
         ui = tbl['mz'].searchsorted(mz)
-        i = ui if tbl['mz'][ui] - mz < mz - tbl['mz'][ui - 1] else ui - 1
+        i = ui if ui == 0 or tbl['mz'][ui] - mz < mz - tbl['mz'][ui - 1] else ui - 1
         oi = tbl['i'][i]
         ifracs = sorted(iteritems(self.fraction_indices(protein)),
                         key = lambda i: i[1][0])
