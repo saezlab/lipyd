@@ -7250,7 +7250,7 @@ class Screening(object):
         to_remove = ['ms2hg', 'ms2fa', 'ms2f',
                      'ms2fai', 'ms2r', 'ms2i',
                      'ms2fas', 'ms2fai', 'ms2i2',
-                     'ms2hg2', 'ms2i3']
+                     'ms2hg2', 'ms2i3', 'ms2']
         
         proteins = list(self.valids.keys()) if proteins is None else proteins
         
