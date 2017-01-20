@@ -4,7 +4,7 @@
 #
 #  This file is part of the `emese` python module
 #
-#  Copyright (c) 2015-2016 - EMBL-EBI
+#  Copyright (c) 2015-2017 - EMBL-EBI
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -2120,7 +2120,7 @@ class Screening(object):
             'basedir': os.getcwd(),
             'data_basedir': None,
             'datadirs': [['share']],
-            'fractionsf': 'LTPsceenprogres_v06.xlsx',
+            'fractionsf': 'LTPsceenprogres_v07.xlsx',
             'ppfracf': 'fractions.csv',
             'ppsecdir': 'SEC_profiles',
             'stddir': 'Standards_mzML format',
