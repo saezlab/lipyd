@@ -4,7 +4,7 @@
 #
 #  This file is part of the `emese` python module
 #
-#  Copyright (c) 2015-2017 - EMBL-EBI
+#  Copyright (c) 2015-2016 - EMBL-EBI
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -2132,6 +2132,7 @@ class Screening(object):
             'recalfile': 'Recalibration_values_LTP.csv',
             'metabsf': 'Metabolites.xlsx',
             'ltplistf': 'ltplist.csv',
+            'tolerate_numpy_warnings': True,
             'swisslipids_url': 'http://www.swisslipids.org/php/'\
                 'export.php?action=get&file=lipids.csv',
             'lipidmaps_url': 'http://www.lipidmaps.org/resources/downloads/'\
@@ -2582,6 +2583,9 @@ class Screening(object):
             '#14B866', # medium sea green
             '#987B99'  # london hue
         ]
+        
+        if not self.tolerate_numpy_warnings:
+            self.numpy_warnings_as_errors()
     
     def paths_exist(self):
         paths = list(map(lambda name:
@@ -2599,6 +2603,16 @@ class Screening(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
+    @staticmethod
+    def numpy_warnings_as_errors():
+        np.seterr(all = 'raise')
+        warnings.filterwarnings('error')
+    
+    @staticmethod
+    def numpy_warnings_as_warnings():
+        np.seterr(all = 'warn')
+        warnings.filterwarnings('always')
     
     #
     # read standards data
@@ -3240,8 +3254,6 @@ class Screening(object):
         self.pprofsL =  {}
         self.pprofsU =  {}
         def get_mean(attr, get_val):
-            np.seterr(all = 'raise')
-            warnings.filterwarnings('error')
             try:
                 getattr(self, attr)[protein] = \
                     dict(
@@ -5058,9 +5070,12 @@ class Screening(object):
     def area_filter(self, area = 10000.0):
         area = float(area)
         for protein, d in iteritems(self.data):
-            for pn, tbl in iteritems(d):
+            for mode, tbl in iteritems(d):
                 if self.use_original_average_area:
-                    tbl['are'] = np.nanmean(tbl['lip'], 1) >= area
+                    try:
+                        tbl['are'] = np.nanmean(tbl['lip'], 1) >= area
+                    except:
+                        print(protein, mode)
                 else:
                     tbl['are'] = tbl['aa'] >= area
 
