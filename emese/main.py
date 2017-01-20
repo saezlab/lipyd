@@ -2120,7 +2120,7 @@ class Screening(object):
             'basedir': os.getcwd(),
             'data_basedir': None,
             'datadirs': [['share']],
-            'fractionsf': 'LTPsceenprogres_v05.xlsx',
+            'fractionsf': 'LTPsceenprogres_v06.xlsx',
             'ppfracf': 'fractions.csv',
             'ppsecdir': 'SEC_profiles',
             'stddir': 'Standards_mzML format',
@@ -7309,7 +7309,7 @@ class Screening(object):
         to_remove = ['ms2hg', 'ms2fa', 'ms2f',
                      'ms2fai', 'ms2r', 'ms2i',
                      'ms2fas', 'ms2fai', 'ms2i2',
-                     'ms2hg2', 'ms2i3']
+                     'ms2hg2', 'ms2i3', 'ms2']
         
         proteins = list(self.valids.keys()) if proteins is None else proteins
         
@@ -7499,6 +7499,8 @@ class Screening(object):
         for each proteins.
         """
         
+        refr = re.compile(r'([A-Z])([0-9]{1,2})-?([A-Z]?)([0-9]{0,2})')
+        
         def get_names(names):
             
             return \
@@ -7509,6 +7511,24 @@ class Screening(object):
                         lambda n:
                             n.replace(')', '').strip(),
                         names.split('(')
+                    )
+                )
+        
+        def get_fractions(frlist):
+            
+            return \
+                list(
+                    itertools.chain(
+                        *map(
+                            lambda i:
+                                map(
+                                    lambda num:
+                                        '%s%s' % (i[0], num),
+                                    xrange(int(i[1]), int(i[3]) + 1)
+                                ) if len(i[2]) and len(i[3]) else \
+                                ['%s%s' % (i[0], i[1])],
+                            refr.findall(frlist)
+                        )
                     )
                 )
         
@@ -7540,13 +7560,7 @@ class Screening(object):
                                             lambda n:
                                                 (
                                                     n,
-                                                    list(
-                                                        map(
-                                                            lambda i:
-                                                                i.strip(),
-                                                            l[15].split(',')
-                                                        )
-                                                    )
+                                                    get_fractions(l[15])
                                                 ),
                                             get_names(l[0])
                                         )
