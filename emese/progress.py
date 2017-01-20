@@ -34,11 +34,11 @@ class Progress(object):
     """
     
     def __init__(self, total = None, name = "Progress",
-             interval = 3000, percent = True, status = 'initializing',
+             interval = None, percent = True, status = 'initializing',
              done = 0, init = True, unit = 'it'):
         
         self.name = name
-        self.interval = interval
+        self.interval = max(int(total / 100), 1) if interval is None else interval
         self.total = total
         self.done = done
         self.status = status
@@ -71,8 +71,11 @@ class Progress(object):
         :param int step: Number of steps or items.
         """
         self.done += step
+        
         if force or (self.done % self.interval < 1.0 and \
             time.time() - self.last_updated > self.min_update_interval):
+            
+            self.set_status(status)
             
             this_update = max(0, self.done - self.last_printed_value)
             
@@ -81,9 +84,8 @@ class Progress(object):
                 self.tqdm.fp.flush()
             else:
                 self.tqdm.update(int(this_update))
-                self.tqdm.fp.flush()
+                
             self.last_printed_value = self.done
-            self.set_status(status)
             self.last_updated = time.time()
     
     def terminate(self, status = 'finished'):
@@ -114,7 +116,7 @@ class Progress(object):
         """
         Changes the prefix of the progressbar.
         """
-        if status != self.tqdm.desc:
+        if status != self.status:
             self.status = status
             self.tqdm.set_description(self.get_desc())
             self.tqdm.refresh()
@@ -128,7 +130,7 @@ class Progress(object):
         """
         return '%s%s%s%s' % (' ' * 8,
                              self.name,
-                             ': ' if len(self.name) else '',
+                             ' -- ' if len(self.name) else '',
                              self.status)
 
 

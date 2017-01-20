@@ -4,7 +4,7 @@
 #
 #  This file is part of the `emese` python module
 #
-#  Copyright (c) 2015-2016 - EMBL-EBI
+#  Copyright (c) 2015-2017 - EMBL-EBI
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -19,6 +19,8 @@ from __future__ import print_function
 from past.builtins import xrange, range, reduce
 
 import sys
+import warnings
+import traceback
 
 if 'unicode' not in __builtins__:
     unicode = str
@@ -76,3 +78,12 @@ def something(anything):
     return not (anything is None or \
         (type(anything) in [list, set, dict, str, unicode] \
             and len(anything) == 0))
+
+def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
+    """
+    Prints warnings with traceback.
+    From https://stackoverflow.com/a/22376126/854988
+    """
+    traceback.print_stack()
+    log = file if hasattr(file,'write') else sys.stderr
+    log.write(warnings.formatwarning(message, category, filename, lineno, line))

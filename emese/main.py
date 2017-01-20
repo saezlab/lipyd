@@ -4,7 +4,7 @@
 #
 #  This file is part of the `emese` python module
 #
-#  Copyright (c) 2015-2016 - EMBL-EBI
+#  Copyright (c) 2015-2017 - EMBL-EBI
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -89,6 +89,8 @@ readline.parse_and_bind('tab:complete')
 
 warnings.filterwarnings('error')
 warnings.filterwarnings('default')
+warnings.simplefilter('always')
+warnings.showwarning = warn_with_traceback
 
 class MolWeight(object):
     """
@@ -2970,9 +2972,14 @@ class Screening(object):
         self.pp_zeroed = False
         if cache and os.path.exists(self.abscache) and \
             (not fraclim or os.path.exists(self.flimcache)):
-            self.absorb = pickle.load(open(self.abscache, 'rb'))
+            
+            with open(self.abscache, 'rb') as fp:
+                self.absorb = pickle.load(fp)
+            
             if fraclim:
-                self.fraclim = pickle.load(open(self.flimcache, 'rb'))
+                with open(self.flimcache, 'rb') as fp:
+                    self.fraclim = pickle.load(fp)
+            
             return None
         reprotein = re.compile(r'.*?[\s_-]?([A-Za-z0-9]{3,})_?[A-Za-z0-9]+?\.[a-z]{3}')
         self.absorb = {}
@@ -3065,9 +3072,12 @@ class Screening(object):
                                 )
                             )
         
-        pickle.dump(self.absorb, open(self.abscache, 'wb'))
+        with open(self.abscache, 'wb') as fp:
+            pickle.dump(self.absorb, fp)
+        
         if fraclim:
-            pickle.dump(self.fraclim, open(self.flimcache, 'wb'))
+            with open(self.flimcache, 'wb') as fp:
+                pickle.dump(self.fraclim, fp)
     
     def pp2(self):
         self.raw_sec_absorbances()
@@ -3230,23 +3240,30 @@ class Screening(object):
         self.pprofsL =  {}
         self.pprofsU =  {}
         def get_mean(attr, get_val):
-            getattr(self, attr)[protein] = \
-                dict(
-                    map(
-                        lambda fr:
-                            (
-                                fr[0],
-                                np.nanmean(
-                                    map(
-                                        lambda vals:
-                                            get_val(vals),
-                                        fr[1].values()
+            np.seterr(all = 'raise')
+            warnings.filterwarnings('error')
+            try:
+                getattr(self, attr)[protein] = \
+                    dict(
+                        map(
+                            lambda fr:
+                                (
+                                    fr[0],
+                                    np.nanmean(
+                                        list(
+                                            map(
+                                                lambda vals:
+                                                    get_val(vals),
+                                                fr[1].values()
+                                            )
+                                        )
                                     )
-                                )
-                            ),
-                        iteritems(d)
+                                ),
+                            iteritems(d)
+                        )
                     )
-                )
+            except:
+                print(protein, attr)
         
         for protein, d in iteritems(self.abs_by_frac_c):
             get_mean('pprofs', np.nanmean)
@@ -4695,13 +4712,18 @@ class Screening(object):
         redirname = re.compile(r'(^[0-9a-zA-Z]+)[ _]')
         fnames = {}
         datadlsts = \
-            map(lambda d:
-                filter(lambda dd:
-                    os.path.isdir(os.path.join(d, dd)),
-                    os.listdir(d)
-                ),
-                self.datadirs
+            list(
+                map(lambda d:
+                    list(
+                        filter(lambda dd:
+                            os.path.isdir(os.path.join(d, dd)),
+                            os.listdir(d)
+                        )
+                    ),
+                    self.datadirs
+                )
             )
+        
         if sum(map(len, datadlsts)) == 0:
             sys.stdout.write('\t:: Please mount the shared folder!\n')
             return fnames
@@ -5648,7 +5670,9 @@ class Screening(object):
             if fname is None else fname
         sys.stdout.write('\t:: Saving data to %s ...\n' % fname)
         sys.stdout.flush()
-        pickle.dump(self.data, open(fname, 'wb'))
+        with open(fname, 'wb') as fp:
+            pickle.dump(self.data, fp)
+        
         sys.stdout.write('\t:: Data has been saved to %s.\n' % fname)
         sys.stdout.flush()
 
@@ -5657,7 +5681,8 @@ class Screening(object):
             if fname is None else fname
         sys.stdout.write('\t:: Loading data from %s ...\n' % fname)
         sys.stdout.flush()
-        self.data = pickle.load(open(fname, 'rb'))
+        with open(fname, 'rb') as fp:
+            self.data = pickle.load(fp)
 
     def save(self, fname = None):
         """
@@ -5668,8 +5693,9 @@ class Screening(object):
             if fname is None else fname
         sys.stdout.write('\t:: Saving auxiliary data to %s ...\n' % fname)
         sys.stdout.flush()
-        pickle.dump((self.datafiles, self.fractions),
-            open(fname, 'wb'))
+        with open(fname, 'wb') as fp:
+            pickle.dump((self.datafiles, self.fractions), fp)
+        
         sys.stdout.write('\t:: Some annotations has been saved to %s.\n' % fname)
         sys.stdout.flush()
 
@@ -5679,8 +5705,9 @@ class Screening(object):
         sys.stdout.write('\t:: Loading auxiliary data '\
             'from %s ...\n' % fname)
         sys.stdout.flush()
-        self.datafiles, self.fractions = \
-            pickle.load(open(fname, 'rb'))
+        with open(fname, 'rb') as fp:
+            self.datafiles, self.fractions = \
+                pickle.load(fp)
 
     """
     END: save & reload
@@ -7607,9 +7634,11 @@ class Screening(object):
         with open(self.bindpropf, 'r') as f:
             data = map(lambda l:
                 l.strip('\n').split('\t'),
-                filter(lambda l:
-                    len(l),
-                    f
+                list(
+                    filter(lambda l:
+                        len(l),
+                        f
+                    )
                 )[1:]
             )
         for l in data:
@@ -9891,7 +9920,7 @@ class Screening(object):
                     row.append('')
             table += tablerow % ' & '.join(row)
             if break_half and i == np.ceil(len(self.valids) / 2.0):
-                table += '\\end{tabular}\n\quad\n'
+                table += '\\end{tabular}\n\\quad\n'
                 table += '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
                 table += tablerow % hdr
         table += '\\end{tabular}\n'
@@ -10061,7 +10090,7 @@ class Screening(object):
                     row.append('')
             table += tablerow % ' & '.join(row)
             if break_half and i == np.ceil(len(self.valids) / 2.0):
-                table += '\\end{tabular}\n\quad\n'
+                table += '\\end{tabular}\n\\quad\n'
                 table += '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
                 table += tablerow % hdr
         table += '\\end{tabular}\n'
@@ -10371,7 +10400,7 @@ class Screening(object):
             
             table += tablerow % ' & '.join(row)
             if break_half and i == np.ceil(len(self.valids) / 2.0):
-                table += '\\end{tabular}\n\quad\n'
+                table += '\\end{tabular}\n\\quad\n'
                 table += '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
                 table += tablerow % hdr
         table += '\\end{tabular}\n'
@@ -10420,7 +10449,7 @@ class Screening(object):
                     row.append('')
             table += tablerow % ' & '.join(row)
             if break_half and l == np.ceil(len(self.valids) / 2.0):
-                table += '\\end{tabular}\n\quad\n'
+                table += '\\end{tabular}\n\\quad\n'
                 table += '\\begin{tabular}{l%s}\n' % ('l' * len(colnames))
                 table += tablerow % hdr
         table += '\\end{tabular}\n'
