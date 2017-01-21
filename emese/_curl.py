@@ -468,7 +468,7 @@ class Curl(object):
             if not self.use_cache:
                 if 'content-type' in self.resp_headers:
                     content_type = self.resp_headers['content-type'].lower()
-                    match = re.search('charset=(\S+)', content_type)
+                    match = re.search(r'charset=(\S+)', content_type)
                     if match:
                         self.encoding = match.group(1)
     
@@ -590,9 +590,22 @@ class Curl(object):
         self.report_ready()
     
     def open_file(self):
+        """
+        Calls opener method appropriate for file type.
+        """
         if not self.silent:
             self.print_status('Opening file `%s`' % self.outfile)
         self.fileobj = open(self.outfile, 'rb')
+    
+    def close(self):
+        """
+        Closes all file objects.
+        """
+        if type(self.result) is dict:
+            for fp in self.result.values():
+                if hasattr(fp, 'close'):
+                    fp.close()
+        self.fileobj.close()
     
     def extract_file(self):
         if not self.silent:

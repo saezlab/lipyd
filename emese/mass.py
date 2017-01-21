@@ -4,7 +4,7 @@
 #
 #  This file is part of the `emese` python module
 #
-#  Copyright (c) 2015-2016 - EMBL-EBI
+#  Copyright (c) 2015-2017 - EMBL-EBI
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -14,6 +14,8 @@
 #
 #  Website: http://www.ebi.ac.uk/~denes
 #
+
+from future.utils import iteritems
 
 import bs4
 import re
@@ -65,7 +67,7 @@ def getMassFirstIso():
     if 'freqIso' not in globals():
         getFreqIso()
     firstIso = {}
-    for symbol, isos in massMonoIso.iteritems():
+    for symbol, isos in iteritems(massMonoIso):
         if symbol in freqIso:
             try:
                 firstIso[symbol] = \

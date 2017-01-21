@@ -2691,7 +2691,10 @@ class Screening(object):
         c = _curl.Curl(self.lipidmaps_url, large = True,
             silent = False, files_needed = [self.lipidmaps_fname])
         lmapsf = c.result
-        for l in lmapsf.values()[0]:
+        
+        for l in list(lmapsf.values())[0]:
+            
+            l = l.decode('utf-8')
             if expect:
                 record[expect] = l.strip() \
                     if expect != 'exact_mass' else float(l.strip())
@@ -2704,6 +2707,9 @@ class Screening(object):
                 lipidmaps.append([record[label] if label in record else None \
                     for label in fields])
                 record = {}
+        
+        c.close()
+        
         return lipidmaps
 
     def lipidmaps_adducts(self):
@@ -2739,19 +2745,29 @@ class Screening(object):
         self.nAdducts = self.nAdducts[self.nAdducts[:,-1].argsort()]
 
     def lipidmaps_exact(self):
+        
         _exacts = []
         lipidmaps = self.get_lipidmaps()
+        
+        prg = progress.Progress(len(lipidmaps), 'Processing LipidMaps', 1)
+        
         for l in lipidmaps:
+            prg.step()
             if l[5] is not None:
                 _exacts.append([l[0], 'Species', \
                     '|'.join([str(l[10]), str(l[1]),
                         str(l[2])]), l[6], '', l[5]])
-        _exactd = np.array(
+        
+        prg.terminate()
+        
+        _exacts = np.array(
             sorted(_exacts, key = lambda x: x[-1]),
             dtype = np.object)
+        
         self.exacts = _exacts \
             if self.exacts is None \
             else np.vstack((self.exacts, _exacts))
+        
         self.exacts = self.exacts[self.exacts[:,-1].argsort()]
     
     def export_lipidmaps(self, fname = 'lipidmaps.tab', one_name = False):
@@ -2895,6 +2911,9 @@ class Screening(object):
         
     
     def add_nonidet(self):
+        """
+        Adds mass values of Nonidet P-40 to the mass database.
+        """
         self.nonidet_mzs = [528.37402, 484.34353, 572.39251,
                             616.36121, 660.44410]
         nonidet = []
@@ -2921,39 +2940,51 @@ class Screening(object):
     
     def process_db_keywords(self, kwdstr):
         return \
-            map(
-                lambda kwdset:
-                    {
-                        'neg':
-                            map(
-                                lambda kwd:
-                                    kwd[1:],
-                                filter(
-                                    lambda kwd:
-                                        len(kwd) and kwd[0] == '!',
-                                    kwdset.split(';')
+            list(
+                map(
+                    lambda kwdset:
+                        {
+                            'neg':
+                                list(
+                                    map(
+                                        lambda kwd:
+                                            kwd[1:],
+                                        list(
+                                            filter(
+                                                lambda kwd:
+                                                    len(kwd) and \
+                                                    kwd[0] == '!',
+                                                kwdset.split(';')
+                                            )
+                                        )
+                                    )
+                                ),
+                            'pos':
+                                list(
+                                    filter(
+                                        lambda kwd:
+                                            len(kwd) and kwd[0] != '!',
+                                        kwdset.split(';')
+                                    )
                                 )
-                            ),
-                        'pos':
-                            filter(
-                                lambda kwd:
-                                    len(kwd) and kwd[0] != '!',
-                                kwdset.split(';')
-                            )
-                    },
-                kwdstr.split('|')
+                        },
+                    kwdstr.split('|')
+                )
             )
     
     def binders_of(self, hg):
-        return map(
-            lambda i:
-                i[0],
-            filter(
-                lambda i:
-                    hg in i[1] and i[0] in self.fractions_upper,
-                iteritems(self.bindprop)
+        return \
+            list(
+                map(
+                    lambda i:
+                        i[0],
+                    filter(
+                        lambda i:
+                            hg in i[1] and i[0] in self.fractions_upper,
+                        iteritems(self.bindprop)
+                    )
+                )
             )
-        )
 
     #
     # reading the SEC absorption values and calculating the protein 
@@ -3782,11 +3813,13 @@ class Screening(object):
         def get_ratio(protein, ref, frac, o):
             return \
                 np.mean(
-                    map(
-                        lambda w:
-                            self.abs_by_frac_c[protein][ref][w][o] / \
-                                self.abs_by_frac_c[protein][frac][w][o],
-                        self.abs_cols
+                    list(
+                        map(
+                            lambda w:
+                                self.abs_by_frac_c[protein][ref][w][o] / \
+                                    self.abs_by_frac_c[protein][frac][w][o],
+                            self.abs_cols
+                        )
                     )
                 )
         
@@ -3879,8 +3912,14 @@ class Screening(object):
                             
                             frac1, frac2 = fracs[i], fracs[j]
                             
-                            ratio.append(fe[ifracs[frac1][0]] /
-                                         fe[ifracs[frac2][0]])
+                            f1 = fe[ifracs[frac1][0]]
+                            f2 = fe[ifracs[frac2][0]]
+                            r = 0.0 if f1 == 0.0 \
+                                else np.inf if f2 == 0.0 \
+                                else f1 / f2
+                            
+                            ratio.append(r)
+                            
                             indices[(frac1, frac2)] = len(ratio) - 1
                     
                     ratios.append(ratio)
@@ -5086,38 +5125,38 @@ class Screening(object):
         
         for protein, d in iteritems(self.data):
             
-            for pn, tbl in iteritems(d):
+            for mode, tbl in iteritems(d):
                 
                 prg.step()
-                try:
-                    mini = np.nanmin(
-                        np.nanmax(
-                            tbl['int'][np.nanmean(tbl['lip'], 1) > 10000,:], 1
-                        )
+                mini = np.nanmin(
+                    np.nanmax(
+                        tbl['int'][np.nanmean(tbl['lip'], 1) > 10000,:], 1
                     )
-                except:
-                    print(protein, pn)
-                    continue
+                )
                 
                 maxi = np.nanmax(tbl['int'])
-                tbl['peaksize'] = np.nanmax(tbl['lip'], 1) / \
-                    (np.nanmax(tbl['ctr'], 1) + 0.001)
-                tbl['pslim02'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
+                tbl['peaksize'] = np.max(np.nan_to_num(tbl['lip']), 1) / \
+                    (np.max(np.nan_to_num(tbl['ctr']), 1) + 0.001)
+                tbl['pslim02'] = (((np.max(np.nan_to_num(tbl['lip']), 1) -
+                                    mini) / (maxi - mini)) *
                         (2.0 - 2.0) + peakmin)
-                tbl['pslim05'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
+                tbl['pslim05'] = (((np.max(np.nan_to_num(tbl['lip']), 1) -
+                                    mini)) / (maxi - mini) *
                         (5.0 - 2.0) + peakmin)
-                tbl['pslim10'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
+                tbl['pslim10'] = (((np.max(np.nan_to_num(tbl['lip']), 1) -
+                                    mini) / (maxi - mini)) *
                         (10.0 - 2.0) + peakmin)
-                tbl['pslim510'] = (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
+                tbl['pslim510'] = (((np.max(np.nan_to_num(tbl['lip']), 1) -
+                                     mini) / (maxi - mini)) *
                         (10.0 - 5.0) + 5.0)
                 tbl['pks'] = (
                     # the peaksize:
-                    np.nanmax(tbl['lip'], 1) / \
-                        (np.nanmax(tbl['ctr'], 1) + 0.001)
+                    np.max(np.nan_to_num(tbl['lip']), 1) / \
+                        (np.max(np.nan_to_num(tbl['ctr']), 1) + 0.001)
                     # must be larger:
                     >
                     # than the min peaksize as a function of intensity:
-                    (((np.nanmax(tbl['lip'], 1) - mini) / (maxi - mini)) *
+                    (((np.max(np.nan_to_num(tbl['lip']), 1) - mini) / (maxi - mini)) *
                         (peakmax - peakmin) + peakmin)
                 )
         
@@ -5814,8 +5853,8 @@ class Screening(object):
             if len(fa) > 0:
                 _fa = fa
         if _fa is not None and _sum:
-            _fa = map(sum, zip(*[[int(i) for i in f[1].split(':')] \
-                for f in _fa]))
+            _fa = list(map(sum, zip(*[[int(i) for i in f[1].split(':')] \
+                for f in _fa])))
         return _fa
 
     def find_lipids_exact(self, verbose = False,
@@ -5837,7 +5876,7 @@ class Screening(object):
                             tbl['mz'][i], pn,
                             verbose, outfile, charge = 1
                         )
-        if type(outfile) is file and outfile != sys.stdout:
+        if hasattr(outfile, 'close') and outfile != sys.stdout:
             outfile.close()
 
     def adduct_lookup(self, mz, adducts):
@@ -7661,15 +7700,20 @@ class Screening(object):
         """
         result = {}
         with open(self.bindpropf, 'r') as f:
-            data = map(lambda l:
-                l.strip('\n').split('\t'),
+            data = \
                 list(
-                    filter(lambda l:
-                        len(l),
-                        f
+                    map(
+                        lambda l:
+                            l.strip('\n').split('\t'),
+                        list(
+                            filter(lambda l:
+                                len(l),
+                                f
+                            )
+                        )[1:]
                     )
-                )[1:]
-            )
+                )
+        
         for l in data:
             if l[2] not in result:
                 result[l[2]] = set([])
@@ -7679,6 +7723,7 @@ class Screening(object):
                         result[l[2]].add(lip)
             except IndexError:
                 print(l)
+        
         self.bindprop = result
     
     #
@@ -7755,7 +7800,9 @@ class Screening(object):
         self.fractions_marco()
         
         if cache and os.path.exists(self.validscache):
-            self.valids = pickle.load(open(self.validscache, 'rb'))
+            with open(self.validscache, 'rb') as fp:
+                self.valids = pickle.load(fp)
+            
             return None
         
         self.apply_filters()
@@ -7798,7 +7845,8 @@ class Screening(object):
         self.norm_all()
         self.get_area()
         
-        pickle.dump(self.valids, open(self.validscache, 'wb'))
+        with open(self.validscache, 'wb') as fp:
+            pickle.dump(self.valids, fp)
     
     def get_area(self):
         for protein, d in iteritems(self.valids):

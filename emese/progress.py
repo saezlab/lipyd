@@ -92,7 +92,7 @@ class Progress(object):
         """
         Terminates the progressbar and destroys the tqdm object.
         """
-        self.set_status(status)
+        self.step(self.total - self.done, force = True, status = status)
         self.tqdm.close()
     
     def set_total(self, total):
