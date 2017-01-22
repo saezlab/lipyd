@@ -1614,23 +1614,35 @@ class MS2Scan(object):
         return result
     
     def fa_among_most_abundant(self, fa_type, n = 2, min_mass = None, sphingo = False):
+        
         result = False
         fa_frags = 0
+        
         for i in xrange(self.scan.shape[0]):
-            if self.is_fa(i, sphingo = sphingo) and self.scan[i,1] >= min_mass:
+            
+            if self.is_fa(i, sphingo = sphingo) and (
+                    min_mass is None or
+                    self.scan[i,1] >= min_mass
+                ):
+                
                 fa_frags += 1
                 if min_mass is not None:
+                    
                     self.feature.msg('\t\t\t-- Fragment #%u having mass larger '\
                         'than %.01f\n' % (i, min_mass))
+                
                 if self.fa_type_is(i, fa_type, sphingo = sphingo):
                     result = True
                 if fa_frags == n:
                     break
+            
             elif min_mass is not None:
                 self.feature.msg('\t\t\t-- Fragment #%u having mass lower '\
                         'than %.01f\n' % (i, min_mass))
+        
         self.feature.msg('\t\t  -- Having fatty acid fragment %s among %u most '\
             'abundant -- %s\n' % (fa_type, n, str(result)))
+        
         return result
     
     def fa_percent_of_most_abundant(self, fa_type, percent = 80.0, sphingo = False):
@@ -1785,10 +1797,15 @@ class MS2Scan(object):
         for i, frag in enumerate(self.scan):
             if i == head:
                 break
-            if self.is_fa(i) and (fa_type is None or self.fa_type_is(i, fa_type)):
+            if self.is_fa(i) and (
+                    fa_type is None or
+                    self.fa_type_is(i, fa_type)
+                ):
+                
                 cc = self.get_cc(frag[7])
                 if cc[0] is not None:
                     fa_cc.append((cc, frag[2]))
+        
         return fa_cc
     
     def cc2str(self, cc):
@@ -1798,22 +1815,24 @@ class MS2Scan(object):
         return \
             tuple(
                 reduce(
-                    lambda cuns:
-                        (cuns[0][0] + cuns[1][0], cuns[0][1] + cuns[1][1]),
+                    lambda cu1, cu2:
+                        # here `cu`: carbon count and unsaturation
+                        (cu1[0] + cu2[0], cu1[1] + cu2[1]),
                     ccs
                 )
             )
     
     def sum_cc2str(self, ccs):
-        return self.cc2str(
-            tuple(
-                reduce(
-                    lambda c:
-                        (c[0][0][0] + c[1][0][0], c[0][0][1] + c[1][0][1]),
-                    ccs
+        return \
+            self.cc2str(
+                tuple(
+                    reduce(
+                        lambda cu1, cu2:
+                            (cu1[0][0] + cu2[0][0], cu1[0][1] + cu2[0][1]),
+                        ccs
+                    )
                 )
             )
-        )
     
     def add_fa1(self, fa, hg):
         if hg not in self.fa1:
@@ -2025,19 +2044,23 @@ class MS2Scan(object):
                     if self.frag_name_present(fa_other % sph_cc):
                         score += 1
             if not len(
-                filter(
-                    lambda mz:
-                        self.has_mz(mz),
-                    [58.065126, 104.106990, 124.999822, 184.073323]
+                list(
+                    filter(
+                        lambda mz:
+                            self.has_mz(mz),
+                        [58.065126, 104.106990, 124.999822, 184.073323]
+                    )
                 )
             ):
                 score += 1
             score += len(
-                filter(
-                    lambda mz:
-                        self.has_mz(mz),
-                    [60.0443902, 70.0651257, 82.0651257, 96.0807757,
-                     107.072951, 121.088601, 135.104251, 149.119901]
+                list(
+                    filter(
+                        lambda mz:
+                            self.has_mz(mz),
+                        [60.0443902, 70.0651257, 82.0651257, 96.0807757,
+                        107.072951, 121.088601, 135.104251, 149.119901]
+                    )
                 )
             )
         return {'score': score, 'fattya': fattya}
@@ -2749,7 +2772,7 @@ class Screening(object):
         _exacts = []
         lipidmaps = self.get_lipidmaps()
         
-        prg = progress.Progress(len(lipidmaps), 'Processing LipidMaps', 1)
+        prg = progress.Progress(len(lipidmaps), 'Processing LipidMaps', 10)
         
         for l in lipidmaps:
             prg.step()
@@ -6243,7 +6266,7 @@ class Screening(object):
         self.identity_combined()
         self.ms2_scans_identify()
         self.ms2_headgroups2()
-        self.consensus_indentity()
+        self.consensus_identity()
     
     def ms2_onebyone(self, callback = 'std_layout_tables_xlsx', **kwargs):
         """
@@ -6291,7 +6314,7 @@ class Screening(object):
         self.identity_combined(proteins = [protein])
         self.ms2_scans_identify(proteins = [protein])
         self.ms2_headgroups2(proteins = [protein])
-        self.consensus_indentity(proteins = [protein])
+        self.consensus_identity(proteins = [protein])
     
     def identify(self):
         self.headgroups_by_fattya()
@@ -6334,34 +6357,47 @@ class Screening(object):
         Hgroupfrags = {}
         rehg = re.compile(r'.*\(([\+;A-Z]+)\).*')
         rehgsep = re.compile(r'[;\+]')
+        
         with open(fname, 'r') as Handle:
             lst = \
-            map(
-                lambda l:
+                list(
                     map(
-                        lambda i:
-                            v[1] if i[0] > 0 else self.to_float(v),
-                        enumerate(
-                            l.strip().split('\t')
-                        )
-                    ),
-                Handle.readlines()
-            )
+                        lambda l:
+                            list(
+                                map(
+                                    lambda i:
+                                        i[1] if i[0] > 0 else self.to_float(i[1]),
+                                    enumerate(
+                                        l.strip().split('\t')
+                                    )
+                                )
+                            ),
+                        Handle.readlines()
+                    )
+                )
+        
         if extra_fragments:
+            
             if 'negative' in fname:
+                
                 if not self.only_marcos_fragments:
+                    
                     lst += self.auto_fragment_list(FAminusH, -1, name = 'FA')
                     # fatty acid -CO2- fragments:
                     lst += self.auto_fragment_list(
                         FattyFragment, -1, minus = ['CO2', 'H'], name = 'FA')
                     lst += self.auto_fragment_list(FAAlkylminusH, -1)
+                    
                     for hg in ('PE', 'PC', 'PS', 'PI', 'PG', 'PA'):
+                        
                         lst += self.auto_fragment_list(
                             globals()['Lyso%s' % hg], -1
                         )
+                        
                         lst += self.auto_fragment_list(
                             globals()['Lyso%s' % hg], -1, minus = ['H2O']
                         )
+                        
                         if hg != 'PA' and hg != 'PG':
                             lst += self.auto_fragment_list(
                                 globals()['Lyso%sAlkyl' % hg], -1
@@ -6369,6 +6405,7 @@ class Screening(object):
                             lst += self.auto_fragment_list(
                                 globals()['Lyso%sAlkyl' % hg], -1, minus = ['H2O']
                             )
+                        
                         if hg == 'PI':
                             lst += self.auto_fragment_list(
                                 LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
@@ -6376,10 +6413,12 @@ class Screening(object):
                             lst += self.auto_fragment_list(
                                 LysoPI, -1, minus = ['CO2']
                             )
+                        
                         if hg == 'PE':
                             lst += self.auto_fragment_list(
                                 LysoPE, -1, minus = ['CO2']
                             )
+                        
                         if hg == 'PC':
                             lst += self.auto_fragment_list(
                                 LysoPC, -1, minus = ['CH3']
@@ -6387,60 +6426,109 @@ class Screening(object):
                             lst += self.auto_fragment_list(
                                 LysoPC, -1, minus = ['CH3', 'H2O']
                             )
+                    
                     lst += self.auto_fragment_list(CerFA, -1)
                     lst += self.auto_fragment_list(CerFAminusC, -1)
                     lst += self.auto_fragment_list(CerFAminusN, -1)
                     lst += self.auto_fragment_list(CerFAminusC2H5N, -1)
-                    lst += self.auto_fragment_list(CerSphi, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
-                    lst += self.auto_fragment_list(CerSphiMinusN, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
-                    lst += self.auto_fragment_list(CerSphiMinusNO, -1, cmin = 14, unsatmin = 0 , cmax = 19, unsatmax = 3)
+                    lst += self.auto_fragment_list(CerSphi, -1,
+                                                   cmin = 14, unsatmin = 0,
+                                                   cmax = 19, unsatmax = 3)
+                    lst += self.auto_fragment_list(CerSphiMinusN, -1,
+                                                   cmin = 14, unsatmin = 0 ,
+                                                   cmax = 19, unsatmax = 3)
+                    lst += self.auto_fragment_list(CerSphiMinusNO, -1,
+                                                   cmin = 14, unsatmin = 0 ,
+                                                   cmax = 19, unsatmax = 3)
+                    
                 else:
+                    
                     lst += self.auto_fragment_list(FAminusH, -1)
                     lst += self.auto_fragment_list(LysoPA, -1, minus = ['H2O'])
                     lst += self.auto_fragment_list(CerFA, -1)
+            
             if 'positive' in fname:
                 if not self.only_marcos_fragments:
                     lst += self.auto_fragment_list(NLFAminusH2O, 0)
                     lst += self.auto_fragment_list(NLFA, 0)
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H5'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 14, unsatmin = 0, cmax = 19, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                                                   cmin = 14, unsatmin = 0,
+                                                   cmax = 19, unsatmax = 3,
+                                                   minus = ['H5'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                                                   cmin = 14, unsatmin = 0,
+                                                   cmax = 19, unsatmax = 3,
+                                                   minus = ['H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                                                   cmin = 14, unsatmin = 0,
+                                                   cmax = 19, unsatmax = 3,
+                                                   minus = ['H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                                                   cmin = 14, unsatmin = 0,
+                                                   cmax = 19, unsatmax = 3,
+                                                   minus = ['C', 'H2O', 'H2O'])
                     lst += self.auto_fragment_list(NLFAplusOH, 0)
                 lst += self.auto_fragment_list(FAplusGlycerol, 1)
                 lst += self.auto_fragment_list(NLFAplusNH3, 0)
                 lst += self.auto_fragment_list(FAminusO, 1)
+                
                 if self.only_marcos_fragments:
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 16, unsatmin = 0, cmax = 16, unsatmax = 3, minus = ['H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 16, unsatmin = 0, cmax = 16, unsatmax = 3, minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 16, unsatmin = 0, cmax = 16, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 18, unsatmax = 3, minus = ['H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 18, unsatmax = 3, minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1, cmin = 18, unsatmin = 0, cmax = 18, unsatmax = 3, minus = ['C', 'H2O', 'H2O'])
+                    
+                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                                                   cmin = 16, unsatmin = 0,
+                                                   cmax = 16, unsatmax = 3,
+                                                   minus = ['H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                                                   cmin = 16, unsatmin = 0,
+                                                   cmax = 16, unsatmax = 3,
+                                                   minus = ['H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                                                   cmin = 16, unsatmin = 0,
+                                                   cmax = 16, unsatmax = 3,
+                                                   minus = ['C', 'H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                                                   cmin = 18, unsatmin = 0,
+                                                   cmax = 18, unsatmax = 3,
+                                                   minus = ['H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                                                   cmin = 18, unsatmin = 0,
+                                                   cmax = 18, unsatmax = 3,
+                                                   minus = ['H2O', 'H2O'])
+                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                                                   cmin = 18, unsatmin = 0,
+                                                   cmax = 18, unsatmax = 3,
+                                                   minus = ['C', 'H2O', 'H2O'])
             if return_fraglines:
                 return lst
-            
+        
         for Line in lst:
             try:
                 MetabMass, MetabType, MetabCharge = Line[:3]
             except:
-                sys.stdout.write('\tWrong formatted fragment line:\n\t  %s\n' % str(Line))
+                sys.stdout.write('\tWrongly formatted fragment line:'\
+                    '\n\t  %s\n' % str(Line))
                 sys.stdout.flush()
             hgm = rehg.match(Line[1])
+            
             if (len(Line) == 4 and len(Line[3])) or hgm:
+                
                 Hgroupfrags[MetabType] = set([])
+                
                 if len(Line) == 4:
                     Hgroupfrags[MetabType] = Hgroupfrags[MetabType] | \
                         set(rehgsep.split(Line[3]))
+                
                 if hgm:
                     Hgroupfrags[MetabType] = Hgroupfrags[MetabType] | \
                         set(rehgsep.split(hgm.groups()[0]))
+            
             Metabolites.append([MetabMass, MetabType, MetabCharge])
             if '+' not in MetabCharge and '-' not in MetabCharge \
                 and 'NL' not in MetabCharge:
                 sys.stdout.write('WARNING: fragment %s has no '\
                     'valid charge information!\n' % \
                     MetabType)
+        
         Headgroups = {}
         for frag, hgs in iteritems(Hgroupfrags):
             for hg in hgs:
@@ -6448,6 +6536,7 @@ class Screening(object):
                     if hg not in Headgroups:
                         Headgroups[hg] = set([])
                     Headgroups[hg].add(frag)
+        
         Metabolites = \
             np.array(
                 sorted(Metabolites,
@@ -6455,14 +6544,21 @@ class Screening(object):
                 ),
                 dtype = np.object
             )
+        
         return Metabolites, Hgroupfrags, Headgroups
     
     def auto_fragment_list(self, typ, charge, cmin = 2, unsatmin = 0,
         cmax = 36, unsatmax = 6, minus = [], plus = [], **kwargs):
+        """
+        Generates a series of fragments of a given type, iterating
+        over a range of carbon counts and unsaturated bond counts.
+        In addition, certain groups can be added or deduced from the
+        fragment mass, e.g. -H2O for a water loss.
+        """
         series = FAFragSeries(typ, charge, cmin = cmin, unsatmin = unsatmin,
             cmax = cmax, unsatmax = unsatmax, minus = minus, plus = plus,
             **kwargs)
-        return(series.iterfraglines())
+        return list(series.iterfraglines())
 
     def ms2_filenames(self):
         """
@@ -6563,6 +6659,10 @@ class Screening(object):
                 'ms2files': {'pos': {}, 'neg': {}}}) \
             for protein, d in iteritems(self.ms2files))
         
+        missing_ms1 = 0
+        if not hasattr(self, 'missing_ms1'):
+            self.missing_ms1 = set([])
+        
         prg = progress.Progress(len(self.ms2files) * 2, 'Indexing MS2 data', 1,
             percent = False)
         
@@ -6585,23 +6685,30 @@ class Screening(object):
             
             ifrac = self.fraction_indices(protein)
             
-            for pn, files in iteritems(d):
+            for mode, files in iteritems(d):
                 
                 if not silent:
                     prg.step()
                 
-                features = pFeatures if pn == stRpos else nFeatures
+                features = pFeatures if mode == stRpos else nFeatures
                 #fractions = set([])
                 for fr, fl in iteritems(files):
+                    
                     fr = refrac.match(fr).groups()
                     fr = '%s%u' % (fr[0], int(fr[1]))
-                    frnum = ifrac[fr][0]
-                    #fractions.add(fr)
+                    try:
+                        frnum = ifrac[fr][0]
+                    except KeyError:
+                        missing_ms1 += 1
+                        self.missing_ms1.add((protein, mode, fr))
+                        continue
+                    
                     mm = self.ms2_index(fl, frnum,
                                         charge = self.ms2_precursor_charge)
                     m = np.vstack(mm)
                     features.extend(mm)
-                    result[uprotein]['ms2files'][pn][fr] = fl
+                    result[uprotein]['ms2files'][mode][fr] = fl
+            
             pFeatures = np.array(sorted(pFeatures, key = lambda x: x[0]),
                 dtype = np.float64)
             nFeatures = np.array(sorted(nFeatures, key = lambda x: x[0]),
@@ -6611,6 +6718,11 @@ class Screening(object):
         
         if not silent:
             prg.terminate()
+        
+        if missing_ms1 > 0:
+            sys.stdout.write('\n\t:: Warning: for certain MS2 files '\
+                'no MS1 data available. See them in `missing_ms1`.\n')
+            sys.stdout.flush()
         
         self.ms2map = result
 
@@ -6637,30 +6749,43 @@ class Screening(object):
         features = []
         offset = 0
         cap_next = False
-        with open(fl, 'rb', 8192) as f:
-            for l in f:
+        
+        with open(fl, 'rb', 8192) as fp:
+            
+            for l in fp:
+                
+                l = l.decode('ascii')
+                
                 if not l[0].isdigit() and \
                     not l[:2] == stRbe and not l[:2] == stRen:
+                    
                     if not l[:2] == stRch:
+                        
                         try:
                             m = reln.match(l).groups()
                         except:
                             print(fl, l)
                             continue
+                        
                         if m[0] == stRtitle:
                             scan = float(m[1])
+                        
                         if m[0] == stRrtinseconds:
                             rtime = float(m[1]) / 60.0
+                        
                         if m[0] == stRpepmass:
                             pepmass = float(m[1])
                             intensity = 0.0 if m[2] == stRempty else float(m[2])
                             if charge is None:
                                 cap_next = True
+                        
                     else:
                         _charge = int(l[7]) if len(l) >= 8 else None
                         if charge is None or _charge == charge:
                             cap_next = True
+                
                 elif cap_next:
+                    
                     features.append([pepmass, intensity,
                         rtime, scan, offset, fr])
                     scan = None
@@ -6669,7 +6794,9 @@ class Screening(object):
                     pepmass = None
                     _charge = None
                     cap_next = False
+                
                 offset += len(l)
+        
         return features
 
     def ms2_main(self, proteins = None, verbose = False, outfile = None,
@@ -6736,7 +6863,7 @@ class Screening(object):
                         #print('number of negative mzs:', len(negMzs))
                         #print('negative matching:', len(neg_matches))
         
-        if type(outfile) is file and outfile != sys.stdout:
+        if hasattr(outfile, 'close') and outfile != sys.stdout:
             outfile.close()
         
         if not silent:
@@ -6938,17 +7065,17 @@ class Screening(object):
             if (not self.ms2_only_protein_fractions or \
                 fractions[sample_i[fr]] == 1) and frlab in files:
                 
-                f = files[frlab]
+                fp = files[frlab]
                 
                 # jumping to offset
-                f.seek(int(ms2item[4]), 0)
+                fp.seek(int(ms2item[4]), 0)
                 if verbose:
-                    outfile.write('\t -- Reading from file %s\n' % f.name)
+                    outfile.write('\t -- Reading from file %s\n' % fp.name)
                 
                 # zero means no clue about charge
                 charge = 0
                 
-                for l in f:
+                for l in fp:
                     
                     if l[:6] == stRcharge:
                         # one chance to obtain the charge
@@ -6960,20 +7087,7 @@ class Screening(object):
                     else:
                         # reading fragment masses
                         mi = l.strip().split()
-                        try:
-                            mass = float(mi[0])
-                        except ValueError:
-                            print('\n:::\n')
-                            print(l[0].isdigit())
-                            print(prevp)
-                            print(prevl)
-                            print(f.tell())
-                            print(l)
-                            f.seek(f.tell(), 0)
-                            print(f.read(10))
-                            f.seek(prevp, 0)
-                            print(f.read(10))
-                            print(':::\n')
+                        mass = float(mi[0])
                         
                         intensity = float(mi[1]) if len(mi) > 1 else np.nan
                         # matching fragment --- direct
@@ -7016,16 +7130,13 @@ class Screening(object):
                             )
                             thisRow.shape = (1, 15)
                             ms2matches[ms1oi].append(thisRow)
-                    
-                    prevl = l
-                    prevp = f.tell()
                 
                 if verbose:
                     outfile.write('\t -- %u lines have been read\n' % len(ms2matches[ms1oi]))
         
         # removing file pointers
-        for f in files.values():
-            f.close()
+        for fp in files.values():
+            fp.close()
         
         for oi, ms2match in iteritems(ms2matches):
             
@@ -7062,10 +7173,10 @@ class Screening(object):
             '-' in fragments[iu - 1,2]) \
             and 'NL' not in fragments[iu - 1,2])):
             dl = mass - fragments[iu - 1,0]
-        if du is not None and (du < dl or dl is None) and du < self.ms2_tlr:
+        if du is not None and (dl is None or du < dl) and du < self.ms2_tlr:
             i = iu
             st = 1
-        if dl is not None and (dl < du or du is None) and dl < self.ms2_tlr:
+        if dl is not None and (du is None or dl < du) and dl < self.ms2_tlr:
             i = iu - 1
             st = -1
         val = fragments[i,0]
@@ -7134,7 +7245,7 @@ class Screening(object):
                         )
                     )
     
-    def consensus_indentity(self, proteins = None):
+    def consensus_identity(self, proteins = None):
         
         for protein, d in iteritems(self.valids):
             
