@@ -6663,11 +6663,11 @@ class Screening(object):
         if not hasattr(self, 'missing_ms1'):
             self.missing_ms1 = set([])
         
-        prg = progress.Progress(len(self.ms2files) * 2, 'Indexing MS2 data', 1,
-            percent = False)
-        
         if proteins is not None and len(proteins) == 1:
             silent = True
+        
+        prg = progress.Progress(len(self.ms2files) * 2, 'Indexing MS2 data', 1,
+            percent = False)
         
         if not silent:
             prg = progress.Progress(len(self.ms2files) * 2,

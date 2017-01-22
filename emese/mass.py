@@ -19,6 +19,7 @@ from future.utils import iteritems
 
 import bs4
 import re
+import warnings
 
 import emese._curl as _curl
 
@@ -35,7 +36,10 @@ neutron = 1.00866491588
 def getMasses(url):
     c = _curl.Curl(url, silent = False)
     reqMasses = c.result
-    soupMasses = bs4.BeautifulSoup(reqMasses, 'lxml')
+    with warnings.catch_warnings():
+        # there is a deprecated call in lxml
+        warnings.simplefilter('ignore', DeprecationWarning)
+        soupMasses = bs4.BeautifulSoup(reqMasses, 'lxml')
 
     mass = {}
     symbol = None
@@ -82,7 +86,10 @@ def getWeightStd():
 def getFreqIso():
     c = _curl.Curl(urlAbundances, silent = False)
     reqAbundances = c.result
-    soupAbundances = bs4.BeautifulSoup(reqAbundances, 'lxml')
+    with warnings.catch_warnings():
+        # there is a deprecated call in lxml
+        warnings.simplefilter('ignore', DeprecationWarning)
+        soupAbundances = bs4.BeautifulSoup(reqAbundances, 'lxml')
 
     freqIso = {}
     symbol = None
