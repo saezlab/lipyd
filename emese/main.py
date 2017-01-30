@@ -2136,58 +2136,136 @@ class MS2Scan(object):
 class Screening(object):
     
     def __init__(self, **kwargs):
+        """
+        The module accepts dozens of parameters as keyword arguments.
+        To see all these check the ``defaults`` dict in the code of the
+        ``__init__()`` method.
+        """
         
         self.defaults = {
+            # The absolute root directory.
+            # This should not be necessary, why is it here?
             'path_root': '/',
+            # The basedir for every files and directories in the followings.
             'basedir': os.getcwd(),
+            # If None will be the same as ``basedir``.
             'data_basedir': None,
+            # List of the shared directories containing most of the data.
+            # Due to their large size these are kept on separate partition.
+            # Lists are joined by `os.path.join`.
+            # E.g. two shared folders can be defined as
+            # `[['my', 'huge', 'partition'], [`another`, `huge`, `disk`]]`.
             'datadirs': [['share']],
             'fractionsf': 'LTPsceenprogres_v07.xlsx',
+            # File with offsets of fractions from SEC in ml.
+            # This we used at Antonella, but at Enric, these values
+            # are different for each protein, and contained by the
+            # individual SEC profile files.
             'ppfracf': 'fractions.csv',
+            # Directory with the SEC absorbance profiles for each protein.
             'ppsecdir': 'SEC_profiles',
+            # Directory with the SDS PAGE protein quantities for some
+            # proteins.
             'gelprofdir': 'gel_profiles',
+            # The directory containing the standards in mzML format.
+            # These are used for calculation of recalibration.
             'stddir': 'Standards_mzML format',
+            # Directory with manually processed files. These are originally
+            # output of this module, then have been manually processed, and
+            # can be read again and compared/further analysed.
             'manualdir': 'Processed_files',
+            # For recalibration we read the dates of runs from here.
             'seqfile': 'Sequence_list_LTP_screen_2015.csv',
+            # This is an output file to export the absorbance based
+            # protein quantities for all proteins and fractions.
             'pptablef': 'proteins_by_fraction.csv',
+            # Defines abbreviations of each lipid names and the keywords
+            # to identify these in SwissLipids and LipidMaps.
             'lipnamesf': 'lipid_names_v2.csv',
+            # Literature curated data about known binding properties of LTPs.
             'bindpropf': 'binding_properties.csv',
+            # The file with recalibration values from Marco.
             'recalfile': 'Recalibration_values_LTP.csv',
+            # If the recalibration performed by this module, we read the
+            # expected values of the standards from this file.
             'metabsf': 'Metabolites.xlsx',
+            # Simple list with lipid binding domains, names and UniProt
+            # IDs of all lipid transfer proteins.
             'ltplistf': 'ltplist.csv',
+            # Tolerate numpy warnings, or raise them as errors.
+            # Useful for debugging.
             'tolerate_numpy_warnings': True,
+            # URLs of external databases.
+            # SwissLipids: calculated masses of hundreds of thousands
+            # of lipid species.
             'swisslipids_url': 'http://www.swisslipids.org/php/'\
                 'export.php?action=get&file=lipids.csv',
+            # Experimentally verified masses of few tens of thousands lipids.
             'lipidmaps_url': 'http://www.lipidmaps.org/resources/downloads/'\
                 'LMSDFDownload28Jun15.tar.gz',
+            # The filename to use after extracting the archice above.
             'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
                 'LMSDFDownload28Jun15FinalAll.sdf',
+            # ComPPI: protein subcellular localization data.
             'comppi_url': 'http://comppi.linkgroup.hu/downloads',
+            # Gene Ontology.
             'goa_url': 'ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/%s/'\
                 'goa_%s.gaf.gz',
+            # Gene Ontology.
             'quickgo_url': 'http://www.ebi.ac.uk/QuickGO/GAnnotation?format=tsv&'\
                 'limit=-1%s&termUse=%s&tax=%u&col=proteinID,goID,goName,aspect',
+            # Manually curated data by Charlotte about localization
+            # and membrane composition.
             'localizationf': 'subcellular_localisation_and_binding.xlsx',
             'membranesf': 'membranes_lipid_composition.xlsx',
+            # Original MS2 fragment lists manually compiled by Marco.
+            # One for positive and one for negative mode.
             'pfragmentsfile': 'lipid_fragments_positive_mode_v10d%s.txt',
             'nfragmentsfile': 'lipid_fragments_negative_mode_v10d.txt',
+            # This is a file to output protein profiles to.
+            # Serves only the purpose of checking for errors.
             'pptable_file': 'protein_profiles.txt',
+            # Cache files. At certain points this module saves and reloads
+            # data from pickles, so it don't need to reprocess everything
+            # every time. Although if something changed, or something
+            # goes wrong, you might need to delete these to ensure
+            # everything processed by the most recent code.
             'featurescache': 'features.pickle',
             'pprofcache': 'pprofiles_raw.pickle',
             'abscache': 'absorbances.pickle',
             'flimcache': 'fraclims.pickle',
+            # The directory with all MS2 MGF files. If not set, the MGF files
+            # will be searched under the directory of each protein.
             'ms2dir': 'MGFfiles',
+            # Directory with manually processed `golden standards`
+            # from Marco.
             'marco_dir': 'marco',
             'manual_ppratios_xls': 'Proteins_Overview_05.xlsx',
+            # Columns to read from the manual ppratios XLS file.
+            # These were different at Antonella and Enric, so we
+            # need to set them here.
             #'manual_ppratios_xls_cols': [2, 4, 8, 9], # 03b
             'manual_ppratios_xls_cols': [3, 6, 10, 11], # 05
             'auxcache': 'save.pickle',
             'stdcachefile': 'calibrations.pickle',
             'validscache': 'valids.pickle',
+            # Write a log about MS2 processing to this file.
             'ms2log': 'ms2identities.log',
+            # use the items only of these levels from SwissLipids.
+            # Useful to avoid flooding data with redundant subspecies.
             'swl_levels': ['Species'],
+            # the source of recalibration: either from Marco, or calculated
+            # by this software by processing raw data from the standards.
             'recal_source': 'marco',
+            # at Antonella, these proteins come before our fractions, or
+            # maybe in A9, so the further fractions we can consider void
+            # and we can use their average to reduce the background of the
+            # absorbances of the same fractions of other proteins.
             'background_proteins': set(['BNIPL', 'OSBP', 'SEC14L1']),
+            # the minimum total intensities (average areas) of MS1 features
+            # in negative and positive mode. Below these values features are
+            # not highlighted and not included on the `best` sheet in the
+            # output tables unless they have MS2 data.
             'aa_threshold': {
                 'neg': 30000.0,
                 'pos': 150000.0
@@ -2203,27 +2281,88 @@ class Screening(object):
             'pcont_fracs_from_abs': True, # determine protein containing
                                           # fractions from the absorbances
                                           # or read from separate file
+            # allow features to have missing values in first or last
+            # protein containing fractions
             'permit_profile_end_nan': True,
             'peak_ratio_score_bandwidth': 0.25,
             'use_manual_ppratios': False,
+            # omg, I don't remember what it is
             'use_last_ratio': False,
+            # for calculation of peak ratio score, take all intensity ratios
+            # within this range of tolerance around the protein ratio.
+            # E.g if the protein ratio is 0.6, then the lower threshold
+            # will be 0.6 * 0.5 = 0.3, and the upper 1 / 0.5 * 0.6 = 1.2;
+            # Then the standard deviation of all intensity ratios within
+            # this range is calculated from both positive and negative
+            # features, and for each feature and for each pairs of fractions
+            # the difference between its intensity ratio divided by the SD
+            # results the `peak ratio score`. This is calculated for all
+            # pairs of protein containing fractions, and we take their
+            # mean if more than 2 fractions are available.
             'peak_ratio_range': 0.5,
+            # The threshold below the peak ratio scores considered good.
+            # We set a cut-off e.g. for highlighting with green in the
+            # output tables, but otherwise it is a continuous measure
+            # of goodness.
             'peak_ratio_score_threshold': 1.0,
+            # in the profile filtering method suggested by Enric, if
+            # there are 2 highest fractions with approximately equal
+            # protein content, we use this range of tolerance to filter
+            # the intensity ratios between them. E.g if this number is
+            # 0.75, ratios between 0.75 and 1.33 will be accepted.
+            'enric_equal_fractions_ratio': 0.75,
+            # constant fraction layout in Antonella's screening
+            # not used at Enric, is kind of "deprecated"
             'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
+            # constant fraction layout in Antonella's screening
+            # not used at Enric, is kind of "deprecated"
+            # uppercase version with leading zeros
             'fracsU': ['A09', 'A10', 'A11', 'A12', 'B01'],
             'pp_minratio': 3,
+            # at Antonella's screening a fraction which is considered
+            # void, so adjusting the zero of the absorbance profiles
+            # to this fraction
             'basefrac': 'a5',
+            # the tolerance when looking up MS1 m/z values in databases
+            # (Daltons)
             'ms1_tolerance': 0.01,
+            # the tolerance when looking up MS2 fragment masses (Daltons)
             'ms2_tolerance': 0.05,
+            # the tolerance at identifying features in standards (Daltons)
             'std_tolerance': 0.02,
+            # MS2 precursors must have their charges determined
             'ms2_precursor_charge': None,
+            # use only fragments from Marco's lists (note: the series)
+            # are still programmatically generated and their m/z values
+            # calculated automatically), or use an extended fragment list
+            # constructed by Denes (note: this might contain more false
+            # positives, i.e. fragments which do not occure, or are iso-
+            # baric with others, resulting unnecessary noise; but some-
+            # times these annotations still might help to have a clue
+            # what is there in cases where otherwise you would see only
+            # unknown fragments)
             'only_marcos_fragments': True,
             'adducts_constraints': False,
             'marco_lipnames_from_db': True,
+            # use the average area values from the `PEAK` software
+            # output, or recalculate them here using the intensity
+            # values of features across all fractions
             'use_original_average_area': True,
+            # overwrite UV absorbance based protein quantities with
+            # those manually acquired from SDS PAGE when these are
+            # available
+            'use_gel_profiles': True,
+            # use Enric's method for the final selection of profiles
+            'enric_profile_selection': False,
+            # the MS2 retention time values must be within the RT
+            # range of the feature detected in MS1, otherwise
+            # will be dropped
             'ms2_rt_within_range': False,
+            # consider the MS2 scans from only those fractions
+            # containing the protein, or from all available fractions
             'ms2_only_protein_fractions' : False,
             'uniprots': None,
+            # method names to convert between adduct and exact masses
             'ad2ex': {
                 1: {
                     'pos': {
@@ -2249,6 +2388,7 @@ class Screening(object):
                     }
                 }
             },
+            # method names to convert between exact and adduct masses
             'ex2ad': {
                 1: {
                     'pos': {
@@ -2274,6 +2414,9 @@ class Screening(object):
                     }
                 }
             },
+            # metrics to use for determining similarity of protein
+            # and intensity profiles; these were attempts, and not
+            # used any more, are "deprecated"
             'metrics': [
                 ('Kendall\'s tau', 'ktv', False),
                 ('Spearman corr.', 'spv', False),
@@ -3224,7 +3367,7 @@ class Screening(object):
             
             fnames = os.listdir(self.gelprofdir)
         
-        if not len(fnames)
+        if not len(fnames):
             sys.stdout.write('\t:: Warning: using SDS PAGE based protein '\
                 'profiles turned on,\n'\
                 '\t   but directory `%s` either '\
@@ -3244,11 +3387,11 @@ class Screening(object):
                     
                     profile[fr] = val
                 
-                missing_sec = set(profile.keys()) -
-                                set(self.abs_by_frac[protein].keys())
+                missing_sec = (set(profile.keys()) -
+                               set(self.abs_by_frac[protein].keys()))
                 
-                missing_gel = set(self.abs_by_frac[protein].keys()) -
-                                set(profile.keys())
+                missing_gel = (set(self.abs_by_frac[protein].keys()) -
+                               set(profile.keys()))
                 
                 if len(missing_gel):
                     
