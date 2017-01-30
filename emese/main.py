@@ -2305,12 +2305,6 @@ class Screening(object):
             # output tables, but otherwise it is a continuous measure
             # of goodness.
             'peak_ratio_score_threshold': 1.0,
-            # in the profile filtering method suggested by Enric, if
-            # there are 2 highest fractions with approximately equal
-            # protein content, we use this range of tolerance to filter
-            # the intensity ratios between them. E.g if this number is
-            # 0.75, ratios between 0.75 and 1.33 will be accepted.
-            'enric_equal_fractions_ratio': 0.75,
             # constant fraction layout in Antonella's screening
             # not used at Enric, is kind of "deprecated"
             'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
@@ -2342,7 +2336,11 @@ class Screening(object):
             # what is there in cases where otherwise you would see only
             # unknown fragments)
             'only_marcos_fragments': True,
+            # Expect only certain adducts at certain lipid categories
+            # or assume any lipid may form any type of adduct.
             'adducts_constraints': False,
+            # In output tables construct the lipid names programmatically
+            # or copy the ones from the database.
             'marco_lipnames_from_db': True,
             # use the average area values from the `PEAK` software
             # output, or recalculate them here using the intensity
@@ -2354,6 +2352,12 @@ class Screening(object):
             'use_gel_profiles': True,
             # use Enric's method for the final selection of profiles
             'enric_profile_selection': False,
+            # in the profile filtering method suggested by Enric, if
+            # there are 2 highest fractions with approximately equal
+            # protein content, we use this range of tolerance to filter
+            # the intensity ratios between them. E.g if this number is
+            # 0.75, ratios between 0.75 and 1.33 will be accepted.
+            'enric_equal_fractions_ratio': 0.75,
             # the MS2 retention time values must be within the RT
             # range of the feature detected in MS1, otherwise
             # will be dropped
@@ -5191,6 +5195,16 @@ class Screening(object):
         
         return data, fracs
     
+    @staticmethod
+    def sort_fracs(frs):
+        """
+        Sorts fraction labels in a standard way, i.e. first by
+        their letter code, after their number as numeric value.
+        """
+        frs = map(lambda fr: (fr[0], int(fr[1])), frs)
+        return sorted(enumerate(frs),
+                      key = lambda x: (x[1][0], x[1][1]))
+    
     def read_data(self):
         """
         Iterates through dict of dicts with file paths, reads
@@ -5198,11 +5212,6 @@ class Screening(object):
         to handle missing data, and access m/z values of fractions 
         and controls, and other values.
         """
-        
-        def sort_fracs(frs):
-            frs = map(lambda fr: (fr[0], int(fr[1])), frs)
-            return sorted(enumerate(frs),
-                          key = lambda x: (x[1][0], x[1][1]))
         
         def get_indices(sfracs, cfracs, fun):
             return \
@@ -5241,7 +5250,7 @@ class Screening(object):
                 # this returns an array and the fraction sequence:
                 pdata, fracs = self.read_file_np(fname)
                 #
-                ifracs, sfracs = zip(*sort_fracs(fracs))
+                ifracs, sfracs = zip(*self.sort_fracs(fracs))
                 sfracs = list(map(lambda fr: '%s%s' % fr, sfracs))
                 pfracs[protein] = np.array(sfracs)
                 # rearrange columns according to fraction sequence:
@@ -7871,8 +7880,10 @@ class Screening(object):
     
     def read_fractions(self):
         """
-        Reads from file sample/control annotations 
+        Reads from file sample/control annotations
         for each proteins.
+        Also reads the highest fractions which is used if we use
+        the profile evaluation method from Enric.
         """
         
         refr = re.compile(r'([A-Z])([0-9]{1,2})-?([A-Z]?)([0-9]{0,2})')
@@ -7908,54 +7919,89 @@ class Screening(object):
                     )
                 )
         
+        def get_hpeak(hfracs):
+            
+            return (
+                list(
+                    map(
+                        lambda hf:
+                            hf.split('-'),
+                        hfracs.split(':')
+                    )
+                )
+            )
+        
         if not self.pcont_fracs_from_abs:
             
             data = {}
             
-            with open(self.fractionsf, 'r') as f:
-                null = f.readline()
-                for l in f:
+            with open(self.fractionsf, 'r') as fp:
+                
+                null = fp.readline()
+                
+                for l in fp:
+                    
                     l = l.split(',')
-                    data[l[0].replace('"', '').upper()] = \
-                        np.array([self.to_int(x) \
-                            if x != '' else None for x in l[1:]])
+                    
+                    data[l[0].replace('"', '').upper()] = (
+                        np.array([
+                            self.to_int(x)
+                            if x != '' else None
+                            for x in l[1:]
+                        ])
+                    )
+            
             self.fractions = data
+            
         else:
             
             if self.fractionsf.endswith('xlsx'):
                 
                 tab = self.read_xls(self.fractionsf, sheet = 'status')
                 
-                self._fractions = \
-                    dict(
-                        itertools.chain(
-                            *map(
-                                lambda l:
-                                    list(
-                                        map(
-                                            lambda n:
-                                                (
-                                                    n,
-                                                    get_fractions(l[15])
-                                                ),
-                                            get_names(l[0])
+                self._fractions, self.hpeak = (
+                    tuple(
+                        map(
+                            dict,
+                            zip(
+                                *itertools.chain(
+                                    *map(
+                                        lambda l:
+                                            list(
+                                                map(
+                                                    lambda n:
+                                                        [
+                                                            (
+                                                                n, # protein name
+                                                                get_fractions(l[15])
+                                                            ),
+                                                            (
+                                                                n, # protein name
+                                                                get_hpeak(l[18])
+                                                            )
+                                                        ],
+                                                    get_names(l[0])
+                                                )
+                                            ),
+                                        filter(
+                                            lambda l:
+                                                len(l[15]) and \
+                                                    l[15].strip() != 'NA' and (
+                                                        l[15][0].upper() ==
+                                                        l[15][0]) and (
+                                                    l[15][1].isdigit()),
+                                            tab[1:]
                                         )
-                                    ),
-                                filter(
-                                    lambda l:
-                                        len(l[15]) and \
-                                            l[15].strip() != 'NA' and \
-                                            l[15][0].upper() == l[15][0] and \
-                                            l[15][1].isdigit(),
-                                    tab[1:]
+                                    )
                                 )
                             )
                         )
                     )
+                )
                 
             else:
                 
-                with open(self.fractionsf, 'r') as f:
+                with open(self.fractionsf, 'r') as fp:
                     
                     self._fractions = \
                         dict(
@@ -7967,7 +8013,7 @@ class Screening(object):
                                         l.split(';'),
                                     filter(
                                         len,
-                                        f.read().split('\n')
+                                        fp.read().split('\n')
                                     )
                                 )
                             )
