@@ -90,7 +90,6 @@ readline.parse_and_bind('tab:complete')
 warnings.filterwarnings('error')
 warnings.filterwarnings('default')
 warnings.simplefilter('always')
-warnings.showwarning = warn_with_traceback
 
 class MolWeight(object):
     """
@@ -2146,6 +2145,7 @@ class Screening(object):
             'fractionsf': 'LTPsceenprogres_v07.xlsx',
             'ppfracf': 'fractions.csv',
             'ppsecdir': 'SEC_profiles',
+            'gelprofdir': 'gel_profiles',
             'stddir': 'Standards_mzML format',
             'manualdir': 'Processed_files',
             'seqfile': 'Sequence_list_LTP_screen_2015.csv',
@@ -2290,7 +2290,7 @@ class Screening(object):
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
             'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
-            'manualdir', 'ltplistf', 'flimcache']
+            'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir']
         
         for attr, val in iteritems(self.defaults):
             if attr in kwargs:
@@ -2631,6 +2631,7 @@ class Screening(object):
     def numpy_warnings_as_errors():
         np.seterr(all = 'raise')
         warnings.filterwarnings('error')
+        warnings.showwarning = warn_with_traceback
     
     @staticmethod
     def numpy_warnings_as_warnings():
@@ -3204,6 +3205,88 @@ class Screening(object):
                                 abs_min
                         )
         self.abs_by_frac = result
+        
+        self.gel_protein_quantification()
+    
+    def gel_protein_quantification(self):
+        """
+        For proteins with various issues with UV absorbances,
+        this method reads quantifications based on manual
+        processing of SDS PAGE images. The UV absorbance values
+        in attribute `abs_by_frac` will be replaced.
+        """
+        if not self.use_gel_profiles:
+            return None
+        
+        fnames = []
+        
+        if os.path.exists(self.gelprofdir):
+            
+            fnames = os.listdir(self.gelprofdir)
+        
+        if not len(fnames)
+            sys.stdout.write('\t:: Warning: using SDS PAGE based protein '\
+                'profiles turned on,\n'\
+                '\t   but directory `%s` either '\
+                'does not exist or is empty.\n' % (self.gelprofdir))
+        
+        for fname in fnames:
+            
+            with open(os.path.join(self.gelprofdir, fname), 'r') as fp:
+                
+                protein = fname.split('_')[0].upper()
+                profile = {}
+                
+                for line in fp:
+                    
+                    line = line.strip().split('\t')
+                    fr, val = line[0], float(line[1])
+                    
+                    profile[fr] = val
+                
+                missing_sec = set(profile.keys()) -
+                                set(self.abs_by_frac[protein].keys())
+                
+                missing_gel = set(self.abs_by_frac[protein].keys()) -
+                                set(profile.keys())
+                
+                if len(missing_gel):
+                    
+                    sys.stdout.write('\t\t -- These fractions at protein '\
+                        '`%s` are not available from SDS PAGE: %s\n. '\
+                        'Setting them to zero.\n' % (
+                            protein,
+                            ', '.join(sorted(missing_gel))
+                        ))
+                
+                if len(missing_sec):
+                    
+                    sys.stdout.write('\t\t -- These fractions at protein '\
+                        '`%s` present on SDS PAGE but missing from the '\
+                        'SEC profile file: %s\n. '\
+                        'Discarding them.\n' % (
+                            protein,
+                            ', '.join(sorted(missing_sec))
+                        ))
+                
+                for fr, val in iteritems(profile):
+                    
+                    # sometimes we have more columns
+                    # if we read the 215 & 260 nm absorbances
+                    # although we don't use them
+                    # but let's keep the column count
+                    plen = len(list(
+                        self.abs_by_frac[protein][fr].values())[0])
+                    
+                    for k in self.abs_by_frac[protein][fr].keys():
+                        
+                        self.abs_by_frac[protein][fr][k] = [val] * plen
+                
+                for fr in missing_gel:
+                    
+                    for k in self.abs_by_frac[protein][fr].keys():
+                        
+                        self.abs_by_frac[protein][fr][k] = [0.0] * plen
     
     def pp_baseline_correction(self, base = 'a5'):
         """
