@@ -2316,6 +2316,7 @@ class Screening(object):
             # at Antonella's screening a fraction which is considered
             # void, so adjusting the zero of the absorbance profiles
             # to this fraction
+            # see method ``pp_baseline_correction()``
             'basefrac': 'a5',
             # the tolerance when looking up MS1 m/z values in databases
             # (Daltons)
@@ -3366,6 +3367,7 @@ class Screening(object):
             return None
         
         fnames = []
+        self.missing_gel = {}
         
         if os.path.exists(self.gelprofdir):
             
@@ -3386,8 +3388,15 @@ class Screening(object):
                 
                 for line in fp:
                     
+                    if not len(line.strip()):
+                        continue
+                    
                     line = line.strip().split('\t')
-                    fr, val = line[0], float(line[1])
+                    try:
+                        fr, val = line[0], float(line[1])
+                    except:
+                        print(protein, line)
+                        continue
                     
                     profile[fr] = val
                 
@@ -3400,10 +3409,10 @@ class Screening(object):
                 if len(missing_gel):
                     
                     sys.stdout.write('\t\t -- These fractions at protein '\
-                        '`%s` are not available from SDS PAGE: %s\n. '\
-                        'Setting them to zero.\n' % (
+                        '`%s` are not available from SDS PAGE: %s.\n'\
+                        '\t\t    Setting them to zero.\n' % (
                             protein,
-                            ', '.join(sorted(missing_gel))
+                            ', '.join(self.sort_fracs_str(missing_gel))
                         ))
                 
                 if len(missing_sec):
@@ -3413,7 +3422,7 @@ class Screening(object):
                         'SEC profile file: %s\n. '\
                         'Discarding them.\n' % (
                             protein,
-                            ', '.join(sorted(missing_sec))
+                            ', '.join(self.sort_fracs_str(missing_sec))
                         ))
                 
                 for fr, val in iteritems(profile):
@@ -3422,6 +3431,7 @@ class Screening(object):
                     # if we read the 215 & 260 nm absorbances
                     # although we don't use them
                     # but let's keep the column count
+                    # by default we use 280 nm absorbances
                     plen = len(list(
                         self.abs_by_frac[protein][fr].values())[0])
                     
@@ -3434,16 +3444,46 @@ class Screening(object):
                     for k in self.abs_by_frac[protein][fr].keys():
                         
                         self.abs_by_frac[protein][fr][k] = [0.0] * plen
+                
+                self.missing_gel[protein] = missing_gel
     
-    def pp_baseline_correction(self, base = 'a5'):
+    def check_missing_gel(self):
+        """
+        Check whether any of the protein containing fractions has been
+        zeroed due to missing from the SDS PAGE based quantification.
+        Prints warning if this happened.
+        """
+        if self.use_gel_profiles:
+            
+            for protein, missing in iteritems(self.missing_gel):
+                
+                with_protein = set(self.protein_containing_fractions(protein))
+                zeroed = missing & with_protein
+                
+                if zeroed:
+                    
+                    sys.stdout.write('\t:: Warning: at protein `%s` fraction'\
+                        '(s) have been set to zero because they are missing '\
+                        'from the SDS PAGE.\n\t   But these are marked as pr'\
+                        'otein containing fractions: %s\n' % (
+                            protein,
+                            ', '.join(self.sort_fracs_str(zeroed))
+                        ))
+    
+    def pp_baseline_correction(self, base = None):
         """
         Subtracts the value of the `base` frabction from the values
         of each fraction. The `base` considered to be void.
         """
         result = dict(map(lambda p: (p, {}), self.abs_by_frac.keys()))
+        
+        base = self.basefrac if base is None else base
+        
         for protein, d in iteritems(self.abs_by_frac):
+            
             for fr, d2 in iteritems(d):
-                result[protein][fr] = \
+                
+                result[protein][fr] = (
                     dict(
                         map(
                             lambda c:
@@ -3460,6 +3500,8 @@ class Screening(object):
                             iteritems(d2)
                         )
                     )
+                )
+        
         self.abs_by_frac_b = result
     
     def pp_background_correction(self):
@@ -5195,11 +5237,35 @@ class Screening(object):
         
         return data, fracs
     
-    @staticmethod
-    def sort_fracs(frs):
+    @classmethod
+    def sort_fracs_str(cls, frs):
         """
         Sorts fraction labels in a standard way, i.e. first by
         their letter code, after their number as numeric value.
+        Accepts list of strings, returns list of strings.
+        """
+        return (
+            list(
+                map(
+                    lambda fr:
+                        '%s%u' % fr[1],
+                    cls.sort_fracs_tuple(
+                        map(lambda fr:
+                                (fr[0], fr[1:]),
+                            frs
+                        )
+                    )
+                )
+            )
+        )
+    
+    @staticmethod
+    def sort_fracs_tuple(frs):
+        """
+        Sorts fraction labels in a standard way, i.e. first by
+        their letter code, after their number as numeric value.
+        Accepts list of tuples, returns list of tuples.
+        Numbers can be either string or integer.
         """
         frs = map(lambda fr: (fr[0], int(fr[1])), frs)
         return sorted(enumerate(frs),
@@ -5250,7 +5316,7 @@ class Screening(object):
                 # this returns an array and the fraction sequence:
                 pdata, fracs = self.read_file_np(fname)
                 #
-                ifracs, sfracs = zip(*self.sort_fracs(fracs))
+                ifracs, sfracs = zip(*self.sort_fracs_tuple(fracs))
                 sfracs = list(map(lambda fr: '%s%s' % fr, sfracs))
                 pfracs[protein] = np.array(sfracs)
                 # rearrange columns according to fraction sequence:
@@ -7831,7 +7897,7 @@ class Screening(object):
     making sure everything is ready to run the analysis.
     """
     
-    def init_from_scratch(self):
+    def init_from_scratch(self, save = False):
         """
         Does all the initial preprocessing.
         Saves intermediate data, so it can be loaded faster 
@@ -7844,9 +7910,12 @@ class Screening(object):
         self.write_pptable()
         if 'ctrl' in self.datafiles:
             del self.datafiles['ctrl']
-        self.save()
+        if save:
+            self.save()
         self.read_data()
-        self.save_data()
+        self.check_missing_gel()
+        if save:
+            self.save_data()
 
     def init_reinit(self, data = False):
         """
