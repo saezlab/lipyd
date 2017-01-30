@@ -3297,6 +3297,26 @@ class Screening(object):
                 pickle.dump(self.fraclim, fp)
     
     def pp2(self):
+        """
+        Runs the complete workflow of all protein and
+        intensity profile related calculations.
+        This includes:
+            -- reading the UV absorbances
+            -- taking the mean absorbance for each fraction
+               with multiple offsets if necessary
+            -- doing corrections for baseline and background
+            -- getting a mean from different offsets
+            -- optionally determining the protein containing
+               fractions from the absorbances
+            -- reading manually defined protein ratios if
+               ``use_manual_ppratios`` is ``True``
+            -- determining measured fractions for each protein
+            -- listing those proteins measured only in one
+               fraction
+            -- setting the protein content values of all non
+               protein containing fractions to zero
+        """
+        
         self.raw_sec_absorbances()
         self.absorbances_by_fractions()
         if self.pp_do_correction:
