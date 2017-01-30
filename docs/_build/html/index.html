@@ -1,0 +1,1543 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Welcome to emese’s documentation! &#8212; emese 0.4.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.4.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-emese-s-documentation">
+<h1>Welcome to emese&#8217;s documentation!<a class="headerlink" href="#welcome-to-emese-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+<div class="section" id="module-emese.main">
+<span id="reference"></span><h1>Reference<a class="headerlink" href="#module-emese.main" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="emese.main.CerFA">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">CerFA</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#CerFA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.CerFA" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://metlin.scripps.edu/metabo_info.php?molid=6214">https://metlin.scripps.edu/metabo_info.php?molid=6214</a>
+[Cer-FA(C8:0)]- 168.1382904 C8H14O1N1-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.FAAlkylminusH">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">FAAlkylminusH</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=1</em>, <em>isotope=0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#FAAlkylminusH"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.FAAlkylminusH" title="Permalink to this definition">¶</a></dt>
+<dd><p>18:0 = 267.2693393</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.Feature">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">Feature</code><span class="sig-paren">(</span><em>main</em>, <em>protein</em>, <em>mode</em>, <em>oi</em>, <em>log=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Feature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Feature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides additional, more sophisticated methods
+for identification of a single feature.</p>
+<p>In the original concept all methods for identification
+based on MS1 and MS2 took place in class Screening(),
+as those could simply iterate through the arrays.</p>
+<p>Later more complex methods became necessary, so
+I created this class to group them.</p>
+<dl class="method">
+<dt id="emese.main.Feature.sort_scans">
+<code class="descname">sort_scans</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Feature.sort_scans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Feature.sort_scans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Groups the scans in 3 groups: highest consists of those from the
+fractions with the highest protein level (there might be more than
+one the highest, because the fraction offset limits); the secondary
+contains scans from other protein containing fractions; while the
+other contains the scans from non protein containing fractions.
+Within the groups the scans are sorted from lowest to highest
+deltaRT.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPA">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPA</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPA" title="Permalink to this definition">¶</a></dt>
+<dd><p>from Characterization of Phospholipid 
+Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
+[lyso PA(18:1,-)]- 435.2 C21H40O7P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPAAlkyl">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPAAlkyl</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPAAlkyl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPAAlkyl" title="Permalink to this definition">¶</a></dt>
+<dd><p>from Characterization of Phospholipid 
+Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
+[lyso PA(18:1,-)]- 435.2 C21H40O7P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPCAlkenyl">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPCAlkenyl</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPCAlkenyl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPCAlkenyl" title="Permalink to this definition">¶</a></dt>
+<dd><p>from massbank.jp:
+[lyso PC(alkenyl-18:0,-)]- 492.3453998849 -436 C25H51NO6P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPCAlkyl">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPCAlkyl</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPCAlkyl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPCAlkyl" title="Permalink to this definition">¶</a></dt>
+<dd><p>from massbank.jp:
+[lyso PC(alkyl-18:0,-)]- 494.3610499491 -143 C25H53NO6P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPE">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPE</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPE" title="Permalink to this definition">¶</a></dt>
+<dd><p>from massbank.jp:
+[lyso PE(18:0,-)]- 480.3090143786 -476 C23H47NO7P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPEAlkenyl">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPEAlkenyl</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPEAlkenyl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPEAlkenyl" title="Permalink to this definition">¶</a></dt>
+<dd><p>from massbank.jp:
+[lyso PE(alkenyl-18:0,-)]- 464.3140997565 -417 C23H47NO6P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPG">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPG</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPG"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPG" title="Permalink to this definition">¶</a></dt>
+<dd><p>from massbank:
+[lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPGAlkyl">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPGAlkyl</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPGAlkyl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPGAlkyl" title="Permalink to this definition">¶</a></dt>
+<dd><p>from massbank:
+[lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPI">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPI</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPI"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPI" title="Permalink to this definition">¶</a></dt>
+<dd><p>from massbank:
+[lyso PI(-,18:0)]- 599.3196386444 -432 C27H52O12P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPIAlkyl">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPIAlkyl</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPIAlkyl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPIAlkyl" title="Permalink to this definition">¶</a></dt>
+<dd><p>from massbank.jp:
+[lyso PI(alkyl-16:1,-)-H2O]- 537.2828592076 -228 C25H46O10P-
+from this, derived 18:0-:
+[lyso PI(alkyl-18:0,-)]- 585.3403740858 -228 C27H54O11P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.LysoPS">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">LysoPS</code><span class="sig-paren">(</span><em>c</em>, <em>unsat=0</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>isotope=0</em>, <em>charge=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#LysoPS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.LysoPS" title="Permalink to this definition">¶</a></dt>
+<dd><p>from massbank.jp:
+[lyso PS(18:0,-)]- 437.2668152129 -358 C21H42O7P-</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.MS2Scan">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">MS2Scan</code><span class="sig-paren">(</span><em>scan</em>, <em>scan_id</em>, <em>feature</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#MS2Scan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.MS2Scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class represents one MS2 scan and provides methods for its analysis.</p>
+<dl class="method">
+<dt id="emese.main.MS2Scan.build_fa_list">
+<code class="descname">build_fa_list</code><span class="sig-paren">(</span><em>rebuild=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#MS2Scan.build_fa_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.MS2Scan.build_fa_list" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Returns list with elements:</dt>
+<dd>carbon count, headgroups (set or None),
+esther (False) or ether (True),
+sphingosine (True) or fatty acid (False),
+fragment intensity and row index</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.MS2Scan.matching_fa_frags_of_type">
+<code class="descname">matching_fa_frags_of_type</code><span class="sig-paren">(</span><em>hg</em>, <em>typ</em>, <em>sphingo=False</em>, <em>return_details=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#MS2Scan.matching_fa_frags_of_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.MS2Scan.matching_fa_frags_of_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns carbon counts of those fragments which are of the given type
+and have complement fatty acid fragment of any type.</p>
+<p>Details is a dict with carbon counts as keys
+and fragment names as values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.MS2Scan.mz_lookup">
+<code class="descname">mz_lookup</code><span class="sig-paren">(</span><em>mz</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#MS2Scan.mz_lookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.MS2Scan.mz_lookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the index of the closest m/z value
+detected in the scan if it is within the
+range of tolerance, otherwise None.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.MolWeight">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">MolWeight</code><span class="sig-paren">(</span><em>formula=None</em>, <em>charge=0</em>, <em>isotope=0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#MolWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.MolWeight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thanks for
+<a class="reference external" href="https://github.com/bsimas/molecular-weight/blob/master/chemweight.py">https://github.com/bsimas/molecular-weight/blob/master/chemweight.py</a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="emese.main.Screening">
+<em class="property">class </em><code class="descclassname">emese.main.</code><code class="descname">Screening</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening" title="Permalink to this definition">¶</a></dt>
+<dd><p>Currently this is the main class in this module.
+Accepts dozens of parameters as keyword arguments.
+To see all these check the <code class="docutils literal"><span class="pre">defaults</span></code> dict in the code of the
+<code class="docutils literal"><span class="pre">__init__()</span></code> method.</p>
+<dl class="method">
+<dt id="emese.main.Screening.absorbances_by_fractions">
+<code class="descname">absorbances_by_fractions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.absorbances_by_fractions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.absorbances_by_fractions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates mean absorbances by fractions at
+all offsets in <cite>fr_offsets</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.add_nonidet">
+<code class="descname">add_nonidet</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.add_nonidet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.add_nonidet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds mass values of Nonidet P-40 to the mass database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.add_sheet">
+<code class="descname">add_sheet</code><span class="sig-paren">(</span><em>xls</em>, <em>tbl</em>, <em>name</em>, <em>colws=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.add_sheet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.add_sheet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a table to xls worksheet, with formatting.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>xls</strong> &#8211; xlsxwriter workbook</li>
+<li><strong>tbl</strong> (<em>list</em>) &#8211; table as list of lists</li>
+<li><strong>name</strong> (<em>str</em>) &#8211; worksheet name</li>
+<li><strong>colws</strong> (<em>list</em>) &#8211; column widths, list of floats</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.adduct_lookup">
+<code class="descname">adduct_lookup</code><span class="sig-paren">(</span><em>mz</em>, <em>adducts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.adduct_lookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.adduct_lookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up m/z values in the table containing the reference database
+already converted to a pool of all possible adducts.
+(Does not convert the m/z to other adducts.)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.adduct_lookup_exact">
+<code class="descname">adduct_lookup_exact</code><span class="sig-paren">(</span><em>mz</em>, <em>mode</em>, <em>verbose=False</em>, <em>outfile=None</em>, <em>charge=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.adduct_lookup_exact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.adduct_lookup_exact" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up m/z values in the table containing the reference database
+casting the m/z to specific adducts.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.all_fractions">
+<code class="descname">all_fractions</code><span class="sig-paren">(</span><em>protein</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.all_fractions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.all_fractions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of all fractions for one protein,
+sorted by the order of measurement (their position on the plate).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.auto_fragment_list">
+<code class="descname">auto_fragment_list</code><span class="sig-paren">(</span><em>typ</em>, <em>charge</em>, <em>cmin=2</em>, <em>unsatmin=0</em>, <em>cmax=36</em>, <em>unsatmax=6</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.auto_fragment_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.auto_fragment_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a series of fragments of a given type, iterating
+over a range of carbon counts and unsaturated bond counts.
+In addition, certain groups can be added or deduced from the
+fragment mass, e.g. -H2O for a water loss.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.basic_filters">
+<code class="descname">basic_filters</code><span class="sig-paren">(</span><em>profile_treshold=0.25</em>, <em>ubiquity_treshold=7</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.basic_filters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.basic_filters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated with new data structure.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.basic_filters_with_evaluation">
+<code class="descname">basic_filters_with_evaluation</code><span class="sig-paren">(</span><em>profile_treshold=0.25</em>, <em>ubiquity_treshold=7</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.basic_filters_with_evaluation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.basic_filters_with_evaluation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated with new data structure.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.check_missing_gel">
+<code class="descname">check_missing_gel</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.check_missing_gel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.check_missing_gel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether any of the protein containing fractions has been
+zeroed due to missing from the SDS PAGE based quantification.
+Prints warning if this happened.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="emese.main.Screening.colw_scale">
+<em class="property">static </em><code class="descname">colw_scale</code><span class="sig-paren">(</span><em>w</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.colw_scale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.colw_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scales column widths for xlsxwriter output.
+Below are empirical values to adjust the column widths.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.combine_peak_ratio_scores">
+<code class="descname">combine_peak_ratio_scores</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.combine_peak_ratio_scores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.combine_peak_ratio_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Peak ratio scores calculated for each pairs of protein containing
+fractions. Here we take their mean and select the scores for the
+first and highest fraction pairs.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.count_nonzero_features">
+<code class="descname">count_nonzero_features</code><span class="sig-paren">(</span><em>outf='nonzero_counts.tab'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.count_nonzero_features"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.count_nonzero_features" title="Permalink to this definition">¶</a></dt>
+<dd><p>Counts the number of nonzero features for each fraction.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.count_threshold_filter">
+<code class="descname">count_threshold_filter</code><span class="sig-paren">(</span><em>score</em>, <em>threshold</em>, <em>count=10</em>, <em>threshold_type='fix'</em>, <em>asc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.count_threshold_filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.count_threshold_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds a boolean array whether the values of a score fall below
+or above certain critical value. The critical value can be defined
+as a fix value,
+or as a fraction of the minimum or maximum value of the score.
+Threshold type is either <cite>fix</cite>, <cite>relative</cite> or <cite>best_fraction</cite>.</p>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt>fix: values below or equal this number if lower is the better, otherwise</dt>
+<dd>values above or equal will be selected</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>relative: threshold will be set the minimum value (if ordered ascending)</dt>
+<dd>or maximum value multiplied by the threshold</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>best_fraction: opposite way as at the <cite>relative</cite>, at ascending order</dt>
+<dd>the maximum, at descending the minimum will be multiplied by the
+threshold</dd>
+</dl>
+</li>
+<li>count: the absolute maximum number of selected instances</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.delete_array">
+<code class="descname">delete_array</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.delete_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.delete_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the data belonging to one key
+from all tables (at every protein in each modes).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.dope">
+<code class="descname">dope</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.dope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.dope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tells whether if a series of m/z&#8217;s might be DOPE.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.euclidean_dist">
+<code class="descname">euclidean_dist</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.euclidean_dist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.euclidean_dist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates simple euclidean distance after removing NaN values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.euclidean_dist_norm">
+<code class="descname">euclidean_dist_norm</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.euclidean_dist_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.euclidean_dist_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>This euclidean distance is normalized by the number of dimensions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.evaluate_results">
+<code class="descname">evaluate_results</code><span class="sig-paren">(</span><em>stage0</em>, <em>stage2</em>, <em>lipids</em>, <em>fractions_upper</em>, <em>letter='e'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.evaluate_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.evaluate_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tracks the number of features/lipids along stages.
+Does some plotting.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.evaluate_scores">
+<code class="descname">evaluate_scores</code><span class="sig-paren">(</span><em>tasks=None</em>, <em>stdltps=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.evaluate_scores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.evaluate_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates specificity, sensitivity, precision,
+false discovery rate as a function of critical
+values of each scores, for all LTPs with manual
+positive annotations, for all modes.
+Returns 4x embedded dicts of
+LTPs/modes/metrics/performance metrics.
+E.g. result[&#8216;STARD10&#8217;][&#8216;pos&#8217;][&#8216;ktv&#8217;][&#8216;sens&#8217;]</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.export_manual">
+<code class="descname">export_manual</code><span class="sig-paren">(</span><em>fname='final_results.csv'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.export_manual"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.export_manual" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exports the results from manual curation to csv.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.feature_identity_table">
+<code class="descname">feature_identity_table</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.feature_identity_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.feature_identity_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates dictionaries named <cite>identity</cite>, having
+original IDs as keys and 4 element dictionaries
+as values with keys ms1_pos, ms2_pos, ms1_neg, ms2_neg,
+each having a boolean value.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.features_clustering">
+<code class="descname">features_clustering</code><span class="sig-paren">(</span><em>dist='en'</em>, <em>method='ward'</em>, <em>proteins=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.features_clustering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.features_clustering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Using the distance matrices calculated by
+<cite>distance_matrix()</cite>, builds clusters using
+the linkage method given by <cite>method</cite> arg.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.find_lipids">
+<code class="descname">find_lipids</code><span class="sig-paren">(</span><em>hits</em>, <em>lipnames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.find_lipids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.find_lipids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Column order:</p>
+<p>in:
+[0] quality, m/z, rt_min, rt_max, charge, control, a9, a10, a11, a12, b1
+[1] profile_score
+[2] control_profile_score
+[3] rank_profile_boolean
+[4] ubiquity_score
+[5] ubiquity_score</p>
+<p>out:
+protein_name, m/z, 
+profile_score, control_profile_score,
+rank_profile_boolean, ubiquity_score,
+ubiquity_score, swisslipids_ac, level,
+lipid_name, lipid_formula, adduct, 
+adduct_m/z</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.find_lipids_exact">
+<code class="descname">find_lipids_exact</code><span class="sig-paren">(</span><em>verbose=False</em>, <em>outfile=None</em>, <em>proteins=None</em>, <em>charge=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.find_lipids_exact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.find_lipids_exact" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up lipids by m/z among database entries in
+<cite>exacts</cite>, and stores the result in dict under key
+<cite>lip</cite>, where keys are the original indices (<cite>i</cite>).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.find_peaks">
+<code class="descname">find_peaks</code><span class="sig-paren">(</span><em>scans</em>, <em>centroids</em>, <em>accuracy=5</em>, <em>dope=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.find_peaks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.find_peaks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds peaks detected in consecutive scans.
+Returns list of dicts with centroid m/z,
+cumulative intensity and RT range for
+each peak.
+Returns array with 
+m/z, rt_min, rt_max, area, scan count
+as coulumns.</p>
+<dl class="docutils">
+<dt>accuracy <span class="classifier-delimiter">:</span> <span class="classifier">int, float</span></dt>
+<dd>Instrument accuracy in ppm.
+The difference over we consider 2
+m/z values to be distinct.</dd>
+</dl>
+<p># values order: (rt, mz, int)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.float_lst">
+<code class="descname">float_lst</code><span class="sig-paren">(</span><em>l</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.float_lst"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.float_lst" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts elements of a list to floats.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.fraction_indices">
+<code class="descname">fraction_indices</code><span class="sig-paren">(</span><em>protein</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.fraction_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.fraction_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dict with column indices for all fractions
+and a boolean value whether if it contains protein.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.fractions_by_protein_amount">
+<code class="descname">fractions_by_protein_amount</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.fractions_by_protein_amount"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.fractions_by_protein_amount" title="Permalink to this definition">¶</a></dt>
+<dd><p>Orders the fractions by the amount of protein.
+Considers fraction offsets if those are assumed,
+and creates dicts <cite>fracs_orderL</cite> and fracs_orderU`
+(these are identical if no offset assumed).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.fractions_marco">
+<code class="descname">fractions_marco</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.fractions_marco"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.fractions_marco" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads manually defined protein peak ratios and protein containing
+fractions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.gel_protein_quantification">
+<code class="descname">gel_protein_quantification</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.gel_protein_quantification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.gel_protein_quantification" title="Permalink to this definition">¶</a></dt>
+<dd><p>For proteins with various issues with UV absorbances,
+this method reads quantifications based on manual
+processing of SDS PAGE images. The UV absorbance values
+in attribute <cite>abs_by_frac</cite> will be replaced.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.get_comppi_localizations">
+<code class="descname">get_comppi_localizations</code><span class="sig-paren">(</span><em>minor=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_comppi_localizations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_comppi_localizations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downloads localization data from ComPPI.
+Results stored in <cite>ulocs</cite> and <cite>locs</cite> attributes.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.get_family">
+<code class="descname">get_family</code><span class="sig-paren">(</span><em>protein</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_family"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_family" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the lipid binding domain family from LTP name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.get_filenames">
+<code class="descname">get_filenames</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_filenames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_filenames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Files are placed in 2 root directories, in specific subdirectories,
+positive and negative MS mode in separate files.
+This function collects all the file paths and returns them 
+in a dict of dicts. Keys are LTP names, and &#8216;pos&#8217;/&#8217;neg&#8217;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.get_go_goa">
+<code class="descname">get_go_goa</code><span class="sig-paren">(</span><em>organism='human'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_go_goa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_go_goa" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downloads GO annotation from UniProt GOA.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.get_go_quick">
+<code class="descname">get_go_quick</code><span class="sig-paren">(</span><em>organism=9606</em>, <em>slim=False</em>, <em>names_only=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_go_quick"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_go_quick" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads GO terms and annotations from QuickGO.
+Returns 2 dicts: <cite>names</cite> are GO terms by their IDs,
+<cite>terms</cite> are proteins GO IDs by UniProt IDs.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.get_name">
+<code class="descname">get_name</code><span class="sig-paren">(</span><em>uniprot</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the LTP name from its UniProt.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.get_swisslipids">
+<code class="descname">get_swisslipids</code><span class="sig-paren">(</span><em>adducts=None</em>, <em>exact_mass=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_swisslipids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_swisslipids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downloads the total SwissLipids lipids dataset.
+Returns numpy array with all queried adducts and optionally exact
+masses, calculates the formate adduct m/z&#8217;s on demand.
+Please note, for a number of lipids some adduct m/z&#8217;s are missing
+from SL, while the exact masses are given for all the lipids. Also
+storing masses of many adducts of the same lipid in an array results
+extensive memory usage (couple of hundreds MB).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.get_swisslipids_exact">
+<code class="descname">get_swisslipids_exact</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_swisslipids_exact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_swisslipids_exact" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downloads the total SwissLipids lipids dataset.
+Returns numpy array with only exact mass values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.gkgamma">
+<code class="descname">gkgamma</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.gkgamma"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.gkgamma" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls Goodman-Kruskal&#8217;s gamma from vcdExtra
+R package.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.headgroup_from_lipid_name">
+<code class="descname">headgroup_from_lipid_name</code><span class="sig-paren">(</span><em>lip</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.headgroup_from_lipid_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.headgroup_from_lipid_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>For one database record attempts to identify the lipid class
+by looking up keywords.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.headgroups_by_fattya">
+<code class="descname">headgroups_by_fattya</code><span class="sig-paren">(</span><em>proteins=None</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.headgroups_by_fattya"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.headgroups_by_fattya" title="Permalink to this definition">¶</a></dt>
+<dd><p>Limits the number of possible headgroups based on detected
+MS2 fatty acids.
+Creates dict <cite>hgfa</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.headgroups_negative_positive">
+<code class="descname">headgroups_negative_positive</code><span class="sig-paren">(</span><em>ms</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.headgroups_negative_positive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.headgroups_negative_positive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates dictionaries named ms1hg_pos, ms1hg_neg,
+ms2hg_pos or ms2hg_neg with the original
+IDs of the given mode as keys, with dicts as
+values having the original IDs of the other mode
+as keys and the combined set of headgroups as 
+values. The combined set is the intersection of
+those detected in the 2 modes, or the union, if
+there is no intersection.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.identify_feature">
+<code class="descname">identify_feature</code><span class="sig-paren">(</span><em>tbl</em>, <em>fe</em>, <em>i</em>, <em>ioffset</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.identify_feature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.identify_feature" title="Permalink to this definition">¶</a></dt>
+<dd><p>For one feature looks up if the lipid database ID
+and the adduct do match.
+Adds the matching record from the gold standard
+to lists in the <cite>std</cite> dict. There can be accessed
+by the original index.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.identity_combined">
+<code class="descname">identity_combined</code><span class="sig-paren">(</span><em>proteins=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.identity_combined"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.identity_combined" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combined identification based on MS1 database lookup,
+MS2 headgroup fragments and MS2 fatty acids.
+Creates dicts <cite>combined_hg</cite> and <cite>combined_fa</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.identity_combined_ms2">
+<code class="descname">identity_combined_ms2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.identity_combined_ms2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.identity_combined_ms2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combined identification based on MS1 database lookup,
+MS2 headgroup fragments and MS2 fatty acids.
+Creates dicts <cite>combined_hg</cite> and <cite>combined_fa</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.init_from_scratch">
+<code class="descname">init_from_scratch</code><span class="sig-paren">(</span><em>save=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.init_from_scratch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.init_from_scratch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does all the initial preprocessing.
+Saves intermediate data, so it can be loaded faster 
+for next sessions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.init_reinit">
+<code class="descname">init_reinit</code><span class="sig-paren">(</span><em>data=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.init_reinit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.init_reinit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializing from preprocessed and dumped data.
+Pickle file has a 2.0GB size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.intensity_peak_ratios">
+<code class="descname">intensity_peak_ratios</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.intensity_peak_ratios"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.intensity_peak_ratios" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the intensity peak ratios which are to be
+compared with the protein peak ratios.
+For each protein for each mode a new array named <cite>ipr</cite>
+will be created with one row for each feature and
+0, 1 or 2 columns depending on the number of protein
+containing fractions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.lipid_lookup">
+<code class="descname">lipid_lookup</code><span class="sig-paren">(</span><em>stage0</em>, <em>runtime=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.lipid_lookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.lipid_lookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtains full SwissLipids data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.lipid_lookup_exact">
+<code class="descname">lipid_lookup_exact</code><span class="sig-paren">(</span><em>verbose=False</em>, <em>outfile=None</em>, <em>charge=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.lipid_lookup_exact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.lipid_lookup_exact" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetches data from SwissLipids and LipidMaps
+if not given.
+Looks up lipids based on exact masses (but
+taking into account the adducts).
+Writes hits into arrays in <cite>lip</cite> dict, having
+original indices as keys.
+Returns an array of lipid databases with exact
+masses.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.lookup_nans">
+<code class="descname">lookup_nans</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.lookup_nans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.lookup_nans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up those features having too many NaNs or zeros
+among the protein containing fractions.
+Stores result under key <cite>na</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.manual_df">
+<code class="descname">manual_df</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.manual_df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.manual_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a pandas dataframe from manual results.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms1_headgroups">
+<code class="descname">ms1_headgroups</code><span class="sig-paren">(</span><em>verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms1_headgroups"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms1_headgroups" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identifies headgroups by keywords and fatty acids
+from database record names.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms1_ms2_table_html_simple">
+<code class="descname">ms1_ms2_table_html_simple</code><span class="sig-paren">(</span><em>filename=None</em>, <em>include='cl70pct'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms1_ms2_table_html_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms1_ms2_table_html_simple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs a HTML table LTPs vs lipid classes (headgroups)
+based on MS1 and MS2 identifications.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms1_ms2_table_latex_simple">
+<code class="descname">ms1_ms2_table_latex_simple</code><span class="sig-paren">(</span><em>filename='ms1ms2headgroups.tex'</em>, <em>include='cl70pct'</em>, <em>break_half=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms1_ms2_table_latex_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms1_ms2_table_latex_simple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs a LaTeX table LTPs vs lipid classes (headgroups)
+based on MS1 and MS2 identifications.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms1_table_html_simple">
+<code class="descname">ms1_table_html_simple</code><span class="sig-paren">(</span><em>filename=None</em>, <em>include='cl70pct'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms1_table_html_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms1_table_html_simple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs a HTML table proteins vs lipid classes (headgroups)
+based on MS1 identifications.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms1_table_latex_simple">
+<code class="descname">ms1_table_latex_simple</code><span class="sig-paren">(</span><em>filename='ms1headgroups.tex'</em>, <em>include='cl70pct'</em>, <em>break_half=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms1_table_latex_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms1_table_latex_simple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs a LaTeX table LTPs vs lipid classes (headgroups)
+based on MS1 identifications.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2">
+<code class="descname">ms2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls all methods in the MS2 pipeline. This involves</p>
+<ul class="simple">
+<li>reading and autogenerating the fragment lists</li>
+<li>identifying the MS2 mgf files</li>
+<li>mapping mgf file offsets to scans</li>
+<li>identifying detected fragments using the lists</li>
+<li><dl class="first docutils">
+<dt>identifying the features based on charecteristic</dt>
+<dd>fragments</dd>
+</dl>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_cleanup">
+<code class="descname">ms2_cleanup</code><span class="sig-paren">(</span><em>proteins=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes all MS2 related objects for all proteins or
+only those in list <cite>proteins</cite> in order to free up
+memory.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_collect">
+<code class="descname">ms2_collect</code><span class="sig-paren">(</span><em>ms2matches</em>, <em>ms1mz</em>, <em>unknown=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_collect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_collect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_fattya">
+<code class="descname">ms2_fattya</code><span class="sig-paren">(</span><em>ms2r</em>, <em>highest=2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_fattya"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_fattya" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identifies the fatty acids with highest intensities.
+Returns only number of <cite>highest</cite> fatty acids.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_filenames">
+<code class="descname">ms2_filenames</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_filenames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_filenames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Files are placed in 2 root directories, in specific subdirectories,
+positive and negative MS mode in separate files.
+This function collects all the file paths and returns them 
+in a dict of dicts. Keys are LTP names, and &#8216;pos&#8217;/&#8217;neg&#8217;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_headgroup">
+<code class="descname">ms2_headgroup</code><span class="sig-paren">(</span><em>ms2r</em>, <em>hgfrags</em>, <em>headgroups</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_headgroup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_headgroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identifies headgroups from MS2 results for one
+feature, based on dictionary of fragments and
+the characteristic combinations of fragments
+identifying headgroups.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_headgroup2">
+<code class="descname">ms2_headgroup2</code><span class="sig-paren">(</span><em>ms2r</em>, <em>hgfrags</em>, <em>headgroups</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_headgroup2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_headgroup2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identifies headgroups from MS2 results for one
+feature, based on dictionary of fragments and
+the characteristic combinations of fragments
+identifying headgroups.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_headgroups">
+<code class="descname">ms2_headgroups</code><span class="sig-paren">(</span><em>proteins=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_headgroups"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_headgroups" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates dictionaries named ms2hg having the
+original IDs as keys and the sets of the
+identified possible headgroups as values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_headgroups2">
+<code class="descname">ms2_headgroups2</code><span class="sig-paren">(</span><em>proteins=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_headgroups2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_headgroups2" title="Permalink to this definition">¶</a></dt>
+<dd><p>This collects the possible headgroups from the
+advanced MS2 identification (done by ms2_scans_identify()).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_identify">
+<code class="descname">ms2_identify</code><span class="sig-paren">(</span><em>mass</em>, <em>fragments</em>, <em>compl</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_identify"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_identify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up one MS2 m/z value in list of known fragments masses.
+Either with matching between MS2 m/z and fragment m/z within
+a given tolerance, or between the fragment mass and the
+residual mass after substracting MS2 m/z from MS1 m/z.
+Returns the fragment&#8217;s mass, name and adduct type, or None
+in case of no match.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_index">
+<code class="descname">ms2_index</code><span class="sig-paren">(</span><em>fl</em>, <em>fr</em>, <em>charge=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looking up offsets in one MS2 mgf file.</p>
+<dl class="docutils">
+<dt>Columns:</dt>
+<dd>&#8211; pepmass
+&#8211; intensity
+&#8211; retention time
+&#8211; scan num
+&#8211; offset in file
+&#8211; fraction num</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_lookup">
+<code class="descname">ms2_lookup</code><span class="sig-paren">(</span><em>protein</em>, <em>mode</em>, <em>ms1matches</em>, <em>verbose=False</em>, <em>outfile=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_lookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_lookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>For the matching MS2 m/z&#8217;s given, reads and identifies
+the list of fragments.</p>
+<dl class="docutils">
+<dt>Columns in output arrays (15):</dt>
+<dd># MS1 m/z, MS2 fragment m/z, MS2 fragment intensity, (0-2)
+# MS2 table index, direct/inverted match, fraction number, (3-5)
+# MS2 fragment m/z in annotation, MS2 fragment name, (6-7)
+# MS2 adduct name, (8)
+# MS1 pepmass, MS1 intensity, rtime, MS2 scan, (9-12)
+# MS2 file offset, fraction number (13-14)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_main">
+<code class="descname">ms2_main</code><span class="sig-paren">(</span><em>proteins=None</em>, <em>verbose=False</em>, <em>outfile=None</em>, <em>silent=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_main" title="Permalink to this definition">¶</a></dt>
+<dd><p>For all LTPs and modes obtains the MS2 data from original files.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_map">
+<code class="descname">ms2_map</code><span class="sig-paren">(</span><em>proteins=None</em>, <em>silent=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maps offsets of the beginning of each scan in MS2 mgf files.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_match">
+<code class="descname">ms2_match</code><span class="sig-paren">(</span><em>ms1Mzs</em>, <em>ms1Rts</em>, <em>ms1is</em>, <em>protein</em>, <em>pos</em>, <em>verbose=False</em>, <em>outfile=None</em>, <em>drift=1.0</em>, <em>rt_tolerance=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_match"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_match" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up matching pepmasses for a list of MS1 m/z&#8217;s.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_onebyone">
+<code class="descname">ms2_onebyone</code><span class="sig-paren">(</span><em>callback='std_layout_tables_xlsx'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_onebyone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_onebyone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does the same as <cite>ms2()</cite>, but after doing it for one
+entity, it calls a callback, typically to export all
+important outcome, and after deletes the objects to
+free up memory. This is useful when working with so
+large data that it would require many gigs of memory
+otherwise.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_oneprotein">
+<code class="descname">ms2_oneprotein</code><span class="sig-paren">(</span><em>protein</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_oneprotein"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_oneprotein" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the whole MS2 workflow for only one protein.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_read_metabolites">
+<code class="descname">ms2_read_metabolites</code><span class="sig-paren">(</span><em>fname</em>, <em>extra_fragments=True</em>, <em>return_fraglines=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_read_metabolites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_read_metabolites" title="Permalink to this definition">¶</a></dt>
+<dd><p>In part from Toby Hodges.
+Reads metabolite fragments data.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_result">
+<code class="descname">ms2_result</code><span class="sig-paren">(</span><em>ms2matches</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_result" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts the most relevant information from the MS2
+result arrays, throwing away the rest.</p>
+<dl class="docutils">
+<dt>Columns in output arrays (6):</dt>
+<dd># MS2 fragment name, MS2 adduct name, (0-1)
+# MS2 fragment m/z, MS2 fragment intensity (2-3)
+# fraction number, scan number (4-5)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_table_html_simple">
+<code class="descname">ms2_table_html_simple</code><span class="sig-paren">(</span><em>filename=None</em>, <em>include='cl70pct'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_table_html_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_table_html_simple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs a HTML table LTPs vs lipid classes (headgroups)
+based on MS2 identifications.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ms2_table_latex_simple">
+<code class="descname">ms2_table_latex_simple</code><span class="sig-paren">(</span><em>filename='ms2headgroups.tex'</em>, <em>include='cl70pct'</em>, <em>break_half=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_table_latex_simple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_table_latex_simple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs a LaTeX table LTPs vs lipid classes (headgroups)
+based on MS2 identifications.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.mz_report">
+<code class="descname">mz_report</code><span class="sig-paren">(</span><em>protein</em>, <em>mode</em>, <em>mz</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.mz_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.mz_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up an m/z value and prints a report about the closest one.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.negative_positive">
+<code class="descname">negative_positive</code><span class="sig-paren">(</span><em>add_col=12</em>, <em>mz_col=1</em>, <em>swl_col=8</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.negative_positive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.negative_positive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Column order:</p>
+<p>in:
+ltp_name, m/z,
+profile_score, control_profile_score,
+rank_profile_boolean, ubiquity_score, ubiquity_score,
+original_index,
+swisslipids_ac, level, lipid_name, lipid_formula, adduct, adduct_m/z</p>
+<p>out:
+[0] pos_m/z, pos_profile_score,
+[2] pos_control_profile_score, pos_rank_profile_boolean,
+[4] pos_ubiquity_score, pos_ubiquity_score,
+[6] pos_original_index, pos_swisslipids_ac, pos_level,
+[9] pos_lipid_name, pos_lipid_formula, pos_adduct, pos_adduct_m/z
+[13] neg_m/z, neg_profile_score, neg_control_profile_score,
+[16] neg_rank_profile_boolean,
+[17] neg_ubiquity_score, neg_ubiquity_score, neg_original_index,
+[18] neg_swisslipids_ac, neg_level,
+[22] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.negative_positive2">
+<code class="descname">negative_positive2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.negative_positive2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.negative_positive2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Results in dicts [&#8216;pos&#8217;][&#8216;neg&#8217;] and [&#8216;neg&#8217;][&#8216;pos&#8217;].</p>
+<dl class="docutils">
+<dt>Values in each array: assumed positive adduct, assumed negative adduct,</dt>
+<dd>measured positive m/z, measured negative m/z</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.negative_positive_lipids">
+<code class="descname">negative_positive_lipids</code><span class="sig-paren">(</span><em>tbl</em>, <em>poi</em>, <em>noi</em>, <em>pos_add</em>, <em>neg_add</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.negative_positive_lipids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.negative_positive_lipids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Result columns:
+database id positive, database id negative,
+lipid name positive, lipid name negative,
+adduct positive, adduct negative,
+database m/z positive, database m/z negative,
+measured m/z positive, measured m/z negative,
+headgroup positive, headgroup negative,
+fatty acids positive, fatty acids negative,
+dominant adduct positive, dominant adduct negative</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.norm_all">
+<code class="descname">norm_all</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.norm_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.norm_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates table with all the profiles normalized
+Keys:
+- &#8216;no&#8217;: normalized profiles</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.pcont_columns">
+<code class="descname">pcont_columns</code><span class="sig-paren">(</span><em>protein</em>, <em>mode</em>, <em>attr='fe'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.pcont_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.pcont_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the protein containing fraction columns
+from the features x fractions array <cite>attr</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.pcont_indices">
+<code class="descname">pcont_indices</code><span class="sig-paren">(</span><em>protein</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.pcont_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.pcont_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the indices of protein containing fraction columns.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.peak_ratio_score">
+<code class="descname">peak_ratio_score</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.peak_ratio_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.peak_ratio_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the difference between the mean intensity peak ratio
+expressef in number of standard deviations.
+The mean and the SD calculated in the range of the expected
+ratio minus lower plus upper.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.peak_ratio_score_hist">
+<code class="descname">peak_ratio_score_hist</code><span class="sig-paren">(</span><em>pdfname=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.peak_ratio_score_hist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.peak_ratio_score_hist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots a histogram for peak ratio scores.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.piecharts_plotly">
+<code class="descname">piecharts_plotly</code><span class="sig-paren">(</span><em>by_class=True</em>, <em>main_title='Lipid classes by protein'</em>, <em>result_classes={'I'}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.piecharts_plotly"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.piecharts_plotly" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots piecharts of detected lipids for each protein based on manually
+annotated results.
+Uses plotly, output accessible in Jupyter notebook.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.plot_heatmaps_dendrograms">
+<code class="descname">plot_heatmaps_dendrograms</code><span class="sig-paren">(</span><em>dist='en'</em>, <em>fname=None</em>, <em>proteins=None</em>, <em>cmap=None</em>, <em>highlight_color='#FFAA00'</em>, <em>base_color='#000000'</em>, <em>coloring='corr'</em>, <em>threshold=None</em>, <em>threshold_type='percent'</em>, <em>save_selection=None</em>, <em>pca=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.plot_heatmaps_dendrograms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.plot_heatmaps_dendrograms" title="Permalink to this definition">¶</a></dt>
+<dd><p>For each protein plots heatmaps and dendrograms.
+Thanks to <a class="reference external" href="http://stackoverflow.com/a/3011894/854988">http://stackoverflow.com/a/3011894/854988</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.pp2">
+<code class="descname">pp2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.pp2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.pp2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the complete workflow of all protein and
+intensity profile related calculations.
+This includes:
+- reading the UV absorbances
+- taking the mean absorbance for each fraction
+with multiple offsets if necessary
+- doing corrections for baseline and background
+- getting a mean from different offsets
+- optionally determining the protein containing
+fractions from the absorbances
+- reading manually defined protein ratios if
+<code class="docutils literal"><span class="pre">use_manual_ppratios</span></code> is <code class="docutils literal"><span class="pre">True</span></code>
+- determining measured fractions for each protein
+- listing those proteins measured only in one
+fraction
+- setting the protein content values of all non
+protein containing fractions to zero</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.pp_baseline_correction">
+<code class="descname">pp_baseline_correction</code><span class="sig-paren">(</span><em>base=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.pp_baseline_correction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.pp_baseline_correction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subtracts the value of the <cite>base</cite> frabction from the values
+of each fraction. The <cite>base</cite> considered to be void.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.primary_fractions">
+<code class="descname">primary_fractions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.primary_fractions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.primary_fractions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Selects the fraction with highest protein amount (primary),
+all the others considered secondary. There might be more
+than one primary fractions if at different fraction offsets
+different fractions have the highest amount of protein.
+Creates dict <cite>fracs_order</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.profiles_corr">
+<code class="descname">profiles_corr</code><span class="sig-paren">(</span><em>metric</em>, <em>prfx</em>, <em>pprofs=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.profiles_corr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.profiles_corr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates custom correlation metric
+between each feature and the protein profile.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.profiles_corrs">
+<code class="descname">profiles_corrs</code><span class="sig-paren">(</span><em>pprofs=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.profiles_corrs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.profiles_corrs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates an array of similarity/correlation
+metrics between each MS intensity profile and 
+the corresponding protein concentration profile.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.protein_containing_fractions">
+<code class="descname">protein_containing_fractions</code><span class="sig-paren">(</span><em>protein</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.protein_containing_fractions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.protein_containing_fractions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of those fractions containing the protein,
+sorted by the order of measurement (their position on the plate).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.protein_containing_fractions_from_absorbances">
+<code class="descname">protein_containing_fractions_from_absorbances</code><span class="sig-paren">(</span><em>abscol=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.protein_containing_fractions_from_absorbances"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.protein_containing_fractions_from_absorbances" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the protein containing fractions (<cite>fractions</cite>) based on
+the UV absorbances, considering protein containing those whit a
+value higher than the maximum / minratio.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.protein_peak_ratios">
+<code class="descname">protein_peak_ratios</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.protein_peak_ratios"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.protein_peak_ratios" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the expected minimum and maximum values for
+protein peak ratios.
+The result contains empty dicts for proteins with only
+one fraction, one ratio for those with 2 fractions, and
+2 ratios for those with 3 fractions.
+Creates dict <cite>ppratios</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.protein_peak_ratios2">
+<code class="descname">protein_peak_ratios2</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.protein_peak_ratios2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.protein_peak_ratios2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the expected minimum and maximum values for
+protein peak ratios.
+The result contains empty dicts for proteins with only
+one fraction, one ratio for those with 2 fractions, and
+2 ratios for those with 3 fractions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.ratios_in_range">
+<code class="descname">ratios_in_range</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ratios_in_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ratios_in_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new boolean attribute <cite>ppr</cite>, which tells if the intensity
+peak ratios are in the range expected based on the fractions offset,
+or if we assume no offset, then a custom interval.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.raw_sec_absorbances">
+<code class="descname">raw_sec_absorbances</code><span class="sig-paren">(</span><em>cache=True</em>, <em>fraclim=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.raw_sec_absorbances"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.raw_sec_absorbances" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the SEC absorbance curves into numpy arrays.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_annotations">
+<code class="descname">read_annotations</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_annotations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_annotations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads all additional annotations necessary for data processing.
+These are:
+- fractions: which fraction is protein containing,
+control, or have not been measured
+- lipid names: short notations, database keywords and most
+abundant adducts for lipid classes
+- binding properties: known binders of lipid</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_binding_properties">
+<code class="descname">read_binding_properties</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_binding_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_binding_properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the known binders for each lipid class.
+The input file name is provided by <cite>bindpropf</cite> attribute.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_data">
+<code class="descname">read_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterates through dict of dicts with file paths, reads
+each file, and makes array view and masks to make it easy
+to handle missing data, and access m/z values of fractions 
+and controls, and other values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_file_np">
+<code class="descname">read_file_np</code><span class="sig-paren">(</span><em>fname, read_vars=['Normalized Area']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_file_np"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_file_np" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads one MS file, returns numpy array,
+with void mask.
+Column order:
+quality, m/z, significance,
+rt-min, rt-max, charge, rtmean, avg.area,
+control, a9, a10, a11, a12, b1</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_fractions">
+<code class="descname">read_fractions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_fractions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_fractions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads from file sample/control annotations
+for each proteins.
+Also reads the highest fractions which is used if we use
+the profile evaluation method from Enric.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_lipid_names">
+<code class="descname">read_lipid_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_lipid_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_lipid_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads annotations for lipid classes:
+- full names
+- short notations
+- database keywords
+(to process long names from SwissLipids and LipidMaps)
+- most abundant adducts</p>
+<p>The input file is given by the <code class="docutils literal"><span class="pre">lipnamesf</span></code> attribute.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_manual">
+<code class="descname">read_manual</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_manual"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_manual" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads adequate columns from manually annotated tables.
+Provides data in <cite>Screening().manual</cite> attribute.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_manual2">
+<code class="descname">read_manual2</code><span class="sig-paren">(</span><em>fname='All_results_v04.xlsx'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_manual2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_manual2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads manually annotated results from Marco&#8217;s final table.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_manual_localizations">
+<code class="descname">read_manual_localizations</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_manual_localizations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_manual_localizations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads localization data from our manual collection.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_membrane_constitutions">
+<code class="descname">read_membrane_constitutions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_membrane_constitutions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_membrane_constitutions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads membrane lipid constitutions from Charlotte.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_positives">
+<code class="descname">read_positives</code><span class="sig-paren">(</span><em>basedir</em>, <em>fname='manual_positive.csv'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_positives"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_positives" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads manually annotated positive hits
+from file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_pptable">
+<code class="descname">read_pptable</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_pptable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_pptable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads protein profiles from table.</p>
+<p>This method has not been updated for new fraction layout!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_uniprots">
+<code class="descname">read_uniprots</code><span class="sig-paren">(</span><em>reread=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_uniprots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_uniprots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the UniProt IDs and domain families of LTPs.
+Result stored in <cite>uniprots</cite> attribute.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.read_xls">
+<code class="descname">read_xls</code><span class="sig-paren">(</span><em>xls_file</em>, <em>sheet=0</em>, <em>csv_file=None</em>, <em>return_table=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.read_xls"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.read_xls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic function to read MS Excel XLS file, and convert one sheet
+to CSV, or return as a list of lists</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.remove_filter">
+<code class="descname">remove_filter</code><span class="sig-paren">(</span><em>attr_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.remove_filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.remove_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the result of a previously done filtering.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.roco">
+<code class="descname">roco</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.roco"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.roco" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls R function robust correlation coefficient
+with test from rococo R package.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.rprofile_filter">
+<code class="descname">rprofile_filter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.rprofile_filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.rprofile_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dummy function for eval_filter()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>fname=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Actually this does not save anything important,
+it was useful only some time before.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.save_data">
+<code class="descname">save_data</code><span class="sig-paren">(</span><em>fname=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.save_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.save_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the raw data into pickle.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.set_measured">
+<code class="descname">set_measured</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.set_measured"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.set_measured" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dict of arrays with value 1 if the fracion is either
+protein containing or control (i.e. measured), or <cite>None</cite> otherwise.</p>
+<p>The result is stored in <cite>measured</cite> attribute.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.set_onepfraction">
+<code class="descname">set_onepfraction</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.set_onepfraction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.set_onepfraction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a list of those proteins present only in one fraction.
+Abundance ratio for these can not be calculated.</p>
+<p>The result stored in <code class="docutils literal"><span class="pre">onepfraction</span></code> attribute.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.sort_alll">
+<code class="descname">sort_alll</code><span class="sig-paren">(</span><em>attr</em>, <em>asc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.sort_alll"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.sort_alll" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sorts all arrays in all tables by one specified 
+attribute.
+Either ascending or descending.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="emese.main.Screening.sort_fracs_str">
+<em class="property">classmethod </em><code class="descname">sort_fracs_str</code><span class="sig-paren">(</span><em>frs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.sort_fracs_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.sort_fracs_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sorts fraction labels in a standard way, i.e. first by
+their letter code, after their number as numeric value.
+Accepts list of strings, returns list of strings.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="emese.main.Screening.sort_fracs_tuple">
+<em class="property">static </em><code class="descname">sort_fracs_tuple</code><span class="sig-paren">(</span><em>frs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.sort_fracs_tuple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.sort_fracs_tuple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sorts fraction labels in a standard way, i.e. first by
+their letter code, after their number as numeric value.
+Accepts list of tuples, returns list of tuples.
+Numbers can be either string or integer.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.sortby_score">
+<code class="descname">sortby_score</code><span class="sig-paren">(</span><em>tbl</em>, <em>attr</em>, <em>asc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.sortby_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.sortby_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns sorted views of normalized features,
+m/z&#8217;s and the attribute the sorting carried
+out by.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.spec_sens">
+<code class="descname">spec_sens</code><span class="sig-paren">(</span><em>protein</em>, <em>pos</em>, <em>metric</em>, <em>asc</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.spec_sens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.spec_sens" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates specificity, sensitivity, precision,
+false discovery rate as a function of critical
+values of a score, for one LTP for one mode.
+Returns dict of lists.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.standards_theoretic_masses">
+<code class="descname">standards_theoretic_masses</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.standards_theoretic_masses"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.standards_theoretic_masses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the exact masses and most abundant ion masses of
+the lipid standards.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.to_float">
+<code class="descname">to_float</code><span class="sig-paren">(</span><em>num</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.to_float"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.to_float" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts float from string, or returns None.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.to_int">
+<code class="descname">to_int</code><span class="sig-paren">(</span><em>num</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.to_int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.to_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts int from string or returns None.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.to_uniprot">
+<code class="descname">to_uniprot</code><span class="sig-paren">(</span><em>protein</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.to_uniprot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.to_uniprot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the UniProt from LTP name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.true_positives">
+<code class="descname">true_positives</code><span class="sig-paren">(</span><em>valids</em>, <em>stdpos</em>, <em>protein</em>, <em>pos='pos'</em>, <em>tolerance=0.01</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.true_positives"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.true_positives" title="Permalink to this definition">¶</a></dt>
+<dd><p>For one protein having known binders looks up these
+among the valid features either in positive OR
+negative mode. (So you need to run twice, once
+for +, once for -.)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.upper_fractions">
+<code class="descname">upper_fractions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.upper_fractions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.upper_fractions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the dict <code class="docutils literal"><span class="pre">fractions_upper</span></code> of fractions with
+uppercase LTP names, with same content as <code class="docutils literal"><span class="pre">fractions</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.valid_features">
+<code class="descname">valid_features</code><span class="sig-paren">(</span><em>cache=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.valid_features"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.valid_features" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates new dict of arrays with only valid features.
+Keys:
+- &#8216;fe&#8217;: features
+- &#8216;mz&#8217;: m/z values
+- &#8216;i&#8217;: original index</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.which_day">
+<code class="descname">which_day</code><span class="sig-paren">(</span><em>protein</em>, <em>mode='pos'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.which_day"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.which_day" title="Permalink to this definition">¶</a></dt>
+<dd><p>Which day the fractions for a given LTP have been run?</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.write_out">
+<code class="descname">write_out</code><span class="sig-paren">(</span><em>matches</em>, <em>fname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.write_out"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.write_out" title="Permalink to this definition">¶</a></dt>
+<dd><p>In:
+[0] pos_m/z, pos_profile_score, 
+[2] pos_control_profile_score, pos_rank_profile_boolean,
+[4] pos_ubiquity_score, pos_ubiquity_score,
+[6] pos_original_index, pos_swisslipids_ac, pos_level, 
+[9] pos_lipid_name, pos_lipid_formula, pos_adduct, pos_adduct_m/z
+[13] neg_m/z, neg_profile_score, neg_control_profile_score,
+[16] neg_rank_profile_boolean,
+[17] neg_ubiquity_score, neg_ubiquity_score, neg_original_index,
+[20] neg_swisslipids_ac, neg_level,
+[22] neg_lipid_name, neg_lipid_formula, neg_adduct, neg_adduct_m/z</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.write_pptable">
+<code class="descname">write_pptable</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.write_pptable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.write_pptable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes protein profiles in a table, so we don&#8217;t need to read
+all the 60 XLS files every time.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.zero_controls">
+<code class="descname">zero_controls</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.zero_controls"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.zero_controls" title="Permalink to this definition">¶</a></dt>
+<dd><p>For protein profiles with offsets 0, 15 and 45
+it calls protein_profile_correction() to
+make the baseline correction, saves a copy
+to pprof_original&lt;offset&gt; property, and
+after sets the values for non LTP conatining
+fractions to zero.</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-emese._curl"></span><span class="target" id="module-emese.mass"></span><span class="target" id="module-emese.common"></span><dl class="function">
+<dt id="emese.common.warn_with_traceback">
+<code class="descclassname">emese.common.</code><code class="descname">warn_with_traceback</code><span class="sig-paren">(</span><em>message</em>, <em>category</em>, <em>filename</em>, <em>lineno</em>, <em>file=None</em>, <em>line=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/common.html#warn_with_traceback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.common.warn_with_traceback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints warnings with traceback.
+From <a class="reference external" href="https://stackoverflow.com/a/22376126/854988">https://stackoverflow.com/a/22376126/854988</a></p>
+</dd></dl>
+
+<span class="target" id="module-emese.progress"></span><dl class="class">
+<dt id="emese.progress.Progress">
+<em class="property">class </em><code class="descclassname">emese.progress.</code><code class="descname">Progress</code><span class="sig-paren">(</span><em>total=None</em>, <em>name='Progress'</em>, <em>interval=None</em>, <em>percent=True</em>, <em>status='initializing'</em>, <em>done=0</em>, <em>init=True</em>, <em>unit='it'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/progress.html#Progress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.progress.Progress" title="Permalink to this definition">¶</a></dt>
+<dd><p>Before I had my custom progressbar here.
+Now it is a wrapper around the great progressbar <cite>tqdm</cite>.
+Old implementation moved to <cite>OldProgress</cite> class.</p>
+<dl class="method">
+<dt id="emese.progress.Progress.get_desc">
+<code class="descname">get_desc</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/progress.html#Progress.get_desc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.progress.Progress.get_desc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a formatted string of the description, consisted of
+the name and the status. The name supposed something constant
+within the life of the progressbar, while the status is there
+to give information about the current stage of the task.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.progress.Progress.set_done">
+<code class="descname">set_done</code><span class="sig-paren">(</span><em>done</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/progress.html#Progress.set_done"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.progress.Progress.set_done" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the position of the progress bar.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.progress.Progress.set_status">
+<code class="descname">set_status</code><span class="sig-paren">(</span><em>status</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/progress.html#Progress.set_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.progress.Progress.set_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Changes the prefix of the progressbar.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.progress.Progress.set_total">
+<code class="descname">set_total</code><span class="sig-paren">(</span><em>total</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/progress.html#Progress.set_total"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.progress.Progress.set_total" title="Permalink to this definition">¶</a></dt>
+<dd><p>Changes the total value of the progress bar.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.progress.Progress.step">
+<code class="descname">step</code><span class="sig-paren">(</span><em>step=1</em>, <em>msg=None</em>, <em>status='busy'</em>, <em>force=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/progress.html#Progress.step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.progress.Progress.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the progressbar by the desired number of steps.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>step</strong> (<em>int</em>) &#8211; Number of steps or items.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.progress.Progress.terminate">
+<code class="descname">terminate</code><span class="sig-paren">(</span><em>status='finished'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/progress.html#Progress.terminate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.progress.Progress.terminate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Terminates the progressbar and destroys the tqdm object.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to emese&#8217;s documentation!</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+<li><a class="reference internal" href="#module-emese.main">Reference</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Dénes Türei.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
