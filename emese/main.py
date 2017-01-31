@@ -9680,12 +9680,18 @@ class Screening(object):
                 
                 for hfracs in hpeak:
                     
-                    result.append(
-                        self._enric_filter(protein, tbl, hfracs)
-                    )
+                    self._enric_filter(protein, tbl, hfracs)
                 
-                tbl['enr'] = np.hstack(result)
-                tbl['enrb']  = np.all(tbl['enr'], axis = 1)
+                # this is guaranteed to be only one vector
+                # for each table of features
+                tbl['enrbb'] = (
+                    np.any(
+                        np.hstack(
+                            list(tbl['enrb'].values())
+                        ),
+                        axis = 1
+                    )
+                )
     
     def _enric_filter(self, protein, tbl, hfracs):
         """
@@ -9693,13 +9699,20 @@ class Screening(object):
         and one set of highest fractions.
         """
         
+        hfracs = tuple(hfracs)
         ratio  = self.enric_equal_fractions_ratio
+        
+        _ = tbl.setdefault('enr',   {})
+        _ = tbl.setdefault('enrb',  {})
+        _ = tbl['enr'].setdefault(hfracs,  {})
+        _ = tbl['enrb'].setdefault(hfracs, {})
         
         nfracs = dict(enumerate(self.protein_containing_fractions(protein)))
         pfracs = dict(map(lambda fr: (fr[1], fr[0]), iteritems(nfracs)))
         ifracs = self.fraction_indices(protein)
         pprofs = self.pprofs[protein]
         fe     = tbl['fe']
+        shape  = [fe.shape[0], 1]
         
         # this is the default, we select the one just before
         # the highest
@@ -9763,6 +9776,9 @@ class Screening(object):
                              fe[:,ifracs[fr22][0]]) > 1.0
                         )
             
+            tbl['enr'][hfracs][(fr11, fr12)] = iratio1.reshape(shape)
+            tbl['enr'][hfracs][(fr21, fr22)] = iratio2.reshape(shape)
+            
             if fr31 != fr32:
                 # to not calculate it twice
                 iratio3 = (fe[:,ifracs[fr31][0]] /
@@ -9779,19 +9795,16 @@ class Screening(object):
                             )
                           )
                 
-            else:
-                # all True
-                # does it make sense to add this dummy column?
-                iratio3 = np.array([True] * fe.shape[0])
+                tbl['enr'][hfracs][(fr31, fr32)] = iratio3.reshape(shape)
         
-        shape = [fe.shape[0], 1]
-        
-        return ((iratio1.reshape(shape),
-                 iratio2.reshape(shape),
-                 iratio3.reshape(shape)),
-                (fr11, fr22),
-                (fr21, fr22),
-                (fr31, fr32))
+        tbl['enrb'][hfracs] = (
+                                np.all(
+                                    np.hstack(
+                                        list(tbl['enr'][hfracs].values())
+                                    ),
+                                    axis = 1
+                                ).reshape(shape) # one bool vector
+                              )
     
     def plot_score_performance(self, perf):
         metrics = [
