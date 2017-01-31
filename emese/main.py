@@ -9695,10 +9695,27 @@ class Screening(object):
         pprofs = self.pprofs[protein]
         fe     = tbl['fe']
         
-        fr_minus1 = nfracs[pfracs[hfracs[0]]  - 1]
-        fr_plus1  = nfracs[pfracs[hfracs[-1]] + 1]
-        pratio1   = pprofs[fr_minus1]  / pprofs[hfracs[0]]
-        pratio2   = pprofs[hfracs[-1]] / pprofs[fr_plus1]
+        # this is the default, we select the one just before
+        # the highest
+        i_minus1 = pfracs[hfracs[0]]  - 1 # h-1
+        i_plus1  = pfracs[hfracs[-1]] + 1 # h+1
+        fr21  = hfracs[-1]                # always the last of highest h(-1)
+        fr22  = nfracs[i_plus1]           # the one after that (h+1)
+        if i_minus1 < 0:
+            # in few cases we don't have the fraction -1
+            # then we select the fraction by 2 after the highest
+            i_minus1 = pfracs[hfracs[-1]]  + 2
+            fr11 = fr21             # the h+1 one
+            fr12 = nfracs[i_minus1] # the h+2 one
+        else:
+            fr11 = nfracs[i_minus1] # the h-1 one
+            fr12 = hfracs[0]        # the h(1)
+        
+        fr31 = hfracs[0]  # only matters if we have 2 highest
+        fr32 = hfracs[-1] #
+        
+        pratio1 = pprofs[fr11] / pprofs[fr12] # either -1 or +2
+        pratio2 = pprofs[fr21] / pprofs[fr22] # always +1
         with np.errstate(divide = 'ignore', invalid = 'ignore'):
             # as we control all arrays to be greater than zero
             # otherwise result will be False
@@ -9706,42 +9723,47 @@ class Screening(object):
             # invalid values
             iratio1   = np.logical_and(
                             np.logical_and(
-                                fe[:,ifracs[fr_minus1][0]] > 0.0,
-                                fe[:,ifracs[hfracs[0]][0]] > 0.0
+                                fe[:,ifracs[fr11][0]] > 0.0,
+                                fe[:,ifracs[fr12][0]] > 0.0
                             ),
-                            (fe[:,ifracs[fr_minus1][0]] /
-                            fe[:,ifracs[hfracs[0]][0]]) < 1.0
+                            (fe[:,ifracs[fr11][0]] /
+                             fe[:,ifracs[fr12][0]]) < 1.0
                         )
             iratio2   = np.logical_and(
                             np.logical_and(
-                                fe[:,ifracs[fr_plus1][0]] > 0.0,
-                                fe[:,ifracs[hfracs[-1]][0]] > 0.0
+                                fe[:,ifracs[fr21][0]] > 0.0,
+                                fe[:,ifracs[fr22][0]] > 0.0
                             ),
-                            (fe[:,ifracs[hfracs[-1]][0]] /
-                            fe[:,ifracs[fr_plus1][0]]) > 1.0
+                            (fe[:,ifracs[fr21][0]] /
+                             fe[:,ifracs[fr22][0]]) > 1.0
                         )
             
-            if len(hfracs) > 1:
+            if fr31 != fr32:
+                # to not calculate it twice
+                iratio3 = (fe[:,ifracs[fr31][0]] /
+                           fe[:,ifracs[fr32][0]])
+                
                 iratio3 = np.logical_and(
                             np.logical_and(
-                                fe[:,ifracs[hfracs[0]][0]] > 0.0,
-                                fe[:,ifracs[hfracs[-1]][0]] > 0.0
+                                fe[:,ifracs[fr31][0]] > 0.0,
+                                fe[:,ifracs[fr32][0]] > 0.0
                             ),
-                            (ratio < (
-                                    fe[:,ifracs[hfracs[0]][0]] /
-                                    fe[:,ifracs[hfracs[-1]][0]]
-                            ) < 1.0 / ratio)
-                        )
+                            np.logical_and(
+                                iratio3 > ratio,
+                                iratio3 < 1.0 / ratio
+                            )
+                          )
                 
             else:
                 # all True
+                # does it make sense to add this dummy column?
                 iratio3 = np.array([True] * fe.shape[0])
         
         shape = [fe.shape[0], 1]
         
-        return np.hstack([iratio1.reshape(shape),
-                          iratio2.reshape(shape),
-                          iratio3.reshape(shape)])
+        return (iratio1.reshape(shape),
+                iratio2.reshape(shape),
+                iratio3.reshape(shape))
     
     def plot_score_performance(self, perf):
         metrics = [

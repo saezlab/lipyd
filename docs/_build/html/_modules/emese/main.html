@@ -6605,6 +6605,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">peak_ratio_score</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">combine_peak_ratio_scores</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">peak_ratio_score_bool</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enric_filter</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lipid_lookup_exact</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ms1_headgroups</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">negative_positive2</span><span class="p">()</span>
@@ -9553,10 +9554,11 @@
 <div class="viewcode-block" id="Screening.peak_ratio_score"><a class="viewcode-back" href="../../index.html#emese.main.Screening.peak_ratio_score">[docs]</a>    <span class="k">def</span> <span class="nf">peak_ratio_score</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculates the difference between the mean intensity peak ratio</span>
-<span class="sd">        expressef in number of standard deviations.</span>
+<span class="sd">        expressed in number of standard deviations.</span>
 <span class="sd">        The mean and the SD calculated in the range of the expected</span>
 <span class="sd">        ratio minus lower plus upper.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        
         <span class="n">lower</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peak_ratio_score_bandwidth</span>
         <span class="n">upper</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">lower</span>
         <span class="n">proteins</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valids</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -9699,7 +9701,109 @@
             <span class="k">for</span> <span class="n">mode</span><span class="p">,</span> <span class="n">tbl</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
                 <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;prs1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;prs&#39;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">peak_ratio_score_threshold</span>
     
-    <span class="c1"># Screening().fractions_barplot(fractions_upper, pprofs)</span>
+<div class="viewcode-block" id="Screening.enric_filter"><a class="viewcode-back" href="../../index.html#emese.main.Screening.enric_filter">[docs]</a>    <span class="k">def</span> <span class="nf">enric_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Implements the feature selection according to Enric&#39;s proposal.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enric_profile_selection</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="k">for</span> <span class="n">protein</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valids</span><span class="p">):</span>
+            
+            <span class="k">for</span> <span class="n">mode</span><span class="p">,</span> <span class="n">tbl</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+                
+                <span class="n">hpeak</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hpeak</span><span class="p">[</span><span class="n">protein</span><span class="p">]</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+                
+                <span class="k">for</span> <span class="n">hfracs</span> <span class="ow">in</span> <span class="n">hpeak</span><span class="p">:</span>
+                    
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_enric_filter</span><span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">tbl</span><span class="p">,</span> <span class="n">hfracs</span><span class="p">)</span>
+                    <span class="p">)</span>
+                
+                <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;enr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;enrb&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;enr&#39;</span><span class="p">],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">_enric_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">protein</span><span class="p">,</span> <span class="n">tbl</span><span class="p">,</span> <span class="n">hfracs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates Enric&#39;s filter for one protein</span>
+<span class="sd">        and one set of highest fractions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">ratio</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enric_equal_fractions_ratio</span>
+        
+        <span class="n">nfracs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">protein_containing_fractions</span><span class="p">(</span><span class="n">protein</span><span class="p">)))</span>
+        <span class="n">pfracs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">fr</span><span class="p">:</span> <span class="p">(</span><span class="n">fr</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">fr</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">nfracs</span><span class="p">)))</span>
+        <span class="n">ifracs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fraction_indices</span><span class="p">(</span><span class="n">protein</span><span class="p">)</span>
+        <span class="n">pprofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pprofs</span><span class="p">[</span><span class="n">protein</span><span class="p">]</span>
+        <span class="n">fe</span>     <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;fe&#39;</span><span class="p">]</span>
+        
+        <span class="c1"># this is the default, we select the one just before</span>
+        <span class="c1"># the highest</span>
+        <span class="n">i_minus1</span> <span class="o">=</span> <span class="n">pfracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>  <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">i_plus1</span>  <span class="o">=</span> <span class="n">pfracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">fr_comp21</span>  <span class="o">=</span> <span class="n">nfracs</span><span class="p">[</span><span class="n">i_plus1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">i_minus1</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># in few cases we don&#39;t have the fraction -1</span>
+            <span class="c1"># then we select the fraction by 2 after the highest</span>
+            <span class="n">i_minus1</span> <span class="o">=</span> <span class="n">pfracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>  <span class="o">+</span> <span class="mi">2</span>
+            <span class="n">fr11</span> <span class="o">=</span> <span class="n">fr_comp21</span> <span class="c1"># the h+1 one</span>
+            <span class="n">fr12</span> <span class="o">=</span> <span class="n">nfracs</span><span class="p">[</span><span class="n">i_minus1</span><span class="p">]</span> <span class="c1"># the h+2 one</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fr11</span> <span class="o">=</span> <span class="n">nfracs</span><span class="p">[</span><span class="n">i_minus1</span><span class="p">]</span> <span class="c1"># the h-1 one</span>
+            <span class="n">fr12</span> <span class="o">=</span> <span class="n">hfracs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># the h(0)</span>
+        
+        <span class="n">fr</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="n">pratio1</span>   <span class="o">=</span> <span class="n">pprofs</span><span class="p">[</span><span class="n">fr11</span><span class="p">]</span>  <span class="o">/</span> <span class="n">pprofs</span><span class="p">[</span><span class="n">fr12</span><span class="p">]</span>
+        <span class="n">pratio2</span>   <span class="o">=</span> <span class="n">pprofs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">/</span> <span class="n">pprofs</span><span class="p">[</span><span class="n">fr_plus1</span><span class="p">]</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span> <span class="o">=</span> <span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">invalid</span> <span class="o">=</span> <span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
+            <span class="c1"># as we control all arrays to be greater than zero</span>
+            <span class="c1"># otherwise result will be False</span>
+            <span class="c1"># we can safely ignore zero division or</span>
+            <span class="c1"># invalid values</span>
+            <span class="n">iratio1</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                                <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr_minus1</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span>
+                                <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+                            <span class="p">),</span>
+                            <span class="p">(</span><span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr_minus1</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">/</span>
+                            <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]])</span> <span class="o">&lt;</span> <span class="mf">1.0</span>
+                        <span class="p">)</span>
+            <span class="n">iratio2</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                                <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr_plus1</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span>
+                                <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+                            <span class="p">),</span>
+                            <span class="p">(</span><span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">/</span>
+                            <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr_plus1</span><span class="p">][</span><span class="mi">0</span><span class="p">]])</span> <span class="o">&gt;</span> <span class="mf">1.0</span>
+                        <span class="p">)</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hfracs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">iratio3</span> <span class="o">=</span> <span class="p">(</span><span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">/</span>
+                           <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]][</span><span class="mi">0</span><span class="p">]])</span>
+                
+                <span class="n">iratio3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                                <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span>
+                                <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+                            <span class="p">),</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                                <span class="n">iratio3</span> <span class="o">&gt;</span> <span class="n">ratio</span><span class="p">,</span>
+                                <span class="n">iratio3</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">ratio</span>
+                            <span class="p">)</span>
+                          <span class="p">)</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># all True</span>
+                <span class="n">iratio3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">True</span><span class="p">]</span> <span class="o">*</span> <span class="n">fe</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">fe</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">iratio1</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+                          <span class="n">iratio2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+                          <span class="n">iratio3</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)])</span>
     
     <span class="k">def</span> <span class="nf">plot_score_performance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">perf</span><span class="p">):</span>
         <span class="n">metrics</span> <span class="o">=</span> <span class="p">[</span>
