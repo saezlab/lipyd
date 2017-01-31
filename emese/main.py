@@ -9702,8 +9702,9 @@ class Screening(object):
         hfracs = tuple(hfracs)
         ratio  = self.enric_equal_fractions_ratio
         
-        _ = tbl.setdefault('enr',   {})
-        _ = tbl.setdefault('enrb',  {})
+        _ = tbl.setdefault('enr',  {})
+        _ = tbl.setdefault('enrb', {})
+        _ = tbl.setdefault('enri', {})
         _ = tbl['enr'].setdefault(hfracs,  {})
         _ = tbl['enrb'].setdefault(hfracs, {})
         
@@ -9805,6 +9806,8 @@ class Screening(object):
                                     axis = 1
                                 ).reshape(shape) # one bool vector
                               )
+        
+        tbl['enri'][hfracs] = [(fr11, fr12), (fr21, fr22), (fr31, fr32)]
     
     def plot_score_performance(self, perf):
         metrics = [
@@ -12481,8 +12484,29 @@ class Screening(object):
                 else '[M+HCOO]- Lipids (LipidMaps)', 3.31),
             ('[M+Na]+ Lipids (LipidMaps)' if mode == 'pos' \
                 else 'Nothing', 3.31),
-            ('Present in all protein containing fractions', 2.12)
+            ('Present in all protein containing fractions', 2.12),
+            
         ]
+        
+        if self.enric_profile_selection:
+            
+            hdr.extend([
+                ('Enric filter final', 2.12),
+                ('Fractions 1a', 2.12),
+                ('Fractions 2a', 2.12),
+                ('Fractions 3a', 2.12),
+                ('Filter 1a', 2.12),
+                ('Filter 2a', 2.12),
+                ('Filter 3a', 2.12),
+                ('Filter a', 2.12),
+                ('Fractions 1b', 2.12),
+                ('Fractions 2b', 2.12),
+                ('Fractions 3b', 2.12),
+                ('Filter 1b', 2.12),
+                ('Filter 2b', 2.12),
+                ('Filter 3b', 2.12),
+                ('Filter b', 2.12)
+            ])
         
         colw = list(map(lambda f: f[1], hdr))
         
@@ -12593,15 +12617,20 @@ class Screening(object):
             
             aaa = tbl['aa'][i] if self.use_original_average_area else tbl['aaa'][i]
             
+            if self.enric_profile_selection:
+                profile_condition = tbl['enrbb'][i]
+            else:
+                profile_condition = tbl['prr'] is None or tbl['prr'][i]
+            
             good = tbl['peaksize'][i] >= 5.0 and \
-                (tbl['prr'] is None or tbl['prr'][i]) and \
+                profile_condition and \
                 (aaa >= self.aa_threshold[mode] or \
                 (oi in tbl['ms2f'] and len(tbl['ms2f'][oi].deltart) and \
                     (min(map(abs, tbl['ms2f'][oi].deltart.values())) <= 1.0 or \
                         not check_deltart))) and not tbl['na'][i]
             
             _good = tbl['peaksize'][i] >= 5.0 and \
-                (tbl['prr'] is None or tbl['prr'][i]) and \
+                profile_condition and \
                 ((aaa >= self.aa_threshold[mode] and \
                     (any(map(len, [lips1, lips2, lips3, lips1l, lips2l, lips3l])))) or \
                 (oi in tbl['ms1hg'] and oi in tbl['ms2hg2'] and \
@@ -12609,7 +12638,7 @@ class Screening(object):
             
             if not only_best or good:
                 
-                rows.append([
+                this_row = [
                     tbl['qua'][i],
                     tbl['sig'][i],
                     (mz_original, 'green' if _good else 'plain'),
@@ -12701,7 +12730,49 @@ class Screening(object):
                     (lips3l, 'green' if len(lips3l) else 'plain'),
                     ('missing values' if tbl['na'][i] else 'no missing values',
                     'plain' if tbl['na'][i] else 'green')
-                ])
+                ]
+                
+                if self.enric_profile_selection:
+                    
+                    this_row.append(
+                        ('OK'    if tbl['enrbb'][i] else 'NOT_OK',
+                         'green' if tbl['enrbb'][i] else 'plain'),
+                    )
+                    
+                    for hfracs in self.hpeak[protein]:
+                        
+                        hfracs = tuple(hfracs)
+                        
+                        for fri in tbl['enri'][hfracs]:
+                            
+                            if fri[0] != fri[1]:
+                                this_row.append(
+                                    ('%s:%s' % fri,
+                                    'green' if tbl['enr'][hfracs][fri][i] else 'plain')
+                                )
+                            else:
+                                this_row.append('None', 'plain')
+                        
+                        for fri in tbl['enri'][hfracs]:
+                            
+                            if fri[0] != fri[1]:
+                                this_row.append(
+                                    ('OK'   if tbl['enr'][hfracs][fri][i] else 'NOT_OK',
+                                    'green' if tbl['enr'][hfracs][fri][i] else 'plain')
+                                )
+                            else:
+                                this_row.append('None', 'plain')
+                        
+                        this_row.append(
+                            ('OK'    if tbl['enrb'][hfracs][i] else 'NOT_OK',
+                             'green' if tbl['enrb'][hfracs][i] else 'plain')
+                        )
+                    
+                    if len(hfracs) == 1:
+                        this_row.extend([('None', 'plain')] * 7)
+                
+                rows.append(this_row)
+                
         if colws:
             return rows, colw
         else:
