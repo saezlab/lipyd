@@ -2363,6 +2363,11 @@ class Screening(object):
             # the intensity ratios between them. E.g if this number is
             # 0.75, ratios between 0.75 and 1.33 will be accepted.
             'enric_equal_fractions_ratio': 0.75,
+            # when we have only the descending parts of the profiles
+            # in the measured fractions, we set this additional
+            # constraint to avoid include everything descending
+            # and select those which still fit better the protein
+            'enric_descending_slope_diff_tolerance': 0.8,
             # the MS2 retention time values must be within the RT
             # range of the feature detected in MS1, otherwise
             # will be dropped
@@ -2370,6 +2375,7 @@ class Screening(object):
             # consider the MS2 scans from only those fractions
             # containing the protein, or from all available fractions
             'ms2_only_protein_fractions' : False,
+            # don't know what it is for
             'uniprots': None,
             # method names to convert between adduct and exact masses
             'ad2ex': {
@@ -9761,9 +9767,12 @@ class Screening(object):
         
         shape = [fe.shape[0], 1]
         
-        return (iratio1.reshape(shape),
-                iratio2.reshape(shape),
-                iratio3.reshape(shape))
+        return ((iratio1.reshape(shape),
+                 iratio2.reshape(shape),
+                 iratio3.reshape(shape)),
+                (fr11, fr22),
+                (fr21, fr22),
+                (fr31, fr32))
     
     def plot_score_performance(self, perf):
         metrics = [
