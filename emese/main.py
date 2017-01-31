@@ -1324,6 +1324,9 @@ class Feature(object):
                 self.msg('\t<<< Result: not %s\n' % hg)
 
 class MS2Scan(object):
+    """
+    This class represents one MS2 scan and provides methods for its analysis.
+    """
     
     def __init__(self, scan, scan_id, feature):
         
@@ -2134,13 +2137,14 @@ class MS2Scan(object):
 # ##
 
 class Screening(object):
+    """
+    Currently this is the main class in this module.
+    Accepts dozens of parameters as keyword arguments.
+    To see all these check the ``defaults`` dict in the code of the
+    ``__init__()`` method.
+    """
     
     def __init__(self, **kwargs):
-        """
-        The module accepts dozens of parameters as keyword arguments.
-        To see all these check the ``defaults`` dict in the code of the
-        ``__init__()`` method.
-        """
         
         self.defaults = {
             # The absolute root directory.
@@ -3301,20 +3305,21 @@ class Screening(object):
         Runs the complete workflow of all protein and
         intensity profile related calculations.
         This includes:
-            -- reading the UV absorbances
-            -- taking the mean absorbance for each fraction
-               with multiple offsets if necessary
-            -- doing corrections for baseline and background
-            -- getting a mean from different offsets
-            -- optionally determining the protein containing
-               fractions from the absorbances
-            -- reading manually defined protein ratios if
-               ``use_manual_ppratios`` is ``True``
-            -- determining measured fractions for each protein
-            -- listing those proteins measured only in one
-               fraction
-            -- setting the protein content values of all non
-               protein containing fractions to zero
+        - reading the UV absorbances
+        - taking the mean absorbance for each fraction
+        with multiple offsets if necessary
+        - doing corrections for baseline and background
+        - getting a mean from different offsets
+        - optionally determining the protein containing
+        fractions from the absorbances
+        - reading manually defined protein ratios if
+        ``use_manual_ppratios`` is ``True``
+        - determining measured fractions for each protein
+        - listing those proteins measured only in one
+        fraction
+        - setting the protein content values of all non
+        protein containing fractions to zero
+        
         """
         
         self.raw_sec_absorbances()
@@ -6440,7 +6445,8 @@ class Screening(object):
     def negative_positive2(self):
         """
         Results in dicts ['pos']['neg'] and ['neg']['pos'].
-        Values in each array: assumed positive adduct, assumed negative adduct, 
+        
+        Values in each array: assumed positive adduct, assumed negative adduct,
             measured positive m/z, measured negative m/z
         """
         ad2ex = self.ad2ex[1]
@@ -6555,6 +6561,7 @@ class Screening(object):
         self.peak_ratio_score()
         self.combine_peak_ratio_scores()
         self.peak_ratio_score_bool()
+        self.enric_filter()
         self.lipid_lookup_exact()
         self.ms1_headgroups()
         self.negative_positive2()
@@ -6571,11 +6578,16 @@ class Screening(object):
     def ms2(self):
         """
         Calls all methods in the MS2 pipeline. This involves
-        -- reading and autogenerating the fragment lists
-        -- identifying the MS2 mgf files
-        -- mapping mgf file offsets to scans
-        -- identifying detected fragments using the lists
-        -- identifying the features based on charecteristic
+        
+        - reading and autogenerating the fragment lists
+        
+        - identifying the MS2 mgf files
+        
+        - mapping mgf file offsets to scans
+        
+        - identifying detected fragments using the lists
+        
+        - identifying the features based on charecteristic
            fragments
         """
         self.ms2_metabolites()
@@ -7956,11 +7968,12 @@ class Screening(object):
         """
         Reads all additional annotations necessary for data processing.
         These are:
-            * fractions: which fraction is protein containing,
-            control, or have not been measured
-            * lipid names: short notations, database keywords and most
-            abundant adducts for lipid classes
-            * binding properties: known binders of lipid classes
+        - fractions: which fraction is protein containing,
+        control, or have not been measured
+        - lipid names: short notations, database keywords and most
+        abundant adducts for lipid classes
+        - binding properties: known binders of lipid 
+        
         """
         self.read_fractions()
         self.upper_fractions()
@@ -8123,8 +8136,8 @@ class Screening(object):
 
     def upper_fractions(self):
         """
-        Creates the dict `fractions_upper` of fractions with
-        uppercase LTP names, with same content as `fractions`.
+        Creates the dict ``fractions_upper`` of fractions with
+        uppercase LTP names, with same content as ``fractions``.
         """
         if hasattr(self, 'fractions'):
             self.fractions_upper = \
@@ -8135,7 +8148,7 @@ class Screening(object):
         Creates a list of those proteins present only in one fraction.
         Abundance ratio for these can not be calculated.
         
-        The result stored in `onepfraction` attribute.
+        The result stored in ``onepfraction`` attribute.
         """
         self.onepfraction = [k.upper() for k, v in iteritems(self.fractions) \
             if sum((i for i in v.values() if i is not None)) == 1]
@@ -8143,13 +8156,13 @@ class Screening(object):
     def read_lipid_names(self):
         """
         Reads annotations for lipid classes:
-            * full names
-            * short notations
-            * database keywords
-            (to process long names from SwissLipids and LipidMaps)
-            * most abundant adducts
+        - full names
+        - short notations
+        - database keywords
+        (to process long names from SwissLipids and LipidMaps)
+        - most abundant adducts
         
-        The input file is given by the `lipnamesf` attribute.
+        The input file is given by the ``lipnamesf`` attribute.
         """
         result = {}
         with open(self.lipnamesf, 'r') as f:
@@ -8264,9 +8277,10 @@ class Screening(object):
         """
         Creates new dict of arrays with only valid features.
         Keys:
-            'fe': features
-            'mz': m/z values
-            'i': original index
+        - 'fe': features
+        - 'mz': m/z values
+        - 'i': original index
+        
         """
         
         self.fractions_marco()
@@ -8353,7 +8367,7 @@ class Screening(object):
         """
         Creates table with all the profiles normalized
         Keys:
-            'no': normalized profiles
+        - 'no': normalized profiles
         """
         for protein, d in iteritems(self.valids):
             for pn, tbl in iteritems(d):
@@ -9082,14 +9096,18 @@ class Screening(object):
         as a fix value,
         or as a fraction of the minimum or maximum value of the score.
         Threshold type is either `fix`, `relative` or `best_fraction`.
-        fix: values below or equal this number if lower is the better, otherwise
+        
+        - fix: values below or equal this number if lower is the better, otherwise
             values above or equal will be selected
-        relative: threshold will be set the minimum value (if ordered ascending)
+        
+        - relative: threshold will be set the minimum value (if ordered ascending)
             or maximum value multiplied by the threshold
-        best_fraction: opposite way as at the `relative`, at ascending order
+        
+        - best_fraction: opposite way as at the `relative`, at ascending order
             the maximum, at descending the minimum will be multiplied by the
             threshold
-        count: the absolute maximum number of selected instances
+        
+        - count: the absolute maximum number of selected instances
         """
         sort_alll(self.valids, score, asc = True)
         for protein, d in iteritems(self.valids):
@@ -9492,10 +9510,11 @@ class Screening(object):
     def peak_ratio_score(self):
         """
         Calculates the difference between the mean intensity peak ratio
-        expressef in number of standard deviations.
+        expressed in number of standard deviations.
         The mean and the SD calculated in the range of the expected
         ratio minus lower plus upper.
         """
+        
         lower = self.peak_ratio_score_bandwidth
         upper = 1.0 / lower
         proteins = sorted(self.valids.keys())
@@ -9638,7 +9657,91 @@ class Screening(object):
             for mode, tbl in iteritems(d):
                 tbl['prs1'] = tbl['prs'] <= self.peak_ratio_score_threshold
     
-    # Screening().fractions_barplot(fractions_upper, pprofs)
+    def enric_filter(self):
+        """
+        Implements the feature selection according to Enric's proposal.
+        """
+        
+        if not self.enric_profile_selection:
+            return None
+        
+        for protein, d in iteritems(self.valids):
+            
+            for mode, tbl in iteritems(d):
+                
+                hpeak  = self.hpeak[protein]
+                result = []
+                
+                for hfracs in hpeak:
+                    
+                    result.append(
+                        self._enric_filter(protein, tbl, hfracs)
+                    )
+                
+                tbl['enr'] = np.hstack(result)
+                tbl['enrb']  = np.all(tbl['enr'], axis = 1)
+    
+    def _enric_filter(self, protein, tbl, hfracs):
+        """
+        Calculates Enric's filter for one protein
+        and one set of highest fractions.
+        """
+        
+        ratio  = self.enric_equal_fractions_ratio
+        
+        nfracs = dict(enumerate(self.protein_containing_fractions(protein)))
+        pfracs = dict(map(lambda fr: (fr[1], fr[0]), iteritems(nfracs)))
+        ifracs = self.fraction_indices(protein)
+        pprofs = self.pprofs[protein]
+        fe     = tbl['fe']
+        
+        fr_minus1 = nfracs[pfracs[hfracs[0]]  - 1]
+        fr_plus1  = nfracs[pfracs[hfracs[-1]] + 1]
+        pratio1   = pprofs[fr_minus1]  / pprofs[hfracs[0]]
+        pratio2   = pprofs[hfracs[-1]] / pprofs[fr_plus1]
+        with np.errstate(divide = 'ignore', invalid = 'ignore'):
+            # as we control all arrays to be greater than zero
+            # otherwise result will be False
+            # we can safely ignore zero division or
+            # invalid values
+            iratio1   = np.logical_and(
+                            np.logical_and(
+                                fe[:,ifracs[fr_minus1][0]] > 0.0,
+                                fe[:,ifracs[hfracs[0]][0]] > 0.0
+                            ),
+                            (fe[:,ifracs[fr_minus1][0]] /
+                            fe[:,ifracs[hfracs[0]][0]]) < 1.0
+                        )
+            iratio2   = np.logical_and(
+                            np.logical_and(
+                                fe[:,ifracs[fr_plus1][0]] > 0.0,
+                                fe[:,ifracs[hfracs[-1]][0]] > 0.0
+                            ),
+                            (fe[:,ifracs[hfracs[-1]][0]] /
+                            fe[:,ifracs[fr_plus1][0]]) > 1.0
+                        )
+            
+            if len(hfracs) > 1:
+                iratio3 = np.logical_and(
+                            np.logical_and(
+                                fe[:,ifracs[hfracs[0]][0]] > 0.0,
+                                fe[:,ifracs[hfracs[-1]][0]] > 0.0
+                            ),
+                            (ratio < (
+                                    fe[:,ifracs[hfracs[0]][0]] /
+                                    fe[:,ifracs[hfracs[-1]][0]]
+                            ) < 1.0 / ratio)
+                        )
+                
+            else:
+                # all True
+                iratio3 = np.array([True] * fe.shape[0])
+        
+        shape = [fe.shape[0], 1]
+        
+        return np.hstack([iratio1.reshape(shape),
+                          iratio2.reshape(shape),
+                          iratio3.reshape(shape)])
     
     def plot_score_performance(self, perf):
         metrics = [
