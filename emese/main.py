@@ -9710,10 +9710,12 @@ class Screening(object):
         if i_minus1 < 0:
             # in few cases we don't have the fraction -1
             # then we select the fraction by 2 after the highest
+            only_descending = True
             i_minus1 = pfracs[hfracs[-1]]  + 2
             fr11 = fr21             # the h+1 one
             fr12 = nfracs[i_minus1] # the h+2 one
         else:
+            only_descending = True
             fr11 = nfracs[i_minus1] # the h-1 one
             fr12 = hfracs[0]        # the h(1)
         
@@ -9722,19 +9724,36 @@ class Screening(object):
         
         pratio1 = pprofs[fr11] / pprofs[fr12] # either -1 or +2
         pratio2 = pprofs[fr21] / pprofs[fr22] # always +1
+        
         with np.errstate(divide = 'ignore', invalid = 'ignore'):
             # as we control all arrays to be greater than zero
             # otherwise result will be False
             # we can safely ignore zero division or
             # invalid values
+            
+            iratio1 = (fe[:,ifracs[fr11][0]] / # numeric vector
+                       fe[:,ifracs[fr12][0]])  # of ratios
+            
+            if only_descending:
+                # descending, but not more than certain threshold
+                iratio1 = np.logical_and(
+                            iratio1 < pratio1,
+                            iratio1 > (
+                                pratio1 *
+                                self.enric_descending_slope_diff_tolerance
+                            )
+                          )
+            else:
+                iratio1 = iratio1 < 1.0 # ascending
+            
             iratio1   = np.logical_and(
                             np.logical_and(
                                 fe[:,ifracs[fr11][0]] > 0.0,
                                 fe[:,ifracs[fr12][0]] > 0.0
                             ),
-                            (fe[:,ifracs[fr11][0]] /
-                             fe[:,ifracs[fr12][0]]) < 1.0
+                            iratio1 # this is bool vector
                         )
+            
             iratio2   = np.logical_and(
                             np.logical_and(
                                 fe[:,ifracs[fr21][0]] > 0.0,
