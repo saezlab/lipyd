@@ -6565,9 +6565,13 @@ class Screening(object):
         self.intensity_peak_ratios()
         self.ratios_in_range()
         self.peak_ratio_score()
+        self.enric_filter()
+        # this we do after Enric as we collect
+        # the peak ratio scores from the highest
+        # fraction pairs defined in `enric_filter`
         self.combine_peak_ratio_scores()
         self.peak_ratio_score_bool()
-        self.enric_filter()
+        self.export_scores()
         self.lipid_lookup_exact()
         self.ms1_headgroups()
         self.negative_positive2()
@@ -9627,11 +9631,11 @@ class Screening(object):
                             tbl['prsa']
                         )
                     )
-                ).reshape([tbl['prsa'].shape[0], 1]) # mean ignoring infinites and NaNs
+                ) # mean ignoring infinites and NaNs
                 #tbl['prs'] = np.nanmean(tbl['prsa'], axis = 1) # mean score
                 tbl['prs'][np.where(tbl['na'])] = np.inf
-                tbl['prsf'] = tbl['prsa'][tbl['ipri'][fkeyf]] # score for first
-                tbl['prsh'] = tbl['prsa'][tbl['ipri'][fkeyh]] # highest diff.
+                tbl['prsf'] = tbl['prsa'][:,tbl['ipri'][fkeyf]] # score for first
+                tbl['prsh'] = tbl['prsa'][:,tbl['ipri'][fkeyh]] # highest diff.
                 # taking the scores for fraction pairs
                 # around the peak (like in Enric's score)
                 if 'enri0' in tbl:
@@ -9665,7 +9669,36 @@ class Screening(object):
                                         xrange(tbl['prs'].shape[0])
                                     )
                                 )
-                            ).reshape([tbl['prs'].shape[0], 1])
+                            )
+    
+    def export_scores(self, fname = 'scores.csv'):
+        """
+        Exports a table with all scores for plotting with ggplot.
+        """
+        hdr = ['protein', 'mode', 'boolppr', 'boolprs', 'boolenr',
+               'boolprse', 'prs', 'prsf', 'prsh']
+        
+        with open(fname, 'w') as fp:
+            
+            fp.write('%s\n' % '\t'.join(hdr))
+            
+            for protein, d in iteritems(self.valids):
+                
+                for mode, tbl in iteritems(d):
+                    
+                    for i in xrange(tbl['prs'].shape[0]):
+                        
+                        fp.write('%s\n' % '\t'.join([
+                            protein,
+                            mode,
+                            str(tbl['prr'][i]),
+                            str(tbl['prs'][i] < 1.0),
+                            str(tbl['enrbb'][i]),
+                            str(tbl['prse'][i] < 1.0),
+                            '%.08f' % tbl['prs'][i],
+                            '%.08f' % tbl['prsf'][i],
+                            '%.08f' % tbl['prsh'][i],
+                        ]))
     
     def peak_ratio_score_hist(self, pdfname = None):
         """
