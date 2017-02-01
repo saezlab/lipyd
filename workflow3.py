@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #
@@ -36,7 +36,8 @@ from future.utils import iteritems
 import emese
 
 #l = ltp2.LTP(recal_source = 'denes', only_marcos_fragments = False, marco_lipnames_from_db = False)
-l = emese.Screening(only_marcos_fragments = False)
+l = emese.Screening(only_marcos_fragments = False,
+                    enric_profile_selection = True)
 
 
 '''
@@ -67,3 +68,5 @@ Lookup lipids for all the valid features. (variable name: `lip`)
 '''
 l.ms1()
 l.ms2_onebyone()
+
+l.fractions_barplot2()

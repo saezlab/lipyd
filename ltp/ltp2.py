@@ -2120,7 +2120,7 @@ class Screening(object):
             'basedir': ['home', 'denes', 'Documents' , 'enric'],
             'data_basedir': None,
             'datadirs': [['share']],
-            'fractionsf': 'LTPsceenprogres_v06.xlsx',
+            'fractionsf': 'LTPsceenprogres_v07.xlsx',
             'ppfracf': 'fractions.csv',
             'ppsecdir': 'SEC_profiles',
             'stddir': 'Standards_mzML format',
@@ -2197,6 +2197,7 @@ class Screening(object):
             'adducts_constraints': False,
             'marco_lipnames_from_db': True,
             'use_original_average_area': True,
+            'use_gel_profiles': True,
             'ms2_rt_within_range': False,
             'ms2_only_protein_fractions' : False,
             'uniprots': None,
@@ -2969,8 +2970,7 @@ class Screening(object):
             return None
         reprotein = re.compile(r'.*?[\s_-]?([A-Za-z0-9]{3,})_?[A-Za-z0-9]+?\.[a-z]{3}')
         self.absorb = {}
-        secdir = os.path.join(self.basedir, self.ppsecdir)
-        fnames = os.listdir(secdir)
+        fnames = os.listdir(self.ppsecdir)
         if fraclim:
             self.fraclim = {}
         for fname in fnames:
@@ -2999,7 +2999,7 @@ class Screening(object):
                         )
                     )
             else:
-                with open(os.path.join(secdir, fname), 'r') as f:
+                with open(os.path.join(self.ppsecdir, fname), 'r') as f:
                     
                     sec = \
                         list(
@@ -3085,6 +3085,7 @@ class Screening(object):
         """
         Calculates mean absorbances by fractions at
         all offsets in `fr_offsets`.
+        Result will be saved into `abs_by_frac`.
         """
         result = {}
         def get_segment(protein, c, lo, hi):
@@ -3118,6 +3119,7 @@ class Screening(object):
                             get_segment(protein, c, lim[0] + o, lim[1] + o) - \
                                 abs_min
                         )
+        
         self.abs_by_frac = result
     
     def pp_baseline_correction(self, base = 'a5'):
