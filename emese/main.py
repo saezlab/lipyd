@@ -9678,22 +9678,23 @@ class Screening(object):
                 hpeak  = self.hpeak[protein]
                 result = []
                 
-                for hfracs in hpeak:
+                for i, hfracs in enumerate(hpeak):
                     
-                    self._enric_filter(protein, tbl, hfracs)
+                    self._enric_filter(protein, tbl, hfracs, i)
+                    result.append(tbl['enrb%u' % i])
                 
                 # this is guaranteed to be only one vector
                 # for each table of features
                 tbl['enrbb'] = (
                     np.any(
                         np.hstack(
-                            list(tbl['enrb'].values())
+                            result
                         ),
                         axis = 1
                     )
                 )
     
-    def _enric_filter(self, protein, tbl, hfracs):
+    def _enric_filter(self, protein, tbl, hfracs, i):
         """
         Calculates Enric's filter for one protein
         and one set of highest fractions.
@@ -9701,12 +9702,6 @@ class Screening(object):
         
         hfracs = tuple(hfracs)
         ratio  = self.enric_equal_fractions_ratio
-        
-        _ = tbl.setdefault('enr',  {})
-        _ = tbl.setdefault('enrb', {})
-        _ = tbl.setdefault('enri', {})
-        _ = tbl['enr'].setdefault(hfracs,  {})
-        _ = tbl['enrb'].setdefault(hfracs, {})
         
         nfracs = dict(enumerate(self.protein_containing_fractions(protein)))
         pfracs = dict(map(lambda fr: (fr[1], fr[0]), iteritems(nfracs)))
@@ -9777,8 +9772,8 @@ class Screening(object):
                              fe[:,ifracs[fr22][0]]) > 1.0
                         )
             
-            tbl['enr'][hfracs][(fr11, fr12)] = iratio1.reshape(shape)
-            tbl['enr'][hfracs][(fr21, fr22)] = iratio2.reshape(shape)
+            tbl['enr%u%s%s' % (i, fr11, fr12)] = iratio1.reshape(shape)
+            tbl['enr%u%s%s' % (i, fr21, fr22)] = iratio2.reshape(shape)
             
             if fr31 != fr32:
                 # to not calculate it twice
@@ -9796,18 +9791,18 @@ class Screening(object):
                             )
                           )
                 
-                tbl['enr'][hfracs][(fr31, fr32)] = iratio3.reshape(shape)
+                tbl['enr%u%s%s' % (i, fr31, fr32)] = iratio3.reshape(shape)
         
-        tbl['enrb'][hfracs] = (
+        tbl['enrb%u' % i] = (
                                 np.all(
                                     np.hstack(
                                         list(tbl['enr'][hfracs].values())
                                     ),
                                     axis = 1
                                 ).reshape(shape) # one bool vector
-                              )
+                            )
         
-        tbl['enri'][hfracs] = [(fr11, fr12), (fr21, fr22), (fr31, fr32)]
+        tbl['enri%u' % i] = [(fr11, fr12), (fr21, fr22), (fr31, fr32)]
     
     def plot_score_performance(self, perf):
         metrics = [
@@ -12739,16 +12734,22 @@ class Screening(object):
                          'green' if tbl['enrbb'][i] else 'plain'),
                     )
                     
-                    for hfracs in self.hpeak[protein]:
+                    for hi, hfracs in enumerate(self.hpeak[protein]):
                         
                         hfracs = tuple(hfracs)
                         
-                        for fri in tbl['enri'][hfracs]:
+                        for fri in tbl['enri%u' % hi]:
                             
                             if fri[0] != fri[1]:
                                 this_row.append(
                                     ('%s:%s' % fri,
-                                    'green' if tbl['enr'][hfracs][fri][i] else 'plain')
+                                     (
+                                        'green'
+                                        if tbl['enr%u%s%s' % (
+                                            hi, fri[0], fri[1]
+                                        )][i]
+                                        else 'plain'
+                                    )
                                 )
                             else:
                                 this_row.append('None', 'plain')
