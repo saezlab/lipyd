@@ -7005,9 +7005,6 @@ class Screening(object):
         if proteins is not None and len(proteins) == 1:
             silent = True
         
-        prg = progress.Progress(len(self.ms2files) * 2, 'Indexing MS2 data', 1,
-            percent = False)
-        
         if not silent:
             prg = progress.Progress(len(self.ms2files) * 2,
                                     'Indexing MS2 data', 1,
@@ -9793,16 +9790,28 @@ class Screening(object):
                 
                 tbl['enr%u%s%s' % (i, fr31, fr32)] = iratio3.reshape(shape)
         
+        tbl['enri%u' % i] = [(fr11, fr12), (fr21, fr22)]
+        if fr31 != fr32:
+            tbl['enri%u' % i].append((fr31, fr32))
+        
         tbl['enrb%u' % i] = (
                                 np.all(
                                     np.hstack(
-                                        list(tbl['enr'][hfracs].values())
+                                        list(
+                                            map(
+                                                lambda v:
+                                                    tbl['enr%u%s%s' % (
+                                                        i, v[0], v[1]
+                                                    )],
+                                                tbl['enri%u' % i]
+                                            )
+                                        )
                                     ),
                                     axis = 1
                                 ).reshape(shape) # one bool vector
                             )
         
-        tbl['enri%u' % i] = [(fr11, fr12), (fr21, fr22), (fr31, fr32)]
+        
     
     def plot_score_performance(self, perf):
         metrics = [
@@ -12729,15 +12738,19 @@ class Screening(object):
                 
                 if self.enric_profile_selection:
                     
+                    # 1st columnt is the final outcome
                     this_row.append(
                         ('OK'    if tbl['enrbb'][i] else 'NOT_OK',
                          'green' if tbl['enrbb'][i] else 'plain'),
                     )
                     
+                    # now the 1 sometimes 2 ``highest`` i.e. peak
                     for hi, hfracs in enumerate(self.hpeak[protein]):
                         
                         hfracs = tuple(hfracs)
                         
+                        # the fraction pairs in this peak
+                        # 3 cols: the compared fractions
                         for fri in tbl['enri%u' % hi]:
                             
                             if fri[0] != fri[1]:
@@ -12749,26 +12762,48 @@ class Screening(object):
                                             hi, fri[0], fri[1]
                                         )][i]
                                         else 'plain'
+                                     )
                                     )
                                 )
                             else:
-                                this_row.append('None', 'plain')
+                                this_row.append(('None', 'plain'))
                         
-                        for fri in tbl['enri'][hfracs]:
+                        # if we use only 2 ratios
+                        if len(tbl['enri%u' % hi]) == 2:
+                            this_row.append(('None', 'plain'))
+                        
+                        # 3 cols: OK or NOT_OK
+                        for fri in tbl['enri%u' % hi]:
                             
                             if fri[0] != fri[1]:
                                 this_row.append(
-                                    ('OK'   if tbl['enr'][hfracs][fri][i] else 'NOT_OK',
-                                    'green' if tbl['enr'][hfracs][fri][i] else 'plain')
+                                    (
+                                        'OK'
+                                        if tbl['enr%u%s%s' % (
+                                            hi, fri[0], fri[1]
+                                        )][i]
+                                        else 'NOT_OK',
+                                        'green'
+                                        if tbl['enr%u%s%s' % (
+                                            hi, fri[0], fri[1]
+                                        )][i]
+                                        else 'plain'
+                                    )
                                 )
                             else:
-                                this_row.append('None', 'plain')
+                                this_row.append(('None', 'plain'))
                         
+                        # if we use only 2 ratios
+                        if len(tbl['enri%u' % hi]) == 2:
+                            this_row.append(('None', 'plain'))
+                        
+                        # 1 col: this peak overall is OK or NOT_OK
                         this_row.append(
-                            ('OK'    if tbl['enrb'][hfracs][i] else 'NOT_OK',
-                             'green' if tbl['enrb'][hfracs][i] else 'plain')
+                            ('OK'    if tbl['enrb%u' % hi][i] else 'NOT_OK',
+                             'green' if tbl['enrb%u' % hi][i] else 'plain')
                         )
                     
+                    # if we have only 1 peak, fill the place of the 2nd
                     if len(hfracs) == 1:
                         this_row.extend([('None', 'plain')] * 7)
                 
