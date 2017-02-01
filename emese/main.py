@@ -9615,10 +9615,57 @@ class Screening(object):
                 fkeyf = self.first_ratio[protein]
                 fkeyh = self.last_ratio[protein]
                 
-                tbl['prs'] = np.nanmean(tbl['prsa'], axis = 1) # mean score
+                tbl['prs'] = np.array(
+                    list(
+                        map(
+                            lambda a:
+                                (
+                                    np.mean(a[np.isfinite(a)])
+                                    if sum(np.isfinite(a)) > 0
+                                    else np.inf
+                                ),
+                            tbl['prsa']
+                        )
+                    )
+                ).reshape([tbl['prsa'].shape[0], 1]) # mean ignoring infinites and NaNs
+                #tbl['prs'] = np.nanmean(tbl['prsa'], axis = 1) # mean score
                 tbl['prs'][np.where(tbl['na'])] = np.inf
                 tbl['prsf'] = tbl['prsa'][tbl['ipri'][fkeyf]] # score for first
                 tbl['prsh'] = tbl['prsa'][tbl['ipri'][fkeyh]] # highest diff.
+                # taking the scores for fraction pairs
+                # around the peak (like in Enric's score)
+                if 'enri0' in tbl:
+                    # ignore warnings, as nan's produced in any invalid case
+                    # and that is fine
+                    with np.errstate(divide = 'ignore', invalid = 'ignore'):
+                        with warnings.catch_warnings():
+                            warnings.simplefilter('ignore', RuntimeWarning)
+                            tbl['prse'] = np.array(
+                                list(
+                                    map(
+                                        lambda i:
+                                            np.nanmean(
+                                                list(
+                                                    filter(
+                                                        lambda x:
+                                                            np.isfinite(x),
+                                                        map(
+                                                            lambda frs:
+                                                                tbl['prsa'][i,tbl[
+                                                                    'ipri'][frs]],
+                                                            tbl['enri0'] + (
+                                                                tbl['enri1']
+                                                                if 'enri1' in tbl
+                                                                else []
+                                                            )
+                                                        )
+                                                    )
+                                                )
+                                            ),
+                                        xrange(tbl['prs'].shape[0])
+                                    )
+                                )
+                            ).reshape([tbl['prs'].shape[0], 1])
     
     def peak_ratio_score_hist(self, pdfname = None):
         """
