@@ -5733,13 +5733,14 @@ class Screening(object):
         def __init__(self, fun):
             self.fun = fun
         
-        def __call__(self, **kwargs):
-            for protein in self.obj.data.keys():
-                for pn, tbl in iteritems(self.obj.data[protein]):
+        def __call__(self, *args, valids_only = True, **kwargs):
+            data = self.obj.valids if valids_only else self.obj.data
+            for protein in data.keys():
+                for pn, tbl in iteritems(data[protein]):
                     try:
-                        self.fun(self.obj, tbl, **kwargs)
-                    except:
-                        pass
+                        self.fun(self.obj, tbl, *args, **kwargs)
+                    except KeyError:
+                        print(protein, pn)
         
         def __get__(self, instance, owner):
             self.obj = instance
@@ -5882,6 +5883,14 @@ class Screening(object):
             tbl['cprf'][indices],
             tbl['rpr'][indices], tbl['ubi'][indices], tbl['uby'][indices] \
                 if 'uby' in tbl else np.zeros(len(indices)))
+    
+    @combine_filters
+    def logical_and(self, tbl, one, two, result, valids_only = True):
+        tbl[result] = np.logical_and(tbl[one], tbl[two])
+    
+    @combine_filters
+    def logical_or(self, tbl, one, two, result, valids_only = True):
+        tbl[result] = np.logical_or(tbl[one], tbl[two])
     
     @combine_filters
     def validity_filter(self, tbl):
@@ -9226,9 +9235,11 @@ class Screening(object):
     def fractions_barplot(self, features = False,
         highlight = False, highlight2 = False,
         all_features = True, pdfname = None):
+        
         if pdfname is None:
             pdfname = 'pp%s.pdf' % \
                 ('' if features is None else '_features')
+        
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         n = int(np.ceil(np.sqrt(len(self.pprofs))))
@@ -9236,9 +9247,11 @@ class Screening(object):
         proteins = sorted(self.fractions.keys())
         prg = progress.Progress(len(proteins), 'Plotting profiles', 1,
             percent = False)
+        
         for i in xrange(len(proteins)):
+            
             prg.step()
-            ax = axs[i / n, i % n]
+            ax = axs[i // n, i % n]
             protein_name = proteins[i]
             fracs = self.all_fractions(protein_name)
             #sorted(self.pprofs[protein_name].keys(),
@@ -9306,6 +9319,7 @@ class Screening(object):
             ax.set_xticks(np.arange(len(ppr)) + 0.4)
             ax.set_xticklabels(fracs, rotation = 90)
             ax.set_title('%s protein conc.'%protein_name)
+        
         fig.tight_layout()
         fig.savefig(pdfname)
         prg.terminate()
@@ -9313,27 +9327,48 @@ class Screening(object):
     
     def fractions_barplot2(self, features = False,
         highlight = False, highlight2 = False,
-        all_features = True, pdfname = None):
+        all_features = True, pdfname = None,
+        ignore_offsets = False):
+        
         if pdfname is None:
             pdfname = 'pp%s3.pdf' % \
                 ('' if not features else '_features')
+        
         font_family = 'Helvetica Neue LT Std'
         sns.set(font = font_family)
         fig, axs = plt.subplots(8, 8, figsize = (20, 20))
-        proteins = sorted(self.fractions_upper.keys())
+        proteins = sorted(self.valids.keys())
         prg = progress.Progress(len(proteins), 'Plotting profiles', 1,
             percent = False)
-        width = 0.3
+        width = (
+            0.9 if ignore_offsets else
+            0.3 if len(self.fr_offsets) == 2 else
+            0.45
+        )
+        
         for i in xrange(len(proteins)):
+            
             prg.step()
-            ax = axs[i / 8, i % 8]
-            protein_name = proteins[i].upper()
+            ax = axs[i // 8, i % 8]
+            protein = proteins[i].upper()
+            
             for (w, offset), label in \
-                zip(enumerate([0.0, self.fr_offsets[0], self.fr_offsets[-1]]), ['', 'L', 'U']):
+                zip(enumerate([0.0, self.fr_offsets[0],
+                                    self.fr_offsets[-1]]),
+                   ['', 'L', 'U']):
+                
+                if len(label) and ignore_offsets:
+                    continue
+                
+                if label == 'U':
+                    if not hasattr(self, 'pprofs_originalU'):
+                        continue
+                
                 ppr = np.array([getattr(self, 'pprofs%s' % label)\
-                    [protein_name][fr] for fr in self.fracs])
+                    [protein][fr] for fr in self.all_fractions(protein)])
                 ppr_o = np.array([getattr(self, 'pprofs_original%s' % label)\
-                    [protein_name][fr] for fr in self.fracs])
+                    [protein][fr] for fr in self.all_fractions(protein)])
+                
                 if features:
                     ppmax = np.nanmax(ppr_o)
                     ppmin = np.nanmin(ppr_o)
@@ -9343,36 +9378,38 @@ class Screening(object):
                 #B6B7B9 gray (not measured)
                 #6EA945 mantis (protein sample)
                 #007B7F teal (control/void)
-                col = ['#6EA945' if s == 1 else \
-                        '#B6B7B9' if s is None else \
-                        '#007B7F' \
-                    for s in self.fractions_upper[protein_name][1:]]
+                col = ['#6EA945' 
+                       if self.fractions[protein][fr]
+                       else '#007B7F'
+                    for fr in self.all_fractions(protein)]
                 ax.bar(np.arange(len(ppr)) + width * w, ppr_o, width,
                     color = col, alpha = 0.1, edgecolor = 'none')
                 ax.bar(np.arange(len(ppr)) + width * w, ppr, width,
                     color = col, edgecolor = 'none')
             if features and self.valids is not None:
+                
+                ifracs = self.fraction_indices(protein)
+                
                 for pn in ['pos', 'neg']:
-                    for fi, fe in enumerate(self.valids[protein_name][pn]['no']):
+                    
+                    for fi, fe in enumerate(self.valids[protein][pn]['no']):
+                        
                         alpha = 0.20
                         lwd = 0.1
                         lst = '-'
                         plot_this = False
                         color = '#FFCCCC' if pn == 'pos' else '#CCCCFF'
+                        
                         try:
-                            def _feg(fe):
-                                for fei in fe:
-                                    yield fei
-                            feg = _feg(fe)
                             if highlight2 and \
-                                valids[protein_name][pn][highlight2][fi]:
+                                self.valids[protein][pn][highlight2][fi]:
                                 color = '#FF0000' if pn == 'pos' else '#0000FF'
                                 alpha = 0.15
                                 lwd = 0.4
                                 lst = ':'
                                 plot_this = True
                             if highlight and \
-                                valids[protein_name][pn][highlight][fi]:
+                                self.valids[protein][pn][highlight][fi]:
                                 color = '#FF0000' if pn == 'pos' else '#0000FF'
                                 alpha = 0.75
                                 lwd = 0.4
@@ -9380,18 +9417,20 @@ class Screening(object):
                                 plot_this = True
                             if all_features or plot_this:
                                 ax.plot(np.arange(len(ppr)) + 0.4,
-                                    np.array([feg.next() \
-                                        if s is not None else 0.0 \
-                                        for s in fractions[protein_name][1:]]),
+                                    np.array([fe[ifracs[fr][0]]
+                                        for fr in self.sort_fracs_str(ifracs.keys())]),
                                     linewidth = lwd, markersize = 0.07,
                                     linestyle = lst, 
                                     color = color, alpha = alpha, marker = 'o')
+                            
                         except ValueError:
                             print('Unequal length dimensions: %s, %s' % \
-                                (protein_name, pn))
+                                (protein, pn))
+            
             ax.set_xticks(np.arange(len(ppr)) + 0.4)
-            ax.set_xticklabels(self.fracs)
-            ax.set_title('%s protein conc.'%protein_name)
+            ax.set_xticklabels(self.all_fractions(protein))
+            ax.set_title('%s protein conc.'%protein)
+        
         fig.tight_layout()
         fig.savefig(pdfname)
         prg.terminate()
@@ -9801,7 +9840,7 @@ class Screening(object):
             fr11 = fr21             # the h+1 one
             fr12 = nfracs[i_minus1] # the h+2 one
         else:
-            only_descending = True
+            only_descending = False
             fr11 = nfracs[i_minus1] # the h-1 one
             fr12 = hfracs[0]        # the h(1)
         
