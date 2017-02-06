@@ -2160,7 +2160,12 @@ class Screening(object):
             # E.g. two shared folders can be defined as
             # `[['my', 'huge', 'partition'], [`another`, `huge`, `disk`]]`.
             'datadirs': [['share']],
+            # the overview table of Enric's screening
+            # we read the protein containing and the
+            # highest fractions from here
             'fractionsf': 'LTPsceenprogres_v07.xlsx',
+            # list of potentially problematic fractions
+            'wrongfracsf': 'wrong_fractions.csv',
             # File with offsets of fractions from SEC in ml.
             # This we used at Antonella, but at Enric, these values
             # are different for each protein, and contained by the
@@ -2244,6 +2249,8 @@ class Screening(object):
             # Directory with manually processed `golden standards`
             # from Marco.
             'marco_dir': 'marco',
+            # table with manually set protein ratios among
+            # many other columns
             'manual_ppratios_xls': 'Proteins_Overview_05.xlsx',
             # Columns to read from the manual ppratios XLS file.
             # These were different at Antonella and Enric, so we
@@ -2368,6 +2375,9 @@ class Screening(object):
             # constraint to avoid include everything descending
             # and select those which still fit better the protein
             'enric_descending_slope_diff_tolerance': 0.8,
+            # do not use the fractions marked as wrong
+            # at comparing protein and intensity profiles
+            'filter_wrong_fractions': True,
             # the MS2 retention time values must be within the RT
             # range of the feature detected in MS1, otherwise
             # will be dropped
@@ -2495,6 +2505,7 @@ class Screening(object):
         self.exacts = None
         self.proteins_drifts = None
         self.pp_zeroed = False
+        self.wrong_fracs = {}
         
         self.aaa_threshold = {
             'neg': 30000.0,
@@ -3821,36 +3832,74 @@ class Screening(object):
                             xrange(5))))
                 )
     
-    def protein_containing_fractions(self, protein):
+    def protein_containing_fractions(self, protein, except_wrong = False):
         """
         Returns a list of those fractions containing the protein,
         sorted by the order of measurement (their position on the plate).
+        
+        :param str protein: Name of the protein.
+        :param bool except_wrong: Do not include fractions
+                                  marked as potentially wrong.
         """
-        return \
+        
+        return (
             np.array(
                 list(
                     filter(
                         lambda fr:
                             self.fractions[protein][fr] == 1,
-                        self.all_fractions(protein)
+                        self.all_fractions(protein,
+                                           except_wrong = except_wrong)
                     )
                 )
             )
+        )
     
-    def all_fractions(self, protein):
+    def all_fractions(self, protein, except_wrong = False):
         """
         Returns a list of all fractions for one protein,
         sorted by the order of measurement (their position on the plate).
+        
+        :param str protein: Name of the protein.
+        :param bool except_wrong: Do not include fractions
+                                  marked as potentially wrong.
+        
         """
+        
+        if except_wrong:
+            
+            wfracs = self.wrong_fractions(protein, except_wrong)
+            
+            return list(filter(lambda fr: fr not in wfracs,
+                               self.pfracs[protein][:-1]))
+        
         # removing the SEC buffer control
         return self.pfracs[protein][:-1]
     
-    def fraction_indices(self, protein):
+    def wrong_fractions(self, protein, mode):
+        """
+        Returns the fractions marked as potentially wrong,
+        empty set if there is none.
+        """
+        
+        if (protein in self.wrong_fracs and
+            mode in self.wrong_fracs[protein]):
+            
+            return set(self.wrong_fracs[protein][mode])
+        
+        return set([])
+    
+    def fraction_indices(self, protein, except_wrong = False):
         """
         Returns a dict with column indices for all fractions
         and a boolean value whether if it contains protein.
+        
+        :param str protein: Name of the protein.
+        :param bool except_wrong: Do not include fractions
+                                  marked as potentially wrong.
         """
-        return \
+        
+        return (
             dict(
                 map(
                     lambda fr:
@@ -3858,15 +3907,22 @@ class Screening(object):
                             fr[1],
                             (fr[0], bool(self.fractions[protein][fr[1]]))
                         ),
-                    enumerate(self.all_fractions(protein))
+                    enumerate(self.all_fractions(protein,
+                                                 except_wrong = except_wrong))
                 )
             )
+        )
     
-    def pcont_indices(self, protein):
+    def pcont_indices(self, protein, except_wrong = False):
         """
         Returns the indices of protein containing fraction columns.
+        
+        :param str protein: Name of the protein.
+        :param bool except_wrong: Do not include fractions
+                                  marked as potentially wrong.
         """
-        return \
+        
+        return (
             np.array(
                 sorted(
                     map(
@@ -3880,21 +3936,26 @@ class Screening(object):
                     )
                 )
             )
+        )
     
-    def pcont_columns(self, protein, mode, attr = 'fe'):
+    def pcont_columns(self, protein, mode, attr = 'fe',
+                      except_wrong = False):
         """
         Returns the protein containing fraction columns
         from the features x fractions array `attr`.
         """
-        return self.valids[protein][mode][attr][:,self.pcont_indices(protein)]
+        
+        return self.valids[protein][mode][attr][:,
+            self.pcont_indices(protein, except_wrong = except_wrong)]
     
-    def fractions_by_protein_amount(self):
+    def fractions_by_protein_amount(self, except_wrong = False):
         """
         Orders the fractions by the amount of protein.
         Considers fraction offsets if those are assumed,
         and creates dicts `fracs_orderL` and fracs_orderU`
         (these are identical if no offset assumed).
         """
+        
         def order(protein, with_protein, pprofs):
             return \
                 sorted(
@@ -3914,7 +3975,10 @@ class Screening(object):
             if protein not in self.pfracs:
                 continue
             
-            with_protein = self.protein_containing_fractions(protein)
+            with_protein = (
+                self.protein_containing_fractions(protein,
+                                                  except_wrong = except_wrong)
+            )
             self.fracs_orderL[protein] = \
                 order(protein, with_protein, self.pprofsL)
             self.fracs_orderU[protein] = \
@@ -3928,6 +3992,7 @@ class Screening(object):
         different fractions have the highest amount of protein.
         Creates dict `fracs_order`.
         """
+        
         self.fracs_order = dict(
             map(
                 lambda p:
@@ -5733,7 +5798,7 @@ class Screening(object):
         def __init__(self, fun):
             self.fun = fun
         
-        def __call__(self, *args, valids_only = True, **kwargs):
+        def __call__(self, *args, valids_only = False, **kwargs):
             data = self.obj.valids if valids_only else self.obj.data
             for protein in data.keys():
                 for pn, tbl in iteritems(data[protein]):
@@ -7991,6 +8056,7 @@ class Screening(object):
         - binding properties: known binders of lipid 
         
         """
+        self.read_wrong_fractions()
         self.read_fractions()
         self.upper_fractions()
         self.read_lipid_names()
@@ -8136,6 +8202,57 @@ class Screening(object):
                                 )
                             )
                         )
+    
+    def read_wrong_fractions(self):
+        """
+        Reads the list of potentially wrong fractions.
+        """
+        result = {}
+        
+        with open(self. wrongfracsf, 'r') as fp:
+            
+            _ = fp.readline()
+            
+            for line in fp:
+                
+                if not len(line):
+                    continue
+                
+                line = line.split(';')
+                
+                _ = result.setdefault(line[0], {})
+                
+                for i, mode in enumerate(['neg', 'pos']):
+                    
+                    if len(line[i + 1].strip()):
+                        wfracs = line[i + 1].strip().replace('?', '').split(',')
+                        result[line[0]][mode] = wfracs
+        
+        self.wrong_fracs = result
+    
+    def nonzero_in_wrong(self):
+        """
+        Creates a boolean attribute which is True at features which are
+        nonzero in fractions marked as potentially wrong.
+        """
+        
+        for protein, d in iteritems(self.valids):
+            
+            for mode, tbl in iteritems(d):
+                
+                tbl['wnz'] = np.array([False] * tbl['fe'].shape[0])
+                
+                if (protein not in self.wrong_fracs or
+                    mode not in self.wrong_fracs[protein]):
+                    continue
+                
+                ifracs = self.fraction_indices(protein)
+                
+                for wfrac in self.wrong_fracs[protein][mode]:
+                    
+                    col = ifracs[wfrac][0]
+                    
+                    tbl['wnz'] = tbl['fe'][:,col] > 0
     
     def set_measured(self):
         """
@@ -9796,7 +9913,7 @@ class Screening(object):
                 
                 for i, hfracs in enumerate(hpeak):
                     
-                    self._enric_filter(protein, tbl, hfracs, i)
+                    self._enric_filter(protein, mode, tbl, hfracs, i)
                     result.append(tbl['enrb%u' % i])
                 
                 # this is guaranteed to be only one vector
@@ -9810,18 +9927,56 @@ class Screening(object):
                     )
                 )
     
-    def _enric_filter(self, protein, tbl, hfracs, i):
+    def _enric_filter(self, protein, mode, tbl, hfracs, i):
         """
         Calculates Enric's filter for one protein
         and one set of highest fractions.
         """
         
-        hfracs = tuple(hfracs)
-        ratio  = self.enric_equal_fractions_ratio
+        w = self.filter_wrong_fractions
         
-        nfracs = dict(enumerate(self.protein_containing_fractions(protein)))
-        pfracs = dict(map(lambda fr: (fr[1], fr[0]), iteritems(nfracs)))
-        ifracs = self.fraction_indices(protein)
+        wfracs = self.wrong_fractions(protein, mode)
+        
+        if w and not set(hfracs) - wfracs:
+            sys.stdout.write('\t:: At protein `%s` mode `%s` all highest '\
+                'fractions (%s) marked as potentially wrong.\n'\
+                '\t   Falling back to use these wrong fractions.\n' % (
+                    protein, mode, ', '.join(hfracs)))
+            wfracs = set([])
+            w = False
+        
+        # removing `wrong fractions` from the peak
+        if w:
+            hfracs     = list(filter(lambda fr: fr not in wfracs, hfracs))
+        
+        hfracs     = tuple(hfracs)
+        ratio      = self.enric_equal_fractions_ratio
+        has_ratio1 = True
+        has_ratio2 = True
+        
+        nfracs = (
+            dict(
+                enumerate(
+                    self.protein_containing_fractions(
+                        protein,
+                        except_wrong = mode if w else False
+                    )
+                )
+            )
+        )
+        
+        pfracs = (
+            dict(
+                map(
+                    lambda fr:
+                        (fr[1], fr[0]),
+                    iteritems(nfracs)
+                )
+            )
+        )
+        
+        ifracs = self.fraction_indices(protein,
+                                       except_wrong = mode if w else False)
         pprofs = self.pprofs[protein]
         fe     = tbl['fe']
         shape  = [fe.shape[0], 1]
@@ -9830,15 +9985,30 @@ class Screening(object):
         # the highest
         i_minus1 = pfracs[hfracs[0]]  - 1 # h-1
         i_plus1  = pfracs[hfracs[-1]] + 1 # h+1
-        fr21  = hfracs[-1]                # always the last of highest h(-1)
-        fr22  = nfracs[i_plus1]           # the one after that (h+1)
+        
+        if len(nfracs) > i_plus1:
+            ratio2_descending = True
+            fr21  = hfracs[-1]                # always the last of highest h(-1)
+            fr22  = nfracs[i_plus1]           # the one after that (h+1)
+        else:
+            # except if we have no more fractions:
+            if i_minus1 - 1 < 0:
+                has_ratio2 = False
+            else:
+                ratio2_descending = False
+                fr21  = nfracs[i_minus1 - 1]
+                fr22  = nfracs[i_minus1]
+        
         if i_minus1 < 0:
             # in few cases we don't have the fraction -1
             # then we select the fraction by 2 after the highest
             only_descending = True
             i_minus1 = pfracs[hfracs[-1]]  + 2
-            fr11 = fr21             # the h+1 one
-            fr12 = nfracs[i_minus1] # the h+2 one
+            if i_minus1 < len(nfracs):
+                fr11 = fr21             # the h+1 one
+                fr12 = nfracs[i_minus1] # the h+2 one
+            else:
+                has_ratio1 = False
         else:
             only_descending = False
             fr11 = nfracs[i_minus1] # the h-1 one
@@ -9847,8 +10017,7 @@ class Screening(object):
         fr31 = hfracs[0]  # only matters if we have 2 highest
         fr32 = hfracs[-1] #
         
-        pratio1 = pprofs[fr11] / pprofs[fr12] # either -1 or +2
-        pratio2 = pprofs[fr21] / pprofs[fr22] # always +1
+        tbl['enri%u' % i] = []
         
         with np.errstate(divide = 'ignore', invalid = 'ignore'):
             # as we control all arrays to be greater than zero
@@ -9856,40 +10025,54 @@ class Screening(object):
             # we can safely ignore zero division or
             # invalid values
             
-            iratio1 = (fe[:,ifracs[fr11][0]] / # numeric vector
-                       fe[:,ifracs[fr12][0]])  # of ratios
-            
-            if only_descending:
-                # descending, but not more than certain threshold
-                iratio1 = np.logical_and(
-                            iratio1 < pratio1,
-                            iratio1 > (
-                                pratio1 *
-                                self.enric_descending_slope_diff_tolerance
+            if has_ratio1:
+                
+                pratio1 = pprofs[fr11] / pprofs[fr12] # either -1 or +2
+                
+                iratio1 = (fe[:,ifracs[fr11][0]] / # numeric vector
+                        fe[:,ifracs[fr12][0]])  # of ratios
+                
+                if only_descending:
+                    # descending, but not more than certain threshold
+                    iratio1 = np.logical_and(
+                                iratio1 < pratio1,
+                                iratio1 > (
+                                    pratio1 *
+                                    self.enric_descending_slope_diff_tolerance
+                                )
                             )
-                          )
-            else:
-                iratio1 = iratio1 < 1.0 # ascending
+                else:
+                    iratio1 = iratio1 < 1.0 # ascending
+                
+                iratio1   = np.logical_and(
+                                np.logical_and(
+                                    fe[:,ifracs[fr11][0]] > 0.0,
+                                    fe[:,ifracs[fr12][0]] > 0.0
+                                ),
+                                iratio1 # this is bool vector
+                            )
+                
+                tbl['enr%u%s%s' % (i, fr11, fr12)] = iratio1.reshape(shape)
+                tbl['enri%u' % i].append((fr11, fr12))
             
-            iratio1   = np.logical_and(
-                            np.logical_and(
-                                fe[:,ifracs[fr11][0]] > 0.0,
-                                fe[:,ifracs[fr12][0]] > 0.0
-                            ),
-                            iratio1 # this is bool vector
-                        )
-            
-            iratio2   = np.logical_and(
-                            np.logical_and(
-                                fe[:,ifracs[fr21][0]] > 0.0,
-                                fe[:,ifracs[fr22][0]] > 0.0
-                            ),
-                            (fe[:,ifracs[fr21][0]] /
-                             fe[:,ifracs[fr22][0]]) > 1.0
-                        )
-            
-            tbl['enr%u%s%s' % (i, fr11, fr12)] = iratio1.reshape(shape)
-            tbl['enr%u%s%s' % (i, fr21, fr22)] = iratio2.reshape(shape)
+            if has_ratio2:
+                
+                pratio2 = pprofs[fr21] / pprofs[fr22] # always +1
+                
+                iratio2 = fe[:,ifracs[fr21][0]] / fe[:,ifracs[fr22][0]]
+                
+                iratio2   = np.logical_and(
+                                np.logical_and(
+                                    fe[:,ifracs[fr21][0]] > 0.0,
+                                    fe[:,ifracs[fr22][0]] > 0.0
+                                ),
+                                (iratio2 > 1.0
+                                if ratio2_descending
+                                else iratio2 < 1.0)
+                            )
+                
+                tbl['enr%u%s%s' % (i, fr21, fr22)] = iratio2.reshape(shape)
+                tbl['enri%u' % i].append((fr21, fr22))
             
             if fr31 != fr32:
                 # to not calculate it twice
@@ -9908,10 +10091,7 @@ class Screening(object):
                           )
                 
                 tbl['enr%u%s%s' % (i, fr31, fr32)] = iratio3.reshape(shape)
-        
-        tbl['enri%u' % i] = [(fr11, fr12), (fr21, fr22)]
-        if fr31 != fr32:
-            tbl['enri%u' % i].append((fr31, fr32))
+                tbl['enri%u' % i].append((fr31, fr32))
         
         tbl['enrb%u' % i] = (
                                 np.all(
@@ -9930,7 +10110,13 @@ class Screening(object):
                                 ).reshape(shape) # one bool vector
                             )
         
-        
+        if len(tbl['enri%u' % i]) < 2:
+            sys.stdout.write('\t:: Warning: at protein `%s` '
+                'in mode `%s` we could'
+                ' use only %u ratio.\n' % (
+                    protein, mode, len(tbl['enri%u' % i])
+                )
+            )
     
     def plot_score_performance(self, perf):
         metrics = [
