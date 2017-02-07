@@ -2302,14 +2302,21 @@ class Screening(object):
             # and the protein ratio is 1.0, then the lower limit
             # will be 1.0 * 0.25 = 0.25 and the upper
             # 1.0 / 0.25 * 1.0 = 4.0.
-            'peak_ratio_score_max_bandwidth': 0.25,
+            'peak_ratio_score_max_bandwidth': 0.1,
+            'peak_ratio_score_optimal_bandwidth': 0.5,
             # This is the preferred number of features to
             # calculate the mean and SD in protein ratio score.
             # It means we try to select this number of features
             # with intensity ratio closest to the protein ratio,
             # and use their mean and SD to estimate the fit of 
-            # other features.
-            'peak ratio_score_optimal_population': 10,
+            # other features. The lower the number the closer
+            # features will be selected, but it should be enough
+            # large to make the SD a meaningful metric. Similarly
+            # we can set a minumum population, below this it
+            # really does not make sense to calculate an SD.
+            'peak_ratio_score_optimal_population': 10,
+            'peak_ratio_score_still_good_population': 7,
+            'peak_ratio_score_minimal_population': 4,
             # Use the adaptive method at the peak ratio score
             # calculation. This means to iteratively broaden the
             # band at selecting the features with intensity ratios
@@ -2389,7 +2396,7 @@ class Screening(object):
             'use_gel_profiles': True,
             # Use slope_filter (by Enric) for the final
             # selection of profiles
-            'slope_profile_selection': False,
+            'slope_profile_selection': True,
             # In slope_filter, if there are 2 highest fractions
             # with approximately equal protein content,
             # we use this range of tolerance to filter
@@ -9696,6 +9703,14 @@ class Screening(object):
                 
                 tbl['na'] = hasnans
     
+    @staticmethod
+    def ratio_limits(lower):
+        """
+        Returns a symmetric range of tolerance for ratio-like
+        values. This means lower / expected = expected / upper
+        """
+        return (lower, 1.0 / lower)
+    
     def peak_ratio_score(self):
         """
         Calculates the difference between the mean intensity peak ratio
@@ -9704,10 +9719,35 @@ class Screening(object):
         ratio minus lower plus upper.
         """
         
-        lower = self.peak_ratio_score_bandwidth
-        upper = 1.0 / lower
+        sys.stdout.write('\n\t=== Peak ratio score messages: ======\n\n')
+        
+        lower, upper = self.ratio_limits(self.peak_ratio_score_max_bandwidth)
         proteins = sorted(self.valids.keys())
         w = self.filter_wrong_fractions
+        
+        def set_bandwith(ipr, ppr):
+            """
+            Attempts to set the bandwith of the peak ratio filter.
+            `ipr` is the array of intensity ratios, `ppr` is
+            the corresponding protein ratio.
+            """
+            count = self.peak_ratio_score_optimal_population
+            minct = self.peak_ratio_score_minimal_population
+            sgdct = self.peak_ratio_score_still_good_population
+            lower = self.peak_ratio_score_max_bandwidth
+            lowe2 = self.peak_ratio_score_optimal_bandwidth
+            rdiff = ipr / ppr
+            rdiff[np.where(rdiff > 1.0)] = 1.0 / rdiff[np.where(rdiff > 1.0)]
+            rdiff.sort()
+            rdiff = rdiff[::-1]
+            for cnt in xrange(count, minct, -1):
+                bw = rdiff[cnt - 1]
+                if bw >= lowe2:
+                    return self.ratio_limits(bw)
+                if cnt < sgdct and bw >= lower:
+                    return self.ratio_limits(bw)
+            
+            return (None, None)
         
         def get_score(protein, col, fkey, lower, upper,
                       modes = ['neg', 'pos']):
@@ -9717,7 +9757,9 @@ class Screening(object):
                 return None, None
             
             with np.errstate(divide = 'ignore', invalid = 'ignore'):
+                
                 with warnings.catch_warnings():
+                    
                     warnings.simplefilter('ignore', RuntimeWarning)
                     # the expected value of the peak ratio:
                     ppr = self.ppratios[protein][fkey]
@@ -9734,10 +9776,32 @@ class Screening(object):
                         a = np.concatenate((a, pa))
                     # range considering fraction offsets, having tolerance
                     # -/+ upper/lower
-                    a   = a[np.where(
-                        (a > ppr[0]  * lower) &
-                        (a < ppr[-1] * upper)
-                    )]
+                    if self.adaptive_peak_ratio_score:
+                        
+                        lim = set_bandwith(a, np.mean(ppr))
+                        
+                        if lim[0] is None:
+                            sys.stdout.write(
+                                '\t:: Could not calculate peak ratio '\
+                                'score at protein `%s`\n\t   between '\
+                                'fractions %s and %s: no features in '\
+                                'range of tolerance.\n' % (
+                                    protein, fkey[0], fkey[1]
+                                ))
+                            return None, None
+                        
+                        a   = a[np.where(
+                            (a >= lim[0]) &
+                            (a <= lim[1])
+                        )]
+                        
+                    else:
+                        
+                        a   = a[np.where(
+                            (a > ppr[0]  * lower) &
+                            (a < ppr[-1] * upper)
+                        )]
+                    
                     m   = np.nanmean(a)
                     s   = np.nanstd(a)
                     # scores: difference from mean in SD
@@ -9793,7 +9857,6 @@ class Screening(object):
                     
                     for j in xrange(i + 1, len(fracs)):
                         
-                        
                         modes = set([])
                         col   = {}
                         frac1, frac2 = fracs[i], fracs[j]
@@ -9814,10 +9877,19 @@ class Screening(object):
                         
                         col = self.valids[protein][mode]['ipri'][fkey]
                         
-                        pscores, nscores = \
-                            get_score(protein, col, fkey,
-                                        lower, upper,
-                                        modes = modes)
+                        pscores, nscores = get_score(
+                            protein, col, fkey,
+                            lower, upper,
+                            modes = modes
+                        )
+                        
+                        if pscores is None:
+                            modes = modes.difference('pos')
+                            _ = iprsa['pos'].pop(fkey, None)
+                        
+                        if nscores is None:
+                            modes = modes.difference('neg')
+                            _ = iprsa['neg'].pop(fkey, None)
                         
                         if 'neg' in modes:
                             scoresn[fkey] = nscores
@@ -9885,8 +9957,10 @@ class Screening(object):
                 ) # mean ignoring infinites and NaNs
                 #tbl['prs'] = np.nanmean(tbl['prsa'], axis = 1) # mean score
                 tbl['prs'][np.where(tbl['na'])] = np.inf
-                tbl['prsf'] = tbl['prsa'][:,tbl['ipri'][fkeyf]] # score for first
-                tbl['prsh'] = tbl['prsa'][:,tbl['ipri'][fkeyh]] # highest diff.
+                if fkeyf in tbl['iprsa']:
+                    tbl['prsf'] = tbl['prsa'][:,tbl['iprsa'][fkeyf]] # score for first
+                if fkeyh in tbl['iprsa']:
+                    tbl['prsh'] = tbl['prsa'][:,tbl['iprsa'][fkeyh]] # highest diff.
                 # taking the scores for fraction pairs
                 # around the peak (like in slope filter)
                 if 'sloi0' in tbl:
@@ -9895,7 +9969,7 @@ class Screening(object):
                     with np.errstate(divide = 'ignore', invalid = 'ignore'):
                         with warnings.catch_warnings():
                             warnings.simplefilter('ignore', RuntimeWarning)
-                            tbl['prse'] = np.array(
+                            tbl['prss'] = np.array(
                                 list(
                                     map(
                                         lambda i:
@@ -9907,11 +9981,15 @@ class Screening(object):
                                                         map(
                                                             lambda frs:
                                                                 tbl['prsa'][i,tbl[
-                                                                    'ipri'][frs]],
-                                                            tbl['sloi0'] + (
-                                                                tbl['sloi1']
-                                                                if 'sloi1' in tbl
-                                                                else []
+                                                                    'iprsa'][frs]],
+                                                            filter(
+                                                                lambda frs:
+                                                                    frs in tbl['iprsa'],
+                                                                tbl['sloi0'] + (
+                                                                    tbl['sloi1']
+                                                                    if 'sloi1' in tbl
+                                                                    else []
+                                                            )
                                                             )
                                                         )
                                                     )
@@ -9927,7 +10005,7 @@ class Screening(object):
         Exports a table with all scores for plotting with ggplot.
         """
         hdr = ['protein', 'mode', 'boolppr', 'boolprs', 'boolenr',
-               'boolprse', 'prs', 'prsf', 'prsh']
+               'boolprss', 'prs', 'prsf', 'prsh']
         
         with open(fname, 'w') as fp:
             
@@ -9945,10 +10023,16 @@ class Screening(object):
                             str(tbl['prr'][i]),
                             str(tbl['prs'][i] < 1.0),
                             str(tbl['slobb'][i]),
-                            str(tbl['prse'][i] < 1.0),
+                            str(tbl['prss'][i] < 1.0),
                             '%.08f' % tbl['prs'][i],
-                            '%.08f' % tbl['prsf'][i],
-                            '%.08f' % tbl['prsh'][i],
+                            (
+                                '%.08f' % tbl['prsf'][i]
+                                if 'prsf' in tbl else 'NA'
+                            ),
+                            (
+                                '%.08f' % tbl['prsh'][i]
+                                if 'prsh' in tbl else 'NA'
+                            )
                         ]))
     
     def peak_ratio_score_hist(self, pdfname = None):
@@ -9998,8 +10082,10 @@ class Screening(object):
         vicinity of the highest fractions.
         """
         
-        if not self.enric_profile_selection:
+        if not self.slope_profile_selection:
             return None
+        
+        sys.stdout.write('\n\t=== Slope filter messages: ======\n\n')
         
         for protein, d in iteritems(self.valids):
             
@@ -10054,7 +10140,7 @@ class Screening(object):
             hfracs     = list(filter(lambda fr: fr not in wfracs, hfracs))
         
         hfracs     = tuple(hfracs)
-        ratio      = self.enric_equal_fractions_ratio
+        ratio      = self.slope_equal_fractions_ratio
         has_ratio1 = True
         has_ratio2 = True
         
@@ -10142,7 +10228,7 @@ class Screening(object):
                                 iratio1 < pratio1,
                                 iratio1 > (
                                     pratio1 *
-                                    self.enric_descending_slope_diff_tolerance
+                                    self.slope_descending_slope_diff_tolerance
                                 )
                             )
                 else:
@@ -12901,7 +12987,7 @@ class Screening(object):
             
         ]
         
-        if self.enric_profile_selection:
+        if self.slope_profile_selection:
             
             hdr.extend([
                 ('Slope filter final', 2.12),
@@ -13030,7 +13116,7 @@ class Screening(object):
             
             aaa = tbl['aa'][i] if self.use_original_average_area else tbl['aaa'][i]
             
-            if self.enric_profile_selection:
+            if self.slope_profile_selection:
                 profile_condition = tbl['slobb'][i]
             else:
                 profile_condition = tbl['prr'] is None or tbl['prr'][i]
@@ -13145,7 +13231,7 @@ class Screening(object):
                     'plain' if tbl['na'][i] else 'green')
                 ]
                 
-                if self.enric_profile_selection:
+                if self.slope_profile_selection:
                     
                     # 1st columnt is the final outcome
                     this_row.append(
