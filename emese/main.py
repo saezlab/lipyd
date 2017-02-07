@@ -2295,7 +2295,11 @@ class Screening(object):
             # allow features to have missing values in first or last
             # protein containing fractions
             'permit_profile_end_nan': True,
+            # 
             'peak_ratio_score_bandwidth': 0.25,
+            # read externally determined protein peak ratios from file
+            # these were provided by Marco and used for Antonella`s
+            # data analysis
             'use_manual_ppratios': False,
             # omg, I don't remember what it is
             'use_last_ratio': False,
@@ -2338,7 +2342,7 @@ class Screening(object):
             'std_tolerance': 0.02,
             # MS2 precursors must have their charges determined
             'ms2_precursor_charge': None,
-            # use only fragments from Marco's lists (note: the series)
+            # Use only fragments from Marco's lists (note: the series)
             # are still programmatically generated and their m/z values
             # calculated automatically), or use an extended fragment list
             # constructed by Denes (note: this might contain more false
@@ -2354,40 +2358,41 @@ class Screening(object):
             # In output tables construct the lipid names programmatically
             # or copy the ones from the database.
             'marco_lipnames_from_db': True,
-            # use the average area values from the `PEAK` software
+            # Use the average area values from the `PEAK` software
             # output, or recalculate them here using the intensity
             # values of features across all fractions
             'use_original_average_area': True,
-            # overwrite UV absorbance based protein quantities with
+            # Overwrite UV absorbance based protein quantities with
             # those manually acquired from SDS PAGE when these are
             # available
             'use_gel_profiles': True,
-            # use Enric's method for the final selection of profiles
-            'enric_profile_selection': False,
-            # in the profile filtering method suggested by Enric, if
-            # there are 2 highest fractions with approximately equal
-            # protein content, we use this range of tolerance to filter
+            # Use slope_filter (by Enric) for the final
+            # selection of profiles
+            'slope_profile_selection': False,
+            # In slope_filter, if there are 2 highest fractions
+            # with approximately equal protein content,
+            # we use this range of tolerance to filter
             # the intensity ratios between them. E.g if this number is
             # 0.75, ratios between 0.75 and 1.33 will be accepted.
-            'enric_equal_fractions_ratio': 0.75,
-            # when we have only the descending parts of the profiles
+            'slope_equal_fractions_ratio': 0.75,
+            # When we have only the descending parts of the profiles
             # in the measured fractions, we set this additional
             # constraint to avoid include everything descending
             # and select those which still fit better the protein
-            'enric_descending_slope_diff_tolerance': 0.8,
-            # do not use the fractions marked as wrong
+            'slope_descending_slope_diff_tolerance': 0.8,
+            # Do not use the fractions marked as wrong
             # at comparing protein and intensity profiles
             'filter_wrong_fractions': True,
-            # the MS2 retention time values must be within the RT
+            # The MS2 retention time values must be within the RT
             # range of the feature detected in MS1, otherwise
             # will be dropped
             'ms2_rt_within_range': False,
-            # consider the MS2 scans from only those fractions
+            # Consider the MS2 scans from only those fractions
             # containing the protein, or from all available fractions
             'ms2_only_protein_fractions' : False,
-            # don't know what it is for
+            # Don't know what it is for
             'uniprots': None,
-            # method names to convert between adduct and exact masses
+            # Method names to convert between adduct and exact masses
             'ad2ex': {
                 1: {
                     'pos': {
@@ -6639,10 +6644,10 @@ class Screening(object):
         self.intensity_peak_ratios()
         self.ratios_in_range()
         self.peak_ratio_score()
-        self.enric_filter()
-        # this we do after Enric as we collect
+        self.slope_filter()
+        # this we do after slope filter as we collect
         # the peak ratio scores from the highest
-        # fraction pairs defined in `enric_filter`
+        # fraction pairs defined in `slope_filter`
         self.combine_peak_ratio_scores()
         self.peak_ratio_score_bool()
         self.export_scores()
@@ -9743,7 +9748,7 @@ class Screening(object):
                     )
                 )
             except:
-                print(protein)
+                sys.stdout.write(protein)
         
         for protein in self.valids.keys():
             
@@ -9862,8 +9867,8 @@ class Screening(object):
                 tbl['prsf'] = tbl['prsa'][:,tbl['ipri'][fkeyf]] # score for first
                 tbl['prsh'] = tbl['prsa'][:,tbl['ipri'][fkeyh]] # highest diff.
                 # taking the scores for fraction pairs
-                # around the peak (like in Enric's score)
-                if 'enri0' in tbl:
+                # around the peak (like in slope filter)
+                if 'sloi0' in tbl:
                     # ignore warnings, as nan's produced in any invalid case
                     # and that is fine
                     with np.errstate(divide = 'ignore', invalid = 'ignore'):
@@ -9882,9 +9887,9 @@ class Screening(object):
                                                             lambda frs:
                                                                 tbl['prsa'][i,tbl[
                                                                     'ipri'][frs]],
-                                                            tbl['enri0'] + (
-                                                                tbl['enri1']
-                                                                if 'enri1' in tbl
+                                                            tbl['sloi0'] + (
+                                                                tbl['sloi1']
+                                                                if 'sloi1' in tbl
                                                                 else []
                                                             )
                                                         )
@@ -9918,7 +9923,7 @@ class Screening(object):
                             mode,
                             str(tbl['prr'][i]),
                             str(tbl['prs'][i] < 1.0),
-                            str(tbl['enrbb'][i]),
+                            str(tbl['slobb'][i]),
                             str(tbl['prse'][i] < 1.0),
                             '%.08f' % tbl['prs'][i],
                             '%.08f' % tbl['prsf'][i],
@@ -9965,9 +9970,11 @@ class Screening(object):
             for mode, tbl in iteritems(d):
                 tbl['prs1'] = tbl['prs'] <= self.peak_ratio_score_threshold
     
-    def enric_filter(self):
+    def slope_filter(self):
         """
         Implements the feature selection according to Enric's proposal.
+        This method considers only the direction of the slope in the
+        vicinity of the highest fractions.
         """
         
         if not self.enric_profile_selection:
@@ -9982,12 +9989,12 @@ class Screening(object):
                 
                 for i, hfracs in enumerate(hpeak):
                     
-                    self._enric_filter(protein, mode, tbl, hfracs, i)
-                    result.append(tbl['enrb%u' % i])
+                    self._slope_filter(protein, mode, tbl, hfracs, i)
+                    result.append(tbl['slob%u' % i])
                 
                 # this is guaranteed to be only one vector
                 # for each table of features
-                tbl['enrbb'] = (
+                tbl['slobb'] = (
                     np.any(
                         np.hstack(
                             result
@@ -9996,9 +10003,9 @@ class Screening(object):
                     )
                 )
     
-    def _enric_filter(self, protein, mode, tbl, hfracs, i):
+    def _slope_filter(self, protein, mode, tbl, hfracs, i):
         """
-        Calculates Enric's filter for one protein
+        Calculates a simple slope filter for one protein
         and one set of highest fractions.
         """
         
@@ -10093,7 +10100,7 @@ class Screening(object):
         fr31 = hfracs[0]  # only matters if we have 2 highest
         fr32 = hfracs[-1] #
         
-        tbl['enri%u' % i] = []
+        tbl['sloi%u' % i] = []
         
         with np.errstate(divide = 'ignore', invalid = 'ignore'):
             # as we control all arrays to be greater than zero
@@ -10128,8 +10135,8 @@ class Screening(object):
                                 iratio1 # this is bool vector
                             )
                 
-                tbl['enr%u%s%s' % (i, fr11, fr12)] = iratio1.reshape(shape)
-                tbl['enri%u' % i].append((fr11, fr12))
+                tbl['slo%u%s%s' % (i, fr11, fr12)] = iratio1.reshape(shape)
+                tbl['sloi%u' % i].append((fr11, fr12))
             
             if has_ratio2:
                 
@@ -10147,8 +10154,8 @@ class Screening(object):
                                 else iratio2 < 1.0)
                             )
                 
-                tbl['enr%u%s%s' % (i, fr21, fr22)] = iratio2.reshape(shape)
-                tbl['enri%u' % i].append((fr21, fr22))
+                tbl['slo%u%s%s' % (i, fr21, fr22)] = iratio2.reshape(shape)
+                tbl['sloi%u' % i].append((fr21, fr22))
             
             if fr31 != fr32:
                 # to not calculate it twice
@@ -10166,19 +10173,19 @@ class Screening(object):
                             )
                           )
                 
-                tbl['enr%u%s%s' % (i, fr31, fr32)] = iratio3.reshape(shape)
-                tbl['enri%u' % i].append((fr31, fr32))
+                tbl['slo%u%s%s' % (i, fr31, fr32)] = iratio3.reshape(shape)
+                tbl['sloi%u' % i].append((fr31, fr32))
         
-        tbl['enrb%u' % i] = (
+        tbl['slob%u' % i] = (
                                 np.all(
                                     np.hstack(
                                         list(
                                             map(
                                                 lambda v:
-                                                    tbl['enr%u%s%s' % (
+                                                    tbl['slo%u%s%s' % (
                                                         i, v[0], v[1]
                                                     )],
-                                                tbl['enri%u' % i]
+                                                tbl['sloi%u' % i]
                                             )
                                         )
                                     ),
@@ -10186,11 +10193,11 @@ class Screening(object):
                                 ).reshape(shape) # one bool vector
                             )
         
-        if len(tbl['enri%u' % i]) < 2:
+        if len(tbl['sloi%u' % i]) < 2:
             sys.stdout.write('\t:: Warning: at protein `%s` '
                 'in mode `%s` we could'
                 ' use only %u ratio.\n' % (
-                    protein, mode, len(tbl['enri%u' % i])
+                    protein, mode, len(tbl['sloi%u' % i])
                 )
             )
     
@@ -11696,11 +11703,11 @@ class Screening(object):
     def known_binders_enrichment(self, valids, bindprop, classif = 'cl5pct'):
         for protein, d in iteritems(valids):
             for pn, tbl in iteritems(d):
-                if 'enr' not in tbl:
-                    tbl['enr'] = {}
-                if classif not in tbl['enr']:
-                    tbl['enr'][classif] = {}
-                tbl['enr'][classif]['tp'] = len(
+                if 'slo' not in tbl:
+                    tbl['slo'] = {}
+                if classif not in tbl['slo']:
+                    tbl['slo'][classif] = {}
+                tbl['slo'][classif]['tp'] = len(
                     filter(lambda ioi:
                         tbl[classif][ioi[0]] and \
                             len(bindprop[protein] & \
@@ -11708,7 +11715,7 @@ class Screening(object):
                         enumerate(tbl['i'])
                     )
                 )
-                tbl['enr'][classif]['fp'] = len(
+                tbl['slo'][classif]['fp'] = len(
                     filter(lambda ioi:
                         tbl[classif][ioi[0]] and \
                             len(bindprop[protein] & \
@@ -11716,7 +11723,7 @@ class Screening(object):
                         enumerate(tbl['i'])
                     )
                 )
-                tbl['enr'][classif]['tn'] = len(
+                tbl['slo'][classif]['tn'] = len(
                     filter(lambda ioi:
                         not tbl[classif][ioi[0]] and \
                             len(bindprop[protein] & \
@@ -11724,7 +11731,7 @@ class Screening(object):
                         enumerate(tbl['i'])
                     )
                 )
-                tbl['enr'][classif]['fn'] = len(
+                tbl['slo'][classif]['fn'] = len(
                     filter(lambda ioi:
                         not tbl[classif][ioi[0]] and \
                             len(bindprop[protein] & \
@@ -11733,43 +11740,43 @@ class Screening(object):
                     )
                 )
                 try:
-                    tbl['enr'][classif]['or'] = \
-                        float(tbl['enr'][classif]['tp'] * \
-                        tbl['enr'][classif]['tn']) / \
-                        float(tbl['enr'][classif]['fp'] * \
-                        tbl['enr'][classif]['fn'])
+                    tbl['slo'][classif]['or'] = \
+                        float(tbl['slo'][classif]['tp'] * \
+                        tbl['slo'][classif]['tn']) / \
+                        float(tbl['slo'][classif]['fp'] * \
+                        tbl['slo'][classif]['fn'])
                 except ZeroDivisionError:
-                    tbl['enr'][classif]['or'] = np.inf
-                tbl['enr'][classif]['contab'] = np.array([
-                    [tbl['enr'][classif]['tp'], tbl['enr'][classif]['fp']],
-                    [tbl['enr'][classif]['fn'], tbl['enr'][classif]['tn']]])
-                tbl['enr'][classif]['fisher'] = \
-                    sp.stats.fisher_exact(tbl['enr'][classif]['contab'])
+                    tbl['slo'][classif]['or'] = np.inf
+                tbl['slo'][classif]['contab'] = np.array([
+                    [tbl['slo'][classif]['tp'], tbl['slo'][classif]['fp']],
+                    [tbl['slo'][classif]['fn'], tbl['slo'][classif]['tn']]])
+                tbl['slo'][classif]['fisher'] = \
+                    sp.stats.fisher_exact(tbl['slo'][classif]['contab'])
     
     def enrichment_barplot(self, valids, classif = 'cl5pct', 
         outf = 'known_binders_enrichment.pdf'):
         w = 0.45
         labels = sorted(filter(lambda protein:
-            valids[protein]['pos']['enr'][classif]['tp'] + \
-                valids[protein]['pos']['enr'][classif]['fn'] > 0 or \
-            valids[protein]['neg']['enr'][classif]['tp'] + \
-                valids[protein]['neg']['enr'][classif]['fn'] > 0,
+            valids[protein]['pos']['slo'][classif]['tp'] + \
+                valids[protein]['pos']['slo'][classif]['fn'] > 0 or \
+            valids[protein]['neg']['slo'][classif]['tp'] + \
+                valids[protein]['neg']['slo'][classif]['fn'] > 0,
             valids.keys()
         ))
         ppvals = map(lambda protein:
-            '%.03f' % valids[protein]['pos']['enr'][classif]['fisher'][1],
+            '%.03f' % valids[protein]['pos']['slo'][classif]['fisher'][1],
             labels
         )
         npvals = map(lambda protein:
-            '%.03f' % valids[protein]['neg']['enr'][classif]['fisher'][1],
+            '%.03f' % valids[protein]['neg']['slo'][classif]['fisher'][1],
             labels
         )
         pors = map(lambda protein:
-            '%.03f' % valids[protein]['pos']['enr'][classif]['fisher'][0],
+            '%.03f' % valids[protein]['pos']['slo'][classif]['fisher'][0],
             labels
         )
         nors = map(lambda protein:
-            '%.03f' % valids[protein]['neg']['enr'][classif]['fisher'][0],
+            '%.03f' % valids[protein]['neg']['slo'][classif]['fisher'][0],
             labels
         )
         fig = mpl.figure.Figure(figsize = (8, 4))
@@ -12876,7 +12883,7 @@ class Screening(object):
         if self.enric_profile_selection:
             
             hdr.extend([
-                ('Enric filter final', 2.12),
+                ('Slope filter final', 2.12),
                 ('Fractions 1a', 2.12),
                 ('Fractions 2a', 2.12),
                 ('Fractions 3a', 2.12),
@@ -13003,7 +13010,7 @@ class Screening(object):
             aaa = tbl['aa'][i] if self.use_original_average_area else tbl['aaa'][i]
             
             if self.enric_profile_selection:
-                profile_condition = tbl['enrbb'][i]
+                profile_condition = tbl['slobb'][i]
             else:
                 profile_condition = tbl['prr'] is None or tbl['prr'][i]
             
@@ -13121,8 +13128,8 @@ class Screening(object):
                     
                     # 1st columnt is the final outcome
                     this_row.append(
-                        ('OK'    if tbl['enrbb'][i] else 'NOT_OK',
-                         'green' if tbl['enrbb'][i] else 'plain'),
+                        ('OK'    if tbl['slobb'][i] else 'NOT_OK',
+                         'green' if tbl['slobb'][i] else 'plain'),
                     )
                     
                     # now the 1 sometimes 2 ``highest`` i.e. peak
@@ -13132,14 +13139,14 @@ class Screening(object):
                         
                         # the fraction pairs in this peak
                         # 3 cols: the compared fractions
-                        for fri in tbl['enri%u' % hi]:
+                        for fri in tbl['sloi%u' % hi]:
                             
                             if fri[0] != fri[1]:
                                 this_row.append(
                                     ('%s:%s' % fri,
                                      (
                                         'green'
-                                        if tbl['enr%u%s%s' % (
+                                        if tbl['slo%u%s%s' % (
                                             hi, fri[0], fri[1]
                                         )][i]
                                         else 'plain'
@@ -13150,22 +13157,22 @@ class Screening(object):
                                 this_row.append(('None', 'plain'))
                         
                         # if we use only 2 ratios
-                        if len(tbl['enri%u' % hi]) == 2:
+                        if len(tbl['sloi%u' % hi]) == 2:
                             this_row.append(('None', 'plain'))
                         
                         # 3 cols: OK or NOT_OK
-                        for fri in tbl['enri%u' % hi]:
+                        for fri in tbl['sloi%u' % hi]:
                             
                             if fri[0] != fri[1]:
                                 this_row.append(
                                     (
                                         'OK'
-                                        if tbl['enr%u%s%s' % (
+                                        if tbl['slo%u%s%s' % (
                                             hi, fri[0], fri[1]
                                         )][i]
                                         else 'NOT_OK',
                                         'green'
-                                        if tbl['enr%u%s%s' % (
+                                        if tbl['slo%u%s%s' % (
                                             hi, fri[0], fri[1]
                                         )][i]
                                         else 'plain'
@@ -13175,13 +13182,13 @@ class Screening(object):
                                 this_row.append(('None', 'plain'))
                         
                         # if we use only 2 ratios
-                        if len(tbl['enri%u' % hi]) == 2:
+                        if len(tbl['sloi%u' % hi]) == 2:
                             this_row.append(('None', 'plain'))
                         
                         # 1 col: this peak overall is OK or NOT_OK
                         this_row.append(
-                            ('OK'    if tbl['enrb%u' % hi][i] else 'NOT_OK',
-                             'green' if tbl['enrb%u' % hi][i] else 'plain')
+                            ('OK'    if tbl['slob%u' % hi][i] else 'NOT_OK',
+                             'green' if tbl['slob%u' % hi][i] else 'plain')
                         )
                     
                     # if we have only 1 peak, fill the place of the 2nd
