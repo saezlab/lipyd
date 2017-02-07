@@ -9681,31 +9681,49 @@ class Screening(object):
         lower = self.peak_ratio_score_bandwidth
         upper = 1.0 / lower
         proteins = sorted(self.valids.keys())
+        w = self.filter_wrong_fractions
         
-        def get_score(protein, col, fkey, lower, upper):
-            # the expected value of the peak ratio:
-            ppr = self.ppratios[protein][fkey]
-            # all intensity peak ratios:
-            p = self.valids[protein]['pos']['ipr'][:,col]
-            pa = p[np.isfinite(p)]
-            n = self.valids[protein]['neg']['ipr'][:,col]
-            na = n[np.isfinite(n)]
-            # all intensity peak ratios:
-            a = np.concatenate((pa, na))
-            # range considering fraction offsets, having tolerance
-            # -/+ upper/lower
-            a = a[np.where((a > ppr[0] * lower) & (a < ppr[-1] * upper))]
-            m = np.mean(a)
-            s = np.std(a)
-            # scores: difference from mean in SD
-            scp = np.abs(p - m) / s
-            scn = np.abs(n - m) / s
-            return scp, scn
-        
-        def scores_array(protein, scores):
+        def get_score(protein, col, fkey, lower, upper,
+                      modes = ['neg', 'pos']):
             
-            return \
-                np.column_stack(
+            if not modes:
+                # these won't be used anyways
+                return None, None
+            
+            with np.errstate(divide = 'ignore', invalid = 'ignore'):
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore', RuntimeWarning)
+                    # the expected value of the peak ratio:
+                    ppr = self.ppratios[protein][fkey]
+                    # all intensity peak ratios:
+                    p   = self.valids[protein]['pos']['ipr'][:,col]
+                    pa  = p[np.isfinite(p)]
+                    n   = self.valids[protein]['neg']['ipr'][:,col]
+                    na  = n[np.isfinite(n)]
+                    # all intensity peak ratios:
+                    a   = np.array([])
+                    if 'neg' in modes:
+                        a = np.concatenate((a, na))
+                    if 'pos' in modes:
+                        a = np.concatenate((a, pa))
+                    # range considering fraction offsets, having tolerance
+                    # -/+ upper/lower
+                    a   = a[np.where(
+                        (a > ppr[0]  * lower) &
+                        (a < ppr[-1] * upper)
+                    )]
+                    m   = np.nanmean(a)
+                    s   = np.nanstd(a)
+                    # scores: difference from mean in SD
+                    scp = np.abs(p - m) / s
+                    scn = np.abs(n - m) / s
+                    return scp, scn
+        
+        def scores_array(protein, scores, mode):
+            
+            try:
+                return (
+                    np.column_stack(
                         tuple(
                             map(
                                 lambda fk:
@@ -9715,7 +9733,7 @@ class Screening(object):
                                         fk[0],
                                     sorted(
                                         iteritems(
-                                            self.valids[protein]['pos']['ipri']
+                                            self.valids[protein][mode]['iprsa']
                                         ),
                                         key = lambda fk: fk[1]
                                     )
@@ -9723,43 +9741,94 @@ class Screening(object):
                             )
                         )
                     )
+                )
+            except:
+                print(protein)
         
-        for i in xrange(len(proteins)):
+        for protein in self.valids.keys():
             
-            protein_name = proteins[i].upper()
-            
-            if self.valids[protein_name]['pos']['ipr'].shape[1] > 0:
+            if self.valids[protein]['pos']['ipr'].shape[1] > 0:
+                
+                fracs = self.protein_containing_fractions(protein)
+                if w:
+                    wfracs = {
+                        'neg': self.wrong_fractions(protein, 'neg'),
+                        'pos': self.wrong_fractions(protein, 'pos')
+                    }
+                    wfracsall  = set().union(*wfracs.values())
                 
                 scoresp = {}
                 scoresn = {}
-                fracs = self.protein_containing_fractions(protein_name)
+                
+                iprsa    = {'neg': {}, 'pos': {}}
+                prsa_col = {'neg': 0,  'pos': 0}
                 
                 for i in xrange(len(fracs) - 1):
                     
                     for j in xrange(i + 1, len(fracs)):
                         
+                        
+                        modes = set([])
+                        col   = {}
                         frac1, frac2 = fracs[i], fracs[j]
                         fkey = (frac1, frac2)
-                        col = self.valids[protein_name]['pos']['ipri'][fkey]
                         
-                        scoresp[fkey], scoresn[fkey] = \
-                            get_score(protein_name, col, fkey, lower, upper)
+                        for mode in ['neg', 'pos']:
+                            
+                            if (
+                                not w or (
+                                    frac1 not in wfracs[mode] and
+                                    frac2 not in wfracs[mode]
+                                )
+                            ):
+                                
+                                iprsa[mode][fkey] = prsa_col[mode]
+                                prsa_col[mode] += 1
+                                modes.add(mode)
+                        
+                        col = self.valids[protein][mode]['ipri'][fkey]
+                        
+                        pscores, nscores = \
+                            get_score(protein, col, fkey,
+                                        lower, upper,
+                                        modes = modes)
+                        
+                        if 'neg' in modes:
+                            scoresn[fkey] = nscores
+                        if 'pos' in modes:
+                            scoresp[fkey] = pscores
                 
-                self.valids[protein_name]['pos']['prsa'] = \
-                    scores_array(protein_name, scoresp)
-                self.valids[protein_name]['neg']['prsa'] = \
-                    scores_array(protein_name, scoresn)
+                self.valids[protein]['pos']['iprsa'] = iprsa['pos']
+                self.valids[protein]['neg']['iprsa'] = iprsa['neg']
+                
+                self.valids[protein]['pos']['prsa'] = \
+                    scores_array(protein, scoresp, 'pos')
+                self.valids[protein]['neg']['prsa'] = \
+                    scores_array(protein, scoresn, 'neg')
             
             else:
-                self.valids[protein_name]['pos']['prsa'] = \
+                self.valids[protein]['pos']['prsa'] = \
                     np.zeros(
-                        (self.valids[protein_name]['pos']['ipr'].shape[0],),
+                        (self.valids[protein]['pos']['ipr'].shape[0],),
                         dtype = np.float
                     )
-                self.valids[protein_name]['neg']['prsa'] = \
+                self.valids[protein]['neg']['prsa'] = \
                     np.zeros(
-                        (self.valids[protein_name]['neg']['ipr'].shape[0],),
+                        (self.valids[protein]['neg']['ipr'].shape[0],),
                         dtype = np.float
+                    )
+            
+            for mode in ['neg', 'pos']:
+                
+                if w and wfracs[mode]:
+                    
+                    sys.stdout.write('\t:: At protein `%s` in mode `%s` fractions %s ignored.\n'
+                        '\t   Calculated scores for %u ratios '
+                        'instead of %u.\n' % (
+                            protein, mode, ', '.join(wfracs[mode]),
+                            self.valids[protein][mode]['prsa'].shape[1],
+                            len(self.valids[protein][mode]['ipri'])
+                        )
                     )
     
     def combine_peak_ratio_scores(self):
@@ -9936,6 +10005,13 @@ class Screening(object):
         w = self.filter_wrong_fractions
         
         wfracs = self.wrong_fractions(protein, mode)
+        
+        if wfracs:
+            sys.stdout.write('\t:: Attemting to ignore fractions `%s` at '\
+                'protein `%s` in mode `%s`.\n' % (
+                    ', '.join(wfracs), protein, mode
+                )
+            )
         
         if w and not set(hfracs) - wfracs:
             sys.stdout.write('\t:: At protein `%s` mode `%s` all highest '\
