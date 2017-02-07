@@ -2134,7 +2134,75 @@ class MS2Scan(object):
         return self.mz_most_abundant_fold(184.0733, 3) \
             and self.fa_ccs_agree_ms1(hg, head = 4)
 
-# ##
+# ## Decorator classes: ## #
+
+class get_hits(object):
+    
+    def __init__(self, fun):
+        self.fun = fun
+    
+    def __call__(self, data, **kwargs):
+        result = empty_dict(data)
+        for protein in data.keys():
+            print(protein)
+            for pn, tbl in iteritems(data[protein]):
+                result[protein][pn] = self.fun(tbl, **kwargs)
+                if result[protein][pn] is None:
+                    sys.stdout.write('No profile info for %s, %s, %s()\n' \
+                        % (protein, pn, self.fun.__name__))
+        return result
+
+class count_hits(object):
+    
+    def __init__(self, fun):
+        self.fun = fun
+    
+    def __call__(self, **kwargs):
+        hits = self.obj.empty_dict(self.obj.data)
+        phits = self.obj.empty_dict(self.obj.data)
+        for protein in self.obj.data.keys():
+            for pn, tbl in iteritems(self.obj.data[protein]):
+                try:
+                    hits[protein][pn] = self.fun(tbl, **kwargs)
+                    phits[protein][pn] = self.fun(tbl, **kwargs) / \
+                        float(len(tbl[kwargs['name']])) * 100
+                except:
+                    pass
+        return hits, phits
+    
+    def __get__(self, instance, owner):
+        self.obj = instance
+        self.cls = owner
+        
+        return self.__call__
+
+class combine_filters(object):
+    
+    def __init__(self, fun):
+        self.fun = fun
+    
+    def __call__(self, *args, valids_only = False, **kwargs):
+        data = self.obj.valids if valids_only else self.obj.data
+        for protein in data.keys():
+            for pn, tbl in iteritems(data[protein]):
+                try:
+                    self.fun(self.obj, tbl, *args, **kwargs)
+                except KeyError:
+                    sys.stdout.write('\t:: WARNING: error in '
+                                     '`@combine_filters` decorator :((\n')
+    
+    def __get__(self, instance, owner):
+        self.obj = instance
+        self.cls = owner
+        
+        return self.__call__
+
+class combine_filters_valids(combine_filters):
+    
+    def __call__(self, *args, **kwargs):
+        super(combine_filters_valids, self).__call__(*args, valids_only = True, **kwargs)
+
+# ## Main class: ## #
 
 class Screening(object):
     """
@@ -5810,66 +5878,6 @@ class Screening(object):
         """
         pass
     
-    class get_hits(object):
-        
-        def __init__(self, fun):
-            self.fun = fun
-        
-        def __call__(self, data, **kwargs):
-            result = empty_dict(data)
-            for protein in data.keys():
-                print(protein)
-                for pn, tbl in iteritems(data[protein]):
-                    result[protein][pn] = self.fun(tbl, **kwargs)
-                    if result[protein][pn] is None:
-                        sys.stdout.write('No profile info for %s, %s, %s()\n' \
-                            % (protein, pn, self.fun.__name__))
-            return result
-    
-    class combine_filters(object):
-        
-        def __init__(self, fun):
-            self.fun = fun
-        
-        def __call__(self, *args, valids_only = False, **kwargs):
-            data = self.obj.valids if valids_only else self.obj.data
-            for protein in data.keys():
-                for pn, tbl in iteritems(data[protein]):
-                    try:
-                        self.fun(self.obj, tbl, *args, **kwargs)
-                    except KeyError:
-                        print(protein, pn)
-        
-        def __get__(self, instance, owner):
-            self.obj = instance
-            self.cls = owner
-            
-            return self.__call__
-    
-    class count_hits(object):
-        
-        def __init__(self, fun):
-            self.fun = fun
-        
-        def __call__(self, **kwargs):
-            hits = self.obj.empty_dict(self.obj.data)
-            phits = self.obj.empty_dict(self.obj.data)
-            for protein in self.obj.data.keys():
-                for pn, tbl in iteritems(self.obj.data[protein]):
-                    try:
-                        hits[protein][pn] = self.fun(tbl, **kwargs)
-                        phits[protein][pn] = self.fun(tbl, **kwargs) / \
-                            float(len(tbl[kwargs['name']])) * 100
-                    except:
-                        pass
-            return hits, phits
-        
-        def __get__(self, instance, owner):
-            self.obj = instance
-            self.cls = owner
-            
-            return self.__call__
-    
     @get_hits
     def val_ubi_prf_rpr_hits(self, tbl, ubiquity = 7, treshold = 0.15,
         tresholdB = 0.25, profile_best = False):
@@ -5982,13 +5990,17 @@ class Screening(object):
             tbl['rpr'][indices], tbl['ubi'][indices], tbl['uby'][indices] \
                 if 'uby' in tbl else np.zeros(len(indices)))
     
-    @combine_filters
-    def logical_and(self, tbl, one, two, result, valids_only = True):
+    @combine_filters_valids
+    def logical_and(self, tbl, one, two, result):
         tbl[result] = np.logical_and(tbl[one], tbl[two])
     
-    @combine_filters
-    def logical_or(self, tbl, one, two, result, valids_only = True):
+    @combine_filters_valids
+    def logical_or(self, tbl, one, two, result):
         tbl[result] = np.logical_or(tbl[one], tbl[two])
+    
+    @combine_filters_valids
+    def logical_not(self, tbl, attr, result):
+        tbl[result] = np.logical_not(tbl[attr])
     
     @combine_filters
     def validity_filter(self, tbl):
@@ -10070,10 +10082,39 @@ class Screening(object):
         prg.terminate()
         plt.close()
     
-    def peak_ratio_score_bool(self):
+    def peak_ratio_score_bool(self, exclude_na = True):
+        """
+        Creates a boolean attribute from peak ratio scores
+        along a certain cutoff.
+        """
         for protein, d in iteritems(self.valids):
             for mode, tbl in iteritems(d):
                 tbl['prs1'] = tbl['prs'] <= self.peak_ratio_score_threshold
+        
+        if exclude_na:
+            self.logical_not('na', 'not_na')
+            self.logical_and(one = 'prs1', two = 'not_na', result = 'prs1')
+    
+    def peak_ratio_score_best(self, best = 10, exclude_na = True):
+        """
+        Creates a boolean attribute selecting the n features with lowest
+        peak ratio scores.
+        """
+        for protein, d in iteritems(self.valids):
+            for mode, tbl in iteritems(d):
+                b = min([
+                    best,
+                    tbl['prs'].shape[0],
+                    np.isfinite(tbl['prs']).sum()
+                ])
+                
+                threshold    = tbl['prs'][tbl['prs'].argsort()][b - 1]
+                
+                tbl['prsb'] = tbl['prs'] <= threshold
+        
+        if exclude_na:
+            self.logical_not('na', 'not_na')
+            self.logical_and('prsb', 'not_na', 'prsb')
     
     def slope_filter(self):
         """
