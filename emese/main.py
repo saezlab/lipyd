@@ -2295,9 +2295,30 @@ class Screening(object):
             # allow features to have missing values in first or last
             # protein containing fractions
             'permit_profile_end_nan': True,
-            # 
-            'peak_ratio_score_bandwidth': 0.25,
-            # read externally determined protein peak ratios from file
+            # This is the maximum extent we can broaden the band
+            # when selecting the features with intensity ratios
+            # closest to the protein ratio. This is used as a
+            # ratio-like limit, e.g. if the number here is 0.25,
+            # and the protein ratio is 1.0, then the lower limit
+            # will be 1.0 * 0.25 = 0.25 and the upper
+            # 1.0 / 0.25 * 1.0 = 4.0.
+            'peak_ratio_score_max_bandwidth': 0.25,
+            # This is the preferred number of features to
+            # calculate the mean and SD in protein ratio score.
+            # It means we try to select this number of features
+            # with intensity ratio closest to the protein ratio,
+            # and use their mean and SD to estimate the fit of 
+            # other features.
+            'peak ratio_score_optimal_population': 10,
+            # Use the adaptive method at the peak ratio score
+            # calculation. This means to iteratively broaden the
+            # band at selecting the features with intensity ratios
+            # closest to the protein ratio, either until we have
+            # the optimal population of features, or we reach the
+            # maximum bandwith. If no features found this way,
+            # a warning message will be displayed.
+            'adaptive_peak_ratio_score': True,
+            # Read externally determined protein peak ratios from file
             # these were provided by Marco and used for Antonella`s
             # data analysis
             'use_manual_ppratios': False,
