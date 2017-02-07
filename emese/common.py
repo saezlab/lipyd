@@ -21,6 +21,7 @@ from past.builtins import xrange, range, reduce
 import sys
 import warnings
 import traceback
+import itertools
 
 if 'unicode' not in __builtins__:
     unicode = str
@@ -87,3 +88,61 @@ def warn_with_traceback(message, category, filename, lineno, file=None, line=Non
     traceback.print_stack()
     log = file if hasattr(file,'write') else sys.stderr
     log.write(warnings.formatwarning(message, category, filename, lineno, line))
+
+fa_greek_parts = {
+    'cc': {
+        'hex': 6,
+        'hept': 7,
+        'oct': 8,
+        'non': 9,
+        'dec': 10,
+        'undec': 11,
+        'dodec': 12,
+        'tridec': 13,
+        'tetradec': 14,
+        'pentadec': 15,
+        'hexadec': 16,
+        'heptadec': 17,
+        'octadec': 18,
+        'nonadec': 19,
+        'eicos': 20,
+        'icos': 20,
+        'heneicos': 21,
+        'docos': 22,
+        'tricos': 23,
+        'tetracos': 24,
+        'pentacos': 25,
+        'hexacos': 26,
+        'heptacos': 27,
+        'octacos': 28,
+        'nonacos': 29,
+        'triacont': 30
+    },
+    'uns': {
+        '': 1,
+        'adi': 2,
+        'atri': 3,
+        'atetra': 4,
+        'apenta': 5,
+        'ahexa': 6,
+        'ahepta': 7,
+        'aocta': 8
+    },
+    'end': {
+        'enoate': 1,
+        'anoate': 0,
+        'enoic acid': 1,
+        'anoic acid': 0
+    }
+}
+
+fa_greek = {}
+for cc, uns, end in itertools.product(
+    fa_greek_parts['cc'].items(),
+    fa_greek_parts['uns'].items(),
+    fa_greek_parts['end'].items()):
+    
+    if len(uns[0]) and end[1] == 0:
+        continue
+    
+    fa_greek['%s%s%s' % (cc[0], uns[0], end[0])] = (cc[1], uns[1] * end[1])

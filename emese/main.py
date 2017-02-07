@@ -2370,7 +2370,7 @@ class Screening(object):
             # and the protein ratio is 1.0, then the lower limit
             # will be 1.0 * 0.25 = 0.25 and the upper
             # 1.0 / 0.25 * 1.0 = 4.0.
-            'peak_ratio_score_max_bandwidth': 0.1,
+            'peak_ratio_score_max_bandwidth': 0.25,
             'peak_ratio_score_optimal_bandwidth': 0.5,
             # This is the preferred number of features to
             # calculate the mean and SD in protein ratio score.
@@ -2392,7 +2392,7 @@ class Screening(object):
             # the optimal population of features, or we reach the
             # maximum bandwith. If no features found this way,
             # a warning message will be displayed.
-            'adaptive_peak_ratio_score': True,
+            'adaptive_peak_ratio_score': False,
             # Read externally determined protein peak ratios from file
             # these were provided by Marco and used for Antonella`s
             # data analysis
@@ -2410,7 +2410,7 @@ class Screening(object):
             # results the `peak ratio score`. This is calculated for all
             # pairs of protein containing fractions, and we take their
             # mean if more than 2 fractions are available.
-            'peak_ratio_range': 0.5,
+            'peak_ratio_range': 0.25,
             # The threshold below the peak ratio scores considered good.
             # We set a cut-off e.g. for highlighting with green in the
             # output tables, but otherwise it is a continuous measure
@@ -2618,6 +2618,7 @@ class Screening(object):
                                    r'([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
                                    r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
         self.readd = re.compile(r'(\[M[-\+][-\)\)\+A-Za-z0-9]*\][0-9]?[\-+])')
+        self.refa  = re.compile(r'([dl]?)([0-9]+:[0-9]{1,2})\(?([,0-9EZ]+)?\)?')
         
         if os.path.exists('fonts.css'):
             with open('fonts.css', 'r') as f:
@@ -6299,7 +6300,10 @@ class Screening(object):
         """
         For one database record attempts to identify the lipid class
         by looking up keywords.
+        Calls greek name identification, greek fatty acid names are
+        identified as 'FA'.
         """
+        
         db = 'lmp' if lip[0][0] == 'L' else 'swl'
         for shortname, spec in iteritems(self.lipnames):
             for kwset in spec[db]:
@@ -6310,25 +6314,57 @@ class Screening(object):
                     if sum(matched) == 0:
                         ether = '(O-' in lip[2]
                         return shortname, spec['pos_adduct'], spec['neg_adduct'], ether
+        
+        return self.process_fa_name(lip)
+    
+    def process_fa_name(self, lip):
+        """
+        Identifies fatty acids based on their greek name.
+        """
+        
+        if lip[2] in fa_greek:
+            return 'FA', None, None, False
+        
         return None, None, None, None
+    
+    def fattyacid_cc(self, names):
+        """
+        Returns carbon count and unsaturation from greek name.
+        """
+        
+        for name in names:
+            if name in fa_greek:
+                return list(fa_greek[name])
 
     def fattyacid_from_lipid_name(self, lip, _sum = True):
-        refa = re.compile(r'([dl]?)([0-9]+:[0-9]{1,2})\(?([,0-9EZ]+)?\)?')
+        """
+        Returns lipid carbon count and unsaturation for almost
+        any name of common species in the databases.
+        Handles greek names, e.g. `octadecenoate` --> [18,1]
+        """
+        
         _fa = None
+        
         if lip[0][0] == 'L':
             names = lip[2].split('|')
             for i in [0, 2, 1]:
-                fa = refa.findall(names[i])
+                fa = self.refa.findall(names[i])
                 if len(fa) > 0:
                     _fa = fa
                     break
+        
         elif lip[0][0] == 'S':
-            fa = refa.findall(lip[2])
+            fa = self.refa.findall(lip[2])
             if len(fa) > 0:
                 _fa = fa
+        
         if _fa is not None and _sum:
             _fa = list(map(sum, zip(*[[int(i) for i in f[1].split(':')] \
                 for f in _fa])))
+        
+        if _fa is None:
+            _fa = self.fattyacid_cc(lip[2].split('|'))
+        
         return _fa
 
     def find_lipids_exact(self, verbose = False,
@@ -8331,7 +8367,7 @@ class Screening(object):
         self.onepfraction = [k.upper() for k, v in iteritems(self.fractions) \
             if sum((i for i in v.values() if i is not None)) == 1]
     
-    def read_lipid_names(self):
+    def read_lipid_names(self, add_fa = True):
         """
         Reads annotations for lipid classes:
         - full names
@@ -8354,6 +8390,10 @@ class Screening(object):
                     'pos_adduct': l[4] if l[4] != 'ND' and self.adducts_constraints else None,
                     'neg_adduct': l[5] if l[5] != 'ND' and self.adducts_constraints else None
                 }
+        
+        result['FA'] = {'full_name': 'Fatty acid', 'swl': [], 'lmp': [],
+                        'pos_adduct': None, 'neg_adduct': None}
+        
         self.lipnames = result
 
     def read_binding_properties(self):
@@ -9723,7 +9763,7 @@ class Screening(object):
         """
         return (lower, 1.0 / lower)
     
-    def peak_ratio_score(self):
+    def peak_ratio_score(self, exclude_wrong = None):
         """
         Calculates the difference between the mean intensity peak ratio
         expressed in number of standard deviations.
@@ -9736,6 +9776,8 @@ class Screening(object):
         lower, upper = self.ratio_limits(self.peak_ratio_score_max_bandwidth)
         proteins = sorted(self.valids.keys())
         w = self.filter_wrong_fractions
+        if exclude_wrong is not None:
+            w = exclude_wrong
         
         def set_bandwith(ipr, ppr):
             """
