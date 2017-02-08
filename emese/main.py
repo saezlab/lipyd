@@ -2143,6 +2143,7 @@ class MS2Scan(object):
     def pc_pos_1(self):
         score = 0
         fattya = set([])
+        
         if self.most_abundant_mz_is(184.073323) and self.has_mz(86.096425):
             score += 5
             fattya = self.fa_combinations('PC')
@@ -2150,6 +2151,25 @@ class MS2Scan(object):
                 score += 1
             if self.has_mz(124.999822):
                 score += 1
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def sm_pos_1(self):
+        score = 0
+        fattya = set([])
+        
+        if all(
+            map(
+                lambda mz:
+                    self.has_mz(mz),
+                [60.080776, 86.096425, 104.106990,
+                    124.999822, 184.073323]
+            )
+        ):
+            score += 5
+            if self.has_mz(58.0651):
+                score += 1
+        
         return {'score': score, 'fattya': fattya}
     
     def fa_pos_1(self):
@@ -2222,20 +2242,6 @@ class MS2Scan(object):
                     )
                 )
             )
-        return {'score': score, 'fattya': fattya}
-    
-    def sm_pos_1(self):
-        score = 0
-        fattya = set([])
-        if all(
-            map(
-                lambda mz:
-                    self.has_mz(mz),
-                [60.080776, 86.096425, 104.106990,
-                    124.999822, 184.073323]
-            )
-        ):
-            score += 5
         return {'score': score, 'fattya': fattya}
     
     def vd_pos_1(self):
@@ -2398,6 +2404,12 @@ class Screening(object):
             'ppfracf': 'fractions.csv',
             # Directory with the SEC absorbance profiles for each protein.
             'ppsecdir': 'SEC_profiles',
+            # The first section in the SEC profile filenames is the protein
+            # name or the second:
+            'sec_filenames_protein_name_first': True,
+            # This is a typo in some of the PEAK table headers.
+            # If this cause trouble just turn it off.
+            'fix_fraction_name_ab_typo': True,
             # Directory with the SDS PAGE protein quantities for some
             # proteins.
             'gelprofdir': 'gel_profiles',
@@ -3490,14 +3502,17 @@ class Screening(object):
                     self.fraclim = pickle.load(fp)
             
             return None
-        reprotein = re.compile(r'.*?[\s_-]?([A-Za-z0-9]{3,})_?[A-Za-z0-9]+?\.[a-z]{3}')
+        reprotein = re.compile(r'.*?[\s_-]?([A-Za-z0-9]{3,})[\s_]?([A-Za-z0-9]+?)\.[a-z]{3}')
         self.absorb = {}
         secdir = os.path.join(self.basedir, self.ppsecdir)
         fnames = os.listdir(secdir)
         if fraclim:
             self.fraclim = {}
         for fname in fnames:
-            protein_name = reprotein.findall(fname)[0]
+            if self.sec_filenames_protein_name_first:
+                protein_name = reprotein.findall(fname)[0][0]
+            else:
+                protein_name = reprotein.findall(fname)[0][1]
             if fname[-3:] == 'xls' or fname[-4:] == 'xlsx':
                 try:
                     tbl = self.read_xls(os.path.join(secdir, fname))[3:]
@@ -3639,7 +3654,7 @@ class Screening(object):
             return np.nanmean(a[np.where(np.logical_and(a[:,c - 1] < hi,
                                                      a[:,c - 1] >= lo)),c])
         
-        if not hasattr(self, 'fraclim'):
+        if not hasattr(self, 'fraclim') or not self.fraclim:
             self.read_fraction_limits()
         
         for protein in self.absorb.keys():
@@ -3924,16 +3939,20 @@ class Screening(object):
     def read_fraction_limits(self):
         with open(self.ppfracf, 'r') as f:
             self.fraclim = \
-                map(
-                    lambda i:
-                        (self.to_float(i[0]), self.to_float(i[1]), i[2]),
-                    filter(
-                        lambda l:
-                            len(l) == 3,
-                        map(
+                list(
+                    map(
+                        lambda i:
+                            (self.to_float(i[0]), self.to_float(i[1]), i[2]),
+                        filter(
                             lambda l:
-                                l.split(';'),
-                            f.read().split('\n')
+                                len(l) == 3,
+                            list(
+                                map(
+                                    lambda l:
+                                        l.split(';'),
+                                    f.read().split('\n')
+                                )
+                            )
                         )
                     )
                 )
@@ -5521,7 +5540,19 @@ class Screening(object):
                 if 'ctrl' in c[1] or 'ctlr' in c[1] or 'secbuffer' in c[1]:
                     prow, pcol = ('X', '0')
                 else:
-                    prow, pcol = refra.match(c[1]).groups()
+                    if self.fix_fraction_name_ab_typo:
+                        c1field = c[1].split('_')
+                        c1field[-1] = c1field[-1].replace('ab', 'b')
+                        if len(c1field) > 2:
+                            c1field[-2] = c1field[-2].replace('ab', 'b')
+                        c1field = '_'.join(c1field)
+                    else:
+                        c1field = c[1]
+                    try:
+                        prow, pcol = refra.match(c1field).groups()
+                    except:
+                        print(c1field)
+                        continue
                     if not len(prow):
                         if pcol_prev is not None:
                             if int(pcol_prev) >= int(pcol) - 1:
@@ -8479,7 +8510,17 @@ class Screening(object):
         """
         result = {}
         
-        with open(self. wrongfracsf, 'r') as fp:
+        if not os.path.exists(self.wrongfracsf):
+            
+            if self.filter_wrong_fractions:
+                
+                sys.stdout.write('\t:: Filtering of wrong fractions enabled, '
+                                'but input file missing: `%s`.\n' % (
+                                self.wrongfracsf))
+            
+            return None
+        
+        with open(self.wrongfracsf, 'r') as fp:
             
             _ = fp.readline()
             
