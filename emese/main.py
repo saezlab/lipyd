@@ -1045,7 +1045,7 @@ class Feature(object):
             )
         )
         self.classes = ['PA', 'PC', 'PE', 'PG', 'PS']
-        self.classes2 = ['PA', 'PC', 'PE', 'PG', 'PS', 'PI', 'SM', 'Cer']
+        self.classes2 = ['PA', 'PC', 'PE', 'PG', 'PS', 'PI', 'SM', 'Cer', 'FA']
         self.identities = set([])
         self.identities2 = {}
         # get carbon counts from MS1
@@ -1214,12 +1214,18 @@ class Feature(object):
         if len(self.tbl['ms1hg'][self.oi]) \
         else 'none'
     
-    def reload(self):
+    def reload(self, children = False):
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+        
+        if children:
+            
+            for sc in self._scans.values():
+                
+                sc.reload()
     
     def __str__(self):
         return ', '.join(
@@ -1361,7 +1367,49 @@ class MS2Scan(object):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
+    def print_identities(self, fname = None):
+        """
+        Prints identities to standard output or file.
+        """
+        
+        if fname is None:
+            sys.stdout.write(self.identities_str())
+        else:
+            with open(fname, 'w') as fp:
+                fp.write(self.identities_str())
+    
+    def identities_str(self, num = 1):
+        """
+        Returns table of all identification attemts as string.
+        """
+        
+        result = ['=== Scan #%u (fraction %s) ===' % (
+            self.scan_id[0], self.frac_name)]
+        
+        for hg in self.feature.classes2:
+            
+            method = '%s_%s_%u' % (
+                hg.lower(), self.feature.mode, num
+            )
+            
+            if not hasattr(self, method):
+                continue
+            
+            idd = getattr(self, method)()
+            
+            result.append('%s\t%u\t%s' % (
+                hg,
+                idd['score'],
+                ', '.join(idd['fattya'])
+            ))
+        
+        return '%s\n' % '\n'.join(result)
+    
     def print_scan(self):
+        """
+        Prints the list of fragments as an annotated table.
+        """
+        
         ms1mz = self.tbl['mz'][self.i]
         header = '\tFrag. m/z\tIntensity\tIdentity%sNL mass\n'\
             '\t%s\n' % (' ' * 26, '=' * 73)
@@ -1553,69 +1601,148 @@ class MS2Scan(object):
         return result
     
     def mz_among_most_abundant(self, mz, n = 2):
+        """
+        Tells if an m/z is among the most aboundant `n` fragments
+        in a spectrum.
+        
+        :param float mz: The m/z value.
+        :param int n: The number of most abundant fragments considered.
+        
+        """
+        
         result = False
+        
         for i in xrange(min(n, self.scan.shape[0])):
+            
             if self.mz_match(self.scan[i,1], mz):
+                
                 result = True
                 break
+        
         self.feature.msg('\t\t  -- m/z %.03f is among the %u most abundant? -- '\
             '%s\n' % (mz, n, str(result)))
+        
         return result
     
     def nl_among_most_abundant(self, nl, n = 2):
+        """
+        Tells if a neutral loss corresponds to one of the
+        most aboundant `n` fragments in a spectrum.
+        
+        :param float nl: The mass of the neutral loss.
+        :param int n: The number of most abundant fragments considered.
+        
+        """
+        
         result = False
         mz = self.feature.tbl['mz'][self.feature.i] - nl
+        
         for i in xrange(min(n, self.scan.shape[0])):
+            
             if self.mz_match(self.scan[i,1], mz):
+                
                 result = True
                 break
+        
         self.feature.msg('\t\t  -- neutral loss %.03f is among '\
             'the %u most abundant? -- '\
             '%s\n' % (nl, n, str(result)))
+        
         return result
     
     def mz_percent_of_most_abundant(self, mz, percent = 80.0):
+        """
+        Tells if an m/z has at least certain percent of intensity
+        compared to the most intensive fragment.
+        
+        :param float mz: The m/z value.
+        :param float percent: The threshold in percent
+                              of the highest intensity.
+        
+        """
+        
         insmax = self.scan[0,2]
         result = False
+        
         for frag in self.scan:
+            
             if self.mz_match(frag[1], mz):
+                
                 result = True
                 break
+            
             if frag[2] < insmax * 100.0 / percent:
                 result = False
                 break
+        
         self.feature.msg('\t\t  -- m/z %.03f has abundance at least %.01f %% of'\
             ' the highest abundance? -- %s\n' % \
             (mz, percent, str(result)))
+        
         return result
     
     def fa_type_is(self, i, fa_type, sphingo = False):
+        """
+        Tells if a fatty acid fragment is a specified type. The type
+        should be a part of the string representation of the fragment,
+        e.g. `-O]` for fragments with one oxygen loss.
+        """
+        
         result = (fa_type in self.scan[i,8] or fa_type in self.scan[i,7]) \
             and (not sphingo or 'Sphingosine' in self.scan[i,7])
+        
         self.feature.msg('\t\t  -- Fragment #%u (%s, %s): fatty acid type '\
             'is %s?  -- %s\n' % \
                 (i, self.scan[i,7], self.scan[i,8], fa_type, str(result)))
+        
         return result
     
     def is_fa(self, i, sphingo = False):
+        """
+        Examines whether a fragment is fatty acid-like or not.
+        In the labels of fatty acid fragments we always 
+        """
+        
         result = 'FA' in self.scan[i,7] or 'Lyso' in self.scan[i,7] or \
             (sphingo and 'Sphi' in self.scan[i,7])
+        
         self.feature.msg('\t\t  -- Fragment #%u (%s): is fatty acid? '\
             '-- %s\n' % (i, self.scan[i,7], str(result)))
+        
         return result
     
     def most_abundant_fa(self, fa_type, head = 1, sphingo = False):
+        """
+        Returns `True` if there is a fatty acid among the most abundant
+        fragments and it is of the defined type; `False` if there is no
+        fatty acid, or it is different type.
+        
+        :param str fa_type: The type of the fatty acid fragment ion.
+        :param int head: The number of most abundant fragments considered.
+        :param bool sphingo: Look for a sphingolipid backbone.
+        """
+        
         result = False
+        
         for i in xrange(self.scan.shape[0]):
+            
             if i == head:
                 break
+            
             if self.is_fa(i, sphingo = sphingo):
                 result = self.fa_type_is(i, fa_type, sphingo = sphingo)
         self.feature.msg('\t\t  -- Having fatty acid %s among %u most abundant '\
             'features? -- %s\n' % (fa_type, head, str(result)))
+        
         return result
     
-    def fa_among_most_abundant(self, fa_type, n = 2, min_mass = None, sphingo = False):
+    def fa_among_most_abundant(self, fa_type, n = 2,
+                               min_mass = None, sphingo = False):
+        """
+        Returns `True` if there is one of the defined type of fatty acid
+        fragments among the given number of most abundant fragments, and
+        it has a mass greater than the given threhold.
+        """
         
         result = False
         fa_frags = 0
@@ -1635,6 +1762,7 @@ class MS2Scan(object):
                 
                 if self.fa_type_is(i, fa_type, sphingo = sphingo):
                     result = True
+                
                 if fa_frags == n:
                     break
             
@@ -1657,6 +1785,15 @@ class MS2Scan(object):
         return False
     
     def mz_most_abundant_fold(self, mz, fold):
+        """
+        Tells if an m/z is the most abundant fragment
+        and it has at least a certain
+        fold higher intensity than any other fragment.
+        
+        :param float mz: The m/z value.
+        :param float fold: The m/z must be this times higher than any other.
+        """
+        
         result = False
         if self.most_abundant_mz_is(mz):
             result = self.scan.shape[0] == 1 or \
@@ -2013,6 +2150,26 @@ class MS2Scan(object):
                 score += 1
             if self.has_mz(124.999822):
                 score += 1
+        return {'score': score, 'fattya': fattya}
+    
+    def fa_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a fatty acid.
+        This method is not ready, does nothing.
+        """
+        score = 0
+        fattya = set([])
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def fa_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is a fatty acid.
+        This method is not ready, does nothing.
+        """
+        score = 0
+        fattya = set([])
+        
         return {'score': score, 'fattya': fattya}
     
     def pe_pos_1(self):
@@ -2891,12 +3048,24 @@ class Screening(object):
                 sys.stdout.write('\t:: Missing input file/path: %s\n' % path)
         sys.stdout.flush()
     
-    def reload(self):
+    def reload(self, children = False):
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+        
+        if children and hasattr(self, 'valids'):
+            
+            for protein, d in iteritems(self.valids):
+                
+                for tbl in d.values():
+                    
+                    if 'ms2f' in tbl:
+                        
+                        for ms2f in tbl['ms2f'].values():
+                            
+                            ms2f.reload(children = True)
     
     @staticmethod
     def numpy_warnings_as_errors():
@@ -6755,8 +6924,7 @@ class Screening(object):
         - identifying the features based on charecteristic
            fragments
         """
-        self.ms2_metabolites()
-        self.ms2_filenames()
+        self.ms2_init()
         self.ms2_map()
         self.ms2_main()
         self.ms2_headgroups()
@@ -6765,6 +6933,15 @@ class Screening(object):
         self.ms2_scans_identify()
         self.ms2_headgroups2()
         self.consensus_identity()
+    
+    def ms2_init(self):
+        """
+        Provides the generic data for MS2: looks up mgf files
+        and reads/generates fragment lists.
+        """
+        
+        self.ms2_metabolites()
+        self.ms2_filenames()
     
     def ms2_onebyone(self, callback = 'std_layout_tables_xlsx', **kwargs):
         """
@@ -6804,6 +6981,13 @@ class Screening(object):
         """
         Runs the whole MS2 workflow for only one protein.
         """
+        
+        if (
+            not hasattr(self, 'ms2files') or
+            not hasattr(self, 'nFragments') or
+            not hasattr(self, 'pFragments')):
+            
+            self.ms2_init()
         
         self.ms2_map(proteins = [protein])
         self.ms2_main(proteins = [protein])
@@ -7073,7 +7257,12 @@ class Screening(object):
         
         for d in self.datadirs:
             
-            proteindd = os.listdir(d)
+            try:
+                proteindd = os.listdir(d)
+            except OSError:
+                sys.stdout.write('\t:: Directories missing. '
+                                 'Please mount the shared folder.\n')
+                return None
             
             if self.ms2dir is not None and self.ms2dir in proteindd:
                 
@@ -10687,7 +10876,7 @@ class Screening(object):
         for d in self.valids.values():
             for tbl in d.values():
                 self._sort_all(tbl, attr, asc)
-
+    
     def get_scored_hits(self, data):
         hits = val_ubi_prf_rpr_hits(data, ubiquity = 70, profile_best = 50000)
         [v[0].shape[0] if v is not None else None \
@@ -12150,14 +12339,55 @@ class Screening(object):
                 if sum(is_known_binder) > 0:
                     self.known_binders_detected.add(protein)
     
+        
+    def original_id(self, protein, mode, mz):
+        """
+        Looks up an m/z and returns its original (stable) id.
+        """
+        
+        self.sort_alll('mz')
+        tbl = self.valids[protein][mode]
+        ui = tbl['mz'].searchsorted(mz)
+        i = (
+            ui if ui == 0 or
+            tbl['mz'][ui] - mz < mz - tbl['mz'][ui - 1]
+            else ui - 1
+        )
+        if abs(tbl['mz'][i] - mz) > self.ms1_tlr:
+            return None
+        else:
+            return tbl['i'][i]
+    
+    def print_ms2_identifications(self, protein, mode, mz):
+        """
+        Prints all MS2 identifications for an m/z.
+        """
+        
+        oi = self.original_id(protein, mode, mz)
+        
+        if oi is None:
+            return None
+        
+        tbl = self.valids[protein][mode]
+        ms2f = tbl['ms2f'][oi]
+        
+        for sid, sc in iteritems(ms2f._scans):
+            
+            sc.print_identities()
+    
     def mz_report(self, protein, mode, mz):
         """
         Looks up an m/z value and prints a report about the closest one.
         """
+        
         self.sort_alll('mz')
         tbl = self.valids[protein][mode]
         ui = tbl['mz'].searchsorted(mz)
-        i = ui if ui == 0 or tbl['mz'][ui] - mz < mz - tbl['mz'][ui - 1] else ui - 1
+        i = (
+            ui if ui == 0 or
+            tbl['mz'][ui] - mz < mz - tbl['mz'][ui - 1]
+            else ui - 1
+        )
         oi = tbl['i'][i]
         ifracs = sorted(iteritems(self.fraction_indices(protein)),
                         key = lambda i: i[1][0])
