@@ -1160,8 +1160,8 @@ class Screening(object):
             'membranesf': 'membranes_lipid_composition.xlsx',
             # Original MS2 fragment lists manually compiled by Marco.
             # One for positive and one for negative mode.
-            'pfragmentsfile': 'lipid_fragments_positive_mode_v10d%s.txt',
-            'nfragmentsfile': 'lipid_fragments_negative_mode_v10d.txt',
+            'pfragmentsfile': 'lipid_fragments_positive_mode_v10d2%s.txt',
+            'nfragmentsfile': 'lipid_fragments_negative_mode_v10d2.txt',
             # This is a file to output protein profiles to.
             # Serves only the purpose of checking for errors.
             'pptable_file': 'protein_profiles.txt',
