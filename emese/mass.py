@@ -20,6 +20,7 @@ from future.utils import iteritems
 import bs4
 import re
 import warnings
+import imp
 
 import emese._curl as _curl
 
@@ -279,3 +280,89 @@ fragments = {
         'Cer sphingosine(d18:1)-2xH2O': 'C18H34N'
     }
 }
+
+class MolWeight(object):
+    """
+    
+    Thanks for
+    https://github.com/bsimas/molecular-weight/blob/master/chemweight.py
+    
+    """
+    
+    def __init__(self, formula = None, charge = 0, isotope = 0, **kwargs):
+        """
+        **kwargs: elements & counts, e.g. c = 6, h = 12, o = 6...
+        """
+        if 'massFirstIso' not in globals():
+            getMassFirstIso()
+        self.mass = massFirstIso
+        self.charge = charge
+        self.isotope = isotope
+        self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
+        if formula is None:
+            formula = ''.join('%s%u'%(elem.capitalize(), num) \
+                for elem, num in iteritems(kwargs))
+        self.formula = formula
+        self.calc_weight()
+    
+    def __neg__(self):
+        return -1 * self.weight
+    
+    def __add__(self, other):
+        return float(other) + self.weight
+    
+    def __radd__(self, other):
+        return self.__add__(other)
+    
+    def __iadd__(self, other):
+        self.weight += float(other)
+    
+    def __sub__(self, other):
+        return self.weight - float(other)
+    
+    def __rsub__(self, other):
+        return float(other) - self.weight
+    
+    def __isub__(self, other):
+        self.weight += float(other)
+    
+    def __truediv__(self, other):
+        return self.weight / float(other)
+    
+    def __rtruediv__(self, other):
+        return float(other) / self.weight
+    
+    def __itruediv__(self, other):
+        self.weight /= float(other)
+    
+    def __mul__(self, other):
+        return self.weight * float(other)
+    
+    def __rmul__(self, other):
+        return self.__mul__(other)
+    
+    def __imul__(self, other):
+        self.weight *= float(other)
+    
+    def __float__(self):
+        return self.weight
+    
+    def __eq__(self, other):
+        return abs(self.weight - float(other)) <= 0.01
+    
+    def calc_weight(self):
+        atoms = self.reform.findall(self.formula)
+        w = 0.0
+        for element, count in atoms:
+            count = int(count or '1')
+            w += self.mass[element] * count
+        w -= self.charge * mass['electron']
+        w += self.isotope * mass['neutron']
+        self.weight = w
+    
+    def reload(self):
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)

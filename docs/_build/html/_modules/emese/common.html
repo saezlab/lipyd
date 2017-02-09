@@ -65,6 +65,7 @@
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
 
 <span class="k">if</span> <span class="s1">&#39;unicode&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">__builtins__</span><span class="p">:</span>
     <span class="n">unicode</span> <span class="o">=</span> <span class="nb">str</span>
@@ -131,6 +132,64 @@
     <span class="n">traceback</span><span class="o">.</span><span class="n">print_stack</span><span class="p">()</span>
     <span class="n">log</span> <span class="o">=</span> <span class="n">file</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">file</span><span class="p">,</span><span class="s1">&#39;write&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span>
     <span class="n">log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">warnings</span><span class="o">.</span><span class="n">formatwarning</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">category</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">line</span><span class="p">))</span></div>
+
+<span class="n">fa_greek_parts</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;cc&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;hex&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+        <span class="s1">&#39;hept&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+        <span class="s1">&#39;oct&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="s1">&#39;non&#39;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+        <span class="s1">&#39;dec&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="s1">&#39;undec&#39;</span><span class="p">:</span> <span class="mi">11</span><span class="p">,</span>
+        <span class="s1">&#39;dodec&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span>
+        <span class="s1">&#39;tridec&#39;</span><span class="p">:</span> <span class="mi">13</span><span class="p">,</span>
+        <span class="s1">&#39;tetradec&#39;</span><span class="p">:</span> <span class="mi">14</span><span class="p">,</span>
+        <span class="s1">&#39;pentadec&#39;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s1">&#39;hexadec&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+        <span class="s1">&#39;heptadec&#39;</span><span class="p">:</span> <span class="mi">17</span><span class="p">,</span>
+        <span class="s1">&#39;octadec&#39;</span><span class="p">:</span> <span class="mi">18</span><span class="p">,</span>
+        <span class="s1">&#39;nonadec&#39;</span><span class="p">:</span> <span class="mi">19</span><span class="p">,</span>
+        <span class="s1">&#39;eicos&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="s1">&#39;icos&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="s1">&#39;heneicos&#39;</span><span class="p">:</span> <span class="mi">21</span><span class="p">,</span>
+        <span class="s1">&#39;docos&#39;</span><span class="p">:</span> <span class="mi">22</span><span class="p">,</span>
+        <span class="s1">&#39;tricos&#39;</span><span class="p">:</span> <span class="mi">23</span><span class="p">,</span>
+        <span class="s1">&#39;tetracos&#39;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+        <span class="s1">&#39;pentacos&#39;</span><span class="p">:</span> <span class="mi">25</span><span class="p">,</span>
+        <span class="s1">&#39;hexacos&#39;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span>
+        <span class="s1">&#39;heptacos&#39;</span><span class="p">:</span> <span class="mi">27</span><span class="p">,</span>
+        <span class="s1">&#39;octacos&#39;</span><span class="p">:</span> <span class="mi">28</span><span class="p">,</span>
+        <span class="s1">&#39;nonacos&#39;</span><span class="p">:</span> <span class="mi">29</span><span class="p">,</span>
+        <span class="s1">&#39;triacont&#39;</span><span class="p">:</span> <span class="mi">30</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;uns&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;adi&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s1">&#39;atri&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="s1">&#39;atetra&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="s1">&#39;apenta&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="s1">&#39;ahexa&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+        <span class="s1">&#39;ahepta&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+        <span class="s1">&#39;aocta&#39;</span><span class="p">:</span> <span class="mi">8</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;end&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;enoate&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;anoate&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;enoic acid&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;anoic acid&#39;</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">fa_greek</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">cc</span><span class="p">,</span> <span class="n">uns</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span>
+    <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;cc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+    <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;uns&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+    <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">uns</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">continue</span>
+    
+    <span class="n">fa_greek</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">uns</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="o">=</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">uns</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 </pre></div>
 
           </div>

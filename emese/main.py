@@ -81,6 +81,8 @@ except:
 # from this module:
 import emese.mass as mass
 import emese.ms2 as ms2
+import emese.fragments as fragments
+import emese.mz as mzmod
 import emese.progress as progress
 import emese._curl as _curl
 from emese.common import *
@@ -92,904 +94,6 @@ warnings.filterwarnings('error')
 warnings.filterwarnings('default')
 warnings.simplefilter('always')
 
-class MolWeight(object):
-    """
-    
-    Thanks for
-    https://github.com/bsimas/molecular-weight/blob/master/chemweight.py
-    
-    """
-    
-    def __init__(self, formula = None, charge = 0, isotope = 0, **kwargs):
-        """
-            **kwargs: elements & counts, e.g. c = 6, h = 12, o = 6...
-        """
-        if not hasattr(mass, 'massFirstIso'):
-            mass.getMassFirstIso()
-        self.mass = mass.massFirstIso
-        self.charge = charge
-        self.isotope = isotope
-        self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
-        if formula is None:
-            formula = ''.join('%s%u'%(elem.capitalize(), num) \
-                for elem, num in iteritems(kwargs))
-        self.formula = formula
-        self.calc_weight()
-    
-    def __neg__(self):
-        return -1 * self.weight
-    
-    def __add__(self, other):
-        return float(other) + self.weight
-    
-    def __radd__(self, other):
-        return self.__add__(other)
-    
-    def __iadd__(self, other):
-        self.weight += float(other)
-    
-    def __sub__(self, other):
-        return self.weight - float(other)
-    
-    def __rsub__(self, other):
-        return float(other) - self.weight
-    
-    def __isub__(self, other):
-        self.weight += float(other)
-    
-    def __truediv__(self, other):
-        return self.weight / float(other)
-    
-    def __rtruediv__(self, other):
-        return float(other) / self.weight
-    
-    def __itruediv__(self, other):
-        self.weight /= float(other)
-    
-    def __mul__(self, other):
-        return self.weight * float(other)
-    
-    def __rmul__(self, other):
-        return self.__mul__(other)
-    
-    def __imul__(self, other):
-        self.weight *= float(other)
-    
-    def __float__(self):
-        return self.weight
-    
-    def __eq__(self, other):
-        return abs(self.weight - float(other)) <= 0.01
-    
-    def calc_weight(self):
-        atoms = self.reform.findall(self.formula)
-        w = 0.0
-        for element, count in atoms:
-            count = int(count or '1')
-            w += self.mass[element] * count
-        w -= self.charge * mass.mass['electron']
-        w += self.isotope * mass.mass['neutron']
-        self.weight = w
-    
-    def reload(self):
-        modname = self.__class__.__module__
-        mod = __import__(modname, fromlist=[modname.split('.')[0]])
-        imp.reload(mod)
-        new = getattr(mod, self.__class__.__name__)
-        setattr(self, '__class__', new)
-
-class AdductCalculator(object):
-    
-    def __init__(self):
-        self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
-        self.init_counts()
-    
-    def init_counts(self):
-        self.counts = self.counts if hasattr(self, 'counts') else {}
-    
-    def formula2counts(self, formula):
-        for elem, num in self.reform.findall(formula):
-            yield elem, int(num or '1')
-    
-    def remove(self, formula):
-        for elem, num in self.formula2counts(formula):
-            self.add_atoms(elem, -num)
-    
-    def add(self, formula):
-        for elem, num in self.formula2counts(formula):
-            self.add_atoms(elem, num)
-    
-    def add_atoms(self, elem, num):
-        self.counts[elem] = num if elem not in self.counts \
-            else self.counts[elem] + num
-
-class FattyFragment(MolWeight, AdductCalculator):
-    
-    def __init__(self, charge, c = 3, unsat = 0,
-        minus = [], plus = [], isotope = 0, name = None, hg = []):
-        self.c = c
-        self.unsat = unsat
-        self.minus = minus
-        self.plus = plus
-        self.hg = hg
-        self.init_counts()
-        self.add_atoms('C', self.c)
-        self.add_atoms('H', self.c * 2)
-        self.add_atoms('O', 2)
-        self.add_atoms('H', self.unsat * - 2 )
-        AdductCalculator.__init__(self)
-        for formula in self.minus:
-            self.remove(formula)
-        for formula in self.plus:
-            self.add(formula)
-        MolWeight.__init__(self, charge = charge,
-            isotope = isotope, **self.counts)
-        self.set_name(name)
-    
-    def set_name(self, name):
-        if name is None: name = ''
-        self.name = '[%s(C%u:%u)%s%s]%s' % (
-            name,
-            self.c,
-            self.unsat,
-            self.adduct_str(),
-            '' if self.isotope == 0 else 'i%u' % self.isotope,
-            self.charge_str()
-        )
-    
-    def charge_str(self):
-        return '%s%s' % (
-                ('%u' % abs(self.charge)) if abs(self.charge) > 1 else '',
-                '-' if self.charge < 0 else '+'
-            ) if self.charge != 0 else 'NL'
-    
-    def adduct_str(self):
-        return '%s%s' % (
-                ('-' if self.charge < 0 else '') \
-                    if not self.minus  else \
-                        '-%s' % ('-'.join(self.minus)),
-                ('+' if self.charge > 0 else '') \
-                    if not self.plus  else \
-                        '+%s' % ('+'.join(self.plus))
-            )
-    
-    def get_fragline(self):
-        return [self.weight, self.name,
-            '[M%s]%s' % (self.adduct_str(), self.charge_str()),
-            ';'.join(self.hg)]
-
-class LysoPEAlkenyl(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PE(alkenyl-18:0,-)]- 464.3140997565 -417 C23H47NO6P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 5,
-            'H': 11,
-            'O': 4,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPEAlkenyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PE-alkenyl',
-            hg = ['PE']
-        )
-
-class LysoPE(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PE(18:0,-)]- 480.3090143786 -476 C23H47NO7P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 5,
-            'H': 11,
-            'O': 5,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPE, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PE',
-            hg = ['PE']
-        )
-
-class LysoPEAlkyl(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 5,
-            'H': 13,
-            'O': 4,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPEAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PE-alkyl',
-            hg = ['PE']
-        )
-
-class LysoPCAlkenyl(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PC(alkenyl-18:0,-)]- 492.3453998849 -436 C25H51NO6P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 7,
-            'H': 15,
-            'O': 4,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPCAlkenyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PC-alkenyl',
-            hg = ['PC']
-        )
-
-class LysoPCAlkyl(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PC(alkyl-18:0,-)]- 494.3610499491 -143 C25H53NO6P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 7,
-            'H': 17,
-            'O': 4,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPCAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PC-alkyl',
-            hg = ['PC']
-        )
-
-class LysoPC(FattyFragment):
-    
-    # from massbank.jp:
-    # [lyso PC(18:0,-)]- 508.340314507 -373 C25H51NO7P-
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 7,
-            'H': 15,
-            'O': 5,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPC, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PC',
-            hg = ['PC']
-        )
-
-class LysoPS(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PS(18:0,-)]- 437.2668152129 -358 C21H42O7P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 3,
-            'H': 6,
-            'O': 5,
-            'P': 1
-        }
-        super(LysoPS, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PS',
-            hg = ['PS']
-        )
-
-class LysoPSAlkenyl(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 3,
-            'H': 6,
-            'O': 4,
-            'P': 1
-        }
-        super(LysoPSAlkenyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PS-alkenyl',
-            hg = ['PS']
-        )
-
-class LysoPSAlkyl(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 3,
-            'H': 8,
-            'O': 4,
-            'P': 1
-        }
-        super(LysoPSAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PS-alkyl',
-            hg = ['PS']
-        )
-
-class LysoPI(FattyFragment):
-    """
-    from massbank:
-    [lyso PI(-,18:0)]- 599.3196386444 -432 C27H52O12P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 9,
-            'H': 16,
-            'O': 10,
-            'P': 1
-        }
-        super(LysoPI, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PI',
-            hg = ['PI']
-        )
-
-class LysoPIAlkyl(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PI(alkyl-16:1,-)-H2O]- 537.2828592076 -228 C25H46O10P-
-    from this, derived 18:0-:
-    [lyso PI(alkyl-18:0,-)]- 585.3403740858 -228 C27H54O11P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 9,
-            'H': 18,
-            'O': 9,
-            'P': 1
-        }
-        super(LysoPIAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PI-alkyl',
-            hg = ['PI']
-        )
-
-class LysoPG(FattyFragment):
-    """
-    from massbank:
-    [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 6,
-            'H': 12,
-            'O': 7,
-            'P': 1
-        }
-        super(LysoPG, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PG',
-            hg = ['PG']
-        )
-
-class LysoPGAlkyl(FattyFragment):
-    """
-    from massbank:
-    [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 6,
-            'H': 14,
-            'O': 6,
-            'P': 1
-        }
-        super(LysoPGAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PG-alkyl',
-            hg = ['PG']
-        )
-
-class LysoPA(FattyFragment):
-    """
-    from Characterization of Phospholipid 
-    Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
-    [lyso PA(18:1,-)]- 435.2 C21H40O7P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 3,
-            'H': 6,
-            'O': 5,
-            'P': 1
-        }
-        super(LysoPA, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PA',
-            hg = ['PA']
-        )
-
-class LysoPAAlkyl(FattyFragment):
-    """
-    from Characterization of Phospholipid 
-    Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
-    [lyso PA(18:1,-)]- 435.2 C21H40O7P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 3,
-            'H': 8,
-            'O': 4,
-            'P': 1
-        }
-        super(LysoPAAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PA-alkyl',
-            hg = ['PA']
-        )
-
-class CerFA(FattyFragment):
-    """
-    https://metlin.scripps.edu/metabo_info.php?molid=6214
-    [Cer-FA(C8:0)]- 168.1382904 C8H14O1N1-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 2,
-            'H': 2,
-            'O': -1,
-            'N': 1
-        }
-        super(CerFA, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerFA',
-            hg = ['Cer']
-        )
-
-class CerFAminusC2H5N(FattyFragment):
-    
-    # 209 at C14:0 FA, 263 at C18:1
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 0,
-            'H': -3,
-            'O': -1
-        }
-        super(CerFAminusC2H5N, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerFA-C2N',
-            hg = ['Cer']
-        )
-
-class CerFAminusC(FattyFragment):
-    
-    # 226 at C14:0 FA, 280 at C18:1
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 0,
-            'H': 0,
-            'O': -1,
-            'N': 1
-        }
-        super(CerFAminusC, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerFA-C',
-            hg = ['Cer']
-        )
-
-class CerFAminusN(FattyFragment):
-    
-    # 227 at C14:0 FA, 281 at C18:1
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 0,
-            'H': -1,
-            'O': 0,
-        }
-        super(CerFAminusN, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerFA-N',
-            hg = ['Cer']
-        )
-
-class CerSphiMinusN(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': -2,
-            'H': -5,
-            'O': -1
-        }
-        super(CerSphiMinusN, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerSphi-N',
-            hg = ['Cer']
-        )
-
-class CerSphiMinusNO(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 0,
-            'H': -3,
-            'O': -1
-        }
-        super(CerSphiMinusNO, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerSphi-N-H2O',
-            hg = ['Cer']
-        )
-
-class CerSphi(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': -2,
-            'H': -4,
-            'O': 0,
-            'N': 1
-        }
-        super(CerSphi, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerSphi',
-            hg = ['Cer']
-        )
-
-class FAminusH(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(FAminusH, self).__init__(charge = -1, c = c, unsat = unsat,
-            minus = ['H'], isotope = isotope, name = 'FA')
-
-class FAAlkylminusH(FattyFragment):
-    """
-    18:0 = 267.2693393
-    """
-    
-    def __init__(self, c, unsat = 1, isotope = 0, **kwargs):
-        self.counts = {
-            'O': -1,
-            'H': 2
-        }
-        super(FAAlkylminusH, self).__init__(charge = -1, c = c, unsat = unsat,
-            minus = ['H'], isotope = isotope, name = 'FA-alkyl')
-
-class NLFA(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(NLFA, self).__init__(charge = 0, c = c, unsat = unsat,
-            isotope = isotope, name = 'NL FA')
-
-class NLFAminusH2O(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(NLFAminusH2O, self).__init__(charge = 0, c = c, unsat = unsat,
-            minus = ['H2O'], isotope = isotope, name = 'NL FA')
-
-class NLFAplusOH(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(NLFAplusOH, self).__init__(charge = 0, c = c, unsat = unsat,
-            plus = ['OH'], isotope = isotope, name = 'NL FA')
-
-class NLFAplusNH3(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(NLFAplusNH3, self).__init__(charge = 0, c = c, unsat = unsat,
-            plus = ['NH3'], isotope = isotope, name = 'NL FA')
-
-class FAminusO(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(FAminusO, self).__init__(charge = 1, c = c, unsat = unsat,
-            minus = ['O', 'H'], isotope = isotope, name = 'FA')
-
-class FAplusGlycerol(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0,
-        minus = [], plus = [], **kwargs):
-        self.counts = {
-            'C': 3,
-            'H': 5,
-            'O': 1
-        }
-        super(FAplusGlycerol, self).__init__(charge = 1, c = c, unsat = unsat,
-            minus = minus, plus = plus,
-            isotope = isotope, name = 'FA+G', hg = ['PG', 'BMP'])
-
-class SphingosineBase(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0,
-        minus = [], plus = [], **kwargs):
-        self.counts = {
-            'N': 1,
-            'H': 4
-        }
-        super(SphingosineBase, self).__init__(charge = 1, c = c, unsat = unsat,
-            isotope = isotope, name = 'Sphingosine',
-            minus = minus, plus = plus,
-            hg = ['Sph', 'SM', 'Cer', 'HexCer'])
-
-class FAFragSeries(object):
-    
-    def __init__(self, typ, charge, cmin = 2, unsatmin = 0,
-        cmax = 36, unsatmax = 6,
-        minus = [], plus = [], **kwargs):
-        for attr, val in iteritems(locals()):
-            setattr(self, attr, val)
-        self.fragments = []
-        if self.unsatmax is None: self.unsatmax = self.unsatmin
-        for unsat in xrange(self.unsatmin, self.unsatmax + 1):
-            this_cmin = max(self.cmin, unsat * 2 + 1)
-            if this_cmin <= cmax:
-                for cnum in xrange(this_cmin, cmax + 1):
-                    self.fragments.append(
-                        self.typ(charge = charge, c = cnum, unsat = unsat,
-                            minus = self.minus, plus = self.plus, **kwargs)
-                    )
-    
-    def __iter__(self):
-        for fr in self.fragments:
-            yield fr
-    
-    def iterweight(self):
-        for fr in self.fragments:
-            yield fr.weight
-    
-    def iterfraglines(self):
-        for fr in self.fragments:
-            yield fr.get_fragline()
-
-class Mz():
-    
-    def __init__(self, mz, z = 1, sign = None, tolerance = 0.01):
-        self.mz = mz
-        self.z = z
-        self.sign = sign
-        self.tol = tolerance
-    
-    def __eq__(self, other):
-        return self.z == other.z and \
-            self.mz > other.mz - self.tol and \
-            self.mz < other.mz + self.tol
-    
-    def __str__(self):
-        return 'm/z = %f' % self.mz
-    
-    def adduct(self, m):
-        return (self.mz * self.z + float(m)) / abs(self.z)
-    
-    def weight(self):
-        return self.mz * self.z
-    
-    def remove_h(self):
-        return self.adduct(-mass.proton)
-    
-    def remove_ac(self):
-        m = MolWeight('H3C2O2')
-        return self.adduct(-m - mass.electron)
-    
-    def remove_fo(self):
-        m = MolWeight('HCO2')
-        return self.adduct(-m - mass.electron)
-    
-    def remove_nh4(self):
-        m = MolWeight('NH4')
-        return self.adduct(-m + mass.electron)
-    
-    def remove_oh(self):
-        m = MolWeight('OH')
-        return self.adduct(-m - mass.electron)
-    
-    def add_h(self):
-        return self.adduct(mass.proton)
-    
-    def add_2h(self):
-        return self.adduct(2 * mass.proton)
-    
-    def add_3h(self):
-        return self.adduct(3 * mass.proton)
-    
-    def add_oh(self):
-        m = MolWeight('OH')
-        return self.adduct(m + mass.electron)
-    
-    def add_fo(self):
-        m = MolWeight('HCO2')
-        return self.adduct(m + mass.electron)
-    
-    def add_ac(self):
-        m = MolWeight('H3C2O2')
-        return self.adduct(m + mass.electron)
-    
-    def add_nh4(self):
-        m = MolWeight('NH4')
-        return self.adduct(m - mass.electron)
-    
-    def add_na(self):
-        m = MolWeight('Na')
-        return self.adduct(m - mass.electron)
-    
-    def remove_na(self):
-        m = MolWeight('Na')
-        return self.adduct(-m + mass.electron)
-    
-    def reload(self):
-        modname = self.__class__.__module__
-        mod = __import__(modname, fromlist=[modname.split('.')[0]])
-        imp.reload(mod)
-        new = getattr(mod, self.__class__.__name__)
-        setattr(self, '__class__', new)
 
 # ## Decorator classes: ## #
 
@@ -1894,16 +998,16 @@ class Screening(object):
             if l[5] is not None:
                 _pAdducts.append([l[0], 'Species', \
                     '|'.join([str(l[10]), str(l[1]), str(l[2])]), l[6],
-                    '[M+H]+', Mz(l[5]).add_h()])
+                    '[M+H]+', mzmod.Mz(l[5]).add_h()])
                 _pAdducts.append([l[0], 'Species', \
                     '|'.join([str(l[10]), str(l[1]), str(l[2])]), l[6],
-                    '[M+NH4]+', Mz(l[5]).add_nh4()])
+                    '[M+NH4]+', mzmod.Mz(l[5]).add_nh4()])
                 _nAdducts.append([l[0], 'Species', \
                     '|'.join([str(l[10]), str(l[1]), str(l[2])]), l[6],
-                    '[M-H]-', Mz(l[5]).remove_h()])
+                    '[M-H]-', mzmod.Mz(l[5]).remove_h()])
                 _nAdducts.append([l[0], 'Species', \
                     '|'.join([str(l[10]), str(l[1]), str(l[2])]), l[6],
-                    '[M+HCOO]-', Mz(l[5]).add_fo()])
+                    '[M+HCOO]-', mzmod.Mz(l[5]).add_fo()])
         _pAdducts = np.array(sorted(_pAdducts, key = lambda x: x[-1]),
             dtype = np.object)
         _nAdducts = np.array(sorted(_nAdducts, key = lambda x: x[-1]),
@@ -2024,7 +1128,7 @@ class Screening(object):
                             mz = self.to_float(l[i])
                             if i == 13:
                                 if formiate:
-                                    mzfo = Mz(mz).add_fo()
+                                    mzfo = mzmod.Mz(mz).add_fo()
                                     foline = [l[0], l[1], l[2],
                                         l[10], '[M+HCOO]-', mzfo]
                                     negatives.append(foline)
@@ -5370,7 +4474,7 @@ class Screening(object):
         result = []
         adducts = self.ad2ex[charge][mode]
         for addName, addFun in iteritems(adducts):
-            addMz = getattr(Mz(mz), addFun)()
+            addMz = getattr(mzmod.Mz(mz), addFun)()
             if verbose:
                 outfile.write('\t:: Searching for %s adducts.\n\t '\
                     '-- Adduct mass (measured): '\
@@ -5458,11 +4562,11 @@ class Screening(object):
                         if neg[add_col] != 'Unknown' else ['[M-H]-', '[M+HCOO]-']
                     for add in adds:
                         if add == '[M-H]-':
-                            poshmz = Mz(Mz(neg[mz_col]).add_h()).add_h()
-                            posnh3mz = Mz(Mz(neg[mz_col]).add_h()).add_nh4()
+                            poshmz = mzmod.Mz(Mz(neg[mz_col]).add_h()).add_h()
+                            posnh3mz = mzmod.Mz(mzmod.Mz(neg[mz_col]).add_h()).add_nh4()
                         elif add == '[M+HCOO]-':
-                            poshmz = Mz(Mz(neg[mz_col]).remove_fo()).add_h()
-                            posnh3mz = Mz(Mz(neg[mz_col]).\
+                            poshmz = mzmod.Mz(mzmod.Mz(neg[mz_col]).remove_fo()).add_h()
+                            posnh3mz = mzmod.Mz(mzmod.Mz(neg[mz_col]).\
                                 remove_fo()).add_nh4()
                         else:
                             continue
@@ -5569,9 +4673,9 @@ class Screening(object):
                 measured_pos_mz = tbl['pos']['mz'][pi]
                 for pos_add, pos_add_fun in iteritems(ad2ex['pos']):
                     calculated_exact = \
-                        getattr(Mz(measured_pos_mz), pos_add_fun)()
+                        getattr(mzmod.Mz(measured_pos_mz), pos_add_fun)()
                     for neg_add, neg_add_fun in iteritems(ex2ad['neg']):
-                        calculated_neg_mz = getattr(Mz(calculated_exact),
+                        calculated_neg_mz = getattr(mzmod.Mz(calculated_exact),
                             neg_add_fun)()
                         iu = tbl['neg']['mz'].searchsorted(calculated_neg_mz)
                         u = 0
@@ -5772,6 +4876,7 @@ class Screening(object):
         self.consensus_identity(proteins = [protein])
     
     def identify(self):
+        
         self.headgroups_by_fattya()
         self.headgroups_negative_positive('ms2')
         self.identity_combined()
@@ -5779,12 +4884,21 @@ class Screening(object):
         self.feature_identity_table()
     
     def ms2_metabolites(self):
+        """
+        Calls the methods for reading and auto-generating fragment
+        ion lists for both negative and positive modes.
+        """
+        
         self.pFragments, self.pHgfrags, self.pHeadgroups = \
             self.ms2_read_metabolites(self.pfragmentsfile)
         self.nFragments, self.nHgfrags, self.nHeadgroups = \
             self.ms2_read_metabolites(self.nfragmentsfile)
     
     def export_auto_fraglist(self, infile, outfile = None):
+        """
+        Exports the auto-generated fragment lists into file.
+        """
+        
         outfile = 'lipid_fragments_%s_mode_ext.txt' % \
             ('negative' if 'negative' in infile else 'positive') \
             if outfile is None else outfile
@@ -5803,11 +4917,16 @@ class Screening(object):
                 )
             )
     
-    def ms2_read_metabolites(self, fname, extra_fragments = True, return_fraglines = False):
+    def ms2_read_metabolites(self, fname, extra_fragments = True,
+                             return_fraglines = False):
         """
-        In part from Toby Hodges.
-        Reads metabolite fragments data.
+        First part is from Toby Hodges.
+        Reads metabolite fragments data and autogenerates fragment series
+        like fatty acid fragments with a defined range of carbon counts and
+        unsaturation.
+        
         """
+        
         Metabolites = []
         Hgroupfrags = {}
         rehg = re.compile(r'.*\(([\+;A-Z]+)\).*')
@@ -5837,119 +4956,123 @@ class Screening(object):
                 
                 if not self.only_marcos_fragments:
                     
-                    lst += self.auto_fragment_list(FAminusH, -1, name = 'FA')
+                    lst += self.auto_fragment_list(fragments.FAminusH, -1, name = 'FA')
                     # fatty acid -CO2- fragments:
                     lst += self.auto_fragment_list(
-                        FattyFragment, -1, minus = ['CO2', 'H'], name = 'FA')
-                    lst += self.auto_fragment_list(FAAlkylminusH, -1)
+                        fragments.FattyFragment, -1,
+                        minus = ['CO2', 'H'], name = 'FA')
+                    
+                    lst += self.auto_fragment_list(fragments.FAAlkylminusH, -1)
                     
                     for hg in ('PE', 'PC', 'PS', 'PI', 'PG', 'PA'):
                         
                         lst += self.auto_fragment_list(
-                            globals()['Lyso%s' % hg], -1
+                            getattr(fragments, 'Lyso%s' % hg), -1
                         )
                         
                         lst += self.auto_fragment_list(
-                            globals()['Lyso%s' % hg], -1, minus = ['H2O']
+                            getattr(fragments, 'Lyso%s' % hg), -1, minus = ['H2O']
                         )
                         
                         if hg != 'PA' and hg != 'PG':
                             lst += self.auto_fragment_list(
-                                globals()['Lyso%sAlkyl' % hg], -1
+                                getattr(fragments, 'Lyso%sAlkyl' % hg), -1
                             )
                             lst += self.auto_fragment_list(
-                                globals()['Lyso%sAlkyl' % hg], -1, minus = ['H2O']
+                                getattr(fragments, 'Lyso%sAlkyl' % hg), -1, minus = ['H2O']
                             )
                         
                         if hg == 'PI':
                             lst += self.auto_fragment_list(
-                                LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
+                                fragments.LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
                             )
                             lst += self.auto_fragment_list(
-                                LysoPI, -1, minus = ['CO2']
+                                fragments.LysoPI, -1, minus = ['CO2']
                             )
                         
                         if hg == 'PE':
                             lst += self.auto_fragment_list(
-                                LysoPE, -1, minus = ['CO2']
+                                fragments.LysoPE, -1, minus = ['CO2']
                             )
                         
                         if hg == 'PC':
                             lst += self.auto_fragment_list(
-                                LysoPC, -1, minus = ['CH3']
+                                fragments.LysoPC, -1, minus = ['CH3']
                             )
                             lst += self.auto_fragment_list(
-                                LysoPC, -1, minus = ['CH3', 'H2O']
+                                fragments.LysoPC, -1, minus = ['CH3', 'H2O']
                             )
                     
-                    lst += self.auto_fragment_list(CerFA, -1)
-                    lst += self.auto_fragment_list(CerFAminusC, -1)
-                    lst += self.auto_fragment_list(CerFAminusN, -1)
-                    lst += self.auto_fragment_list(CerFAminusC2H5N, -1)
-                    lst += self.auto_fragment_list(CerSphi, -1,
+                    lst += self.auto_fragment_list(fragments.CerFA, -1)
+                    lst += self.auto_fragment_list(fragments.CerFAminusC, -1)
+                    lst += self.auto_fragment_list(fragments.CerFAminusN, -1)
+                    lst += self.auto_fragment_list(fragments.CerFAminusC2H5N, -1)
+                    lst += self.auto_fragment_list(fragments.CerSphi, -1,
                                                    cmin = 14, unsatmin = 0,
                                                    cmax = 19, unsatmax = 3)
-                    lst += self.auto_fragment_list(CerSphiMinusN, -1,
+                    lst += self.auto_fragment_list(fragments.CerSphiMinusN, -1,
                                                    cmin = 14, unsatmin = 0 ,
                                                    cmax = 19, unsatmax = 3)
-                    lst += self.auto_fragment_list(CerSphiMinusNO, -1,
+                    lst += self.auto_fragment_list(fragments.CerSphiMinusNO, -1,
                                                    cmin = 14, unsatmin = 0 ,
                                                    cmax = 19, unsatmax = 3)
                     
                 else:
                     
-                    lst += self.auto_fragment_list(FAminusH, -1)
-                    lst += self.auto_fragment_list(LysoPA, -1, minus = ['H2O'])
-                    lst += self.auto_fragment_list(CerFA, -1)
+                    lst += self.auto_fragment_list(fragments.FAminusH, -1)
+                    lst += self.auto_fragment_list(fragments.LysoPA, -1, minus = ['H2O'])
+                    lst += self.auto_fragment_list(fragments.CerFA, -1)
             
             if 'positive' in fname:
+                
                 if not self.only_marcos_fragments:
-                    lst += self.auto_fragment_list(NLFAminusH2O, 0)
-                    lst += self.auto_fragment_list(NLFA, 0)
-                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                    
+                    lst += self.auto_fragment_list(fragments.NLFAminusH2O, 0)
+                    lst += self.auto_fragment_list(fragments.NLFA, 0)
+                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
                                                    cmin = 14, unsatmin = 0,
                                                    cmax = 19, unsatmax = 3,
                                                    minus = ['H5'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
                                                    cmin = 14, unsatmin = 0,
                                                    cmax = 19, unsatmax = 3,
                                                    minus = ['H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
                                                    cmin = 14, unsatmin = 0,
                                                    cmax = 19, unsatmax = 3,
                                                    minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
                                                    cmin = 14, unsatmin = 0,
                                                    cmax = 19, unsatmax = 3,
                                                    minus = ['C', 'H2O', 'H2O'])
-                    lst += self.auto_fragment_list(NLFAplusOH, 0)
-                lst += self.auto_fragment_list(FAplusGlycerol, 1)
-                lst += self.auto_fragment_list(NLFAplusNH3, 0)
-                lst += self.auto_fragment_list(FAminusO, 1)
+                    lst += self.auto_fragment_list(fragments.NLFAplusOH, 0)
+                lst += self.auto_fragment_list(fragments.FAplusGlycerol, 1)
+                lst += self.auto_fragment_list(fragments.NLFAplusNH3, 0)
+                lst += self.auto_fragment_list(fragments.FAminusO, 1)
                 
                 if self.only_marcos_fragments:
                     
-                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
                                                    cmin = 16, unsatmin = 0,
                                                    cmax = 16, unsatmax = 3,
                                                    minus = ['H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
                                                    cmin = 16, unsatmin = 0,
                                                    cmax = 16, unsatmax = 3,
                                                    minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
                                                    cmin = 16, unsatmin = 0,
                                                    cmax = 16, unsatmax = 3,
                                                    minus = ['C', 'H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
                                                    cmin = 18, unsatmin = 0,
                                                    cmax = 18, unsatmax = 3,
                                                    minus = ['H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
                                                    cmin = 18, unsatmin = 0,
                                                    cmax = 18, unsatmax = 3,
                                                    minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
                                                    cmin = 18, unsatmin = 0,
                                                    cmax = 18, unsatmax = 3,
                                                    minus = ['C', 'H2O', 'H2O'])
@@ -6010,8 +5133,10 @@ class Screening(object):
         In addition, certain groups can be added or deduced from the
         fragment mass, e.g. -H2O for a water loss.
         """
-        series = FAFragSeries(typ, charge, cmin = cmin, unsatmin = unsatmin,
-            cmax = cmax, unsatmax = unsatmax, minus = minus, plus = plus,
+        series = fragments.FAFragSeries(typ, charge,
+            cmin = cmin, unsatmin = unsatmin,
+            cmax = cmax, unsatmax = unsatmax,
+            minus = minus, plus = plus,
             **kwargs)
         return list(series.iterfraglines())
 
@@ -6477,7 +5602,7 @@ class Screening(object):
             # MS2 file offset, fraction number (13-14)
         """
         
-        fragments = self.pFragments if mode == 'pos' else self.nFragments
+        fraglist = self.pFragments if mode == 'pos' else self.nFragments
         ms2map = self.ms2map[protein][mode]
         ms2files = self.ms2map[protein]['ms2files'][mode]
         # indices of fraction numbers
@@ -6548,11 +5673,11 @@ class Screening(object):
                         
                         intensity = float(mi[1]) if len(mi) > 1 else np.nan
                         # matching fragment --- direct
-                        ms2hit1 = self.ms2_identify(mass, fragments,
+                        ms2hit1 = self.ms2_identify(mass, fraglist,
                             compl = False)
                         # matching fragment --- inverted
                         ms2hit2 = self.ms2_identify(ms2item[0] - mass,
-                            fragments, compl = True)
+                            fraglist, compl = True)
                         # matched fragment --- direct
                         # columns (14):
                         # MS1 m/z, MS2 fragment m/z, MS2 fragment intensity,
@@ -6605,9 +5730,9 @@ class Screening(object):
         
         return ms2matches
 
-    def ms2_identify(self, mass, fragments, compl):
+    def ms2_identify(self, mass, fraglist, compl):
         """
-        Looks up one MS2 m/z value in list of known fragments masses.
+        Looks up one MS2 m/z value in list of known fraglist masses.
         Either with matching between MS2 m/z and fragment m/z within
         a given tolerance, or between the fragment mass and the
         residual mass after substracting MS2 m/z from MS1 m/z.
@@ -6618,31 +5743,31 @@ class Screening(object):
         i = -1
         du = None
         dl = None
-        iu = fragments[:,0].searchsorted(mass)
-        if iu < len(fragments) and \
-            ((compl and 'NL' in fragments[iu,2]) or \
-            (not compl and ('+' in fragments[iu,2] or \
-            '-' in fragments[iu,2]) and 'NL' not in fragments[iu,2])):
-            du = fragments[iu,0] - mass
+        iu = fraglist[:,0].searchsorted(mass)
+        if iu < len(fraglist) and \
+            ((compl and 'NL' in fraglist[iu,2]) or \
+            (not compl and ('+' in fraglist[iu,2] or \
+            '-' in fraglist[iu,2]) and 'NL' not in fraglist[iu,2])):
+            du = fraglist[iu,0] - mass
         if iu > 0 and \
-            ((compl and 'NL' in fragments[iu - 1,2]) or \
-            (not compl and ('+' in fragments[iu - 1,2] or \
-            '-' in fragments[iu - 1,2]) \
-            and 'NL' not in fragments[iu - 1,2])):
-            dl = mass - fragments[iu - 1,0]
+            ((compl and 'NL' in fraglist[iu - 1,2]) or \
+            (not compl and ('+' in fraglist[iu - 1,2] or \
+            '-' in fraglist[iu - 1,2]) \
+            and 'NL' not in fraglist[iu - 1,2])):
+            dl = mass - fraglist[iu - 1,0]
         if du is not None and (dl is None or du < dl) and du < self.ms2_tlr:
             i = iu
             st = 1
         if dl is not None and (du is None or dl < du) and dl < self.ms2_tlr:
             i = iu - 1
             st = -1
-        val = fragments[i,0]
-        while len(fragments) > i >= 0 and fragments[i,0] == val:
-            if (compl and 'NL' in fragments[i,2]) or \
+        val = fraglist[i,0]
+        while len(fraglist) > i >= 0 and fraglist[i,0] == val:
+            if (compl and 'NL' in fraglist[i,2]) or \
                 (not compl and \
-                ('-' in fragments[i,2] or '+' in fragments[i,2]) \
-                and 'NL' not in fragments[i,2]):
-                result.append(fragments[i,:])
+                ('-' in fraglist[i,2] or '+' in fraglist[i,2]) \
+                and 'NL' not in fraglist[i,2]):
+                result.append(fraglist[i,:])
                 i += st
         return result
 
@@ -6651,15 +5776,15 @@ class Screening(object):
         Deprecated.
         """
         result = []
-        fragments = ms2matches[ms2matches[:,0] == ms1mz,:]
-        for frag in uniqList(fragments[:,7]):
+        fraglist = ms2matches[ms2matches[:,0] == ms1mz,:]
+        for frag in uniqList(fraglist[:,7]):
             if frag != 'Unknown':
-                thisFrag = fragments[fragments[:,7] == frag,:]
+                thisFrag = fraglist[fraglist[:,7] == frag,:]
                 maxInt = thisFrag[:,2].max()
                 thisFragMass = thisFrag[0,1]
                 result.append((frag, maxInt, thisFragMass))
         if unknown:
-            unknowns = fragments[fragments[:,7] == 'Unknown',:]
+            unknowns = fraglist[fraglist[:,7] == 'Unknown',:]
             result += [('Unknown', l[2], l[1]) for l in unknowns]
         return result
     
