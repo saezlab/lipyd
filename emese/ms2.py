@@ -21,6 +21,9 @@ from past.builtins import xrange, range, reduce
 
 import sys
 import re
+import numpy as np
+
+from emese.common import *
 
 class Feature(object):
     """
@@ -940,7 +943,9 @@ class MS2Scan(object):
         head = np.inf if head is None else head
         
         self.build_fa_list()
+        
         for cc in ccs:
+            
             for frag1 in self.fa_list:
                 
                 if frag1[5] >= head:
@@ -1012,7 +1017,7 @@ class MS2Scan(object):
         else:
             return result
     
-    def cer_missing_fa(self, cer_fa, cer_hg):
+    def cer_missing_fa(self, cer_hg):
         """
         Infers the fatty acid carbon count and unsaturation
         by subtracting the sphingoid backbone from the total.
@@ -1021,18 +1026,26 @@ class MS2Scan(object):
         
         result = set([])
         
-        if cer_hg in self.feature.ms1fa:
+        cer_ccs = set([])
+        
+        for frag in self.scan[:5]:
             
-            cer_cc = self.get_cc(cer_fa)
+            if 'phingo' in frag[7]:
+                
+                cer_ccs.add(self.get_cc(frag[7]))
+        
+        if cer_hg in self.feature.ms1fa:
             
             for cc in self.feature.ms1fa[cer_hg]:
                 
-                cc = self.get_cc(cc)
-                
-                carb = cc[0] - cer_cc[0]
-                unsat = cc[1] - cer_cc[1]
-                
-                result.add((carb, unsat))
+                for cer_cc in cer_ccs:
+                    
+                    cc = self.get_cc(cc)
+                    carb = cc[0] - cer_cc[0]
+                    unsat = cc[1] - cer_cc[1]
+                    
+                    result.add('d%u:%u/%u:%u' % (
+                        cer_cc[0], cer_cc[1], carb, unsat))
         
         return result
     
@@ -1327,12 +1340,8 @@ class MS2Scan(object):
             score += hexfrags + 4
         
         if score:
-            scc = self.get_cc(self.scan[0,7])
             
-            cfa = self.cer_missing_fa(self.scan[0,7], 'Cer1P')
-            
-            for fa in cfa:
-                fattya.add('d%u:%u/%u:%u' % (scc[0], scc[1], fa[0], fa[1]))
+            fattya.update(self.cer_missing_fa('HexCer'))
         
         return {'score': score, 'fattya': fattya}
     
@@ -1354,12 +1363,7 @@ class MS2Scan(object):
                        [82.0651257, 107.072951, 135.104251, 149.119901])):
                 score += 1
             
-            scc = self.get_cc(self.scan[0,7])
-            
-            cfa = self.cer_missing_fa(self.scan[0,7], 'Cer1P')
-            
-            for fa in cfa:
-                fattya.add('d%u:%u/%u:%u' % (scc[0], scc[1], fa[0], fa[1]))
+            fattya.update(self.cer_missing_fa('Cer1P'))
         
         return {'score': score, 'fattya': fattya}
     

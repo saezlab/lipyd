@@ -6913,10 +6913,12 @@ class Screening(object):
         memory.
         """
         
-        to_remove = ['ms2hg', 'ms2fa', 'ms2f',
-                     'ms2fai', 'ms2r', 'ms2i',
-                     'ms2fas', 'ms2fai', 'ms2i2',
-                     'ms2hg2', 'ms2i3', 'ms2']
+        #to_remove = ['ms2hg', 'ms2fa', 'ms2f',
+        #             'ms2fai', 'ms2r', 'ms2i',
+        #             'ms2fas', 'ms2fai', 'ms2i2',
+        #             'ms2hg2', 'ms2i3', 'ms2']
+        
+        to_remove = ['ms2f', 'ms2r', 'ms2']
         
         proteins = list(self.valids.keys()) if proteins is None else proteins
         
@@ -12807,7 +12809,7 @@ class Screening(object):
         
         self.manual = result
     
-    def manual_df(self):
+    def manual_df(self, screen = 'A'):
         """
         Creates a pandas dataframe from manual results.
         """
@@ -13024,6 +13026,7 @@ class Screening(object):
                         
                         
                         res1.extend(cnt)
+                        res1.append(screen)
                         
                         result.append(res1)
         
@@ -13061,7 +13064,8 @@ class Screening(object):
                                        'hgcc',
                                        'cc',
                                        'hgfa',
-                                       'ccfa'
+                                       'ccfa',
+                                       'screen'
                                     ])
     
     def bubble_altair(self,
