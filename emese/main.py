@@ -80,6 +80,7 @@ except:
 
 # from this module:
 import emese.mass as mass
+import emese.ms2 as ms2
 import emese.progress as progress
 import emese._curl as _curl
 from emese.common import *
@@ -990,1313 +991,6 @@ class Mz():
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
 
-# ##
-
-class Feature(object):
-    """
-    Provides additional, more sophisticated methods
-    for identification of a single feature.
-    
-    In the original concept all methods for identification
-    based on MS1 and MS2 took place in class Screening(),
-    as those could simply iterate through the arrays.
-    
-    Later more complex methods became necessary, so
-    I created this class to group them.
-    """
-    
-    def __init__(self, main, protein, mode, oi, log = True):
-        """
-        @main : ltp.Screening() instance
-            One Screening() instance with MS1 and MS2 processing already done.
-        
-        @protein : str
-            Protein name
-        
-        @mode : str
-            MS mode (`pos` or `neg`)
-        
-        @oi : int
-            Original index of one feature.
-        
-        @log : bool
-            Whether output verbose messages to logfile.
-        """
-        self.main = main
-        self.log = log
-        self.protein = protein
-        self.mode = mode
-        self.oi = oi
-        self.ifracs = self.main.fraction_indices(self.protein)
-        self.fracsi = dict(map(lambda fr: (fr[1][0], fr[0]),
-                               iteritems(self.ifracs)))
-        self.tbl = self.main.valids[self.protein][self.mode]
-        self.ms2 = self.tbl['ms2'][self.oi]
-        self.i = self.main.oi2i(self.protein, self.mode, self.oi)
-        self.fa = {}
-        self.scans_fractions = map(
-            lambda tpl: tuple(map(int, tpl)),
-            uniqList(
-                map(
-                    tuple,
-                    # scan ID, fraction ID
-                    self.ms2[:,[12,14]]
-                )
-            )
-        )
-        self.classes = ['PA', 'PC', 'PE', 'PG', 'PS']
-        self.classes2 = ['PA', 'PC', 'PE', 'PG', 'PS', 'PI', 'SM', 'Cer', 'FA']
-        self.identities = set([])
-        self.identities2 = {}
-        # get carbon counts from MS1
-        self.ms1fa = self.tbl['ms1fa'][oi]
-        # sorting by fractions/scans
-        self.scans = dict(
-            map(
-                lambda sc_fr:
-                    (
-                        # scan ID, fraction ID: key
-                        (sc_fr[0], sc_fr[1]),
-                        # MS2 array slice: value
-                        self.ms2[
-                            np.where(
-                                np.logical_and(
-                                    self.ms2[:,12] == sc_fr[0],
-                                    self.ms2[:,14] == sc_fr[1]
-                                )
-                            )
-                        ]
-                    ),
-                self.scans_fractions
-            )
-        )
-        # sorting by intensity desc
-        self.scans = dict(
-            map(
-                lambda i:
-                    (
-                        i[0],
-                        i[1][i[1][:,2].argsort()[::-1],:]
-                    ),
-                iteritems(self.scans)
-            )
-        )
-        self.deltart = dict(
-            map(
-                lambda i:
-                    (
-                        i[0],
-                        self.tbl['rtm'][self.i] - i[1][0,11]
-                    ),
-                iteritems(self.scans)
-            )
-        )
-        self._scans = dict(
-            map(
-                lambda i:
-                    (
-                        i[0],
-                        # i[0]: (scan ID, fraction ID)
-                        # i[1]: MS2 array slice
-                        MS2Scan(i[1], i[0], self)
-                    ),
-                iteritems(self.scans)
-            )
-        )
-        self.maxins = dict(
-            map(
-                lambda i:
-                    (
-                        i[0],
-                        i[1][0,2]
-                    ),
-                iteritems(self.scans)
-            )
-        )
-        self.medins = dict(
-            map(
-                lambda i:
-                    (
-                        i[0],
-                        np.median(i[1][:,2])
-                    ),
-                iteritems(self.scans)
-            )
-        )
-        self.sort_scans()
-        self.select_best_scan()
-        self.msg('\n::: Analysing feature: %s :: %s :: index = %u ::'\
-                ' m/z = %.03f :: number of MS2 scans: %u\n' % \
-            (self.protein, self.mode, self.oi, self.tbl['mz'][self.i],
-                len(self._scans))
-        )
-        self.msg('\n::: Database lookup resulted '\
-            'the following species: %s\n' % self.print_db_species())
-        self.msg('\n::: Intensities:\n%s%s\n' % \
-            (' ' * 24, '          '.join(['A09', 'A10', 'A11', 'A12', 'B01'])))
-        self.msg('%s%s' % (' ' * 16, '=' * 63))
-        self.msg('\n    - absolute:  %s' % '   '.join(
-            map(lambda x: '%10.01f' % x, self.tbl['fe'][self.i,:]))
-        )
-        self.msg('\n    - relative: %s\n' % \
-            '  '.join(
-                map(
-                    lambda xx:
-                        '%10.02f%%' % (xx * 100.0),
-                    map(
-                        lambda x:
-                            x / np.nanmax(self.tbl['fe'][self.i,:]),
-                        self.tbl['fe'][self.i,:]
-                    )
-                )
-            )
-        )
-        self.msg('\n::: MS2 scans available (%u):\n\n' % len(self.scans))
-        
-        for sc in self._scans.values():
-            sc.print_scan()
-    
-    def sort_scans(self):
-        """
-        Groups the scans in 3 groups: highest consists of those from the
-        fractions with the highest protein level (there might be more than
-        one the highest, because the fraction offset limits); the secondary
-        contains scans from other protein containing fractions; while the
-        other contains the scans from non protein containing fractions.
-        Within the groups the scans are sorted from lowest to highest
-        deltaRT.
-        """
-        self.highest = []
-        self.secondary = []
-        self.other = []
-        with_protein = self.main.protein_containing_fractions(self.protein)
-        for scan_num, fr in self.scans.keys():
-            fr_name = 'a%u' % fr if fr != 13 and fr != 1 else 'b1'
-            if fr_name in with_protein:
-                if fr_name == self.main.fracs_orderL[self.protein][0][0] or \
-                    fr_name == self.main.fracs_orderU[self.protein][0][0]:
-                    self.highest.append((scan_num, fr))
-                else:
-                    self.secondary.append((scan_num, fr))
-            else:
-                self.other.append((scan_num, fr))
-        self.highest = sorted(self.highest, key = lambda sc: abs(self._scans[sc].deltart))
-        self.secondary = sorted(self.secondary, key = lambda sc: abs(self._scans[sc].deltart))
-        self.other = sorted(self.other, key = lambda sc: abs(self._scans[sc].deltart))
-    
-    def select_best_scan(self):
-        self.best_scan = \
-            self.highest[0] if len(self.highest) else \
-            self.secondary[0] if len(self.secondary) else \
-            self.other[0] if len(self.other) else \
-            None
-    
-    def print_db_species(self):
-        return ', '.join(
-            map(
-                lambda hg:
-                    '%s' % (
-                        hg \
-                            if hg not in self.tbl['ms1fa'][self.oi] \
-                            or not len(self.tbl['ms1fa'][self.oi][hg]) \
-                            else \
-                        ', '.join(
-                            map(
-                                lambda fa:
-                                    '%s(%s)' % (hg, fa),
-                                self.tbl['ms1fa'][self.oi][hg]
-                            )
-                        )
-                    ),
-                self.tbl['ms1hg'][self.oi]
-            )
-        ) \
-        if len(self.tbl['ms1hg'][self.oi]) \
-        else 'none'
-    
-    def reload(self, children = False):
-        modname = self.__class__.__module__
-        mod = __import__(modname, fromlist=[modname.split('.')[0]])
-        imp.reload(mod)
-        new = getattr(mod, self.__class__.__name__)
-        setattr(self, '__class__', new)
-        
-        if children:
-            
-            for sc in self._scans.values():
-                
-                sc.reload()
-    
-    def __str__(self):
-        return ', '.join(
-            map(
-                lambda hgfas:
-                    ', '.join(
-                        map(
-                            lambda fa:
-                                '%s(%s)' % (hgfas[0], fa),
-                            hgfas[1]
-                        )
-                    ),
-                iteritems(self.fa)
-            )
-        )
-    
-    def get_header_div(self):
-        return '\t\t<div class="ms2hdr">\n\t\t'\
-            'MS2 scans of feature %.04f'\
-            '\n\t\t\t|<span class="scansbutton morescans1"'\
-                ' title="Show/hide scans from fractions with '\
-                'highest protein concentration">scans+</span>\n'\
-            '\n\t\t\t|<span class="scansbutton morescans2"'\
-                ' title="Show/hide scans from other protein '\
-                'containing fractions">scans++</span>\n'\
-            '\n\t\t\t|<span class="scansbutton morescans3"'\
-                ' title="Show/hide scans from non protein '\
-                'containing fractions">scans+++</span>\n'\
-            '\n\t\t\t|<span class="scansbutton morefrags"'\
-                ' title="Show/hide fragments after 5 highest'\
-                '">frags+</span>\n'\
-            '\n\t\t\t|<span class="scansbutton remove"'\
-                ' title="Remove scans of this feature'\
-                '">remove</span>\n'\
-            '\t\t</div>\n' % \
-            self.tbl['mz'][self.i]
-    
-    def html_table(self):
-        container = '\t<div id="%s" class="ms2tblcontainer">\n%s%s\n\t</div>'
-        header = self.get_header_div()
-        html = []
-        if self.best_scan is not None:
-            html.append(self._scans[self.best_scan].html_table())
-        else:
-            html.append('<div class="noscans">No scans '\
-                'from fractions with highest protein concentration.</div>')
-        for sc in sorted(self._scans.values(), key = lambda sc: abs(sc.deltart)):
-            if sc.in_primary and sc.scan_id != self.best_scan:
-                html.append(sc.html_table())
-        for sc in sorted(self._scans.values(), key = lambda sc: abs(sc.deltart)):
-            if not sc.in_primary and sc.scan_id != self.best_scan:
-                html.append(sc.html_table())
-        for sc in sorted(self._scans.values(), key = lambda sc: abs(sc.deltart)):
-            if not sc.in_primary and not sc.in_secondary:
-                html.append(sc.html_table())
-        html = '\n'.join(html)
-        return container % ('ms2c_%u_%u' % \
-            (int(self.tbl['aaa'][self.i]), self.oi), header, html)
-    
-    def html_table_b64(self):
-        return base64.encodestring(self.html_table()).replace('\n', '')
-    
-    def msg(self, text):
-        if self.log:
-            with open(self.main.ms2log, 'a') as f:
-                f.write(text)
-    
-    def _any_scan(self, method, **kwargs):
-        for i, sc in iteritems(self._scans):
-            self.msg('\t\t:: Calling method %s() on scan #%u\n' % (method, i[0]))
-            if getattr(sc, method)(**kwargs):
-                return True
-        return False
-    
-    def identify(self):
-        for hg in self.classes:
-            self.msg('\t>>> Attempting to identify %s in all scans\n' % (hg))
-            if self._any_scan('is_%s' % hg.lower()):
-                self.identities.add(hg)
-                self.msg('\t<<< Result: identified as %s\n' % hg)
-            else:
-                self.msg('\t<<< Result: not %s\n' % hg)
-    
-    def identify2(self, num = 1):
-        for hg in self.classes2:
-            self.msg('\t>>> Attempting to identify %s in all scans\n' % (hg))
-            self.identities2[hg] = []
-            identified = False
-            for scanid, scan in iteritems(self._scans):
-                method = '%s_%s_%u' % (hg.lower(), self.mode, num)
-                if hasattr(scan, method):
-                    self.identities2[hg].append(getattr(scan, method)())
-                    identified = any(
-                        map(
-                            lambda i: i['score'] >= 5,
-                            self.identities2[hg]
-                        )
-                    )
-            if identified:
-                self.msg('\t<<< Result: identified as %s\n' % hg)
-            else:
-                self.msg('\t<<< Result: not %s\n' % hg)
-
-class MS2Scan(object):
-    """
-    This class represents one MS2 scan and provides methods for its analysis.
-    """
-    
-    def __init__(self, scan, scan_id, feature):
-        
-        self.scan = scan
-        self.scan_id = scan_id
-        self.feature = feature
-        self.deltart = self.feature.deltart[self.scan_id]
-        self.frac_id = self.scan_id[1]
-        self.frac_name = self.feature.fracsi[self.frac_id]
-        
-        self.ms2_file = self.feature.main.ms2files\
-            [self.feature.protein][self.feature.mode][self.frac_name]
-        self.in_primary = self.frac_name in \
-            self.feature.main.fracs_order[self.feature.protein]['prim']
-        self.in_secondary = self.frac_name in \
-            self.feature.main.fracs_order[self.feature.protein]['sec']
-        self.i = self.feature.i
-        self.tbl = self.feature.tbl
-        self.insmax = self.scan[0,2]
-        self.recc = re.compile(r'.*[^0-9]([0-9]{1,2}):([0-9]).*')
-        self.fa = {}
-        self.fa1 = {}
-        self._order = None
-        self.sort_by_i()
-        self.fa_list = None
-        self.build_fa_list()
-    
-    def reload(self):
-        modname = self.__class__.__module__
-        mod = __import__(modname, fromlist=[modname.split('.')[0]])
-        imp.reload(mod)
-        new = getattr(mod, self.__class__.__name__)
-        setattr(self, '__class__', new)
-    
-    def print_identities(self, fname = None):
-        """
-        Prints identities to standard output or file.
-        """
-        
-        if fname is None:
-            sys.stdout.write(self.identities_str())
-        else:
-            with open(fname, 'w') as fp:
-                fp.write(self.identities_str())
-    
-    def identities_str(self, num = 1):
-        """
-        Returns table of all identification attemts as string.
-        """
-        
-        result = ['=== Scan #%u (fraction %s) ===' % (
-            self.scan_id[0], self.frac_name)]
-        
-        for hg in self.feature.classes2:
-            
-            method = '%s_%s_%u' % (
-                hg.lower(), self.feature.mode, num
-            )
-            
-            if not hasattr(self, method):
-                continue
-            
-            idd = getattr(self, method)()
-            
-            result.append('%s\t%u\t%s' % (
-                hg,
-                idd['score'],
-                ', '.join(idd['fattya'])
-            ))
-        
-        return '%s\n' % '\n'.join(result)
-    
-    def print_scan(self):
-        """
-        Prints the list of fragments as an annotated table.
-        """
-        
-        ms1mz = self.tbl['mz'][self.i]
-        header = '\tFrag. m/z\tIntensity\tIdentity%sNL mass\n'\
-            '\t%s\n' % (' ' * 26, '=' * 73)
-        table = '\n\t'.join(
-            map(
-                lambda sc:
-                    '%9.4f\t%10.2f\t%s%s%9.4f' % \
-                        tuple(list(sc[[1, 2, 7]]) + \
-                            [' ' * (32 - len(sc[7])), ms1mz - sc[1]]),
-                self.scan
-            )
-        )
-        
-        self.feature.msg('\tScan %u (fraction %s(#%u); %s %s; '\
-            'intensity = %.01f (%.02f%%)):\n\n%s\t%s\n\n' % \
-            (self.scan_id[0],
-             self.frac_name,
-             self.frac_id,
-             'contains' \
-                if self.feature.ifracs[self.frac_name][1] \
-                else 'does not contain',
-             self.feature.protein,
-             self.tbl['fe'][self.i, self.frac_id] \
-                 if self.frac_id < self.tbl['fe'].shape[1] else np.nan,
-             (self.tbl['fe'][self.i, self.frac_id] \
-                 if self.frac_id < self.tbl['fe'].shape[1] else np.nan) / \
-                 np.nanmax(self.tbl['fe'][self.i, :]) * 100.0,
-             header,
-             table)
-        )
-    
-    def html_table(self):
-        table = '\t\t<table id="%s" class="scantbl %s">\n%s\n\t\t</table>\n'
-        th = '\t\t\t\t<th>\n\t\t\t\t\t%s\n\t\t\t\t</th>\n'
-        ttl = '\t\t\t<tr class="%s">\n\t\t\t\t<th colspan="4">\n\t\t\t\t\t%s'\
-            '\n\t\t\t\t</th>\n\t\t\t</tr>\n'
-        tr = '\t\t\t<tr class="%s">\n%s\n\t\t\t</tr>\n'
-        td = '\t\t\t\t<td>\n\t\t\t\t\t%s\n\t\t\t\t</td>\n'
-        ms1mz = self.tbl['mz'][self.i]
-        rows = ttl % (
-            'scantitle',
-            'Scan %u (%s, %s; '\
-            'intensity = %.01f (%.02f%%); dRT = %.03f min)' % (
-                self.scan_id[0],
-                self.frac_name,
-                'the highest fraction' if self.in_primary \
-                    else 'not the highest, but contains %s' % \
-                        self.feature.protein if self.in_secondary \
-                    else 'does not contain %s' % \
-                        self.feature.protein,
-                self.tbl['fe'][self.i, self.frac_id] \
-                    if fri < self.tbl['fe'].shape[1] else np.nan,
-                (self.tbl['fe'][self.i, self.frac_id] \
-                    if fri < self.tbl['fe'].shape[1] else np.nan) / \
-                    np.nanmax(self.tbl['fe'][self.i, :]) * 100.0,
-                self.deltart
-            )
-        )
-        rows += tr % (
-            'scanhdr',
-            ''.join(
-                map(
-                    lambda cname:
-                        th % cname,
-                    ['Frag m/z', 'Intensity', 'Identity', 'NL mass']
-                )
-            )
-        )
-        for rn, row in enumerate(self.scan):
-            rows += tr % (
-                'fragrow %s' % ('first5' if rn < 5 else 'after5'),
-                ''.join([
-                    td % ('%.04f' % row[1]),
-                    td % ('%.02f' % row[2]),
-                    td % row[7],
-                    td % ('%.04f' % (ms1mz - row[1]))
-                ])
-        )
-        return table % ('%u_%u_%u' % (
-            self.tbl['i'][self.i], self.scan_id[0], self.scan_id[1]),
-            'best' if self.scan_id == self.feature.best_scan \
-                else 'primary' if self.in_primary \
-                else 'secondary' if self.in_secondary \
-                else 'noprotein',
-            rows
-        )
-    
-    def get_by_rank(self, rank = 1, min_mz = 0.0):
-        this_rank = 0
-        return_next = False
-        prev_mz = 0.0
-        intensity = ''
-        ids = []
-        for r in self.scan:
-            if r[1] < min_mz:
-                continue
-            if abs(r[1] - prev_mz) > 0.0001:
-                prev_mz = r[1]
-                this_rank += 1
-            if this_rank == rank:
-                return_next = True
-                intensity = '%.04f(%u)' % (r[1], r[2])
-                ids.append('%s (%.03f)' % (r[7], r[1]))
-            elif this_rank != rank and return_next:
-                return intensity, '; '.join(ids)
-        return '', ''
-    
-    def full_list_str(self):
-        result = []
-        prev_mz = self.scan[0,1]
-        intensity = self.scan[0,2]
-        names = set([])
-        for i, r in enumerate(self.scan):
-            if abs(r[1] - prev_mz) > 0.0001:
-                if len(names) == 1 and  list(names)[0] == 'unknown':
-                    result.append('%s (%.03f) (%u)' % ('/'.join(sorted(list(names))), r[1], intensity))
-                else:
-                    result.append('%s (%u)' % ('/'.join(sorted(list(names))), intensity))
-                names = set([])
-                intensity = r[2]
-                prev_mz = r[1]
-            names.add(r[7])
-        result.append('%s (%u)' % ('/'.join(sorted(list(names))), intensity))
-        return '; '.join(result)
-    
-    def most_abundant_mz(self):
-        result = self.scan[0,1]
-        self.feature.msg('\t\t  -- Most abundant m/z is %.03f\n' % result)
-        return result
-    
-    def mz_match(self, mz_detected, mz):
-        return abs(mz_detected - mz) <= self.feature.main.ms2_tlr
-    
-    def sort_by_mz(self):
-        self._order = self._order[self.scan[:,1].argsort()]
-        self.scan = self.scan[self.scan[:,1].argsort(),:]
-    
-    def sort_by_i(self, return_order = False):
-        if self._order is None:
-            order = self.scan[:,2].argsort()[::-1]
-            self.scan = self.scan[order,:]
-            self._order = np.array(xrange(self.scan.shape[0]), dtype = np.int)
-        else:
-            order = self._order.argsort()
-            self.scan = self.scan[order,:]
-            self._order = self._order[order]
-        if return_order:
-            return order
-    
-    def mz_lookup(self, mz):
-        """
-        Returns the index of the closest m/z value
-        detected in the scan if it is within the
-        range of tolerance, otherwise None.
-        """
-        du = 999.0
-        dl = 999.0
-        self.sort_by_mz()
-        ui = self.scan[:,1].searchsorted(mz)
-        if ui < self.scan.shape[0]:
-            du = self.scan[ui,1] - mz
-        if ui > 0:
-            dl = mz - self.scan[ui - 1,1]
-        i = ui if du < dl else ui - 1
-        i = i if self.mz_match(self.scan[i,1], mz) else None
-        sort = self.sort_by_i(return_order = True)
-        if i is not None:
-            i = np.where(sort == i)[0][0]
-        return i
-    
-    def has_mz(self, mz):
-        result = self.mz_lookup(mz) is not None
-        self.feature.msg('\t\t  -- m/z %.03f occures in this scan? -- %s\n' % \
-            (mz, str(result)))
-        return result
-    
-    def has_nl(self, nl):
-        result = self.has_mz(self.feature.tbl['mz'][self.feature.i] - nl)
-        self.feature.msg('\t\t  -- neutral loss of %.03f occures in '\
-            'this scan? Looked up m/z %.03f - %.03f = %.03f -- %s\n' % \
-            (nl, self.feature.tbl['mz'][self.feature.i], nl,
-             self.feature.tbl['mz'][self.feature.i] - nl, str(result)))
-        return result
-    
-    def most_abundant_mz_is(self, mz):
-        result = self.mz_match(self.most_abundant_mz(), mz)
-        self.feature.msg('\t\t  -- m/z %.03f is the most abundant? -- %s\n' % \
-            (mz, str(result)))
-        return result
-    
-    def mz_among_most_abundant(self, mz, n = 2):
-        """
-        Tells if an m/z is among the most aboundant `n` fragments
-        in a spectrum.
-        
-        :param float mz: The m/z value.
-        :param int n: The number of most abundant fragments considered.
-        
-        """
-        
-        result = False
-        
-        for i in xrange(min(n, self.scan.shape[0])):
-            
-            if self.mz_match(self.scan[i,1], mz):
-                
-                result = True
-                break
-        
-        self.feature.msg('\t\t  -- m/z %.03f is among the %u most abundant? -- '\
-            '%s\n' % (mz, n, str(result)))
-        
-        return result
-    
-    def nl_among_most_abundant(self, nl, n = 2):
-        """
-        Tells if a neutral loss corresponds to one of the
-        most aboundant `n` fragments in a spectrum.
-        
-        :param float nl: The mass of the neutral loss.
-        :param int n: The number of most abundant fragments considered.
-        
-        """
-        
-        result = False
-        mz = self.feature.tbl['mz'][self.feature.i] - nl
-        
-        for i in xrange(min(n, self.scan.shape[0])):
-            
-            if self.mz_match(self.scan[i,1], mz):
-                
-                result = True
-                break
-        
-        self.feature.msg('\t\t  -- neutral loss %.03f is among '\
-            'the %u most abundant? -- '\
-            '%s\n' % (nl, n, str(result)))
-        
-        return result
-    
-    def mz_percent_of_most_abundant(self, mz, percent = 80.0):
-        """
-        Tells if an m/z has at least certain percent of intensity
-        compared to the most intensive fragment.
-        
-        :param float mz: The m/z value.
-        :param float percent: The threshold in percent
-                              of the highest intensity.
-        
-        """
-        
-        insmax = self.scan[0,2]
-        result = False
-        
-        for frag in self.scan:
-            
-            if self.mz_match(frag[1], mz):
-                
-                result = True
-                break
-            
-            if frag[2] < insmax * 100.0 / percent:
-                result = False
-                break
-        
-        self.feature.msg('\t\t  -- m/z %.03f has abundance at least %.01f %% of'\
-            ' the highest abundance? -- %s\n' % \
-            (mz, percent, str(result)))
-        
-        return result
-    
-    def fa_type_is(self, i, fa_type, sphingo = False):
-        """
-        Tells if a fatty acid fragment is a specified type. The type
-        should be a part of the string representation of the fragment,
-        e.g. `-O]` for fragments with one oxygen loss.
-        """
-        
-        result = (fa_type in self.scan[i,8] or fa_type in self.scan[i,7]) \
-            and (not sphingo or 'Sphingosine' in self.scan[i,7])
-        
-        self.feature.msg('\t\t  -- Fragment #%u (%s, %s): fatty acid type '\
-            'is %s?  -- %s\n' % \
-                (i, self.scan[i,7], self.scan[i,8], fa_type, str(result)))
-        
-        return result
-    
-    def is_fa(self, i, sphingo = False):
-        """
-        Examines whether a fragment is fatty acid-like or not.
-        In the labels of fatty acid fragments we always 
-        """
-        
-        result = 'FA' in self.scan[i,7] or 'Lyso' in self.scan[i,7] or \
-            (sphingo and 'Sphi' in self.scan[i,7])
-        
-        self.feature.msg('\t\t  -- Fragment #%u (%s): is fatty acid? '\
-            '-- %s\n' % (i, self.scan[i,7], str(result)))
-        
-        return result
-    
-    def most_abundant_fa(self, fa_type, head = 1, sphingo = False):
-        """
-        Returns `True` if there is a fatty acid among the most abundant
-        fragments and it is of the defined type; `False` if there is no
-        fatty acid, or it is different type.
-        
-        :param str fa_type: The type of the fatty acid fragment ion.
-        :param int head: The number of most abundant fragments considered.
-        :param bool sphingo: Look for a sphingolipid backbone.
-        """
-        
-        result = False
-        
-        for i in xrange(self.scan.shape[0]):
-            
-            if i == head:
-                break
-            
-            if self.is_fa(i, sphingo = sphingo):
-                result = self.fa_type_is(i, fa_type, sphingo = sphingo)
-        self.feature.msg('\t\t  -- Having fatty acid %s among %u most abundant '\
-            'features? -- %s\n' % (fa_type, head, str(result)))
-        
-        return result
-    
-    def fa_among_most_abundant(self, fa_type, n = 2,
-                               min_mass = None, sphingo = False):
-        """
-        Returns `True` if there is one of the defined type of fatty acid
-        fragments among the given number of most abundant fragments, and
-        it has a mass greater than the given threhold.
-        """
-        
-        result = False
-        fa_frags = 0
-        
-        for i in xrange(self.scan.shape[0]):
-            
-            if self.is_fa(i, sphingo = sphingo) and (
-                    min_mass is None or
-                    self.scan[i,1] >= min_mass
-                ):
-                
-                fa_frags += 1
-                if min_mass is not None:
-                    
-                    self.feature.msg('\t\t\t-- Fragment #%u having mass larger '\
-                        'than %.01f\n' % (i, min_mass))
-                
-                if self.fa_type_is(i, fa_type, sphingo = sphingo):
-                    result = True
-                
-                if fa_frags == n:
-                    break
-            
-            elif min_mass is not None:
-                self.feature.msg('\t\t\t-- Fragment #%u having mass lower '\
-                        'than %.01f\n' % (i, min_mass))
-        
-        self.feature.msg('\t\t  -- Having fatty acid fragment %s among %u most '\
-            'abundant -- %s\n' % (fa_type, n, str(result)))
-        
-        return result
-    
-    def fa_percent_of_most_abundant(self, fa_type, percent = 80.0, sphingo = False):
-        for i in xrange(self.scan.shape[0]):
-            if self.is_fa(i, sphingo = sphingo):
-                if self.fa_type_is(i, fa_type, sphingo = sphingo):
-                    return True
-            if self.scan[i,2] < self.insmax * 100.0 / percent:
-                return False
-        return False
-    
-    def mz_most_abundant_fold(self, mz, fold):
-        """
-        Tells if an m/z is the most abundant fragment
-        and it has at least a certain
-        fold higher intensity than any other fragment.
-        
-        :param float mz: The m/z value.
-        :param float fold: The m/z must be this times higher than any other.
-        """
-        
-        result = False
-        if self.most_abundant_mz_is(mz):
-            result = self.scan.shape[0] == 1 or \
-                self.scan[1,2] * fold <= self.scan[0,2]
-        self.feature.msg('\t\t  -- m/z %.03f is at least %u times higher than '\
-            'any other? -- %s\n' % (mz, fold, str(result)))
-        return result
-    
-    def sum_cc_is(self, cc1, cc2, cc):
-        return self.cc2str(self.sum_cc([cc1, cc2])) == cc
-    
-    def cer_fa_test(self, frag1, frag2):
-        return \
-            self.fa_type_is(frag1[5], 'CerFA(') and \
-            self.fa_type_is(frag2[5], 'CerSphi-N(') and \
-            frag1[4] > frag2[4] * 2
-    
-    def fa_combinations(self, hg, sphingo = False):
-        result = set([])
-        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
-            ccs = list(self.feature.ms1fa[hg])
-        else:
-            return result
-        self.build_fa_list()
-        for cc in ccs:
-            for frag1 in self.fa_list:
-                for frag2 in self.fa_list:
-                    if hg == 'Cer' and not self.cer_fa_test(frag1, frag2):
-                        # where not the 'CerFA' is the most intensive
-                        # those are clearly false
-                        continue
-                    if frag1[0][0] is not None and frag2[0][0] is not None and \
-                        (frag1[1] is None or hg in frag1[1]) and \
-                        (frag2[1] is None or hg in frag2[1]) and \
-                        (not sphingo or frag1[3] or frag2[3]):
-                        if self.sum_cc_is(frag1[0], frag2[0], cc):
-                            ether_1 = 'O-' if frag1[2] else ''
-                            ether_2 = 'O-' if frag2[2] else ''
-                            fa_1 = '%s%u:%u' % (ether_1, frag1[0][0], frag1[0][1])
-                            fa_2 = '%s%u:%u' % (ether_2, frag2[0][0], frag2[0][1])
-                            if frag1[3]:
-                                fa_1 = 'd%s' % fa_1
-                            elif frag2[3]:
-                                sph = 'd%s' % fa_2
-                                fa_2 = fa_1
-                                fa_1 = sph
-                            if not frag1[3] and not frag2[3]:
-                                fa = tuple(sorted([fa_1, fa_2]))
-                            else:
-                                fa = (fa_1, fa_2)
-                            result.add('%s/%s' % fa)
-        return result
-    
-    def matching_fa_frags_of_type(self, hg, typ, sphingo = False,
-        return_details = False):
-        """
-        Returns carbon counts of those fragments which are of the given type
-        and have complement fatty acid fragment of any type.
-        
-        Details is a dict with carbon counts as keys
-        and fragment names as values.
-        """
-        result = set([])
-        details = {}
-        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
-            for cc in self.feature.ms1fa[hg]:
-                self.build_fa_list()
-                for frag1 in self.fa_list:
-                    for frag2 in self.fa_list:
-                        if frag1[0][0] is not None and \
-                            frag2[0][0] is not None and \
-                            (frag1[1] is None or hg in frag1[1]) and \
-                            (frag2[1] is None or hg in frag2[1]) and \
-                            (not sphingo or frag1[3]):
-                            if self.fa_type_is(frag1[5], typ) and \
-                                self.sum_cc_is(frag1[0], frag2[0], cc):
-                                result.add(frag1[0])
-                                if return_details:
-                                    if frag1[0] not in details:
-                                        details[frag1[0]] = set([])
-                                    details[frag1[0]].add(self.scan[frag2[5],7])
-        if return_details:
-            return (result, details)
-        else:
-            return result
-    
-    def cer_matching_fa(self, cer_fa):
-        score = 0
-        if 'Cer' in self.feature.ms1fa:
-            cer_cc = self.get_cc(cer_fa)
-            for cc in self.feature.ms1fa['Cer']:
-                cc = self.get_cc(cc)
-                carb = cc[0] - cer_cc[0]
-                unsat = cc[1] - cer_cc[1] + 2
-                if self.frag_name_present(
-                    '[FA-alkyl(C%u:%u)-H]-' % (carb, unsat)):
-                    score += 1
-                carb = cc[0] - cer_cc[0] - 2
-                unsat = cc[1] - cer_cc[1] + 1
-                if self.frag_name_present(
-                    '[FA-alkyl(C%u:%u)-H]-' % (carb, unsat)):
-                    score += 1
-        return score
-    
-    def build_fa_list(self, rebuild = False):
-        """
-        Returns list with elements:
-            carbon count, headgroups (set or None),
-            esther (False) or ether (True),
-            sphingosine (True) or fatty acid (False),
-            fragment intensity and row index
-        """
-        if self.fa_list is None or rebuild:
-            self.fa_list = []
-            for i, frag in enumerate(self.scan):
-                if frag[7] != 'unknown' and self.is_fa(i, sphingo = True):
-                    cc = self.get_cc(frag[7])
-                    hgs = self.get_hg(frag[7])
-                    is_ether = 'alk' in frag[7]
-                    is_sphingo = 'Sphi' in frag[7]
-                    self.fa_list.append([cc, hgs, is_ether, is_sphingo, frag[2], i])
-    
-    def get_hg(self, frag_name):
-        hgfrags = self.feature.main.nHgfrags \
-            if self.feature.mode == 'neg' \
-            else self.feature.main.pHgfrags
-        return hgfrags[frag_name] \
-            if frag_name in hgfrags and \
-                len(hgfrags[frag_name]) \
-            else None
-    
-    def get_cc(self, fa):
-        m = self.recc.match(fa)
-        if m is not None:
-            return tuple(map(int, m.groups()))
-        return (None, None)
-    
-    def most_abundant_fa_cc(self, fa_type = None, head = 2):
-        fa_cc = []
-        for i, frag in enumerate(self.scan):
-            if i == head:
-                break
-            if self.is_fa(i) and (
-                    fa_type is None or
-                    self.fa_type_is(i, fa_type)
-                ):
-                
-                cc = self.get_cc(frag[7])
-                if cc[0] is not None:
-                    fa_cc.append((cc, frag[2]))
-        
-        return fa_cc
-    
-    def cc2str(self, cc):
-        return '%u:%u' % cc
-    
-    def sum_cc(self, ccs):
-        return \
-            tuple(
-                reduce(
-                    lambda cu1, cu2:
-                        # here `cu`: carbon count and unsaturation
-                        (cu1[0] + cu2[0], cu1[1] + cu2[1]),
-                    ccs
-                )
-            )
-    
-    def sum_cc2str(self, ccs):
-        return \
-            self.cc2str(
-                tuple(
-                    reduce(
-                        lambda cu1, cu2:
-                            (cu1[0][0] + cu2[0][0], cu1[0][1] + cu2[0][1]),
-                        ccs
-                    )
-                )
-            )
-    
-    def add_fa1(self, fa, hg):
-        if hg not in self.fa1:
-            self.fa1[hg] = set([])
-            self.fa1[hg].add(
-                tuple(
-                    map(
-                        lambda fai:
-                            fai[0],
-                        fa
-                    )
-                )
-            )
-            fastr = ', '.join(
-                    map(
-                        lambda fai:
-                            self.cc2str(fai[0]),
-                        fa
-                    )
-                )
-            self.feature.msg('\t\t  -- Adding fatty acids %s at headgroup '\
-                '%s\n' % (fastr, hg))
-    
-    def fa_ccs_agree_ms1(self, hg, fa_type = None, head = 2):
-        fa_cc = self.most_abundant_fa_cc(fa_type = fa_type, head = head)
-        if len(fa_cc) > 0:
-            cc = self.sum_cc2str([fa_cc[0]] * 2)
-            agr = self.fa_cc_agrees_ms1(cc, hg)
-            if agr:
-                self.add_fa1(fa_cc[:1], hg)
-            if len(fa_cc) > 1:
-                cc = self.sum_cc2str(fa_cc[:2])
-                agr = self.fa_cc_agrees_ms1(cc, hg)
-                if agr:
-                    self.add_fa1(fa_cc[:2], hg)
-        return hg in self.fa
-    
-    def fa_cc_agrees_ms1(self, cc, hg):
-        result = False
-        if hg in self.feature.ms1fa and cc in self.feature.ms1fa[hg]:
-            if hg not in self.feature.fa:
-                self.feature.fa[hg] = set([])
-            if hg not in self.fa:
-                self.fa[hg] = set([])
-            self.feature.fa[hg].add(cc)
-            self.fa[hg].add(cc)
-            result = True
-        self.feature.msg('\t\t  -- Carbon count from MS2: %s; from databases '\
-            'lookup: %s -- Any of these matches: %s\n' % \
-                (
-                    cc,
-                    str(self.feature.ms1fa[hg]) \
-                        if hg in self.feature.ms1fa else '-',
-                    str(result))
-                )
-        return result
-    
-    def frag_name_present(self, name):
-        return name in self.scan[:,7]
-    
-    def pe_neg_1(self):
-        score = 0
-        fattya = set([])
-        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and self.has_mz(140.0118206):
-            score += 5
-            fattya = self.fa_combinations('PE')
-            if self.has_mz(196.0380330):
-                score +=1
-            fa_h_ccs = self.matching_fa_frags_of_type('PE', '-H]-')
-            for fa_h_cc in fa_h_ccs:
-                for fa_other in [
-                    '[Lyso-PE(C%u:%u)-]-',
-                    '[Lyso-PE-alkyl(C%u:%u)-H2O]-',
-                    '[Lyso-PE-alkyl(C%u:%u)-]-',
-                    '[FA(C%u:%u)-H-CO2]-']:
-                    if self.frag_name_present(fa_other % fa_h_cc):
-                        score += 1
-        return {'score': score, 'fattya': fattya}
-    
-    def pc_neg_1(self):
-        score = 0
-        fattya = set([])
-        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and self.has_mz(168.0431206):
-            score += 5
-            fattya = self.fa_combinations('PC')
-            fa_h_ccs = self.matching_fa_frags_of_type('PC', '-H]-')
-            for fa_h_cc in fa_h_ccs:
-                if self.frag_name_present('[Lyso-PC(c%u:%u)-]-' % fa_h_cc):
-                    score += 1
-        return {'score': score, 'fattya': fattya}
-    
-    def pi_neg_1(self):
-        score = 0
-        fattya = set([])
-        if self.has_mz(241.0118779) and self.has_mz(152.9958366) and \
-            self.has_mz(78.95905658):
-            score += 5
-            fattya = self.fa_combinations('PI')
-            for hgfrag_mz in [96.96962158, 259.0224425, 297.0380926]:
-                if self.has_mz(hgfrag_mz):
-                    score += 1
-            fa_h_ccs = self.matching_fa_frags_of_type('PI', '-H]-')
-            for fa_h_cc in fa_h_ccs:
-                for fa_other in [
-                    '[Lyso-PI(C%u:%u)-]-',
-                    '[Lyso-PI(C%u:%u)-H2O]-]']:
-                    if self.frag_name_present(fa_other % fa_h_cc):
-                        score += 1
-        return {'score': score, 'fattya': fattya}
-    
-    def ps_neg_1(self):
-        score = 0
-        fattya = set([])
-        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and \
-            self.has_mz(152.9958366):
-            score += 5
-            fattya = self.fa_combinations('PS')
-            if self.has_mz(87.03202840):
-                score += 1
-            fa_h_ccs = self.matching_fa_frags_of_type('PS', '-H]-')
-            for fa_h_cc in fa_h_ccs:
-                for fa_other in [
-                    '[Lyso-PS(C%u:%u)-]-',
-                    '[Lyso-PA(C%u:%u)-]-']:
-                    if self.frag_name_present(fa_other % fa_h_cc):
-                        score += 1
-        return {'score': score, 'fattya': fattya}
-    
-    def pg_neg_1(self):
-        score = 0
-        fattya = set([])
-        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and \
-            self.has_mz(152.9958366):
-            score += 5
-            fattya = self.fa_combinations('PG')
-            if self.has_mz(171.0064016):
-                score += 1
-            fa_h_ccs = self.matching_fa_frags_of_type('PG', '-H]-')
-            for fa_h_cc in fa_h_ccs:
-                for fa_other in [
-                    'Lyso-PG(C%u:%u)-]-',
-                    'Lyso-PG(C%u:%u)-H2O]-']:
-                    if self.frag_name_present(fa_other % fa_h_cc):
-                        score += 1
-        return {'score': score, 'fattya': fattya}
-    
-    def sm_neg_1(self):
-        score = 0
-        fattya = set([])
-        if self.mz_among_most_abundant(168.0431206) and self.has_nl(60.02113):
-            score += 5
-        return {'score': score, 'fattya': fattya}
-    
-    def cer_neg_1(self):
-        score = 0
-        fattya = set([])
-        if self.fa_among_most_abundant('CerFA', n = 2):
-            score += 5
-            fattya = self.fa_combinations('Cer', sphingo = True)
-            fa_h_ccs = self.matching_fa_frags_of_type('Cer', 'CerFA(')
-            for fa_h_cc in fa_h_ccs:
-                for fa_other in [
-                    '[CerFA-N(C%u:%u)-]-',
-                    '[CerFA-C2N(C%u:%u)-]-']:
-                    if self.frag_name_present(fa_other % fa_h_cc):
-                        score += 1
-        return {'score': score, 'fattya': fattya}
-    
-    def pc_pos_1(self):
-        score = 0
-        fattya = set([])
-        
-        if self.most_abundant_mz_is(184.073323) and self.has_mz(86.096425):
-            score += 5
-            fattya = self.fa_combinations('PC')
-            if self.has_mz(104.106990):
-                score += 1
-            if self.has_mz(124.999822):
-                score += 1
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def sm_pos_1(self):
-        score = 0
-        fattya = set([])
-        
-        if all(
-            map(
-                lambda mz:
-                    self.has_mz(mz),
-                [60.080776, 86.096425, 104.106990,
-                    124.999822, 184.073323]
-            )
-        ):
-            score += 5
-            if self.has_mz(58.0651):
-                score += 1
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def fa_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a fatty acid.
-        This method is not ready, does nothing.
-        """
-        score = 0
-        fattya = set([])
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def fa_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a fatty acid.
-        This method is not ready, does nothing.
-        """
-        score = 0
-        fattya = set([])
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def pe_pos_1(self):
-        score = 0
-        fattya = set([])
-        if self.nl_among_most_abundant(141.019097, 1):
-            score += 5
-            fattya = self.fa_combinations('PE')
-        return {'score': score, 'fattya': fattya}
-    
-    def cer_pos_1(self):
-        score = 0
-        fattya = set([])
-        if self.fa_among_most_abundant('-H2O-H2O+]+', n = 10, sphingo = True):
-            score += 5
-            fattya = self.fa_combinations('Cer', sphingo = True)
-            sph_ccs, fa_frags = self.matching_fa_frags_of_type('Cer',
-                '-H2O-H2O+]+', sphingo = True, return_details = True)
-            for cc, fa_frag_names in iteritems(fa_frags):
-                for fa_frag_name in fa_frag_names:
-                    if '+H]+' in fa_frag_name:
-                        score += 1
-                    if '-O]+' in fa_frag_name:
-                        score += 1
-                    if 'NL' in fa_frag_name:
-                        score += 1
-            for sph_cc in sph_ccs:
-                for fa_other in [
-                    '[Sphingosine(C%u:%u)-C-H2O-H2O+]+',
-                    '[Sphingosine(C%u:%u)-H2O+]+']:
-                    if self.frag_name_present(fa_other % sph_cc):
-                        score += 1
-            if not len(
-                list(
-                    filter(
-                        lambda mz:
-                            self.has_mz(mz),
-                        [58.065126, 104.106990, 124.999822, 184.073323]
-                    )
-                )
-            ):
-                score += 1
-            score += len(
-                list(
-                    filter(
-                        lambda mz:
-                            self.has_mz(mz),
-                        [60.0443902, 70.0651257, 82.0651257, 96.0807757,
-                        107.072951, 121.088601, 135.104251, 149.119901]
-                    )
-                )
-            )
-        return {'score': score, 'fattya': fattya}
-    
-    def vd_pos_1(self):
-        score = 0
-        fattya = set([])
-        return {'score': score, 'fattya': fattya}
-    
-    def is_pe(self):
-        if self.feature.mode == 'pos':
-            return self.pa_pe_ps_pg_pos('PE')
-        else:
-            return self.pe_pc_pg_neg('PE')
-    
-    def is_pc(self):
-        if self.feature.mode == 'pos':
-            return self.pc_pos('PC')
-        else:
-            return self.pe_pc_pg_neg('PC')
-    
-    def is_pa(self):
-        if self.feature.mode == 'pos':
-            return self.pa_pe_ps_pg_pos('PA')
-        else:
-            return self.pa_ps_neg('PA')
-    
-    def is_ps(self):
-        if self.feature.mode == 'pos':
-            return self.pa_pe_ps_pg_pos('PS')
-        else:
-            return self.pa_ps_neg('PS')
-    
-    def is_pg(self):
-        if self.feature.mode == 'pos':
-            return self.pa_pe_ps_pg_pos('PG')
-        else:
-            return self.pe_pc_pg_neg('PG')
-    
-    def pa_pe_ps_pg_pos(self, hg):
-        return self.mz_among_most_abundant(141.0191) \
-            and self.fa_among_most_abundant('-O]+', min_mass = 140.0) \
-            and self.fa_ccs_agree_ms1(hg, '-O]+')
-    
-    def pa_ps_neg(self, hg):
-        return self.has_mz(152.9958366) and self.has_mz(78.95905658) \
-            and self.most_abundant_fa('-H]-') \
-            and self.fa_ccs_agree_ms1(hg, '-H]-')
-    
-    def pe_pc_pg_neg(self, hg):
-        return self.most_abundant_fa('-H]-') \
-            and self.fa_ccs_agree_ms1(hg, '-H]-')
-    
-    def pc_pos(self, hg):
-        return self.mz_most_abundant_fold(184.0733, 3) \
-            and self.fa_ccs_agree_ms1(hg, head = 4)
-
 # ## Decorator classes: ## #
 
 class get_hits(object):
@@ -2406,7 +1100,7 @@ class Screening(object):
             'ppsecdir': 'SEC_profiles',
             # The first section in the SEC profile filenames is the protein
             # name or the second:
-            'sec_filenames_protein_name_first': True,
+            'sec_filenames_protein_first': True,
             # This is a typo in some of the PEAK table headers.
             # If this cause trouble just turn it off.
             'fix_fraction_name_ab_typo': True,
@@ -2526,7 +1220,7 @@ class Screening(object):
                                        # the same files as SEC profiles
                                        # or simply from `fractions.csv`
             'pp_do_correction': False, # bypass corrections
-            'pcont_fracs_from_abs': True, # determine protein containing
+            'pcont_fracs_from_abs': False, # determine protein containing
                                           # fractions from the absorbances
                                           # or read from separate file
             # allow features to have missing values in first or last
@@ -2587,7 +1281,10 @@ class Screening(object):
             'peak_ratio_score_threshold': 1.0,
             # constant fraction layout in Antonella's screening
             # not used at Enric, is kind of "deprecated"
-            'fracs': ['a9', 'a10', 'a11', 'a12', 'b1'],
+            'fixed_fraction_layout': False,
+            'fracs': ['A9', 'A10', 'A11', 'A12', 'B1'],
+            'all_fracs': ['A5', 'A6', 'A7', 'A8', 'A9',
+                          'A10', 'A11', 'A12', 'B1'],
             # constant fraction layout in Antonella's screening
             # not used at Enric, is kind of "deprecated"
             # uppercase version with leading zeros
@@ -2597,7 +1294,7 @@ class Screening(object):
             # void, so adjusting the zero of the absorbance profiles
             # to this fraction
             # see method ``pp_baseline_correction()``
-            'basefrac': 'a5',
+            'basefrac': 'A5',
             # the tolerance when looking up MS1 m/z values in databases
             # (Daltons)
             'ms1_tolerance': 0.01,
@@ -3468,16 +2165,16 @@ class Screening(object):
     #
     
     def _GLTPD1_profile_correction_eq(self, propname):
-        eq = (getattr(self, propname)['GLTPD1']['a11'] + \
-            getattr(self, propname)['GLTPD1']['a12']) / 2.0
-        getattr(self, propname)['GLTPD1']['a11'] = eq
-        getattr(self, propname)['GLTPD1']['a12'] = eq
+        eq = (getattr(self, propname)['GLTPD1']['A11'] + \
+            getattr(self, propname)['GLTPD1']['A12']) / 2.0
+        getattr(self, propname)['GLTPD1']['A11'] = eq
+        getattr(self, propname)['GLTPD1']['A12'] = eq
     
     def _GLTP1_profile_correction_inv(self, propname):
-        a11 = getattr(self, propname)['GLTPD1']['a11']
-        a12 = getattr(self, propname)['GLTPD1']['a12']
-        getattr(self, propname)['GLTPD1']['a11'] = a12
-        getattr(self, propname)['GLTPD1']['a12'] = a11
+        a11 = getattr(self, propname)['GLTPD1']['A11']
+        a12 = getattr(self, propname)['GLTPD1']['A12']
+        getattr(self, propname)['GLTPD1']['A11'] = a12
+        getattr(self, propname)['GLTPD1']['A12'] = a11
     
     def pp(self, **kwargs):
         self.secfracs = {}
@@ -3502,25 +2199,31 @@ class Screening(object):
                     self.fraclim = pickle.load(fp)
             
             return None
+        
         reprotein = re.compile(r'.*?[\s_-]?([A-Za-z0-9]{3,})[\s_]?([A-Za-z0-9]+?)\.[a-z]{3}')
         self.absorb = {}
         secdir = os.path.join(self.basedir, self.ppsecdir)
         fnames = os.listdir(secdir)
-        if fraclim:
+        
+        if not hasattr(self, 'fraclim'):
             self.fraclim = {}
+        
         for fname in fnames:
-            if self.sec_filenames_protein_name_first:
-                protein_name = reprotein.findall(fname)[0][0]
+            
+            if self.sec_filenames_protein_first:
+                protein = reprotein.findall(fname)[0][0]
             else:
-                protein_name = reprotein.findall(fname)[0][1]
+                protein = reprotein.findall(fname)[0][1]
             if fname[-3:] == 'xls' or fname[-4:] == 'xlsx':
+                
                 try:
                     tbl = self.read_xls(os.path.join(secdir, fname))[3:]
                 except xlrd.biffh.XLRDError:
                     sys.stdout.write('Error reading XLS:\n\t%s\n' % \
                         os.path.join(self.secdir, fname))
                     continue
-                self.absorb[protein_name.upper()] = \
+                
+                self.absorb[protein.upper()] = \
                     np.array(
                         list(
                             map(
@@ -3551,7 +2254,7 @@ class Screening(object):
                             )
                         )
                     
-                    self.absorb[protein_name.upper()] = \
+                    self.absorb[protein.upper()] = \
                         np.array(
                             list(
                                 map(
@@ -3583,7 +2286,7 @@ class Screening(object):
                                 )
                             )
                         
-                        self.fraclim[protein_name.upper()] = \
+                        self.fraclim[protein.upper()] = \
                             list(
                                 map(
                                     lambda i:
@@ -3833,6 +2536,7 @@ class Screening(object):
         self.abs_by_frac_b = result
     
     def pp_background_correction(self):
+        
         self.abs_by_frac_c = \
             dict(
                 map(
@@ -3849,10 +2553,12 @@ class Screening(object):
                                                     lambda c:
                                                         (
                                                             c[0],
-                                                            map(
-                                                                lambda o:
-                                o[1] - self.profile_background[fr[0]][c[0]][o[0]],
-                                                                enumerate(c[1])
+                                                            list(
+                                                                map(
+                                                                    lambda o:
+                                    o[1] - self.profile_background[fr[0]][c[0]][o[0]],
+                                                                    enumerate(c[1])
+                                                                )
                                                             )
                                                         ),
                                                     iteritems(fr[1])
@@ -3879,57 +2585,59 @@ class Screening(object):
                                     lambda c:
                                         (
                                             c,
-                                            map(
-                                                lambda o:
-                                                    np.mean(
-                                                        map(
-                                                            lambda pra:
-                                                                pra[1][fr][c][o],
-                                                            filter(
-                                                                lambda pra:
-                                                                    pra[0] in self.background_proteins,
-                                                                iteritems(self.abs_by_frac_b)
+                                            list(
+                                                map(
+                                                    lambda o:
+                                                        np.mean(
+                                                            list(
+                                                                map(
+                                                                    lambda pra:
+                                                                        pra[1][fr][c][o],
+                                                                    filter(
+                                                                        lambda pra:
+                                                                            pra[0] in self.background_proteins,
+                                                                        iteritems(self.abs_by_frac_b)
+                                                                    )
+                                                                )
                                                             )
-                                                        )
-                                                    ),
-                                                [0, 1]
+                                                        ),
+                                                    [0, 1]
+                                                )
                                             )
                                         ),
-                                    self.abs_by_frac_b.values()[0][fr].keys()
+                                    self.abs_cols
                                 )
                             )
                         ),
-                    self.abs_by_frac_b.values()[0].keys()
+                    self.all_fracs
                 )
             )
     
     def mean_pp(self):
+        
         self.pprofs = {}
         self.pprofsL =  {}
         self.pprofsU =  {}
         def get_mean(attr, get_val):
-            try:
-                getattr(self, attr)[protein] = \
-                    dict(
-                        map(
-                            lambda fr:
-                                (
-                                    fr[0],
-                                    np.nanmean(
-                                        list(
-                                            map(
-                                                lambda vals:
-                                                    get_val(vals),
-                                                fr[1].values()
-                                            )
+            getattr(self, attr)[protein] = \
+                dict(
+                    map(
+                        lambda fr:
+                            (
+                                fr[0],
+                                np.nanmean(
+                                    list(
+                                        map(
+                                            lambda vals:
+                                                get_val(vals),
+                                            fr[1].values()
                                         )
                                     )
-                                ),
-                            iteritems(d)
-                        )
+                                )
+                            ),
+                        iteritems(d)
                     )
-            except:
-                print(protein, attr)
+                )
         
         for protein, d in iteritems(self.abs_by_frac_c):
             get_mean('pprofs', np.nanmean)
@@ -3942,7 +2650,9 @@ class Screening(object):
                 list(
                     map(
                         lambda i:
-                            (self.to_float(i[0]), self.to_float(i[1]), i[2]),
+                            (self.to_float(i[0]),
+                             self.to_float(i[1]),
+                             i[2].upper()),
                         filter(
                             lambda l:
                                 len(l) == 3,
@@ -3966,43 +2676,57 @@ class Screening(object):
         cachefile = '%s%s.pickle' % (self.pprofcache.split('.')[0], label)
         propname = 'pprofs%s' % label
         if cache and os.path.exists(cachefile):
-            self.pprofs = pickle.load(open(cachefile, 'rb'))
+            with open(cachefile, 'rb') as fp:
+                self.pprofs = pickle.load(fp)
+            
             if correct_GLTPD1:
                 getattr(self,
                     '_GLTPD1_profile_correction_%s' % GLTPD_correction)(propname)
             return None
+        
         reprotein = re.compile(r'.*[\s_-]([A-Za-z0-9]{3,})\.xls')
         result = {}
         secdir = os.path.join(self.basedir, self.ppsecdir)
         fnames = os.listdir(secdir)
+        
         with open(self.ppfracf, 'r') as f:
             frac = \
-                map(
-                    lambda i:
-                        (self.to_float(i[0]) + offset, self.to_float(i[1]) + offset, i[2]),
-                    filter(
-                        lambda l:
-                            len(l) == 3,
-                        map(
+                list(
+                    map(
+                        lambda i:
+                            (self.to_float(i[0]) + offset,
+                            self.to_float(i[1]) + offset,
+                            i[2].upper()),
+                        filter(
                             lambda l:
-                                l.split(';'),
-                            f.read().split('\n')
+                                len(l) == 3,
+                            map(
+                                lambda l:
+                                    l.split(';'),
+                                f.read().split('\n')
+                            )
                         )
                     )
                 )
+        
         self.secfracs['%u' % int(offset * 1000)] = frac
+        
         for fname in fnames:
-            protein_name = reprotein.findall(fname)[0]
+            
+            protein = reprotein.findall(fname)[0]
             frac_abs = dict((i[2], []) for i in frac)
             gfrac = (i for i in frac)
-            fr = gfrac.next()
+            fr = next(gfrac)
+            
             try:
                 tbl = self.read_xls(os.path.join(secdir, fname))[3:]
             except xlrd.biffh.XLRDError:
                 sys.stdout.write('Error reading XLS:\n\t%s\n' % \
                     os.path.join(self.basedir, fname))
                 continue
+            
             minabs = min(0.0, min(self.to_float(l[5]) for l in tbl))
+            
             for l in tbl:
                 # l[4]: volume (ml)
                 ml = self.to_float(l[4])
@@ -4010,21 +2734,25 @@ class Screening(object):
                     continue
                 if ml >= fr[1]:
                     try:
-                        fr = gfrac.next()
+                        fr = next(gfrac)
                     except StopIteration:
                         break
                 # l[5] mAU UV3 215nm
                 frac_abs[fr[2]].append(self.to_float(l[5]) - minabs)
-            result[protein_name] = dict((fnum, np.mean(a)) \
+            
+            result[protein] = dict((fnum, np.mean(a)) \
                 for fnum, a in iteritems(frac_abs))
-        pickle.dump(result, open(cachefile, 'wb'))
+        
+        with open(cachefile, 'wb') as fp:
+            pickle.dump(result, fp)
+        
         setattr(self, propname, result)
         if correct_GLTPD1:
             getattr(self,
                 '_GLTPD1_profile_correction_%s' % GLTPD_correction)(propname)
     
     def protein_profile_correction(self, propname):
-        for protein_name, prof in getattr(self, iteritems(propname)):
+        for protein_name, prof in iteritems(getattr(self, propname)):
             basefrac = prof[self.basefrac]
             for frac in self.fracs:
                 prof[frac] -= basefrac
@@ -5548,19 +4276,19 @@ class Screening(object):
                         c1field = '_'.join(c1field)
                     else:
                         c1field = c[1]
-                    try:
-                        prow, pcol = refra.match(c1field).groups()
-                    except:
-                        print(c1field)
-                        continue
+                    
+                    prow, pcol = refra.match(c1field).groups()
+                    
                     if not len(prow):
                         if pcol_prev is not None:
                             if int(pcol_prev) >= int(pcol) - 1:
                                 prow = prow_prev
                             else:
                                 prow = prows[prows.index(prow_prev) + 1]
+                    
                     prow_prev, pcol_prev = prow, pcol
-                fracs.append((prow, pcol))
+                
+                fracs.append((prow.upper(), pcol))
             
             # col nums for each variable, for each fraction
             scols = dict([(var, dict([(i, None) for i in fracs])) \
@@ -5683,7 +4411,11 @@ class Screening(object):
                     list(
                         map(
                             lambda fr:
-                                fr != 'X0' and fun(cfracs[fr]),
+                                (
+                                    fr != 'X0' and
+                                    fr in cfracs and
+                                    fun(cfracs[fr])
+                                ),
                             sfracs
                         )
                     )
@@ -5834,7 +4566,9 @@ class Screening(object):
             for mode, tbl in iteritems(d):
                 if self.use_original_average_area:
                     try:
-                        tbl['are'] = np.nanmean(tbl['lip'], 1) >= area
+                        with np.errstate(divide = 'ignore', invalid = 'ignore'):
+                            tbl['are'] = \
+                                np.mean(np.nan_to_num(tbl['lip']), 1) >= area
                     except:
                         print(protein, mode)
                 else:
@@ -5850,13 +4584,19 @@ class Screening(object):
             for mode, tbl in iteritems(d):
                 
                 prg.step()
-                mini = np.nanmin(
+                mini = np.min(
                     np.nanmax(
-                        tbl['int'][np.nanmean(tbl['lip'], 1) > 10000,:], 1
+                        tbl['int'][
+                            np.mean(
+                                np.nan_to_num(
+                                    tbl['lip']),
+                                1
+                            ) > 10000,
+                        :], 1
                     )
                 )
                 
-                maxi = np.nanmax(tbl['int'])
+                maxi = np.max(np.nan_to_num(tbl['int']))
                 tbl['peaksize'] = np.max(np.nan_to_num(tbl['lip']), 1) / \
                     (np.max(np.nan_to_num(tbl['ctr']), 1) + 0.001)
                 tbl['pslim02'] = (((np.max(np.nan_to_num(tbl['lip']), 1) -
@@ -5871,6 +4611,7 @@ class Screening(object):
                 tbl['pslim510'] = (((np.max(np.nan_to_num(tbl['lip']), 1) -
                                      mini) / (maxi - mini)) *
                         (10.0 - 5.0) + 5.0)
+                
                 tbl['pks'] = (
                     # the peaksize:
                     np.max(np.nan_to_num(tbl['lip']), 1) / \
@@ -5966,9 +4707,10 @@ class Screening(object):
     def norm_profiles(self, tbl):
         if type(tbl) == np.ma.core.MaskedArray:
             tbl = tbl.data
-        return (tbl - np.nanmin(tbl, axis = 1, keepdims = True)) / \
-            (np.nanmax(tbl, axis = 1, keepdims = True) - \
-                np.nanmin(tbl, axis = 1, keepdims = True))
+        with np.errstate(divide = 'ignore', invalid = 'ignore'):
+            return (tbl - np.nanmin(tbl, axis = 1, keepdims = True)) / \
+                (np.nanmax(tbl, axis = 1, keepdims = True) - \
+                    np.nanmin(tbl, axis = 1, keepdims = True))
 
     def ubiquity_filter_old(self, only_valid = True):
         prg = progress.Progress(len(data)**2, 'Ubiquity filter', 1)
@@ -8235,7 +6977,7 @@ class Screening(object):
                 tbl['ms2i2'] = {}
                 for i, oi in enumerate(tbl['i']):
                     if oi in tbl['ms2']:
-                        tbl['ms2f'][oi] = Feature(self, protein, mode, oi)
+                        tbl['ms2f'][oi] = ms2.Feature(self, protein, mode, oi)
                         tbl['ms2f'][oi].identify()
                         tbl['ms2f'][oi].identify2()
                         tbl['ms2i'][oi] = tbl['ms2f'][oi].identities
@@ -8422,18 +7164,32 @@ class Screening(object):
             
             with open(self.fractionsf, 'r') as fp:
                 
-                null = fp.readline()
+                hdr = fp.readline().strip()
+                
+                col2fr = dict(
+                    map(
+                        lambda fr:
+                            (fr[0], fr[1].upper()),
+                        enumerate(hdr.split(',')[1:])
+                    )
+                )
                 
                 for l in fp:
                     
-                    l = l.split(',')
+                    l = l.strip().split(',')
                     
                     data[l[0].replace('"', '').upper()] = (
-                        np.array([
-                            self.to_int(x)
-                            if x != '' else None
-                            for x in l[1:]
-                        ])
+                    dict(
+                            map(
+                                lambda x:
+                                    (col2fr[x[0]], self.to_int(x[1])),
+                                filter(
+                                    lambda x:
+                                        x[1] != '',
+                                    enumerate(l[1:])
+                                )
+                            )
+                        )
                     )
             
             self.fractions = data
@@ -8833,7 +7589,10 @@ class Screening(object):
         """
         Calculates custom correlation metric
         between each feature and the protein profile.
+        
+        This method is deprecated, should not be used.
         """
+        
         frs = ['c0', 'a9', 'a10', 'a11', 'a12', 'b1']
         pprs = getattr(self, 'pprofs%s' % pprofs)
         for protein, d in iteritems(self.valids):
@@ -12380,7 +11139,6 @@ class Screening(object):
                 if sum(is_known_binder) > 0:
                     self.known_binders_detected.add(protein)
     
-        
     def original_id(self, protein, mode, mz):
         """
         Looks up an m/z and returns its original (stable) id.
