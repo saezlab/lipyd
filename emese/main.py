@@ -9194,8 +9194,8 @@ class Screening(object):
         
         wfracs = self.wrong_fractions(protein, mode)
         
-        if wfracs:
-            sys.stdout.write('\t:: Attemting to ignore fractions `%s` at '\
+        if wfracs and w:
+            sys.stdout.write('\t:: Attempting to ignore fractions `%s` at '\
                 'protein `%s` in mode `%s`.\n' % (
                     ', '.join(wfracs), protein, mode
                 )
@@ -13776,3 +13776,25 @@ class Screening(object):
         f.close()
         
         self.nonzero_features = result
+    
+    def count_features(self, attr, fname = 'feature_count.tab'):
+        """
+        Exports a table with number of features selected by a filter.
+        """
+        
+        hdr = ['protein', 'mode', 'cat', 'num']
+        
+        with open(fname, 'w') as fp:
+            
+            fp.write('%s\n' % '\t'.join(hdr))
+            
+            for protein, d in iteritems(self.valids):
+                
+                for mode, tbl in iteritems(d):
+                    
+                    allr = [protein, mode, 'all', '%u' % tbl['fe'].shape[0]]
+                    
+                    goodr = [protein, mode, 'good', '%u' % sum(tbl[attr])]
+                    
+                    fp.write('%s\n' % '\t'.join(allr))
+                    fp.write('%s\n' % '\t'.join(goodr))
