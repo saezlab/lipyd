@@ -4829,6 +4829,7 @@ class Screening(object):
         large data that it would require many gigs of memory
         otherwise.
         """
+        
         self.ms2_metabolites()
         self.ms2_filenames()
         
@@ -5828,6 +5829,11 @@ class Screening(object):
                     )
     
     def consensus_identity(self, proteins = None):
+        """
+        Attempts to come to the most accurate identification using
+        results of the MS2 spectra processing and the database lookups
+        whereever these are available.
+        """
         
         for protein, d in iteritems(self.valids):
             
@@ -5837,15 +5843,29 @@ class Screening(object):
             for mode, tbl in iteritems(d):
                 
                 ids = {}
+                idlevels = {}
+                
                 for oi, ms2i in iteritems(tbl['ms2i2']):
-                    this_id = []
-                    for hg, ms2ii in iteritems(ms2i):
+                    
+                    this_id   = []
+                    idlevel   = 'IX'
+                    ms2_level = False
+                    
+                    for hg in sorted(ms2i.keys()):
+                        
+                        ms2ii = ms2i[hg]
                         fa_level_id = False
-                        hg_in_ms2 = False
+                        hg_in_ms2   = False
+                        
                         for ms2iii in ms2ii:
+                            
                             if ms2iii['score'] > 0:
+                                
                                 hg_in_ms2 = True
+                                ms2_level = True
+                                
                                 for ms2fa in ms2iii['fattya']:
+                                    
                                     sumcc = reduce(
                                         lambda cc1, cc2:
                                             (cc1[0] + cc2[0], cc1[1] + cc2[1]),
@@ -5860,14 +5880,99 @@ class Screening(object):
                                         sumccstr in tbl['ms1fa'][oi][hg]:
                                             this_id.append('%s(%s)' % (hg, ms2fa))
                                             fa_level_id = True
+                        
                         if hg_in_ms2 and not fa_level_id:
                             if hg in tbl['ms1fa'][oi]:
                                 for ms1fa in tbl['ms1fa'][oi][hg]:
                                     this_id.append('%s(%s)' % (hg, ms1fa))
                             elif hg in tbl['ms1hg'][oi]:
                                 this_id.append(hg)
-                    ids[oi] = this_id
-                tbl['cid'] = ids
+                    
+                    if (
+                        len(
+                            tbl['ms2hg2'][oi] &
+                            tbl['ms1hg'][oi]
+                        ) == 1 or
+                        len(
+                            tbl['ms2hg2'][oi] &
+                            tbl['ms1hg'][oi] &
+                            set(['BMP', 'PG'])
+                        ) == 2):
+                        # MS1 and MS2 identifications
+                        # confirm each other
+                        idlevel = 'I'
+                        
+                    elif ms2_level and len(tbl['ms1hg'][oi]):
+                        # MS1 and MS2 identification
+                        # but not confirming
+                        idlevel = 'III.2'
+                        ids[oi] = sorted(set(self.get_ms1_ids(
+                            protein, mode, oi)))
+                        
+                    else:
+                        # MS2 resulted no identification
+                        # MS1 either unknown or matches
+                        # some species in the database
+                        idlevel = 'III.5'
+                    
+                    ids[oi]      = this_id
+                    idlevels[oi] = idlevel
+                
+                for oi in tbl['i']:
+                    
+                    # no MS2
+                    if oi not in idlevels:
+                        
+                        if len(tbl['ms1hg'][oi]) == 1:
+                            # no MS2, but only one MS1
+                            # identification
+                            idlevels[oi] = 'II'
+                            
+                        elif len(tbl['ms1hg'][oi]) > 1:
+                            # no MS2 and more than one
+                            # MS1 identification
+                            idlevels[oi] = 'IV'
+                            
+                        else:
+                            # what remains: no MS1
+                            # and no MS2
+                            idlevels[oi] = 'III.6'
+                        
+                        ids[oi] = sorted(set(self.get_ms1_ids(
+                            protein, mode, oi)))
+                
+                tbl['cid']     = ids
+                tbl['idlevel'] = idlevels
+    
+    def get_ms1_ids(self, protein, mode, oi):
+        """
+        Returns the summary of MS1 based identifications
+        for one feature based on its original index.
+        """
+        
+        tbl = self.valids[protein][mode]
+        
+        ids = set()
+        ids.update(
+            set(
+                itertools.chain(
+                    *map(
+                        lambda hg:
+                            map(
+                                lambda fa:
+                                    '%s(%s)' % (hg[0], fa),
+                                hg[1]
+                            ),
+                        iteritems(tbl['ms1fa'][oi])
+                    )
+                )
+            )
+        )
+        
+        ids.update(tbl['ms1hg'][oi] -
+                   set(tbl['ms1fa'][oi].keys()))
+        
+        return ids
     
     def ms2_headgroups(self, proteins = None):
         """
@@ -11028,12 +11133,13 @@ class Screening(object):
         :param str name: worksheet name
         :param list colws: column widths, list of floats
         """
-        sheet = xls.add_worksheet(name)
-        plain = xls.add_format({})
-        bold = xls.add_format({'bold': True,
+        sheet  = xls.add_worksheet(name)
+        plain  = xls.add_format({})
+        bold   = xls.add_format({'bold': True,
                                 #'rotation': 90
                                 })
-        green = xls.add_format({'bg_color': '#A9C98B'})
+        green  = xls.add_format({'bg_color':   '#A9C98B'})
+        violet = xls.add_format({'font_color': '#CA00FA'})
         #sheet.set_row(row = 0, height = 115.0)
         sheet.freeze_panes(1, 0)
         for i, content in enumerate(tbl[0]):
@@ -11410,9 +11516,10 @@ class Screening(object):
                             else 'unknown',
                     'green' if len(lips1) or len(lips2) or len(lips3) else 'plain'),
                     # 3 empty cols to be filled manually
-                    '', # Class
+                    '' if oi not in tbl['cid'] or not len(tbl['cid'][oi]) else \
+                        (', '.join(sorted(set(tbl['cid'][oi]))), 'violet'), # Class
                     '', # Confirmed by MS2
-                    '', # Comment
+                    (tbl['idlevel'][oi], 'violet'), # Comment
                     (ms2_mz, ms2_style),
                     (ms2i1, ms2_style),
                     (ms2f1, ms2_style),

@@ -23,6 +23,7 @@ import sys
 import re
 import numpy as np
 import itertools
+import imp
 
 from emese.common import *
 
@@ -345,24 +346,43 @@ class Feature(object):
                 self.msg('\t<<< Result: not %s\n' % hg)
     
     def identify2(self, num = 1):
-        for hg in self.classes2:
-            self.msg('\t>>> Attempting to identify %s in all scans\n' % (hg))
-            self.identities2[hg] = []
-            identified = False
-            for scanid, scan in iteritems(self._scans):
+        
+        for scanid, scan in iteritems(self._scans):
+            
+            for hg in self.classes2:
+                
+                self.msg('\t>>> Attempting to identify %s in scan %u\n' %
+                         (hg, scanid[0]))
+                
+                identified = False
+                
+                if hg not in self.identities2:
+                    self.identities2[hg] = []
+                
                 method = '%s_%s_%u' % (hg.lower(), self.mode, num)
+                
                 if hasattr(scan, method):
+                    
                     self.identities2[hg].append(getattr(scan, method)())
+                    
                     identified = any(
                         map(
                             lambda i: i['score'] >= 5,
                             self.identities2[hg]
                         )
                     )
-            if identified:
-                self.msg('\t<<< Result: identified as %s\n' % hg)
-            else:
-                self.msg('\t<<< Result: not %s\n' % hg)
+                
+                if identified:
+                    self.msg('\t<<< Result: identified as %s\n' % hg)
+                else:
+                    self.msg('\t<<< Result: not %s\n' % hg)
+            
+            if hasattr(scan, 'fa_co_2'):
+                del scan.fa_co_2
+            
+            if hasattr(scan, 'fa_list'):
+                scan.fa_list = None
+
 
 class MS2Scan(object):
     """
@@ -969,7 +989,8 @@ class MS2Scan(object):
             self.fa_co_2 = {}
             l = self.fa_list
             
-            for i, j in itertools.combinations(xrange(len(self.fa_list)), 2):
+            for i, j in itertools.combinations_with_replacement(
+                xrange(len(self.fa_list)), 2):
                 
                 key = self.sum_cc([(l[i][0][0], l[i][0][1]),
                                    (l[j][0][0], l[j][0][1])])
@@ -1034,7 +1055,7 @@ class MS2Scan(object):
         
         return result
     
-    def get_fa_combinations(self, frag1, frag2, cc, hg, sphingo, head):
+    def get_fa_combinations(self, frag1, frag2, hg, cc, sphingo, head):
         """
         Processes two fatty acid fragments to decide
         if their combination is valid.
@@ -1563,6 +1584,25 @@ class MS2Scan(object):
         
         return {'score': score, 'fattya': fattya}
     
+    def pg_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum
+        is a Phosphatidylglycerol.
+        """
+        
+        score = 0
+        fattya = set([])
+        
+        if self.nl_among_most_abundant(189.0402, 1):
+            
+            score += 5
+            
+            fattya.update(self.fa_combinations('PG'))
+            if fattya:
+                score += 4
+        
+        return {'score': score, 'fattya': fattya}
+    
     def va_pos_1(self):
         """
         Examines if a positive MS2 spectrum is vitamin A (retinol).
@@ -1799,22 +1839,36 @@ class MS2Scan(object):
     def fa_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a fatty acid.
-        This method is not ready, does nothing.
+        Here we only check if the most abundant fragment is the
+        fatty acid itself.
         """
         score = 0
         fattya = set([])
+        
+        self.build_fa_list()
+        
+        if self.is_fa(0):
+            
+            if 'FA' in self.feature.ms1fa:
+                
+                for cc in self.feature.ms1fa['FA']:
+                    
+                    if self.cc2int(cc)  == self.fa_list[0][0]:
+                        
+                        score += 5
+                        fattya.add(cc)
         
         return {'score': score, 'fattya': fattya}
     
     def fa_neg_1(self):
         """
         Examines if a negative mode MS2 spectrum is a fatty acid.
-        This method is not ready, does nothing.
+        Here we only check if the most abundant fragment is the
+        fatty acid itself.
         """
-        score = 0
-        fattya = set([])
         
-        return {'score': score, 'fattya': fattya}
+        # these are the same
+        return self.fa_pos_1()
     
     def cerp_pos_1(self):
         """

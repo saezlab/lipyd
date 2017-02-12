@@ -182,6 +182,14 @@ first and highest fraction pairs.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="emese.main.Screening.consensus_identity">
+<code class="descname">consensus_identity</code><span class="sig-paren">(</span><em>proteins=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.consensus_identity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.consensus_identity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempts to come to the most accurate identification using
+results of the MS2 spectra processing and the database lookups
+whereever these are available.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="emese.main.Screening.count_features">
 <code class="descname">count_features</code><span class="sig-paren">(</span><em>attr</em>, <em>fname='feature_count.tab'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.count_features"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.count_features" title="Permalink to this definition">¶</a></dt>
 <dd><p>Exports a table with number of features selected by a filter.</p>
@@ -264,6 +272,12 @@ positive annotations, for all modes.
 Returns 4x embedded dicts of
 LTPs/modes/metrics/performance metrics.
 E.g. result[&#8216;STARD10&#8217;][&#8216;pos&#8217;][&#8216;ktv&#8217;][&#8216;sens&#8217;]</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.export_auto_fraglist">
+<code class="descname">export_auto_fraglist</code><span class="sig-paren">(</span><em>infile</em>, <em>outfile=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.export_auto_fraglist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.export_auto_fraglist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exports the auto-generated fragment lists into file.</p>
 </dd></dl>
 
 <dl class="method">
@@ -441,6 +455,13 @@ in a dict of dicts. Keys are LTP names, and &#8216;pos&#8217;/&#8217;neg&#8217;.
 <dd><p>Loads GO terms and annotations from QuickGO.
 Returns 2 dicts: <cite>names</cite> are GO terms by their IDs,
 <cite>terms</cite> are proteins GO IDs by UniProt IDs.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.get_ms1_ids">
+<code class="descname">get_ms1_ids</code><span class="sig-paren">(</span><em>protein</em>, <em>mode</em>, <em>oi</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_ms1_ids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_ms1_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the summary of MS1 based identifications
+for one feature based on its original index.</p>
 </dd></dl>
 
 <dl class="method">
@@ -707,8 +728,8 @@ advanced MS2 identification (done by ms2_scans_identify()).</p>
 
 <dl class="method">
 <dt id="emese.main.Screening.ms2_identify">
-<code class="descname">ms2_identify</code><span class="sig-paren">(</span><em>mass</em>, <em>fragments</em>, <em>compl</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_identify"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_identify" title="Permalink to this definition">¶</a></dt>
-<dd><p>Looks up one MS2 m/z value in list of known fragments masses.
+<code class="descname">ms2_identify</code><span class="sig-paren">(</span><em>mass</em>, <em>fraglist</em>, <em>compl</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_identify"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_identify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up one MS2 m/z value in list of known fraglist masses.
 Either with matching between MS2 m/z and fragment m/z within
 a given tolerance, or between the fragment mass and the
 residual mass after substracting MS2 m/z from MS1 m/z.
@@ -773,6 +794,13 @@ the list of fragments.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="emese.main.Screening.ms2_metabolites">
+<code class="descname">ms2_metabolites</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_metabolites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_metabolites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the methods for reading and auto-generating fragment
+ion lists for both negative and positive modes.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="emese.main.Screening.ms2_onebyone">
 <code class="descname">ms2_onebyone</code><span class="sig-paren">(</span><em>callback='std_layout_tables_xlsx'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_onebyone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_onebyone" title="Permalink to this definition">¶</a></dt>
 <dd><p>Does the same as <cite>ms2()</cite>, but after doing it for one
@@ -792,8 +820,10 @@ otherwise.</p>
 <dl class="method">
 <dt id="emese.main.Screening.ms2_read_metabolites">
 <code class="descname">ms2_read_metabolites</code><span class="sig-paren">(</span><em>fname</em>, <em>extra_fragments=True</em>, <em>return_fraglines=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_read_metabolites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_read_metabolites" title="Permalink to this definition">¶</a></dt>
-<dd><p>In part from Toby Hodges.
-Reads metabolite fragments data.</p>
+<dd><p>First part is from Toby Hodges.
+Reads metabolite fragments data and autogenerates fragment series
+like fatty acid fragments with a defined range of carbon counts and
+unsaturation.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1621,6 +1651,8 @@ total carbon count and unsaturation resulted by database
 lookups of the MS1 precursor mass.
 Alternatively a carbon count and unsaturation can be provided
 if <cite>by_cc</cite> is set to <cite>True</cite>.</p>
+<p>This method does the same as <cite>fa_combinations</cite> but works with
+a preprocessed lookup table.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1666,17 +1698,55 @@ most aboundant until the number <cite>head</cite>.</li>
 </dd></dl>
 
 <dl class="method">
+<dt id="emese.ms2.MS2Scan.fa_combinations_old">
+<code class="descname">fa_combinations_old</code><span class="sig-paren">(</span><em>hg</em>, <em>sphingo=False</em>, <em>head=None</em>, <em>by_cc=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.fa_combinations_old"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.fa_combinations_old" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds all combinations of 2 fatty acids which match the
+total carbon count and unsaturation resulted by database
+lookups of the MS1 precursor mass.
+Alternatively a carbon count and unsaturation can be provided
+if <cite>by_cc</cite> is set to <cite>True</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>hg</strong> (<em>str</em>) &#8211; Short name of the headgroup, e.g. <cite>PC</cite>; or cc:unsat e.g.
+<cite>32:1</cite> if <cite>by_cc</cite> is <cite>True</cite>.</li>
+<li><strong>sphingo</strong> (<em>bool</em>) &#8211; Assume sphingolipid.</li>
+<li><strong>head</strong> (<em>int</em>) &#8211; If <cite>None</cite> the total fragment list used, if a number,
+only the most intensive fragments accordingly.</li>
+<li><strong>by_cc</strong> (<em>bool</em>) &#8211; Use the MS1 database identification to find out
+the possible carbon counts and unsaturations for
+the given headgroup, or a cc:uns provided and
+search combinations accordingly.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.fa_combinations_preprocess">
+<code class="descname">fa_combinations_preprocess</code><span class="sig-paren">(</span><em>regenerate=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.fa_combinations_preprocess"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.fa_combinations_preprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a lookup table for all possible combinations of two
+fatty acids.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="emese.ms2.MS2Scan.fa_neg_1">
 <code class="descname">fa_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.fa_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.fa_neg_1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Examines if a negative mode MS2 spectrum is a fatty acid.
-This method is not ready, does nothing.</p>
+Here we only check if the most abundant fragment is the
+fatty acid itself.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.fa_pos_1">
 <code class="descname">fa_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.fa_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.fa_pos_1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Examines if a positive mode MS2 spectrum is a fatty acid.
-This method is not ready, does nothing.</p>
+Here we only check if the most abundant fragment is the
+fatty acid itself.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1703,6 +1773,13 @@ as that one is faster.</p>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.get_fa_combinations">
+<code class="descname">get_fa_combinations</code><span class="sig-paren">(</span><em>frag1</em>, <em>frag2</em>, <em>hg</em>, <em>cc</em>, <em>sphingo</em>, <em>head</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.get_fa_combinations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.get_fa_combinations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes two fatty acid fragments to decide
+if their combination is valid.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1855,6 +1932,13 @@ mode we do not know a way to distinguish these species.
 It only depends on the headgroup fragment 152.996, as
 this might have higher intensity at BMP.
 Specimen: GM2A - 799.54 and BPIFB2 - 773.5258 (latter might be BMP)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.pg_pos_1">
+<code class="descname">pg_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.pg_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.pg_pos_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a positive mode MS2 spectrum
+is a Phosphatidylglycerol.</p>
 </dd></dl>
 
 <dl class="method">
