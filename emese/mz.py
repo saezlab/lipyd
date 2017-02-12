@@ -21,6 +21,8 @@ from past.builtins import xrange, range, reduce
 
 import imp
 
+import emese.mass as mass
+
 class Mz():
     
     def __init__(self, mz, z = 1, sign = None, tolerance = 0.01):
@@ -47,19 +49,19 @@ class Mz():
         return self.adduct(-mass.proton)
     
     def remove_ac(self):
-        m = MolWeight('H3C2O2')
+        m = mass.MolWeight('H3C2O2')
         return self.adduct(-m - mass.electron)
     
     def remove_fo(self):
-        m = MolWeight('HCO2')
+        m = mass.MolWeight('HCO2')
         return self.adduct(-m - mass.electron)
     
     def remove_nh4(self):
-        m = MolWeight('NH4')
+        m = mass.MolWeight('NH4')
         return self.adduct(-m + mass.electron)
     
     def remove_oh(self):
-        m = MolWeight('OH')
+        m = mass.MolWeight('OH')
         return self.adduct(-m - mass.electron)
     
     def add_h(self):
@@ -72,27 +74,27 @@ class Mz():
         return self.adduct(3 * mass.proton)
     
     def add_oh(self):
-        m = MolWeight('OH')
+        m = mass.MolWeight('OH')
         return self.adduct(m + mass.electron)
     
     def add_fo(self):
-        m = MolWeight('HCO2')
+        m = mass.MolWeight('HCO2')
         return self.adduct(m + mass.electron)
     
     def add_ac(self):
-        m = MolWeight('H3C2O2')
+        m = mass.MolWeight('H3C2O2')
         return self.adduct(m + mass.electron)
     
     def add_nh4(self):
-        m = MolWeight('NH4')
+        m = mass.MolWeight('NH4')
         return self.adduct(m - mass.electron)
     
     def add_na(self):
-        m = MolWeight('Na')
+        m = mass.MolWeight('Na')
         return self.adduct(m - mass.electron)
     
     def remove_na(self):
-        m = MolWeight('Na')
+        m = mass.MolWeight('Na')
         return self.adduct(-m + mass.electron)
     
     def reload(self):

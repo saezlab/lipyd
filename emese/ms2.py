@@ -22,6 +22,7 @@ from past.builtins import xrange, range, reduce
 import sys
 import re
 import numpy as np
+import itertools
 
 from emese.common import *
 
@@ -911,8 +912,8 @@ class MS2Scan(object):
         
         return result
     
-    def fa_combinations(self, hg, sphingo = False,
-                        head = None, by_cc = False):
+    def fa_combinations_old(self, hg, sphingo = False,
+                            head = None, by_cc = False):
         """
         Finds all combinations of 2 fatty acids which match the
         total carbon count and unsaturation resulted by database
@@ -948,39 +949,127 @@ class MS2Scan(object):
             
             for frag1 in self.fa_list:
                 
-                if frag1[5] >= head:
-                    break
-                
                 for frag2 in self.fa_list:
                     
-                    if frag2[5] >= head:
-                        break
+                    result.update(
+                        self.get_fa_combinations(frag1, frag2, hg,
+                                                cc, sphingo, head)
+                    )
+        
+        return result
+    
+    def fa_combinations_preprocess(self, regenerate = False):
+        """
+        Generates a lookup table for all possible combinations of two
+        fatty acids.
+        """
+        
+        if not hasattr(self, 'fa_co_2') or regenerate:
+            
+            self.fa_co_2 = {}
+            l = self.fa_list
+            
+            for i, j in itertools.combinations(xrange(len(self.fa_list)), 2):
+                
+                key = self.sum_cc([(l[i][0][0], l[i][0][1]),
+                                   (l[j][0][0], l[j][0][1])])
+                
+                if key not in self.fa_co_2:
+                    self.fa_co_2[key] = set([])
+                
+                self.fa_co_2[key].add((i, j))
+    
+    def fa_combinations(self, hg, sphingo = False,
+                               head = None, by_cc = False):
+        """
+        Finds all combinations of 2 fatty acids which match the
+        total carbon count and unsaturation resulted by database
+        lookups of the MS1 precursor mass.
+        Alternatively a carbon count and unsaturation can be provided
+        if `by_cc` is set to `True`.
+        
+        This method does the same as `fa_combinations` but works with
+        a preprocessed lookup table.
+        
+        :param str hg: Short name of the headgroup, e.g. `PC`; or cc:unsat e.g.
+                       `32:1` if `by_cc` is `True`.
+        :param bool sphingo: Assume sphingolipid.
+        :param int head: If `None` the total fragment list used, if a number,
+                         only the most intensive fragments accordingly.
+        :param bool by_cc: Use the MS1 database identification to find out
+                           the possible carbon counts and unsaturations for
+                           the given headgroup, or a cc:uns provided and
+                           search combinations accordingly.
+        
+        """
+        
+        result = set([])
+        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
+            ccs = list(self.feature.ms1fa[hg])
+        elif by_cc:
+            ccs = [hg]
+        else:
+            return result
+        
+        head = np.inf if head is None else head
+        
+        self.build_fa_list()
+        self.fa_combinations_preprocess()
+        
+        for cc in ccs:
+            
+            icc = self.cc2int(cc)
+            
+            if icc in self.fa_co_2:
+                
+                for i, j in self.fa_co_2[icc]:
                     
-                    if hg == 'Cer' and not self.cer_fa_test(frag1, frag2):
-                        # where not the 'CerFA' is the most intensive
-                        # those are clearly false
-                        continue
+                    frag1 = self.fa_list[i]
+                    frag2 = self.fa_list[j]
                     
-                    if frag1[0][0] is not None and frag2[0][0] is not None and \
-                        (frag1[1] is None or hg in frag1[1]) and \
-                        (frag2[1] is None or hg in frag2[1]) and \
-                        (not sphingo or frag1[3] or frag2[3]):
-                        if self.sum_cc_is(frag1[0], frag2[0], cc):
-                            ether_1 = 'O-' if frag1[2] else ''
-                            ether_2 = 'O-' if frag2[2] else ''
-                            fa_1 = '%s%u:%u' % (ether_1, frag1[0][0], frag1[0][1])
-                            fa_2 = '%s%u:%u' % (ether_2, frag2[0][0], frag2[0][1])
-                            if frag1[3]:
-                                fa_1 = 'd%s' % fa_1
-                            elif frag2[3]:
-                                sph = 'd%s' % fa_2
-                                fa_2 = fa_1
-                                fa_1 = sph
-                            if not frag1[3] and not frag2[3]:
-                                fa = tuple(sorted([fa_1, fa_2]))
-                            else:
-                                fa = (fa_1, fa_2)
-                            result.add('%s/%s' % fa)
+                    result.update(
+                        self.get_fa_combinations(frag1, frag2, hg,
+                                                 cc, sphingo, head)
+                    )
+        
+        return result
+    
+    def get_fa_combinations(self, frag1, frag2, cc, hg, sphingo, head):
+        """
+        Processes two fatty acid fragments to decide
+        if their combination is valid.
+        """
+        
+        result = set([])
+        
+        if frag1[5] >= head or frag2[5] >= head:
+            return result
+        
+        if hg == 'Cer' and not self.cer_fa_test(frag1, frag2):
+            # where not the 'CerFA' is the most intensive
+            # those are clearly false
+            return result
+        
+        if frag1[0][0] is not None and frag2[0][0] is not None and \
+            (frag1[1] is None or hg in frag1[1]) and \
+            (frag2[1] is None or hg in frag2[1]) and \
+            (not sphingo or frag1[3] or frag2[3]):
+            if self.sum_cc_is(frag1[0], frag2[0], cc):
+                ether_1 = 'O-' if frag1[2] else ''
+                ether_2 = 'O-' if frag2[2] else ''
+                fa_1 = '%s%u:%u' % (ether_1, frag1[0][0], frag1[0][1])
+                fa_2 = '%s%u:%u' % (ether_2, frag2[0][0], frag2[0][1])
+                if frag1[3]:
+                    fa_1 = 'd%s' % fa_1
+                elif frag2[3]:
+                    sph = 'd%s' % fa_2
+                    fa_2 = fa_1
+                    fa_1 = sph
+                if not frag1[3] and not frag2[3]:
+                    fa = tuple(sorted([fa_1, fa_2]))
+                else:
+                    fa = (fa_1, fa_2)
+                result.add('%s/%s' % fa)
         
         return result
     
