@@ -325,8 +325,8 @@ class Screening(object):
                                        # or simply from `fractions.csv`
             'pp_do_correction': False, # bypass corrections
             'pcont_fracs_from_abs': False, # determine protein containing
-                                          # fractions from the absorbances
-                                          # or read from separate file
+                                           # fractions from the absorbances
+                                           # or read from separate file
             # allow features to have missing values in first or last
             # protein containing fractions
             'permit_profile_end_nan': True,
@@ -456,6 +456,10 @@ class Screening(object):
             # Consider the MS2 scans from only those fractions
             # containing the protein, or from all available fractions
             'ms2_only_protein_fractions' : False,
+            # Above this threshold we consider the MS2 spectrum to not
+            # belong to the protein and highlight with red in the
+            # output tables.
+            'deltart_threshold': 0.1,
             # Don't know what it is for
             'uniprots': None,
             # Method names to convert between adduct and exact masses
@@ -5921,8 +5925,11 @@ class Screening(object):
                         this_id = sorted(set(self.get_ms1_ids(
                             protein, mode, oi)))
                     
-                    ids[oi]      = this_id
-                    idlevels[oi] = idlevel
+                    if (abs(tbl['ms2f']._scans[tbl['ms2f'].best_scan].deltart)
+                        < self.deltart_threshold):
+                        
+                        ids[oi]      = this_id
+                        idlevels[oi] = idlevel
                 
                 for oi in tbl['i']:
                     
@@ -11463,7 +11470,14 @@ class Screening(object):
             
             mz_original = tbl['mz'][i] / drift
             
-            ms2_style = 'green' if len(ms2_full) and abs(delta_rt) < 1.0 else 'plain'
+            ms2_style = (
+                'green'
+                if (
+                    len(ms2_full) and
+                    abs(delta_rt) < self.deltart_threshold
+                ) else
+                'plain'
+            )
             
             oi = tbl['i'][i]
             
@@ -11501,7 +11515,7 @@ class Screening(object):
                     # '%u:%u' % (int(tbl['rtm'][i]) / 60, tbl['rtm'][i] % 60),
                     ms2_rt,
                     ((delta_rt, 'plain')
-                        if abs(delta_rt) <= 0.1 else
+                        if abs(delta_rt) < self.deltart_threshold else
                     (delta_rt, 'red')),
                     'Inf' if np.isinf(tbl['iprf'][i]) else \
                         'NA' if np.isnan(tbl['iprf'][i]) or \
