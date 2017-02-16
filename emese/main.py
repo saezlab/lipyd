@@ -5902,18 +5902,21 @@ class Screening(object):
                         # confirm each other
                         idlevel = 'I'
                         
-                    elif ms2_level and len(tbl['ms1hg'][oi]):
+                    elif len(tbl['ms1hg'][oi]):
                         # MS1 and MS2 identification
                         # but not confirming
+                        # or MS2 completely unknown
                         idlevel = 'III.2'
-                        ids[oi] = sorted(set(self.get_ms1_ids(
+                        this_id = sorted(set(self.get_ms1_ids(
                             protein, mode, oi)))
                         
                     else:
-                        # MS2 resulted no identification
+                        # has no MS2
                         # MS1 either unknown or matches
                         # some species in the database
                         idlevel = 'III.5'
+                        this_id = sorted(set(self.get_ms1_ids(
+                            protein, mode, oi)))
                     
                     ids[oi]      = this_id
                     idlevels[oi] = idlevel

@@ -742,15 +742,25 @@ class MS2Scan(object):
         
         return result
     
-    def fa_type_is(self, i, fa_type, sphingo = False):
+    def fa_type_is(self, i, fa_type, sphingo = False, uns = None,
+                   scan_index = True):
         """
         Tells if a fatty acid fragment is a specified type. The type
         should be a part of the string representation of the fragment,
         e.g. `-O]` for fragments with one oxygen loss.
         """
         
-        result = (fa_type in self.scan[i,8] or fa_type in self.scan[i,7]) \
-            and (not sphingo or 'Sphingosine' in self.scan[i,7])
+        ifa = None
+        
+        if not scan_index:
+            ifa = i
+            i   = self.fa_list[ifa][5]
+        
+        result = (
+            (fa_type in self.scan[i,8] or fa_type in self.scan[i,7]) and
+            (not sphingo or 'Sphingosine' in self.scan[i,7]) and
+            uns is None or ifa is None or self.fa_list[ifa][0][1] <= uns
+        )
         
         self.feature.msg('\t\t  -- Fragment #%u (%s, %s): fatty acid type '\
             'is %s?  -- %s\n' % \
@@ -798,34 +808,35 @@ class MS2Scan(object):
         return result
     
     def fa_among_most_abundant(self, fa_type, n = 2,
-                               min_mass = None, sphingo = False):
+                               min_mass = None, sphingo = False,
+                               uns = None):
         """
         Returns `True` if there is one of the defined type of fatty acid
         fragments among the given number of most abundant fragments, and
         it has a mass greater than the given threhold.
         """
         
+        self.build_fa_list()
         result = False
-        fa_frags = 0
         
-        for i in xrange(self.scan.shape[0]):
+        for i, fa in enumerate(self.fa_list):
             
-            if self.is_fa(i, sphingo = sphingo) and (
+            if not sphingo or fa[3] and (
                     min_mass is None or
-                    self.scan[i,1] >= min_mass
+                    self.scan[fa[5],1] >= min_mass
                 ):
                 
-                fa_frags += 1
                 if min_mass is not None:
                     
                     self.feature.msg('\t\t\t-- Fragment #%u having mass larger '\
                         'than %.01f\n' % (i, min_mass))
                 
-                if self.fa_type_is(i, fa_type, sphingo = sphingo):
+                if self.fa_type_is(i, fa_type, sphingo = sphingo,
+                                   uns = uns, scan_index = False):
                     result = True
-                
-                if fa_frags == n:
-                    break
+            
+            if i == n:
+                break
             
             elif min_mass is not None:
                 self.feature.msg('\t\t\t-- Fragment #%u having mass lower '\
@@ -1893,9 +1904,23 @@ class MS2Scan(object):
         return {'score': score, 'fattya': fattya}
     
     def cer_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a Ceramide.
+        """
+        
         score = 0
         fattya = set([])
-        if self.fa_among_most_abundant('-H2O-H2O+]+', n = 10, sphingo = True):
+        
+        if 'Cer' not in self.feature.ms1fa:
+            ms1uns = None
+        else:
+            # larger unsaturation than the whole molecule
+            # does not make sense
+            ms1uns = max(map(lambda _cc: self.cc2int(_cc)[1],
+                             self.feature.ms1fa['Cer']))
+        
+        if self.fa_among_most_abundant('-H2O-H2O+]+', n = 10,
+                                       sphingo = True, uns = ms1uns):
             score += 5
             fattya = self.fa_combinations('Cer', sphingo = True)
             sph_ccs, fa_frags = self.matching_fa_frags_of_type('Cer',
