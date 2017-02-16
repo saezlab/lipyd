@@ -759,7 +759,7 @@ class MS2Scan(object):
         result = (
             (fa_type in self.scan[i,8] or fa_type in self.scan[i,7]) and
             (not sphingo or 'Sphingosine' in self.scan[i,7]) and
-            uns is None or ifa is None or self.fa_list[ifa][0][1] <= uns
+            (uns is None or ifa is None or self.fa_list[ifa][0][1] <= uns)
         )
         
         self.feature.msg('\t\t  -- Fragment #%u (%s, %s): fatty acid type '\
@@ -1491,13 +1491,13 @@ class MS2Scan(object):
     def dag_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a DAG.
-        Specimen: SEC14L2 + 584.52
+        Specimen: SEC14L2 + 584.52; Enric: BNIP2 + 770.67
         """
         
         score = 0
         fattya = set([])
         
-        if(self.fa_combinations('DAG', head = 6)):
+        if(self.fa_combinations('DAG', head = 10)):
             score += 4
             
             if(self.fa_combinations('DAG', head = 6)):

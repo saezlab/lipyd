@@ -4820,7 +4820,8 @@ class Screening(object):
         self.ms2_metabolites()
         self.ms2_filenames()
     
-    def ms2_onebyone(self, callback = 'std_layout_tables_xlsx', **kwargs):
+    def ms2_onebyone(self, callback = 'std_layout_tables_xlsx',
+                     proteins = None, **kwargs):
         """
         Does the same as `ms2()`, but after doing it for one
         entity, it calls a callback, typically to export all
@@ -4833,11 +4834,13 @@ class Screening(object):
         self.ms2_metabolites()
         self.ms2_filenames()
         
-        prg = progress.Progress(len(self.valids),
+        proteins = proteins if proteins else self.valids.keys()
+        
+        prg = progress.Progress(len(proteins),
                                 'Reading & analysing MS2',
                                 1, percent = False)
         
-        for protein in self.valids.keys():
+        for protein in proteins:
             
             prg.step()
             
@@ -11143,6 +11146,8 @@ class Screening(object):
                                 })
         green  = xls.add_format({'bg_color':   '#A9C98B'})
         violet = xls.add_format({'font_color': '#CA00FA'})
+        red    = xls.add_format({'bg_color':   '#FFD1D7',
+                                 'font_color': '#FA0021'})
         #sheet.set_row(row = 0, height = 115.0)
         sheet.freeze_panes(1, 0)
         for i, content in enumerate(tbl[0]):
@@ -11495,7 +11500,9 @@ class Screening(object):
                     tbl['rtm'][i],
                     # '%u:%u' % (int(tbl['rtm'][i]) / 60, tbl['rtm'][i] % 60),
                     ms2_rt,
-                    delta_rt,
+                    ((delta_rt, 'plain')
+                        if abs(delta_rt) <= 0.1 else
+                    (delta_rt, 'red')),
                     'Inf' if np.isinf(tbl['iprf'][i]) else \
                         'NA' if np.isnan(tbl['iprf'][i]) or \
                             tbl['iprf'] is None else \
@@ -12302,6 +12309,97 @@ class Screening(object):
                                        'ccfa',
                                        'screen'
                                     ])
+    
+    def automatic_df(self):
+        """
+        Compiles a data frame in the same format as `manual_df`
+        just from the programmatic results.
+        """
+        
+        pass
+    
+    def headgroups_cross_screening(self, label1 = 'Screen1',
+                                   label2 = 'Screen2',
+                                   idlevels = set(['I']),
+                                   outfile = 'headgroups_%s_%s.tab'):
+        """
+        Does a quick comparison at headgroup/protein level
+        between 2 screenings.
+        """
+        
+        self.manual_df()
+        
+        result = []
+        
+        for protein, d in iteritems(self.valids):
+            
+            for mode, tbl in iteritems(d):
+                
+                s1_hg = set(
+                    map(
+                        lambda hg:
+                            hg.replace('-O', ''),
+                        self.pmanual[
+                            np.logical_and(
+                                np.logical_and(
+                                    self.pmanual.protein == protein,
+                                    self.pmanual.ionm    == mode
+                                ),
+                                self.pmanual.cls.isin(idlevels)
+                            )
+                        ]['uhgroup']
+                    )
+                )
+                
+                s2_hg = (
+                    set(
+                        reduce(
+                            lambda h1, h2:
+                                h1 | h2,
+                            map(
+                                lambda i:
+                                    set(
+                                        map(
+                                            lambda hgfa:
+                                                hgfa.split('(')[0],
+                                            tbl['cid'][i[1]]
+                                        )
+                                    ),
+                                filter(
+                                    lambda i:
+                                        (
+                                            tbl['slobb'][i[0]] and
+                                            tbl['idlevel'][i[1]] in idlevels
+                                        ),
+                                    enumerate(tbl['i'])
+                                )
+                            ),
+                            set([])
+                        )
+                    )
+                )
+                
+                for hg12 in (s2_hg & s1_hg):
+                    result.append(['%s-%s' % (protein, mode), hg12,
+                                   '%s_%s' % (label1, label2)])
+                
+                for hg1 in (s1_hg - s2_hg):
+                    result.append(['%s-%s' % (protein, mode), hg1, label1])
+                
+                for hg2 in (s2_hg - s1_hg):
+                    result.append(['%s-%s' % (protein, mode), hg2, label2])
+        
+        outfile = outfile % (label1, label2)
+        
+        hdr = ['protein_mode', 'hg', 'found_in']
+        
+        self.cross_screen_hg = result
+        
+        with open(outfile, 'w') as fp:
+            
+            fp.write('%s\n' % '\t'.join(hdr))
+            
+            fp.write('\n'.join(map(lambda row: '\t'.join(row), result)))
     
     def bubble_altair(self,
                       classes = ['I', 'II'],

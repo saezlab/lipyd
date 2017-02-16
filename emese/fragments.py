@@ -711,7 +711,7 @@ class FAplusGlycerol(FattyFragment):
         }
         super(FAplusGlycerol, self).__init__(charge = 1, c = c, unsat = unsat,
             minus = minus, plus = plus,
-            isotope = isotope, name = 'FA+G', hg = ['PG', 'BMP'])
+            isotope = isotope, name = 'FA+G', hg = ['PG', 'BMP', 'DAG'])
 
 class SphingosineBase(FattyFragment):
     
