@@ -369,8 +369,8 @@
                                        <span class="c1"># or simply from `fractions.csv`</span>
             <span class="s1">&#39;pp_do_correction&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="c1"># bypass corrections</span>
             <span class="s1">&#39;pcont_fracs_from_abs&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="c1"># determine protein containing</span>
-                                          <span class="c1"># fractions from the absorbances</span>
-                                          <span class="c1"># or read from separate file</span>
+                                           <span class="c1"># fractions from the absorbances</span>
+                                           <span class="c1"># or read from separate file</span>
             <span class="c1"># allow features to have missing values in first or last</span>
             <span class="c1"># protein containing fractions</span>
             <span class="s1">&#39;permit_profile_end_nan&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
@@ -500,6 +500,10 @@
             <span class="c1"># Consider the MS2 scans from only those fractions</span>
             <span class="c1"># containing the protein, or from all available fractions</span>
             <span class="s1">&#39;ms2_only_protein_fractions&#39;</span> <span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="c1"># Above this threshold we consider the MS2 spectrum to not</span>
+            <span class="c1"># belong to the protein and highlight with red in the</span>
+            <span class="c1"># output tables.</span>
+            <span class="s1">&#39;deltart_threshold&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
             <span class="c1"># Don&#39;t know what it is for</span>
             <span class="s1">&#39;uniprots&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="c1"># Method names to convert between adduct and exact masses</span>
@@ -4864,7 +4868,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ms2_metabolites</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ms2_filenames</span><span class="p">()</span></div>
     
-<div class="viewcode-block" id="Screening.ms2_onebyone"><a class="viewcode-back" href="../../index.html#emese.main.Screening.ms2_onebyone">[docs]</a>    <span class="k">def</span> <span class="nf">ms2_onebyone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span> <span class="o">=</span> <span class="s1">&#39;std_layout_tables_xlsx&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Screening.ms2_onebyone"><a class="viewcode-back" href="../../index.html#emese.main.Screening.ms2_onebyone">[docs]</a>    <span class="k">def</span> <span class="nf">ms2_onebyone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span> <span class="o">=</span> <span class="s1">&#39;std_layout_tables_xlsx&#39;</span><span class="p">,</span>
+                     <span class="n">proteins</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Does the same as `ms2()`, but after doing it for one</span>
 <span class="sd">        entity, it calls a callback, typically to export all</span>
@@ -4877,11 +4882,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ms2_metabolites</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ms2_filenames</span><span class="p">()</span>
         
-        <span class="n">prg</span> <span class="o">=</span> <span class="n">progress</span><span class="o">.</span><span class="n">Progress</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valids</span><span class="p">),</span>
+        <span class="n">proteins</span> <span class="o">=</span> <span class="n">proteins</span> <span class="k">if</span> <span class="n">proteins</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">valids</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        
+        <span class="n">prg</span> <span class="o">=</span> <span class="n">progress</span><span class="o">.</span><span class="n">Progress</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">proteins</span><span class="p">),</span>
                                 <span class="s1">&#39;Reading &amp; analysing MS2&#39;</span><span class="p">,</span>
                                 <span class="mi">1</span><span class="p">,</span> <span class="n">percent</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
         
-        <span class="k">for</span> <span class="n">protein</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">valids</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">protein</span> <span class="ow">in</span> <span class="n">proteins</span><span class="p">:</span>
             
             <span class="n">prg</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
             
@@ -5946,21 +5953,29 @@
                         <span class="c1"># confirm each other</span>
                         <span class="n">idlevel</span> <span class="o">=</span> <span class="s1">&#39;I&#39;</span>
                         
-                    <span class="k">elif</span> <span class="n">ms2_level</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;ms1hg&#39;</span><span class="p">][</span><span class="n">oi</span><span class="p">]):</span>
+                    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;ms1hg&#39;</span><span class="p">][</span><span class="n">oi</span><span class="p">]):</span>
                         <span class="c1"># MS1 and MS2 identification</span>
                         <span class="c1"># but not confirming</span>
+                        <span class="c1"># or MS2 completely unknown</span>
                         <span class="n">idlevel</span> <span class="o">=</span> <span class="s1">&#39;III.2&#39;</span>
-                        <span class="n">ids</span><span class="p">[</span><span class="n">oi</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_ms1_ids</span><span class="p">(</span>
+                        <span class="n">this_id</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_ms1_ids</span><span class="p">(</span>
                             <span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">oi</span><span class="p">)))</span>
                         
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="c1"># MS2 resulted no identification</span>
+                        <span class="c1"># has no MS2</span>
                         <span class="c1"># MS1 either unknown or matches</span>
                         <span class="c1"># some species in the database</span>
                         <span class="n">idlevel</span> <span class="o">=</span> <span class="s1">&#39;III.5&#39;</span>
+                        <span class="n">this_id</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_ms1_ids</span><span class="p">(</span>
+                            <span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">oi</span><span class="p">)))</span>
                     
-                    <span class="n">ids</span><span class="p">[</span><span class="n">oi</span><span class="p">]</span>      <span class="o">=</span> <span class="n">this_id</span>
-                    <span class="n">idlevels</span><span class="p">[</span><span class="n">oi</span><span class="p">]</span> <span class="o">=</span> <span class="n">idlevel</span>
+                    <span class="n">ms2f</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;ms2f&#39;</span><span class="p">][</span><span class="n">oi</span><span class="p">]</span>
+                    
+                    <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">ms2f</span><span class="o">.</span><span class="n">_scans</span><span class="p">[</span><span class="n">ms2f</span><span class="o">.</span><span class="n">best_scan</span><span class="p">]</span><span class="o">.</span><span class="n">deltart</span><span class="p">)</span>
+                        <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">deltart_threshold</span><span class="p">):</span>
+                        
+                        <span class="n">ids</span><span class="p">[</span><span class="n">oi</span><span class="p">]</span>      <span class="o">=</span> <span class="n">this_id</span>
+                        <span class="n">idlevels</span><span class="p">[</span><span class="n">oi</span><span class="p">]</span> <span class="o">=</span> <span class="n">idlevel</span>
                 
                 <span class="k">for</span> <span class="n">oi</span> <span class="ow">in</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">]:</span>
                     
@@ -11184,6 +11199,8 @@
                                 <span class="p">})</span>
         <span class="n">green</span>  <span class="o">=</span> <span class="n">xls</span><span class="o">.</span><span class="n">add_format</span><span class="p">({</span><span class="s1">&#39;bg_color&#39;</span><span class="p">:</span>   <span class="s1">&#39;#A9C98B&#39;</span><span class="p">})</span>
         <span class="n">violet</span> <span class="o">=</span> <span class="n">xls</span><span class="o">.</span><span class="n">add_format</span><span class="p">({</span><span class="s1">&#39;font_color&#39;</span><span class="p">:</span> <span class="s1">&#39;#CA00FA&#39;</span><span class="p">})</span>
+        <span class="n">red</span>    <span class="o">=</span> <span class="n">xls</span><span class="o">.</span><span class="n">add_format</span><span class="p">({</span><span class="s1">&#39;bg_color&#39;</span><span class="p">:</span>   <span class="s1">&#39;#FFD1D7&#39;</span><span class="p">,</span>
+                                 <span class="s1">&#39;font_color&#39;</span><span class="p">:</span> <span class="s1">&#39;#FA0021&#39;</span><span class="p">})</span>
         <span class="c1">#sheet.set_row(row = 0, height = 115.0)</span>
         <span class="n">sheet</span><span class="o">.</span><span class="n">freeze_panes</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">content</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
@@ -11499,7 +11516,17 @@
             
             <span class="n">mz_original</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;mz&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">drift</span>
             
-            <span class="n">ms2_style</span> <span class="o">=</span> <span class="s1">&#39;green&#39;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ms2_full</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">delta_rt</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="s1">&#39;plain&#39;</span>
+            <span class="n">ms2_style</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s1">&#39;green&#39;</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">ms2_full</span><span class="p">)</span> <span class="ow">and</span>
+                    <span class="p">(</span>
+                        <span class="n">delta_rt</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="n">delta_rt</span><span class="p">)</span> <span class="o">&lt;</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">deltart_threshold</span>
+                    <span class="p">)</span>
+                <span class="p">)</span> <span class="k">else</span>
+                <span class="s1">&#39;plain&#39;</span>
+            <span class="p">)</span>
             
             <span class="n">oi</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
             
@@ -11536,7 +11563,10 @@
                     <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;rtm&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
                     <span class="c1"># &#39;%u:%u&#39; % (int(tbl[&#39;rtm&#39;][i]) / 60, tbl[&#39;rtm&#39;][i] % 60),</span>
                     <span class="n">ms2_rt</span><span class="p">,</span>
-                    <span class="n">delta_rt</span><span class="p">,</span>
+                    <span class="p">((</span><span class="n">delta_rt</span><span class="p">,</span> <span class="s1">&#39;plain&#39;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">delta_rt</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span> <span class="ow">or</span>
+                        <span class="nb">abs</span><span class="p">(</span><span class="n">delta_rt</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">deltart_threshold</span> <span class="k">else</span>
+                    <span class="p">(</span><span class="n">delta_rt</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">)),</span>
                     <span class="s1">&#39;Inf&#39;</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;iprf&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span> <span class="k">else</span> \
                         <span class="s1">&#39;NA&#39;</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;iprf&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span> <span class="ow">or</span> \
                             <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;iprf&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> \
@@ -12344,6 +12374,97 @@
                                        <span class="s1">&#39;screen&#39;</span>
                                     <span class="p">])</span></div>
     
+<div class="viewcode-block" id="Screening.automatic_df"><a class="viewcode-back" href="../../index.html#emese.main.Screening.automatic_df">[docs]</a>    <span class="k">def</span> <span class="nf">automatic_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compiles a data frame in the same format as `manual_df`</span>
+<span class="sd">        just from the programmatic results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">pass</span></div>
+    
+<div class="viewcode-block" id="Screening.headgroups_cross_screening"><a class="viewcode-back" href="../../index.html#emese.main.Screening.headgroups_cross_screening">[docs]</a>    <span class="k">def</span> <span class="nf">headgroups_cross_screening</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label1</span> <span class="o">=</span> <span class="s1">&#39;Screen1&#39;</span><span class="p">,</span>
+                                   <span class="n">label2</span> <span class="o">=</span> <span class="s1">&#39;Screen2&#39;</span><span class="p">,</span>
+                                   <span class="n">idlevels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;I&#39;</span><span class="p">]),</span>
+                                   <span class="n">outfile</span> <span class="o">=</span> <span class="s1">&#39;headgroups_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">.tab&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Does a quick comparison at headgroup/protein level</span>
+<span class="sd">        between 2 screenings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">manual_df</span><span class="p">()</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">protein</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valids</span><span class="p">):</span>
+            
+            <span class="k">for</span> <span class="n">mode</span><span class="p">,</span> <span class="n">tbl</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+                
+                <span class="n">s1_hg</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                    <span class="nb">map</span><span class="p">(</span>
+                        <span class="k">lambda</span> <span class="n">hg</span><span class="p">:</span>
+                            <span class="n">hg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-O&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="p">[</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="o">.</span><span class="n">protein</span> <span class="o">==</span> <span class="n">protein</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="o">.</span><span class="n">ionm</span>    <span class="o">==</span> <span class="n">mode</span>
+                                <span class="p">),</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">idlevels</span><span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">][</span><span class="s1">&#39;uhgroup&#39;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                
+                <span class="n">s2_hg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="nb">set</span><span class="p">(</span>
+                        <span class="n">reduce</span><span class="p">(</span>
+                            <span class="k">lambda</span> <span class="n">h1</span><span class="p">,</span> <span class="n">h2</span><span class="p">:</span>
+                                <span class="n">h1</span> <span class="o">|</span> <span class="n">h2</span><span class="p">,</span>
+                            <span class="nb">map</span><span class="p">(</span>
+                                <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span>
+                                    <span class="nb">set</span><span class="p">(</span>
+                                        <span class="nb">map</span><span class="p">(</span>
+                                            <span class="k">lambda</span> <span class="n">hgfa</span><span class="p">:</span>
+                                                <span class="n">hgfa</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+                                            <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;cid&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                                        <span class="p">)</span>
+                                    <span class="p">),</span>
+                                <span class="nb">filter</span><span class="p">(</span>
+                                    <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span>
+                                        <span class="p">(</span>
+                                            <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;slobb&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="ow">and</span>
+                                            <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;idlevel&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="ow">in</span> <span class="n">idlevels</span>
+                                        <span class="p">),</span>
+                                    <span class="nb">enumerate</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">])</span>
+                                <span class="p">)</span>
+                            <span class="p">),</span>
+                            <span class="nb">set</span><span class="p">([])</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                
+                <span class="k">for</span> <span class="n">hg12</span> <span class="ow">in</span> <span class="p">(</span><span class="n">s2_hg</span> <span class="o">&amp;</span> <span class="n">s1_hg</span><span class="p">):</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">),</span> <span class="n">hg12</span><span class="p">,</span>
+                                   <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label1</span><span class="p">,</span> <span class="n">label2</span><span class="p">)])</span>
+                
+                <span class="k">for</span> <span class="n">hg1</span> <span class="ow">in</span> <span class="p">(</span><span class="n">s1_hg</span> <span class="o">-</span> <span class="n">s2_hg</span><span class="p">):</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">),</span> <span class="n">hg1</span><span class="p">,</span> <span class="n">label1</span><span class="p">])</span>
+                
+                <span class="k">for</span> <span class="n">hg2</span> <span class="ow">in</span> <span class="p">(</span><span class="n">s2_hg</span> <span class="o">-</span> <span class="n">s1_hg</span><span class="p">):</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">),</span> <span class="n">hg2</span><span class="p">,</span> <span class="n">label2</span><span class="p">])</span>
+        
+        <span class="n">outfile</span> <span class="o">=</span> <span class="n">outfile</span> <span class="o">%</span> <span class="p">(</span><span class="n">label1</span><span class="p">,</span> <span class="n">label2</span><span class="p">)</span>
+        
+        <span class="n">hdr</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;protein_mode&#39;</span><span class="p">,</span> <span class="s1">&#39;hg&#39;</span><span class="p">,</span> <span class="s1">&#39;found_in&#39;</span><span class="p">]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">cross_screen_hg</span> <span class="o">=</span> <span class="n">result</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hdr</span><span class="p">))</span>
+            
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">row</span><span class="p">),</span> <span class="n">result</span><span class="p">)))</span></div>
+    
     <span class="k">def</span> <span class="nf">bubble_altair</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                       <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;II&#39;</span><span class="p">],</span>
                       <span class="n">subtitle</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
@@ -13073,7 +13194,17 @@
                     <span class="n">goodr</span> <span class="o">=</span> <span class="p">[</span><span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="s1">&#39;good&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">sum</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="n">attr</span><span class="p">])]</span>
                     
                     <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">allr</span><span class="p">))</span>
-                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">goodr</span><span class="p">))</span></div></div>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">goodr</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="Screening.get_scan"><a class="viewcode-back" href="../../index.html#emese.main.Screening.get_scan">[docs]</a>    <span class="k">def</span> <span class="nf">get_scan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">mz</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the best MS2 scan for a feature.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">oi</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_id</span><span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">mz</span><span class="p">)</span>
+        <span class="n">ms2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">valids</span><span class="p">[</span><span class="n">protein</span><span class="p">][</span><span class="n">mode</span><span class="p">][</span><span class="s1">&#39;ms2f&#39;</span><span class="p">][</span><span class="n">oi</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">ms2</span><span class="o">.</span><span class="n">_scans</span><span class="p">[</span><span class="n">ms2</span><span class="o">.</span><span class="n">best_scan</span><span class="p">]</span></div></div>
 </pre></div>
 
           </div>

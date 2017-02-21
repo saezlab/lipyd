@@ -192,7 +192,7 @@ class Screening(object):
             # the overview table of Enric's screening
             # we read the protein containing and the
             # highest fractions from here
-            'fractionsf': 'LTPsceenprogres_v07.xlsx',
+            'fractionsf': 'LTPsceenprogres_v07d.xlsx',
             # list of potentially problematic fractions
             'wrongfracsf': 'wrong_fractions.csv',
             # File with offsets of fractions from SEC in ml.
@@ -5925,7 +5925,9 @@ class Screening(object):
                         this_id = sorted(set(self.get_ms1_ids(
                             protein, mode, oi)))
                     
-                    if (abs(tbl['ms2f']._scans[tbl['ms2f'].best_scan].deltart)
+                    ms2f = tbl['ms2f'][oi]
+                    
+                    if (abs(ms2f._scans[ms2f.best_scan].deltart)
                         < self.deltart_threshold):
                         
                         ids[oi]      = this_id
@@ -11474,7 +11476,10 @@ class Screening(object):
                 'green'
                 if (
                     len(ms2_full) and
-                    abs(delta_rt) < self.deltart_threshold
+                    (
+                        delta_rt == 'NA' or abs(delta_rt) <
+                        self.deltart_threshold
+                    )
                 ) else
                 'plain'
             )
@@ -11515,7 +11520,8 @@ class Screening(object):
                     # '%u:%u' % (int(tbl['rtm'][i]) / 60, tbl['rtm'][i] % 60),
                     ms2_rt,
                     ((delta_rt, 'plain')
-                        if abs(delta_rt) < self.deltart_threshold else
+                        if delta_rt == 'NA' or
+                        abs(delta_rt) < self.deltart_threshold else
                     (delta_rt, 'red')),
                     'Inf' if np.isinf(tbl['iprf'][i]) else \
                         'NA' if np.isnan(tbl['iprf'][i]) or \
@@ -13145,3 +13151,13 @@ class Screening(object):
                     
                     fp.write('%s\n' % '\t'.join(allr))
                     fp.write('%s\n' % '\t'.join(goodr))
+    
+    def get_scan(self, protein, mode, mz):
+        """
+        Returns the best MS2 scan for a feature.
+        """
+        
+        oi  = self.original_id(protein, mode, mz)
+        ms2 = self.valids[protein][mode]['ms2f'][oi]
+        
+        return ms2._scans[ms2.best_scan]

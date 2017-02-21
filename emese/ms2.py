@@ -23,7 +23,9 @@ import sys
 import re
 import numpy as np
 import itertools
+import collections
 import imp
+import math
 
 from emese.common import *
 
@@ -40,7 +42,7 @@ class Feature(object):
     I created this class to group them.
     """
     
-    def __init__(self, main, protein, mode, oi, log = True):
+    def __init__(self, main, protein, mode, oi, log = False):
         """
         @main : ltp.Screening() instance
             One Screening() instance with MS1 and MS2 processing already done.
@@ -81,7 +83,8 @@ class Feature(object):
         )
         self.classes = ['PA', 'PC', 'PE', 'PG', 'PS']
         self.classes2 = ['PA', 'PC', 'PE', 'PG', 'PS', 'PI', 'SM', 'BMP',
-                         'Cer', 'Cer1P', 'HexCer', 'DAG', 'TAG', 'FA', 'VA']
+                         'Cer', 'Cer1P', 'HexCer', 'HexCerOH',
+                         'DAG', 'TAG', 'FA', 'VA', 'LysoPE', 'LysoPC']
         self.identities = set([])
         self.identities2 = {}
         # get carbon counts from MS1
@@ -435,7 +438,7 @@ class MS2Scan(object):
     
     def identities_str(self, num = 1):
         """
-        Returns table of all identification attemts as string.
+        Returns table of all identification attempts as string.
         """
         
         result = ['=== Scan #%u (fraction %s) ===' % (
@@ -465,6 +468,20 @@ class MS2Scan(object):
         Prints the list of fragments as an annotated table.
         """
         
+        self.feature.msg(self.scan_str())
+    
+    def show(self):
+        """
+        Prints the scan table to standard output.
+        """
+        
+        sys.stdout.write(self.scan_str())
+    
+    def scan_str(self):
+        """
+        Returns the scan table as string.
+        """
+        
         ms1mz = self.tbl['mz'][self.i]
         header = '\tFrag. m/z\tIntensity\tIdentity%sNL mass\n'\
             '\t%s\n' % (' ' * 26, '=' * 73)
@@ -478,7 +495,10 @@ class MS2Scan(object):
             )
         )
         
-        self.feature.msg('\tScan %u (fraction %s(#%u); %s %s; '\
+        fri = self.scan_id[1] - 9 if self.scan_id[1] != 1 else 4
+        
+        return (
+            '\tScan %u (fraction %s%u; %s %s; '\
             'intensity = %.01f (%.02f%%)):\n\n%s\t%s\n\n' % \
             (self.scan_id[0],
              self.frac_name,
@@ -642,20 +662,50 @@ class MS2Scan(object):
         return i
     
     def has_mz(self, mz):
+        """
+        Tells if an m/z exists in this scan.
+        """
+        
         result = self.mz_lookup(mz) is not None
+        
         self.feature.msg('\t\t  -- m/z %.03f occures in this scan? -- %s\n' % \
             (mz, str(result)))
+        
         return result
     
     def has_nl(self, nl):
-        result = self.has_mz(self.feature.tbl['mz'][self.feature.i] - nl)
+        """
+        Tells if a neutral loss exists in this scan.
+        """
+        
+        result = self.has_mz(self.ms1_mz() - nl)
+        
         self.feature.msg('\t\t  -- neutral loss of %.03f occures in '\
             'this scan? Looked up m/z %.03f - %.03f = %.03f -- %s\n' % \
             (nl, self.feature.tbl['mz'][self.feature.i], nl,
              self.feature.tbl['mz'][self.feature.i] - nl, str(result)))
+        
         return result
     
+    def ms1_mz(self):
+        """
+        Returns the MS1 m/z (which should be the precursor ion).
+        """
+        
+        return self.feature.tbl['mz'][self.feature.i]
+    
+    def nl_lookup(self, nl):
+        """
+        Looks up if a neutral loss exists in this scan and returns its index.
+        """
+        
+        return self.mz_lookup(self.feature.tbl['mz'][self.feature.i] - nl)
+    
     def most_abundant_mz_is(self, mz):
+        """
+        Tells if the m/z with the highest intensity is `mz`.
+        """
+        
         result = self.mz_match(self.most_abundant_mz(), mz)
         self.feature.msg('\t\t  -- m/z %.03f is the most abundant? -- %s\n' % \
             (mz, str(result)))
@@ -696,11 +746,10 @@ class MS2Scan(object):
         """
         
         result = False
-        mz = self.feature.tbl['mz'][self.feature.i] - nl
         
         for i in xrange(min(n, self.scan.shape[0])):
             
-            if self.mz_match(self.scan[i,1], mz):
+            if self.mz_match(self.scan[i,1], self.ms1_mz() - nl):
                 
                 result = True
                 break
@@ -710,6 +759,28 @@ class MS2Scan(object):
             '%s\n' % (nl, n, str(result)))
         
         return result
+    
+    def get_intensity(self, mz):
+        """
+        Returns the intensity of a fragment ion from its m/z.
+        Value is `None` if m/z does not present.
+        """
+        
+        i = self.mz_lookup(mz)
+        
+        if i is not None:
+            
+            return self.scan[i,2]
+        
+        return None
+    
+    def get_nl_intensity(self, nl):
+        """
+        Returns the intensity of a fragment ion from its a neutral loss.
+        Value is `None` if neutral loss does not present.
+        """
+        
+        return self.get_intensity(self.ms1_mz() - nl)
     
     def mz_percent_of_most_abundant(self, mz, percent = 80.0):
         """
@@ -798,14 +869,61 @@ class MS2Scan(object):
         for i in xrange(self.scan.shape[0]):
             
             if i == head:
+                
                 break
             
             if self.is_fa(i, sphingo = sphingo):
+                
                 result = self.fa_type_is(i, fa_type, sphingo = sphingo)
+        
         self.feature.msg('\t\t  -- Having fatty acid %s among %u most abundant '\
             'features? -- %s\n' % (fa_type, head, str(result)))
         
         return result
+    
+    def get_most_abundant_fa(self, fa_type = None, head = 1, sphingo = False):
+        """
+        Looks up the most abundant fatty acid fragment of the given type.
+        Returns tuple with mz, intensity, carbon count and unsaturation, index.
+        """
+        
+        self.build_fa_list()
+        
+        for fa_frag in self.fa_list[:head]:
+            
+            if (
+                fa_type is None  or
+                self.fa_type_is(fa_frag[5], fa_type, sphingo)
+            ):
+                
+                return self.scan[fa_frag[5],1], fa_frag[4], fa_frag[0], fa_frag[5]
+        
+        return None, None, None, None
+    
+    def fa_cc_among_most_abundant(self, cc, hg, n = 2, sphingo = False):
+        """
+        Returns `True` if there is one  fatty acid with the defined
+        carbon count and unsaturation and compatible with the given
+        headgroup among the most abundant `n` fragments.
+        """
+        
+        self.build_fa_list()
+        
+        for fa_frag in self.fa_list:
+            
+            if fa_frag[5] >= n:
+                
+                break
+            
+            if (
+                fa_frag[0] == cc and
+                (fa_frag[1] is None or hg in fa_frag[1]) and
+                (sphingo or fa_frag[3])
+            ):
+                
+                return True
+        
+        return False
     
     def fa_among_most_abundant(self, fa_type, n = 2,
                                min_mass = None, sphingo = False,
@@ -892,7 +1010,7 @@ class MS2Scan(object):
             self.fa_type_is(frag2[5], 'CerSphi-N(') and \
             frag1[4] > frag2[4] * 2
     
-    def fa_combinations3(self, hg, head = None):
+    def fa_combinations3(self, hg, head = None, expected_intensities = None):
         """
         Finds all combinations of 3 fatty acids which match the
         total carbon count and unsaturation resulted by database
@@ -931,17 +1049,82 @@ class MS2Scan(object):
                 cc12e = '%u:%u' % tuple(map(lambda x: x[0] - x[1],
                                             zip(*[icc, cc0])))
                 
-                cc12s = self.fa_combinations(cc12e, head = head, by_cc = True)
+                cc12s = self.fa_combinations_tuples(cc12e, head = head, by_cc = True)
                 
                 for cc12 in cc12s:
                     
-                    cc012 = self.ccs2int(cc12) + [cc0]
+                    cc012 = '/'.join(sorted(list(cc12[0]) + [self.cc2str(cc0)]))
                     
-                    if self.sum_cc(cc012) == icc:
-                        
-                        result.add(self.ccs2str(cc012))
+                    if self.sum_cc_str(cc012) == icc:
+                    
+                        if self.intensity_ratios([
+                            (cc12[1][0], cc12[2][0]),
+                            (cc12[1][1], cc12[2][1]),
+                            (frag0[4], frag0[5])],
+                            expected = expected_intensities
+                        ):
+                            
+                            result.add(cc012)
         
         return result
+    
+    def intensity_ratios(self, intensities, expected = None, logbase = 1.5):
+        """
+        Tells if the ratio of a list of intensities fits
+        the one in `expected` or is even if `expected` is `None`.
+        
+        :param list intensities: List of tuples, first element is the
+                                 intensity, the second is an uniqe
+                                 identifier of the fragments.
+        :param list expected: List with expected intensity proportions.
+                              E.g. `[1, 1, 2]` means the third ion is
+                              twice higher intense than the 2 others.
+        :param int logbase: The fold difference tolerance when comparing
+                            intensities. E.g. if this is 2, then an almost
+                            twice less or more intense ion will considered
+                            to have similar intensity.
+        
+        """
+        
+        if len(intensities) == 1:
+            
+            return True
+        
+        i = intensities
+        
+        if any(map(lambda ii: ii[0] <= 0.0, i)):
+            
+            return False
+        
+        # to know if one fragment contributes more than one times;
+        # intensities divided by the times the fragment is incident
+        cntr = collections.Counter(map(lambda ii: ii[1], i))
+        
+        # by default expecting more or less equal intensities
+        if expected is None:
+            
+            expected = [1.0] * len(i)
+        
+        i = list(
+            map(
+                lambda ii:
+                    (ii[1][0] / (expected[ii[0]] * cntr[ii[1][1]]), ii[1][1]),
+                enumerate(i)
+            )
+        )
+        
+        return (
+            all(
+                map(
+                    lambda co:
+                        (
+                            int(round(math.log(co[0][0], logbase))) ==
+                            int(round(math.log(co[1][0], logbase)))
+                        ),
+                    itertools.combinations(i, 2)
+                )
+            )
+        )
     
     def fa_combinations_old(self, hg, sphingo = False,
                             head = None, by_cc = False):
@@ -1023,6 +1206,8 @@ class MS2Scan(object):
         This method does the same as `fa_combinations` but works with
         a preprocessed lookup table.
         
+        Returns set of strings.
+        
         :param str hg: Short name of the headgroup, e.g. `PC`; or cc:unsat e.g.
                        `32:1` if `by_cc` is `True`.
         :param bool sphingo: Assume sphingolipid.
@@ -1035,7 +1220,35 @@ class MS2Scan(object):
         
         """
         
-        result = set([])
+        return set(map(lambda co: '%s/%s' % co[0],
+                       self.fa_combinations_tuples(hg, sphingo, head, by_cc)))
+    
+    
+    def fa_combinations_tuples(self, hg, sphingo = False,
+                               head = None, by_cc = False):
+        """
+        Finds all combinations of 2 fatty acids which match the
+        total carbon count and unsaturation resulted by database
+        lookups of the MS1 precursor mass.
+        Alternatively a carbon count and unsaturation can be provided
+        if `by_cc` is set to `True`.
+        
+        Returns tuples of tuples with carbon count/unsaturation,
+        intensities and indices.
+        
+        :param str hg: Short name of the headgroup, e.g. `PC`; or cc:unsat e.g.
+                       `32:1` if `by_cc` is `True`.
+        :param bool sphingo: Assume sphingolipid.
+        :param int head: If `None` the total fragment list used, if a number,
+                         only the most intensive fragments accordingly.
+        :param bool by_cc: Use the MS1 database identification to find out
+                           the possible carbon counts and unsaturations for
+                           the given headgroup, or a cc:uns provided and
+                           search combinations accordingly.
+        
+        """
+        
+        result = []
         if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
             ccs = list(self.feature.ms1fa[hg])
         elif by_cc:
@@ -1059,7 +1272,7 @@ class MS2Scan(object):
                     frag1 = self.fa_list[i]
                     frag2 = self.fa_list[j]
                     
-                    result.update(
+                    result.extend(
                         self.get_fa_combinations(frag1, frag2, hg,
                                                  cc, sphingo, head)
                     )
@@ -1072,7 +1285,7 @@ class MS2Scan(object):
         if their combination is valid.
         """
         
-        result = set([])
+        result = []
         
         if frag1[5] >= head or frag2[5] >= head:
             return result
@@ -1101,7 +1314,12 @@ class MS2Scan(object):
                     fa = tuple(sorted([fa_1, fa_2]))
                 else:
                     fa = (fa_1, fa_2)
-                result.add('%s/%s' % fa)
+                
+                result.append((
+                    fa,
+                    (frag1[4], frag2[4]),
+                    (frag1[5], frag2[5])
+                ))
         
         return result
     
@@ -1116,23 +1334,36 @@ class MS2Scan(object):
         """
         result = set([])
         details = {}
+        
         if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
+            
             for cc in self.feature.ms1fa[hg]:
+                
                 self.build_fa_list()
+                
                 for frag1 in self.fa_list:
+                    
                     for frag2 in self.fa_list:
+                        
                         if frag1[0][0] is not None and \
                             frag2[0][0] is not None and \
                             (frag1[1] is None or hg in frag1[1]) and \
                             (frag2[1] is None or hg in frag2[1]) and \
                             (not sphingo or frag1[3]):
+                            
                             if self.fa_type_is(frag1[5], typ) and \
                                 self.sum_cc_is(frag1[0], frag2[0], cc):
+                                
                                 result.add(frag1[0])
+                                
                                 if return_details:
+                                    
                                     if frag1[0] not in details:
+                                        
                                         details[frag1[0]] = set([])
+                                    
                                     details[frag1[0]].add(self.scan[frag2[5],7])
+        
         if return_details:
             return (result, details)
         else:
@@ -1159,9 +1390,10 @@ class MS2Scan(object):
             
             for cc in self.feature.ms1fa[cer_hg]:
                 
+                cc = self.get_cc(cc)
+                
                 for cer_cc in cer_ccs:
                     
-                    cc = self.get_cc(cc)
                     carb = cc[0] - cer_cc[0]
                     unsat = cc[1] - cer_cc[1]
                     
@@ -1419,6 +1651,16 @@ class MS2Scan(object):
     def cer1p_neg_1(self):
         """
         Examines if a negative mode MS2 spectrum is a Ceramide-1-phosphate.
+
+        **Specimen:**
+        
+        - GLTPD1 - 616.47
+        
+        **Principle:**
+        
+        - The most abundant fragment is 78.9591 metaphosphate.
+        - If 96.9696 phosphate present adds to the score.
+        
         """
         
         score = 0
@@ -1433,6 +1675,15 @@ class MS2Scan(object):
     def hexcer_neg_1(self):
         """
         Examines if a negative mode MS2 spectrum is a Hexosyl-Ceramide.
+
+        **Specimen:**
+        
+        - GLTP - 744.5627
+        
+        **Principle:**
+        
+        - Hexose fragments 71.0115, 89.0220 and 101.0219 must present.
+        
         """
         
         score = 0
@@ -1446,9 +1697,35 @@ class MS2Scan(object):
         
         return {'score': score, 'fattya': fattya}
     
+    def hexceroh_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is a Hexosyl-Ceramide-OH
+        ('t'). This method is the same as `hexcer_neg_1`.
+
+        **Specimen:**
+        
+        - GLTP - 760.557
+        
+        **Principle:**
+        
+        - Hexose fragments 71.0115, 89.0220 and 101.0219 must present.
+        
+        """
+        
+        return self.hexcer_neg_1()
+    
     def hexcer_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a Hexosyl-Ceramide.
+
+        **Specimen:**
+        
+        - GLTP + 810.68
+        
+        **Principle:**
+        
+        - Hexose fragments 198.0740, 180.0634 and 162.0528 must present.
+        
         """
         
         score = 0
@@ -1466,10 +1743,38 @@ class MS2Scan(object):
         
         return {'score': score, 'fattya': fattya}
     
+    def hexceroh_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a Hexosyl-Ceramide-OH
+        (`t`). This method is the same as `hexcer_pos_1`.
+
+        **Specimen:**
+        
+        - GLTP + 826.67
+        
+        **Principle:**
+        
+        - Hexose fragments 198.0740, 180.0634 and 162.0528 must present.
+        
+        """
+        
+        return self.hexcer_pos_1()
+    
     def cer1p_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.
-        Specimen: GLTPD1 + 728.59
+
+        **Specimen:**
+        
+        - GLTPD1 + 728.59
+        
+        **Principle:**
+        
+        - A shpingosine backbone with 2 H2O loss must be among the 3 highest
+          intensity fragments.
+        - Presence of any of the following fragments increases the score:
+          82.0651, 107.0729, 135.1043, 149.1199.
+        
         """
         
         score = 0
@@ -1491,7 +1796,18 @@ class MS2Scan(object):
     def dag_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a DAG.
-        Specimen: SEC14L2 + 584.52; Enric: BNIP2 + 770.67
+
+        **Specimen:**
+        
+        - SEC14L2 + 584.52
+        - Enric: BNIP2 + 770.67
+        
+        **Principle:**
+        
+        - Combination of fatty acid fragments among the 10 most abundant
+          fragments must match the expected carbon count and unsaturation.
+        - If these are among the 5 highest fragments the score is higher.
+        
         """
         
         score = 0
@@ -1511,28 +1827,73 @@ class MS2Scan(object):
     def dag_neg_1(self):
         """
         Examines if a negative mode MS2 spectrum is a DAG.
-        This method is not ready, does nothing.
+
+        **Specimen:**
+        
+        - We don't have yet.
+        
+        **Principle:**
+        
+        - Combination of fatty acid fragments among the 10 most abundant
+          fragments must match the expected carbon count and unsaturation.
+        - If these are among the 5 highest fragments the score is higher.
+        
         """
+        
         score = 0
         fattya = set([])
+        
+        if(self.fa_combinations('DAG', head = 10)):
+            score += 4
+            
+            if(self.fa_combinations('DAG', head = 6)):
+                
+                score += 2
+            
+            fattya.update(self.fa_combinations('DAG'))
         
         return {'score': score, 'fattya': fattya}
     
     def tag_neg_1(self):
         """
         Examines if a negative mode MS2 spectrum is a TAG.
-        This method is not ready, does nothing.
+
+        **Specimen:**
+        
+        - We don't have yet.
+        
+        **Principle:**
+        
+        - Combination of fatty acid fragments must match the
+          expected carbon count and unsaturation.
+        
         """
+        
         score = 0
         fattya = set([])
+        
+        fattya.update(self.fa_combinations3('TAG'))
+        
+        if fattya:
+            score += 5
         
         return {'score': score, 'fattya': fattya}
     
     def tag_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a TAG.
-        Specimen: STARD11 + 818.7187
+
+        **Specimen:**
+        
+        - STARD11 + 818.7187
+        
+        **Principle:**
+        
+        - Combination of fatty acid fragments must match the expected
+          carbon count and unsaturation.
+        
         """
+        
         score = 0
         fattya = set([])
         
@@ -1546,7 +1907,17 @@ class MS2Scan(object):
     def pi_pos_1(self):
         """
         Examines if a negative MS2 spectrum is Phosphatidylinositol.
-        Specimen: SEC14L2 + 906.60 and 882.6
+
+        **Specimen:**
+        
+        - SEC14L2 + 906.60 and 882.6
+        
+        **Principle:**
+        
+        - Combinations of fatty acid fragments must match the expected
+          carbon count and unsaturation for PI.
+        - Presence of neutral losses 259.0219 and 277.0563 adds to the score.
+        
         """
         
         score = 0
@@ -1565,13 +1936,22 @@ class MS2Scan(object):
     def ps_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a Phosphatidylserine.
-        Specimen: BPI + 790.56
+
+        **Specimen:**
+        
+        - BPI + 790.56
+        
+        **Principle:**
+        
+        - PS headgroup neutral loss 185.0089 must be the highest intensity.
+        
         """
         
         score = 0
         fattya = set([])
         
         if self.nl_among_most_abundant(185.008927, 1):
+            
             score += 5
             
             fattya.update(self.fa_combinations('PS'))
@@ -1582,7 +1962,18 @@ class MS2Scan(object):
         """
         Examines if a positive mode MS2 spectrum
         is a Bismonoacylglycerophosphate.
-        Specimen: BPIFB2 + 792.57
+
+        **Specimen:**
+        
+        - BPIFB2 + 792.57
+        
+        **Principle:**
+        
+        - A glycerol+fatty acid fragment can be found among the 3 highest?
+        - The PG headgroup neutral loss (189.0402) is among the fragments?
+        - If so, does it have a lower intensity than half of the fatty
+          acid+glycerol fragment?
+        
         """
         
         score = 0
@@ -1592,6 +1983,17 @@ class MS2Scan(object):
             fattya.update(self.fa_combinations('BMP'))
             if fattya:
                 score += 4
+            
+            hg_int = self.get_nl_intensity(189.0402)
+            
+            if hg_int:
+                
+                gfa_highest = self.get_most_abundant_fa('+G(', head = 4)
+                
+                if gfa_highest[1] < hg_int * 2:
+                    
+                    score = 0
+                    fattya = set([])
         
         return {'score': score, 'fattya': fattya}
     
@@ -1599,6 +2001,13 @@ class MS2Scan(object):
         """
         Examines if a positive mode MS2 spectrum
         is a Phosphatidylglycerol.
+        At Antonella observed only in standard.
+        
+        **Principle:**
+        
+        - The PG headgroup neutral loss (189.0402) is the fragment ion
+          with the highest intensity?
+        
         """
         
         score = 0
@@ -1617,7 +2026,18 @@ class MS2Scan(object):
     def va_pos_1(self):
         """
         Examines if a positive MS2 spectrum is vitamin A (retinol).
-        Specimen: RBP1 + 269.2245 and RBP4 + 269.2245
+
+        **Specimen:**
+        
+        - RBP1 + 269.2245
+        - RBP4 + 269.2245
+        
+        **Principle:**
+        
+        - The most abundant ion is the whole molecule m/z = 269.224.
+        - Presence off 3 other ions adds to the score but not
+          mandatory: 213.165, 145.1027, 157.1028.
+        
         """
         
         score = 0
@@ -1631,61 +2051,181 @@ class MS2Scan(object):
     
     def bmp_neg_1(self):
         """
-        Examines if a negative mode MS2 spectrum
-        is a Bismonoacylglycerophosphate.
-        The result will be similar to `pg_neg1`, as in negative
+        Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
+        The result will be the same as `bmp_neg_1`, as in negative
         mode we do not know a way to distinguish these species.
-        It only depends on the headgroup fragment 152.996, as
-        this might have higher intensity at BMP.
-        Specimen: GM2A - 799.54 and BPIFB2 - 773.5258 (latter might be BMP)
+        
+
+        **Specimen:**
+        
+        - GM2A - 799.54
+        - BPIFB2 - 773.5258 (might be BMP)
+        
+        **Principle:**
+        
+        - The most abundant fragment is a fatty acid [M-H]- ion.
+        - The 152.9958 glycerophosphate fragment must be present.
+        - If Lyso-PG fragment present with carbon count complementing
+          the [M-H]- fatty acid score is higher.
+        - Presence of 171.0064 headgroup fragment adds to the score.
+        
         """
         
-        result = self.pg_neg_1()
-        
-        if self.mz_among_most_abundant(152.9958366, 5):
-            result['score'] += 3
-        else:
-            result['score'] -= 3
-        
-        return result
+        return self.pg_neg_1()
     
     #### End: new methods
     
     def pe_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is Phosphatidylethanolamine.
+
+        **Specimen:**
+        
+        - GM2A - 714.507
+        
+        **Principle:**
+        
+        - The most abundant fragment is a fatty acid [M-H]- ion.
+        - 140.0118 PE headgroup must be present.
+        - Other headgroup ions 196.0380 and 178.0275 add to the score.
+        - Lyso-PE and [M-H-CO2]- fatty acid fragments complementing the
+          highest [M-H]- fatty acid increase the score.
+        
+        """
+        
         score = 0
         fattya = set([])
-        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and self.has_mz(140.0118206):
+        
+        if (
+            self.is_fa(0) and
+            self.fa_type_is(0, '-H]-') and
+            self.has_mz(140.0118206) and
+            not self.lysope_neg_1()['score']
+        ):
+            
             score += 5
             fattya = self.fa_combinations('PE')
+            
             if self.has_mz(196.0380330):
-                score +=1
+                score += 1
+            
+            if self.has_mz(178.0274684):
+                score += 1
+            
             fa_h_ccs = self.matching_fa_frags_of_type('PE', '-H]-')
+        
             for fa_h_cc in fa_h_ccs:
+                
                 for fa_other in [
                     '[Lyso-PE(C%u:%u)-]-',
                     '[Lyso-PE-alkyl(C%u:%u)-H2O]-',
                     '[Lyso-PE-alkyl(C%u:%u)-]-',
-                    '[FA(C%u:%u)-H-CO2]-']:
+                    '[FA(C%u:%u)-H-CO2]-'
+                ]:
+                    
                     if self.frag_name_present(fa_other % fa_h_cc):
                         score += 1
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def lysope_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is
+        Lysophosphatidylethanolamine.
+
+        **Specimen:** 
+        
+        - Enric FABP1 - 464.27
+        
+        **Principle:**
+        
+        - The most abundant fragment is a fatty acid [M-H]- ion.
+        - 140.0118 PE headgroup must be present.
+        - The carbon count and unsaturation of the highest fatty acid
+          fragment must be the same as it is expected for the whole PE molecule.
+        - Other headgroup ions 196.0380 and 178.0275 add to the score.
+        
+        """
+        
+        score = 0
+        fattya = set([])
+        
+        if (
+            self.is_fa(0) and
+            self.fa_type_is(0, '-H]-') and
+            self.has_mz(140.0118206)
+        ):
+            score += 5
+            
+            if self.has_mz(196.0380330):
+                score +=1
+            
+            if self.has_mz(178.0274684):
+                score += 1
+            
+            ccs = self.ms1_cc(['PE', 'LysoPE'])
+            
+            for cc in ccs:
+                
+                if len(self.fa_list) and self.fa_list[0][0] == self.cc2int(cc):
+                    
+                    score += 3
+                    fattya.add(cc)
+            
+            if not fattya:
+                score = 0
+        
         return {'score': score, 'fattya': fattya}
     
     def pc_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is a Phosphatidylcholine.
+
+        **Specimen:**
+        
+        - BPI - 804.57
+        
+        **Principle:**
+        
+        - 168.0431 phosphate+choline-CH3 fragment must be present.
+        - The highest abundant fragment must be a fatty acid [M-H]- fragment.
+        - Lyso-PC fragments complementing the highest [M-H]- fatty acid
+          increase the score.
+        
+        """
         score = 0
         fattya = set([])
+        
         if self.is_fa(0) and self.fa_type_is(0, '-H]-') and self.has_mz(168.0431206):
+            
             score += 5
             fattya = self.fa_combinations('PC')
             fa_h_ccs = self.matching_fa_frags_of_type('PC', '-H]-')
+        
             for fa_h_cc in fa_h_ccs:
+                
                 if self.frag_name_present('[Lyso-PC(c%u:%u)-]-' % fa_h_cc):
                     score += 1
+        
         return {'score': score, 'fattya': fattya}
     
     def pi_neg_1(self):
         """
         Examines if a negative MS2 spectrum is Phosphatidylinositol.
-        Specimen: GM2A - 835.52
+
+        **Specimen:**
+        
+        - GM2A - 835.52
+        
+        **Principle:**
+        
+        - Inositolphosphate-H2O fragment 241.0119, metaphosphate 78.9591 and
+          headgroup fragment 152.9958 must be present.
+        - Additional headgroup fragments 96.9696, 259.0224 and 297.0381
+          increase the score.
+        - Presence of Lyso-PI fragments complementing other [M-H]- fatty
+          acid fragments increase the score.
+        
         """
         
         score = 0
@@ -1712,19 +2252,39 @@ class MS2Scan(object):
     def ps_neg_1(self):
         """
         Examines if a negative mode MS2 spectrum is a Phosphatidylserine.
-        Specimen: ORP9 - 788.54
+
+        **Specimen:**
+        
+        - ORP9 - 788.54
+        
+        **Principle:**
+        
+        - The most abundant fragment is an [M-H]- fatty acid fragment.
+        - Glycerophosphate fragment 152.9958 must be present.
+        - Metaphosphate 78.9591 increases the score.
+        - Serine-H2O neutral loss 87.0320 adds to the score.
+        - Presence of Lyso-PS and Lyso-PA fragments complementing
+          the highest [M-H]- fatty acid fragment increase the score.
+        
         """
         
         score = 0
         fattya = set([])
         
         if self.is_fa(0) and self.fa_type_is(0, '-H]-') and \
-            self.has_mz(152.9958366):
+            self.mz_among_most_abundant(152.9958366, 5):
             
             score += 5
             fattya = self.fa_combinations('PS')
             
+            if not fattya:
+                score = 0
+                return {'score': score, 'fattya': fattya}
+            
             if self.has_mz(87.03202840):
+                score += 1
+            
+            if self.has_mz(78.95905658):
                 score += 1
             
             fa_h_ccs = self.matching_fa_frags_of_type('PS', '-H]-')
@@ -1743,11 +2303,23 @@ class MS2Scan(object):
     def pg_neg_1(self):
         """
         Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
-        The result will be similar to `pg_neg1`, as in negative
+        The result will be the same as `bmp_neg_1`, as in negative
         mode we do not know a way to distinguish these species.
-        It only depends on the headgroup fragment 152.996, as
-        this might have higher intensity at BMP.
-        Specimen: GM2A - 799.54 and BPIFB2 - 773.5258 (latter might be BMP)
+        
+
+        **Specimen:**
+        
+        - GM2A - 799.54
+        - BPIFB2 - 773.5258 (might be BMP)
+        
+        **Principle:**
+        
+        - The most abundant fragment is a fatty acid [M-H]- ion.
+        - The 152.9958 glycerophosphate fragment must be present.
+        - If Lyso-PG fragment present with carbon count complementing
+          the [M-H]- fatty acid score is higher.
+        - Presence of 171.0064 headgroup fragment adds to the score.
+        
         """
         
         score = 0
@@ -1758,8 +2330,8 @@ class MS2Scan(object):
             
             score += 5
             
-            if self.mz_among_most_abundant(152.9958366, 5):
-                score -= 3
+            #if self.mz_among_most_abundant(152.9958366, 5):
+            #   score -= 3
             
             fattya = self.fa_combinations('PG')
             
@@ -1780,56 +2352,226 @@ class MS2Scan(object):
         return {'score': score, 'fattya': fattya}
     
     def sm_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is a Sphingomyeline.
+
+        **Specimen:**
+        
+        - GLTPD1 - 745.55
+        
+        **Principle:**
+        
+        - Must have a neutral loss of CH3+COOH (60.0211).
+        - Phosphate+choline-CH3 fragment 168.0431 must be present.
+        
+        """
+        
         score = 0
         fattya = set([])
+        
         if self.mz_among_most_abundant(168.0431206) and self.has_nl(60.02113):
             score += 5
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def sph1p_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is a Spingosine-1-phosphate.
+
+        **Specimen:**
+        
+        - Only observed in standard.
+        
+        **Principle:**
+        
+        - Phosphate 78.9590 must be present.
+        
+        """
+        
+        score = 0
+        fattya = set([])
+        
+        if self.has_mz(78.95905658):
+            score += 5
+        
         return {'score': score, 'fattya': fattya}
     
     def cer_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is Ceramide.
+
+        **Specimen:**
+        
+        - SEC14L1 - 582.509
+        
+        **Principle:**
+        
+        - A Ceramide backbone fragment must be among the 2 most abundant.
+        - Ceramide backbone fragments lighter by N or C2N but same carbon
+          count and unsaturation add to the score.
+        
+        """
+        
         score = 0
         fattya = set([])
+        
         if self.fa_among_most_abundant('CerFA', n = 2):
+            
             score += 5
             fattya = self.fa_combinations('Cer', sphingo = True)
             fa_h_ccs = self.matching_fa_frags_of_type('Cer', 'CerFA(')
+            
             for fa_h_cc in fa_h_ccs:
+                
                 for fa_other in [
                     '[CerFA-N(C%u:%u)-]-',
                     '[CerFA-C2N(C%u:%u)-]-']:
+                    
                     if self.frag_name_present(fa_other % fa_h_cc):
+                        
                         score += 1
+        
         return {'score': score, 'fattya': fattya}
     
     def cerp_neg_1(self):
         """
         Examines if a negative mode MS2 spectrum is a Ceramide-1-phosphate.
+        Gives similar result as Sphingosine-1-phosphate.
+
+        **Specimen:**
+        
+        - GLTPD1 - 616.47
+        
+        **Principle:**
+        
+        - The most abundant fragment must be 78.9591 metaphosphate.
+        - Presence of 96.9696 phosphate increase the score.
+        
         """
         
         score = 0
         fattya = set([])
+        
         if self.most_abundant_mz_is(78.95905658):
+            
             score += 5
+            
             if self.has_mz(96.96962158):
+                
                 score += 1
         
         return {'score': score, 'fattya': fattya}
     
     def pc_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a Phosphatidylcholine.
+
+        **Specimen:**
+        
+        - BPI + 786.607
+        
+        **Principle:**
+        
+        - The most abundant fragment must be choline+phosphate 184.0733.
+        - The 86.0964 ethyl-triethylammonium must be present.
+        - The most abundant fatty acid can not have the same carbon count
+          and unsaturation as the whole molecule (then it is Lyso-PC).
+        - Fragments 104.1069, 124.9998, 60.0808 and 58.0651 increase the
+          score.
+        
+        """
+        
         score = 0
         fattya = set([])
         
-        if self.most_abundant_mz_is(184.073323) and self.has_mz(86.096425):
+        if (
+            self.most_abundant_mz_is(184.073323) and
+            self.has_mz(86.096425) and
+            not self.lysopc_pos_1()['score']
+        ):
+            
             score += 5
             fattya = self.fa_combinations('PC')
+            
             if self.has_mz(104.106990):
                 score += 1
             if self.has_mz(124.999822):
                 score += 1
+            if self.has_mz(60.080776):
+                score +=1
+            if self.has_mz(58.065126):
+                score += 1
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def lysopc_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a Lysophosphatidylcholine.
+        
+        **Specimen:**
+        
+        - Enric FABP1 + 522.36
+        
+        **Principle:**
+        
+        - Choline-phosphate 184.0733, ethyl-triethylammonium 86.0964 and
+        neutral loss 183.0660 must be present.
+        - The latter neutral loss corresponds to a fatty acid+glycerol ion.
+        - The carbon count and unsaturation of this fragment should match
+        that of the whole molecule.
+        
+        """
+        
+        score = 0
+        fattya = set([])
+        
+        if (
+            self.most_abundant_mz_is(184.073323) and
+            self.has_mz(86.096425) and
+            self.has_nl(183.066045)
+        ):
+            
+            score += 5
+            
+            fa_mz = self.scan[self.nl_lookup(183.066045),1]
+            
+            ccs = self.ms1_cc(['PC', 'LysoPC'])
+            
+            for cc in ccs:
+                
+                for fa_frag in self.fa_list:
+                    
+                    if (
+                        fa_frag[0] == self.cc2int(cc) and
+                        abs(self.scan[fa_frag[5],1] - fa_mz) < 0.0001 and
+                        'FA+G(' in self.scan[fa_frag[5],7] and
+                        self.cc2int(cc)[0] < 21
+                    ):
+                        
+                        score += 5
+                        fattya.add(cc)
+            
+            if not fattya:
+                score = 0
         
         return {'score': score, 'fattya': fattya}
     
     def sm_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a Sphingomyeline.
+        
+        **Specimen:**
+        
+        - GLTPD1 + 703.57
+        
+        **Principle:**
+        
+        - The following choline fragments must be present: 60.0808, 86.0964,
+          104.1069, 124.9998 and 184.0733. The last one is the most intensive.
+        - If 58.0651 can be found it adds to the score.
+        
+        """
+        
         score = 0
         fattya = set([])
         
@@ -1837,12 +2579,20 @@ class MS2Scan(object):
             map(
                 lambda mz:
                     self.has_mz(mz),
-                [60.080776, 86.096425, 104.106990,
-                    124.999822, 184.073323]
+                [
+                    60.080776,
+                    86.096425,
+                    104.106990,
+                    124.999822,
+                    184.073323
+                ]
             )
         ):
+            
             score += 5
+            
             if self.has_mz(58.0651):
+                
                 score += 1
         
         return {'score': score, 'fattya': fattya}
@@ -1852,6 +2602,16 @@ class MS2Scan(object):
         Examines if a positive mode MS2 spectrum is a fatty acid.
         Here we only check if the most abundant fragment is the
         fatty acid itself.
+
+        **Specimen:**
+        
+        - Enric FABP1 +
+        
+        **Principle:**
+        
+        - The most abundant fragment must be a fatty acid which matches
+          the carbon count and the unsaturation of the whole molecule.
+        
         """
         score = 0
         fattya = set([])
@@ -1864,7 +2624,7 @@ class MS2Scan(object):
                 
                 for cc in self.feature.ms1fa['FA']:
                     
-                    if self.cc2int(cc)  == self.fa_list[0][0]:
+                    if len(self.fa_list) and self.cc2int(cc) == self.fa_list[0][0]:
                         
                         score += 5
                         fattya.add(cc)
@@ -1876,6 +2636,16 @@ class MS2Scan(object):
         Examines if a negative mode MS2 spectrum is a fatty acid.
         Here we only check if the most abundant fragment is the
         fatty acid itself.
+
+        **Specimen:**
+        
+        - Enric FABP1 -
+        
+        **Principle:**
+        
+        - The most abundant fragment must be a fatty acid which matches
+          the carbon count and the unsaturation of the whole molecule.
+        
         """
         
         # these are the same
@@ -1884,7 +2654,16 @@ class MS2Scan(object):
     def cerp_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.
-        This method is not ready, does nothing.
+
+        **Specimen:**
+        
+        - GLTPD1 + 728.59, 590.45, 702.58, 618.430, 616.415, 640.409
+        
+        **Principle:**
+        
+        - A sphingosine fragment with double H2O loss must be among the three
+          highest abundant fragments.
+        
         """
         
         score = 0
@@ -1896,16 +2675,102 @@ class MS2Scan(object):
         return {'score': score, 'fattya': fattya}
     
     def pe_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a
+        Phosphatidylethanolamine.
+
+        **Specimen:**
+        
+        - BPI + 718.536
+        
+        **Principle:**
+        
+        - The PE headgroup neutral loss 141.0191 has the highest intensity.
+        - If it is a Lyso-PE score will be zero.
+        
+        """
+        
         score = 0
         fattya = set([])
         if self.nl_among_most_abundant(141.019097, 1):
             score += 5
             fattya = self.fa_combinations('PE')
+            if not fattya and self.lysope_pos_1()['score']:
+                score = 0
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def lysope_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a
+        Lysophosphatidylethanolamine.
+
+        **Specimen:**
+        
+        - Enric FABP1 + 454.29
+        
+        **Principle:**
+        
+        - The PE headgroup neutral loss 141.0191 has the highest intensity.
+        - A fatty acid-glycerol fragment should match the carbon count and
+          unsaturation of the whole molecule.
+        
+        """
+        
+        score  = 0
+        fattya = set([])
+        
+        if self.nl_among_most_abundant(141.019097, 2):
+            
+            score += 6
+            
+            if len(self.fa_list):
+            
+                frag1 = self.fa_list[0]
+            
+                ccs = self.ms1_cc(['PE', 'LysoPE'])
+                
+                for cc in ccs:
+                    
+                    if (frag1[0] == self.cc2int(cc) and
+                        self.fa_type_is(frag1[5], 'FA+G(')):
+                        
+                        score += 1
+                        fattya.add(cc)
+                        
+                    
+                    else:
+                        score -= 1
+            
+            else:
+                score -= 1
+        
         return {'score': score, 'fattya': fattya}
     
     def cer_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a Ceramide.
+
+        **Specimen:**
+        
+        - SEC14L1 + 538.52
+        - STARD11 + 538.526
+        
+        **Principle:**
+        
+        - A sphingosine backbone with two H2O loss must be among the
+          10 most abundant fragments.
+        - Fatty acid [M+H]+ or [M-O]+ fragments or neutral losses
+          complementing the one above increase the score.
+        - Sphingosine backbone fragments with same carbon count and
+          unsaturation with the one with 2 water loss but [Sph-C-2(H2O)]+
+          or [Sph-H2O]+ add to the score.
+        - The score increases if the following choline fragments
+          can not be found: 58.0651, 104.1070, 124.9998 and 184.0733.
+        - The presence of the following fragments increase the score:
+          60.0444, 70.0651, 82.0651, 96.0808, 107.0730, 121.0886,
+          135.1042 and 149.1199.
+        
         """
         
         score = 0
@@ -1913,6 +2778,7 @@ class MS2Scan(object):
         
         if 'Cer' not in self.feature.ms1fa:
             ms1uns = None
+            
         else:
             # larger unsaturation than the whole molecule
             # does not make sense
@@ -1921,24 +2787,32 @@ class MS2Scan(object):
         
         if self.fa_among_most_abundant('-H2O-H2O+]+', n = 10,
                                        sphingo = True, uns = ms1uns):
+            
             score += 5
             fattya = self.fa_combinations('Cer', sphingo = True)
+            
             sph_ccs, fa_frags = self.matching_fa_frags_of_type('Cer',
                 '-H2O-H2O+]+', sphingo = True, return_details = True)
+            
             for cc, fa_frag_names in iteritems(fa_frags):
+                
                 for fa_frag_name in fa_frag_names:
+                    
                     if '+H]+' in fa_frag_name:
                         score += 1
                     if '-O]+' in fa_frag_name:
                         score += 1
                     if 'NL' in fa_frag_name:
                         score += 1
+            
             for sph_cc in sph_ccs:
                 for fa_other in [
                     '[Sphingosine(C%u:%u)-C-H2O-H2O+]+',
                     '[Sphingosine(C%u:%u)-H2O+]+']:
                     if self.frag_name_present(fa_other % sph_cc):
+                        
                         score += 1
+            
             if not len(
                 list(
                     filter(
@@ -1948,7 +2822,9 @@ class MS2Scan(object):
                     )
                 )
             ):
+                
                 score += 1
+            
             score += len(
                 list(
                     filter(
@@ -1959,12 +2835,38 @@ class MS2Scan(object):
                     )
                 )
             )
+        
         return {'score': score, 'fattya': fattya}
     
     def vd_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a vitamin D.
+        This method is not implemented, does nothing.
+        """
+        
         score = 0
         fattya = set([])
+        
         return {'score': score, 'fattya': fattya}
+    
+    def ms1_cc(self, hgs):
+        """
+        For a list of headgroups returns the possible carbon counts
+        based on database lookups of MS1 m/z's.
+        Returns set of strings.
+        """
+        
+        ccs = set([])
+        
+        for hg in hgs:
+            
+            if hg in self.feature.ms1fa:
+                ccs.update(self.feature.ms1fa[hg])
+            
+            if hg in self.feature.ms1fa:
+                ccs.update(self.feature.ms1fa[hg])
+        
+        return ccs
     
     def is_pe(self):
         if self.feature.mode == 'pos':

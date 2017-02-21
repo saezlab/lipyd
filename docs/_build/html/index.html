@@ -147,6 +147,13 @@ fragment mass, e.g. -H2O for a water loss.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="emese.main.Screening.automatic_df">
+<code class="descname">automatic_df</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.automatic_df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.automatic_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compiles a data frame in the same format as <cite>manual_df</cite>
+just from the programmatic results.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="emese.main.Screening.basic_filters">
 <code class="descname">basic_filters</code><span class="sig-paren">(</span><em>profile_treshold=0.25</em>, <em>ubiquity_treshold=7</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.basic_filters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.basic_filters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Deprecated with new data structure.</p>
@@ -471,6 +478,12 @@ for one feature based on its original index.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="emese.main.Screening.get_scan">
+<code class="descname">get_scan</code><span class="sig-paren">(</span><em>protein</em>, <em>mode</em>, <em>mz</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_scan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the best MS2 scan for a feature.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="emese.main.Screening.get_swisslipids">
 <code class="descname">get_swisslipids</code><span class="sig-paren">(</span><em>adducts=None</em>, <em>exact_mass=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.get_swisslipids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.get_swisslipids" title="Permalink to this definition">¶</a></dt>
 <dd><p>Downloads the total SwissLipids lipids dataset.
@@ -511,6 +524,13 @@ identified as &#8216;FA&#8217;.</p>
 <dd><p>Limits the number of possible headgroups based on detected
 MS2 fatty acids.
 Creates dict <cite>hgfa</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.main.Screening.headgroups_cross_screening">
+<code class="descname">headgroups_cross_screening</code><span class="sig-paren">(</span><em>label1='Screen1'</em>, <em>label2='Screen2'</em>, <em>idlevels={'I'}</em>, <em>outfile='headgroups_%s_%s.tab'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.headgroups_cross_screening"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.headgroups_cross_screening" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does a quick comparison at headgroup/protein level
+between 2 screenings.</p>
 </dd></dl>
 
 <dl class="method">
@@ -802,7 +822,7 @@ ion lists for both negative and positive modes.</p>
 
 <dl class="method">
 <dt id="emese.main.Screening.ms2_onebyone">
-<code class="descname">ms2_onebyone</code><span class="sig-paren">(</span><em>callback='std_layout_tables_xlsx'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_onebyone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_onebyone" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ms2_onebyone</code><span class="sig-paren">(</span><em>callback='std_layout_tables_xlsx'</em>, <em>proteins=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/main.html#Screening.ms2_onebyone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.main.Screening.ms2_onebyone" title="Permalink to this definition">¶</a></dt>
 <dd><p>Does the same as <cite>ms2()</cite>, but after doing it for one
 entity, it calls a callback, typically to export all
 important outcome, and after deletes the objects to
@@ -1494,21 +1514,40 @@ deltaRT.</p>
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.bmp_neg_1">
 <code class="descname">bmp_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.bmp_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.bmp_neg_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a negative mode MS2 spectrum
-is a Bismonoacylglycerophosphate.
-The result will be similar to <cite>pg_neg1</cite>, as in negative
-mode we do not know a way to distinguish these species.
-It only depends on the headgroup fragment 152.996, as
-this might have higher intensity at BMP.
-Specimen: GM2A - 799.54 and BPIFB2 - 773.5258 (latter might be BMP)</p>
+<dd><p>Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
+The result will be the same as <cite>bmp_neg_1</cite>, as in negative
+mode we do not know a way to distinguish these species.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GM2A - 799.54</li>
+<li>BPIFB2 - 773.5258 (might be BMP)</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant fragment is a fatty acid [M-H]- ion.</li>
+<li>The 152.9958 glycerophosphate fragment must be present.</li>
+<li>If Lyso-PG fragment present with carbon count complementing
+the [M-H]- fatty acid score is higher.</li>
+<li>Presence of 171.0064 headgroup fragment adds to the score.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.bmp_pos_1">
 <code class="descname">bmp_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.bmp_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.bmp_pos_1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Examines if a positive mode MS2 spectrum
-is a Bismonoacylglycerophosphate.
-Specimen: BPIFB2 + 792.57</p>
+is a Bismonoacylglycerophosphate.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>BPIFB2 + 792.57</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>A glycerol+fatty acid fragment can be found among the 3 highest?</li>
+<li>The PG headgroup neutral loss (189.0402) is among the fragments?</li>
+<li>If so, does it have a lower intensity than half of the fatty
+acid+glycerol fragment?</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
@@ -1591,13 +1630,32 @@ of integers format to string. E.g. <cite>[(18, 1), (18, 0)]</cite> results
 <dt id="emese.ms2.MS2Scan.cer1p_neg_1">
 <code class="descname">cer1p_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.cer1p_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.cer1p_neg_1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Examines if a negative mode MS2 spectrum is a Ceramide-1-phosphate.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GLTPD1 - 616.47</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant fragment is 78.9591 metaphosphate.</li>
+<li>If 96.9696 phosphate present adds to the score.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.cer1p_pos_1">
 <code class="descname">cer1p_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.cer1p_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.cer1p_pos_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.
-Specimen: GLTPD1 + 728.59</p>
+<dd><p>Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GLTPD1 + 728.59</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>A shpingosine backbone with 2 H2O loss must be among the 3 highest
+intensity fragments.</li>
+<li>Presence of any of the following fragments increases the score:
+82.0651, 107.0729, 135.1043, 149.1199.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
@@ -1609,38 +1667,125 @@ This works with Cer, CerP and HexCer.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="emese.ms2.MS2Scan.cer_neg_1">
+<code class="descname">cer_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.cer_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.cer_neg_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a negative mode MS2 spectrum is Ceramide.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>SEC14L1 - 582.509</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>A Ceramide backbone fragment must be among the 2 most abundant.</li>
+<li>Ceramide backbone fragments lighter by N or C2N but same carbon
+count and unsaturation add to the score.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.cer_pos_1">
+<code class="descname">cer_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.cer_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.cer_pos_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a positive mode MS2 spectrum is a Ceramide.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>SEC14L1 + 538.52</li>
+<li>STARD11 + 538.526</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>A sphingosine backbone with two H2O loss must be among the
+10 most abundant fragments.</li>
+<li>Fatty acid [M+H]+ or [M-O]+ fragments or neutral losses
+complementing the one above increase the score.</li>
+<li>Sphingosine backbone fragments with same carbon count and
+unsaturation with the one with 2 water loss but [Sph-C-2(H2O)]+
+or [Sph-H2O]+ add to the score.</li>
+<li>The score increases if the following choline fragments
+can not be found: 58.0651, 104.1070, 124.9998 and 184.0733.</li>
+<li>The presence of the following fragments increase the score:
+60.0444, 70.0651, 82.0651, 96.0808, 107.0730, 121.0886,
+135.1042 and 149.1199.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
 <dt id="emese.ms2.MS2Scan.cerp_neg_1">
 <code class="descname">cerp_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.cerp_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.cerp_neg_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a negative mode MS2 spectrum is a Ceramide-1-phosphate.</p>
+<dd><p>Examines if a negative mode MS2 spectrum is a Ceramide-1-phosphate.
+Gives similar result as Sphingosine-1-phosphate.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GLTPD1 - 616.47</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant fragment must be 78.9591 metaphosphate.</li>
+<li>Presence of 96.9696 phosphate increase the score.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.cerp_pos_1">
 <code class="descname">cerp_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.cerp_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.cerp_pos_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.
-This method is not ready, does nothing.</p>
+<dd><p>Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GLTPD1 + 728.59, 590.45, 702.58, 618.430, 616.415, 640.409</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>A sphingosine fragment with double H2O loss must be among the three
+highest abundant fragments.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.dag_neg_1">
 <code class="descname">dag_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.dag_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.dag_neg_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a negative mode MS2 spectrum is a DAG.
-This method is not ready, does nothing.</p>
+<dd><p>Examines if a negative mode MS2 spectrum is a DAG.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>We don&#8217;t have yet.</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Combination of fatty acid fragments among the 10 most abundant
+fragments must match the expected carbon count and unsaturation.</li>
+<li>If these are among the 5 highest fragments the score is higher.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.dag_pos_1">
 <code class="descname">dag_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.dag_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.dag_pos_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a positive mode MS2 spectrum is a DAG.
-Specimen: SEC14L2 + 584.52</p>
+<dd><p>Examines if a positive mode MS2 spectrum is a DAG.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>SEC14L2 + 584.52</li>
+<li>Enric: BNIP2 + 770.67</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Combination of fatty acid fragments among the 10 most abundant
+fragments must match the expected carbon count and unsaturation.</li>
+<li>If these are among the 5 highest fragments the score is higher.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.fa_among_most_abundant">
-<code class="descname">fa_among_most_abundant</code><span class="sig-paren">(</span><em>fa_type</em>, <em>n=2</em>, <em>min_mass=None</em>, <em>sphingo=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.fa_among_most_abundant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.fa_among_most_abundant" title="Permalink to this definition">¶</a></dt>
+<code class="descname">fa_among_most_abundant</code><span class="sig-paren">(</span><em>fa_type</em>, <em>n=2</em>, <em>min_mass=None</em>, <em>sphingo=False</em>, <em>uns=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.fa_among_most_abundant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.fa_among_most_abundant" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns <cite>True</cite> if there is one of the defined type of fatty acid
 fragments among the given number of most abundant fragments, and
 it has a mass greater than the given threhold.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.fa_cc_among_most_abundant">
+<code class="descname">fa_cc_among_most_abundant</code><span class="sig-paren">(</span><em>cc</em>, <em>hg</em>, <em>n=2</em>, <em>sphingo=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.fa_cc_among_most_abundant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.fa_cc_among_most_abundant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns <cite>True</cite> if there is one  fatty acid with the defined
+carbon count and unsaturation and compatible with the given
+headgroup among the most abundant <cite>n</cite> fragments.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1739,6 +1884,15 @@ fatty acids.</p>
 <dd><p>Examines if a negative mode MS2 spectrum is a fatty acid.
 Here we only check if the most abundant fragment is the
 fatty acid itself.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>Enric FABP1 -</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant fragment must be a fatty acid which matches
+the carbon count and the unsaturation of the whole molecule.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
@@ -1747,11 +1901,20 @@ fatty acid itself.</p>
 <dd><p>Examines if a positive mode MS2 spectrum is a fatty acid.
 Here we only check if the most abundant fragment is the
 fatty acid itself.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>Enric FABP1 +</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant fragment must be a fatty acid which matches
+the carbon count and the unsaturation of the whole molecule.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.fa_type_is">
-<code class="descname">fa_type_is</code><span class="sig-paren">(</span><em>i</em>, <em>fa_type</em>, <em>sphingo=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.fa_type_is"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.fa_type_is" title="Permalink to this definition">¶</a></dt>
+<code class="descname">fa_type_is</code><span class="sig-paren">(</span><em>i</em>, <em>fa_type</em>, <em>sphingo=False</em>, <em>uns=None</em>, <em>scan_index=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.fa_type_is"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.fa_type_is" title="Permalink to this definition">¶</a></dt>
 <dd><p>Tells if a fatty acid fragment is a specified type. The type
 should be a part of the string representation of the fragment,
 e.g. <cite>-O]</cite> for fragments with one oxygen loss.</p>
@@ -1783,21 +1946,100 @@ if their combination is valid.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="emese.ms2.MS2Scan.get_intensity">
+<code class="descname">get_intensity</code><span class="sig-paren">(</span><em>mz</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.get_intensity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.get_intensity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the intensity of a fragment ion from its m/z.
+Value is <cite>None</cite> if m/z does not present.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.get_most_abundant_fa">
+<code class="descname">get_most_abundant_fa</code><span class="sig-paren">(</span><em>fa_type=None</em>, <em>head=1</em>, <em>sphingo=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.get_most_abundant_fa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.get_most_abundant_fa" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up the most abundant fatty acid fragment of the given type.
+Returns tuple with mz, intensity, carbon count and unsaturation, index.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.get_nl_intensity">
+<code class="descname">get_nl_intensity</code><span class="sig-paren">(</span><em>nl</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.get_nl_intensity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.get_nl_intensity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the intensity of a fragment ion from its a neutral loss.
+Value is <cite>None</cite> if neutral loss does not present.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.has_mz">
+<code class="descname">has_mz</code><span class="sig-paren">(</span><em>mz</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.has_mz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.has_mz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tells if an m/z exists in this scan.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.has_nl">
+<code class="descname">has_nl</code><span class="sig-paren">(</span><em>nl</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.has_nl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.has_nl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tells if a neutral loss exists in this scan.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="emese.ms2.MS2Scan.hexcer_neg_1">
 <code class="descname">hexcer_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.hexcer_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.hexcer_neg_1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Examines if a negative mode MS2 spectrum is a Hexosyl-Ceramide.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GLTP - 744.5627</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Hexose fragments 71.0115, 89.0220 and 101.0219 must present.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.hexcer_pos_1">
 <code class="descname">hexcer_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.hexcer_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.hexcer_pos_1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Examines if a positive mode MS2 spectrum is a Hexosyl-Ceramide.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GLTP + 810.68</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Hexose fragments 198.0740, 180.0634 and 162.0528 must present.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.hexceroh_neg_1">
+<code class="descname">hexceroh_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.hexceroh_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.hexceroh_neg_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a negative mode MS2 spectrum is a Hexosyl-Ceramide-OH
+(&#8216;t&#8217;). This method is the same as <cite>hexcer_neg_1</cite>.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GLTP - 760.557</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Hexose fragments 71.0115, 89.0220 and 101.0219 must present.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.hexceroh_pos_1">
+<code class="descname">hexceroh_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.hexceroh_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.hexceroh_pos_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a positive mode MS2 spectrum is a Hexosyl-Ceramide-OH
+(<cite>t</cite>). This method is the same as <cite>hexcer_pos_1</cite>.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GLTP + 826.67</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Hexose fragments 198.0740, 180.0634 and 162.0528 must present.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.identities_str">
 <code class="descname">identities_str</code><span class="sig-paren">(</span><em>num=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.identities_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.identities_str" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns table of all identification attemts as string.</p>
+<dd><p>Returns table of all identification attempts as string.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1805,6 +2047,60 @@ if their combination is valid.</p>
 <code class="descname">is_fa</code><span class="sig-paren">(</span><em>i</em>, <em>sphingo=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.is_fa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.is_fa" title="Permalink to this definition">¶</a></dt>
 <dd><p>Examines whether a fragment is fatty acid-like or not.
 In the labels of fatty acid fragments we always</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.lysopc_pos_1">
+<code class="descname">lysopc_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.lysopc_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.lysopc_pos_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a positive mode MS2 spectrum is a Lysophosphatidylcholine.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>Enric FABP1 + 522.36</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Choline-phosphate 184.0733, ethyl-triethylammonium 86.0964 and
+neutral loss 183.0660 must be present.</li>
+<li>The latter neutral loss corresponds to a fatty acid+glycerol ion.</li>
+<li>The carbon count and unsaturation of this fragment should match
+that of the whole molecule.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.lysope_neg_1">
+<code class="descname">lysope_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.lysope_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.lysope_neg_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a negative mode MS2 spectrum is
+Lysophosphatidylethanolamine.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>Enric FABP1 - 464.27</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant fragment is a fatty acid [M-H]- ion.</li>
+<li>140.0118 PE headgroup must be present.</li>
+<li>The carbon count and unsaturation of the highest fatty acid
+fragment must be the same as it is expected for the whole PE molecule.</li>
+<li>Other headgroup ions 196.0380 and 178.0275 add to the score.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.lysope_pos_1">
+<code class="descname">lysope_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.lysope_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.lysope_pos_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a positive mode MS2 spectrum is a
+Lysophosphatidylethanolamine.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>Enric FABP1 + 454.29</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The PE headgroup neutral loss 141.0191 has the highest intensity.</li>
+<li>A fatty acid-glycerol fragment should match the carbon count and
+unsaturation of the whole molecule.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
@@ -1835,6 +2131,26 @@ fatty acid, or it is different type.</p>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.most_abundant_mz_is">
+<code class="descname">most_abundant_mz_is</code><span class="sig-paren">(</span><em>mz</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.most_abundant_mz_is"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.most_abundant_mz_is" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tells if the m/z with the highest intensity is <cite>mz</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.ms1_cc">
+<code class="descname">ms1_cc</code><span class="sig-paren">(</span><em>hgs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.ms1_cc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.ms1_cc" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a list of headgroups returns the possible carbon counts
+based on database lookups of MS1 m/z&#8217;s.
+Returns set of strings.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.ms1_mz">
+<code class="descname">ms1_mz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.ms1_mz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.ms1_mz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the MS1 m/z (which should be the precursor ion).</p>
 </dd></dl>
 
 <dl class="method">
@@ -1924,35 +2240,148 @@ most aboundant <cite>n</cite> fragments in a spectrum.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="emese.ms2.MS2Scan.nl_lookup">
+<code class="descname">nl_lookup</code><span class="sig-paren">(</span><em>nl</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.nl_lookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.nl_lookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up if a neutral loss exists in this scan and returns its index.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.pc_neg_1">
+<code class="descname">pc_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.pc_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.pc_neg_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a negative mode MS2 spectrum is a Phosphatidylcholine.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>BPI - 804.57</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>168.0431 phosphate+choline-CH3 fragment must be present.</li>
+<li>The highest abundant fragment must be a fatty acid [M-H]- fragment.</li>
+<li>Lyso-PC fragments complementing the highest [M-H]- fatty acid
+increase the score.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.pc_pos_1">
+<code class="descname">pc_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.pc_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.pc_pos_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a positive mode MS2 spectrum is a Phosphatidylcholine.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>BPI + 786.607</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant fragment must be choline+phosphate 184.0733.</li>
+<li>The 86.0964 ethyl-triethylammonium must be present.</li>
+<li>The most abundant fatty acid can not have the same carbon count
+and unsaturation as the whole molecule (then it is Lyso-PC).</li>
+<li>Fragments 104.1069, 124.9998, 60.0808 and 58.0651 increase the
+score.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.pe_neg_1">
+<code class="descname">pe_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.pe_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.pe_neg_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a negative mode MS2 spectrum is Phosphatidylethanolamine.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GM2A - 714.507</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant fragment is a fatty acid [M-H]- ion.</li>
+<li>140.0118 PE headgroup must be present.</li>
+<li>Other headgroup ions 196.0380 and 178.0275 add to the score.</li>
+<li>Lyso-PE and [M-H-CO2]- fatty acid fragments complementing the
+highest [M-H]- fatty acid increase the score.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.pe_pos_1">
+<code class="descname">pe_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.pe_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.pe_pos_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a positive mode MS2 spectrum is a
+Phosphatidylethanolamine.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>BPI + 718.536</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The PE headgroup neutral loss 141.0191 has the highest intensity.</li>
+<li>If it is a Lyso-PE score will be zero.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
 <dt id="emese.ms2.MS2Scan.pg_neg_1">
 <code class="descname">pg_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.pg_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.pg_neg_1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
-The result will be similar to <cite>pg_neg1</cite>, as in negative
-mode we do not know a way to distinguish these species.
-It only depends on the headgroup fragment 152.996, as
-this might have higher intensity at BMP.
-Specimen: GM2A - 799.54 and BPIFB2 - 773.5258 (latter might be BMP)</p>
+The result will be the same as <cite>bmp_neg_1</cite>, as in negative
+mode we do not know a way to distinguish these species.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GM2A - 799.54</li>
+<li>BPIFB2 - 773.5258 (might be BMP)</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant fragment is a fatty acid [M-H]- ion.</li>
+<li>The 152.9958 glycerophosphate fragment must be present.</li>
+<li>If Lyso-PG fragment present with carbon count complementing
+the [M-H]- fatty acid score is higher.</li>
+<li>Presence of 171.0064 headgroup fragment adds to the score.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.pg_pos_1">
 <code class="descname">pg_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.pg_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.pg_pos_1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Examines if a positive mode MS2 spectrum
-is a Phosphatidylglycerol.</p>
+is a Phosphatidylglycerol.
+At Antonella observed only in standard.</p>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The PG headgroup neutral loss (189.0402) is the fragment ion
+with the highest intensity?</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.pi_neg_1">
 <code class="descname">pi_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.pi_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.pi_neg_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a negative MS2 spectrum is Phosphatidylinositol.
-Specimen: GM2A - 835.52</p>
+<dd><p>Examines if a negative MS2 spectrum is Phosphatidylinositol.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GM2A - 835.52</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Inositolphosphate-H2O fragment 241.0119, metaphosphate 78.9591 and
+headgroup fragment 152.9958 must be present.</li>
+<li>Additional headgroup fragments 96.9696, 259.0224 and 297.0381
+increase the score.</li>
+<li>Presence of Lyso-PI fragments complementing other [M-H]- fatty
+acid fragments increase the score.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.pi_pos_1">
 <code class="descname">pi_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.pi_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.pi_pos_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a negative MS2 spectrum is Phosphatidylinositol.
-Specimen: SEC14L2 + 906.60 and 882.6</p>
+<dd><p>Examines if a negative MS2 spectrum is Phosphatidylinositol.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>SEC14L2 + 906.60 and 882.6</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Combinations of fatty acid fragments must match the expected
+carbon count and unsaturation for PI.</li>
+<li>Presence of neutral losses 259.0219 and 277.0563 adds to the score.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
@@ -1970,15 +2399,77 @@ Specimen: SEC14L2 + 906.60 and 882.6</p>
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.ps_neg_1">
 <code class="descname">ps_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.ps_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.ps_neg_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a negative mode MS2 spectrum is a Phosphatidylserine.
-Specimen: ORP9 - 788.54</p>
+<dd><p>Examines if a negative mode MS2 spectrum is a Phosphatidylserine.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>ORP9 - 788.54</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant fragment is an [M-H]- fatty acid fragment.</li>
+<li>Glycerophosphate fragment 152.9958 must be present.</li>
+<li>Metaphosphate 78.9591 increases the score.</li>
+<li>Serine-H2O neutral loss 87.0320 adds to the score.</li>
+<li>Presence of Lyso-PS and Lyso-PA fragments complementing
+the highest [M-H]- fatty acid fragment increase the score.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.ps_pos_1">
 <code class="descname">ps_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.ps_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.ps_pos_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a positive mode MS2 spectrum is a Phosphatidylserine.
-Specimen: BPI + 790.56</p>
+<dd><p>Examines if a positive mode MS2 spectrum is a Phosphatidylserine.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>BPI + 790.56</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>PS headgroup neutral loss 185.0089 must be the highest intensity.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.scan_str">
+<code class="descname">scan_str</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.scan_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.scan_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the scan table as string.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.show">
+<code class="descname">show</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.show"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the scan table to standard output.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.sm_neg_1">
+<code class="descname">sm_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.sm_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.sm_neg_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a negative mode MS2 spectrum is a Sphingomyeline.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GLTPD1 - 745.55</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Must have a neutral loss of CH3+COOH (60.0211).</li>
+<li>Phosphate+choline-CH3 fragment 168.0431 must be present.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.sm_pos_1">
+<code class="descname">sm_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.sm_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.sm_pos_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a positive mode MS2 spectrum is a Sphingomyeline.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>GLTPD1 + 703.57</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The following choline fragments must be present: 60.0808, 86.0964,
+104.1069, 124.9998 and 184.0733. The last one is the most intensive.</li>
+<li>If 58.0651 can be found it adds to the score.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
@@ -1991,6 +2482,20 @@ Specimen: BPI + 790.56</p>
 <dt id="emese.ms2.MS2Scan.sort_by_mz">
 <code class="descname">sort_by_mz</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.sort_by_mz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.sort_by_mz" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sorts the scan array by m/z increasing.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.sph1p_neg_1">
+<code class="descname">sph1p_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.sph1p_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.sph1p_neg_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a negative mode MS2 spectrum is a Spingosine-1-phosphate.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>Only observed in standard.</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Phosphate 78.9590 must be present.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
@@ -2087,22 +2592,55 @@ representation, e.g. <cite>18:1/16:0</cite>.</td>
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.tag_neg_1">
 <code class="descname">tag_neg_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.tag_neg_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.tag_neg_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a negative mode MS2 spectrum is a TAG.
-This method is not ready, does nothing.</p>
+<dd><p>Examines if a negative mode MS2 spectrum is a TAG.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>We don&#8217;t have yet.</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Combination of fatty acid fragments must match the
+expected carbon count and unsaturation.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.tag_pos_1">
 <code class="descname">tag_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.tag_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.tag_pos_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a positive mode MS2 spectrum is a TAG.
-Specimen: STARD11 + 818.7187</p>
+<dd><p>Examines if a positive mode MS2 spectrum is a TAG.</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>STARD11 + 818.7187</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>Combination of fatty acid fragments must match the expected
+carbon count and unsaturation.</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="emese.ms2.MS2Scan.va_pos_1">
 <code class="descname">va_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.va_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.va_pos_1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Examines if a positive MS2 spectrum is vitamin A (retinol).
-Specimen: RBP1 + 269.2245 and RBP4 + 269.2245</p>
+<dd><p>Examines if a positive MS2 spectrum is vitamin A (retinol).</p>
+<p><strong>Specimen:</strong></p>
+<ul class="simple">
+<li>RBP1 + 269.2245</li>
+<li>RBP4 + 269.2245</li>
+</ul>
+<p><strong>Principle:</strong></p>
+<ul class="simple">
+<li>The most abundant ion is the whole molecule m/z = 269.224.</li>
+<li>Presence off 3 other ions adds to the score but not
+mandatory: 213.165, 145.1027, 157.1028.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="emese.ms2.MS2Scan.vd_pos_1">
+<code class="descname">vd_pos_1</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/emese/ms2.html#MS2Scan.vd_pos_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#emese.ms2.MS2Scan.vd_pos_1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Examines if a positive mode MS2 spectrum is a vitamin D.
+This method is not implemented, does nothing.</p>
 </dd></dl>
 
 </dd></dl>
