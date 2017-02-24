@@ -12330,13 +12330,23 @@ class Screening(object):
                                        'screen'
                                     ])
     
-    def automatic_df(self):
+    def auto_df(self):
         """
         Compiles a data frame in the same format as `manual_df`
         just from the programmatic results.
         """
         
-        pass
+        for protein, d in iteritems(self.valids):
+            
+            for mode, tbl in iteritems(d):
+                
+                for i, mz in enumerate(tbl['mz']):
+                    
+                    oi = tbl['oi'][i]
+                    
+                    for cid in tbl['cid'][oi]:
+                        
+                        pass
     
     def headgroups_cross_screening(self, label1 = 'Screen1',
                                    label2 = 'Screen2',
