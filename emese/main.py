@@ -591,6 +591,9 @@ class Screening(object):
         self.recount2 = re.compile(r'\(([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/'
                                    r'([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
                                    r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
+        self.recount3 = re.compile(r'\(([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
+                                   r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})/?'
+                                   r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
         self.readd = re.compile(r'(\[M[-\+][-\)\)\+A-Za-z0-9]*\][0-9]?[\-+])')
         self.refa  = re.compile(r'([dl]?)([0-9]+:[0-9]{1,2})\(?([,0-9EZ]+)?\)?')
         
@@ -850,6 +853,43 @@ class Screening(object):
             '#CBE216', # fuego
             '#14B866', # medium sea green
             '#987B99'  # london hue
+        ]
+        
+        self.df_header = [
+            'protein',
+            'ionm',
+            'id',
+            'mz',
+            'mzcorr',
+            'intensity',
+            'cls',
+            'headgroup1',
+            'rtmean',
+            'rtms2',
+            'rtlow',
+            'rtup',
+            'headgroup',
+            'lyso',
+            'pref',
+            'carb',
+            'unsat',
+            'fa1p',
+            'fa1c',
+            'fa1u',
+            'fa2p',
+            'fa2c',
+            'fa2u',
+            'fa3p',
+            'fa3c',
+            'fa3u',
+            'fullhgroup',
+            'mhgroup',
+            'uhgroup',
+            'hgcc',
+            'cc',
+            'hgfa',
+            'ccfa',
+            'screen'
         ]
         
         if not self.tolerate_numpy_warnings:
@@ -4814,6 +4854,7 @@ class Screening(object):
         self.ms2_scans_identify()
         self.ms2_headgroups2()
         self.consensus_identity()
+        self.ms2_rt()
     
     def ms2_init(self):
         """
@@ -4825,7 +4866,7 @@ class Screening(object):
         self.ms2_filenames()
     
     def ms2_onebyone(self, callback = 'std_layout_tables_xlsx',
-                     proteins = None, **kwargs):
+                     proteins = None, identify = True, **kwargs):
         """
         Does the same as `ms2()`, but after doing it for one
         entity, it calls a callback, typically to export all
@@ -4848,7 +4889,7 @@ class Screening(object):
             
             prg.step()
             
-            self.ms2_oneprotein(protein)
+            self.ms2_oneprotein(protein, identify = identify)
             
             if hasattr(callback, '__call__'):
                 
@@ -4862,7 +4903,7 @@ class Screening(object):
         
         prg.terminate()
     
-    def ms2_oneprotein(self, protein):
+    def ms2_oneprotein(self, protein, identify = True):
         """
         Runs the whole MS2 workflow for only one protein.
         """
@@ -4879,9 +4920,10 @@ class Screening(object):
         self.ms2_headgroups(proteins = [protein])
         self.headgroups_by_fattya(proteins = [protein])
         self.identity_combined(proteins = [protein])
-        self.ms2_scans_identify(proteins = [protein])
+        self.ms2_scans_identify(proteins = [protein], identify = identify)
         self.ms2_headgroups2(proteins = [protein])
         self.consensus_identity(proteins = [protein])
+        self.ms2_rt(proteins = [protein])
     
     def identify(self):
         
@@ -6178,6 +6220,28 @@ class Screening(object):
                     if key in tbl:
                         del tbl[key]
     
+    def ms2_rt(self, proteins = None):
+        
+        proteins = list(self.valids.keys()) if proteins is None else proteins
+        
+        for protein in proteins:
+            
+            for mode, tbl in iteritems(self.valids[protein]):
+                
+                rtms2 = []
+                
+                for i in tbl['i']:
+                    
+                    if i in tbl['ms2f']:
+                        
+                        ms2f = tbl['ms2f'][i]
+                        rtms2.append(ms2f.scans[ms2f.best_scan][0,11])
+                    
+                    else:
+                        rtms2.append(np.nan)
+                
+                tbl['ms2rt'] = np.array(rtms2)
+    
     """
     END: MS2 functions
     """
@@ -6186,7 +6250,8 @@ class Screening(object):
     BEGIN: New identification methods
     """
     
-    def ms2_scans_identify(self, proteins = None, silent = False):
+    def ms2_scans_identify(self, proteins = None,
+                           silent = False, identify = True):
         
         if proteins is not None and len(proteins) == 1:
             silent = True
@@ -6225,10 +6290,13 @@ class Screening(object):
                 for i, oi in enumerate(tbl['i']):
                     if oi in tbl['ms2']:
                         tbl['ms2f'][oi] = ms2.Feature(self, protein, mode, oi)
-                        tbl['ms2f'][oi].identify()
-                        tbl['ms2f'][oi].identify2()
-                        tbl['ms2i'][oi] = tbl['ms2f'][oi].identities
-                        tbl['ms2i2'][oi] = tbl['ms2f'][oi].identities2
+                        
+                        if identify:
+                            
+                            tbl['ms2f'][oi].identify()
+                            tbl['ms2f'][oi].identify2()
+                            tbl['ms2i'][oi] = tbl['ms2f'][oi].identities
+                            tbl['ms2i2'][oi] = tbl['ms2f'][oi].identities2
         
         if not silent:
             prg.terminate()
@@ -12222,7 +12290,9 @@ class Screening(object):
         result = []
         
         for protein, d in iteritems(self.manual):
+            
             for mode, tbl in iteritems(d):
+                
                 for i, l in enumerate(tbl):
                     
                     counts = get_names(l)
@@ -12231,7 +12301,7 @@ class Screening(object):
                         l[3] = shgs2[l[3].strip()]
                     
                     res = [protein, mode, i, l[0], l[5], l[4], l[1], l[3]] + \
-                        l[8:12]
+                        l[8:12] # 12 cols: protein -- rtup
                     
                     for cnt in counts:
                         res1 = res[:]
@@ -12292,61 +12362,150 @@ class Screening(object):
                         
                         result.append(res1)
         
-        self.pmanual = pd.DataFrame(result,
-                                   columns = [
-                                       'protein',
-                                       'ionm',
-                                       'id',
-                                       'mz',
-                                       'mzcorr',
-                                       'intensity',
-                                       'cls',
-                                       'headgroup1',
-                                       'rtmean',
-                                       'rtms2',
-                                       'rtlow',
-                                       'rtup',
-                                       'headgroup',
-                                       'lyso',
-                                       'pref',
-                                       'carb',
-                                       'unsat',
-                                       'fa1p',
-                                       'fa1c',
-                                       'fa1u',
-                                       'fa2p',
-                                       'fa2c',
-                                       'fa2u',
-                                       'fa3p',
-                                       'fa3c',
-                                       'fa3u',
-                                       'fullhgroup',
-                                       'mhgroup',
-                                       'uhgroup',
-                                       'hgcc',
-                                       'cc',
-                                       'hgfa',
-                                       'ccfa',
-                                       'screen'
-                                    ])
+        self.pmanual = pd.DataFrame(result, columns = self.df_header)
     
-    def auto_df(self):
+    def auto_df(self, include = 'slobb', screen_name = 'E'):
         """
         Compiles a data frame in the same format as `manual_df`
         just from the programmatic results.
         """
         
+        result = []
+        
         for protein, d in iteritems(self.valids):
             
             for mode, tbl in iteritems(d):
                 
-                for i, mz in enumerate(tbl['mz']):
+                ii = 0
+                
+                for i, incl in enumerate(tbl[include]):
                     
-                    oi = tbl['oi'][i]
-                    
-                    for cid in tbl['cid'][oi]:
+                    if not incl:
                         
-                        pass
+                        continue
+                    
+                    mz = tbl['mz'][i]
+                    oi = tbl['i'][i]
+                    idlevel = tbl['idlevel'][oi]
+                    intensity = round(tbl['aaa'][i])
+                    rt = tbl['rt'][i,:]
+                    rtmean = np.mean(tbl['rt'][i,:])
+                    rtms2 = tbl['ms2rt'][i]
+                    
+                    cids = tbl['cid'][oi]
+                    
+                    clm = None
+                    if not cids:
+                        clm = 'unknown'
+                        cids = ['unknown']
+                    elif len(cids) > 1:
+                        clm = 'ambiguous'
+                    
+                    for lip in cids:
+                        
+                        res = []
+                        
+                        res.append(protein)
+                        res.append(mode)
+                        res.append(ii)
+                        res.append(mz)
+                        res.append(mz)
+                        res.append(intensity)
+                        res.append(idlevel)
+                        
+                        cl = lip.split('(')[0] if clm is None else clm
+                        hg = 'NA' if clm == 'unknown' else lip.split('(')[0]
+                        lyso = 'Lyso' if 'lyso' in lip.lower() else ''
+                        hg = 'NA' if clm == 'unknown' else lip.split('(')[0]
+                        pref = 'O' if '-O' in hg else ''
+                        if 'Cer' in hg:
+                            pref = 'd' if 'CerOH' not in hg else 't'
+                        
+                        if pref =='O':
+                            hg = '%s-O' % hg
+                        
+                        hg0 = hg.replace('-O', '').replace('CerOH', 'Cer')
+                        
+                        res.append(hg)
+                        res.append(rtmean)
+                        res.append(rtms2)
+                        res.append(rt[0])
+                        res.append(rt[1])
+                        res.append(hg0)
+                        res.append(lyso)
+                        # res.append(pref)
+                        
+                        cc  = self.recount3.findall(lip)
+                        
+                        if cc:
+                            
+                            sumcc  = sum(map(lambda _cc:
+                                            int(_cc) if _cc else 0,
+                                        [1, 4, 7]))
+                            sumuns = sum(map(lambda _un:
+                                            int(_un) if _un else 0,
+                                        [2, 5, 8]))
+                            
+                            res.extend([cc[0][0], sumcc, sumuns])
+                            
+                            hgcc = '%s(%u:%u)' % (hg, sumcc, sumuns)
+                            sumccuns = '%u:%u' % (sumcc, sumuns)
+                            fa = '%s:%s' % (cc[0][1], cc[0][2])
+                            if cc[0][4]:
+                                fa = '%s/%s:%s' % (fa, cc[0][4], cc[0][5])
+                            if cc[0][7]:
+                                fa = '%s/%s:%s' % (fa, cc[0][7], cc[0][8])
+                            
+                        else:
+                            res.extend(['', np.nan, np.nan])
+                            
+                            hgcc = 'NA'
+                            sumccuns = 'NA'
+                            fa = 'NA'
+                        
+                        cc2 = self.recount2.findall(lip)
+                        
+                        if (
+                            cc and
+                            cc[0][1] and
+                            cc[0][2] and (
+                                cc[0][4] or hg == 'FA' or lyso
+                            )):
+                            
+                            res.extend([cc[0][0],
+                                int(cc[0][1]),
+                                int(cc[0][2]),
+                                cc[0][3],
+                                int(cc[0][4]) if cc[0][4] else np.nan,
+                                int(cc[0][5]) if cc[0][5] else np.nan,
+                                cc[0][6],
+                                int(cc[0][7]) if cc[0][7] else np.nan,
+                                int(cc[0][8]) if cc[0][8] else np.nan
+                            ])
+                            
+                        else:
+                            
+                            res.extend(['', np.nan, np.nan,
+                                        '', np.nan, np.nan,
+                                        '', np.nan, np.nan])
+                        
+                        res.append(hg)
+                        res.append(hg if clm is None else clm)
+                        res.append('NA' if clm == 'unknown' else hg)
+                        res.append(hgcc)
+                        res.append(sumccuns)
+                        res.append('%s(%s)' % (hg, fa))
+                        res.append(fa)
+                        
+                        res.append(screen_name)
+                        
+                        result.append(res)
+                        
+                        ii += 1
+        
+        print(result[0])
+        
+        self.pauto = pd.DataFrame(result, columns = self.df_header)
     
     def headgroups_cross_screening(self, label1 = 'Screen1',
                                    label2 = 'Screen2',
@@ -12465,12 +12624,11 @@ class Screening(object):
         
         return a
     
-    def export_manual(self, fname = 'final_results.csv', **kwargs):
+    @staticmethod
+    def export_df(df, fname, **kwargs):
         """
-        Exports the results from manual curation to csv.
+        Exports the results from a `pandas.DataFrame` to csv.
         """
-        if not hasattr(self, 'pmanual') or self.pmanual is None:
-            self.manual_df()
         
         if 'sep' not in kwargs:
             kwargs['sep'] = '\t'
@@ -12479,7 +12637,7 @@ class Screening(object):
         if 'index' not in kwargs:
             kwargs['index'] = False
         
-        self.pmanual.to_csv(fname, **kwargs)
+        df.to_csv(fname, **kwargs)
     
     def bubble_plotly(self,
                      classes = ['I', 'II'],
