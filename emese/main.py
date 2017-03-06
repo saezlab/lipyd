@@ -4855,6 +4855,7 @@ class Screening(object):
         self.ms2_headgroups2()
         self.consensus_identity()
         self.ms2_rt()
+        self.good_features()
     
     def ms2_init(self):
         """
@@ -4900,6 +4901,8 @@ class Screening(object):
                 getattr(self, callback)(proteins = [protein], **kwargs)
             
             self.ms2_cleanup(proteins = [protein])
+        
+        self.good_features()
         
         prg.terminate()
     
@@ -5972,7 +5975,7 @@ class Screening(object):
                     if (abs(ms2f._scans[ms2f.best_scan].deltart)
                         < self.deltart_threshold):
                         
-                        ids[oi]      = this_id
+                        ids[oi]      = sorted(set(this_id))
                         idlevels[oi] = idlevel
                 
                 for oi in tbl['i']:
@@ -6228,19 +6231,25 @@ class Screening(object):
             
             for mode, tbl in iteritems(self.valids[protein]):
                 
-                rtms2 = []
+                rtms2  = []
+                drtms2 = []
                 
-                for i in tbl['i']:
+                for i, oi in enumerate(tbl['i']):
                     
-                    if i in tbl['ms2f']:
+                    if oi in tbl['ms2f']:
                         
-                        ms2f = tbl['ms2f'][i]
-                        rtms2.append(ms2f.scans[ms2f.best_scan][0,11])
+                        ms2f = tbl['ms2f'][oi]
+                        closest_ms2_rt = ms2f.scans[ms2f.best_scan][0,11]
+                        rtms2.append(closest_ms2_rt)
+                        drtms2.append(abs(np.mean(tbl['rt'][i,:]) -
+                                          closest_ms2_rt))
                     
                     else:
                         rtms2.append(np.nan)
+                        drtms2.append(np.nan)
                 
-                tbl['ms2rt'] = np.array(rtms2)
+                tbl['ms2rt']   = np.array(rtms2)
+                tbl['deltart'] = np.array(drtms2)
     
     """
     END: MS2 functions
@@ -11249,6 +11258,53 @@ class Screening(object):
                 sheet.set_column(coln, coln, self.colw_scale(colw))
         #sheet.set_row(row = 0, height = 115.0)
     
+    def good_features(self, check_deltart = False, proteins = None):
+        """
+        Creates a boolean vector expressing whether the features satisfy all
+        critera to be classified as good.
+        """
+        
+        for protein, d in iteritems(self.valids):
+            
+            if proteins is not None and protein not in proteins:
+                continue
+            
+            for mode, tbl in iteritems(d):
+                
+                good = []
+                
+                for i, oi in enumerate(tbl['i']):
+                    
+                    aaa = (
+                        tbl['aa'][i]
+                        if self.use_original_average_area
+                        else tbl['aaa'][i]
+                    )
+                    
+                    if self.slope_profile_selection:
+                        profile_condition = tbl['slobb'][i]
+                    else:
+                        profile_condition = (
+                            tbl['prr'] is None or
+                            tbl['prr'][i]
+                        )
+                    
+                    _good = (
+                        tbl['peaksize'][i] >= 5.0 and
+                        profile_condition and (
+                            aaa >= self.aa_threshold[mode] or (
+                                not np.isnan(tbl['ms2rt'][i]) and
+                                tbl['deltart'][i]  <= 1.0
+                            ) or
+                            not check_deltart
+                        ) and
+                        not tbl['na'][i]
+                    )
+                    
+                    good.append(_good)
+                
+                tbl['good'] = np.array(good)
+    
     def std_layout_tables_xlsx(self, check_deltart = False, one_table = False,
                                proteins = None, silent = False):
         
@@ -12364,7 +12420,7 @@ class Screening(object):
         
         self.pmanual = pd.DataFrame(result, columns = self.df_header)
     
-    def auto_df(self, include = 'slobb', screen_name = 'E'):
+    def auto_df(self, screen_name = 'E'):
         """
         Compiles a data frame in the same format as `manual_df`
         just from the programmatic results.
@@ -12378,7 +12434,7 @@ class Screening(object):
                 
                 ii = 0
                 
-                for i, incl in enumerate(tbl[include]):
+                for i, incl in enumerate(tbl['good']):
                     
                     if not incl:
                         
@@ -12439,14 +12495,14 @@ class Screening(object):
                         
                         if cc:
                             
-                            sumcc  = sum(map(lambda _cc:
-                                            int(_cc) if _cc else 0,
+                            sumcc  = sum(map(lambda cci:
+                                            int(cc[0][cci]) if cc[0][cci] else 0,
                                         [1, 4, 7]))
-                            sumuns = sum(map(lambda _un:
-                                            int(_un) if _un else 0,
+                            sumuns = sum(map(lambda uni:
+                                            int(cc[0][uni]) if cc[0][uni] else 0,
                                         [2, 5, 8]))
                             
-                            res.extend([cc[0][0], sumcc, sumuns])
+                            res.extend([pref, sumcc, sumuns])
                             
                             hgcc = '%s(%u:%u)' % (hg, sumcc, sumuns)
                             sumccuns = '%u:%u' % (sumcc, sumuns)
@@ -12502,8 +12558,6 @@ class Screening(object):
                         result.append(res)
                         
                         ii += 1
-        
-        print(result[0])
         
         self.pauto = pd.DataFrame(result, columns = self.df_header)
     
