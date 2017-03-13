@@ -218,6 +218,8 @@ class Screening(object):
             # output of this module, then have been manually processed, and
             # can be read again and compared/further analysed.
             'manualdir': 'Processed_files',
+            # ending of processed files
+            'manualend': 'final.xlsx',
             # For recalibration we read the dates of runs from here.
             'seqfile': 'Sequence_list_LTP_screen_2015.csv',
             # This is an output file to export the absorbance based
@@ -12105,28 +12107,35 @@ class Screening(object):
         Provides data in `Screening().manual` attribute.
         """
         
-        
         reclass = re.compile(r'(^[IV]*\.?[0-9]?).*')
         
-        def read_line(l):
+        def read_line(l, protein, mode):
             if len(l[17]) and len(l[12]) and len(l[13]):
                 return \
                     [
-                        float(l[13]),
-                        reclass.match(l[17]).groups()[0],
-                        l[14],
-                        l[15],
-                        int(float(l[12]))
+                        float(l[13]), # m/z corrected
+                        reclass.match(l[17]).groups()[0], # result class
+                        l[14], # SwissLipids name
+                        l[15], # main headgroup class
+                        int(float(l[12])), # intensity
+                        float(l[2]), # m/z original
+                        protein, # protein name
+                        mode, # ion mode
+                        float(l[5]), # RT mean
+                        float(l[6]) if l[6] != 'NA' else np.nan, # RT MS2 closest
+                        float(l[4].split('-')[0].strip()), # RT lower
+                        float(l[4].split('-')[1].strip())  # RT greater
                     ]
         
-        def read_table(tbl):
+        def read_table(tbl, protein, mode):
             return \
                 list(
                     filter(
                         lambda l:
                             l is not None,
                         map(
-                            read_line,
+                            lambda l:
+                                read_line(l, protein, mode),
                             tbl
                         ),
                     )
@@ -12138,10 +12147,11 @@ class Screening(object):
             list(
                 filter(
                     lambda f:
-                        f.endswith('final.xlsx'),
+                        f.endswith(self.manualend),
                     os.listdir(self.manualdir)
                 )
             )
+        
         for f in fnames:
             protein = f.split('_')[0]
             xlsname = os.path.join(self.manualdir, f)
@@ -12150,8 +12160,8 @@ class Screening(object):
             tblpos = self.read_xls(xlsname,
                                    sheet = '%s_positive_best' % protein)
             data[protein] = {}
-            data[protein]['neg'] = read_table(tblneg[1:])
-            data[protein]['pos'] = read_table(tblpos[1:])
+            data[protein]['neg'] = read_table(tblneg[1:], protein, 'neg')
+            data[protein]['pos'] = read_table(tblpos[1:], protein, 'pos')
         
         self.manual = data
     
@@ -12195,7 +12205,7 @@ class Screening(object):
         
         self.manual = result
     
-    def manual_df(self, screen = 'A'):
+    def manual_df(self, screen = 'A', only_swl_col = False):
         """
         Creates a pandas dataframe from manual results.
         """
@@ -12229,7 +12239,23 @@ class Screening(object):
             'Monoalkylmonoacylglycerol': 'DAG-O',
             '24-Hydroxy-19-norgeminivitamin D3': 'VD',
             'NP40': 'P40',
-            'Cer1P': 'CerP'
+            'Cer1P': 'CerP',
+            'Phosphatidylcholine': 'PC',
+            'Phosphatidylethanolamine': 'PE',
+            'Phosphatidylcholine-O': 'PC-O',
+            'Phosphatidylethanolamine-O': 'PE-O',
+            'Dihexosyl ceramide': 'Hex2Cer',
+            'Sulfodihexosyl ceramide': 'SHex2Cer',
+            'BMP / PG': 'PG/BMP',
+            'BMP/PG': 'PG/BMP',
+            'Lyso-O-PE': 'LysoPE-O',
+            'Lyso-O-PC': 'LysoPC-O',
+            'Lyso-O-PG': 'LysoPG-O',
+            'Lyso-O-PS': 'LysoPS-O',
+            'LysoO-PE': 'LysoPE-O',
+            'LysoO-PG': 'LysoPG-O',
+            'LysoO-PC': 'LysoPC-O',
+            'LysoO-PS': 'LysoPS-O'
         }
         
         shgs2 = {
@@ -12239,7 +12265,7 @@ class Screening(object):
             'SulfohexCer': 'SHexCer',
             'SulfoHexCer': 'SHexCer',
             'SulfodihexCer': 'SHex2Cer',
-            'DiHexCer-OH': 'Hex2Cer-OH',
+            'DiHexCer-OH': 'Hex2CerOH',
             'DiHexCer': 'Hex2Cer',
             'PI2xP': 'PIP2',
             'MAMAG': 'DAG-O'
@@ -12247,7 +12273,8 @@ class Screening(object):
         
         uhgs = {
             'Hex2Cer': 'Hex2Cer',
-            'Hex2Cer-OH': 'Hex2Cer',
+            'Hex2Cer-OH': 'Hex2CerOH',
+            'HexCer-OH': 'HexCerOH',
             'GM3': 'GM',
             'Detergent': 'P40'
         }
@@ -12258,8 +12285,33 @@ class Screening(object):
             from the SwissLipids IDs field.
             """
             
-            counts = []
-            for lips in r[2].split(r'///'):
+            something   = []
+            nothing     = []
+            
+            # fixing typos and inconsequent naming:
+            clm = r[3].strip().split('(')[0]
+            clls = clm.lower().strip()
+            
+            if clls == 'ambiguous' or clls == 'ambigous':
+                clm = 'ambiguous'
+            
+            if clls == 'unknown' or clls == 'unkown':
+                clm = 'NA'
+            
+            if not len(clls):
+                clm = 'NA'
+            
+            # :done
+            
+            for lips in (
+                r[2].split(r'///')
+                if (
+                    only_swl_col or
+                    clm == 'NA' or
+                    clm == 'ambiguous' or
+                    clm == 'adduct'
+                ) else
+                r[3].split(',')):
                 
                 add = self.readd.match(lips)
                 
@@ -12270,72 +12322,127 @@ class Screening(object):
                 
                 for lip in lips.split(';'):
                     
-                    res = []
+                    lip = lip.strip()
                     
-                    lyso = 'Lyso' if 'lyso' in lip.lower() else ''
+                    if lip and lip[0] == '(':
+                        lip = lip[1:]
+                    
+                    if 'lyso' in lip.lower():
+                        lyso = 'Lyso'
+                        clm = clm.replace('yso-', 'yso')
+                    else:
+                        lyso = ''
                     
                     cl = self.headgroup_from_lipid_name(['S', None, lip])[0]
                     
                     if cl is None:
-                        cl = lip.split('(')[0].strip()
+                        cl = lip
+                        if ']' in cl:
+                            cl = cl.split(']')[1]
+                        cl = cl.split('(')[0].strip()
                         if ':' in cl:
                             cl = cl.split(':')[1].strip()
                     
-                    # fixing typos and inconsequent naming:
-                    clm = l[3].strip()
-                    clls = clm.lower().strip()
+                    if 'nothing' in cl:
+                        cl = 'NA'
                     
-                    if clls == 'ambiguous' or clls == 'ambigous':
-                        clm = 'ambiguous'
-                    
-                    if clls == 'unknown' or clls == 'unkown':
-                        clm = 'NA'
-                    
-                    if not len(clls):
-                        clm = 'NA'
-                    
-                    if len(lyso):
-                        clm = clm.replace('yso-', 'yso')
-                    # :done
-                    
-                    res.append(cl)
-                    res.append(lyso)
-                    
+                    # regex finds the total carbon count
                     cc1 = self.recount1.findall(lip)
-                    if len(cc1):
-                        
-                        res.extend([cc1[0][0], int(cc1[0][1]), int(cc1[0][2])])
-                    else:
-                        res.extend(['', np.nan, np.nan])
                     
-                    cc2 = self.recount2.findall(lip)
-                    
-                    if len(cc2):
-                        res.extend([cc2[0][0], int(cc2[0][1]), int(cc2[0][2]),
-                                    cc2[0][3], int(cc2[0][4]), int(cc2[0][5]),
-                                    cc2[0][6],
-                                    int(cc2[0][7]) \
-                                        if len(cc2[0][7]) else np.nan,
-                                    int(cc2[0][8]) \
-                                        if len(cc2[0][8]) else np.nan])
-                    else:
-                        res.extend(['', np.nan, np.nan,
-                                    '', np.nan, np.nan,
-                                    '', np.nan, np.nan])
+                    # special case if the fatty acid
+                    # name is greek name
+                    if cl in fa_greek:
+                        cc1 = [('', fa_greek[cl][0],
+                                    fa_greek[cl][1])]
+                        cl = 'FA'
                     
                     # a full headgroup name:
                     fullhg = '%s%s%s' % (
-                        lyso,
+                        lyso if not cl.startswith('Lyso') else '',
                         cl,
                         '%s' % ('-O' if len(cc1) and cc1[0][0] == 'O' else '')
                     )
                     
-                    res.append(fullhg)
-                    res.append(clm)
+                    # regex finds 2-3 fatty acids
+                    cc2s = self.recount3.findall(lip)
                     
-                    counts.append(res)
+                    # the total carbon count
+                    ccpart = (
+                        [cc1[0][0], int(cc1[0][1]), int(cc1[0][2])]
+                        if len(cc1) else
+                        ['', np.nan, np.nan]
+                    )
+                    
+                    # carbon counts of fatty acids
+                    if len(cc2s) and (
+                        any(map(lambda cc2: cc2[4], cc2s)) or
+                        cl == 'FA' or
+                        lyso
+                    ):
+                        
+                        faccparts = (
+                            list(
+                                map(
+                                    lambda cc2:
+                                        [
+                                            # FA1
+                                            cc2[0],
+                                            int(cc2[1]),
+                                            int(cc2[2]),
+                                            # FA2
+                                            cc2[3],
+                                            int(cc2[4]) if cc2[4] else np.nan,
+                                            int(cc2[5]) if cc2[5] else np.nan,
+                                            # FA3
+                                            cc2[6],
+                                            int(cc2[7]) if cc2[7] else np.nan,
+                                            int(cc2[8]) if cc2[8] else np.nan
+                                        ],
+                                    filter(
+                                        lambda cc2:
+                                            # if this is a Lyso species
+                                            # or single fatty acid
+                                            # we have only one cc:unsat
+                                            # otherwise we must have at least 2
+                                            cc2[4] or cl == 'FA' or lyso,
+                                        cc2s
+                                    )
+                                )
+                            )
+                        )
+                        
+                    else:
+                        faccparts = [
+                            [
+                                '', np.nan, np.nan,
+                                '', np.nan, np.nan,
+                                '', np.nan, np.nan
+                            ]
+                        ]
+                    
+                    for faccpart in faccparts:
+                        
+                        if cc2s and not cc1:
+                            ccpart = [
+                                faccpart[0],
+                                np.nansum([faccpart[1], faccpart[4], faccpart[7]]),
+                                np.nansum([faccpart[2], faccpart[5], faccpart[8]])
+                            ]
+                        
+                        res = []
+                        res.append(cl)
+                        res.append(lyso)
+                        res.extend(ccpart)
+                        res.extend(faccpart)
+                        res.append(fullhg)
+                        res.append(clm)
+                        
+                        if res[14] == 'NA':
+                            nothing.append(res)
+                        else:
+                            something.append(res)
             
-            return counts
+            return something or nothing
         
         if not hasattr(self, 'manual') or self.manual is None:
             self.read_manual2()
@@ -12384,11 +12491,16 @@ class Screening(object):
                         if uhg in uhgs:
                             uhg = uhgs[uhg]
                         
+                        uhg = uhg.replace('-O-', '-O')
+                        
+                        if uhg == 'NA' and len(counts) == 1:
+                            uhg = cnt[14]
+                        
                         cnt.append(uhg)
                         
                         if not np.isnan(cnt[3]) and not np.isnan(cnt[4]):
                             cnt.append('%s(%u:%u)' % (
-                                cnt[16],
+                                cnt[16] if cnt[16] != 'NA' else cnt[14],
                                 cnt[3],
                                 cnt[4]
                             ))
@@ -12406,7 +12518,10 @@ class Screening(object):
                                             sorted(facc)))
                         
                         if len(facc):
-                            cnt.append('%s(%s)' % (cnt[16], facc))
+                            cnt.append('%s(%s)' % (
+                                cnt[16] if cnt[16] != 'NA' else cnt[14],
+                                facc)
+                            )
                             cnt.append(facc)
                         else:
                             cnt.append('NA')
@@ -12480,7 +12595,10 @@ class Screening(object):
                         if pref =='O':
                             hg = '%s-O' % hg
                         
-                        hg0 = hg.replace('-O', '').replace('CerOH', 'Cer')
+                        hg0 = hg.replace(
+                            '-O', '').replace(
+                            'CerOH', 'Cer').replace(
+                            'Cer1P', 'CerP')
                         
                         res.append(hg)
                         res.append(rtmean)
@@ -13383,3 +13501,97 @@ class Screening(object):
         ms2 = self.valids[protein][mode]['ms2f'][oi]
         
         return ms2._scans[ms2.best_scan]
+    
+    def read_prior_knowledge(self, fname = '../ltp/170224_LTP_master_table.xlsx'):
+        """
+        Reads literature knowledge and Charlotte's results from LiMA assays.
+        """
+        
+        nothing = set(['unknown', 'n.d.', 'ND', 'NA'])
+        
+        shortnames = {
+            'photo-25-hydroxycholesterol': 'PHCH',
+            '25-hydroxylcholesterol': 'HCH',
+            'chenodeoxycholic acid': 'CCA',
+            'cholic acid': 'CA',
+            'cholesterol': 'CH',
+            'photo-cholesterol': 'PCH',
+            'dehydroergosterol': 'DES',
+            'cholestatrienol': 'CHT',
+            'lipid iva': 'IVA',
+            'alpha-tocopherol': 'VE',
+            '11-cis-retinaldehyde': 'VA',
+            '11-cis-retinol': 'VA',
+            '11-cis-retinal': 'VA',
+            'squalene': 'SQ',
+            'retinoic acid': 'VA',
+            'bilirubin': 'CA',
+            'cholesterol-3-O-sulfate': 'CHS',
+            'tetra-acylated lipid iva': 'TAIVA',
+            'rrr-alpha-tocopherylquinone': 'VE',
+            'biotinylated alpha-tocopherol': 'VE',
+            'sterols': 'CH',
+            '7-ketocholesterol': 'KCH',
+            'cholestatrienol': 'CH',
+            'arachidonate': 'FA',
+            'pips': 'PIP',
+            
+        }
+        
+        self.read_uniprots()
+        self.read_binding_properties()
+        
+        raw = self.read_xls(fname)
+        
+        hptlc = {} # HPTLC binders
+        hpalo = {} # compartment localization from HPA
+        goloc = {} # compartment localization form GO
+        litlo = {} # compartment localization from literature
+        litli = {} # literature ligands from Charlotte
+        limal = {} # lima assay lipids
+        limam = {} # lima assay membranes
+        litme = {} # membrane lipid affinities from literature
+        
+        for r in raw:
+            
+            protein = r[2].strip()
+            
+            # known ligands from literature
+            litli[protein] = set([])
+            r[14] = r[14].replace('/', ',')
+            
+            for lip in r[14].split(',')
+                
+                lip = lip.strip()
+                if lip.lower() in shortnames:
+                    litli[protein].add(shortnames[lip.lower()])
+                elif lip.lower() in fa_greek:
+                    litli[protein].add('FA')
+                else:
+                    lip = lip.replace('(', '').replace(')', '')
+                    litli[protein].add(lip)
+            
+            litli[protein].difference_update(nothing)
+            
+            # HPTLC results
+            hptlc[protein] = set([])
+            r[14] = r[14].replace(
+                '/', ',').replace(
+                ')', '').replace(
+                '(', '').replace(
+                '?', '').replace(
+                ' ', ',')
+            
+            for lip in r[15].split(','):
+                
+                lip = lip.strip()
+                if lip.lower() in shortnames:
+                    hptlc[protein].add(shortnames[lip.lower()])
+                else:
+                    hptlc[protein].add(lip)
+            
+            hptlc[protein].difference_update(nothing)
+            
+            # membrane lipid affinities from literature
+            litme[protein] = set([])
+            l[15].split('')
