@@ -1047,7 +1047,7 @@ class Feature(object):
             )
         )
         self.classes = ['PA', 'PC', 'PE', 'PG', 'PS']
-        self.classes2 = ['PA', 'PC', 'PE', 'PG', 'PS', 'PI', 'SM', 'Cer']
+        self.classes2 = ['PA', 'PC', 'PE', 'PG', 'PS', 'PI', 'SM', 'Cer', 'CerP', 'DAG', 'TAG', 'FA']
         self.identities = set([])
         self.identities2 = {}
         # get carbon counts from MS1
@@ -1216,12 +1216,18 @@ class Feature(object):
         if len(self.tbl['ms1hg'][self.oi]) \
         else 'none'
     
-    def reload(self):
+    def reload(self, children = False):
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist = [modname.split('.')[0]])
-        reload(mod)
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+        
+        if children:
+            
+            for sc in self._scans.values():
+                
+                sc.reload()
     
     def __str__(self):
         return ', '.join(
@@ -1283,6 +1289,44 @@ class Feature(object):
     
     def html_table_b64(self):
         return base64.encodestring(self.html_table()).replace('\n', '')
+    
+    def print_identities(self, fname = None):
+        """
+        Prints identities to standard output or file.
+        """
+        
+        if fname is None:
+            sys.stdout.write(self.identities_str())
+        else:
+            with open(fname, 'w') as fp:
+                fp.write(self.identities_str())
+    
+    def identities_str(self, num = 1):
+        """
+        Returns table of all identification attemts as string.
+        """
+        
+        result = ['=== Scan #%u (fraction %s) ===' % (
+            self.scan_id[0], self.frac_name)]
+        
+        for hg in self.feature.classes2:
+            
+            method = '%s_%s_%u' % (
+                hg.lower(), self.feature.mode, num
+            )
+            
+            if not hasattr(self, method):
+                continue
+            
+            idd = getattr(self, method)()
+            
+            result.append('%s\t%u\t%s' % (
+                hg,
+                idd['score'],
+                ', '.join(idd['fattya'])
+            ))
+        
+        return '%s\n' % '\n'.join(result)
     
     def msg(self, text):
         if self.log:
@@ -1893,6 +1937,98 @@ class MS2Scan(object):
                     if self.frag_name_present(fa_other % fa_h_cc):
                         score += 1
         return {'score': score, 'fattya': fattya}
+    
+    #### New methods
+    
+    def cerp_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is a Ceramide-1-phosphate.
+        """
+        
+        score = 0
+        fattya = set([])
+        if self.most_abundant_mz_is(78.95905658):
+            score += 5
+            if self.has_mz(96.96962158):
+                score += 1
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def fa_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a fatty acid.
+        This method is not ready, does nothing.
+        """
+        score = 0
+        fattya = set([])
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def fa_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is a fatty acid.
+        This method is not ready, does nothing.
+        """
+        score = 0
+        fattya = set([])
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def cerp_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.
+        This method is not ready, does nothing.
+        """
+        
+        score = 0
+        fattya = set([])
+        
+        if self.fa_among_most_abundant('-H2O-H2O+]+', n = 3, sphingo = True):
+            score += 1
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def dag_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is a DAG.
+        This method is not ready, does nothing.
+        """
+        score = 0
+        fattya = set([])
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def dag_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a DAG.
+        This method is not ready, does nothing.
+        """
+        score = 0
+        fattya = set([])
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def tag_neg_1(self):
+        """
+        Examines if a negative mode MS2 spectrum is a TAG.
+        This method is not ready, does nothing.
+        """
+        score = 0
+        fattya = set([])
+        
+        return {'score': score, 'fattya': fattya}
+    
+    def tag_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a TAG.
+        This method is not ready, does nothing.
+        """
+        score = 0
+        fattya = set([])
+        
+        return {'score': score, 'fattya': fattya}
+    
+    #### End: new methods
     
     def pc_neg_1(self):
         score = 0
@@ -2592,12 +2728,24 @@ class Screening(object):
                 sys.stdout.write('\t:: Missing input file/path: %s\n' % path)
         sys.stdout.flush()
     
-    def reload(self):
+    def reload(self, children = False):
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist = [modname.split('.')[0]])
-        reload(mod)
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+        
+        if children and hasattr(self, 'valids'):
+            
+            for protein, d in iteritems(self.valids):
+                
+                for tbl in d.values():
+                    
+                    if 'ms2f' in tbl:
+                        
+                        for ms2f in tbl['ms2f'].values():
+                            
+                            ms2f.reload(children = True)
     
     #
     # read standards data
@@ -13267,3 +13415,38 @@ class Screening(object):
         f.close()
         
         self.nonzero_features = result
+    
+    def print_ms2_identifications(self, protein, mode, mz):
+        """
+        Prints all MS2 identifications for an m/z.
+        """
+        
+        oi = self.original_id(protein, mode, mz)
+        
+        if oi is None:
+            return None
+        
+        tbl = self.valids[protein][mode]
+        ms2f = tbl['ms2f'][oi]
+        
+        for sid, sc in iteritems(ms2f._scans):
+            
+            sc.print_identities()
+    
+    def original_id(self, protein, mode, mz):
+        """
+        Looks up an m/z and returns its original (stable) id.
+        """
+        
+        self.sort_alll('mz')
+        tbl = self.valids[protein][mode]
+        ui = tbl['mz'].searchsorted(mz)
+        i = (
+            ui if ui == 0 or
+            tbl['mz'][ui] - mz < mz - tbl['mz'][ui - 1]
+            else ui - 1
+        )
+        if abs(tbl['mz'][i] - mz) > self.ms1_tlr:
+            return None
+        else:
+            return tbl['i'][i]

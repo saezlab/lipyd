@@ -1,9 +1,9 @@
-58.065126	PC/SM choline (58.0651)	[M+H]+	PC
-60.080776	PC/SM choline (60.0808)	[M+H]+	PC
+58.065126	PC/SM choline (58.0651)	[M+H]+	PC;SM
+60.080776	PC/SM choline (60.0808)	[M+H]+	PC;SM
 86.096425	PC/SM ethyl-triethylammonium (86.096)	[M+H]+	PC;SM
-104.106990	PC/SM choline (104.107)	[M+H]+	PC
+104.106990	PC/SM choline (104.107)	[M+H]+	PC;SM
 115.003447	PA headgroup+NH3 (NL 115.0034)	NL positive mode	PA
-124.999822	PC/SM choline (125.000)	[M+H]+	PC
+124.999822	PC/SM choline (125.000)	[M+H]+	PC;SM
 141.019097	PE headgroup (NL 141.0191)	NL positive mode	PE
 146.981769	PC/SM Na-cyclophosphane (146.98)	[M+H]+	PC;SM
 185.008927	PS headgroup (NL 185.0089)	NL positive mode	PS
