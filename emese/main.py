@@ -13507,11 +13507,30 @@ class Screening(object):
         Reads literature knowledge and Charlotte's results from LiMA assays.
         """
         
+        rehptlc = re.compile(r'[A-z]{2,}')
+        repinum = re.compile(r'(PI)\(?(\d),?(\d?),?(\d?)\)?(P\d?)')
+        recer   = re.compile(r'C\d+(Cer1?P?)')
+        relima  = re.compile(r'''(?x)
+                ([A-z\d][ ,A-z\d]*?[A-z\d])
+                [ ,]*\(
+                ([A-z][ ,A-z]*?[A-z])
+                \)''')
+        reccloc = re.compile(r'''(?x)
+                (?:[ A-z0-9:]*: ?)?[ ]
+                ([A-Z][ A-z]*[A-z])\.?[ ]
+                (?:[ \.\{\}\|A-z\d=:;]+?\.)''')
+        rehpalo = re.compile(r'([ A-z]+) \(.*?\)')
+        renothi = re.compile(r'unknown|n\.d\.|ND|NA')
+        resep   = re.compile(r'[ ]?[;,/][ ]?')
+        
         nothing = set(['unknown', 'n.d.', 'ND', 'NA'])
         
         shortnames = {
             'photo-25-hydroxycholesterol': 'PHCH',
+            '25-hydroxycholesterol': 'HCH',
             '25-hydroxylcholesterol': 'HCH',
+            '22(r)-hydroxycholesterol': 'HCH',
+            'cholesterol-3-o-sulfate': 'CHS',
             'chenodeoxycholic acid': 'CCA',
             'cholic acid': 'CA',
             'cholesterol': 'CH',
@@ -13525,6 +13544,7 @@ class Screening(object):
             '11-cis-retinal': 'VA',
             'squalene': 'SQ',
             'retinoic acid': 'VA',
+            'synthetic retinoid': 'VA',
             'bilirubin': 'CA',
             'cholesterol-3-O-sulfate': 'CHS',
             'tetra-acylated lipid iva': 'TAIVA',
@@ -13535,32 +13555,147 @@ class Screening(object):
             'cholestatrienol': 'CH',
             'arachidonate': 'FA',
             'pips': 'PIP',
-            
+            'cerebroside': 'HexCer',
+            'retinal': 'VA',
+            'retinol': 'VA',
+            'c12-bodipy-glucosylceramide': 'HexCer',
+            'palmitate': 'FA',
+            '16-doxylstearic acid': 'FA',
+            'long-chain fa acyl-coa esters': 'FA',
+            'fa acyl-fa esters': 'FA',
+            'very-long-chain fa acyl-coa esters': 'FA',
+            'biliverdin': 'CA',
+            'bile acids (taurocholate': 'CA',
+            'ursodeoxycholate': 'CA',
+            'taurochenodeoxycholate)': 'CA',
+            'oleate': 'FA',
+            'cholate': 'CA',
+            'chenodeoxycholate': 'CA',
+            'bile acids (various)': 'CA',
+            'hydroxyeicosatetraenoic acids': 'PUFA',
+            'hydroperoxyeicosatetraenoic acids': 'PUFA',
+            'oleoyl-coa ester': 'FA',
+            'phytanic acid': 'FA',
+            'linoleate': 'FA',
+            'stearate': 'FA',
+            'palmitate': 'FA',
+            'elaidate': 'FA',
+            'laurate': 'FA',
+            'fa acyl-coa esters': 'FA',
+            'pips (pi34p2': 'PI34P2',
+            'docosahexaenate)': 'PUFA',
+            'progesterone': 'PR',
+            'fatty acids (oleate': 'FA',
+            'triacylglycerol': 'TAG',
+            'galcer': 'HexCer',
+            'ceramide': 'Cer',
+            'bodypi-glccer': 'HexCer',
+            'ceramide-1-phosphate': 'CerP',
+            'laccer': 'HexCer'
         }
         
-        self.read_uniprots()
-        self.read_binding_properties()
+        toremove = set([
+            '3',
+            "3'",
+            'α-pinene',
+            'and vanillin)',
+            'citralva',
+            'Odorants (IBMP',
+            'Imatinib',
+            'Melatonin',
+            "5'-triiodo-L-thyronine",
+            '5-triiodo-L-thyronine',
+            'L-thyroxine',
+            "'compound 19'",
+            '(lyso)platelet activating factor',
+            'Iron (FeDHBA',
+            'FeENT)',
+            'Platelet activating factor'
+        ])
+        
+        locnames = {
+            'Mainly cytosolic': 'Cplasm',
+            'Cytoplasm': 'Cplasm',
+            'Cytosol': 'Cplasm',
+            
+            'Rough endoplasmic reticulum': 'ER',
+            'Endoplasmic reticulum membrane': 'ER',
+            'Endoplasmic reticulum': 'ER',
+            
+            'Golgi stacks in interphase cells': 'Golgi',
+            'Golgi stack membrane': 'Golgi',
+            'Golgi apparatus': 'Golgi',
+            'TGN exit sites': 'TGN',
+            
+            'Late endosome membrane': 'LE',
+            'Late endosome': 'LE',
+            'Early endosome membrane': 'EE',
+            
+            'Cytoplasmic granule membrane': 'Gran',
+            'Granule': 'Gran',
+            
+            'Nucleus membrane': 'Nuc',
+            'Nuclear membrane': 'Nuc',
+            'Nucleus envelope': 'Nuc',
+            'Nuclear speckles': 'Nuc',
+            'Nucleus outer membrane': 'Nuc',
+            'Nucleus': 'Nuc',
+            'Nucleoplasm': 'Nuc',
+            'Nucleoli': 'Nuc',
+            
+            'Cell membrane': 'PM',
+            'Cleavage furrow': 'PM',
+            'Plasma membrane': 'PM',
+            
+            'Mitochondrion envelope': 'Mit',
+            'Mitochondrion': 'Mit',
+            'Mitochondria': 'Mit',
+            
+            'Also': None,
+            'Localizes to the daughter centriole during mitosis': 'MTOC',
+            'Microtubule organizing center': 'MTOC',
+            'Centrosome': 'MTOC',
+            'Centriole': 'MTOC',
+            
+            'III membrane protein': None,
+            'Isoform': None,
+            'Peripheral membrane protein': None,
+            'Peripheral membrane': None,
+            'Membrane': None,
+            
+            'Lipid droplet': 'Lipdrop',
+            'Secreted': 'Secr',
+            'Peroxisome': 'Perox',
+            'Peroxisomes': 'Perox',
+            'Lysosome': 'Lyso',
+            'Microtubules': 'Microt',
+            'Actin filaments': 'Actin',
+            'Vesicles': 'Vesi',
+            'Cytoplasmic bodies': 'Cybody'
+            
+        }
         
         raw = self.read_xls(fname)
         
         hptlc = {} # HPTLC binders
         hpalo = {} # compartment localization from HPA
-        goloc = {} # compartment localization form GO
+        ccloc = {} # compartment localization form GO
         litlo = {} # compartment localization from literature
         litli = {} # literature ligands from Charlotte
         limal = {} # lima assay lipids
-        limam = {} # lima assay membranes
+        limam = {} # lima assay artificial membranes
+        limcm = {} # lima assay complex membranes
         litme = {} # membrane lipid affinities from literature
+        litpr = {} # membrane related protein interactions from literature
         
-        for r in raw:
+        for r in raw[1:]:
             
             protein = r[2].strip()
             
             # known ligands from literature
             litli[protein] = set([])
-            r[14] = r[14].replace('/', ',')
             
-            for lip in r[14].split(',')
+            for lip in resep.split(repinum.sub(r'\1\2\3\4\5', r[14])):
                 
                 lip = lip.strip()
                 if lip.lower() in shortnames:
@@ -13568,30 +13703,317 @@ class Screening(object):
                 elif lip.lower() in fa_greek:
                     litli[protein].add('FA')
                 else:
-                    lip = lip.replace('(', '').replace(')', '')
                     litli[protein].add(lip)
             
             litli[protein].difference_update(nothing)
+            litli[protein].difference_update(toremove)
             
             # HPTLC results
-            hptlc[protein] = set([])
-            r[14] = r[14].replace(
-                '/', ',').replace(
-                ')', '').replace(
-                '(', '').replace(
-                '?', '').replace(
-                ' ', ',')
-            
-            for lip in r[15].split(','):
-                
-                lip = lip.strip()
-                if lip.lower() in shortnames:
-                    hptlc[protein].add(shortnames[lip.lower()])
-                else:
-                    hptlc[protein].add(lip)
+            hptlc[protein] = set(map(lambda lip: (
+                                shortnames[lip.lower()]
+                                if lip.lower() in shortnames
+                                else lip),
+                                rehptlc.findall(r[15])
+                             ))
             
             hptlc[protein].difference_update(nothing)
             
             # membrane lipid affinities from literature
-            litme[protein] = set([])
-            l[15].split('')
+            litme[protein] = set(map(lambda x: x.strip(), r[19].split(',')))
+            litme[protein].discard('')
+            
+            # membrane protein interactions from literature
+            litpr[protein] = set(map(lambda x: x.strip(), r[20].split(',')))
+            
+            # lima assay results
+            lip_mem = recer.sub(r'\1', repinum.sub(r'\1\2\3\4\5', r[21]))
+            lip_mem = lip_mem.replace('S1P', 'SphP')
+            lip_mem = lip_mem.replace('Cer1P', 'CerP')
+            
+            limal[protein] = set([])
+            limam[protein] = set([])
+            limcm[protein] = set([])
+            
+            for lip, mem in relima.findall(lip_mem):
+                
+                limal[protein].update(set(map(lambda x: x.strip(),
+                                          lip.split(','))))
+                limam[protein].update(set(filter(lambda x: x[1:4] == 'OPC',
+                                          map(lambda x: x.strip(),
+                                          mem.split(',')))))
+                limcm[protein].update(set(filter(lambda x: x[1:4] != 'OPC',
+                                          map(lambda x: x.strip(),
+                                          mem.split(',')))))
+            
+            limal[protein].discard('not expressed')
+            limal[protein].discard('IMM')
+            limcm[protein].discard('stop codon')
+            
+            if 'IMM' in lip_mem:
+                limcm[protein].add('IMM')
+            if 'OMM' in lip_mem:
+                limcm[protein].add('OMM')
+            
+            litpr[protein] = set(map(lambda x: x.strip().split('-')[0],
+                                     resep.split(r[24])))
+            
+            ccloc[protein] = set(map(lambda x: (
+                                     locnames[x]
+                                     if x in locnames
+                                     else x),
+                                     reccloc.findall(r[25])))
+            
+            if 'Endomembrane system' in ccloc[protein]:
+                ccloc[protein].update(set(['ER', 'Golgi']))
+                ccloc[protein].remove('Endomembrane system')
+            if 'Endosome membrane' in ccloc[protein]:
+                ccloc[protein].update(set(['EE', 'LE']))
+                ccloc[protein].remove('Endosome membrane')
+            
+            ccloc[protein].discard(None)
+            
+            hpalo[protein] = set(map(lambda x: (
+                                     locnames[x]
+                                     if x in locnames
+                                     else x),
+                                     rehpalo.findall(r[26])))
+        
+        self.prior = {
+            'hptlc': hptlc, # HPTLC binders
+            'hpalo': hpalo, # compartment localization from HPA
+            'ccloc': ccloc, # compartment localization form GO
+            'litlo': litlo, # compartment localization from literature
+            'litli': litli, # literature ligands from Charlotte
+            'limal': limal, # lima assay lipids
+            'limam': limam, # lima assay artificial membranes
+            'limcm': limcm, # lima assay complex membranes
+            'litme': litme, # membrane lipid affinities from literature
+            'litpr': litpr  # memb
+        }
+    
+    def uniprot_genesymbol(self):
+        """
+        Build dictionaries for mapping between UniProts and GeneSymbols.
+        """
+        
+        self.u2g = {}
+        self.g2u = {}
+        
+        url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/'\
+            'current_release/knowledgebase/reference_proteomes/'\
+            'Eukaryota/UP000005640_9606.idmapping.gz'
+        
+        c = _curl.Curl(url, large = True, silent = False)
+        
+        for l in c.result:
+            
+            l = l.decode('utf-8').strip().split('\t')
+            
+            if l[1] == 'Gene_Name':
+                if l[0] not in self.u2g:
+                    self.u2g[l[0]] = set([])
+                self.u2g[l[0]].add(l[2])
+                if l[2] not in self.g2u:
+                    self.g2u[l[2]] = set([])
+                self.g2u[l[2]].add(l[0])
+        
+        c.result.close()
+        c.close()
+    
+    def all_uniprots(self):
+        """
+        Obtains a list of all human SwissProt IDs.
+        """
+        
+        url = 'http://www.uniprot.org/uniprot/'
+        post = {
+            'query': 'organism:9606 AND reviewed:yes',
+            'format': 'tab',
+            'columns': 'id'
+        }
+        c = _curl.Curl(url, post = post, silent = False)
+        data = c.result
+        self.all_up = list(
+            filter(lambda x: len(x) > 0,
+                map(lambda l: l.strip(), data.split('\n')[1:])))
+    
+    def combined_network(self,
+                         fname = 'combined_network_%s.csv',
+                         classes = set(['I', 'II'])):
+        """
+        Builds a combined network from prior knowledge,
+        LiMA screen from Charlotte and MS screens from Antonella
+        and Enric.
+        """
+        
+        hdr_e = ['source', 'target', 'type', 'datasource', 'category']
+        hdr_v = ['name', 'type', 'domain', 'uniprot']
+        
+        def get_family(protein):
+            
+            if protein in self.uniprots:
+                return self.uniprots[protein]['family']
+            else:
+                return 'NA'
+        
+        def get_uniprot(protein):
+            
+            if protein in self.uniprots:
+                return self.uniprots[protein]['uniprot']
+            if protein in self.g2u:
+                sw = list(filter(lambda u: u in self.all_up,
+                                 self.g2u[protein]))
+                if not sw:
+                    sw = self.g2u[protein]
+                if len(sw) > 1:
+                    sys.stdout.write('\t:: Warning: more than one UniProt IDs'
+                                     'for %s: %s' % (
+                                         protein,
+                                         ', '.join(sorted(sw))
+                                     ))
+                return sorted(sw)[0]
+            else:
+                return 'NA'
+        
+        def get_genesymbol(uniprot):
+            
+            if uniprot in self.u2g:
+                if len(self.u2g[uniprot]) > 1:
+                    sys.stdout.write('\t:: Warning: more than one GeneSymbols'
+                                     'for %s: %s' % (
+                                         uniprot,
+                                         ', '.join(sorted(self.u2g[uniprot]))
+                                     ))
+                return sorted(self.u2g[uniprot])[0]
+                
+            else:
+                return 'NA'
+        
+        def is_protein(typ):
+            return typ in ['protein', 'ltp']
+        
+        def add_edge(vertices, edges, source, target,
+                     source_type, target_type,
+                     edge_type, edge_source, own):
+            
+            if source == 'NA' or target == 'NA':
+                return None
+            
+            usrc = get_uniprot(source) if is_protein(source_type) else 'NA'
+            utgt = get_uniprot(target) if is_protein(target_type) else 'NA'
+            fsrc = get_family(source) if source_type == 'ltp' else 'NA'
+            ftgt = get_family(target) if target_type == 'ltp' else 'NA'
+            
+            vertices.add((source, source_type, fsrc, usrc))
+            vertices.add((target, target_type, ftgt, utgt))
+            edges.add((source, target, edge_type, edge_source, own))
+        
+        def add_set(data, vertices, edges,
+                    source_type, target_type,
+                    edge_type, edge_source, own,
+                    rev = False):
+            
+            for a, bs in iteritems(data):
+                
+                for b in bs:
+                    
+                    add_edge(vertices, edges,
+                             b if rev else a,
+                             a if rev else b,
+                             source_type, target_type,
+                             edge_type, edge_source, own)
+        
+        # obtaining various data:
+        prg = progress.Progress(9, 'Reading and processing data',
+                                1, percent = False)
+        prg.step()
+        self.read_uniprots()
+        prg.step()
+        self.read_binding_properties()
+        prg.step()
+        self.read_prior_knowledge()
+        prg.step()
+        self.read_manual()
+        prg.step()
+        self.manual_df(screen = 'E')
+        prg.step()
+        msenric = self.pmanual
+        self.read_manual2()
+        prg.step()
+        self.manual_df(screen = 'A', only_swl_col = True)
+        msantonella = self.pmanual
+        prg.step()
+        self.all_uniprots()
+        prg.step()
+        self.uniprot_genesymbol()
+        prg.terminate()
+        
+        vertices = set([])
+        edges = set([])
+        
+        for r in itertools.chain(msenric.itertuples(),
+                                 msantonella.itertuples()):
+            
+            if (r.cls in classes and
+                r.uhgroup != 'Adduct' and
+                r.uhgroup != 'unconfirmed ID' and
+                r.uhgroup != 'P40'):
+                
+                add_edge(vertices, edges, r.protein, r.uhgroup,
+                         'ltp', 'lipid', 'cargo_binding',
+                         'MS%s' % r.screen, 'own_experiment')
+        
+        add_set(self.bindprop,
+                vertices, edges,
+                'ltp', 'lipid',
+                'cargo_binding', 'LITB', 'own_experiment')
+        add_set(self.prior['hptlc'],
+                vertices, edges,
+                'ltp', 'lipid',
+                'cargo_binding', 'HPTLC', 'own_experiment')
+        add_set(self.prior['hpalo'],
+                vertices, edges,
+                'ltp', 'location',
+                'localization', 'HPALOC', 'database')
+        add_set(self.prior['ccloc'],
+                vertices, edges,
+                'ltp', 'location',
+                'localization', 'CCLOC', 'database')
+        add_set(self.prior['litlo'],
+                vertices, edges,
+                'ltp', 'location',
+                'localization', 'LITLOC', 'literature')
+        add_set(self.prior['limal'],
+                vertices, edges,
+                'lipid', 'ltp',
+                'membrane_affinity', 'LIMAL', 'own_experiment',
+                rev = True)
+        add_set(self.prior['limam'],
+                vertices, edges,
+                'location', 'ltp',
+                'membrane_affinity', 'LIMAM', 'own_experiment',
+                rev = True)
+        add_set(self.prior['limcm'],
+                vertices, edges,
+                'location', 'ltp',
+                'membrane_affinity', 'LIMCM', 'own_experiment',
+                rev = True)
+        add_set(self.prior['litme'],
+                vertices, edges,
+                'lipid', 'ltp',
+                'membrane_affinity', 'LITME', 'literature',
+                rev = True)
+        
+        with open(fname % 'v', 'w') as fp:
+            
+            fp.write('%s\n' % '\t'.join(hdr_v))
+            
+            for v in vertices:
+                fp.write('%s\n' % '\t'.join(v))
+        
+        with open(fname % 'e', 'w') as fp:
+            
+            fp.write('%s\n' % '\t'.join(hdr_e))
+            
+            for e in edges:
+                fp.write('%s\n' % '\t'.join(e))
