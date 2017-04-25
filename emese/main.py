@@ -12326,10 +12326,23 @@ class Screening(object):
             # testing if there is PG/BMP ambiguity
             pg_bmp = not bool(set(['BMP', 'PG']) -
                               set(x.split('(')[0].strip()
-                                  for x in manual_names.split(',')))
+                                  for x in manual_names.split(','))) or (
+                    not bool(set(['BMP', 'PG']) - set(
+                        itertools.chain(*[[
+                            self.headgroup_from_lipid_name(['S', None, xx])[0]
+                                for xx in x.split(';')
+                            ] for x in swl_names.split(r'///')])
+                        )))
             
-            if manual_names == 'BMP(18:1/19:1), PG(18:1/19:1)':
-                print(pg_bmp)
+            only_pg_bmp = not bool(set(x.split('(')[0].strip()
+                                       for x in manual_names.split(',')) -
+                                   set(['BMP', 'PG'])) or (
+                    not bool(set(
+                        itertools.chain(*[[
+                            self.headgroup_from_lipid_name(['S', None, xx])[0]
+                                for xx in x.split(';')
+                            ] for x in swl_names.split(r'///')])
+                        ) - set(['BMP', 'PG', None])))
             
             for lips in (
                 swl_names.split(r'///')
@@ -12342,18 +12355,6 @@ class Screening(object):
                 manual_names.split(',')):
                 
                 lips = lips.strip()
-                
-                if pg_bmp:
-                    if lips[:2] == 'PG':
-                        # at PG we replace with PG/BMP
-                        lips = lips.replace('PG', 'PG/BMP')
-                        manual_name_1 = 'PG/BMP'
-                    elif lips[:3] == 'BMP':
-                        # at BMP we skip
-                        continue
-                
-                if pg_bmp:
-                    print(lips)
                 
                 # matching the adduct type
                 add = self.readd.match(lips)
@@ -12378,6 +12379,18 @@ class Screening(object):
                     
                     swl_parsed = self.headgroup_from_lipid_name(['S', None, lip])[0]
                     
+                    if pg_bmp:
+                        if lips[:2] == 'PG' or swl_parsed == 'PG':
+                            # at PG we replace with PG/BMP
+                            lips = lips.replace('PG', 'PG/BMP')
+                            fullhg = 'PG/BMP'
+                            swl_parsed = 'PG/BMP'
+                            if only_pg_bmp:
+                                manual_name_1 = 'PG/BMP'
+                        elif lips[:3] == 'BMP' or swl_parsed == 'BMP':
+                            # at BMP we skip
+                            continue
+                    
                     if swl_parsed is None:
                         swl_parsed = lip
                         if ']' in swl_parsed:
@@ -12385,9 +12398,6 @@ class Screening(object):
                         swl_parsed = swl_parsed.split('(')[0].strip()
                         if ':' in swl_parsed:
                             swl_parsed = swl_parsed.split(':')[1].strip()
-                    
-                    if pg_bmp:
-                        print('--', swl_parsed)
                     
                     if 'nothing' in swl_parsed:
                         swl_parsed = 'NA'
@@ -12487,9 +12497,6 @@ class Screening(object):
                             nothing.append(res)
                         else:
                             something.append(res)
-                    
-                    if pg_bmp:
-                        print(swl_parsed, fullhg, manual_name_1)
             
             return something or nothing
         
@@ -12512,7 +12519,8 @@ class Screening(object):
             
             uhg = uhg.replace('-O-', '-O')
             
-            if uhg == 'NA' and len(counts) == 1:
+            if (uhg == 'NA' and (len(counts) == 1 or
+                                 len(set(c[14] for c in counts)) == 1)):
                 uhg = cnt[14]
             
             return uhg
@@ -13932,6 +13940,9 @@ class Screening(object):
         LiMA screen from Charlotte and MS screens from Antonella
         and Enric.
         """
+        
+        if not hasattr(self, 'lipiprop'):
+            self.read_lipid_properties()
         
         hdr_e = ['source', 'target', 'type', 'datasource', 'category']
         hdr_v = ['name', 'type', 'domain', 'uniprot']
