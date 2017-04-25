@@ -44,6 +44,7 @@ import xlrd
 import openpyxl
 import xlsxwriter
 import lxml.etree
+import xmltodict
 
 import zlib
 import base64
@@ -230,6 +231,8 @@ class Screening(object):
             'lipnamesf': 'lipid_names_v2.csv',
             # Literature curated data about known binding properties of LTPs.
             'bindpropf': 'binding_properties.csv',
+            # Lipid classes properties and database IDsb
+            'lipipropf': 'lipid_properties.csv',
             # The file with recalibration values from Marco.
             'recalfile': 'Recalibration_values_LTP.csv',
             # If the recalibration performed by this module, we read the
@@ -260,6 +263,18 @@ class Screening(object):
             # Gene Ontology.
             'quickgo_url': 'http://www.ebi.ac.uk/QuickGO/GAnnotation?format=tsv&'\
                 'limit=-1%s&termUse=%s&tax=%u&col=proteinID,goID,goName,aspect',
+            # PubChem webservice URL to query molecule properties
+            # see details here:
+            # https://pubchem.ncbi.nlm.nih.gov/help.html#Glossary
+            'pubchem_url': ('https://pubchem.ncbi.nlm.nih.gov/'
+                'rest/pug/compound/cid/%s/property/'
+                'TPSA,' # polar surface area in square angstroms
+                'XLogP,' # water octanol partitioning coefficient
+                'Complexity,' # Bertz/Hendrickson/Ihlenfeldt formula
+                'HBondDonorCount,' # O, N, P, S with hydrogene
+                'HBondAcceptorCount,' # O, N, P, S with lone pair
+                'HeavyAtomCount,' # non-H atom count
+                'RotatableBondCount/XML'), # rotatable bondsgg
             # Manually curated data by Charlotte about localization
             # and membrane composition.
             'localizationf': 'subcellular_localisation_and_binding.xlsx',
@@ -461,7 +476,7 @@ class Screening(object):
             # Above this threshold we consider the MS2 spectrum to not
             # belong to the protein and highlight with red in the
             # output tables.
-            'deltart_threshold': 0.1,
+            'deltart_threshold': 0.5,
             # Don't know what it is for
             'uniprots': None,
             # Method names to convert between adduct and exact masses
@@ -6735,6 +6750,7 @@ class Screening(object):
             try:
                 for lip in l[6].split(';'):
                     if lip != 'ND' and lip != '':
+                        lip = lip if lip != 'Cer1P' else 'CerP'
                         result[l[2]].add(lip)
             except IndexError:
                 print(l)
@@ -12255,7 +12271,8 @@ class Screening(object):
             'LysoO-PE': 'LysoPE-O',
             'LysoO-PG': 'LysoPG-O',
             'LysoO-PC': 'LysoPC-O',
-            'LysoO-PS': 'LysoPS-O'
+            'LysoO-PS': 'LysoPS-O',
+            'Hex-Cer': 'HexCer'
         }
         
         shgs2 = {
@@ -12276,10 +12293,11 @@ class Screening(object):
             'Hex2Cer-OH': 'Hex2CerOH',
             'HexCer-OH': 'HexCerOH',
             'GM3': 'GM',
-            'Detergent': 'P40'
+            'Detergent': 'P40',
+            'Hex-Cer': 'HexCer'
         }
         
-        def get_names(r):
+        def get_names(swl_names, manual_names):
             """
             Extracts the lipid names and carbon counts
             from the SwissLipids IDs field.
@@ -12289,30 +12307,55 @@ class Screening(object):
             nothing     = []
             
             # fixing typos and inconsequent naming:
-            clm = r[3].strip().split('(')[0]
-            clls = clm.lower().strip()
+            manual_name_1 = manual_names.strip().split('(')[0]
+            manual_name_1_l = manual_name_1.lower().strip()
             
-            if clls == 'ambiguous' or clls == 'ambigous':
-                clm = 'ambiguous'
+            if (manual_name_1_l == 'ambiguous' or
+                manual_name_1_l == 'ambigous'):
+                
+                manual_name_1 = 'ambiguous'
             
-            if clls == 'unknown' or clls == 'unkown':
-                clm = 'NA'
+            if manual_name_1_l == 'unknown' or manual_name_1_l == 'unkown':
+                manual_name_1 = 'NA'
             
-            if not len(clls):
-                clm = 'NA'
+            if not len(manual_name_1_l):
+                manual_name_1 = 'NA'
             
             # :done
             
+            # testing if there is PG/BMP ambiguity
+            pg_bmp = not bool(set(['BMP', 'PG']) -
+                              set(x.split('(')[0].strip()
+                                  for x in manual_names.split(',')))
+            
+            if manual_names == 'BMP(18:1/19:1), PG(18:1/19:1)':
+                print(pg_bmp)
+            
             for lips in (
-                r[2].split(r'///')
+                swl_names.split(r'///')
                 if (
                     only_swl_col or
-                    clm == 'NA' or
-                    clm == 'ambiguous' or
-                    clm == 'adduct'
-                ) else
-                r[3].split(',')):
+                    manual_name_1 == 'NA' or
+                    manual_name_1 == 'ambiguous' or
+                    manual_name_1 == 'adduct'
+                ) else # at Enric we use the manual names column:
+                manual_names.split(',')):
                 
+                lips = lips.strip()
+                
+                if pg_bmp:
+                    if lips[:2] == 'PG':
+                        # at PG we replace with PG/BMP
+                        lips = lips.replace('PG', 'PG/BMP')
+                        manual_name_1 = 'PG/BMP'
+                    elif lips[:3] == 'BMP':
+                        # at BMP we skip
+                        continue
+                
+                if pg_bmp:
+                    print(lips)
+                
+                # matching the adduct type
                 add = self.readd.match(lips)
                 
                 if add is not None:
@@ -12329,37 +12372,40 @@ class Screening(object):
                     
                     if 'lyso' in lip.lower():
                         lyso = 'Lyso'
-                        clm = clm.replace('yso-', 'yso')
+                        manual_name_1 = manual_name_1.replace('yso-', 'yso')
                     else:
                         lyso = ''
                     
-                    cl = self.headgroup_from_lipid_name(['S', None, lip])[0]
+                    swl_parsed = self.headgroup_from_lipid_name(['S', None, lip])[0]
                     
-                    if cl is None:
-                        cl = lip
-                        if ']' in cl:
-                            cl = cl.split(']')[1]
-                        cl = cl.split('(')[0].strip()
-                        if ':' in cl:
-                            cl = cl.split(':')[1].strip()
+                    if swl_parsed is None:
+                        swl_parsed = lip
+                        if ']' in swl_parsed:
+                            swl_parsed = swl_parsed.split(']')[1]
+                        swl_parsed = swl_parsed.split('(')[0].strip()
+                        if ':' in swl_parsed:
+                            swl_parsed = swl_parsed.split(':')[1].strip()
                     
-                    if 'nothing' in cl:
-                        cl = 'NA'
+                    if pg_bmp:
+                        print('--', swl_parsed)
+                    
+                    if 'nothing' in swl_parsed:
+                        swl_parsed = 'NA'
                     
                     # regex finds the total carbon count
                     cc1 = self.recount1.findall(lip)
                     
                     # special case if the fatty acid
                     # name is greek name
-                    if cl in fa_greek:
-                        cc1 = [('', fa_greek[cl][0],
-                                    fa_greek[cl][1])]
-                        cl = 'FA'
+                    if swl_parsed in fa_greek:
+                        cc1 = [('', fa_greek[swl_parsed][0],
+                                    fa_greek[swl_parsed][1])]
+                        swl_parsed = 'FA'
                     
                     # a full headgroup name:
                     fullhg = '%s%s%s' % (
-                        lyso if not cl.startswith('Lyso') else '',
-                        cl,
+                        lyso if not swl_parsed.startswith('Lyso') else '',
+                        swl_parsed,
                         '%s' % ('-O' if len(cc1) and cc1[0][0] == 'O' else '')
                     )
                     
@@ -12376,7 +12422,7 @@ class Screening(object):
                     # carbon counts of fatty acids
                     if len(cc2s) and (
                         any(map(lambda cc2: cc2[4], cc2s)) or
-                        cl == 'FA' or
+                        swl_parsed == 'FA' or
                         lyso
                     ):
                         
@@ -12404,7 +12450,7 @@ class Screening(object):
                                             # or single fatty acid
                                             # we have only one cc:unsat
                                             # otherwise we must have at least 2
-                                            cc2[4] or cl == 'FA' or lyso,
+                                            cc2[4] or swl_parsed == 'FA' or lyso,
                                         cc2s
                                     )
                                 )
@@ -12430,17 +12476,20 @@ class Screening(object):
                             ]
                         
                         res = []
-                        res.append(cl)
+                        res.append(swl_parsed)
                         res.append(lyso)
                         res.extend(ccpart)
                         res.extend(faccpart)
                         res.append(fullhg)
-                        res.append(clm)
+                        res.append(manual_name_1)
                         
                         if res[14] == 'NA':
                             nothing.append(res)
                         else:
                             something.append(res)
+                    
+                    if pg_bmp:
+                        print(swl_parsed, fullhg, manual_name_1)
             
             return something or nothing
         
@@ -12452,19 +12501,39 @@ class Screening(object):
         
         result = []
         
+        def get_uhg(cnt, counts):
+            if cnt[-1] not in ['ambiguous', 'adduct']:
+                uhg = cnt[-1]
+            else:
+                uhg = cnt[-2]
+            
+            if uhg in uhgs:
+                uhg = uhgs[uhg]
+            
+            uhg = uhg.replace('-O-', '-O')
+            
+            if uhg == 'NA' and len(counts) == 1:
+                uhg = cnt[14]
+            
+            return uhg
+        
         for protein, d in iteritems(self.manual):
             
             for mode, tbl in iteritems(d):
                 
                 for i, l in enumerate(tbl):
                     
-                    counts = get_names(l)
+                    counts = get_names(l[2], l[3])
                     
                     if l[3].strip() in shgs2:
                         l[3] = shgs2[l[3].strip()]
                     
                     res = [protein, mode, i, l[0], l[5], l[4], l[1], l[3]] + \
                         l[8:12] # 12 cols: protein -- rtup
+                    
+                    #this_feature_hgs = set([get_uhg(cnt, counts) for cnt in counts])
+                    #if not (set(['PG', 'BMP']) - this_feature_hgs):
+                    #    pass
                     
                     for cnt in counts:
                         res1 = res[:]
@@ -12484,17 +12553,7 @@ class Screening(object):
                             if cnt[hgi] in shgs2:
                                 cnt[hgi] = shgs2[cnt[hgi]]
                         
-                        uhg = cnt[-1]
-                        if uhg in set(['ambiguous', 'adduct']):
-                            uhg = cnt[-2]
-                        
-                        if uhg in uhgs:
-                            uhg = uhgs[uhg]
-                        
-                        uhg = uhg.replace('-O-', '-O')
-                        
-                        if uhg == 'NA' and len(counts) == 1:
-                            uhg = cnt[14]
+                        uhg = get_uhg(cnt, counts)
                         
                         cnt.append(uhg)
                         
@@ -13261,7 +13320,8 @@ class Screening(object):
                 self.uniprots = dict(
                     map(
                         lambda l:
-                            (l[1], {'uniprot': l[2], 'family': l[0]}),
+                            (l[1].strip(), {'uniprot': l[2].strip(),
+                                            'family': l[0].strip()}),
                         map(
                             lambda l:
                                 l.strip().split('\t'),
@@ -13526,7 +13586,7 @@ class Screening(object):
         nothing = set(['unknown', 'n.d.', 'ND', 'NA'])
         
         shortnames = {
-            'photo-25-hydroxycholesterol': 'PHCH',
+            'photo-25-hydroxycholesterol': 'HCH',
             '25-hydroxycholesterol': 'HCH',
             '25-hydroxylcholesterol': 'HCH',
             '22(r)-hydroxycholesterol': 'HCH',
@@ -13534,7 +13594,7 @@ class Screening(object):
             'chenodeoxycholic acid': 'CCA',
             'cholic acid': 'CA',
             'cholesterol': 'CH',
-            'photo-cholesterol': 'PCH',
+            'photo-cholesterol': 'CH',
             'dehydroergosterol': 'DES',
             'cholestatrienol': 'CHT',
             'lipid iva': 'IVA',
@@ -13545,9 +13605,9 @@ class Screening(object):
             'squalene': 'SQ',
             'retinoic acid': 'VA',
             'synthetic retinoid': 'VA',
-            'bilirubin': 'CA',
+            'bilirubin': 'BR',
             'cholesterol-3-O-sulfate': 'CHS',
-            'tetra-acylated lipid iva': 'TAIVA',
+            'tetra-acylated lipid iva': 'IVA',
             'rrr-alpha-tocopherylquinone': 'VE',
             'biotinylated alpha-tocopherol': 'VE',
             'sterols': 'CH',
@@ -13564,10 +13624,11 @@ class Screening(object):
             'long-chain fa acyl-coa esters': 'FA',
             'fa acyl-fa esters': 'FA',
             'very-long-chain fa acyl-coa esters': 'FA',
-            'biliverdin': 'CA',
+            'biliverdin': 'BR',
             'bile acids (taurocholate': 'CA',
             'ursodeoxycholate': 'CA',
             'taurochenodeoxycholate)': 'CA',
+            'LPA': 'LysoPA',
             'oleate': 'FA',
             'cholate': 'CA',
             'chenodeoxycholate': 'CA',
@@ -13591,7 +13652,11 @@ class Screening(object):
             'ceramide': 'Cer',
             'bodypi-glccer': 'HexCer',
             'ceramide-1-phosphate': 'CerP',
-            'laccer': 'HexCer'
+            'Cer1P': 'CerP',
+            'laccer': 'HexCer',
+            'PAF, LPAF': 'PAF',
+            'PHCH': 'HCH',
+            'PCH': 'CH'
         }
         
         toremove = set([
@@ -13687,10 +13752,15 @@ class Screening(object):
         limcm = {} # lima assay complex membranes
         litme = {} # membrane lipid affinities from literature
         litpr = {} # membrane related protein interactions from literature
+        famly = {} # domain families
+        synon = {}
         
         for r in raw[1:]:
             
             protein = r[2].strip()
+            
+            famly[protein] = r[1].strip().replace('STAR', 'START')
+            synon[protein] = r[3].split()
             
             # known ligands from literature
             litli[protein] = set([])
@@ -13778,6 +13848,20 @@ class Screening(object):
                                      else x),
                                      rehpalo.findall(r[26])))
         
+        # build a complete synonym dictionary
+        # from synonyms to our preferred standard names
+        stdnm = {}
+        for st, syns in iteritems(synon):
+            
+            stdnm[st] = st
+            
+            for syn in syns:
+                
+                stdnm[syn] = st
+        
+        # typos...
+        stdnm['ARGHAP1'] = 'ARHGAP1'
+        
         self.prior = {
             'hptlc': hptlc, # HPTLC binders
             'hpalo': hpalo, # compartment localization from HPA
@@ -13788,7 +13872,10 @@ class Screening(object):
             'limam': limam, # lima assay artificial membranes
             'limcm': limcm, # lima assay complex membranes
             'litme': litme, # membrane lipid affinities from literature
-            'litpr': litpr  # memb
+            'litpr': litpr, # memb
+            'famly': famly, # domain families
+            'synon': synon, # synonyms
+            'stdnm': stdnm  # standard names
         }
     
     def uniprot_genesymbol(self):
@@ -13848,21 +13935,76 @@ class Screening(object):
         
         hdr_e = ['source', 'target', 'type', 'datasource', 'category']
         hdr_v = ['name', 'type', 'domain', 'uniprot']
+        hdr_d = ['protein', 'other', 'ptype', 'otype', 'uniprot', 'domain',
+                 'etype', 'datasource', 'category']
+        hdr_p = ['charge', 'netcharge', 'fa_chains',
+                 'complexity', 'haccept', 'hdonor', 'heavyatoms',
+                 'tpsa', 'xlogp', 'rotatablebonds']
+        
+        all_groups = sorted(set.union(*[i['hg_groups'] for i in  self.lipiprop.values()]))
+        
+        def get_prop_line(lip):
+            
+            def get_field(name):
+                return (
+                    self.lipiprop[lip][name]
+                    if name in self.lipiprop[lip] else 'NA')
+            
+            if lip not in self.lipiprop:
+                
+                return ['NA'] * len(hdr_p)
+            
+            def get_groups():
+                
+                return ['%u' % int(gr in self.lipiprop[lip]['hg_groups'])
+                        for gr in all_groups]
+            
+            return [
+                get_field('charge'),
+                '%u' % (get_field('charge').count('+') -
+                        get_field('charge').count('-')),
+                get_field('fa_chains'),
+                get_field('Complexity'),
+                get_field('HBondAcceptorCount'),
+                get_field('HBondDonorCount'),
+                get_field('HeavyAtomCount'),
+                get_field('TPSA'),
+                get_field('XLogP'),
+                get_field('RotatableBondCount'),
+            ] + get_groups()
         
         def get_family(protein):
             
             if protein in self.uniprots:
                 return self.uniprots[protein]['family']
+            elif protein in self.prior['famly']:
+                return self.prior['famly'][protein]
+            elif self.prior['stdnm'][protein] in self.prior['famly']:
+                return self.prior['famly'][self.prior['stdnm'][protein]]
             else:
                 return 'NA'
         
         def get_uniprot(protein):
             
+            stdnm = None
+            
             if protein in self.uniprots:
                 return self.uniprots[protein]['uniprot']
-            if protein in self.g2u:
+            
+            if protein in self.prior['stdnm']:
+                stdnm = self.prior['stdnm'][protein]
+                
+                if stdnm in self.uniprots:
+                    return self.uniprots[stdnm]['uniprot']
+                
+            if protein in self.g2u or stdnm in self.g2u:
+                
                 sw = list(filter(lambda u: u in self.all_up,
-                                 self.g2u[protein]))
+                                 (self.g2u[protein]
+                                  if protein in self.g2u else
+                                  self.g2u[stdnm])
+                                ))
+                
                 if not sw:
                     sw = self.g2u[protein]
                 if len(sw) > 1:
@@ -13871,6 +14013,7 @@ class Screening(object):
                                          protein,
                                          ', '.join(sorted(sw))
                                      ))
+                
                 return sorted(sw)[0]
             else:
                 return 'NA'
@@ -13892,23 +14035,44 @@ class Screening(object):
         def is_protein(typ):
             return typ in ['protein', 'ltp']
         
-        def add_edge(vertices, edges, source, target,
+        def get_std_name(name):
+            return (self.prior['stdnm'][name]
+                    if name in self.prior['stdnm']
+                    else name)
+        
+        def add_edge(vertices, edges, df, source, target,
                      source_type, target_type,
                      edge_type, edge_source, own):
             
             if source == 'NA' or target == 'NA':
                 return None
             
+            psrc = is_protein(source_type)
+            nsrc = get_std_name(source)
+            ntgt = get_std_name(target)
             usrc = get_uniprot(source) if is_protein(source_type) else 'NA'
             utgt = get_uniprot(target) if is_protein(target_type) else 'NA'
             fsrc = get_family(source) if source_type == 'ltp' else 'NA'
             ftgt = get_family(target) if target_type == 'ltp' else 'NA'
             
-            vertices.add((source, source_type, fsrc, usrc))
-            vertices.add((target, target_type, ftgt, utgt))
+            vertices.add((nsrc, source_type, fsrc, usrc))
+            vertices.add((ntgt, target_type, ftgt, utgt))
             edges.add((source, target, edge_type, edge_source, own))
+            df_row = [
+                nsrc if psrc else ntgt,
+                ntgt if psrc else nsrc,
+                source_type if psrc else target_type,
+                target_type if psrc else source_type,
+                usrc if psrc else utgt,
+                fsrc if psrc else ftgt,
+                edge_type,
+                edge_source,
+                own
+            ]
+            df_row.extend(get_prop_line(nsrc if source_type == 'lipid' else ntgt))
+            df.append(df_row)
         
-        def add_set(data, vertices, edges,
+        def add_set(data, vertices, edges, df,
                     source_type, target_type,
                     edge_type, edge_source, own,
                     rev = False):
@@ -13917,7 +14081,7 @@ class Screening(object):
                 
                 for b in bs:
                     
-                    add_edge(vertices, edges,
+                    add_edge(vertices, edges, df,
                              b if rev else a,
                              a if rev else b,
                              source_type, target_type,
@@ -13933,6 +14097,8 @@ class Screening(object):
         prg.step()
         self.read_prior_knowledge()
         prg.step()
+        self.manualdir = 'revised_20170425'
+        self.manualend = 'revised.xlsx'
         self.read_manual()
         prg.step()
         self.manual_df(screen = 'E')
@@ -13948,8 +14114,12 @@ class Screening(object):
         self.uniprot_genesymbol()
         prg.terminate()
         
+        self.read_lipid_properties()
+        self.load_pubchem()
+        
         vertices = set([])
         edges = set([])
+        df = []
         
         for r in itertools.chain(msenric.itertuples(),
                                  msantonella.itertuples()):
@@ -13959,47 +14129,58 @@ class Screening(object):
                 r.uhgroup != 'unconfirmed ID' and
                 r.uhgroup != 'P40'):
                 
-                add_edge(vertices, edges, r.protein, r.uhgroup,
+                add_edge(vertices, edges, df, r.protein, r.uhgroup,
                          'ltp', 'lipid', 'cargo_binding',
                          'MS%s' % r.screen, 'own_experiment')
         
-        add_set(self.bindprop,
-                vertices, edges,
+        bindprop_all = {}
+        for p, lips in itertools.chain(iteritems(self.prior['litli']),
+                                       iteritems(self.bindprop)):
+            
+            pstd = get_std_name(p)
+            
+            if pstd not in bindprop_all:
+                bindprop_all[pstd] = set([])
+            
+            bindprop_all[pstd].update(lips)
+        
+        add_set(bindprop_all,
+                vertices, edges, df,
                 'ltp', 'lipid',
-                'cargo_binding', 'LITB', 'own_experiment')
+                'cargo_binding', 'LITB', 'literature')
         add_set(self.prior['hptlc'],
-                vertices, edges,
+                vertices, edges, df,
                 'ltp', 'lipid',
                 'cargo_binding', 'HPTLC', 'own_experiment')
         add_set(self.prior['hpalo'],
-                vertices, edges,
+                vertices, edges, df,
                 'ltp', 'location',
                 'localization', 'HPALOC', 'database')
         add_set(self.prior['ccloc'],
-                vertices, edges,
+                vertices, edges, df,
                 'ltp', 'location',
                 'localization', 'CCLOC', 'database')
         add_set(self.prior['litlo'],
-                vertices, edges,
+                vertices, edges, df,
                 'ltp', 'location',
                 'localization', 'LITLOC', 'literature')
         add_set(self.prior['limal'],
-                vertices, edges,
+                vertices, edges, df,
                 'lipid', 'ltp',
                 'membrane_affinity', 'LIMAL', 'own_experiment',
                 rev = True)
         add_set(self.prior['limam'],
-                vertices, edges,
+                vertices, edges, df,
                 'location', 'ltp',
                 'membrane_affinity', 'LIMAM', 'own_experiment',
                 rev = True)
         add_set(self.prior['limcm'],
-                vertices, edges,
+                vertices, edges, df,
                 'location', 'ltp',
                 'membrane_affinity', 'LIMCM', 'own_experiment',
                 rev = True)
         add_set(self.prior['litme'],
-                vertices, edges,
+                vertices, edges, df,
                 'lipid', 'ltp',
                 'membrane_affinity', 'LITME', 'literature',
                 rev = True)
@@ -14017,3 +14198,254 @@ class Screening(object):
             
             for e in edges:
                 fp.write('%s\n' % '\t'.join(e))
+        
+        with open(fname % 'df', 'w') as fp:
+            
+            fp.write('%s\n' % '\t'.join(hdr_d + hdr_p + all_groups))
+            
+            for l in df:
+                fp.write('%s\n' % '\t'.join(l))
+    
+    def read_lipid_properties(self):
+        """
+        Reads lipid properties from file.
+        These include charge, chemical groups and database IDs.
+        """
+        
+        with open(self.lipipropf, 'r') as fp:
+            
+            hdr = fp.readline().strip().split('\t')
+            
+            self.lipiprop = (
+                dict(
+                    (
+                        ll[0],
+                        dict(
+                            (lab, (
+                                set([]) if len(ll) <= i else
+                                set(ll[i].split(';')) if i > 3 else
+                                ll[i]
+                            ))
+                            for i, lab in enumerate(hdr)
+                        )
+                    )
+                    for ll in (l.strip().split('\t') for l in fp)
+                )
+            )
+    
+    def export_lipid_properties(self,
+                                fname = 'lipid_properties_phys-chem.csv'):
+        
+        def ffield(content):
+            
+            return (';'.join(content)
+                if type(content) is set or type(content) is list
+                else '{}'.format(content))
+        
+        main_hdr = ['lipid', 'charge', 'hg_formula', 'fa_chains',
+               'hg_groups', 'databas_ids', 'database_ids_C18',
+               'database_ids_C16', 'database_ids_C14']
+        
+        pubchem_hdr = ['CID', 'Complexity', 'HBondAcceptorCount', 'HBondDonorCount',
+               'TPSA', 'XLogP', 'HeavyAtomCount', 'RotatableBondCount']
+        
+        with open(fname, 'w') as fp:
+            
+            fp.write('%s\t' % '\t'.join(main_hdr))
+            fp.write('%s\n' % '\t'.join(pubchem_hdr))
+            
+            for k, lip in iteritems(self.lipiprop):
+                
+                row = []
+                row.extend(ffield(lip[i]) if i in lip else ''
+                           for i in main_hdr)
+                row.extend(ffield(lip[i]) if i in lip else ''
+                           for i in pubchem_hdr)
+                
+                fp.write('%s\n' % '\t'.join(row))
+    
+    def get_pubchem(self, cid):
+        """
+        Fetches PubChem data for one compound ID.
+        """
+        
+        url = self.pubchem_url % str(cid)
+        c = _curl.Curl(url, silent = True, large = False)
+        d = xmltodict.parse(c.result)['PropertyTable']['Properties']
+        return d
+    
+    def load_pubchem(self):
+        """
+        Downloads PubChem molecule properties
+        and adds them to the `lipiprop` dict.
+        """
+        
+        def has_pubchem(ids):
+            
+            for i in ids:
+                if i.startswith('PubChemCID'):
+                    return i.split(':')[1]
+        
+        prg = progress.Progress(len(self.lipiprop),
+                                'Downloading PubChem data',
+                                1, percent = False)
+        
+        for k, lip in iteritems(self.lipiprop):
+            
+            prg.step()
+            
+            for idcol in ['', '_C18', '_C16', '_C14']:
+                
+                cid = has_pubchem(lip['database_ids%s' % idcol])
+                
+                if cid:
+                    
+                    d = self.get_pubchem(cid)
+                    
+                    lip.update(d)
+                    lip['pubchem'] = cid
+                    
+                    break
+        
+        prg.terminate()
+    
+    def hmdb_pubchem_mapping(self):
+        """
+        Creates dict of sets mapping tables between PubChem and HMDB.
+        """
+        
+        url = 'ftp://ftp.ebi.ac.uk/pub/databases/chembl/UniChem/data/'\
+            'wholeSourceMapping/src_id18/src18src22.txt.gz'
+        
+        c = _curl.Curl(url, silent = False, large = True)
+        
+        hmdb_pubchem = {}
+        pubchem_hmdb = {}
+        
+        _ = c.result.readline()
+        
+        for l in c.result:
+            
+            l = l.decode('ascii').strip().split('\t')
+            
+            if l[0] not in hmdb_pubchem:
+                hmdb_pubchem[l[0]] = set([])
+            
+            if l[1] not in pubchem_hmdb:
+                pubchem_hmdb[l[1]] = set([])
+            
+            hmdb_pubchem[l[0]].add(l[1])
+            pubchem_hmdb[l[1]].add(l[0])
+        
+        c.close()
+        
+        self.hmdb_pubchem = hmdb_pubchem
+        self.pubchem_hmdb = pubchem_hmdb
+    
+    def hmdb_data(self, cleanup_period = 4000):
+        """
+        Looks up properties of PubChem compounds in HMDB data.
+        """
+        
+        self.hmdb_result = {}
+        used = []
+        
+        pubchems = set(lip['pubchem']
+                       for lip in self.lipiprop.values()
+                       if 'pubchem' in lip)
+        
+        hmdbs = set.union(*[self.pubchem_hmdb[p]
+                          for p in pubchems
+                          if p in self.pubchem_hmdb])
+        
+        pref = '{http://www.hmdb.ca}'
+        metab = '%smetabolite' % pref
+        acces = '%saccession' % pref
+        saccs = '%ssecondary_accessions' % pref
+        prprp = '%spredicted_properties' % pref
+        exprp = '%sexperimental_properties' % pref
+        pccid = '%spubchem_compound_id' % pref
+        
+        print('looking up: %s' % ', '.join(hmdbs))
+        
+        def elem_callback(elem):
+            
+            this_result = {}
+            
+            this_acc = set([])
+            
+            a = elem.find(acces)
+            
+            if a is not None:
+                this_acc.add(a.text)
+            
+            sa = elem.find(saccs)
+            if sa is not None:
+                sas = sa.find(acces)
+                if sas is not None:
+                    this_acc.update(set(_sa.text for _sa in sas))
+            
+            h_needed = this_acc & hmdbs
+            
+            pc = elem.find(pccid)
+            
+            if pc is not None:
+                
+                pcid = pc.text
+                
+                if pc in pubchems:
+                    
+                    h_needed = this_acc
+            
+            if not h_needed:
+                # print('-- none of these needed: %s' % ', '.join(this_acc))
+                return None
+            
+            print('-- collecting information about: %s' % ', '.join(h_needed))
+            
+            pp = elem.find(prprp)
+            
+            if pp is not None:
+                
+                print('  -- parsing predicted properties')
+                
+                this_result['pprop'] = xmltodict.parse(lxml.etree.tostring(pp))
+            
+            else:
+                print('  -- no predicted properties')
+            
+            ep = elem.find(exprp)
+            
+            if ep is not None:
+                
+                this_result['eprop'] = xmltodict.parse(lxml.etree.tostring(ep))
+            
+            for h in h_needed:
+                if h not in self.hmdb_result:
+                    self.hmdb_result[h] = []
+                self.hmdb_result[h].append(this_result)
+        
+        url = 'http://www.hmdb.ca/system/downloads/'\
+            'current/hmdb_metabolites.zip'
+        
+        c = _curl.Curl(url, large = True, silent = False,
+                       files_needed = ['hmdb_metabolites.xml'])
+        
+        fp = c.result['hmdb_metabolites.xml']
+        
+        e = lxml.etree.iterparse(fp, events=('start', 'end'))
+        
+        for ev, elem in e:
+            
+            used.append(elem)
+            
+            if ev == 'end' and elem.tag == metab:
+                
+                elem_callback(elem)
+            
+            if len(used) > cleanup_period:
+                
+                for i in xrange(int(cleanup_period / 2)):
+                    
+                    u = used.pop()
+                    u.clear()

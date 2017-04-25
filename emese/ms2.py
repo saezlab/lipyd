@@ -2193,6 +2193,7 @@ class MS2Scan(object):
           increase the score.
         
         """
+        
         score = 0
         fattya = set([])
         
@@ -2563,6 +2564,7 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTPD1 + 703.57
+        - GLTPD1 + 813.68 (Enric)
         
         **Principle:**
         
@@ -2581,10 +2583,10 @@ class MS2Scan(object):
                     self.has_mz(mz),
                 [
                     60.080776,
-                    86.096425,
-                    104.106990,
-                    124.999822,
-                    184.073323
+                    86.096425,  #
+                    104.106990, #
+                    124.999822, #
+                    184.073323  #
                 ]
             )
         ):

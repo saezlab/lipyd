@@ -23,6 +23,8 @@ import warnings
 import traceback
 import itertools
 
+import emese.settings as settings
+
 if 'unicode' not in __builtins__:
     unicode = str
 
@@ -89,6 +91,15 @@ def warn_with_traceback(message, category, filename, lineno, file=None, line=Non
     log = file if hasattr(file,'write') else sys.stderr
     log.write(warnings.formatwarning(message, category, filename, lineno, line))
 
+def get_param(par):
+    
+    if hasattr(settings, par):
+        return getattr(settings, par)
+
+def set_param(par, val):
+    
+    setattr(settings, par, val)
+
 fa_greek_parts = {
     'cc': {
         'hex': 6,
@@ -146,3 +157,4 @@ for cc, uns, end in itertools.product(
         continue
     
     fa_greek['%s%s%s' % (cc[0], uns[0], end[0])] = (cc[1], uns[1] * end[1])
+
