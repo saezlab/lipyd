@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  Copyright (c) 2015-2016 - EMBL-EBI
+#  Copyright (c) 2015-2016 - EMBL
 #
 #  File author(s): Dénes Türei (denes@ebi.ac.uk)
 #

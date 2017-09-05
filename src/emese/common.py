@@ -4,7 +4,7 @@
 #
 #  This file is part of the `emese` python module
 #
-#  Copyright (c) 2015-2017 - EMBL-EBI
+#  Copyright (c) 2015-2017 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -24,6 +24,8 @@ import traceback
 import itertools
 
 import emese.settings as settings
+
+ROOT = os.path.abspath(os.path.dirname(__file__))
 
 if 'unicode' not in __builtins__:
     unicode = str
