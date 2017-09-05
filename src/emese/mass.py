@@ -21,6 +21,8 @@ import bs4
 import re
 import warnings
 import imp
+import copy
+from collections import defaultdict
 
 import emese._curl as _curl
 
@@ -351,7 +353,12 @@ class MolWeight(object):
         return abs(self.weight - float(other)) <= 0.01
     
     def calc_weight(self):
-        atoms = self.reform.findall(self.formula)
+        
+        atoms = (
+            self.reform.findall(self.formula)
+            if not hasattr(self, 'atoms')
+            else self.atoms.items()
+        )
         w = 0.0
         for element, count in atoms:
             count = int(count or '1')
@@ -359,6 +366,16 @@ class MolWeight(object):
         w -= self.charge * mass['electron']
         w += self.isotope * mass['neutron']
         self.weight = w
+        
+        self.weight_calculated = self.has_weight()
+    
+    def has_weight(self):
+        
+        return self.weight > 0.0
+    
+    def has_formula(self):
+        
+        return bool(self.formula)
     
     def reload(self):
         modname = self.__class__.__module__
@@ -366,3 +383,88 @@ class MolWeight(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+
+
+class Formula(MolWeight):
+    
+    def __init__(self, formula = None, charge = 0, isotope = 0, **kwargs):
+        
+        if isinstance(formula, Formula):
+            
+            charge = formula.charge
+            isotope = formula.isotope
+            formula = formula.formula
+        
+        MolWeight.__init__(self, formula, charge, isotope, **kwargs)
+        
+        self.atoms = defaultdict(lambda: 0)
+        self.add(self.formula)
+    
+    def __add__(self, other):
+        
+        return Formula('%s%s' % (self.formula,
+            other.formula if hasattr(other, 'formula') else other),
+            self.charge + (other.charge if hasattr(other, 'charge') else 0),
+            self.isotope + (other.isotope if hasattr(other, 'isotope') else 0)
+        )
+    
+    def __iadd__(self, other):
+        
+        self.charge += (other.charge if hasattr(other, 'charge') else 0)
+        self.isotope += (other.isotope if hasattr(other, 'isotope') else 0)
+        self.add(other.formula if hasattr(other, 'formula') else other)
+        
+        return self
+    
+    def __sub__(self, other):
+        
+        new = copy.copy(self)
+        new.__isub__(other)
+        return new
+    
+    def __isub__(self, other):
+        
+        self.charge -= (other.charge if hasattr(other, 'charge') else 0)
+        self.isotope -= (other.isotope if hasattr(other, 'isotope') else 0)
+        self.sub(other.formula if hasattr(other, 'formula') else other)
+        
+        return self
+    
+    def as_weight(self):
+        
+        return MolWeight(self.formula, self.charge, self.isotope)
+    
+    def add(self, formula):
+        
+        for elem, cnt in self.reform.findall(formula):
+            self.atoms[elem] += int(cnt or '1')
+        
+        self.update()
+    
+    def sub(self, formula):
+        
+        for elem, cnt in self.reform.findall(formula):
+            self.atoms[elem] -= int(cnt or '1')
+            
+            if self.atoms[elem] < 0:
+                
+                raise ValueError('Can not remove %s from %s: '
+                    'too few %s atoms!' % (formula, self.formula, elem))
+        
+        self.update()
+    
+    def update(self):
+        
+        self.formula = ''.join('%s%u' % (elem, self.atoms[elem])
+                                for elem in sorted(self.atoms.keys()))
+        self.calc_weight()
+    
+    def bind(self, other, loss = 'H2O'):
+        
+        return self + other - loss
+    
+    def divide(self, product1, add = 'H2O'):
+        
+        product1 = Formula(product1)
+        
+        return product1, self - product1 + add

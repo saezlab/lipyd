@@ -19,8 +19,40 @@ from future.utils import iteritems
 
 import emese.mass as mass
 
-class Lipid(mass.MolWeight):
+class AbstractMetabolite(mass.MolWeight):
     
-    def __init__(self, name = 'Lipid', num_fa = 2, type = 'GLP'):
+    def __init__(self, formula = None, weight = None,
+                 charge = 0, isotope = 0,
+                 name = 'Unknown', synonyms = {}, **kwargs):
+        
+        mass.MolWeight.__init__(self, formula, charge, isotope, **kwargs)
+        
+        if not self.has_weight() and weight:
+            
+            self.weight = weight
+        
+        self.name = name
+        self.synonyms = synonyms
+
+
+class MetaboliteClass(AbstractMetabolite):
+    
+    def __init__(self):
+        
+        
+
+
+class Metabolite(MetaboliteClass):
+    
+    def __init__(self):
+        
+        
+
+
+class Lipid(Metabolite):
+    
+    def __init__(self, headgroup_weight = None,
+                 positive = 0, negative = 0,
+                 name = 'Lipid', num_fa = 2, type = 'GPL'):
         
         
