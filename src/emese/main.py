@@ -82,7 +82,7 @@ except:
 # from this module:
 import emese.mass as mass
 import emese.ms2 as ms2
-import emese.fragments as fragments
+import emese.fragment as fragment
 import emese.mz as mzmod
 import emese.progress as progress
 import emese._curl as _curl
@@ -5026,13 +5026,13 @@ class Screening(object):
                 
                 if not self.only_marcos_fragments:
                     
-                    lst += self.auto_fragment_list(fragments.FAminusH, -1, name = 'FA')
+                    lst += self.auto_fragment_list(fragment.FAminusH, -1, name = 'FA')
                     # fatty acid -CO2- fragments:
                     lst += self.auto_fragment_list(
-                        fragments.FattyFragment, -1,
+                        fragment.FattyFragment, -1,
                         minus = ['CO2', 'H'], name = 'FA')
                     
-                    lst += self.auto_fragment_list(fragments.FAAlkylminusH, -1)
+                    lst += self.auto_fragment_list(fragment.FAAlkylminusH, -1)
                     
                     for hg in ('PE', 'PC', 'PS', 'PI', 'PG', 'PA'):
                         
@@ -5054,95 +5054,95 @@ class Screening(object):
                         
                         if hg == 'PI':
                             lst += self.auto_fragment_list(
-                                fragments.LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
+                                fragment.LysoPI, -1, minus = ['H', 'H2O', 'C6H10O5']
                             )
                             lst += self.auto_fragment_list(
-                                fragments.LysoPI, -1, minus = ['CO2']
+                                fragment.LysoPI, -1, minus = ['CO2']
                             )
                         
                         if hg == 'PE':
                             lst += self.auto_fragment_list(
-                                fragments.LysoPE, -1, minus = ['CO2']
+                                fragment.LysoPE, -1, minus = ['CO2']
                             )
                         
                         if hg == 'PC':
                             lst += self.auto_fragment_list(
-                                fragments.LysoPC, -1, minus = ['CH3']
+                                fragment.LysoPC, -1, minus = ['CH3']
                             )
                             lst += self.auto_fragment_list(
-                                fragments.LysoPC, -1, minus = ['CH3', 'H2O']
+                                fragment.LysoPC, -1, minus = ['CH3', 'H2O']
                             )
                     
-                    lst += self.auto_fragment_list(fragments.CerFA, -1)
-                    lst += self.auto_fragment_list(fragments.CerFAminusC, -1)
-                    lst += self.auto_fragment_list(fragments.CerFAminusN, -1)
-                    lst += self.auto_fragment_list(fragments.CerFAminusC2H5N, -1)
-                    lst += self.auto_fragment_list(fragments.CerSphi, -1,
+                    lst += self.auto_fragment_list(fragment.CerFA, -1)
+                    lst += self.auto_fragment_list(fragment.CerFAminusC, -1)
+                    lst += self.auto_fragment_list(fragment.CerFAminusN, -1)
+                    lst += self.auto_fragment_list(fragment.CerFAminusC2H5N, -1)
+                    lst += self.auto_fragment_list(fragment.CerSphi, -1,
                                                    cmin = 14, unsatmin = 0,
                                                    cmax = 19, unsatmax = 3)
-                    lst += self.auto_fragment_list(fragments.CerSphiMinusN, -1,
+                    lst += self.auto_fragment_list(fragment.CerSphiMinusN, -1,
                                                    cmin = 14, unsatmin = 0 ,
                                                    cmax = 19, unsatmax = 3)
-                    lst += self.auto_fragment_list(fragments.CerSphiMinusNO, -1,
+                    lst += self.auto_fragment_list(fragment.CerSphiMinusNO, -1,
                                                    cmin = 14, unsatmin = 0 ,
                                                    cmax = 19, unsatmax = 3)
                     
                 else:
                     
-                    lst += self.auto_fragment_list(fragments.FAminusH, -1)
-                    lst += self.auto_fragment_list(fragments.LysoPA, -1, minus = ['H2O'])
-                    lst += self.auto_fragment_list(fragments.CerFA, -1)
+                    lst += self.auto_fragment_list(fragment.FAminusH, -1)
+                    lst += self.auto_fragment_list(fragment.LysoPA, -1, minus = ['H2O'])
+                    lst += self.auto_fragment_list(fragment.CerFA, -1)
             
             if 'positive' in fname:
                 
                 if not self.only_marcos_fragments:
                     
-                    lst += self.auto_fragment_list(fragments.NLFAminusH2O, 0)
-                    lst += self.auto_fragment_list(fragments.NLFA, 0)
-                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragment.NLFAminusH2O, 0)
+                    lst += self.auto_fragment_list(fragment.NLFA, 0)
+                    lst += self.auto_fragment_list(fragment.SphingosineBase, 1,
                                                    cmin = 14, unsatmin = 0,
                                                    cmax = 19, unsatmax = 3,
                                                    minus = ['H5'])
-                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragment.SphingosineBase, 1,
                                                    cmin = 14, unsatmin = 0,
                                                    cmax = 19, unsatmax = 3,
                                                    minus = ['H2O'])
-                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragment.SphingosineBase, 1,
                                                    cmin = 14, unsatmin = 0,
                                                    cmax = 19, unsatmax = 3,
                                                    minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragment.SphingosineBase, 1,
                                                    cmin = 14, unsatmin = 0,
                                                    cmax = 19, unsatmax = 3,
                                                    minus = ['C', 'H2O', 'H2O'])
-                    lst += self.auto_fragment_list(fragments.NLFAplusOH, 0)
-                lst += self.auto_fragment_list(fragments.FAplusGlycerol, 1)
-                lst += self.auto_fragment_list(fragments.NLFAplusNH3, 0)
-                lst += self.auto_fragment_list(fragments.FAminusO, 1)
+                    lst += self.auto_fragment_list(fragment.NLFAplusOH, 0)
+                lst += self.auto_fragment_list(fragment.FAplusGlycerol, 1)
+                lst += self.auto_fragment_list(fragment.NLFAplusNH3, 0)
+                lst += self.auto_fragment_list(fragment.FAminusO, 1)
                 
                 if self.only_marcos_fragments:
                     
-                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragment.SphingosineBase, 1,
                                                    cmin = 16, unsatmin = 0,
                                                    cmax = 16, unsatmax = 3,
                                                    minus = ['H2O'])
-                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragment.SphingosineBase, 1,
                                                    cmin = 16, unsatmin = 0,
                                                    cmax = 16, unsatmax = 3,
                                                    minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragment.SphingosineBase, 1,
                                                    cmin = 16, unsatmin = 0,
                                                    cmax = 16, unsatmax = 3,
                                                    minus = ['C', 'H2O', 'H2O'])
-                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragment.SphingosineBase, 1,
                                                    cmin = 18, unsatmin = 0,
                                                    cmax = 18, unsatmax = 3,
                                                    minus = ['H2O'])
-                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragment.SphingosineBase, 1,
                                                    cmin = 18, unsatmin = 0,
                                                    cmax = 18, unsatmax = 3,
                                                    minus = ['H2O', 'H2O'])
-                    lst += self.auto_fragment_list(fragments.SphingosineBase, 1,
+                    lst += self.auto_fragment_list(fragment.SphingosineBase, 1,
                                                    cmin = 18, unsatmin = 0,
                                                    cmax = 18, unsatmax = 3,
                                                    minus = ['C', 'H2O', 'H2O'])
@@ -5203,7 +5203,7 @@ class Screening(object):
         In addition, certain groups can be added or deduced from the
         fragment mass, e.g. -H2O for a water loss.
         """
-        series = fragments.FAFragSeries(typ, charge,
+        series = fragment.FAFragSeries(typ, charge,
             cmin = cmin, unsatmin = unsatmin,
             cmax = cmax, unsatmax = unsatmax,
             minus = minus, plus = plus,
@@ -5661,7 +5661,7 @@ class Screening(object):
     def ms2_lookup(self, protein, mode, ms1matches, verbose = False, outfile = None):
         """
         For the matching MS2 m/z's given, reads and identifies
-        the list of fragments.
+        the list of fragment.
         
         Columns in output arrays (15):
             # MS1 m/z, MS2 fragment m/z, MS2 fragment intensity, (0-2)
