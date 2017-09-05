@@ -12229,7 +12229,12 @@ class Screening(object):
         shgs = {
             'Monoalkylmonoacylglycerol-O': 'DAG-O',
             'hydroquinone?': 'HQ',
+            'Ganglioside GM1': 'GM1',
+            'Ganglioside GM2': 'GM2',
             'Ganglioside GM3': 'GM3',
+            'Ganglioside GM4': 'GM4',
+            'Ganglioside GA1': 'GA1',
+            'Lysophosphatidylethanolamine': 'LysoPE',
             'alpha-tocopherol metabolite': 'VE',
             'alpha-tocopherol': 'VE',
             r'Retinol {calculated as -H2O adduct '\
@@ -12272,6 +12277,7 @@ class Screening(object):
             'LysoO-PG': 'LysoPG-O',
             'LysoO-PC': 'LysoPC-O',
             'LysoO-PS': 'LysoPS-O',
+            'lysoPG': 'LysoPG',
             'Hex-Cer': 'HexCer'
         }
         
@@ -12281,6 +12287,7 @@ class Screening(object):
             'Vit. E metabolite': 'VE',
             'SulfohexCer': 'SHexCer',
             'SulfoHexCer': 'SHexCer',
+            'Sulfo HexCer': 'SHexCer',
             'SulfodihexCer': 'SHex2Cer',
             'DiHexCer-OH': 'Hex2CerOH',
             'DiHexCer': 'Hex2Cer',
@@ -14216,6 +14223,93 @@ class Screening(object):
             
             for l in df:
                 fp.write('%s\n' % '\t'.join(l))
+        
+        self.pcombined = pd.DataFrame(df)
+        self.pcombined.columns = hdr_d + hdr_p + all_groups
+    
+    def novelties(self, outfile = 'cargo_novelties.csv'):
+        
+        result = {}
+        our_methods = set(['HPTLC', 'MSE', 'MSA'])
+        meth_names = {'HPTLC': 'HPTLC',
+                      'MSA': 'MS, HEK cells',
+                      'MSE': 'MS, E.coli'}
+        
+        def get_new_cargoes(df):
+            
+            new_cargoes = collections.defaultdict(set)
+            
+            lit_cargoes = set(df[df.datasource == 'LITB'].other)
+            lit_cargoes.add('PG/BMP')
+            
+            our_cargoes = set(df[df.datasource.isin(our_methods)].other)
+            
+            for inewc in np.where(np.logical_and(
+                df.other.isin(our_cargoes - lit_cargoes),
+                df.datasource.isin(our_methods)
+            ))[0]:
+                
+                new_cargoes[df.protein.iloc[inewc]].add((
+                    df.other.iloc[inewc],
+                    df.datasource.iloc[inewc]
+                ))
+                
+            return new_cargoes
+        
+        # globally new:
+        result['global']     = get_new_cargoes(self.pcombined)
+        result['by_family']  = {}
+        result['by_protein'] = {}
+        
+        for domain in set(self.pcombined.domain):
+            
+            result['by_family'][domain] = get_new_cargoes(
+                self.pcombined[self.pcombined.domain == domain])
+        
+        for protein in set(self.pcombined.protein):
+            
+            result['by_protein'][protein] = get_new_cargoes(
+                self.pcombined[self.pcombined.protein == protein])
+        
+        for k in list(result['by_protein'].keys()):
+            
+            if not len(result['by_protein'][k]):
+                del result['by_protein'][k]
+            
+            else:
+                
+                result['by_protein'][k] = result['by_protein'][k][k]
+        
+        hdr = ['protein', 'lipid', 'family', 'method', 'novelty']
+        tab = []
+        
+        for k, v in iteritems(result['global']):
+            
+            for lip in v:
+                
+                tab.append([k, lip[0], '', meth_names[lip[1]], 'global'])
+        
+        for fam, vv in iteritems(result['by_family']):
+            
+            for k, v in iteritems(vv):
+                
+                for lip in v:
+                    
+                    tab.append([k, lip[0], fam, meth_names[lip[1]], 'family'])
+        
+        for k, v in iteritems(result['by_protein']):
+            
+            for lip in v:
+                
+                tab.append([k, lip[0], '', meth_names[lip[1]], 'protein'])
+        
+        with open(outfile, 'w') as fp:
+            
+            fp.write('%s\n' % '\t'.join(hdr))
+            
+            fp.write('\n'.join('\t'.join(l) for l in tab))
+        
+        return result
     
     def read_lipid_properties(self):
         """
@@ -14460,3 +14554,5 @@ class Screening(object):
                     
                     u = used.pop()
                     u.clear()
+    
+    

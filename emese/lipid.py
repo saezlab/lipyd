@@ -17,7 +17,9 @@
 
 from future.utils import iteritems
 
-class Lipid(object):
+import emese.mass as mass
+
+class Lipid(mass.MolWeight):
     
     def __init__(self, name = 'Lipid', num_fa = 2, type = 'GLP'):
         
