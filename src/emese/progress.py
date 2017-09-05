@@ -20,7 +20,6 @@ from __future__ import print_function
 import sys
 import imp
 import time
-
 import tqdm
 
 __all__ = ['Progress', 'OldProgress']

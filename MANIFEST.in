@@ -1,0 +1,4 @@
+include HISTORY.rst
+recursive-include src/emese *.py
+recursive-include src/emese/data *
+include src/emese/__version_
