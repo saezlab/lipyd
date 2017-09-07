@@ -37,6 +37,12 @@ neutron = 1.00866491588
 
 # ##
 def getMasses(url):
+    
+    """
+    Downloads an HTML table from CIAAW webpage
+    and extracts the atomic mass or weight information.
+    """
+    
     c = _curl.Curl(url, silent = False)
     reqMasses = c.result
     with warnings.catch_warnings():
@@ -52,23 +58,31 @@ def getMasses(url):
         tr = [td for td in tr.find_all('td')]
         if len(tr) == 5:
             symbol = tr[1].text.strip()
-            mass[symbol] = {}
+            massdb[symbol] = {}
         try:
             a = int(tr[-2].text.strip())
             m = [float(reNonDigit.sub('', i)) for i in tr[-1].text.split(',')]
             m = sum(m) / len(m)
-            mass[symbol][a] = m
+            massdb[symbol][a] = m
         except (ValueError, IndexError):
             continue
-    mass['proton'] = 1.00727646677
+    mass['proton']   = 1.00727646677
     mass['electron'] = 0.00054857990924
-    mass['neutron'] = 1.00866491588
+    mass['neutron']  = 1.00866491588
     return mass
 
 def getMassMonoIso():
+    """
+    Obtains monoisotopic masses from CIAAW webpage.
+    Stores the result in `massMonoIso` module level variable.
+    """
     globals()['massMonoIso'] = getMasses(urlMasses)
 
 def getMassFirstIso():
+    """
+    Obtains the
+    """
+    
     if 'massMonoIso' not in globals():
         getMassMonoIso()
     if 'freqIso' not in globals():
@@ -81,23 +95,44 @@ def getMassFirstIso():
                     isos[max(freqIso[symbol].items(), key = lambda i: i[1])[0]]
             except:
                 continue
+    firstIso['proton']   = proton
+    firstIso['electron'] = electron
+    firstIso['neutron']  = neutron
     globals()['massFirstIso'] = firstIso
 
 def getWeightStd():
-    globals()['weightsStd'] = getMasses(urlWeights)
+    """
+    Obtains atomic waights from CIAAW webpage.
+    Stores the result in `weightStd` module level variable.
+    """
+    globals()['weightStd'] = getMasses(urlWeights)
 
 def getFreqIso():
+    """
+    Obtains isotope abundances from CIAAW webpage.
+    Stores the result in `freqIso` module level variable.
+    """
     c = _curl.Curl(urlAbundances, silent = False)
-    reqAbundances = c.result
+    reqAbundances = c.result.split('\n')
+    
+    # fixing erroneous HTML from CIAAW:
+    for i, l in enumerate(reqAbundances[:-1]):
+        
+        l = l.strip()
+        # print('..%s.. ..%s..' % (l[-5:], reqAbundances[i + 1][:3]))
+        if l[-5:] == '</tr>' and reqAbundances[i + 1][:3] == '<td':
+            # print('ermfeoirm')
+            reqAbundances[i + 1] = '<tr>%s' % reqAbundances[i + 1]
+    
     with warnings.catch_warnings():
         # there is a deprecated call in lxml
         warnings.simplefilter('ignore', DeprecationWarning)
-        soupAbundances = bs4.BeautifulSoup(reqAbundances, 'lxml')
-
+        soupAbundances = bs4.BeautifulSoup('\n'.join(reqAbundances), 'lxml')
+    
     freqIso = {}
     symbol = None
     a = None
-
+    
     for tr in soupAbundances.find_all('tr'):
         tr = [td for td in tr.find_all('td')]
         if len(tr) == 6:
@@ -113,7 +148,7 @@ def getFreqIso():
             continue
     globals()['freqIso'] = freqIso
 
-mass = {
+massdb = {
     "proton": 1.00727646677,
     "electron": 0.00054857990924,
     "neutron": 1.00866491588,
@@ -283,7 +318,7 @@ fragments = {
     }
 }
 
-class MolWeight(object):
+class Mass(object):
     """
     
     Thanks for
@@ -291,13 +326,15 @@ class MolWeight(object):
     
     """
     
-    def __init__(self, formula = None, charge = 0, isotope = 0, **kwargs):
+    def __init__(self, formula = None, mass = None, charge = 0, isotope = 0, **kwargs):
         """
+        This class is very similar to `Formula`. Actually it can have 
+        
         **kwargs: elements & counts, e.g. c = 6, h = 12, o = 6...
         """
         if 'massFirstIso' not in globals():
             getMassFirstIso()
-        self.mass = massFirstIso
+        self.exmass = massFirstIso
         self.charge = charge
         self.isotope = isotope
         self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
@@ -362,9 +399,9 @@ class MolWeight(object):
         w = 0.0
         for element, count in atoms:
             count = int(count or '1')
-            w += self.mass[element] * count
-        w -= self.charge * mass['electron']
-        w += self.isotope * mass['neutron']
+            w += self.exmass[element] * count
+        w -= self.charge * massdb['electron']
+        w += self.isotope * massdb['neutron']
         self.weight = w
         
         self.weight_calculated = self.has_weight()
@@ -385,7 +422,7 @@ class MolWeight(object):
         setattr(self, '__class__', new)
 
 
-class Formula(MolWeight):
+class Formula(Mass):
     
     def __init__(self, formula = None, charge = 0, isotope = 0, **kwargs):
         
@@ -463,7 +500,7 @@ class Formula(MolWeight):
         
         return self + other - loss
     
-    def divide(self, product1, add = 'H2O'):
+    def split(self, product1, add = 'H2O'):
         
         product1 = Formula(product1)
         

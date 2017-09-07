@@ -49,19 +49,19 @@ class Mz():
         return self.adduct(-mass.proton)
     
     def remove_ac(self):
-        m = mass.MolWeight('H3C2O2')
+        m = mass.Mass('H3C2O2')
         return self.adduct(-m - mass.electron)
     
     def remove_fo(self):
-        m = mass.MolWeight('HCO2')
+        m = mass.Mass('HCO2')
         return self.adduct(-m - mass.electron)
     
     def remove_nh4(self):
-        m = mass.MolWeight('NH4')
+        m = mass.Mass('NH4')
         return self.adduct(-m + mass.electron)
     
     def remove_oh(self):
-        m = mass.MolWeight('OH')
+        m = mass.Mass('OH')
         return self.adduct(-m - mass.electron)
     
     def add_h(self):
@@ -74,27 +74,27 @@ class Mz():
         return self.adduct(3 * mass.proton)
     
     def add_oh(self):
-        m = mass.MolWeight('OH')
+        m = mass.Mass('OH')
         return self.adduct(m + mass.electron)
     
     def add_fo(self):
-        m = mass.MolWeight('HCO2')
+        m = mass.Mass('HCO2')
         return self.adduct(m + mass.electron)
     
     def add_ac(self):
-        m = mass.MolWeight('H3C2O2')
+        m = mass.Mass('H3C2O2')
         return self.adduct(m + mass.electron)
     
     def add_nh4(self):
-        m = mass.MolWeight('NH4')
+        m = mass.Mass('NH4')
         return self.adduct(m - mass.electron)
     
     def add_na(self):
-        m = mass.MolWeight('Na')
+        m = mass.Mass('Na')
         return self.adduct(m - mass.electron)
     
     def remove_na(self):
-        m = mass.MolWeight('Na')
+        m = mass.Mass('Na')
         return self.adduct(-m + mass.electron)
     
     def reload(self):

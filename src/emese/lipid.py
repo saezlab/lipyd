@@ -20,11 +20,17 @@ from future.utils import iteritems
 import emese.metabolite as metabolite
 
 
-
-class Lipid(metabolite.Metabolite):
+class AbstractGlycerol(metabolite.AbstractMetabolite):
     
     def __init__(self, headgroup_weight = None,
                  positive = 0, negative = 0,
                  name = 'Lipid', num_fa = 2, type = 'GPL'):
         
+
+
+class AbstractGPL(AbstractGlycerol):
+    
+    def __init__(self, ):
         
+        AbstractGlycerol.__init__(self, c2 = , c3 = )
+        self.bind('PO4')

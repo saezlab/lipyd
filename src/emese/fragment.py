@@ -49,7 +49,7 @@ class AdductCalculator(object):
         self.counts[elem] = num if elem not in self.counts \
             else self.counts[elem] + num
 
-class FattyFragment(mass.MolWeight, AdductCalculator):
+class FattyFragment(mass.Mass, AdductCalculator):
     
     def __init__(self, charge, c = 3, unsat = 0,
         minus = [], plus = [], isotope = 0, name = None, hg = []):
@@ -68,7 +68,7 @@ class FattyFragment(mass.MolWeight, AdductCalculator):
             self.remove(formula)
         for formula in self.plus:
             self.add(formula)
-        mass.MolWeight.__init__(self, charge = charge,
+        mass.Mass.__init__(self, charge = charge,
             isotope = isotope, **self.counts)
         self.set_name(name)
     
@@ -734,14 +734,19 @@ class FAFragSeries(object):
     def __init__(self, typ, charge, cmin = 2, unsatmin = 0,
         cmax = 36, unsatmax = 6,
         minus = [], plus = [], **kwargs):
+        
         for attr, val in iteritems(locals()):
             setattr(self, attr, val)
+        
         self.fragments = []
         if self.unsatmax is None: self.unsatmax = self.unsatmin
         for unsat in xrange(self.unsatmin, self.unsatmax + 1):
+            
             this_cmin = max(self.cmin, unsat * 2 + 1)
             if this_cmin <= cmax:
+                
                 for cnum in xrange(this_cmin, cmax + 1):
+                    
                     self.fragments.append(
                         self.typ(charge = charge, c = cnum, unsat = unsat,
                             minus = self.minus, plus = self.plus, **kwargs)

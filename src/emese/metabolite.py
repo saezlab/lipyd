@@ -32,7 +32,7 @@ class AbstractMetabolite(mass.Formula):
                  subs = [],
                  **kwargs):
         
-        mass.MolWeight.__init__(self,
+        mass.Mass.__init__(self,
             core if type(core) is not float else None,
             charge,
             isotope,
@@ -48,7 +48,7 @@ class AbstractMetabolite(mass.Formula):
                              'atom counts or weight.')
         
         self.name = name
-        self.syn = syn
+        self.syn  = syn
         self.subs = subs
 
 
@@ -58,6 +58,7 @@ class MetaboliteClass(AbstractMetabolite):
         
         
         
+
 
 class SubstituentSeries(object):
     
@@ -80,3 +81,13 @@ class Metabolite(MetaboliteClass):
     def __init__(self):
         
         
+
+class GPL():
+    
+    hgformula = 
+    
+    Glycerol.__init__(self, )
+
+class PE():
+    
+    GPL.__init__()
