@@ -102,6 +102,7 @@ l.manual_df(screen = 'A', only_swl_col = True)
 l.export_df(l.pmanual, 'antonella_final.csv')
 
 l.combined_network()
+l.combined_network(classes = set(['I']), fname = 'combined_network_classI_%s.csv')
 
 
 l.fractions_barplot2(features = True,

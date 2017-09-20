@@ -21,7 +21,8 @@ domain_order <- function(df){
 # constants
 #
 
-fname.e <- 'combined_network_df.csv'
+# fname.e <- 'combined_network_df.csv'
+fname.e <- 'combined_network_classI_df.csv'
 
 data <- read.csv(fname.e, header = TRUE, sep = '\t')
 
@@ -82,7 +83,7 @@ p <- ggplot(this_view,
        aes(y = protein, x = other, color = category, group = datasource,
            shape = datasource)) +
     geom_point(position = position_dodge(width = 0.8)) +
-    annotate(xmin = 50.6, xmax = 56.4, ymin = -Inf, ymax = Inf, fill = '#CCCCCC', geom = 'rect', alpha = 0.2) +
+    annotate(xmin = 46.6, xmax = 51.4, ymin = -Inf, ymax = Inf, fill = '#CCCCCC', geom = 'rect', alpha = 0.2) +
     scale_color_manual(values = c('#1B7D8D', '#F9382D'),
                        labels = c('Literature', 'Our experiments'),
                        guide = guide_legend(title = 'Data source')) +
@@ -92,7 +93,7 @@ p <- ggplot(this_view,
         guide = guide_legend(title = '')) +
     xlab('Lipids') +
     ylab('Lipid transfer proteins') +
-    ggtitle('Cargo binding specificities') +
+    ggtitle('Cargo binding specificities: only class I') +
     theme_bw() +
     theme(
         text = element_text(family = "DINPro"),
@@ -100,7 +101,35 @@ p <- ggplot(this_view,
         axis.text.y = element_text(color = pcolors[levels(this_view$protein)])
     )
 
-ggsave('gg_combined_cargo_our-lit.pdf', device = cairo_pdf, width = 12, height = 12)
+ggsave('gg_combined_cargo_classI_our-lit.pdf', device = cairo_pdf, width = 12, height = 12)
+
+this_view <- this_view %>%
+    filter(datasource %in% c('MSA', 'MSE', 'HPTLC'))
+
+p <- ggplot(this_view,
+       aes(y = protein, x = other, color = category, group = datasource,
+           shape = datasource)) +
+    geom_point(position = position_dodge(width = 0.8)) +
+    #annotate(xmin = 50.6, xmax = 56.4, ymin = -Inf, ymax = Inf, fill = '#CCCCCC', geom = 'rect', alpha = 0.2) +
+    scale_color_manual(values = c('#1B7D8D', '#F9382D'),
+                       labels = c('Our experiments'),
+                       guide = guide_legend(title = 'Data source')) +
+    scale_shape_manual(
+        values = c(17, 16, 18, 8),
+        labels = c('HPTCL' = 'HPTLC', 'MSA' = 'MS, HEK cells', 'MSE' = 'MS, E. coli & liposomes', 'LITB' = 'Literature'),
+        guide = guide_legend(title = '')) +
+    xlab('Lipids') +
+    ylab('Lipid transfer proteins') +
+    ggtitle('Cargo binding specificities: our screenings, only class I') +
+    theme_bw() +
+    theme(
+        text = element_text(family = "DINPro"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, size = 10, hjust = 1),
+        axis.text.y = element_text(color = pcolors[levels(this_view$protein)])
+    )
+
+ggsave('gg_combined_cargo_classI_our.pdf', device = cairo_pdf, width = 12, height = 12)
+
 
 # membrane lipid affinities vs. cargo
 this_view <- data %>%
