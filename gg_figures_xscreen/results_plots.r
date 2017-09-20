@@ -5,13 +5,14 @@ cat("\t:: Populating workspace.\n")
 
 library(ggplot2)
 library(RColorBrewer)
+library(colorspace)
+library(dplyr)
 
 source('theme_black.R')
 
-onlyclass1 <- FALSE
+onlyclass1 <- TRUE
 screen1file <- 'antonella_final.csv'
 screen2file <- 'enric_processed.csv'
-
 
 getPalette = colorRampPalette(brewer.pal(12, "Paired"))
 

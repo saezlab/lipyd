@@ -101,6 +101,8 @@ l.read_manual2()
 l.manual_df(screen = 'A', only_swl_col = True)
 l.export_df(l.pmanual, 'antonella_final.csv')
 
+l.combined_network()
+
 
 l.fractions_barplot2(features = True,
                      highlight = 'enrbb',

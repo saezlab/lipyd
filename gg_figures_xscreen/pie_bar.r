@@ -15,11 +15,12 @@ source('theme_black.R')
 onlyclass1 <- FALSE
 screen1file <- 'antonella_final.csv'
 screen2file <- 'enric_processed.csv'
-barpdf      <- 'intensities_bar.pdf'
+barpdf      <- 'intensities_bar_aII.pdf'
 ccunspdf    <- 'cc_uns_heatmap.pdf'
 
-a <- read.table(screen1file, sep = '\t', header = TRUE)
-aI <- a %>% filter(cls == 'I' & uhgroup != 'P40')
+a   <- read.table(screen1file, sep = '\t', header = TRUE)
+aI  <- a %>% filter(cls == 'I'  & uhgroup != 'P40')
+aII <- a %>% filter(cls == 'II' & uhgroup != 'P40')
 
 e <- read.table(screen2file, sep = '\t', header = TRUE)
 eI <- e %>% filter(cls == 'I' & uhgroup != 'P40')
@@ -93,6 +94,8 @@ cairo_pdf(barpdf, width = 18, height = 99)
     grid.draw(ally)
 
 dev.off()
+
+write.table(aeIhg, 'antonella_enric_classI_byheadgroup.csv', sep = '\t', quote = FALSE)
 
 ### 
 
