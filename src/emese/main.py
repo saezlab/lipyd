@@ -906,7 +906,8 @@ class Screening(object):
             'cc',
             'hgfa',
             'ccfa',
-            'screen'
+            'screen',
+            'domain'
         ]
         
         if not self.tolerate_numpy_warnings:
@@ -12620,6 +12621,7 @@ class Screening(object):
                         
                         res1.extend(cnt)
                         res1.append(screen)
+                        res1.append(self.get_family(protein))
                         
                         result.append(res1)
         
