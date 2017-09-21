@@ -279,6 +279,7 @@ class Screening(object):
             # and membrane composition.
             'localizationf': 'subcellular_localisation_and_binding.xlsx',
             'membranesf': 'membranes_lipid_composition.xlsx',
+            'synonymsf': 'synonyms',
             # Original MS2 fragment lists manually compiled by Marco.
             # One for positive and one for negative mode.
             'pfragmentsfile': 'lipid_fragments_positive_mode_v10d2%s.txt',
@@ -550,7 +551,8 @@ class Screening(object):
             'pfragmentsfile', 'nfragmentsfile', 'featurescache',
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
             'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
-            'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir']
+            'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir',
+            'synonymsf']
         
         for attr, val in iteritems(self.defaults):
             if attr in kwargs:
@@ -13320,7 +13322,12 @@ class Screening(object):
         """
         Gets the UniProt from LTP name.
         """
+        
         self.read_uniprots()
+        self.read_synonyms()
+        
+        if protein in self.synonyms:
+            protein = self.synonyms[protein]
         
         return self.uniprots[protein]['uniprot'] \
             if protein in self.uniprots else None
@@ -13330,6 +13337,10 @@ class Screening(object):
         Returns the lipid binding domain family from LTP name.
         """
         self.read_uniprots()
+        self.read_synonyms()
+        
+        if protein in self.synonyms:
+            protein = self.synonyms[protein]
         
         return self.uniprots[protein]['family'] \
             if protein in self.uniprots else None
@@ -13338,6 +13349,7 @@ class Screening(object):
         """
         Returns the LTP name from its UniProt.
         """
+        
         self.read_uniprots()
         
         return self.names[uniprot] \
@@ -13348,6 +13360,7 @@ class Screening(object):
         Reads the UniProt IDs and domain families of LTPs.
         Result stored in `uniprots` attribute.
         """
+        
         if self.uniprots is None or reread:
             with open(self.ltplistf, 'r') as f:
                 self.uniprots = dict(
@@ -13371,6 +13384,20 @@ class Screening(object):
                         iteritems(self.uniprots)
                     )
                 )
+    
+    def read_synonyms(self, reread = False):
+        
+        if not hasattr(self, 'synonyms') or reread:
+            
+            self.synonyms = {}
+            
+            with open(self.synonymsf) as fp:
+                
+                for l in fp:
+                    
+                    l = l.split('\t')
+                    
+                    self.synonyms[l[1].strip()] = l[0].strip()
     
     def get_comppi_localizations(self, minor = False):
         """
