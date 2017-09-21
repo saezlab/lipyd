@@ -14,7 +14,7 @@ infile_c12 <- 'combined_network_df.csv'
 infile_c1  <- 'combined_network_classI_df.csv'
 infile_a   <- 'antonella_final.csv'
 infile_e   <- 'enric_processed.csv'
-gpl <- c('PE', 'PC', 'PG', 'PA', 'PI', 'PIP', 'PS')
+gpl <- c('PE', 'PC', 'PG', 'PA', 'PI', 'PIP', 'PS', 'DAG', 'FA')
 mss <- c('MSA', 'MSE')
 
 #
@@ -118,7 +118,20 @@ preprocess2 <- function(by_hg = TRUE, only_class1 = TRUE){
     e  <- read.table(infile_e, sep = '\t', header = TRUE)
     ae <- rbind(a, e)
     
-    pcolors <- get_domain_colors(ae)
+    ae <- ae %>%
+        group_by(protein) %>%
+        mutate(screens = paste0(unique(sort(screen)), collapse = '')) %>%
+        ungroup() %>%
+        mutate(
+            protein = ifelse(
+                screens == 'AE',
+                paste('}{', protein),
+                ifelse(screens == 'A',
+                    paste('{', protein),
+                    paste('}', protein)
+                )
+            )
+        )
     
     if(only_class1){
     
@@ -134,47 +147,146 @@ preprocess2 <- function(by_hg = TRUE, only_class1 = TRUE){
     aeg <- aeg %>%
         mutate(
             datasource = paste0(screen, ionm),
-            lyso2    = startsWith(as.character(uhgroup), 'Lyso'),
+            lyso2    = startsWith(as.character(uhgroup), 'Lyso') | uhgroup == 'FA',
             ether   = endsWith(as.character(uhgroup), '-O'),
-            hg0     = gsub('-O$', '', gsub('^Lyso', '', as.character(uhgroup)))
+            hg0     = gsub('-O$', '', gsub('^Lyso', '', as.character(uhgroup))),
+            scr_ionm = paste0(screen, ionm)
         ) %>%
-        group_by(protein, ionm, screen, uhgroup) %>%
+        mutate(
+            lysoether =
+                factor(
+                    ifelse(
+                        lyso2 & ether,
+                        'Lyso & Ether',
+                        ifelse(
+                            lyso2,
+                            'Lyso',
+                            ifelse(
+                                ether,
+                                'Ether', '2x Ester'
+                            )
+                        )
+                    ),
+                    levels = c('2x Ester', 'Ether', 'Lyso', 'Lyso & Ether')
+                ),
+            gpl = hg0 %in% gpl
+        ) %>%
+        group_by(protein, ionm, screen, uhgroup, cls) %>%
         mutate(ihg = sum(as.numeric(intensity))) %>%
+        ungroup() %>%
         group_by(protein, ionm, screen) %>%
         mutate(itotal = sum(as.numeric(ihg))) %>%
-        group_by(protein, ionm, screen, uhgroup) %>%
-        mutate(irel = ihg / itotal, scr_ionm = paste0(screen, ionm)) %>%
+        ungroup() %>%
+        group_by(protein, ionm, screen, uhgroup, cls) %>%
+        mutate(irel = ihg / itotal) %>%
         summarize_all(first) %>%
-        mutate(uhgroup = as.character(uhgroup))
+        ungroup() %>%
+        filter(gpl) %>%
+        ungroup() %>%
+        #group_by(protein, scr_ionm, hg0, lysoether) %>%
+        #summarise_all(first) %>%
+        arrange(domain, sapply(strsplit(protein, ' '), function(x){last(x)})) %>%
+        mutate(
+            protein = factor(protein, unique(protein)),
+            datasource = factor(datasource)
+        )
+    
+    if(by_hg){
+        
+        aeg <- aeg %>%
+            group_by(protein, datasource, lysoether, hg0) %>%
+            summarise_all(first) %>%
+            ungroup()
+        
+    }else{
+        
+        aeg <- aeg %>%
+            group_by(protein, datasource, lysoether) %>%
+            summarise_all(first) %>%
+            ungroup()
+        }
     
     return(aeg)
     
 }
 
-do_plot <- function(df, pdfname, title, by_hg = TRUE){
+do_plot <- function(df, pdfname, title, by_hg = TRUE, intensities = FALSE){
     
     width <- ifelse(by_hg, 12, 6)
     
-    dcolors <- c('#3A7AB3', '#608784', '#03928C', '#CF5836', '#7575BE',
-                 '#D6708B', '#65B9B9', '#69B3D6', '#C441B3', '#9B998D')
+    pcolors <- get_domain_colors(df)
     
-    names(dcolors) <- sort(unique(levels(df$domain)))
-    
-    dprotein <- list()
-    for(i in 1:dim(df)[1]){
-        dprotein[[as.character(df$protein[i])]] <- as.character(df$domain[i])
-        }
-    
-    pcolors <- as.character(dcolors[as.character(dprotein)])
-    names(pcolors) <- names(dprotein)
-    
-    p <- ggplot(df,
-        aes(y = protein, x = lysoether, group = datasource,
-            shape = datasource)) +
-        geom_point(position = position_dodge(width = 0.6))
-    #     scale_color_manual(values = c('#1B7D8D', '#F9382D'),
-    #                        labels = c('Literature', 'Our experiments'),
-    #                        guide = guide_legend(title = 'Data source'))
+    if(intensities){
+        
+        p <- ggplot(
+                df,
+                aes(
+                    y = protein,
+                    x = lysoether,
+                    group = datasource,
+                    size  = irel,
+                    color = datasource,
+                    shape = cls
+                )
+            ) +
+            geom_point(position = position_dodge(width = 0.6), alpha = 0.7) +
+            scale_color_manual(
+                values = c(
+                    'Apos' = '#1B7D8D',
+                    'Aneg' = '#1B618D',
+                    'Epos' = '#F9382D',
+                    'Eneg' = '#F96B2D'
+                ),
+                labels = c(
+                    'Apos' = 'HEK cells, + ion mode',
+                    'Aneg' = 'HEK cells, - ion mode',
+                    'Epos' = 'E. coli & liposomes,\n+ ion mode',
+                    'Eneg' = 'E. coli & liposomes,\n- ion mode'
+                ),
+                guide = guide_legend(title = 'Data source\nand ion mode')
+            ) +
+            scale_size(
+                limits = c(0.0, 1.0),
+                guide = guide_legend(title = 'Relative intensity')
+            ) +
+            scale_shape_manual(
+                values = c(
+                    'I'  = 16,
+                    'II' = 10
+                ),
+                labels = c(
+                    'I'  = 'Class I',
+                    'II' = 'Class II'
+                ),
+                guide = guide_legend(title = 'Result class')
+            )
+        
+    }else{
+        
+        p <- ggplot(
+                df,
+                aes(
+                    y = protein,
+                    x = lysoether,
+                    group = datasource,
+                    shape = datasource
+                )
+            ) +
+            geom_point(position = position_dodge(width = 0.6)) +
+        #     scale_color_manual(values = c('#1B7D8D', '#F9382D'),
+        #                        labels = c('Literature', 'Our experiments'),
+        #                        guide = guide_legend(title = 'Data source')) +
+            scale_shape_manual(
+                values = c(17, 16, 18, 8),
+                labels = c(
+                    'MSA' = 'MS, HEK cells\n(in vivo)',
+                    'MSE' = 'MS, E. coli & liposomes\n(in vitro)'
+                    ),
+                guide = guide_legend(title = ''),
+                drop = FALSE
+            )
+        
+    }
     
     if(by_hg){
         
@@ -184,15 +296,6 @@ do_plot <- function(df, pdfname, title, by_hg = TRUE){
     
     p <- p +
         scale_x_discrete(drop = FALSE) +
-        scale_shape_manual(
-            values = c(17, 16, 18, 8),
-            labels = c(
-                'MSA' = 'MS, HEK cells\n(in vivo)',
-                'MSE' = 'MS, E. coli & liposomes\n(in vitro)'
-            ),
-            guide = guide_legend(title = ''),
-            drop = FALSE
-        ) +
         xlab('Lipids') +
         ylab('Lipid transfer proteins') +
         ggtitle(title) +
@@ -202,21 +305,49 @@ do_plot <- function(df, pdfname, title, by_hg = TRUE){
             axis.text.x = element_text(angle = 90, vjust = 0.5, size = 10, hjust = 1),
             axis.text.y = element_text(color = pcolors[levels(df$protein)])
         )
+        # +
+        #annotate(xmin = 1.5, xmax = 2.5, ymin = -Inf, ymax = Inf, fill = '#CCCCCC', geom = 'rect', alpha = .2)+
+        #annotate(xmin = 3.5, xmax = 4.5, ymin = -Inf, ymax = Inf, fill = '#CCCCCC', geom = 'rect', alpha = .2)
 
-    ggsave(pdfname, device = cairo_pdf, width = width, height = 6)
+    ggsave(pdfname, device = cairo_pdf, width = width, height = 8)
 }
 
 
-data_1     <- preprocess(infile_c1,  by_hg = FALSE)
-data_12    <- preprocess(infile_c12, by_hg = FALSE)
-data_1_hg  <- preprocess(infile_c1,  by_hg = TRUE)
-data_12_hg <- preprocess(infile_c12, by_hg = TRUE)
+# data_1     <- preprocess(infile_c1,  by_hg = FALSE)
+# data_12    <- preprocess(infile_c12, by_hg = FALSE)
+# data_1_hg  <- preprocess(infile_c1,  by_hg = TRUE)
+# data_12_hg <- preprocess(infile_c12, by_hg = TRUE)
+# 
+# do_plot(data_1,  'gg_combined_cargo_classI_lyso_ether_1.pdf',
+#         'Lyso and ether species: only class I', by_hg = FALSE)
+# do_plot(data_12, 'gg_combined_cargo_lyso_ether_1.pdf',
+#         'Lyso and ether species: with class II from in vivo', by_hg = FALSE)
+# do_plot(data_1_hg,  'gg_combined_cargo_classI_lyso_ether.pdf',
+#         'Lyso and ether species: only class I', by_hg = TRUE)
+# do_plot(data_12_hg, 'gg_combined_cargo_lyso_ether.pdf',
+#         'Lyso and ether species: with class II from in vivo', by_hg = TRUE)
 
-do_plot(data_1,  'gg_combined_cargo_classI_lyso_ether_1.pdf',
-        'Lyso and ether species: only class I', by_hg = FALSE)
-do_plot(data_12, 'gg_combined_cargo_lyso_ether_1.pdf',
-        'Lyso and ether species: with class II from in vivo', by_hg = FALSE)
-do_plot(data_1_hg,  'gg_combined_cargo_classI_lyso_ether.pdf',
-        'Lyso and ether species: only class I', by_hg = TRUE)
-do_plot(data_12_hg, 'gg_combined_cargo_lyso_ether.pdf',
-        'Lyso and ether species: with class II from in vivo', by_hg = TRUE)
+data_1     <- preprocess2(by_hg = FALSE)
+data_12    <- preprocess2(by_hg = FALSE, only_class1 = FALSE)
+data_1_hg  <- preprocess2(by_hg = TRUE)
+data_12_hg <- preprocess2(by_hg = TRUE, only_class1 = FALSE)
+
+do_plot(data_1,
+        'gg_combined_cargo_classI_lyso_ether_int_1.pdf',
+        'Lyso and ether species: only class I',
+        by_hg = FALSE, intensities = TRUE)
+
+do_plot(data_12,
+        'gg_combined_cargo_lyso_ether_int_1.pdf',
+        'Lyso and ether species: with class II',
+        by_hg = FALSE, intensities = TRUE)
+
+do_plot(data_1_hg,
+        'gg_combined_cargo_classI_lyso_ether_int.pdf',
+        'Lyso and ether species: only class I',
+        by_hg = TRUE, intensities = TRUE)
+
+do_plot(data_12_hg,
+        'gg_combined_cargo_lyso_ether_int.pdf',
+        'Lyso and ether species: with class II',
+        by_hg = TRUE, intensities = TRUE)
