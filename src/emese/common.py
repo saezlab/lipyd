@@ -24,8 +24,6 @@ import warnings
 import traceback
 import itertools
 
-import emese.settings as settings
-
 ROOT = os.path.abspath(os.path.dirname(__file__))
 
 if 'unicode' not in __builtins__:
@@ -94,14 +92,21 @@ def warn_with_traceback(message, category, filename, lineno, file=None, line=Non
     log = file if hasattr(file,'write') else sys.stderr
     log.write(warnings.formatwarning(message, category, filename, lineno, line))
 
-def get_param(par):
-    
-    if hasattr(settings, par):
-        return getattr(settings, par)
 
-def set_param(par, val):
+class _const:
     
-    setattr(settings, par, val)
+    class ConstError(TypeError):
+        
+        pass
+
+    def __setattr__(self, name, value):
+        
+        if name in self.__dict__:
+            
+            raise(self.ConstError, "Can't rebind const(%s)" % name)
+        
+        self.__dict__[name] = value
+
 
 fa_greek_parts = {
     'cc': {

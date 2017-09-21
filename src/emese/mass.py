@@ -66,9 +66,11 @@ def getMasses(url):
             massdb[symbol][a] = m
         except (ValueError, IndexError):
             continue
+    
     mass['proton']   = 1.00727646677
     mass['electron'] = 0.00054857990924
     mass['neutron']  = 1.00866491588
+    
     return mass
 
 def getMassMonoIso():
@@ -95,6 +97,7 @@ def getMassFirstIso():
                     isos[max(freqIso[symbol].items(), key = lambda i: i[1])[0]]
             except:
                 continue
+    
     firstIso['proton']   = proton
     firstIso['electron'] = electron
     firstIso['neutron']  = neutron
@@ -318,7 +321,7 @@ fragments = {
     }
 }
 
-class Mass(object):
+class MassBase(object):
     """
     
     Thanks for
@@ -326,89 +329,120 @@ class Mass(object):
     
     """
     
-    def __init__(self, formula = None, mass = None, charge = 0, isotope = 0, **kwargs):
+    def __init__(self, formula_mass = None, charge = 0, isotope = 0, **kwargs):
         """
-        This class is very similar to `Formula`. Actually it can have 
+        This class is very similar to `Formula`. Actually it can be
+        initialized either with providing a formula or a mass or
+        even element counts as keyword arguments.
+        The key difference compared to `Formula` is that it behaves
+        as a `float` i.e. indeed represents a molecular mass, while
+        `Formula` behaves as a chemical formula i.e. representing
+        the counts of elements. If you add two `MassBase` instances
+        (or a float) you get a `float` while if you add two
+        `Formula` instances (or a string) you get a new `Formula`.
+        Finally `Mass` is able to provide both behaviours but
+        adding two `Mass` instances will result a new `Mass`.
         
+        :param str,float,NoneType formula_mass: Either a string
+            expressing a chemical formula (e.g. H2O) or a molecular
+            mass (e.g. 237.1567) or `None` if you provide the
+            formula as keyword arguments.
         **kwargs: elements & counts, e.g. c = 6, h = 12, o = 6...
         """
         if 'massFirstIso' not in globals():
             getMassFirstIso()
+        
         self.exmass = massFirstIso
         self.charge = charge
         self.isotope = isotope
         self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
-        if formula is None:
+        
+        if formula_mass is None:
             formula = ''.join('%s%u'%(elem.capitalize(), num) \
                 for elem, num in iteritems(kwargs))
-        self.formula = formula
-        self.calc_weight()
+        elif hasattr(formula_mass, 'lower'):
+            formula = formula_mass
+        else:
+            formula = ''
+            
+        self.formula = formula_mass
+        
+        if type(formula_mass) is float:
+            self.mass = formula_mass
+        
+        self.calc_mass()
     
     def __neg__(self):
-        return -1 * self.weight
+        return -1 * self.mass
     
     def __add__(self, other):
-        return float(other) + self.weight
+        return float(other) + self.mass
     
     def __radd__(self, other):
         return self.__add__(other)
     
     def __iadd__(self, other):
-        self.weight += float(other)
+        self.mass += float(other)
     
     def __sub__(self, other):
-        return self.weight - float(other)
+        return self.mass - float(other)
     
     def __rsub__(self, other):
-        return float(other) - self.weight
+        return float(other) - self.mass
     
     def __isub__(self, other):
-        self.weight += float(other)
+        self.mass += float(other)
     
     def __truediv__(self, other):
-        return self.weight / float(other)
+        return self.mass / float(other)
     
     def __rtruediv__(self, other):
-        return float(other) / self.weight
+        return float(other) / self.mass
     
     def __itruediv__(self, other):
-        self.weight /= float(other)
+        self.mass /= float(other)
     
     def __mul__(self, other):
-        return self.weight * float(other)
+        return self.mass * float(other)
     
     def __rmul__(self, other):
         return self.__mul__(other)
     
     def __imul__(self, other):
-        self.weight *= float(other)
+        self.mass *= float(other)
     
     def __float__(self):
-        return self.weight
+        return self.mass
     
     def __eq__(self, other):
-        return abs(self.weight - float(other)) <= 0.01
+        return abs(self.mass - float(other)) <= 0.01
     
-    def calc_weight(self):
+    def calc_mass(self):
         
-        atoms = (
-            self.reform.findall(self.formula)
-            if not hasattr(self, 'atoms')
-            else self.atoms.items()
-        )
-        w = 0.0
-        for element, count in atoms:
-            count = int(count or '1')
-            w += self.exmass[element] * count
-        w -= self.charge * massdb['electron']
-        w += self.isotope * massdb['neutron']
-        self.weight = w
-        
-        self.weight_calculated = self.has_weight()
+        if self.has_formula():
+            
+            atoms = (
+                self.reform.findall(self.formula)
+                if not hasattr(self, 'atoms')
+                else self.atoms.items()
+            )
+            m = 0.0
+            for element, count in atoms:
+                count = int(count or '1')
+                m += self.exmass[element] * count
+            m -= self.charge * massdb['electron']
+            m += self.isotope * massdb['neutron']
+            self.mass = m
+            
+            self.mass_calculated = self.has_mass()
+            
+        else:
+            
+            self.mass_calculated = False
     
-    def has_weight(self):
+    def has_mass(self):
         
-        return self.weight > 0.0
+        return self.mass > 0.0
     
     def has_formula(self):
         
@@ -422,7 +456,7 @@ class Mass(object):
         setattr(self, '__class__', new)
 
 
-class Formula(Mass):
+class Formula(MassBase):
     
     def __init__(self, formula = None, charge = 0, isotope = 0, **kwargs):
         
@@ -432,7 +466,7 @@ class Formula(Mass):
             isotope = formula.isotope
             formula = formula.formula
         
-        MolWeight.__init__(self, formula, charge, isotope, **kwargs)
+        MassBase.__init__(self, formula, charge, isotope, **kwargs)
         
         self.atoms = defaultdict(lambda: 0)
         self.add(self.formula)
@@ -494,7 +528,7 @@ class Formula(Mass):
         
         self.formula = ''.join('%s%u' % (elem, self.atoms[elem])
                                 for elem in sorted(self.atoms.keys()))
-        self.calc_weight()
+        self.calc_mass()
     
     def bind(self, other, loss = 'H2O'):
         
@@ -505,3 +539,27 @@ class Formula(Mass):
         product1 = Formula(product1)
         
         return product1, self - product1 + add
+
+class Mass(Formula):
+    
+    def __init__(self, formula_mass = None, charge = 0, isotope = 0, **kwargs):
+        
+        if ((formula_mass is None and not kwargs) and
+            type(formula_mass) is float):
+            
+            # unknown formula, initializing an empty Formula:
+            Formula.__init__(self, '', charge = charge, isotope = isotope)
+            self.mass = formula_mass
+            
+        else:
+            
+            Formula.__init__(self, formula_mass,
+                             charge = charge,
+                             isotope = isotope,
+                             **kwargs)
+    
+    def bind(self, other, loss = 'H2O'):
+        
+        if self.has_formula() and (type(other) is str):
+            
+            pass

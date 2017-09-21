@@ -49,7 +49,7 @@ class AdductCalculator(object):
         self.counts[elem] = num if elem not in self.counts \
             else self.counts[elem] + num
 
-class FattyFragment(mass.Mass, AdductCalculator):
+class FattyFragment(mass.MassBase, AdductCalculator):
     
     def __init__(self, charge, c = 3, unsat = 0,
         minus = [], plus = [], isotope = 0, name = None, hg = []):
@@ -68,7 +68,7 @@ class FattyFragment(mass.Mass, AdductCalculator):
             self.remove(formula)
         for formula in self.plus:
             self.add(formula)
-        mass.Mass.__init__(self, charge = charge,
+        mass.MassBase.__init__(self, charge = charge,
             isotope = isotope, **self.counts)
         self.set_name(name)
     

@@ -61,9 +61,9 @@ import matplotlib as mpl
 import matplotlib.backends.backend_pdf
 import matplotlib.pyplot as plt
 import seaborn as sns
-#import plotly.offline as pl
-#import plotly.graph_objs as go
-#import plotly.tools
+import plotly.offline as pl
+import plotly.graph_objs as go
+import plotly.tools
 try:
     import altair
 except:
@@ -218,9 +218,9 @@ class Screening(object):
             # Directory with manually processed files. These are originally
             # output of this module, then have been manually processed, and
             # can be read again and compared/further analysed.
-            'manualdir': 'Processed_files',
+            'manualdir': 'revised_20170425',
             # ending of processed files
-            'manualend': 'final.xlsx',
+            'manualend': 'revised.xlsx',
             # For recalibration we read the dates of runs from here.
             'seqfile': 'Sequence_list_LTP_screen_2015.csv',
             # This is an output file to export the absorbance based
@@ -12419,13 +12419,6 @@ class Screening(object):
                                     fa_greek[swl_parsed][1])]
                         swl_parsed = 'FA'
                     
-                    # a full headgroup name:
-                    fullhg = '%s%s%s' % (
-                        lyso if not swl_parsed.startswith('Lyso') else '',
-                        swl_parsed,
-                        '%s' % ('-O' if len(cc1) and cc1[0][0] == 'O' else '')
-                    )
-                    
                     # regex finds 2-3 fatty acids
                     cc2s = self.recount3.findall(lip)
                     
@@ -12486,11 +12479,28 @@ class Screening(object):
                     for faccpart in faccparts:
                         
                         if cc2s and not cc1:
+                            
                             ccpart = [
-                                faccpart[0],
+                                faccpart[0] or faccpart[3] or faccpart[6],
                                 np.nansum([faccpart[1], faccpart[4], faccpart[7]]),
                                 np.nansum([faccpart[2], faccpart[5], faccpart[8]])
                             ]
+                        
+                        # making sure ethers are idenfified:
+                        if 'O' not in ccpart[0] and ('O-' in lip or '-O' in lip):
+                            
+                            ccpart[0] = 'O%s' % ccpart[0]
+                        
+                        if cc1 and 'O' not in cc1[0][0] and 'O' in ccpart[0]:
+                            
+                            cc1[0] = ('O%s' % cc1[0][0], cc1[0][1], cc1[0][2])
+                        
+                        # a full headgroup name:
+                        fullhg = '%s%s%s' % (
+                            lyso if not swl_parsed.startswith('Lyso') else '',
+                            swl_parsed,
+                            '%s' % ('-O' if len(cc1) and 'O' in cc1[0][0] else '')
+                        )
                         
                         res = []
                         res.append(swl_parsed)
@@ -12516,6 +12526,7 @@ class Screening(object):
         result = []
         
         def get_uhg(cnt, counts):
+            
             if cnt[-1] not in ['ambiguous', 'adduct']:
                 uhg = cnt[-1]
             else:
@@ -12526,11 +12537,16 @@ class Screening(object):
             
             uhg = uhg.replace('-O-', '-O')
             
+            if 'O' in cnt[2] and '-O' not in uhg:
+                
+                uhg = '%s-O' % uhg
+            
             if (uhg == 'NA' and (len(counts) == 1 or
                                  len(set(c[14] for c in counts)) == 1)):
                 uhg = cnt[14]
             
             return uhg
+        
         
         for protein, d in iteritems(self.manual):
             

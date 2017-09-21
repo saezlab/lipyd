@@ -29,7 +29,7 @@ class AbstractMetabolite(mass.Formula):
                  isotope = 0,
                  name = 'Unknown',
                  syn = {},
-                 subs = [],
+                 subs = {},
                  **kwargs):
         
         mass.Mass.__init__(self,
