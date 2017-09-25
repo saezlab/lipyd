@@ -123,7 +123,7 @@ preprocess2 <- function(by_hg = TRUE, only_class1 = TRUE){
     ae <- rbind(a, e)
     
     ae <- ae %>%
-        mutate(gsub('MAG', 'LysoDAG', uhgroup)) %>%
+        mutate(uhgroup = gsub('MAG', 'LysoDAG', uhgroup)) %>%
         group_by(protein) %>%
         mutate(
             screens = paste0(unique(sort(screen)), collapse = ''),
