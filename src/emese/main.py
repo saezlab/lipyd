@@ -909,7 +909,8 @@ class Screening(object):
             'hgfa',
             'ccfa',
             'screen',
-            'domain'
+            'domain',
+            'lit'
         ]
         
         if not self.tolerate_numpy_warnings:
@@ -1313,19 +1314,41 @@ class Screening(object):
                 )
             )
     
-    def binders_of(self, hg):
-        return \
-            list(
-                map(
-                    lambda i:
-                        i[0],
-                    filter(
-                        lambda i:
-                            hg in i[1] and i[0] in self.fractions_upper,
-                        iteritems(self.bindprop)
-                    )
-                )
-            )
+    def carriers_of_lipid(self, lipid):
+        """
+        Returns the literature known protein carriers of lipid.
+        """
+        
+        self.read_binding_properties()
+        
+        return (
+            self.lipbindprop[lipid]
+            if lipid in self.lipbindprop
+            else set([])
+        )
+    
+    def ligands_of_protein(self, protein):
+        """
+        Returns the literature known lipid ligands of protein.
+        """
+        
+        self.read_binding_properties()
+        
+        protein = self.get_std_name(protein)
+        
+        return (
+            self.bindprop[protein]
+            if protein in self.bindprop
+            else set([])
+        )
+    
+    def ligand_in_literature(self, protein, ligand):
+        """
+        Returns `True` if the ligand is a literature known cargo
+        of the protein.
+        """
+        
+        return ligand in self.ligands_of_protein(protein)
 
     #
     # reading the SEC absorption values and calculating the protein 
@@ -6726,11 +6749,16 @@ class Screening(object):
         
         self.lipnames = result
 
-    def read_binding_properties(self):
+    def read_binding_properties(self, reread = False):
         """
         Reads the known binders for each lipid class.
         The input file name is provided by `bindpropf` attribute.
         """
+        
+        if hasattr(self, 'bindprop') and self.bindprop and not reread:
+            
+            return
+        
         result = {}
         with open(self.bindpropf, 'r') as f:
             data = \
@@ -6759,6 +6787,30 @@ class Screening(object):
                 print(l)
         
         self.bindprop = result
+        
+        self.read_prior_knowledge()
+        
+        bindprop_all = {}
+        for p, lips in itertools.chain(iteritems(self.prior['litli']),
+                                       iteritems(self.bindprop)):
+            
+            pstd = self.get_std_name(p)
+            
+            if pstd not in bindprop_all:
+                bindprop_all[pstd] = set([])
+            
+            bindprop_all[pstd].update(lips)
+        
+        self.bindprop = bindprop_all
+        
+        lipbindprop = collections.defaultdict(lambda: set([]))
+        for protein, lips in iteritems(self.bindprop):
+            
+            for lip in lips:
+                
+                lipbindprop[lip].add(protein)
+        
+        self.lipbindprop = dict(lipbindprop)
     
     #
     # END: Reading annotations
@@ -12553,6 +12605,8 @@ class Screening(object):
         
         for protein, d in iteritems(self.manual):
             
+            protein_std = self.get_std_name(protein)
+            
             for mode, tbl in iteritems(d):
                 
                 for i, l in enumerate(tbl):
@@ -12562,8 +12616,12 @@ class Screening(object):
                     if l[3].strip() in shgs2:
                         l[3] = shgs2[l[3].strip()]
                     
-                    res = [protein, mode, i, l[0], l[5], l[4], l[1], l[3]] + \
-                        l[8:12] # 12 cols: protein -- rtup
+                    res = [
+                        protein_std, mode,
+                        i, l[0], l[5],
+                        l[4], l[1], l[3]
+                    ] + \
+                    l[8:12] # 12 cols: protein -- rtup
                     
                     #this_feature_hgs = set([get_uhg(cnt, counts) for cnt in counts])
                     #if not (set(['PG', 'BMP']) - this_feature_hgs):
@@ -12624,6 +12682,7 @@ class Screening(object):
                         res1.extend(cnt)
                         res1.append(screen)
                         res1.append(self.get_family(protein))
+                        res1.append(self.ligand_in_literature(protein, uhg))
                         
                         result.append(res1)
         
@@ -13318,6 +13377,68 @@ class Screening(object):
             for protein in sorted(stats.keys()):
                 f.write('%s\n' % '\t'.join(stats[protein]))
     
+    def get_uniprot(self, protein):
+        
+        self.read_prior_knowledge()
+        self.read_uniprots()
+        
+        stdnm = None
+        
+        if protein in self.uniprots:
+            return self.uniprots[protein]['uniprot']
+        
+        if protein in self.prior['stdnm']:
+            stdnm = self.prior['stdnm'][protein]
+            
+            if stdnm in self.uniprots:
+                return self.uniprots[stdnm]['uniprot']
+            
+        if protein in self.g2u or stdnm in self.g2u:
+            
+            sw = list(filter(lambda u: u in self.all_up,
+                                (self.g2u[protein]
+                                if protein in self.g2u else
+                                self.g2u[stdnm])
+                            ))
+            
+            if not sw:
+                sw = self.g2u[protein]
+            if len(sw) > 1:
+                sys.stdout.write('\t:: Warning: more than one UniProt IDs'
+                                    'for %s: %s' % (
+                                        protein,
+                                        ', '.join(sorted(sw))
+                                    ))
+            
+            return sorted(sw)[0]
+        else:
+            return 'NA'
+    
+    def get_genesymbol(self, uniprot):
+        
+        if uniprot in self.u2g:
+            if len(self.u2g[uniprot]) > 1:
+                sys.stdout.write('\t:: Warning: more than one GeneSymbols'
+                                    'for %s: %s' % (
+                                        uniprot,
+                                        ', '.join(sorted(self.u2g[uniprot]))
+                                    ))
+            return sorted(self.u2g[uniprot])[0]
+            
+        else:
+            return 'NA'
+    
+    def get_std_name(self, name):
+        
+        self.read_prior_knowledge()
+        self.read_uniprots()
+        
+        name = self.get_name_from_uniprot(name) or name
+        
+        return (self.prior['stdnm'][name]
+                if name in self.prior['stdnm']
+                else name)
+    
     def to_uniprot(self, protein):
         """
         Gets the UniProt from LTP name.
@@ -13336,16 +13457,18 @@ class Screening(object):
         """
         Returns the lipid binding domain family from LTP name.
         """
-        self.read_uniprots()
-        self.read_synonyms()
         
-        if protein in self.synonyms:
-            protein = self.synonyms[protein]
+        self.read_prior_knowledge()
         
-        return self.uniprots[protein]['family'] \
-            if protein in self.uniprots else None
+        protein = self.get_std_name(protein)
+        
+        return (
+            self.prior['famly'][protein]
+            if protein in self.prior['famly']
+            else 'NA'
+        )
     
-    def get_name(self, uniprot):
+    def get_name_from_uniprot(self, uniprot):
         """
         Returns the LTP name from its UniProt.
         """
@@ -13355,13 +13478,14 @@ class Screening(object):
         return self.names[uniprot] \
             if uniprot in self.names else None
     
-    def read_uniprots(self, reread = True):
+    def read_uniprots(self, reread = False):
         """
         Reads the UniProt IDs and domain families of LTPs.
         Result stored in `uniprots` attribute.
         """
         
-        if self.uniprots is None or reread:
+        if not hasattr(self, 'uniprots') or not self.uniprots or reread:
+            
             with open(self.ltplistf, 'r') as f:
                 self.uniprots = dict(
                     map(
@@ -13397,7 +13521,7 @@ class Screening(object):
                     
                     l = l.split('\t')
                     
-                    self.synonyms[l[1].strip()] = l[0].strip()
+                    self.synonyms[l[0].strip()] = l[1].strip()
     
     def get_comppi_localizations(self, minor = False):
         """
@@ -13622,10 +13746,16 @@ class Screening(object):
         
         return ms2._scans[ms2.best_scan]
     
-    def read_prior_knowledge(self, fname = '../ltp/170224_LTP_master_table.xlsx'):
+    def read_prior_knowledge(self,
+                             fname = '../ltp/170224_LTP_master_table.xlsx',
+                             reread = False):
         """
         Reads literature knowledge and Charlotte's results from LiMA assays.
         """
+        
+        if hasattr(self, 'prior') and self.prior and not reread:
+            
+            return
         
         rehptlc = re.compile(r'[A-z]{2,}')
         repinum = re.compile(r'(PI)\(?(\d),?(\d?),?(\d?)\)?(P\d?)')
@@ -13993,8 +14123,8 @@ class Screening(object):
         and Enric.
         """
         
-        if not hasattr(self, 'lipiprop'):
-            self.read_lipid_properties()
+        self.read_lipid_properties()
+        self.read_binding_properties()
         
         hdr_e = ['source', 'target', 'type', 'datasource', 'category']
         hdr_v = ['name', 'type', 'domain', 'uniprot']
@@ -14038,14 +14168,15 @@ class Screening(object):
         
         def get_family(protein):
             
-            if protein in self.uniprots:
-                return self.uniprots[protein]['family']
-            elif protein in self.prior['famly']:
-                return self.prior['famly'][protein]
-            elif self.prior['stdnm'][protein] in self.prior['famly']:
-                return self.prior['famly'][self.prior['stdnm'][protein]]
-            else:
-                return 'NA'
+            self.read_prior_knowledge()
+            
+            protein = self.get_std_name(protein)
+            
+            return (
+                self.prior['famly'][protein]
+                if protein in self.prior['famly']
+                else 'NA'
+            )
         
         def get_uniprot(protein):
             
@@ -14099,6 +14230,11 @@ class Screening(object):
             return typ in ['protein', 'ltp']
         
         def get_std_name(name):
+            
+            if not hasattr(self, 'prior') or self.prior is None:
+                
+                self.read_prior_knowledge()
+            
             return (self.prior['stdnm'][name]
                     if name in self.prior['stdnm']
                     else name)
@@ -14196,18 +14332,7 @@ class Screening(object):
                          'ltp', 'lipid', 'cargo_binding',
                          'MS%s' % r.screen, 'own_experiment')
         
-        bindprop_all = {}
-        for p, lips in itertools.chain(iteritems(self.prior['litli']),
-                                       iteritems(self.bindprop)):
-            
-            pstd = get_std_name(p)
-            
-            if pstd not in bindprop_all:
-                bindprop_all[pstd] = set([])
-            
-            bindprop_all[pstd].update(lips)
-        
-        add_set(bindprop_all,
+        add_set(self.bindprop_all,
                 vertices, edges, df,
                 'ltp', 'lipid',
                 'cargo_binding', 'LITB', 'literature')
@@ -14356,11 +14481,15 @@ class Screening(object):
         
         return result
     
-    def read_lipid_properties(self):
+    def read_lipid_properties(self, reread = False):
         """
         Reads lipid properties from file.
         These include charge, chemical groups and database IDs.
         """
+        
+        if hasattr(self, 'lipiprop') and self.lipiprop and not reread:
+            
+            return
         
         with open(self.lipipropf, 'r') as fp:
             
