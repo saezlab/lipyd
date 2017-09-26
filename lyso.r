@@ -17,6 +17,7 @@ infile_c12 <- 'combined_network_df.csv'
 infile_c1  <- 'combined_network_classI_df.csv'
 infile_a   <- 'antonella_final.csv'
 infile_e   <- 'enric_processed.csv'
+infile_lit_ligands <- 'binding_properties_plain.csv'
 gpl <- c('PE', 'PC', 'PG', 'PA', 'PI', 'PS', 'DAG', 'FA')
 mss <- c('MSA', 'MSE')
 
@@ -45,7 +46,6 @@ get_domain_colors <- function(df){
     return(pcolors)
     
 }
-
 
 preprocess <- function(infile, by_hg = TRUE){
     
@@ -123,7 +123,11 @@ preprocess2 <- function(by_hg = TRUE, only_class1 = TRUE){
     ae <- rbind(a, e)
     
     ae <- ae %>%
-        mutate(uhgroup = gsub('MAG', 'LysoDAG', uhgroup)) %>%
+        mutate(
+            uhgroup = gsub('MAG', 'LysoDAG', uhgroup),
+            lit = lit == 'True'
+        
+        ) %>%
         group_by(protein) %>%
         mutate(
             screens = paste0(unique(sort(screen)), collapse = ''),
