@@ -70,6 +70,11 @@ except:
     sys.stdout.write('No module `altair` available.\n')
 
 try:
+    import matplotlib_venn
+except:
+    sys.stdout.write('No module `matplotlib_venn` available.\n')
+
+try:
     import rpy2.robjects.packages as rpackages
     rvcd = rpackages.importr('vcdExtra')
     rbase = rpackages.importr('base')
@@ -231,7 +236,14 @@ class Screening(object):
             'lipnamesf': 'lipid_names_v2.csv',
             # Literature curated data about known binding properties of LTPs.
             'bindpropf': 'binding_properties.csv',
+            # Literature curated binding properties to be written into
+            # this file in a simpler format
+            'bindprop_expf':  'binding_properties_plain.csv',
+            # This has more details and we export in order to double check
+            # literature data and its processing
+            'bindprop_expf2': 'literature_cargoes.csv',
             # Lipid classes properties and database IDsb
+            'master_part1': 'ltp_master_part1.csv',
             'lipipropf': 'lipid_properties.csv',
             # The file with recalibration values from Marco.
             'recalfile': 'Recalibration_values_LTP.csv',
@@ -552,7 +564,8 @@ class Screening(object):
             'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
             'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
             'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir',
-            'synonymsf']
+            'synonymsf', 'bindprop_expf', 'bindprop_expf2',
+            'master_part1']
         
         for attr, val in iteritems(self.defaults):
             if attr in kwargs:
@@ -1349,7 +1362,157 @@ class Screening(object):
         """
         
         return ligand in self.ligands_of_protein(protein)
-
+    
+    def export_binding_properties(self):
+        """
+        Writes carrier-ligand relationships in
+        a simple 2 columns format.
+        """
+        
+        self.read_binding_properties()
+        
+        with open(self.bindprop_expf, 'w') as fp:
+            
+            for protein, lips in iteritems(self.bindprop):
+                
+                for lip in lips:
+                    
+                    fp.write('%s\t%s\n' % (protein, lip))
+    
+    def export_binding_properties2(self):
+        """
+        Writes literature
+        """
+        
+        self.read_binding_properties()
+        
+        proteins = set([])
+        
+        with open(self.bindpropf, 'r') as fpi:
+            
+            with open(self.bindprop_expf2, 'w') as fpo:
+                
+                l = fpi.readline().strip()
+                fpo.write('%s\t%s\t%s\n' % (
+                    l,
+                    'Charlotte:from review',
+                    'Charlotte:from review:classes standard abbrev.'
+                ))
+                
+                for l in fpi:
+                    
+                    protein = l.split('\t')[2].split('(')[0].strip()
+                    protein = self.get_std_name(protein)
+                    proteins.add(protein)
+                    
+                    l = l.strip('\n\r')
+                    
+                    fpo.write('%s\t%s\t%s\n' % (
+                        l,
+                        self.prior['litll'][protein],
+                        ', '.join(sorted(self.prior['litli'][protein]))
+                    ))
+        
+        if (set(self.prior['litli']) - proteins):
+            
+            print('Proteins missing from binding properties file: %s' %
+                  ', '.join(sorted(set(self.prior['litli']) - proteins)))
+    
+    def export_binding_properties3(self):
+        
+        def substitute_set(st, subst, sub):
+            
+            contains = bool(st & subst)
+            
+            if contains:
+                st.difference_update(subst)
+                st.add(sub)
+            
+            return st
+        
+        recompar = re.compile(r',\s*(?![^()]*\))')
+        
+        hdr = [
+            'default_name',
+            'synonyms',
+            'uniprot',
+            'ltd_family',
+            'all_ligands',
+            'mammalian_ligand_categories',
+            'non_mammalian_ligands'
+        ]
+        
+        sterols = set(['CH', 'HCH', 'PHCH', 'KCH',
+                       'DES', 'ES', 'PCH', 'CHT',
+                       'CA', 'CCA', 'CHS', 'CE'])
+        fatty_acids = set(['FA', 'PUFA', 'LCFA', 'VLCFA'])
+        non_mammalians = set(['LPS', 'IVA', 'TAIVA'])
+        gangliosides = set(['GM1', 'GM2', 'GM3'])
+        paf = set(['PAF', 'LPAF', 'PAF, LPAF'])
+        isoprenes = set(['SQ'])
+        pips = set(['PIP', 'PIP2', 'PIP3', 'PI34P2', 'PI45P2', 'PI345P3', 'PI3P', 'PI5P', 'PI4P'])
+        
+        self.read_binding_properties()
+        self.read_prior_knowledge()
+        
+        from_review = collections.defaultdict(lambda: set([]))
+        
+        with open(self.bindpropf, 'r') as fp:
+            
+            _ = fp.readline()
+            
+            for l in fp:
+                
+                l = l.split('\t')
+                from_review[l[2]].add(l[3])
+        
+        with open(self.master_part1, 'w') as fp:
+            
+            fp.write('%s\n' % '\t'.join(hdr))
+            
+            for fam in sorted(set(self.prior['famly'].values())):
+                
+                for pr in self.members_of_family(fam):
+                    
+                    pr = self.get_std_name(pr)
+                    
+                    uniprot  = self.to_uniprot(pr)
+                    synonyms = ','.join(self.prior['synon'][pr])
+                    ligands  = (
+                        set(x.strip() for x in
+                            recompar.split(self.prior['litll'][pr])) |
+                        from_review[pr]
+                    )
+                    cligands = copy.copy(self.bindprop[pr])
+                    substitute_set(cligands, sterols, 'Sterols')
+                    substitute_set(cligands, gangliosides, 'GM')
+                    substitute_set(cligands, isoprenes, 'Isoprenes')
+                    substitute_set(cligands, pips, 'PIPs')
+                    substitute_set(cligands, fatty_acids, 'FA')
+                    the_non_mammalians = cligands & non_mammalians
+                    cligands.difference_update(non_mammalians)
+                    if any('PAF' in lig for lig in ligands):
+                        cligands.add('PAF')
+                    substitute_set(cligands, paf, 'PAF')
+                    if any('CoA' in lig for lig in ligands):
+                        cligands.add('FACoA')
+                    cligands.discard('BR')
+                    
+                    line = [
+                        pr,
+                        synonyms,
+                        uniprot,
+                        fam,
+                        ','.join(ligands),
+                        ','.join(cligands),
+                        ','.join(the_non_mammalians)
+                    ]
+                    
+                    try:
+                        fp.write('%s\n' % '\t'.join(line))
+                    except:
+                        print(line)
+    
     #
     # reading the SEC absorption values and calculating the protein 
     # profiles in the fractions
@@ -4970,6 +5133,8 @@ class Screening(object):
         self.ms2_headgroups2(proteins = [protein])
         self.consensus_identity(proteins = [protein])
         self.ms2_rt(proteins = [protein])
+        self.add_counts(protein, 'pos')
+        self.add_counts(protein, 'neg')
     
     def identify(self):
         
@@ -6786,7 +6951,8 @@ class Screening(object):
             except IndexError:
                 print(l)
         
-        self.bindprop = result
+        self.bindprop   = result
+        self._bindprop0 = result
         
         self.read_prior_knowledge()
         
@@ -12250,6 +12416,9 @@ class Screening(object):
             protein, mode = l[1].split('_')
             mode = mode[:3]
             
+            # typos...
+            protein = protein.replace('ARGHAP', 'ARHGAP')
+            
             if protein not in result:
                 result[protein] = {}
             
@@ -13445,10 +13614,8 @@ class Screening(object):
         """
         
         self.read_uniprots()
-        self.read_synonyms()
         
-        if protein in self.synonyms:
-            protein = self.synonyms[protein]
+        protein = self.get_std_name(protein)
         
         return self.uniprots[protein]['uniprot'] \
             if protein in self.uniprots else None
@@ -13467,6 +13634,19 @@ class Screening(object):
             if protein in self.prior['famly']
             else 'NA'
         )
+    
+    def members_of_family(self, family):
+        """
+        Returns the names of all proteins in one domain family.
+        """
+        
+        self.read_prior_knowledge()
+        
+        return sorted(self.get_std_name(p)
+                      for p, fam
+                      in iteritems(self.prior['famly'])
+                      if fam == family
+                )
     
     def get_name_from_uniprot(self, uniprot):
         """
@@ -13508,6 +13688,17 @@ class Screening(object):
                         iteritems(self.uniprots)
                     )
                 )
+            
+            self.uniprots_to_std_names()
+    
+    def uniprots_to_std_names(self):
+        
+        self.read_prior_knowledge()
+        
+        self.uniprots = dict(
+            (self.get_std_name(k), v)
+            for k, v in iteritems(self.uniprots)
+        )
     
     def read_synonyms(self, reread = False):
         
@@ -13747,7 +13938,7 @@ class Screening(object):
         return ms2._scans[ms2.best_scan]
     
     def read_prior_knowledge(self,
-                             fname = '../ltp/170224_LTP_master_table.xlsx',
+                             fname = '../ltp/170224_LTP_master_table_v2.xlsx',
                              reread = False):
         """
         Reads literature knowledge and Charlotte's results from LiMA assays.
@@ -13937,6 +14128,8 @@ class Screening(object):
         ccloc = {} # compartment localization form GO
         litlo = {} # compartment localization from literature
         litli = {} # literature ligands from Charlotte
+        litll = {} # original name of literature ligands
+                   # (only to follow the mapping)
         limal = {} # lima assay lipids
         limam = {} # lima assay artificial membranes
         limcm = {} # lima assay complex membranes
@@ -13944,6 +14137,8 @@ class Screening(object):
         litpr = {} # membrane related protein interactions from literature
         famly = {} # domain families
         synon = {}
+        
+        famly['STARD14'] = 'START' # this one is missing
         
         for r in raw[1:]:
             
@@ -13954,6 +14149,7 @@ class Screening(object):
             
             # known ligands from literature
             litli[protein] = set([])
+            litll[protein] = r[14]
             
             for lip in resep.split(repinum.sub(r'\1\2\3\4\5', r[14])):
                 
@@ -14051,6 +14247,7 @@ class Screening(object):
         
         # typos...
         stdnm['ARGHAP1'] = 'ARHGAP1'
+        stdnm['ARGHAP8'] = 'ARHGAP8'
         
         self.prior = {
             'hptlc': hptlc, # HPTLC binders
@@ -14058,6 +14255,7 @@ class Screening(object):
             'ccloc': ccloc, # compartment localization form GO
             'litlo': litlo, # compartment localization from literature
             'litli': litli, # literature ligands from Charlotte
+            'litll': litll, # literature ligands, original string
             'limal': limal, # lima assay lipids
             'limam': limam, # lima assay artificial membranes
             'limcm': limcm, # lima assay complex membranes
@@ -14729,4 +14927,83 @@ class Screening(object):
                     u = used.pop()
                     u.clear()
     
+    def count_features(self):
+        
+        for protein, d in iteritems(self.data):
+            
+            for ionm in d.keys():
+                
+                self.add_counts(protein, ionm)
     
+    def add_counts(self, protein, ionm):
+        
+        if not hasattr(self, 'feature_counts'):
+            self.feature_counts = {}
+        
+        protein_std = self.get_std_name(protein)
+        
+        tbl = self.data[protein][ionm]
+        counts = self.feature_counts
+        
+        counts[(protein_std, ionm, 'all')] = tbl['raw'].shape[0]
+        counts[(protein_std, ionm, 'qly')] = np.sum(tbl['qly'])
+        counts[(protein_std, ionm, 'crg')] = np.sum(tbl['crg'])
+        counts[(protein_std, ionm, 'pks')] = np.sum(tbl['pks'])
+        counts[(protein_std, ionm, 'valid')] = (
+            self.valids[protein][ionm]['mz'].shape[0]
+        )
+        counts[(protein_std, ionm, 'ms2')] = (
+            len(self.valids[protein][ionm]['ms2hg'])
+        )
+    
+    def export_feature_counts(self, fname = 'stats.csv'):
+        
+        if not hasattr(self, 'feature_counts') or not self.feature_counts:
+            
+            self.count_features()
+        
+        with open(fname, 'w') as fp:
+            
+            for key, cnt in iteritems(self.feature_counts):
+                
+                fp.write('%s\t%u\n' % ('\t'.join(key), cnt))
+    
+    def stats_std_name(self, fname):
+        
+        tmp = []
+        
+        with open(fname, 'r') as fp:
+            
+            for l in fp:
+                
+                l = l.split('\t')
+                l[0] = self.get_std_name(l[0])
+                tmp.append(l)
+        
+        with open(fname, 'w') as fp:
+            
+            for l in tmp:
+                
+                fp.write('\t'.join(l))
+    
+    def export_domain_families(self, fname = 'ltp_domains.tsv'):
+        
+        self.read_prior_knowledge()
+        
+        with open(fname, 'w') as fp:
+            
+            for itm in iteritems(self.prior['famly']):
+                
+                fp.write('%s\t%s\n' % itm)
+    
+    def export_hptlc(self, fname = 'ltp_hptlc.tsv'):
+        
+        self.read_prior_knowledge()
+        
+        with open(fname, 'w') as fp:
+            
+            for protein, lips in iteritems(self.prior['hptlc']):
+                
+                for lip in lips:
+                    
+                    fp.write('%s\t%s\n' % (protein, lip))

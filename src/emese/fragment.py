@@ -100,7 +100,7 @@ class FattyFragment(mass.MassBase, AdductCalculator):
             )
     
     def get_fragline(self):
-        return [self.weight, self.name,
+        return [self.mass, self.name,
             '[M%s]%s' % (self.adduct_str(), self.charge_str()),
             ';'.join(self.hg)]
 
@@ -756,9 +756,9 @@ class FAFragSeries(object):
         for fr in self.fragments:
             yield fr
     
-    def iterweight(self):
+    def itermass(self):
         for fr in self.fragments:
-            yield fr.weight
+            yield fr.mass
     
     def iterfraglines(self):
         for fr in self.fragments:

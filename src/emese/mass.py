@@ -56,16 +56,15 @@ def getMasses(url):
 
     for tr in soupMasses.find_all('tr'):
         tr = [td for td in tr.find_all('td')]
-        if len(tr) == 5:
-            symbol = tr[1].text.strip()
-            massdb[symbol] = {}
-        try:
-            a = int(tr[-2].text.strip())
-            m = [float(reNonDigit.sub('', i)) for i in tr[-1].text.split(',')]
-            m = sum(m) / len(m)
-            massdb[symbol][a] = m
-        except (ValueError, IndexError):
+        if not len(tr):
             continue
+        elif len(tr) == 5:
+            symbol = tr[1].text.strip()
+            mass[symbol] = {}
+        a = int(reNonDigit.sub('', tr[-2].text.strip()))
+        m = [float(reNonDigit.sub('', i)) for i in tr[-1].text.split(',')]
+        m = sum(m) / len(m)
+        mass[symbol][a] = m
     
     mass['proton']   = 1.00727646677
     mass['electron'] = 0.00054857990924
@@ -364,11 +363,11 @@ class MassBase(object):
             formula = formula_mass
         else:
             formula = ''
-            
-        self.formula = formula_mass
         
         if type(formula_mass) is float:
             self.mass = formula_mass
+        
+        self.formula = formula
         
         self.calc_mass()
     
