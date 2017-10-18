@@ -13944,6 +13944,9 @@ class Screening(object):
                 counts[(protein, ionm, 'valid')] = (
                     self.valids[protein][ionm]['mz'].shape[0]
                 )
+                counts[(protein, ionm, 'ms2')] = (
+                    len(self.valids[protein][ionm]['ms2'])
+                )
         
         self.feature_counts = counts
     
