@@ -19,27 +19,24 @@ import os
 
 class MgfReader(object):
     
-    def __init__(self, fname, name_callback = lambda x: {}):
+    def __init__(self, fname, charge = 1, name_callback = lambda x: {}):
         
         self.fname = fname
         self.process_name = name_callback
+        self.charge_to_read = charge
         
         for k, v in self.process_name(os.path.split(self.fname)[-1]):
             
             setattr(self, k, v)
-    
-    def index(self, fl, fr, charge = 1):
-        """
-        Looking up offsets in one MS2 mgf file.
         
-        Columns:
-            -- pepmass
-            -- intensity
-            -- retention time
-            -- scan num
-            -- offset in file
-            -- fraction num
+        self.var = ['mz', 'indensity', 'rtime', 'charge', 'charge', 'offset']
+    
+    def read(self):
         """
+        Reads MS1 data from MGF file.
+        Indexes offsets of MS2 scans with purpose of later reading.
+        """
+        
         stRrtinseconds = 'RTINSECONDS'
         stRtitle = 'TITLE'
         stRbe = 'BE'
@@ -48,11 +45,15 @@ class MgfReader(object):
         stRpepmass = 'PEPMASS'
         stRempty = ''
         reln = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
-        features = []
+        renondigit = re.compile(r'[^\d\.-]+')
+        for var in self.var:
+            
+            setattr(self, var, [])
+
         offset = 0
         cap_next = False
         
-        with open(fl, 'rb', 8192) as fp:
+        with open(self.fname, 'rb', 8192) as fp:
             
             for l in fp:
                 
@@ -70,7 +71,7 @@ class MgfReader(object):
                             continue
                         
                         if m[0] == stRtitle:
-                            scan = float(m[1])
+                            scan = int(m[1])
                         
                         if m[0] == stRrtinseconds:
                             rtime = float(m[1]) / 60.0
@@ -82,21 +83,29 @@ class MgfReader(object):
                                 cap_next = True
                         
                     else:
-                        _charge = int(l[7]) if len(l) >= 8 else None
-                        if charge is None or _charge == charge:
+                        charge = int(l[7:-1]) if len(l) >= 8 else None
+                        if charge is None or charge == self.charge_to_read:
                             cap_next = True
                 
                 elif cap_next:
                     
-                    features.append([pepmass, intensity,
-                        rtime, scan, offset, fr])
+                    self.mz.append(pepmass)
+                    self.intensity.append(intensity)
+                    self.rtime.append(rtime)
+                    self.scan.append(scan)
+                    self.charge.append(
+                        charge if charge is not None else np.nan
+                    )
+                    self.offset.append(offset)
                     scan = None
                     rtime = None
                     intensity = None
                     pepmass = None
-                    _charge = None
+                    charge = None
                     cap_next = False
                 
                 offset += len(l)
         
-        return features
+        for var in self.var:
+            
+            setattr(self, var, np.array(getattr(self, var)))
