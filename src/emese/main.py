@@ -291,6 +291,8 @@ class Screening(object):
             # and membrane composition.
             'localizationf': 'subcellular_localisation_and_binding.xlsx',
             'membranesf': 'membranes_lipid_composition.xlsx',
+            'membranesoutf': 'membrane_const.tsv',
+            'locoutfile': 'localizations.tsv',
             'synonymsf': 'synonyms',
             # Original MS2 fragment lists manually compiled by Marco.
             # One for positive and one for negative mode.
@@ -565,7 +567,7 @@ class Screening(object):
             'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
             'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir',
             'synonymsf', 'bindprop_expf', 'bindprop_expf2',
-            'master_part1']
+            'master_part1', 'membranesoutf']
         
         for attr, val in iteritems(self.defaults):
             if attr in kwargs:
@@ -626,7 +628,7 @@ class Screening(object):
         self.recount3 = re.compile(r'\(([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
                                    r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})/?'
                                    r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
-        self.readd = re.compile(r'(\[M[-\+][-\)\)\+A-Za-z0-9]*\][0-9]?[\-+])')
+        self.readd = re.compile(r'(\[M[-\+][-\)\(\+A-Za-z0-9]*\][0-9]?[\-+])')
         self.refa  = re.compile(r'([dl]?)([0-9]+:[0-9]{1,2})\(?([,0-9EZ]+)?\)?')
         
         if os.path.exists('fonts.css'):
@@ -5004,6 +5006,7 @@ class Screening(object):
                 tbl['aaa'] = np.nansum(tbl['fe'], 1) / tbl['fe'].shape[0]
     
     def ms1(self):
+        
         self.fractions_marco()
         self.fractions_by_protein_amount()
         self.primary_fractions()
@@ -10817,7 +10820,39 @@ class Screening(object):
         )
         sys.stdout.flush()
     
+    def mz_lookup(self, mz, protein, mode, in_raw = False, tlr = 0.01):
+        """
+        Searches for an m/z at a protein and ion mode
+        within a range of tolerance.
+        Returns the current index if found otherwise None.
+        Optionally it searches in the raw data.
+        """
+        d = self.data if in_raw else self.valids
+        lst = d[protein][mode]['mz']
+        
+        ui = lst[:,1].searchsorted(mz)
+        du = None
+        dl = None
+        if ui < lst.shape[0]:
+            if lst[ui,1] - mz < tlr:
+                du = lst[ui,1] - mz
+        if ui > 0:
+            if mz - lst[ui - 1,1] < tlr:
+                dl = mz - lst[ui - 1,1]
+        if du and dl:
+            if du < dl:
+                return ui
+            else:
+                return ui - 1
+        elif du:
+            return ui
+        elif dl:
+            return ui - 1
+        else:
+            return None
+    
     def protein_name_upper2mixed(self, protein):
+        
         protein_original = {}
         for protein_name in self.data.keys():
             if protein_name.upper() == protein:
@@ -12347,6 +12382,7 @@ class Screening(object):
         reclass = re.compile(r'(^[IV]*\.?[0-9]?).*')
         
         def read_line(l, protein, mode):
+            
             if len(l[17]) and len(l[12]) and len(l[13]):
                 return \
                     [
@@ -12365,6 +12401,7 @@ class Screening(object):
                     ]
         
         def read_table(tbl, protein, mode):
+            
             return \
                 list(
                     filter(
@@ -12396,13 +12433,17 @@ class Screening(object):
                                    sheet = '%s_negative_best' % protein)
             tblpos = self.read_xls(xlsname,
                                    sheet = '%s_positive_best' % protein)
+            if tblneg[0][17] != 'Comment' or tblpos[0][17] != 'Comment':
+                
+                print(protein)
+            
             data[protein] = {}
             data[protein]['neg'] = read_table(tblneg[1:], protein, 'neg')
             data[protein]['pos'] = read_table(tblpos[1:], protein, 'pos')
         
         self.manual = data
     
-    def read_manual2(self, fname = 'All_results_v04.xlsx'):
+    def read_manual2(self, fname = 'All_results_v06.xlsx'):
         """
         Reads manually annotated results from Marco's final table.
         """
@@ -12586,6 +12627,9 @@ class Screening(object):
                 manual_names.split(',')):
                 
                 lips = lips.strip()
+                # typo
+                if lips[-1] == ';':
+                    lips = lips[:-1]
                 
                 # matching the adduct type
                 add = self.readd.match(lips)
@@ -12846,7 +12890,6 @@ class Screening(object):
                         else:
                             cnt.append('NA')
                             cnt.append('NA')
-                        
                         
                         res1.extend(cnt)
                         res1.append(screen)
@@ -13719,6 +13762,19 @@ class Screening(object):
         Downloads localization data from ComPPI.
         Results stored in `ulocs` and `locs` attributes.
         """
+        locnames = {
+            'cytosol': 'Cplasm',
+            'nucleus': 'Nuc',
+            'membrane': 'PM',
+            'secretory-pathway': 'Golgi',
+            'extracellular': 'Extcell',
+            'mitochondrion': 'Mit'
+        }
+        
+        def loc_std_name(loc):
+            
+            return locnames[loc]
+        
         url = self.comppi_url
         post = {
             'fDlSet': 'protnloc',
@@ -13744,37 +13800,199 @@ class Screening(object):
                                 map(
                                     lambda loc:
                                         (
-                                            loc[0],
+                                            loc_std_name(loc[0]),
                                             float(loc[1])
                                         ),
-                                    map(
+                                    filter(
                                         lambda loc:
-                                            loc.split(':'),
-                                        l[3].split('|')
+                                            loc[0] != 'N/A',
+                                        map(
+                                            lambda loc:
+                                                loc.split(':'),
+                                            l[3].split('|')
+                                        )
                                     )
                                 )
                             )
                         ),
                     map(
                         lambda l:
-                            l.strip().split('\t'),
+                            l.decode('utf-8').strip().split('\t'),
                         filter(
                             lambda l:
-                                l[:6] in ultps or l[:10] in ultps,
+                                l[:6].decode('utf-8') in ultps or l[:10].decode('utf-8') in ultps,
                             c.result
                         )
                     )
                 )
             )
         
-        self.locs = dict(map(lambda i: (self.names[i[0]], i[1]),
+        self.locs = dict(map(lambda i: (self.get_std_name(self.names[i[0]]), i[1]),
                              iteritems(self.ulocs)))
+    
+    def export_localizations(self):
+        
+        self.read_prior_knowledge()
+        self.get_comppi_localizations()
+        
+        lines = []
+        
+        for protein, locs in iteritems(self.locs):
+            
+            for loc, score in iteritems(locs):
+                
+                lines.append([protein, loc, '%.08f' % score, 'ComPPI'])
+        
+        for protein, locs in iteritems(self.prior['ccloc']):
+            
+            for loc in locs:
+                
+                lines.append([protein, loc, 'nan', 'GO'])
+        
+        for protein, locs in iteritems(self.prior['hpalo']):
+            
+            for loc in locs:
+                
+                lines.append([protein, loc, 'nan', 'HPA'])
+        
+        with open(self.locoutfile, 'w') as fp:
+            
+            fp.write('%s\n' % '\t'.join(
+                ['protein', 'loc', 'score', 'database']
+            ))
+            fp.write('\n'.join(
+                '\t'.join(l)
+                for l in lines
+            ))
     
     def read_membrane_constitutions(self):
         """
         Reads membrane lipid constitutions from Charlotte.
         """
-        pass
+        
+        names = {
+            'Chol': 'CH',
+            'Chol/erg': 'CH',
+            'GlcCer': 'HexCer',
+            'Cer-OH': 'CerOH',
+            'DHCer': 'Cer',
+            'TG': 'TAG',
+            'LBPA': 'BMP',
+            'DhSM': 'SM',
+            'Ceramides': 'Cer',
+            'LPE': 'LysoPE',
+            'LPA': 'LysoPA',
+            'LPC': 'LysoPC'
+        }
+        std_names = set(names.values()) | set([
+            'PC', 'PE', 'PS', 'PI', 'PG',
+            'SM', 'Cer', 'PA', 'CL', 'PE-O', 'PC-O'
+        ])
+        
+        def read_sheet(tbl, organelle):
+            
+            def get_cc(scc):
+                
+                def cc_to_int(cc):
+                    
+                    cc = [
+                        self.to_int(x)
+                        for x in
+                        cc.replace('C', '').split(':')
+                    ]
+                    if not cc or not cc[0]:
+                        return (0, 0)
+                    else:
+                        if len(cc) == 1:
+                            cc.append(0)
+                        return cc
+                
+                if not scc:
+                    return (np.nan, np.nan)
+                
+                scc = scc.split('or')[0].strip().split('/')
+                scc = [cc_to_int(cc) for cc in scc]
+                
+                return (sum([cc[0] or 0 for cc in scc]),
+                        sum([cc[1] or 0 for cc in scc]))
+            
+            res = []
+            
+            # header rows; hg is empty at 3 rows merged header cells
+            for i, (top, hg, cc) in enumerate(zip(tbl[0], tbl[1], tbl[2])):
+                
+                if top.startswith('phospholipids'):
+                    hg = 'phospho'
+                elif top.startswith('neutral lipids'):
+                    hg = 'neutral'
+                
+                if not hg or hg == 'observation':
+                    continue
+                
+                hg_std = (
+                    names[hg] if hg in names
+                    else hg if hg in std_names
+                    else np.nan
+                )
+                
+                # processing carbon counts
+                c, u  = get_cc(cc)
+                # iterate rows until empty row
+                for j in itertools.count(start = 3):
+                    
+                    if j >= len(tbl) - 1 or not any(tbl[j][:40]):
+                        break
+                    
+                    if i < len(tbl[j]) - 2 and not tbl[j][i + 1]:
+                        
+                        # multicol merged cells
+                        tbl[j][i + 1] = tbl[j][i]
+                    
+                    # the actual value
+                    vals = [self.to_float(v) for v in tbl[j][i].split('-')]
+                    
+                    if not any(vals):
+                        continue
+                    
+                    for v in vals:
+                        
+                        if v:
+                            res.append([hg, hg_std, j, c, u, organelle, v])
+            
+            return np.array(res, dtype = np.object)
+        
+        book = openpyxl.load_workbook(
+            filename = self.membranesf,
+            read_only = True
+        )
+        sheets = [s.title for s in book.worksheets]
+        del book
+        
+        result = []
+        # iterating sheets with organelle constitutions
+        for nsheet in xrange(9):
+            
+            tbl = self.read_xls(self.membranesf, sheet = nsheet)
+            result.append(read_sheet(tbl, organelle = sheets[nsheet]))
+        
+        self.memconst = np.vstack(result)
+    
+    def export_membrane_constitutions(self):
+        
+        self.read_membrane_constitutions()
+        
+        hdr = ['hg_original', 'hg', 'id', 'carb', 'uns', 'loc', 'val']
+        
+        with open(self.membranesoutf, 'w') as fp:
+            
+            fp.write('%s\n' % '\t'.join(hdr))
+            
+            fp.write(
+                '\n'.join(
+                    '\t'.join('{}'.format(i) for i in line)
+                    for line in self.memconst
+                )
+            )
     
     def read_manual_localizations(self):
         """
@@ -14110,7 +14328,7 @@ class Screening(object):
             'Membrane': None,
             
             'Lipid droplet': 'Lipdrop',
-            'Secreted': 'Secr',
+            'Secreted': 'Extcell',
             'Peroxisome': 'Perox',
             'Peroxisomes': 'Perox',
             'Lysosome': 'Lyso',
@@ -14118,7 +14336,6 @@ class Screening(object):
             'Actin filaments': 'Actin',
             'Vesicles': 'Vesi',
             'Cytoplasmic bodies': 'Cybody'
-            
         }
         
         raw = self.read_xls(fname)
@@ -14530,7 +14747,7 @@ class Screening(object):
                          'ltp', 'lipid', 'cargo_binding',
                          'MS%s' % r.screen, 'own_experiment')
         
-        add_set(self.bindprop_all,
+        add_set(self.bindprop,
                 vertices, edges, df,
                 'ltp', 'lipid',
                 'cargo_binding', 'LITB', 'literature')
@@ -15007,3 +15224,102 @@ class Screening(object):
                 for lip in lips:
                     
                     fp.write('%s\t%s\n' % (protein, lip))
+    
+    def mass_diff(self):
+        """
+        Generates a DataFrame with potential mass differences corresponding
+        to addition or removal of H2, CH2, CH or C groups.
+        """
+        
+        str_frm = ['C', 'H2', 'CH2', 'CH', 'C']
+        formulas = [mass.Formula(f) for f in str_frm]
+        nothing = mass.Formula('')
+        nothing.mass = 0.0
+        formulas.append(nothing)
+        comb = [
+            mass.Formula(''.join(f.formula for f in ff)) for ff in
+            itertools.combinations_with_replacement(formulas, 10)
+        ]
+        massform = list(zip(*[
+            (f.mass, f.formula) if hasattr(f, 'mass')
+            else (0.0, '') for f in comb
+        ]))
+        
+        return pd.DataFrame({'mass': massform[0], 'formula': massform[1]})
+    
+    def results_df(self):
+        """
+        Reads manually curated result tables. Returns the 2 tables
+        and their union in `pandas.DataFrame`s.
+        """
+        
+        self.read_manual()
+        self.manual_df(screen = 'E')
+        invitro = self.pmanual
+        self.read_manual2()
+        self.manual_df(screen = 'A', only_swl_col = True)
+        invivo = self.pmanual
+        results = pd.concat([invitro, invivo])
+        
+        invivo.sort_values(by = 'mzcorr')
+        invitro.sort_values(by = 'mzcorr')
+        results.sort_values(by = 'mzcorr')
+        
+        return {'invivo': invivo, 'invitro': invitro, 'all': results}
+    
+    def group_diff_mz(self):
+        """
+        Finds m/z's within and accross proteins which are equal or
+        show a difference corresponding to one of the predefined
+        mass differences.
+        """
+        
+        for ionm in ['neg', 'pos']:
+            
+            res = self.results_df()
+            diff = self.mass_diff()
+            allmz = res['all']['mzcorr']
+            
+            # combinations of all mz's
+            comb = np.stack(
+                np.meshgrid(allmz, allmz, diff.mass), -1
+            ).reshape(-1, 3)
+            #mzdiff = np.abs(comb[,0] - comb[,1]) # difference of all m/z's
+            
+            #diffdiff = np.abs(comb[,2] - mzdiff) # matching combinations
+            ind = np.arange(comb.shape[0]) # indices
+            mzind1 = (
+                ind - (ind % diff.shape[0])
+            ) % allmz.shape[0] // diff.shape[0]
+            mzind2 = (
+                ind - (ind % (
+                    diff.shape[0] * allmz.shape[0]
+                )) // diff.shape[0] * allmz.shape[0]
+            )
+            diffind = ind % diff.shape[0]
+            # everything done twice; need to half
+            # our results match below the threshold
+            match = np.logical_and(mzind1 < mzind2, diffdiff < tlr)
+            # looking up data for matches
+            resdf = pd.DataFrame({
+                'mz1': allmz[mzind1[match]],
+                'mz2': allmz[mzind2[match]],
+                'protein1': res.protein[mzind1[match]],
+                'protein2': res.protein[mzind2[match]]#,
+                #'screen1': res.protein[]
+            })
+            
+            result[ionm] = resdf
+        
+        return result
+    
+    def unknowns(self):
+        
+        for protein, d in iteritems(self.valids):
+            
+            for ionm, tbl in iteritems(d):
+                
+                self.ms2_oneprotein(protein)
+                self.good_features(proteins = [protein])
+                
+                

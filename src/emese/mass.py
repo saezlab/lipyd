@@ -101,6 +101,7 @@ def getMassFirstIso():
     firstIso['electron'] = electron
     firstIso['neutron']  = neutron
     globals()['massFirstIso'] = firstIso
+    globals()['massdb'] = firstIso
 
 def getWeightStd():
     """
@@ -150,7 +151,7 @@ def getFreqIso():
             continue
     globals()['freqIso'] = freqIso
 
-massdb = {
+weight_builtin = {
     "proton": 1.00727646677,
     "electron": 0.00054857990924,
     "neutron": 1.00866491588,

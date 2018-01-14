@@ -59,6 +59,9 @@ class MetaboliteClass(AbstractMetabolite):
         
         
 
+class Substituent(mass.Formula):
+    
+    
 
 class SubstituentSeries(object):
     
