@@ -4,7 +4,7 @@
 #
 #  This file is part of the `emese` python module
 #
-#  Copyright (c) 2014-2017 - EMBL
+#  Copyright (c) 2014-2018 - EMBL
 #
 #  File author(s): Dénes Türei (denes@ebi.ac.uk)
 #
@@ -14,6 +14,9 @@
 #
 #  Website: http://www.ebi.ac.uk/~denes
 #
+
+import imp
+import numpy as np
 
 import emese.mgf as mgf
 
@@ -26,8 +29,15 @@ class Sample(mgf.MgfReader):
         
         mgf.MgfReader.__init__(self, *args, **kwargs)
         
-        self,read()
+        self.read()
         self.sort_all()
+    
+    def reload(self):
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
     
     def sort_all(self, by = 'mz', desc = False, resort = False):
         """

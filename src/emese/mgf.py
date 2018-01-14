@@ -16,6 +16,9 @@
 #
 
 import os
+import re
+import imp
+import numpy as np
 
 class MgfReader(object):
     
@@ -29,7 +32,14 @@ class MgfReader(object):
             
             setattr(self, k, v)
         
-        self.var = ['mz', 'indensity', 'rtime', 'charge', 'charge', 'offset']
+        self.var = ['mz', 'intensity', 'rtime', 'scan', 'charge', 'offset']
+    
+    def reload(self):
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
     
     def read(self):
         """
@@ -79,12 +89,12 @@ class MgfReader(object):
                         if m[0] == stRpepmass:
                             pepmass = float(m[1])
                             intensity = 0.0 if m[2] == stRempty else float(m[2])
-                            if charge is None:
-                                cap_next = True
                         
                     else:
-                        charge = int(l[7:-1]) if len(l) >= 8 else None
-                        if charge is None or charge == self.charge_to_read:
+                        charge = int(l[7:-2]) if len(l) >= 8 else None
+                        if (self.charge_to_read is None or
+                            charge == self.charge_to_read):
+                            
                             cap_next = True
                 
                 elif cap_next:
