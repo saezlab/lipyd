@@ -42,7 +42,7 @@ class Feature(object):
     I created this class to group them.
     """
     
-    def __init__(self, main, protein, mode, oi, log = False):
+    def __init__(self, main, protein, mode, oi, log = True):
         """
         @main : ltp.Screening() instance
             One Screening() instance with MS1 and MS2 processing already done.
@@ -1118,8 +1118,8 @@ class MS2Scan(object):
                 map(
                     lambda co:
                         (
-                            int(round(math.log(co[0][0], logbase))) ==
-                            int(round(math.log(co[1][0], logbase)))
+                            (math.log(co[0][0], logbase) -
+                            math.log(co[1][0], logbase)) <= 1
                         ),
                     itertools.combinations(i, 2)
                 )

@@ -3566,6 +3566,7 @@ class Screening(object):
                         fnames[protein] = {}
                     if pos not in fnames[protein] or proteind.endswith('update'):
                         fnames[protein][pos] = os.path.join(path, *fpath)
+        
         self.datafiles = fnames
 
     def read_file_np(self, fname, read_vars = ['Normalized Area']):
@@ -10830,23 +10831,23 @@ class Screening(object):
         d = self.data if in_raw else self.valids
         lst = d[protein][mode]['mz']
         
-        ui = lst[:,1].searchsorted(mz)
+        ui = lst.searchsorted(mz)
         du = None
         dl = None
         if ui < lst.shape[0]:
-            if lst[ui,1] - mz < tlr:
-                du = lst[ui,1] - mz
+            if lst[ui] - mz < tlr:
+                du = lst[ui] - mz
         if ui > 0:
-            if mz - lst[ui - 1,1] < tlr:
-                dl = mz - lst[ui - 1,1]
+            if mz - lst[ui - 1] < tlr:
+                dl = mz - lst[ui - 1]
         if du and dl:
             if du < dl:
                 return ui
             else:
                 return ui - 1
-        elif du:
+        elif du or du == 0.0:
             return ui
-        elif dl:
+        elif dl or dl == 0.0:
             return ui - 1
         else:
             return None
