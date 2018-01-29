@@ -919,6 +919,7 @@ class Screening(object):
             'fullhgroup',
             'mhgroup',
             'uhgroup',
+            'phgroup',
             'hgcc',
             'cc',
             'hgfa',
@@ -12806,7 +12807,7 @@ class Screening(object):
             
             uhg = uhg.replace('-O-', '-O')
             
-            if 'O' in cnt[2] and '-O' not in uhg:
+            if uhg != 'NA' and cnt[2] == 'O' and '-O' not in uhg:
                 
                 uhg = '%s-O' % uhg
             
@@ -12815,6 +12816,31 @@ class Screening(object):
                 uhg = cnt[14]
             
             return uhg
+        
+        def get_phg(uhg, p):
+            
+            phg = uhg
+            
+            if 'Cer' in uhg or 'SM' in uhg:
+                
+                cersm = 'Cer' if 'Cer' in phg else 'SM'
+                
+                if p == 't' or 'OH' in uhg:
+                    
+                    phg = uhg.replace('OH', '')
+                    uhg = phg.replace(cersm,
+                        '%s%s' % ('%st' % ('-' if 'Hex' in uhg else ''), cersm))
+                    
+                elif p == 'd' or 'OH' not in uhg:
+                    
+                    uhg = phg.replace(cersm,
+                        '%s%s' % ('%sd' % ('-' if 'Hex' in uhg else ''), cersm))
+            
+            if uhg != 'NA' and (p == 'O' or '-O' in uhg):
+                
+                phg = uhg.replace('-O', '')
+            
+            return uhg, phg
         
         
         for protein, d in iteritems(self.manual):
@@ -12859,13 +12885,21 @@ class Screening(object):
                             if cnt[hgi] in shgs2:
                                 cnt[hgi] = shgs2[cnt[hgi]]
                         
+                        # uhgroup, phgroup
                         uhg = get_uhg(cnt, counts)
+                        uhg, phg = get_phg(uhg, cnt[2])
                         
                         cnt.append(uhg)
+                        cnt.append(phg)
                         
+                        # hgcc and cc
                         if not np.isnan(cnt[3]) and not np.isnan(cnt[4]):
-                            cnt.append('%s(%u:%u)' % (
-                                cnt[16] if cnt[16] != 'NA' else cnt[14],
+                            cnt.append('%s(%s%s%u:%u)' % (
+                                cnt[17]
+                                    if cnt[17] != 'NA'
+                                    else get_phg(cnt[14], cnt[2])[1],
+                                cnt[2],
+                                '-' if cnt[2] == 'O' else '',
                                 cnt[3],
                                 cnt[4]
                             ))
@@ -12874,6 +12908,7 @@ class Screening(object):
                             cnt.append('NA')
                             cnt.append('NA')
                         
+                        # hgfa and facc
                         facc = []
                         for i in [6, 9, 12]:
                             if not np.isnan(cnt[i]) and not np.isnan(cnt[i+1]):
@@ -12883,8 +12918,12 @@ class Screening(object):
                                             sorted(facc)))
                         
                         if len(facc):
-                            cnt.append('%s(%s)' % (
-                                cnt[16] if cnt[16] != 'NA' else cnt[14],
+                            cnt.append('%s(%s%s%s)' % (
+                                cnt[17]
+                                    if cnt[17] != 'NA'
+                                    else get_phg(cnt[14], cnt[2])[1],
+                                cnt[2],
+                                '-' if cnt[2] == 'O' else '',
                                 facc)
                             )
                             cnt.append(facc)
@@ -13012,7 +13051,8 @@ class Screening(object):
                                 cc[0][4] or hg == 'FA' or lyso
                             )):
                             
-                            res.extend([cc[0][0],
+                            res.extend([
+                                cc[0][0],
                                 int(cc[0][1]),
                                 int(cc[0][2]),
                                 cc[0][3],

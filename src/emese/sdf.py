@@ -17,6 +17,18 @@
 
 import imp
 import sys
+import re
+
+resyn = re.compile(
+    r'(^[A-Z]{2,})\(([0-9]+:[0-9]+)\(.*\)/([0-9]+:[0-9]+)\(.*\)\)'
+)
+rehg  = re.compile(r'^([A-Z]{2,4})(\(.*\))')
+refa  = re.compile(r'C([0-9]+:[0-9]+)n?-?[-0-9]*$')
+refa2 = re.compile(r'([0-9]{1,2}:[0-9])\(?[0-9EZ]*\)?$')
+hgsyn = {
+    'TG': 'TAG',
+    'DG': 'DAG'
+}
 
 class SdfReader(object):
     
@@ -33,10 +45,11 @@ class SdfReader(object):
         :param file fp: An open file pointer to the SDF file.
         """
         self.fp = fp
-        self.name = fp.name
+        self.name = self.fp.name
         self.data = {}
         self.mainkey  = {}
         self.indexed = False
+        self.silent = silent
         
         self.annots.update(annots)
         
@@ -99,8 +112,6 @@ class SdfReader(object):
                     annotkey = None
                 
                 if sl[:3] == '> <':
-                    if not annotpart:
-                        annot = {}
                     annot_or_id = False
                     annotpart = True
                     annotkey = sl[3:-1]
@@ -111,7 +122,7 @@ class SdfReader(object):
                 if expect_new and len(l):
                     
                     _id = sl
-                    print(_id)
+                    annot = {}
                     this_offset = offset
                     expect_new = False
                     molpart = 1
@@ -161,15 +172,70 @@ class SdfReader(object):
                 # this is indexing: we build dicts of names
                 self.mainkey[_id] = this_offset
                 
+                if 'COMMON_NAME' in annot:
+                    
+                    m = refa2.match(annot['COMMON_NAME'])
+                    
+                    if m:
+                        
+                        if 'SYNONYMS' not in annot:
+                            
+                            annot['SYNONYMS'] = 'FA(%s)' % m.groups()[0]
+                            
+                        else:
+                            
+                            annot['SYNONYMS'] = '%s;FA(%s)' % (
+                                annot['SYNONYMS'],
+                                m.groups()[0]
+                            )
+                
                 for k, v in self.annots.items():
                     
                     if k in annot:
                             
                         if k == 'SYNONYMS':
                             
-                            for syn in annot[k].split(';'):
+                            syns = set(syn.strip() for syn in annot[k].split(';'))
+                            
+                            syns2 = set([])
+                            
+                            for syn in syns:
                                 
-                                self.synonym[syn.strip()] = this_offset
+                                m = rehg.match(syn)
+                                
+                                if m:
+                                    
+                                    m = m.groups()
+                                    
+                                    if m[0] in hgsyn:
+                                        
+                                        syns2.add('%s%s' % (hgsyn[m[0]], m[1]))
+                            
+                            syns.update(syns2)
+                            syn2 = set([])
+                            
+                            for syn in syns:
+                                
+                                m = resyn.match(syn)
+                                
+                                if m:
+                                    
+                                    syns2.add('%s(%s/%s)' % m.groups())
+                                
+                                m = refa.match(syn)
+                                
+                                if m:
+                                    
+                                    syns2.add('FA(%s)' % m.groups()[0])
+                            
+                            syns.update(syns2)
+                            
+                            for syn in syns:
+                                
+                                if syn not in self.synonym:
+                                    self.synonym[syn] = set([])
+                                
+                                self.synonym[syn].add(this_offset)
                             
                         else:
                             
@@ -204,30 +270,80 @@ class SdfReader(object):
             
             if name in index:
                 
-                offset = index[name]
-                
-                return self.read(index_only = False, one_record = True, go_to = offset)
+                if typ == 'synonym':
+                    
+                    result = []
+                    
+                    for offset in index[name]:
+                        
+                        result.append(
+                            self.read(
+                                index_only = False,
+                                one_record = True,
+                                go_to = offset
+                            )
+                        )
+                    
+                    if len(result) == 1:
+                        
+                        return result[0]
+                        
+                    else:
+                        
+                        return result
+                    
+                else:
+                    
+                    offset = index[name]
+                    
+                    return self.read(index_only = False, one_record = True, go_to = offset)
     
-    def write_mol(self, name, typ, outf = None):
+    def write_mol(self, name, typ, outf = None, return_data = False):
         
-        outf = outf or '%s.mol' % name
+        outf = outf or '%s_%s_%s.mol'
         
-        r = self.get_record(name, typ)
+        rr = self.get_record(name, typ)
         
-        with open(outf, 'w') as fp:
+        if not rr:
             
-            fp.write(
-                '%s\n  %s\n%s\n%s' % (
-                    r['id'], r['source'], r['comment'], r['mol']
-                )
+            return None
+        
+        if type(rr) is not list:
+            
+            rr = [rr]
+        
+        for r in rr:
+            
+            _outf = outf % (
+                name.replace('/', '.'),
+                r['annot']['COMMON_NAME'].replace('/', '.').replace(' ', '..')
+                    if 'COMMON_NAME' in r['annot']
+                    else '',
+                r['id']
             )
+            
+            r['molfile'] = _outf
+            
+            with open(_outf, 'w') as fp:
+                
+                _ = fp.write(
+                    '%s\n  %s\n%s\n%s' % (
+                        r['id'], r['source'], r['comment'], r['mol']
+                    )
+                )
+        
+        if return_data:
+            
+            return rr
     
     def index_info(self):
         
-        sys.stdout.write('\t:: Indexed %u records from `%s`.\n' % (
-            len(self.mainkey),
-            self.name
-        ))
+        if not self.silent:
+            
+            sys.stdout.write('\t:: Indexed %u records from `%s`.\n' % (
+                len(self.mainkey),
+                self.name
+            ))
     
     def __del__(self):
         

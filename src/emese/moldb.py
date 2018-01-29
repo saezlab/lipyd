@@ -29,8 +29,10 @@ except:
 
 import emese._curl as _curl
 import emese.common as common
+import emese.settings as settings
 import emese.mz as mz
 import emese.progress as progress
+import emese.sdf as sdf
 
 
 class Reader(object):
@@ -63,28 +65,7 @@ class Reader(object):
             ]
 
 
-class SdfReader(Reader):
-    
-    def __init__(self, fname = None, name = None):
-        
-        if not hasattr(self, 'fname') or fname is not None:
-            self.fname = fname
-        
-        if not hasattr(self, 'name'):
-            self.name = name or fname.split(os.path.sep)[-1]
-    
-    def __iter__(self):
-        
-        for mol in pybel.readfile('sdf', self.fname):
-            
-            yield mol
-    
-    def process(self):
-        
-        pass
-
-
-class LipidMaps(SdfReader):
+class LipidMapsOld(object):
     
     def __init__(self):
         
@@ -134,6 +115,31 @@ class LipidMaps(SdfReader):
                     mol[0],
                     mol[2].data['PUBCHEM_CID']
                 ]
+
+
+class LipidMaps(sdf.SdfReader):
+    
+    def __init__(self, extract_file = True):
+        
+        self.url   = settings.get('lipidmaps_url')
+        self.fname = settings.get('lipidmaps_fname')
+        self.curl  = _curl.Curl(self.url, large = True, silent = False)
+        
+        if extract_file:
+            
+            self.efname = os.path.join('cache', self.fname.split('/')[-1])
+            
+            with open(self.efname, 'wb') as efp:
+                
+                for l in self.curl.result[self.fname]:
+                    
+                    efp.write(l)
+            
+            efp = open(os.path.join('cache', self.fname.split('/')[-1]), 'rb')
+            sdf.SdfReader.__init__(self, efp)
+        
+        else:
+            sdf.SdfReader.__init__(self, self.curl.result[self.fname])
 
 
 class SwissLipids(Reader):
