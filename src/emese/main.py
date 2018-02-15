@@ -4,7 +4,7 @@
 #
 #  This file is part of the `emese` python module
 #
-#  Copyright (c) 2015-2017 - EMBL
+#  Copyright (c) 2015-2018 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -2854,7 +2854,7 @@ class Screening(object):
                 sheet.max_column, sheet.max_row)
             table = map(lambda row:
                 map(lambda c:
-                    unicode(c.value),
+                    unicode(c.value) if c.value else '',
                     row
                 ),
                 cells
@@ -13958,9 +13958,23 @@ class Screening(object):
                         sum([cc[1] or 0 for cc in scc]))
             
             res = []
+            val = [
+                [
+                    unicode(c.value) if c.value else ''
+                    for c in r
+                ] for r in tbl.iter_rows()
+            ]
+            col = [
+                [
+                    c.font.color.value
+                        if c.font and c.font.color
+                        else None
+                        for c in r
+                ] for r in tbl.iter_rows()
+            ]
             
             # header rows; hg is empty at 3 rows merged header cells
-            for i, (top, hg, cc) in enumerate(zip(tbl[0], tbl[1], tbl[2])):
+            for i, (top, hg, cc) in enumerate(zip(val[0], val[1], val[2])):
                 
                 if top.startswith('phospholipids'):
                     hg = 'phospho'
@@ -13981,16 +13995,21 @@ class Screening(object):
                 # iterate rows until empty row
                 for j in itertools.count(start = 3):
                     
-                    if j >= len(tbl) - 1 or not any(tbl[j][:40]):
+                    if j >= len(val) - 1 or not any(val[j][:40]):
                         break
                     
-                    if i < len(tbl[j]) - 2 and not tbl[j][i + 1]:
-                        
-                        # multicol merged cells
-                        tbl[j][i + 1] = tbl[j][i]
+                    #if i < len(val[j]) - 2 and not val[j][i + 1]:
+                    #    
+                    #    # multicol merged cells
+                    #    val[j][i + 1] = val[j][i]
                     
                     # the actual value
-                    vals = [self.to_float(v) for v in tbl[j][i].split('-')]
+                    vals = [
+                        self.to_float(v)
+                        for v in val[j][i].split('-')
+                        # the violet numbers are in nmol/mg
+                        if col[j][i] != 'FF8064A2'
+                    ]
                     
                     if not any(vals):
                         continue
@@ -14007,14 +14026,12 @@ class Screening(object):
             read_only = True
         )
         sheets = [s.title for s in book.worksheets]
-        del book
         
         result = []
         # iterating sheets with organelle constitutions
         for nsheet in xrange(9):
             
-            tbl = self.read_xls(self.membranesf, sheet = nsheet)
-            result.append(read_sheet(tbl, organelle = sheets[nsheet]))
+            result.append(read_sheet(book.worksheets[nsheet], organelle = sheets[nsheet]))
         
         self.memconst = np.vstack(result)
     

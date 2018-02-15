@@ -15,3 +15,18 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+# from pyteomics import mzml
+
+import pyopenms
+
+class Reader(object):
+    
+    def __init__(self, fname):
+        
+        self.fname = fname
+        
+    def read_mzml(self):
+        
+        self.fil = pyopenms.MzMLFile()
+        self.exp = pyopenms.MSExperiment()
+        self.fil.load(self.fname, self.exp)
