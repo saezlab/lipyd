@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `emese` python module
+#  This file is part of the `lipyd` python module
 #
 #  Copyright (c) 2015-2017 - EMBL
 #
@@ -24,7 +24,7 @@ import imp
 import copy
 from collections import defaultdict
 
-import emese._curl as _curl
+import lipyd._curl as _curl
 
 urlMasses = 'http://www.ciaaw.org/atomic-masses.htm'
 urlWeights = 'http://www.ciaaw.org/atomic-weights.htm'

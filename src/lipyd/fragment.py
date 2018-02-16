@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `emese` python module
+#  This file is part of the `lipyd` python module
 #
 #  Copyright (c) 2015-2017 - EMBL
 #
@@ -22,7 +22,7 @@ from past.builtins import xrange, range, reduce
 import re
 import imp
 
-import emese.mass as mass
+import lipyd.mass as mass
 
 class AdductCalculator(object):
     

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `emese` python module
+#  This file is part of the `lipyd` python module
 #
 #  Copyright (c) 2015-2017 - EMBL
 #
@@ -17,7 +17,7 @@
 
 from future.utils import iteritems
 
-import emese.metabolite as metabolite
+import lipyd.metabolite as metabolite
 
 
 class AbstractGlycerol(metabolite.AbstractMetabolite):

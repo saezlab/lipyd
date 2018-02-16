@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `emese` python module
+#  This file is part of the `lipyd` python module
 #
 #  Copyright (c) 2015-2017 - EMBL
 #
@@ -15,6 +15,6 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
-from emese.main import *
-import emese._version as _version
+from lipyd.main import *
+import lipyd._version as _version
 __version__ = _version.__version__

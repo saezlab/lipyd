@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `emese` python module
+#  This file is part of the `lipyd` python module
 #
 #  Copyright (c) 2015-2017 - EMBL
 #
@@ -27,7 +27,7 @@ import collections
 import imp
 import math
 
-from emese.common import *
+from lipyd.common import *
 
 class Feature(object):
     """

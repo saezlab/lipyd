@@ -1,9 +1,9 @@
 #!/bin/bash
 
 rm src/*.pyc
-rm src/emese/*.pyc
-rm -r src/emese.egg-info
+rm src/lipyd/*.pyc
+rm -r src/lipyd.egg-info
 
-sed -i 's/\([0-9]*\.[0-9]*\.\)\([0-9]*\)/echo \1$\(\(\2+1\)\)/ge' src/emese/__version__
+sed -i 's/\([0-9]*\.[0-9]*\.\)\([0-9]*\)/echo \1$\(\(\2+1\)\)/ge' src/lipyd/__version__
 
 python setup.py sdist

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `emese` python module
+#  This file is part of the `lipyd` python module
 #
 #  Copyright (c) 2014-2018 - EMBL
 #
@@ -18,7 +18,7 @@
 import imp
 import numpy as np
 
-import emese.mgf as mgf
+import lipyd.mgf as mgf
 
 
 class Sample(mgf.MgfReader):

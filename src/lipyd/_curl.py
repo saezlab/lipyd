@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `emese` python module
+#  This file is part of the `lipyd` python module
 #
 #  Copyright (c) 2015-2016 - EMBL-EBI
 #
@@ -89,7 +89,7 @@ except:
 
 from contextlib import closing
 
-import emese.progress as progress
+import lipyd.progress as progress
 
 if 'unicode' not in globals():
     unicode = str

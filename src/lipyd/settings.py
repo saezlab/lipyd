@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `emese` python module
+#  This file is part of the `lipyd` python module
 #
 #  Copyright (c) 2015-2017 - EMBL
 #
@@ -21,7 +21,7 @@ import os
 import copy
 import collections
 
-import emese.common as common
+import lipyd.common as common
 
 _defaults = {
     # The absolute root directory.

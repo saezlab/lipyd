@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `emese` python module
+#  This file is part of the `lipyd` python module
 #
 #  Copyright (c) 2014-2017 - EMBL
 #
@@ -21,7 +21,7 @@ import os
 from setuptools import setup, find_packages
 import imp
 
-_version = imp.load_source('_version', os.path.join('src', 'emese', '_version.py'))
+_version = imp.load_source('_version', os.path.join('src', 'lipyd', '_version.py'))
 __version__ = _version.__version__
 
 metainfo = {
@@ -30,8 +30,8 @@ metainfo = {
     },
     'version': __version__,
     'license': 'GPLv3',
-    'download_url': ['https://github.com/saezlab/emese/archive/dev2.zip'],
-    'url': ['https://github.com/saezlab/emese'],
+    'download_url': ['https://github.com/saezlab/lipyd/archive/dev2.zip'],
+    'url': ['https://github.com/saezlab/lipyd'],
     'description': 'Analysis of lipidomics mass spectrometry data',
     'platforms': [
         'Linux',
@@ -95,7 +95,7 @@ deps = [
 ]
 
 setup(
-    name = 'emese',
+    name = 'lipyd',
     version = metainfo['version'],
     maintainer = metainfo['authors']['Türei'][0],
     maintainer_email = metainfo['authors']['Türei'][1],
@@ -111,7 +111,7 @@ setup(
     classifiers = metainfo['classifiers'],
     # package installation
     package_dir = {'':'src'},
-    packages = list(set(find_packages() + ['emese'])),
+    packages = list(set(find_packages() + ['lipyd'])),
     include_package_data = True,
     install_requires = deps
     # dependency_links = deplinks

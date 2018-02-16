@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `emese` python module
+#  This file is part of the `lipyd` python module
 #
 #  Copyright (c) 2015-2018 - EMBL
 #
@@ -85,13 +85,13 @@ except:
     sys.stdout.write('Could not import rpy2 or some of the R packages.\n')
 
 # from this module:
-import emese.mass as mass
-import emese.ms2 as ms2
-import emese.fragment as fragment
-import emese.mz as mzmod
-import emese.progress as progress
-import emese._curl as _curl
-from emese.common import *
+import lipyd.mass as mass
+import lipyd.ms2 as ms2
+import lipyd.fragment as fragment
+import lipyd.mz as mzmod
+import lipyd.progress as progress
+import lipyd._curl as _curl
+from lipyd.common import *
 
 import rlcompleter, readline
 readline.parse_and_bind('tab:complete')
