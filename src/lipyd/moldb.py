@@ -15,6 +15,9 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+from __future__ import print_function
+from past.builtins import xrange, range, reduce
+
 from future.utils import iteritems
 
 import os
@@ -149,13 +152,38 @@ class LipidMaps(sdf.SdfReader):
 
 class SwissLipids(Reader):
     
-    def __init__(self, levels = set(['Species']), silent = False):
+    def __init__(self, levels = set(['Species']), silent = False,
+                 nameproc_args = {}):
         
         self.silent = silent
-        self.levels = levels
+        self.nameproc_args = nameproc_args
+        self.set_levels(levels)
         self.url = settings.get('swisslipids_url')
         self.load()
         self.make_index()
+    
+    def set_levels(self, levels):
+        """
+        Sets levels considered. Levels in SwissLipids are `Species`,
+        `Molecular subspecies`, `Structural subspecies` and
+        `Isomeric subspecies`.
+        
+        :param set levels: A set of one or more of the levels above.
+        """
+        
+        self.levels = levels
+        self.init_name_processor()
+    
+    def init_name_processor(self):
+        """
+        Creates a `LipidNameProcessor` instance to process lipid names
+        at indexing.
+        """
+        
+        self.nameproc = LipidNameProcessor(
+            iso = 'Isomeric subspecies' in self.levels,
+            **self.nameproc_args
+        )
     
     def load(self):
         
@@ -167,10 +195,10 @@ class SwissLipids(Reader):
     
     def iterfile(self):
         
-        self._gzfile.fileobj.seek(0)
-        _ = self._gzfile.readline()
+        self._plainfile.seek(0)
+        _ = self._plainfile.readline()
         
-        for line in self._gzfile:
+        for line in self._plainfile:
             
             yield line
     
@@ -181,10 +209,25 @@ class SwissLipids(Reader):
     
     def make_index(self):
         
+        def cc2str(cc):
+            
+            return (
+                '%s%s%u:%u' % (
+                    cc[0],
+                    '-' if cc[0] in {'O', 'P'} else '',
+                    cc[1],
+                    cc[2]
+                )
+            )
+        
         self.close_plainfile()
         
         self.load()
         self.index = collections.defaultdict(lambda: set([]))
+        self.hgroup_index  = collections.defaultdict(lambda: set([]))
+        self.species_index = collections.defaultdict(lambda: set([]))
+        self.subspec_index = collections.defaultdict(lambda: set([]))
+        self.isomer_index  = collections.defaultdict(lambda: set([]))
         
         if not self.silent:
             
@@ -217,6 +260,39 @@ class SwissLipids(Reader):
                     for n in names.split('|'):
                         
                         self.index[n].add(offset)
+                    
+                    hg, cc1, cc2, icc = self.nameproc.process(names)
+                    
+                    if hg:
+                        
+                        self.hgroup_index[hg].add(offset)
+                    
+                    if cc1:
+                        
+                        self.species_index[
+                            '%s(%s)' % (hg, cc2str(cc1))
+                        ].add(offset)
+                    
+                    if cc2:
+                        
+                        self.subspec_index[
+                            '%s(%s)' % (
+                                hg,
+                                '/'.join(cc2str(a) for a in cc2)
+                            )
+                        ].add(offset)
+                    
+                    if icc:
+                        
+                        self.isomer_index[
+                            '%s(%s)' % (
+                                hg,
+                                '/'.join('%s(%s)' % (
+                                    cc2str(a[0]),
+                                    a[1]
+                                ) for a in icc)
+                            )
+                        ].add(offset)
                 
                 offset = self._gzfile.tell()
                 fpp.write(l)
@@ -227,22 +303,60 @@ class SwissLipids(Reader):
         self.index = dict(self.index)
         self._plainfile = open(self._plainfilename, 'r')
     
-    def get_record(self, name):
+    def get_hg(self, hg):
         
-        result = []
+        return self.get_record(hg, index = 'hg')
+    
+    def get_hg_obmol(self, hg):
         
-        if name in self.index:
+        return self.get_obmol(hg, index = 'hg')
+    
+    def get_species(self, name):
+        
+        return self.get_record(name, index = 'species')
+    
+    def get_subspec(self, name):
+        
+        return self.get_record(name, index = 'subspec')
+    
+    def get_isomer(self, name):
+        
+        return self.get_record(name, index = 'isomer')
+    
+    def get_hg_obmol(self, hg):
+        
+        return self.get_obmol(hg, index = 'hg')
+    
+    def get_species_obmol(self, name):
+        
+        return self.get_obmol(name, index = 'species')
+    
+    def get_subspec_obmol(self, name):
+        
+        return self.get_obmol(name, index = 'subspec')
+    
+    def get_isomer_obmol(self, name):
+        
+        return self.get_obmol(hg, index = 'isomer')
+    
+    def get_record(self, name, index = ''):
+        
+        indexname = '%s%sindex' % (index, '_' if index else '')
+        index = getattr(self, indexname)
+        
+        if name in index:
             
-            for offset in self.index[name]:
+            for offset in index[name]:
                 
                 self._plainfile.seek(offset)
-                result.append(self._plainfile.readline().strip().split('\t'))
-        
-        return result
+                yield self._plainfile.readline().strip().split('\t')
     
-    def get_obmol(self, name):
+    def get_obmol(self, name, index = ''):
         
-        return [self.to_obmol(rec) for rec in self.get_record(name)]
+        return [
+            self.to_obmol(rec)
+            for rec in self.get_record(name, index = index)
+        ]
     
     @staticmethod
     def to_obmol(record):
@@ -252,6 +366,8 @@ class SwissLipids(Reader):
             return None
         
         mol = pybel.readstring('smi', record[8])
+        mol.db_id = record[0]
+        mol.name  = record[3]
         mol.title = '|'.join(record[2:5])
         mol.chebi = record[24] if len(record) > 24 else ''
         mol.lipidmaps = record[25] if len(record) > 25 else ''
@@ -269,22 +385,11 @@ class SwissLipids(Reader):
     
     def __iter__(self):
         
-        if not self.silent:
-            
-            self._gzfile.fileobj.seek(-4, 2)
-            ucsize = struct.unpack('I', self._gzfile.fileobj.read(4))[0]
-            self.prg = progress.Progress(ucsize, 'Processing SwissLipids', 101)
-            self._gzfile.fileobj.seek(0)
-        
         nosmiles = 0
         
         for line in self.iterfile():
             
-            if not self.silent:
-                
-                self.prg.step(len(line))
-            
-            line = line.decode('utf-8').strip().split('\t')
+            line = line.strip().split('\t')
             
             if len(line) > 22 and line[1] in self.levels:
                 
@@ -292,15 +397,9 @@ class SwissLipids(Reader):
                     nosmiles += 1
                     continue
                 
-                self.to_obmol(line)
+                mol = self.to_obmol(line)
                 
                 yield mol
-        
-        if not self.silent:
-            
-            self.prg.terminate()
-        
-        self._curl.close()
     
     def __del__(self):
         
@@ -318,21 +417,39 @@ class SwissLipids(Reader):
         if hasattr(self, '_plainfile'):
             
             self._plainfile.close()
+    
+    def export_names(self, proc):
+        
+        with open('names.tmp', 'w') as fp:
+            
+            for i in self.__iter__():
+                
+                n = proc.process(i.title)
+                
+                fp.write('%s\t%s\n' % (i.title, str(n)))
 
 
 class LipidNameProcessor(object):
     
-    def __init__(self):
+    def __init__(self, with_alcohols = True, with_coa = True, iso = False):
         
+        self.with_alcohols = with_alcohols
+        self.with_coa = with_coa
+        self.iso = iso
         self.lipnamesf = settings.get('lipnamesf')
         self.adducts_constraints = settings.get('adducts_constraints')
-        self.recount1 = re.compile(r'\(([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})\)')
-        self.recount2 = re.compile(r'\(([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/'
-                                   r'([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
-                                   r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
-        self.recount3 = re.compile(r'\(([Odt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
-                                   r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})/?'
-                                   r'([Odt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
+        self.recount1 = re.compile(r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})\)')
+        self.recount2 = re.compile(r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})/'
+                                   r'([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
+                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
+        self.recount3 = re.compile(r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})[/_]?'
+                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})[/_]?'
+                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})[/_]?'
+                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
+        self.recount4 = re.compile(r'\(?([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})\(?([0-9EZ,]*)\)?[/_]?'
+                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?[/_]?'
+                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?[/_]?'
+                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?\)?')
         self.gen_fa_greek()
         self.read_lipid_names()
     
@@ -409,87 +526,59 @@ class LipidNameProcessor(object):
                 )
             )
     
-    def carbon_counts(self, name):
+    def carbon_counts(self, name, ccexp = 2):
         
         # regex finds the total carbon count
         cc1 = self.recount1.findall(name)
         # regex finds 2-3 fatty acids
-        cc2 = self.recount3.findall(name)
+        cc3 = self.recount3.findall(name)
         
         # the total carbon count
         ccpart = (
             [cc1[0][0], int(cc1[0][1]), int(cc1[0][2])]
             if len(cc1) else
-            ['', np.nan, np.nan]
+            None
         )
         
-        # carbon counts of fatty acids
-        if len(cc2s) and (
-            any(map(lambda cc2: cc2[4], cc2s)) or
-            swl_parsed == 'FA' or
-            lyso
-        ):
+        faccparts = []
+        
+        if ccexp and cc3 and cc3[0][(ccexp - 1) * 3 + 1]:
             
-            faccparts = (
-                list(
-                    map(
-                        lambda cc2:
-                            [
-                                # FA1
-                                cc2[0],
-                                int(cc2[1]),
-                                int(cc2[2]),
-                                # FA2
-                                cc2[3],
-                                int(cc2[4]) if cc2[4] else np.nan,
-                                int(cc2[5]) if cc2[5] else np.nan,
-                                # FA3
-                                cc2[6],
-                                int(cc2[7]) if cc2[7] else np.nan,
-                                int(cc2[8]) if cc2[8] else np.nan
-                            ],
-                        filter(
-                            lambda cc2:
-                                # if this is a Lyso species
-                                # or single fatty acid
-                                # we have only one cc:unsat
-                                # otherwise we must have at least 2
-                                cc2[4] or swl_parsed == 'FA' or lyso,
-                            cc2s
-                        )
-                    )
+            for i in range(ccexp):
+                
+                if cc3[0][i * 3 + 1]:
+                    
+                    faccparts.append((
+                            cc3[0][i * 3],
+                            int(cc3[0][i * 3 + 1]),
+                            int(cc3[0][i * 3 + 2])
+                    ))
+            
+            if len(faccparts) != ccexp:
+                
+                faccparts = None
+        
+        return ccpart, faccparts
+    
+    def isomeric_carbon_counts(self, name):
+        
+        icc = self.recount4.findall(name)
+        
+        if icc:
+            
+            icc = [
+                (
+                    # the usual prefix, carbon, unsat tuple:
+                    (icc[0][i], int(icc[0][i + 1]), int(icc[0][i + 2])),
+                    # and the isomeric conformation string:
+                    icc[0][i + 3]
                 )
-            )
-            
-        else:
-            faccparts = [
-                [
-                    '', np.nan, np.nan,
-                    '', np.nan, np.nan,
-                    '', np.nan, np.nan
-                ]
+                for i in xrange(0, 13, 4)
+                # keep only existing aliphatic chains
+                if icc[0][i + 1]
             ]
         
-        for faccpart in faccparts:
-            
-            if cc2s and not cc1:
-                
-                ccpart = [
-                    faccpart[0] or faccpart[3] or faccpart[6],
-                    np.nansum([faccpart[1], faccpart[4], faccpart[7]]),
-                    np.nansum([faccpart[2], faccpart[5], faccpart[8]])
-                ]
-            
-            # making sure ethers are idenfified:
-            if 'O' not in ccpart[0] and ('O-' in lip or '-O' in lip):
-                
-                ccpart[0] = 'O%s' % ccpart[0]
-            
-            if cc1 and 'O' not in cc1[0][0] and 'O' in ccpart[0]:
-                
-                cc1[0] = ('O%s' % cc1[0][0], cc1[0][1], cc1[0][2])
-        
-        return cc1, cc2
+        return icc
     
     def headgroup_from_lipid_name(self, name, database = 'SwissLipids'):
         """
@@ -503,13 +592,11 @@ class LipidNameProcessor(object):
         for shortname, spec in iteritems(self.lipnames):
             for kwset in spec[db]:
                 matched = [kw in name for kw in kwset['pos']]
-                print(shortname, matched)
                 if sum(matched) == len(kwset['pos']) and \
                     sum(matched) > 0:
                     matched = [kw in name for kw in kwset['neg']]
                     if sum(matched) == 0:
-                        ether = '(O-' in name
-                        return shortname, spec['pos_adduct'], spec['neg_adduct'], ether
+                        return shortname
         
         return self.process_fa_name(name)
     
@@ -518,12 +605,91 @@ class LipidNameProcessor(object):
         Identifies fatty acids based on their greek name.
         """
         
-        if name in self.fa_greek:
-            return 'FA', None, None, False
+        return (
+            'FA'
+                if name in self.fa_greek
+                or 'FA' in name
+                or 'atty acid' in name 
+            else 'FAL'
+                if self.with_alcohols and (
+                    name in self.fal_greek or
+                    'atty alcohol' in name
+                )
+            else 'FACoA'
+                # TODO: capture carbon counts of acyl-CoAs
+                if self.with_coa and (
+                    name in self.facoa_greek or
+                    'oyl-CoA' in name
+                )
+            else None
+        )
+    
+    def process(self, name, database = 'swisslipids'):
+        """
+        The main method of this class. Processes a lipid name string
+        and returns a standard name, prefix, carbon counts and
+        unsaturations.
+        """
         
-        return None, None, None, None
+        hg, cc1, cc2, icc = None, None, None, None
+        
+        hg = self.headgroup_from_lipid_name(name, database = database)
+        if not hg and self.iso and database == 'swisslipids':
+            
+            try:
+                fa_greek = name.split('|')[0].split('-')[1]
+                hg = self.process_fa_name(fa_greek)
+            except:
+                pass
+        
+        for n in name.split('|'):
+            
+            lyso =  hg and hg[:4] == 'Lyso'
+            
+            # how many aliphatic chains this molecule has
+            ccexp = 1 if hg in {'FA', 'MAG'} or lyso else 3 if hg == 'TAG' else 2
+            
+            if lyso and '0:0' in n:
+                # SwissLipids adds `0:0` to lyso glycerolipids
+                ccexp += 1
+            
+            if database == 'swisslipids' and hg == 'BMP':
+                # SwissLipids shows 4 acyl residues for BMP
+                # 2 of them are `0:0`
+                ccexp = 4
+            
+            _cc1, _cc2 = self.carbon_counts(n, ccexp = ccexp)
+            
+            if self.iso and not icc:
+                
+                icc = self.isomeric_carbon_counts(n)
+                
+                if icc and not cc2:
+                    
+                    cc2 = [i[0] for i in icc]
+            
+            cc1 = cc1 or _cc1
+            cc2 = cc2 or _cc2
+            
+            if cc2 and cc1 and (not self.iso or icc):
+                
+                break
+        
+        if not cc1 and cc2:
+            
+            cc1 = [
+                ''.join(i[0] for i in cc2),
+                sum(i[1] for i in cc2),
+                sum(i[2] for i in cc2)
+            ]
+        
+        return hg, cc1, cc2, icc
     
     def gen_fa_greek(self):
+        """
+        Generates a list of greek fatty acid names with their
+        carbon counts and unsaturations.
+        """
         
         fa_greek_parts = {
             'cc': {
@@ -572,7 +738,17 @@ class LipidNameProcessor(object):
             }
         }
         
-        self.fa_greek = {}
+        fal_greek_end = {}
+        fal_greek_end['anol'] = 0
+        fal_greek_end['enol'] = 1
+        
+        facoa_greek_end = {}
+        facoa_greek_end['anoyl-CoA'] = 0
+        facoa_greek_end['enoyl-CoA'] = 1
+        
+        self.fa_greek  = {}
+        self.fal_greek = {}
+        self.facoa_greek = {}
         
         for cc, uns, end in itertools.product(
             fa_greek_parts['cc'].items(),
@@ -583,3 +759,23 @@ class LipidNameProcessor(object):
                 continue
             
             self.fa_greek['%s%s%s' % (cc[0], uns[0], end[0])] = (cc[1], uns[1] * end[1])
+        
+        for cc, uns, end in itertools.product(
+            fa_greek_parts['cc'].items(),
+            fa_greek_parts['uns'].items(),
+            fal_greek_end.items()):
+            
+            if len(uns[0]) and end[1] == 0:
+                continue
+            
+            self.fal_greek['%s%s%s' % (cc[0], uns[0], end[0])] = (cc[1], uns[1] * end[1])
+        
+        for cc, uns, end in itertools.product(
+            fa_greek_parts['cc'].items(),
+            fa_greek_parts['uns'].items(),
+            facoa_greek_end.items()):
+            
+            if len(uns[0]) and end[1] == 0:
+                continue
+            
+            self.facoa_greek['%s%s%s' % (cc[0], uns[0], end[0])] = (cc[1], uns[1] * end[1])
