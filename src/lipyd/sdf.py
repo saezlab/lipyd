@@ -18,6 +18,7 @@
 import imp
 import sys
 import re
+import pybel
 
 resyn = re.compile(
     r'(^[A-Z]{2,})\(([0-9]+:[0-9]+)\(.*\)/([0-9]+:[0-9]+)\(.*\)\)'
@@ -264,6 +265,8 @@ class SdfReader(object):
     
     def get_record(self, name, typ):
         
+        result = []
+        
         if hasattr(self, typ):
             
             index = getattr(self, typ)
@@ -271,8 +274,6 @@ class SdfReader(object):
             if name in index:
                 
                 if typ == 'synonym':
-                    
-                    result = []
                     
                     for offset in index[name]:
                         
@@ -284,19 +285,42 @@ class SdfReader(object):
                             )
                         )
                     
-                    if len(result) == 1:
-                        
-                        return result[0]
-                        
-                    else:
-                        
-                        return result
-                    
                 else:
                     
                     offset = index[name]
-                    
-                    return self.read(index_only = False, one_record = True, go_to = offset)
+                    result.append(
+                        self.read(
+                            index_only = False,
+                            one_record = True,
+                            go_to = offset
+                        )
+                    )
+        
+        return result
+    
+    def get_obmol(self, name, typ):
+        
+        rec = self.get_record(name, typ)
+        
+        for r in rec:
+            
+            yield self.record_to_obmol(r)
+    
+    def record_to_obmol(self, record):
+        
+        return pybel.readstring('mol', self.get_mol(record))
+    
+    def get_mol(self, record):
+        """
+        Returns structure as a string in mol format.
+        """
+        
+        return '%s\n  %s\n%s\n%s' % (
+            record['id'],
+            record['source'],
+            record['comment'],
+            record['mol']
+        )
     
     def write_mol(self, name, typ, outf = None, return_data = False):
         
@@ -327,9 +351,7 @@ class SdfReader(object):
             with open(_outf, 'w') as fp:
                 
                 _ = fp.write(
-                    '%s\n  %s\n%s\n%s' % (
-                        r['id'], r['source'], r['comment'], r['mol']
-                    )
+                    self.get_mol(r)
                 )
         
         if return_data:

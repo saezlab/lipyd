@@ -224,7 +224,7 @@ class SwissLipids(Reader):
         
         self.load()
         self.index = collections.defaultdict(lambda: set([]))
-        self.hgroup_index  = collections.defaultdict(lambda: set([]))
+        self.hg_index      = collections.defaultdict(lambda: set([]))
         self.species_index = collections.defaultdict(lambda: set([]))
         self.subspec_index = collections.defaultdict(lambda: set([]))
         self.isomer_index  = collections.defaultdict(lambda: set([]))
@@ -265,7 +265,7 @@ class SwissLipids(Reader):
                     
                     if hg:
                         
-                        self.hgroup_index[hg].add(offset)
+                        self.hg_index[hg].add(offset)
                     
                     if cc1:
                         
@@ -287,9 +287,10 @@ class SwissLipids(Reader):
                         self.isomer_index[
                             '%s(%s)' % (
                                 hg,
-                                '/'.join('%s(%s)' % (
+                                '/'.join('%s(%s)%s' % (
                                     cc2str(a[0]),
-                                    a[1]
+                                    a[1],
+                                    '-2OH' if a[2] else ''
                                 ) for a in icc)
                             )
                         ].add(offset)
@@ -337,7 +338,7 @@ class SwissLipids(Reader):
     
     def get_isomer_obmol(self, name):
         
-        return self.get_obmol(hg, index = 'isomer')
+        return self.get_obmol(name, index = 'isomer')
     
     def get_record(self, name, index = ''):
         
@@ -446,10 +447,10 @@ class LipidNameProcessor(object):
                                    r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})[/_]?'
                                    r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})[/_]?'
                                    r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
-        self.recount4 = re.compile(r'\(?([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})\(?([0-9EZ,]*)\)?[/_]?'
-                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?[/_]?'
-                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?[/_]?'
-                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?\)?')
+        self.recount4 = re.compile(r'\(?([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
+                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
+                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
+                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)\)?')
         self.gen_fa_greek()
         self.read_lipid_names()
     
@@ -566,17 +567,25 @@ class LipidNameProcessor(object):
         
         if icc:
             
-            icc = [
-                (
-                    # the usual prefix, carbon, unsat tuple:
-                    (icc[0][i], int(icc[0][i + 1]), int(icc[0][i + 2])),
-                    # and the isomeric conformation string:
-                    icc[0][i + 3]
-                )
-                for i in xrange(0, 13, 4)
-                # keep only existing aliphatic chains
-                if icc[0][i + 1]
-            ]
+            try:
+                
+                icc = [
+                    (
+                        # the usual prefix, carbon, unsat tuple:
+                        (icc[0][i], int(icc[0][i + 1]), int(icc[0][i + 2])),
+                        # and the isomeric conformation string:
+                        icc[0][i + 3],
+                        # and the hydroxyl group on C2:
+                        bool(icc[0][i + 4])
+                    )
+                    for i in xrange(0, 16, 5)
+                    # keep only existing aliphatic chains
+                    if icc[0][i + 1]
+                ]
+            
+            except:
+                
+                print('\n\n\n', icc, name, '\n\n\n')
         
         return icc
     
@@ -653,7 +662,7 @@ class LipidNameProcessor(object):
                 # SwissLipids adds `0:0` to lyso glycerolipids
                 ccexp += 1
             
-            if database == 'swisslipids' and hg == 'BMP':
+            if hg == 'BMP' and '0:0' in n:
                 # SwissLipids shows 4 acyl residues for BMP
                 # 2 of them are `0:0`
                 ccexp = 4
