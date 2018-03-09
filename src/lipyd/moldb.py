@@ -618,7 +618,7 @@ class LipidNameProcessor(object):
             'FA'
                 if name in self.fa_greek
                 or 'FA' in name
-                or 'atty acid' in name 
+                or 'atty acid' in name
             else 'FAL'
                 if self.with_alcohols and (
                     name in self.fal_greek or
@@ -633,6 +633,32 @@ class LipidNameProcessor(object):
             else None
         )
     
+    def fa_greek_cc(self, name):
+        
+        cc1, cc2, cc3 = None, [], []
+        
+        try:
+            
+            name1 = name.split('-')[1] if '-' in name else name
+            
+            for dct in ['fa', 'fal', 'facoa']:
+                
+                if name1 in getattr(self, '%s_greek' % dct):
+                    
+                    cc1 = getattr(self, '%s_greek' % dct)[name1]
+                    cc1 = ('', cc1[0], cc1[1])
+                    cc2 = [cc1]
+                    cc3 = [(
+                        cc1,
+                        name.split(')')[0][1:] if '(' in name else '',
+                        False
+                    )]
+        
+        except:
+            pass
+        
+        return cc1, cc2, cc3
+    
     def process(self, name, database = 'swisslipids'):
         """
         The main method of this class. Processes a lipid name string
@@ -643,12 +669,24 @@ class LipidNameProcessor(object):
         hg, cc1, cc2, icc = None, None, None, None
         
         hg = self.headgroup_from_lipid_name(name, database = database)
+        
+        # try greek fatty acyl carbon counts:
+        
+        
         if not hg and self.iso and database == 'swisslipids':
             
             try:
-                fa_greek = name.split('|')[0].split('-')[1]
-                hg = self.process_fa_name(fa_greek)
+                
+                for name0 in name.split('|'):
+                    
+                    fa_greek = name0.split('-')[1]
+                    hg = self.process_fa_name(fa_greek)
+                    if hg:
+                        
+                        break
+                
             except:
+                
                 pass
         
         for n in name.split('|'):
@@ -691,6 +729,15 @@ class LipidNameProcessor(object):
                 sum(i[1] for i in cc2),
                 sum(i[2] for i in cc2)
             ]
+        
+        if hg in set(['FA', 'FAL', 'FACoA']) and not cc1:
+            
+            for name0 in name.split('|'):
+                
+                cc1, cc2, icc = self.fa_greek_cc(name0)
+                
+                if cc1:
+                    break
         
         return hg, cc1, cc2, icc
     
