@@ -309,9 +309,29 @@ class SdfReader(object):
         for r in rec:
             
             if use_mol:
-                yield self.record_to_obmol_mol(r)
+                
+                mol = self.record_to_obmol_mol(r)
+                
             else:
-                yield self.record_to_obmol(r)
+                
+                mol self.record_to_obmol(r)
+            
+            mol.db_id = rec['id']
+            title = []
+            if 'COMMON_NAME' in rec['annot']:
+                title.append(rec['annot']['COMMON_NAME'])
+            if 'SYNONYMS' in rec['annot']:
+                title.extend(rec['annot']['SYNONYMS'].split(';'))
+            if 'SYSTEMATIC_NAME' in rec['annot']:
+                title.append(rec['annot']['SYSTEMATIC_NAME'])
+            mol.title = '|'.join(title)
+            mol.lipidmaps = rec['id']
+            if 'INCHI' in rec['annot']:
+                mol.inchi = rec['annot']['INCHI']
+            if 'PUBCHEM_CID' in rec['annot']:
+                mol.pubchem = rec['annot']['PUBCHEM_CID']
+            
+            yield mol
     
     def record_to_obmol(self, record):
         
