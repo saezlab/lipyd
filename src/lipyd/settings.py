@@ -98,10 +98,10 @@ _defaults = {
         'export.php?action=get&file=lipids.csv',
     # Experimentally verified masses of few tens of thousands lipids.
     'lipidmaps_url': 'http://www.lipidmaps.org/resources/downloads/'\
-        'LMSDFDownload12JDec17.tar.gz',
+        'LMSDFDownload12Dec17.tar.gz',
     # The filename to use after extracting the archice above.
-    'lipidmaps_fname': 'LMSDFDownload28Jun15/'\
-        'LMSDFDownload28Jun15FinalAll.sdf',
+    'lipidmaps_fname': 'LMSDFDownload12Dec17/'\
+        'LMSDFDownload12Dec17FinalAll.sdf',
     # ComPPI: protein subcellular localization data.
     'comppi_url': 'http://comppi.linkgroup.hu/downloads',
     # Gene Ontology.

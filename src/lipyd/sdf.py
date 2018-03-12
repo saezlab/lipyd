@@ -36,6 +36,7 @@ class SdfReader(object):
     annots = {
         'PUBCHEM_CID': 'pubchem',
         'SYNONYMS': 'synonym',
+        'INCHI': 'inchi',
         'INCHIKEY': 'inchikey',
         'COMMON_NAME': 'commname',
         'SYSTEMATIC_NAME': 'sysname'
@@ -100,7 +101,10 @@ class SdfReader(object):
         
         for l in self.fp:
             
-            l = l.decode('ascii')
+            #print(l)
+            
+            llen = len(l)
+            l = l.decode('utf-8')
             sl = l.strip()
             
             if not molpart:
@@ -193,7 +197,7 @@ class SdfReader(object):
                 for k, v in self.annots.items():
                     
                     if k in annot:
-                            
+                        
                         if k == 'SYNONYMS':
                             
                             syns = set(syn.strip() for syn in annot[k].split(';'))
@@ -252,7 +256,7 @@ class SdfReader(object):
                         'annot': annot
                     }
             
-            offset += len(l)
+            offset += llen
         
         if index_only:
             
@@ -298,15 +302,30 @@ class SdfReader(object):
         
         return result
     
-    def get_obmol(self, name, typ):
+    def get_obmol(self, name, typ, use_mol = False):
         
         rec = self.get_record(name, typ)
         
         for r in rec:
             
-            yield self.record_to_obmol(r)
+            if use_mol:
+                yield self.record_to_obmol_mol(r)
+            else:
+                yield self.record_to_obmol(r)
     
     def record_to_obmol(self, record):
+        
+        if 'INCHI' in record['annot']:
+            
+            return pybel.readstring('inchi', record['annot']['INCHI'])
+        
+        else:
+            
+            sys.stdout.write(
+                'No InChI for `%s`!\n' % record['annot']['COMMON_NAME']
+            )
+    
+    def record_to_obmol_mol(self, record):
         
         return pybel.readstring('mol', self.get_mol(record))
     

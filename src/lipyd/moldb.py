@@ -98,7 +98,7 @@ class LipidMapsOld(object):
         fpa = c.result[fn]
         self.fname = os.path.join('cache', fn)
         
-        with open(self.fname, 'w') as fpe:
+        with open(self.fname, 'wb') as fpe:
             
             while True:
                 
@@ -106,7 +106,7 @@ class LipidMapsOld(object):
                 if not block:
                     break
                 
-                fpe.write(block.decode('utf-8'))
+                fpe.write(block)
         
         c.close()
     
@@ -248,7 +248,7 @@ class SwissLipids(Reader):
                 if not self.silent:
                     self.prg.step(len(l))
                 
-                ll = l.decode('utf-8').split('\t')
+                ll = l.decode('ascii').split('\t')
                 
                 if ll[1] in self.levels:
                     
@@ -366,7 +366,7 @@ class SwissLipids(Reader):
             
             return None
         
-        mol = pybel.readstring('smi', record[8])
+        mol = pybel.readstring('inchi', record[9])
         mol.db_id = record[0]
         mol.name  = record[3]
         mol.title = '|'.join(record[2:5])
@@ -376,10 +376,8 @@ class SwissLipids(Reader):
         mol.smiles = record[8]
         mol.swl_exact_mass = float(record[14]) if record[14] else None
         mol.swl_formula = record[11]
-        mol.inchikey = (
-            record[10].split('=')[1]
-            if '=' in record[10]
-            else record[10])
+        mol.inchi = record[9]
+        mol.inchikey = record[10]
         mol.level = record[1]
         
         return mol
@@ -585,7 +583,14 @@ class LipidNameProcessor(object):
             
             except:
                 
-                print('\n\n\n', icc, name, '\n\n\n')
+                sys.stdout.write(''.join([
+                    '\n\n\n',
+                    '!!! Incomprehensible results at isomeric carbon counts:',
+                    '\nRegex match: %s\nName processed: %s\n' % (
+                        icc, name
+                    ),
+                    '\n\n\n'
+                ]))
         
         return icc
     
