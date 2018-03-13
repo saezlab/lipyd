@@ -153,7 +153,7 @@ class LipidMaps(sdf.SdfReader):
 class SwissLipids(Reader):
     
     def __init__(self, levels = set(['Species']), silent = False,
-                 nameproc_args = {}):
+                 nameproc_args = {}, branched = False):
         
         self.silent = silent
         self.nameproc_args = nameproc_args
@@ -449,6 +449,9 @@ class LipidNameProcessor(object):
                                    r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
                                    r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
                                    r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)\)?')
+        self.reme     = re.compile(r'methyl|ethyl')
+        self.rebr2    = re.compile(r'(1(?:,2-di)?)-\(((?:[0-9]{0,2}[-]?methyl|ethyl)?)[A-z0-9-]+\)'
+                                   r'-([2,3]{1,3}(?:-di)?)-\(((?:[0-9]{0,2}[-]?methyl|ethyl)?)[A-z0-9-]+\)')
         self.gen_fa_greek()
         self.read_lipid_names()
     
@@ -664,6 +667,13 @@ class LipidNameProcessor(object):
         
         return cc1, cc2, cc3
     
+    def test_branched(self, name):
+        """
+        Tells if a lipid might contain branched aliphatic chains.
+        """
+        
+        return bool(self.reme.search(name))
+    
     def process(self, name, database = 'swisslipids'):
         """
         The main method of this class. Processes a lipid name string
@@ -840,3 +850,39 @@ class LipidNameProcessor(object):
                 continue
             
             self.facoa_greek['%s%s%s' % (cc[0], uns[0], end[0])] = (cc[1], uns[1] * end[1])
+
+
+class MoleculeDatabaseAggregator(object):
+    
+    def __init__(
+            self,
+            resources = {
+                'SwissLipids': (SwissLipids, {}),
+                'LipidMaps': (LipidMaps, {})
+            }
+        ):
+        
+        self.resource = resources
+        self.dbs = {}
+        self.db = np.array()
+    
+    def reload(self, children = False):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+        
+    def load(self):
+        """
+        Loads all databases and generates main array.
+        """
+        
+        for name, (cls, resargs) in self.resources.items():
+            
+            res = cls(**resargs)
+            
+            self.dbs[name] = np.array(
+                list(res.iter_std())
+            )

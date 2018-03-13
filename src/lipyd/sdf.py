@@ -314,7 +314,7 @@ class SdfReader(object):
                 
             else:
                 
-                mol self.record_to_obmol(r)
+                mol = self.record_to_obmol(r)
             
             mol.db_id = rec['id']
             title = []
