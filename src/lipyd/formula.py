@@ -22,13 +22,16 @@ import lipyd.mass as mass
 import lipyd.mz as mz
 
 
-class Formula(mass.MassBase):
+class Formula(mass.MassBase, mz.Mz):
     
     def __init__(
             self,
             formula = None,
             charge = 0,
             isotope = 0,
+            z = 1,
+            sign = None,
+            tolerance = .01,
             **kwargs
         ):
         
@@ -42,6 +45,14 @@ class Formula(mass.MassBase):
         
         self.reset_atoms()
         self.add(self.formula)
+        
+        mz.Mz.__init__(
+            self,
+            mz = self.mass / z,
+            z = z,
+            sign = sign,
+            tolerance = tolerance
+        )
     
     def __add__(self, other):
         
@@ -91,6 +102,12 @@ class Formula(mass.MassBase):
                 )
             )
         
+        new.update_mz(
+            z = self.z,
+            sign = self.sign,
+            tolerance = self.tol
+        )
+        
         return new
     
     def __iadd__(self, other):
@@ -112,6 +129,8 @@ class Formula(mass.MassBase):
         
         self.charge += (other.charge if hasattr(other, 'charge') else 0)
         self.isotope += (other.isotope if hasattr(other, 'isotope') else 0)
+        
+        self.update_mz()
         
         return self
     
@@ -185,6 +204,19 @@ class Formula(mass.MassBase):
         product1 = Formula(product1)
         
         return product1, self - product1 + add
+    
+    def update_mz(self, mz = None, z = 1, sign = None, tolerance = .01, overwrite = False):
+        
+        if not hasattr(self, 'z') or overwrite:
+            self.z = z
+        
+        if not hasattr(self, 'sign') or overwrite:
+            self.sign = sign
+        
+        if not hasattr(self, 'tolerance') or overwrite:
+            self.tol = tolerance
+        
+        self.mz = mz or self.mass / self.z
 
 
 class Mass(Formula):

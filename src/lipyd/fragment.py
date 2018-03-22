@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2015-2017 - EMBL
+#  Copyright (c) 2015-2018 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -48,6 +48,7 @@ class AdductCalculator(object):
     def add_atoms(self, elem, num):
         self.counts[elem] = num if elem not in self.counts \
             else self.counts[elem] + num
+
 
 class FattyFragment(mass.MassBase, AdductCalculator):
     
@@ -104,6 +105,7 @@ class FattyFragment(mass.MassBase, AdductCalculator):
             '[M%s]%s' % (self.adduct_str(), self.charge_str()),
             ';'.join(self.hg)]
 
+
 class LysoPEAlkenyl(FattyFragment):
     """
     from massbank.jp:
@@ -131,6 +133,7 @@ class LysoPEAlkenyl(FattyFragment):
             hg = ['PE']
         )
 
+
 class LysoPE(FattyFragment):
     """
     from massbank.jp:
@@ -157,6 +160,7 @@ class LysoPE(FattyFragment):
             name = 'Lyso-PE',
             hg = ['PE']
         )
+
 
 class LysoPEAlkyl(FattyFragment):
     
@@ -208,6 +212,7 @@ class LysoPCAlkenyl(FattyFragment):
             hg = ['PC']
         )
 
+
 class LysoPCAlkyl(FattyFragment):
     """
     from massbank.jp:
@@ -235,6 +240,7 @@ class LysoPCAlkyl(FattyFragment):
             hg = ['PC']
         )
 
+
 class LysoPC(FattyFragment):
     
     # from massbank.jp:
@@ -260,6 +266,7 @@ class LysoPC(FattyFragment):
             name = 'Lyso-PC',
             hg = ['PC']
         )
+
 
 class LysoPS(FattyFragment):
     """
@@ -287,6 +294,7 @@ class LysoPS(FattyFragment):
             hg = ['PS']
         )
 
+
 class LysoPSAlkenyl(FattyFragment):
     
     def __init__(self, c, unsat = 0,
@@ -309,6 +317,7 @@ class LysoPSAlkenyl(FattyFragment):
             hg = ['PS']
         )
 
+
 class LysoPSAlkyl(FattyFragment):
     
     def __init__(self, c, unsat = 0,
@@ -330,6 +339,7 @@ class LysoPSAlkyl(FattyFragment):
             name = 'Lyso-PS-alkyl',
             hg = ['PS']
         )
+
 
 class LysoPI(FattyFragment):
     """
@@ -356,6 +366,7 @@ class LysoPI(FattyFragment):
             name = 'Lyso-PI',
             hg = ['PI']
         )
+
 
 class LysoPIAlkyl(FattyFragment):
     """
@@ -385,6 +396,7 @@ class LysoPIAlkyl(FattyFragment):
             hg = ['PI']
         )
 
+
 class LysoPG(FattyFragment):
     """
     from massbank:
@@ -410,6 +422,7 @@ class LysoPG(FattyFragment):
             name = 'Lyso-PG',
             hg = ['PG']
         )
+
 
 class LysoPGAlkyl(FattyFragment):
     """
@@ -437,6 +450,7 @@ class LysoPGAlkyl(FattyFragment):
             hg = ['PG']
         )
 
+
 class LysoPA(FattyFragment):
     """
     from Characterization of Phospholipid 
@@ -463,6 +477,7 @@ class LysoPA(FattyFragment):
             name = 'Lyso-PA',
             hg = ['PA']
         )
+
 
 class LysoPAAlkyl(FattyFragment):
     """
@@ -517,6 +532,7 @@ class CerFA(FattyFragment):
             hg = ['Cer']
         )
 
+
 class CerFAminusC2H5N(FattyFragment):
     
     # 209 at C14:0 FA, 263 at C18:1
@@ -539,6 +555,7 @@ class CerFAminusC2H5N(FattyFragment):
             name = 'CerFA-C2N',
             hg = ['Cer']
         )
+
 
 class CerFAminusC(FattyFragment):
     
@@ -564,6 +581,7 @@ class CerFAminusC(FattyFragment):
             hg = ['Cer']
         )
 
+
 class CerFAminusN(FattyFragment):
     
     # 227 at C14:0 FA, 281 at C18:1
@@ -587,6 +605,7 @@ class CerFAminusN(FattyFragment):
             hg = ['Cer']
         )
 
+
 class CerSphiMinusN(FattyFragment):
     
     def __init__(self, c, unsat = 0,
@@ -608,6 +627,7 @@ class CerSphiMinusN(FattyFragment):
             hg = ['Cer']
         )
 
+
 class CerSphiMinusNO(FattyFragment):
     
     def __init__(self, c, unsat = 0,
@@ -628,6 +648,7 @@ class CerSphiMinusNO(FattyFragment):
             name = 'CerSphi-N-H2O',
             hg = ['Cer']
         )
+
 
 class CerSphi(FattyFragment):
     
@@ -651,11 +672,13 @@ class CerSphi(FattyFragment):
             hg = ['Cer']
         )
 
+
 class FAminusH(FattyFragment):
     
     def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
         super(FAminusH, self).__init__(charge = -1, c = c, unsat = unsat,
             minus = ['H'], isotope = isotope, name = 'FA')
+
 
 class FAAlkylminusH(FattyFragment):
     """
@@ -670,11 +693,13 @@ class FAAlkylminusH(FattyFragment):
         super(FAAlkylminusH, self).__init__(charge = -1, c = c, unsat = unsat,
             minus = ['H'], isotope = isotope, name = 'FA-alkyl')
 
+
 class NLFA(FattyFragment):
     
     def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
         super(NLFA, self).__init__(charge = 0, c = c, unsat = unsat,
             isotope = isotope, name = 'NL FA')
+
 
 class NLFAminusH2O(FattyFragment):
     
@@ -682,11 +707,13 @@ class NLFAminusH2O(FattyFragment):
         super(NLFAminusH2O, self).__init__(charge = 0, c = c, unsat = unsat,
             minus = ['H2O'], isotope = isotope, name = 'NL FA')
 
+
 class NLFAplusOH(FattyFragment):
     
     def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
         super(NLFAplusOH, self).__init__(charge = 0, c = c, unsat = unsat,
             plus = ['OH'], isotope = isotope, name = 'NL FA')
+
 
 class NLFAplusNH3(FattyFragment):
     
@@ -694,11 +721,13 @@ class NLFAplusNH3(FattyFragment):
         super(NLFAplusNH3, self).__init__(charge = 0, c = c, unsat = unsat,
             plus = ['NH3'], isotope = isotope, name = 'NL FA')
 
+
 class FAminusO(FattyFragment):
     
     def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
         super(FAminusO, self).__init__(charge = 1, c = c, unsat = unsat,
             minus = ['O', 'H'], isotope = isotope, name = 'FA')
+
 
 class FAplusGlycerol(FattyFragment):
     
@@ -716,6 +745,7 @@ class FAplusGlycerol(FattyFragment):
             hg = ['PG', 'BMP', 'DAG', 'LysoPE', 'LysoPC']
         )
 
+
 class SphingosineBase(FattyFragment):
     
     def __init__(self, c, unsat = 0, isotope = 0,
@@ -728,6 +758,7 @@ class SphingosineBase(FattyFragment):
             isotope = isotope, name = 'Sphingosine',
             minus = minus, plus = plus,
             hg = ['Sph', 'SM', 'Cer', 'HexCer'])
+
 
 class FAFragSeries(object):
     
