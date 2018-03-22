@@ -358,8 +358,7 @@ class MassBase(object):
         self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
         
         if formula_mass is None:
-            formula = ''.join('%s%u'%(elem.capitalize(), num) \
-                for elem, num in iteritems(kwargs))
+            self.formula_from_dict(kwargs)
         elif hasattr(formula_mass, 'lower'):
             formula = formula_mass
         else:
@@ -448,7 +447,13 @@ class MassBase(object):
         
         return bool(self.formula)
     
+    def formula_from_dict(self, atoms):
+        
+        self.formula = ''.join('%s%u'%(elem.capitalize(), num) \
+            for elem, num in iteritems(atoms))
+    
     def reload(self):
+        
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
@@ -468,22 +473,78 @@ class Formula(MassBase):
         
         MassBase.__init__(self, formula, charge, isotope, **kwargs)
         
-        self.atoms = defaultdict(lambda: 0)
+        self.reset_atoms()
         self.add(self.formula)
     
     def __add__(self, other):
         
-        return Formula('%s%s' % (self.formula,
-            other.formula if hasattr(other, 'formula') else other),
-            self.charge + (other.charge if hasattr(other, 'charge') else 0),
-            self.isotope + (other.isotope if hasattr(other, 'isotope') else 0)
-        )
+        if (
+            not self.has_formula() or
+            type(other) is float or
+            (
+                hasattr(other, 'has_formula') and
+                not other.has_formula()
+            )
+        ):
+            
+            new_mass = MassBase.__add__(self, other)
+            new_charge = self.charge + (
+                other.charge
+                if hasattr(other, 'charge')
+                else 0
+            )
+            new_isotope = self.isotope + (
+                other.isotope
+                if hasattr(other, 'isotope')
+                else 0
+            )
+            new = Formula(
+                new_mass,
+                charge = new_charge,
+                isotope = new_isotope
+            )
+            
+        else:
+            
+            new = Formula('%s%s' % (
+                    self.formula,
+                    other.formula
+                        if hasattr(other, 'formula')
+                        else other
+                ),
+                self.charge + (
+                    other.charge
+                    if hasattr(other, 'charge')
+                    else 0
+                ),
+                self.isotope + (
+                    other.isotope
+                    if hasattr(other, 'isotope')
+                    else 0
+                )
+            )
+        
+        return new
     
     def __iadd__(self, other):
         
+        if type(other) is float:
+            
+            self.mass = self.mass + other
+            self.formula = ''
+            self.reset_atoms()
+            self.mass_calculated = False
+            
+        elif not self.has_formula():
+            
+            self.mass += other.mass
+            
+        else:
+            
+            self.add(other.formula if hasattr(other, 'formula') else other)
+        
         self.charge += (other.charge if hasattr(other, 'charge') else 0)
         self.isotope += (other.isotope if hasattr(other, 'isotope') else 0)
-        self.add(other.formula if hasattr(other, 'formula') else other)
         
         return self
     
@@ -495,15 +556,33 @@ class Formula(MassBase):
     
     def __isub__(self, other):
         
+        if type(other) is float:
+            
+            self.mass = self.mass - other
+            self.formula = ''
+            self.reset_atoms()
+            self.mass_calculated = False
+            
+        elif not self.has_formula():
+            
+            self.mass -= other.mass
+            
+        else:
+            
+            self.sub(other.formula if hasattr(other, 'formula') else other)
+        
         self.charge -= (other.charge if hasattr(other, 'charge') else 0)
         self.isotope -= (other.isotope if hasattr(other, 'isotope') else 0)
-        self.sub(other.formula if hasattr(other, 'formula') else other)
         
         return self
     
-    def as_weight(self):
+    def reset_atoms(self):
         
-        return MolWeight(self.formula, self.charge, self.isotope)
+        self.atoms = defaultdict(lambda: 0)
+    
+    def as_mass(self):
+        
+        return MassBase(self.formula, self.charge, self.isotope)
     
     def add(self, formula):
         

@@ -29,6 +29,7 @@ import itertools
 import collections
 
 import numpy as np
+import pandas as pd
 
 try:
     import pybel
@@ -52,6 +53,7 @@ class Reader(object):
         return self.__iter__()
     
     def reload(self, children = False):
+        
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
@@ -886,3 +888,10 @@ class MoleculeDatabaseAggregator(object):
             self.dbs[name] = np.array(
                 list(res.iter_std())
             )
+
+
+class TestMoldb(object):
+    
+    __init__(self):
+        
+        
