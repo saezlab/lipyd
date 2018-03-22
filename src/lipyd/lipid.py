@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2015-2017 - EMBL
+#  Copyright (c) 2015-2018 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -19,6 +19,14 @@ from future.utils import iteritems
 
 import lipyd.metabolite as metabolite
 
+
+class FattyAcyl(metabolite.AbstractSubstituent):
+    
+    def __init__(self, c = (1, 25), u = (0, 7), counrs = {'H': -2}):
+        
+        metabolite.AbstractSubstituent.__init__(
+            self, cores = ['O2'], counts = {'H': -2}, c = c, u = u
+        )
 
 class AbstractGlycerol(metabolite.AbstractMetabolite):
     

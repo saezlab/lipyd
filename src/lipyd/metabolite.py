@@ -19,11 +19,13 @@ from future.utils import iteritems
 from past.builtins import xrange, range
 
 import itertools
+import collections
+import copy
 
-import lipyd.mass as mass
+import lipyd.formula as formula
 
 
-class AbstractMetaboliteComponent(mass.Formula):
+class AbstractMetaboliteComponent(formula.Formula):
     
     def __init__(self,
                  core = 0.0,
@@ -44,20 +46,22 @@ class AbstractMetaboliteComponent(mass.Formula):
             As a `dict` of atom counts, e.g. `{'C': 2, 'H': 6, 'O': 1}`.
         """
         
-        mass.Mass.__init__(self,
+        formula.Mass.__init__(self,
             core if type(core) is not float else None,
             charge,
             isotope,
             **kwargs)
         
-        if not self.has_mass() and type(core) is float:
+        if not self.has_mass():
             
-            self.mass = core
-            
-        else:
-            
-            raise ValueError('Please provide either formula or '
-                             'atom counts or mass.')
+            if type(core) is float:
+                
+                self.mass = core
+                
+            else:
+                
+                raise ValueError('Please provide either formula or '
+                                'atom counts or mass.')
         
         self.name = name
 
@@ -100,11 +104,12 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
     def __init__(
             self,
             cores = [0.0],
-            c = (0, 0),
-            u = (0, 0),
+            c = (0, 1),
+            u = (0, 1),
+            counts = {},
             charges = [0],
             isotopes = [0],
-            name = ['Unknown'],
+            names = ['Unknown'],
             getname = lambda c, u: '%u:%u' % (c, u),
             c_u_diff = lambda c, u: c > u + 1,
             **kwargs
@@ -115,10 +120,21 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         length and unsaturated bonds.
         
         :param list cores: List of core variations. Same kind of definitions
-            are possible like at `mass.Formula`: formula as `str`, `dict` of
+            are possible like at `formula.Formula`: formula as `str`, `dict` of
             atoms or exact mass as `float`.
         :param tuple c: Tuple of 2 integers: range of chain lengths.
         :param tuple u: Tuple of 2 integers: range of unsaturations.
+        :param list counts: Dictionary with extra atom counts.
+            If you have one or more extra oxygen, nitrogen, phosphorous or
+            any other atoms in the compound you can include here.
+            Alternatively you can also include them in the core.
+            Also accounts for the valences of the aliphatic chain
+            not occupied by hydrogens. E.g. for a fatty acyl you need to
+            remove 3 hydrogens as 3 valences are occupied by the oxygens.
+            If you have a secondary amine you need to remove one more
+            hydrogen. Otherwise, as this data structure has no information
+            about constitution, we could not guess the number of hydrogens.
+            Similarly, for oxo groups removal of 2 hydrogens necessary.
         :param list charges: List of integers: charges for each core
             variation.
         :param list isotopes: List of integers: extra neutrons for each core
@@ -139,6 +155,8 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         self.charges  = charges if type(charges) is list else [charges]
         self.isotopes = isotopes if type(isotopes) is list else [isotopes]
         self.names    = names if type(names) is list else [names]
+        self.counts   = collections.defaultdict(lambda: 0)
+        self.counts.update(counts)
         
         AbstractMetaboliteComponent.__init__(
             self,
@@ -162,15 +180,28 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             
             self.update_core(i)
             
-            for c in self.c:
+            for c in self.chlens:
                 
-                for u in self.u:
+                self.c = c
+                
+                for u in self.unsats:
                     
-                    if u > c - self.c_u_diff:
+                    self.u = u
+                    
+                    if not self.c_u_diff(self.c, self.u):
                         
                         continue
                     
+                    # implicit hydrogens
+                    h = c * 2 + 1 - 2 * u
+                    new_counts = self.counts.copy()
+                    new_counts['C'] += c
+                    new_counts['H'] += h
                     
+                    new =  self + formula.Formula(**new_counts)
+                    new.name = self.getname(self.c, self.u)
+                    
+                    yield new
     
     def update_core(self, i = 0):
         
