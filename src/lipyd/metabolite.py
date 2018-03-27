@@ -20,7 +20,9 @@ from past.builtins import xrange, range
 
 import itertools
 import collections
-import copy
+import operator
+import functools
+
 
 import lipyd.formula as formula
 
@@ -32,6 +34,7 @@ class AbstractMetaboliteComponent(formula.Formula):
                  charge = 0,
                  isotope = 0,
                  name = 'Unknown',
+                 getname = lambda parent: parent.name,
                  **kwargs):
         """
         Represents a component of a molecule. It can be the basis of a core
@@ -64,17 +67,28 @@ class AbstractMetaboliteComponent(formula.Formula):
                                 'atom counts or mass.')
         
         self.name = name
+        self.getname = getname
 
 
 class AbstractMetabolite(AbstractMetaboliteComponent):
     
-    def __init__(self, core = 0.0,
-                 charge = 0,
-                 isotope = 0,
-                 name = 'Unknown',
-                 syn = {},
-                 subs = {},
-                 **kwargs):
+    def __init__(self,
+            core = 0.0,
+            charge = 0,
+            isotope = 0,
+            name = 'Unknown',
+            getname = lambda parent, subs:
+                '%s(%s)' % (
+                    parent.name,
+                    '/'.join(
+                        s.cc_unsat_str
+                        for s in subs
+                        if hasattr(s, 'cc_unsat_str') and s.cc_unsat_str
+                    )
+                ),
+            subs = [],
+            **kwargs
+        ):
         """
         Represents a metabolite with an unchanged core and a set of variable
         substituents.
@@ -86,17 +100,40 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             charge = charge,
             isotope = isotope,
             name = name,
+            getname = getname,
             **kwargs
         )
         
-        self.syn  = syn
         self.subs = subs
     
     def __iter__(self):
         
-        for sub in itertools.product(self.subs.values()):
+        for subs in itertools.product(*self.subs):
             
-            yield sum(itertools.chain([self], (s for s in sub)))
+            self.inst_name = self.getname(self, subs)
+            
+            self.inst = functools.reduce(
+                operator.add,
+                itertools.chain([self], (s for s in subs))
+            )
+            self.inst.name = self.inst_name
+            
+            yield self.inst
+    
+    @staticmethod
+    def get_substituent(sub):
+        """
+        Creates a `Forula` object if the substituent is not
+        already an instance of `Formula` or `Substituent`.
+        """
+        
+        return (
+                formula.Formula(sub)
+            if hasattr(sub, 'lower') or type(sub) is float
+                else formula.Formula(**sub)
+            if type(sub) is dict
+                else sub
+        )
 
 
 class AbstractSubstituent(AbstractMetaboliteComponent):
@@ -110,7 +147,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             charges = [0],
             isotopes = [0],
             names = ['Unknown'],
-            getname = lambda c, u: '%u:%u' % (c, u),
+            getname = lambda parent: '%u:%u' % (parent.c, parent.u),
             c_u_diff = lambda c, u: c > u + 1,
             **kwargs
         ):
@@ -164,6 +201,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             charge = self.charges[0],
             isotope = self.isotopes[0],
             name = self.names[0],
+            getname = getname,
             **kwargs
         )
         
@@ -173,6 +211,8 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         # current value of length and unsat
         self.c = self.chlens[0]
         self.u = self.unsats[0]
+        
+        self.total = len(self.chlens) * len(self.unsats)
     
     def __iter__(self):
         
@@ -198,8 +238,10 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     new_counts['C'] += c
                     new_counts['H'] += h
                     
-                    new =  self + formula.Formula(**new_counts)
-                    new.name = self.getname(self.c, self.u)
+                    new = self + formula.Formula(**new_counts)
+                    new.name = self.getname(self)
+                    
+                    new.cc_unsat_str = new.name if self.total > 1 else None
                     
                     yield new
     

@@ -18,27 +18,105 @@
 from future.utils import iteritems
 
 import lipyd.metabolite as metabolite
+import lipyd.substituent as substituent
+import lipyd.formula as formula
 
-
-class FattyAcyl(metabolite.AbstractSubstituent):
-    
-    def __init__(self, c = (1, 25), u = (0, 7), counrs = {'H': -2}):
-        
-        metabolite.AbstractSubstituent.__init__(
-            self, cores = ['O2'], counts = {'H': -2}, c = c, u = u
-        )
 
 class AbstractGlycerol(metabolite.AbstractMetabolite):
     
-    def __init__(self, headgroup_weight = None,
-                 positive = 0, negative = 0,
-                 name = 'Lipid', num_fa = 2, type = 'GPL'):
+    def __init__(
+            self,
+            sn1 = 'OH',
+            sn2 = 'OH',
+            sn3 = 'OH',
+            pcharge = 0,
+            ncharge = 0,
+            name = 'Glycerol',
+            typ  = 'G',
+            **kwargs
+        ):
         
+        self.pcharge = pcharge
+        self.ncharge = ncharge
+        self.netcharge = self.pcharge - self.ncharge
+        
+        metabolite.AbstractMetabolite.__init__(
+            self,
+            core = 'C3H5',
+            subs = [
+                self.get_substituent(sn1),
+                self.get_substituent(sn2),
+                self.get_substituent(sn3)
+            ],
+            name = name,
+            charge = self.netcharge,
+            **kwargs
+        )
 
 
 class AbstractGPL(AbstractGlycerol):
     
-    def __init__(self, ):
+    def __init__(
+            self,
+            headgroup = 'H',
+            lyso = False,
+            ether = False,
+            fa_args = {},
+            name = 'GPL',
+            typ  = 'GPL',
+            **kwargs
+        ):
         
-        AbstractGlycerol.__init__(self, c2 = , c3 = )
-        self.bind('PO4')
+        AbstractGlycerol.__init__(
+            self,
+            sn1  = substituent.FattyAcyl(**fa_args),
+            sn2  = 'OH' if lyso else substituent.FattyAcyl(**fa_args),
+            sn3  = 'PO4H%s' % headgroup,
+            name = name,
+            **kwargs
+        )
+
+
+class Phosphatidylethanolamine(AbstractGPL):
+    
+    def __init__(self, **kwargs):
+        
+        AbstractGPL.__init__(
+            self,
+            headgroup = 'C2H4NH2',
+            name = 'PE',
+            typ  = 'PE',
+            **kwargs
+        )
+
+
+class AbstractSphingolipid(metabolite.AbstractMetabolite):
+    
+    def __init__(
+            self,
+            shp = None,
+            o = 'H',
+            n = 'H',
+            pcharge = 0,
+            ncharge = 0,
+            name = 'Sphingolipid',
+            typ  = 'SL',
+            **kwargs
+        ):
+        
+        self.pcharge = pcharge
+        self.ncharge = ncharge
+        self.netcharge = self.pcharge - self.ncharge
+        
+        metabolite.AbstractMetabolite.__init__(
+            self,
+            core = 'H',
+            subs = [
+                self.get_substituent(sn1),
+                self.get_substituent(sn2),
+                self.get_substituent(sn3)
+            ],
+            name = name,
+            charge = self.netcharge,
+            **kwargs
+        )

@@ -43,8 +43,20 @@ class Formula(mass.MassBase, mz.Mz):
         
         mass.MassBase.__init__(self, formula, charge, isotope, **kwargs)
         
+        print(hasattr(self, 'mass'))
+        
+        if self.formula == '':
+            
+            self.mass = 0.0
+            self.mass_calculated = True
+            
+        elif self.mass == 0.0:
+            
+            self.formula = ''
+            self.mass_calculated = True
+        
         self.reset_atoms()
-        self.add(self.formula)
+        self.add(self.formula if self.formula else '')
         
         mz.Mz.__init__(
             self,
@@ -65,7 +77,8 @@ class Formula(mass.MassBase, mz.Mz):
             )
         ):
             
-            new_mass = MassBase.__add__(self, other)
+            new_mass = mass.MassBase.__add__(self, other)
+            print(new_mass)
             new_charge = self.charge + (
                 other.charge
                 if hasattr(other, 'charge')
@@ -81,6 +94,8 @@ class Formula(mass.MassBase, mz.Mz):
                 charge = new_charge,
                 isotope = new_isotope
             )
+            print(type(new.formula))
+            print(new.mass)
             
         else:
             
@@ -90,17 +105,22 @@ class Formula(mass.MassBase, mz.Mz):
                         if hasattr(other, 'formula')
                         else other
                 ),
-                self.charge + (
+                charge = self.charge + (
                     other.charge
                     if hasattr(other, 'charge')
                     else 0
                 ),
-                self.isotope + (
+                isotope = self.isotope + (
                     other.isotope
                     if hasattr(other, 'isotope')
                     else 0
                 )
             )
+            
+        if new.mass == 0.0 or new.formula == '':
+            
+            new.formula = ''
+            new.mass_calculated = True
         
         new.update_mz(
             z = self.z,
@@ -162,6 +182,10 @@ class Formula(mass.MassBase, mz.Mz):
         
         return self
     
+    def __iter__(self):
+        
+        yield self
+    
     def reset_atoms(self):
         
         self.atoms = defaultdict(lambda: 0)
@@ -217,6 +241,14 @@ class Formula(mass.MassBase, mz.Mz):
             self.tol = tolerance
         
         self.mz = mz or self.mass / self.z
+    
+    def getname(self):
+        
+        return self.name if hasattr(self, 'name') else self.__str__()
+    
+    def __str__(self):
+        
+        return str(self.formula)
 
 
 class Mass(Formula):

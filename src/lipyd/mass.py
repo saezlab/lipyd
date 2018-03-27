@@ -368,7 +368,7 @@ class MassBase(object):
         elif hasattr(formula_mass, 'lower'):
             self.formula = formula_mass
         else:
-            self.formula = ''
+            self.formula = None
         
         if type(formula_mass) is float:
             self.mass = formula_mass
@@ -424,20 +424,27 @@ class MassBase(object):
         
         if self.has_formula():
             
-            atoms = (
-                self.reform.findall(self.formula)
-                if not hasattr(self, 'atoms')
-                else self.atoms.items()
-            )
-            m = 0.0
-            for element, count in atoms:
-                count = int(count or '1')
-                m += self.exmass[element] * count
-            m -= self.charge * massdb['electron']
-            m += self.isotope * massdb['neutron']
-            self.mass = m
-            
-            self.mass_calculated = self.has_mass()
+            if self.formula == '':
+                
+                self.mass = 0.0
+                self.mass_calculated = True
+                
+            else:
+                
+                atoms = (
+                    self.reform.findall(self.formula)
+                    if not hasattr(self, 'atoms')
+                    else self.atoms.items()
+                )
+                m = 0.0
+                for element, count in atoms:
+                    count = int(count or '1')
+                    m += self.exmass[element] * count
+                m -= self.charge * massdb['electron']
+                m += self.isotope * massdb['neutron']
+                self.mass = m
+                
+                self.mass_calculated = self.has_mass()
             
         else:
             
@@ -445,11 +452,11 @@ class MassBase(object):
     
     def has_mass(self):
         
-        return self.mass > 0.0
+        return self.mass > 0.0 or (self.formula == '' and self.mass == 0.0)
     
     def has_formula(self):
         
-        return bool(self.formula)
+        return self.formula is not None
     
     def formula_from_dict(self, atoms):
         
