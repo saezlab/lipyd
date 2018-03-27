@@ -43,8 +43,6 @@ class Formula(mass.MassBase, mz.Mz):
         
         mass.MassBase.__init__(self, formula, charge, isotope, **kwargs)
         
-        print(hasattr(self, 'mass'))
-        
         if self.formula == '':
             
             self.mass = 0.0
@@ -78,7 +76,6 @@ class Formula(mass.MassBase, mz.Mz):
         ):
             
             new_mass = mass.MassBase.__add__(self, other)
-            print(new_mass)
             new_charge = self.charge + (
                 other.charge
                 if hasattr(other, 'charge')
@@ -94,8 +91,6 @@ class Formula(mass.MassBase, mz.Mz):
                 charge = new_charge,
                 isotope = new_isotope
             )
-            print(type(new.formula))
-            print(new.mass)
             
         else:
             
@@ -215,9 +210,11 @@ class Formula(mass.MassBase, mz.Mz):
     
     def update(self):
         
-        self.formula = ''.join('%s%u' % (elem, self.atoms[elem])
-                                for elem in sorted(self.atoms.keys()))
-        self.calc_mass()
+        if len(self.atoms):
+            
+            self.formula = ''.join('%s%u' % (elem, self.atoms[elem])
+                                    for elem in sorted(self.atoms.keys()))
+            self.calc_mass()
     
     def bind(self, other, loss = 'H2O'):
         

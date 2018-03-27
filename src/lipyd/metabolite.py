@@ -206,8 +206,8 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         )
         
         # range of possible lengths and unsats
-        self.chlens = list(range(*c))
-        self.unsats = list(range(*u))
+        self.chlens = list(range(c[0], c[1] + 1))
+        self.unsats = list(range(u[0], u[1] + 1))
         # current value of length and unsat
         self.c = self.chlens[0]
         self.u = self.unsats[0]
@@ -240,6 +240,8 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     
                     new = self + formula.Formula(**new_counts)
                     new.name = self.getname(self)
+                    new.c = c
+                    new.u = u
                     
                     new.cc_unsat_str = new.name if self.total > 1 else None
                     
