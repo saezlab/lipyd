@@ -25,6 +25,17 @@ import lipyd.substituent as substituent
 import lipyd.formula as formula
 
 
+sphingolipids = [
+    'Sphingosine',
+    'SphingosinePhosphate',
+    'CeramideD',
+    'CeramideT',
+    'DihydroCeramide',
+    'HydroxyacylCeramideD',
+    'HydroxyacylCeramideT',
+    'HydroxyacylDihydroCeramide'
+]
+
 class AbstractGlycerol(metabolite.AbstractMetabolite):
     
     def __init__(
@@ -106,6 +117,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             ncharge = 0,
             name = 'Sphingolipid',
             typ  = 'SL',
+            getname = None,
             **kwargs
         ):
         
@@ -117,6 +129,22 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             
             sph = substituent.Sphingosine(**sph_args)
         
+        def _getname(parent, subs):
+            
+            return (
+                '%s(%s)' % (
+                    parent.name,
+                    '/'.join(
+                        '%s%s' % (
+                            sub.get_prefix(),
+                            sub.name
+                        )
+                        for sub in subs
+                        if parent.has_variable_aliphatic_chain(sub)
+                    )
+                )
+            )
+        
         metabolite.AbstractMetabolite.__init__(
             self,
             core = '',
@@ -127,6 +155,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             ],
             name = name,
             charge = self.netcharge,
+            getname = getname or _getname,
             **kwargs
         )
 
@@ -139,6 +168,32 @@ class Sphingosine(AbstractSphingolipid):
             self,
             sph_args = sph_args,
             name = 'Sph',
+            **kwargs
+        )
+
+
+class SphingosinePhosphate(AbstractSphingolipid):
+    
+    def __init__(self, sph_args = {}, **kwargs):
+        """
+        Example:
+            http://www.swisslipids.org/#/entity/SLM:000000438/
+            
+            [(m.name, m.mass) for m in
+                lipid.SphingosinePhosphate(
+                    sph_args = {'c': (18, 18), 'u': (1, 1)}
+                )
+            ]
+            
+            exact mass = 379.24876032958
+        
+        """
+        
+        AbstractSphingolipid.__init__(
+            self,
+            sph_args = sph_args,
+            name = 'SphP',
+            o = 'PO3H2',
             **kwargs
         )
 
@@ -178,17 +233,12 @@ class AbstractCeramide(AbstractSphingolipid):
         def getname(parent, subs):
             
             return (
-                '%s%s(%s%s/%s%s)' % (
-                    'DH'
-                        if parent.dihydro or (
-                            not parent.t and subs[0].u == 0
-                        )
-                        else '',
+                '%s(%s%s/%s%s)' % (
                     parent.name,
-                    't' if parent.t else 'd',
-                    subs[0].getname(),
-                    subs[1].getname(),
-                    '-2OH' if parent.fa_hydroxy else ''
+                    subs[0].get_prefix(),
+                    subs[0].name,
+                    subs[1].get_prefix(),
+                    subs[1].name
                 )
             )
         
@@ -202,7 +252,7 @@ class AbstractCeramide(AbstractSphingolipid):
             **kwargs
         )
 
-# Ceramides and Sphingomyelins
+# Ceramides
 
 class CeramideD(AbstractCeramide):
     
@@ -230,26 +280,6 @@ class CeramideD(AbstractCeramide):
             o = o,
             **kwargs
         )
-
-
-class SphingomyelinD(CeramideD):
-    
-    def __init__(self, **kwargs):
-        """
-        Example:
-            http://www.swisslipids.org/#/entity/SLM:000397988/
-            
-            [(m.name, m.mass) for m in
-                lipid.SphingomyelinD(
-                    sph_args = {'c': (16, 16), 'u': (1, 1)},
-                    fa_args = {'c': (18, 18), 'u': (1, 1)}
-                )
-            ]
-            
-            exact mass = 700.5519252121201
-        """
-        
-        CeramideD.__init__(self, o = 'PO3C2H4NC3H9', name = 'SM', **kwargs)
 
 
 class CeramideT(AbstractCeramide):
@@ -281,26 +311,6 @@ class CeramideT(AbstractCeramide):
         )
 
 
-class SphingomyelinT(CeramideT):
-    
-    def __init__(self, **kwargs):
-        """
-        Example:
-            http://www.swisslipids.org/#/entity/SLM:000485623/
-            
-            [(m.name, m.mass) for m in
-                lipid.SphingomyelinT(
-                    sph_args = {'c': (17, 17), 'u': (0, 0)},
-                    fa_args = {'c': (32, 32), 'u': (5, 5)}
-                )
-            ]
-            
-            exact mass = 920.73464060656
-        """
-        
-        CeramideT.__init__(self, o = 'PO3C2H4NC3H9', name = 'SM', **kwargs)
-
-
 class DihydroCeramide(AbstractCeramide):
     
     def __init__(
@@ -318,17 +328,6 @@ class DihydroCeramide(AbstractCeramide):
             **kwargs
         )
 
-
-class DihydroSphingomyelin(DihydroCeramide):
-    
-    def __init__(self, **kwargs):
-        
-        DihydroCeramide.__init__(
-            self,
-            o = 'PO3C2H4NC3H9',
-            name = 'SM',
-            **kwargs
-        )
 
 class HydroxyacylCeramideD(CeramideD):
     
@@ -363,18 +362,6 @@ class HydroxyacylCeramideD(CeramideD):
         )
 
 
-class HydroxyacylSphingomyelinD(HydroxyacylCeramideD):
-    
-    def __init__(self, **kwargs):
-        
-        HydroxyacylCeramideD.__init__(
-            self,
-            o = 'PO3C2H4NC3H9',
-            name = 'SM',
-            **kwargs
-        )
-
-
 class HydroxyacylCeramideT(CeramideT):
     
     def __init__(
@@ -386,18 +373,6 @@ class HydroxyacylCeramideT(CeramideT):
         CeramideT.__init__(
             self,
             fa_hydroxy = True,
-            **kwargs
-        )
-
-
-class HydroxyacylSphingomyelinT(HydroxyacylCeramideT):
-    
-    def __init__(self, **kwargs):
-        
-        HydroxyacylCeramideT.__init__(
-            self,
-            o = 'PO3C2H4NC3H9',
-            name = 'SM',
             **kwargs
         )
 
@@ -418,448 +393,6 @@ class HydroxyacylDihydroCeramide(CeramideD):
         )
 
 
-class HydroxyacylDihydroSphingomyelinT(HydroxyacylDihydroCeramide):
-    
-    def __init__(self, **kwargs):
-        
-        HydroxyacylDihydroCeramide.__init__(
-            self,
-            o = 'PO3C2H4NC3H9',
-            name = 'SM',
-            **kwargs
-        )
-
-
-class CeramideDPhosphate(CeramideD):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        CeramideD.__init__(
-            self,
-            o = 'PO3H2',
-            name = 'CerP',
-            **kwargs
-        )
-
-
-class CeramideTPhosphate(CeramideT):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        CeramideT.__init__(
-            self,
-            o = 'PO3H2',
-            name = 'CerP',
-            **kwargs
-        )
-
-class HydroxyacylCeramideDPhosphate(HydroxyacylCeramideD):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        HidroxyacylCeramideD.__init__(
-            self,
-            o = 'PO3H2',
-            name = 'CerP',
-            **kwargs
-        )
-
-
-class HydroxyacylCeramideTPhosphate(HydroxyacylCeramideT):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        HidroxyacylCeramideT.__init__(
-            self,
-            o = 'PO3H2',
-            name = 'CerP',
-            **kwargs
-        )
-
-class DihydroCeramidePhosphate(DihydroCeramide):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        DihydroCeramide.__init__(
-            self,
-            o = 'PO3H2',
-            name = 'CerP',
-            **kwargs
-        )
-
-# Hexosyl Ceramides
-
-class HexosylCeramideD(CeramideD):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        """
-        Example:
-            http://www.swisslipids.org/#/entity/SLM:000395423/
-            
-            [(m.name, m.mass) for m in
-                lipid.HexosylCeramideD(
-                    sph_args = {'c': (18, 18), 'u': (1, 1)},
-                    fa_args = {'c': (16, 16), 'u': (0, 0)}
-                )
-            ]
-            
-            exact mass = 699.56491844982
-        """
-        
-        CeramideD.__init__(
-            self,
-            o = 'C6H11O5',
-            name = 'HexCer',
-            **kwargs
-        )
-
-
-class HexosylCeramideT(CeramideT):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        CeramideT.__init__(
-            self,
-            o = 'C6H11O5',
-            name = 'HexCer',
-            **kwargs
-        )
-
-
-class HydroxyacylHexosylCeramideD(HydroxyacylCeramideD):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        HydroxyacylCeramideD.__init__(
-            self,
-            o = 'C6H11O5',
-            name = 'HexCer',
-            **kwargs
-        )
-
-
-class HydroxyacylHexosylCeramideT(HydroxyacylCeramideT):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        HydroxyacylCeramideT.__init__(
-            self,
-            o = 'C6H11O5',
-            name = 'HexCer',
-            **kwargs
-        )
-
-
-class DihydroHexosylCeramide(DihydroCeramide):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        DihydroCeramide.__init__(
-            self,
-            o = 'C6H11O5',
-            name = 'HexCer',
-            **kwargs
-        )
-
-# Dihexosyl Ceramides
-
-class DiHexosylCeramideD(CeramideD):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        """
-        Example:
-            http://www.swisslipids.org/#/entity/SLM:000395342/
-            
-            [(m.name, m.mass) for m in
-                lipid.DiHexosylCeramideD(
-                    sph_args = {'c': (18, 18), 'u': (1, 1)},
-                    fa_args = {'c': (26, 26), 'u': (0, 0)}
-                )
-            ]
-            
-            exact mass = 1001.77424251862
-        """
-        
-        CeramideD.__init__(
-            self,
-            o = 'C12H21O10',
-            name = 'Hex2Cer',
-            **kwargs
-        )
-
-
-class DiHexosylCeramideT(CeramideT):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        CeramideT.__init__(
-            self,
-            o = 'C12H21O10',
-            name = 'Hex2Cer',
-            **kwargs
-        )
-
-
-class HydroxyacylDiHexosylCeramideD(HydroxyacylCeramideD):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        HydroxyacylCeramideD.__init__(
-            self,
-            o = 'C12H21O10',
-            name = 'Hex2Cer',
-            **kwargs
-        )
-
-
-class HydroxyacylDiHexosylCeramideT(HydroxyacylCeramideT):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        HydroxyacylCeramideT.__init__(
-            self,
-            o = 'C12H21O10',
-            name = 'Hex2Cer',
-            **kwargs
-        )
-
-
-class DihydroDiHexosylCeramide(DihydroCeramide):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        DihydroCeramide.__init__(
-            self,
-            o = 'C12H21O10',
-            name = 'Hex2Cer',
-            **kwargs
-        )
-
-
-# Hexosyl Ceramides
-
-class SulfoHexosylCeramideD(CeramideD):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        """
-        Example:
-            http://www.swisslipids.org/#/entity/SLM:000396804/
-            
-            [(m.name, m.mass) for m in
-                lipid.SulfoHexosylCeramideD(
-                    sph_args = {'c': (18, 18), 'u': (1, 1)},
-                    fa_args = {'c': (18, 18), 'u': (2, 2)}
-                )
-            ]
-            
-            exact mass = 803.5217334853199
-        """
-        
-        CeramideD.__init__(
-            self,
-            o = 'C6H11O5SO3',
-            name = 'SHexCer',
-            **kwargs
-        )
-
-
-class SulfoHexosylCeramideT(CeramideT):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        CeramideT.__init__(
-            self,
-            o = 'C6H11O5SO3',
-            name = 'SHexCer',
-            **kwargs
-        )
-
-
-class HydroxyacylSulfoHexosylCeramideD(HydroxyacylCeramideD):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        HydroxyacylCeramideD.__init__(
-            self,
-            o = 'C6H11O5SO3',
-            name = 'SHexCer',
-            **kwargs
-        )
-
-
-class HydroxyacylSulfoHexosylCeramideT(HydroxyacylCeramideT):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        HydroxyacylCeramideT.__init__(
-            self,
-            o = 'C6H11O5SO3',
-            name = 'SHexCer',
-            **kwargs
-        )
-
-
-class DihydroSulfoHexosylCeramide(DihydroCeramide):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        DihydroCeramide.__init__(
-            self,
-            o = 'C6H11O5SO3',
-            name = 'SHexCer',
-            **kwargs
-        )
-
-# Sulfodihexosyl Ceramides
-
-class SulfoDiHexosylCeramideD(CeramideD):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        """
-        Example:
-            http://www.swisslipids.org/#/entity/SLM:000396884/
-            
-            [(m.name, m.mass) for m in
-                lipid.SulfoDiHexosylCeramideD(
-                    sph_args = {'c': (18, 18), 'u': (1, 1)},
-                    fa_args = {'c': (18, 18), 'u': (1, 1)}
-                )
-            ]
-            
-            exact mass = 967.59020697344
-        """
-        
-        CeramideD.__init__(
-            self,
-            o = 'C12H21O10SO3',
-            name = 'SHex2Cer',
-            **kwargs
-        )
-
-
-class SulfoDiHexosylCeramideT(CeramideT):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        CeramideT.__init__(
-            self,
-            o = 'C12H21O10SO3',
-            name = 'SHex2Cer',
-            **kwargs
-        )
-
-
-class HydroxyacylSulfoDiHexosylCeramideD(HydroxyacylCeramideD):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        HydroxyacylCeramideD.__init__(
-            self,
-            o = 'C12H21O10SO3',
-            name = 'SHex2Cer',
-            **kwargs
-        )
-
-
-class HydroxyacylSulfoDiHexosylCeramideT(HydroxyacylCeramideT):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        HydroxyacylCeramideT.__init__(
-            self,
-            o = 'C12H21O10SO3',
-            name = 'SHex2Cer',
-            **kwargs
-        )
-
-
-class DihydroSulfoDiHexosylCeramide(DihydroCeramide):
-    
-    def __init__(
-            self,
-            **kwargs
-        ):
-        
-        DihydroCeramide.__init__(
-            self,
-            o = 'C12H21O10SO3',
-            name = 'SHex2Cer',
-            **kwargs
-        )
-
-
 class CeramideFactory(object):
     
     def __init__(self):
@@ -867,19 +400,251 @@ class CeramideFactory(object):
         l_t = [True, False]
         l_fa_hydroxy = [True, False]
         l_classes = [
-            ('PO3H2', 'CerP')
+            ('PO3H2', 'CerP'),
+            ('C12H21O10SO3', 'SHex2Cer'),
+            ('C6H11O5SO3', 'SHexCer'),
+            ('C12H21O10', 'Hex2Cer'),
+            ('C6H11O5', 'HexCer'),
+            ('PO3C2H4NC3H9', 'SM'),
+            ('PO3C2H4NH3', 'CerPE')
+            
         ]
         l_dihydro = [True, False]
+        
+        docs = {
+            'CeramideDPhosphoethanolamine':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000398516/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.CeramideDPhosphoethanolamine(
+                            sph_args = {'c': (16, 16), 'u': (0, 0)},
+                            fa_args = {'c': (30, 30), 'u': (6, 6)}
+                        )
+                    ]
+                    
+                    exact mass = 818.63017553472
+                """,
+            'SulfoDiHexosylCeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000396884/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.SulfoDiHexosylCeramideD(
+                            sph_args = {'c': (18, 18), 'u': (1, 1)},
+                            fa_args = {'c': (18, 18), 'u': (1, 1)}
+                        )
+                    ]
+                    
+                    exact mass = 967.59020697344
+                """,
+            'DiHexosylCeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000395342/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.DiHexosylCeramideD(
+                            sph_args = {'c': (18, 18), 'u': (1, 1)},
+                            fa_args = {'c': (26, 26), 'u': (0, 0)}
+                        )
+                    ]
+                    
+                    exact mass = 1001.77424251862
+                """,
+            'SulfoHexosylCeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000396804/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.SulfoHexosylCeramideD(
+                            sph_args = {'c': (18, 18), 'u': (1, 1)},
+                            fa_args = {'c': (18, 18), 'u': (2, 2)}
+                        )
+                    ]
+                    
+                    exact mass = 803.5217334853199
+                """,
+            'HexosylCeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000395423/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.HexosylCeramideD(
+                            sph_args = {'c': (18, 18), 'u': (1, 1)},
+                            fa_args = {'c': (16, 16), 'u': (0, 0)}
+                        )
+                    ]
+                    
+                    exact mass = 699.56491844982
+                """,
+            'SphingomyelinT':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000485623/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.SphingomyelinT(
+                            sph_args = {'c': (17, 17), 'u': (0, 0)},
+                            fa_args = {'c': (32, 32), 'u': (5, 5)}
+                        )
+                    ]
+                    
+                    exact mass = 920.73464060656
+                """,
+            'SphingomyelinD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000397988/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.SphingomyelinD(
+                            sph_args = {'c': (16, 16), 'u': (1, 1)},
+                            fa_args = {'c': (18, 18), 'u': (1, 1)}
+                        )
+                    ]
+                    
+                    exact mass = 700.5519252121201
+                """,
+            'HydroxyacylCeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000397236/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.HydroxyacylCeramideD(
+                            sph_args = {'c': (14, 14), 'u': (1, 1)},
+                            fa_args = {'c': (20, 20), 'u': (1, 1)}
+                        )
+                    ]
+                    
+                    exact mass = 551.4913595819
+                    
+                    551.4913595819 - formula.Formula('O').mass = 535.4964449617
+                    
+                    I.e. this species is always one oxygen heavier than the
+                    corresponding dCer.
+                """,
+            'DihydroCeramide':
+                """
+                This is perfectly isobaric with dCer.
+                """,
+            'CeramideT':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000395636/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.CeramideT(
+                            sph_args = {'c': (18, 18), 'u': (0, 0)},
+                            fa_args = {'c': (10, 10), 'u': (0, 0)}
+                        )
+                    ]
+                    
+                    exact mass = 471.42875932382003
+                """,
+            'CeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000397236/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.CeramideD(
+                            sph_args = {'c': (14, 14), 'u': (1, 1)},
+                            fa_args = {'c': (20, 20), 'u': (1, 1)}
+                        )
+                    ]
+                    
+                    exact mass = 535.4964449617
+                """
+        }
         
         mod = sys.modules[__name__]
         
         for t, fa_hydroxy, dihydro, (o, name) in itertools.product(
-            l_t, l_fa_hydroxy, l_dihydro, l_classes
-        ):
+                l_t, l_fa_hydroxy, l_dihydro, l_classes
+            ):
             
-            def init():
+            if (t and dihydro):
                 
-                pass
+                continue
             
-            cls = type()
-            #setattr(mod)
+            parent, child = self.class_name(name, t, dihydro, fa_hydroxy)
+            
+            exec(
+                (
+                    'def __init__(self, **kwargs):\n'
+                    '    \n'
+                    '    %s.__init__(\n'
+                    '        self,\n'
+                    '        o = \'%s\',\n'
+                    '        name = \'%s\',\n'
+                    '        **kwargs\n'
+                    '        )\n'
+                ) % (
+                    parent,
+                    o,
+                    name
+                ),
+                mod.__dict__,
+                mod.__dict__
+            )
+            
+            if child in docs:
+                
+                mod.__dict__['__init__'].__doc__ = docs[child]
+            
+            cls = type(
+                child,
+                (getattr(mod, parent), ),
+                {'__init__': mod.__dict__['__init__']}
+            )
+            
+            setattr(mod, child, cls)
+            
+            sphingolipids.append(child)
+        
+        delattr(mod, '__init__')
+    
+    def class_name(self, name, t, dihydro, hydroxyacyl):
+        
+        dt = 'T' if t else 'D' if not dihydro else ''
+        
+        maintype = '%s%s' % (
+            'Ceramide' if 'Cer' in name else 'Sphingomyelin',
+            dt
+        )
+        
+        parmaintype = 'Ceramide%s' % dt
+        
+        subtype = '%s%s' % (
+            'Hydroxyacyl' if hydroxyacyl else '',
+            'Dihydro' if dihydro else ''
+        )
+        
+        parent = '%s%s' % (subtype, parmaintype)
+        
+        child = '%s%s%s%s%s' % (
+                subtype,
+                'Sulfo' if 'SHex' in name else '',
+                'DiHexosyl'
+                    if 'Hex2' in name
+                    else 'Hexosyl' if 'Hex' in name
+                    else '',
+                maintype,
+                'Phosphoethanolamine'
+                    if 'CerPE' in name
+                    else 'Phosphate' if 'CerP' in name
+                    else ''
+            )
+        
+        return parent, child
+
+
+# creating further Ceramide derived classes:
+_factory = CeramideFactory()
+del _factory

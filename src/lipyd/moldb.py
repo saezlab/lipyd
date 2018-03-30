@@ -42,6 +42,7 @@ import lipyd.settings as settings
 import lipyd.mz as mz
 import lipyd.progress as progress
 import lipyd.sdf as sdf
+import lipyd.lipid as lipid
 
 
 class Reader(object):
@@ -866,7 +867,7 @@ class MoleculeDatabaseAggregator(object):
         
         self.resource = resources
         self.dbs = {}
-        self.db = np.array()
+        #self.db = np.array()
     
     def reload(self, children = False):
         
@@ -875,7 +876,36 @@ class MoleculeDatabaseAggregator(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
+    def auto_metabolites(
+            self,
+            fa_args = {'c': (4, 30), 'u': (0, 9)},
+            sph_args = {'c': (14, 22), 'u': (0, 4)}
+        ):
         
+        masses = []
+        data   = []
+        
+        for name in lipid.sphingolipids:
+            
+            sys.stdout.write('\t:: Generating `%s`\n' % name)
+            
+            cls = getattr(lipid, name)
+            gen = cls(fa_args = fa_args, sph_args = sph_args)
+            
+            for m, d in gen.iterlines():
+                
+                masses.append(m)
+                data.append(d)
+        
+        self.masses = np.array(masses, dtype = np.float)
+        self.data = np.array(data, dtype = np.object)
+    
+    def sort(self):
+        
+        self.data = self.data[self.masses.argsort(),:]
+        self.masses.sort()
+    
     def load(self):
         """
         Loads all databases and generates main array.
@@ -886,7 +916,7 @@ class MoleculeDatabaseAggregator(object):
             res = cls(**resargs)
             
             self.dbs[name] = np.array(
-                list(res.iter_std())
+                list(res.iterlines())
             )
 
 

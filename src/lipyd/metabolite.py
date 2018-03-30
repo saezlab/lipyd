@@ -23,6 +23,7 @@ import collections
 import operator
 import functools
 
+import numpy as np
 
 import lipyd.formula as formula
 
@@ -108,17 +109,9 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
     
     def __iter__(self):
         
-        for subs in itertools.product(*self.subs):
+        for subs, inst in self.subsproduct():
             
-            self.inst_name = self.getname(self, subs)
-            
-            self.inst = functools.reduce(
-                operator.add,
-                itertools.chain([self], (s for s in subs))
-            )
-            self.inst.name = self.inst_name
-            
-            yield self.inst
+            yield inst
     
     @staticmethod
     def get_substituent(sub):
@@ -133,6 +126,66 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
                 else formula.Formula(**sub)
             if type(sub) is dict
                 else sub
+        )
+    
+    def itersubs(self):
+        """
+        Iterates all combinations of all substituents.
+        Yields tuples of substituents.
+        """
+        
+        for subs in itertools.product(*self.subs):
+            
+            yield subs
+    
+    def subsproduct(self):
+        """
+        Iterates instances and substituents in parallel.
+        Yields tuples of two elements.
+        First element is a tuple of all molecule parts (substituents).
+        Second element is the actual instance, i.e. the whole molecule.
+        """
+        
+        for subs in self.itersubs():
+            
+            self.inst_name = self.getname(self, subs)
+            
+            self.inst = functools.reduce(
+                operator.add,
+                itertools.chain([self], (s for s in subs))
+            )
+            self.inst.name = self.inst_name
+            
+            yield subs, self.inst
+    
+    def iterlines(self):
+        """
+        Iterates standard lines.
+        """
+        
+        for subs, inst in self.subsproduct():
+            
+            identity = [self.name, inst.getname()]
+            
+            for sub in self.subs:
+                
+                if self.has_variable_aliphatic_chain(sub):
+                    
+                    identity.extend([
+                        sub.get_prefix(),
+                        sub.c,
+                        sub.u
+                    ])
+            
+            identity.extend([np.nan] * (11 - len(identity)))
+            
+            yield inst.mass, tuple(identity)
+    
+    def has_variable_aliphatic_chain(self, sub):
+        
+        return (
+            hasattr(sub, 'variable_aliphatic_chain') and
+            sub.variable_aliphatic_chain
         )
 
 
@@ -149,6 +202,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             names = ['Unknown'],
             getname = lambda parent: '%u:%u' % (parent.c, parent.u),
             c_u_diff = lambda c, u: c > u + 1,
+            prefix = '',
             **kwargs
         ):
         """
@@ -186,6 +240,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             group which is clearly impossible.
         """
         
+        self.prefix   = prefix
         self.c_u_diff = c_u_diff
         self.getname  = getname
         self.cores    = cores if type(cores) is list else [cores]
@@ -213,6 +268,12 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         self.u = self.unsats[0]
         
         self.total = len(self.chlens) * len(self.unsats)
+        self.variable_aliphatic_chain = (
+            not (
+                len(self.chlens) == 1 and
+                self.chlens[0] == 0
+            )
+        )
     
     def __iter__(self):
         
@@ -234,14 +295,19 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     
                     # implicit hydrogens
                     h = c * 2 + 1 - 2 * u
+                    p = self.get_prefix()
                     new_counts = self.counts.copy()
                     new_counts['C'] += c
                     new_counts['H'] += h
                     
                     new = self + formula.Formula(**new_counts)
-                    new.name = self.getname(self)
+                    name = self.getname(self)
+                    
+                    new.name = name
                     new.c = c
                     new.u = u
+                    new.get_prefix = lambda: p
+                    new.variable_aliphatic_chain = self.variable_aliphatic_chain
                     
                     new.cc_unsat_str = new.name if self.total > 1 else None
                     
@@ -278,3 +344,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         
         self.reset_atoms()
         self.calc_mass()
+    
+    def get_prefix(self):
+        
+        return self.prefix

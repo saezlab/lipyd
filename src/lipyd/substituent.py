@@ -34,7 +34,7 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
     def __init__(self, c = (2, 24), u = (0, 6), counts = {'H': -2, 'O': 1}):
         
         metabolite.AbstractSubstituent.__init__(
-            self, cores = ['O'], counts = counts, c = c, u = u
+            self, cores = ['O'], counts = counts, c = c, u = u, prefix = '2OH'
         )
 
 
@@ -44,7 +44,8 @@ class Sphingosine(metabolite.AbstractSubstituent):
             self,
             c = (12, 24),
             u = (1, 6),
-            counts = {}
+            counts = {},
+            prefix = 'd'
         ):
         """
         Note: this is a sphingosine backbone in a sphingolipid
@@ -53,8 +54,13 @@ class Sphingosine(metabolite.AbstractSubstituent):
         """
         
         metabolite.AbstractSubstituent.__init__(
-            self, cores = ['O2N'], counts = counts, c = c, u = u
+            self, cores = ['O2N'], counts = counts, c = c, u = u,
+            prefix = prefix
         )
+    
+    def get_prefix(self):
+        
+        return 'DH' if self.u == 0 and self.prefix == 'd' else self.prefix
 
 
 class DihydroSphingosine(Sphingosine):
@@ -62,7 +68,7 @@ class DihydroSphingosine(Sphingosine):
     def __init__(self, c = (12, 24), u = (0, 6), counts = {}):
         
         Sphingosine.__init__(
-            self, c = c, u = u, counts = counts
+            self, c = c, u = u, counts = counts, prefix = 'DH'
         )
 
 
@@ -71,5 +77,5 @@ class HydroxySphingosine(Sphingosine):
     def __init__(self, c = (12, 24), u = (0, 6), counts = {'O': 1}):
         
         Sphingosine.__init__(
-            self, c = c, u = u, counts = counts
+            self, c = c, u = u, counts = counts, prefix = 't'
         )
