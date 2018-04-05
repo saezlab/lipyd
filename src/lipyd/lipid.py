@@ -585,7 +585,7 @@ class CeramideFactory(object):
                     http://www.swisslipids.org/#/entity/SLM:000397236/
                     
                     [(m.name, m.mass) for m in
-                        lipid.HydroxyacylCeramideD1OAcyl(
+                        lipid.HydroxyacylCeramideD(
                             sph_args = {'c': (14, 14), 'u': (1, 1)},
                             fa_args = {'c': (20, 20), 'u': (1, 1)}
                         )
