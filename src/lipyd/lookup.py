@@ -18,8 +18,8 @@
 def findall(a, m, t = .01):
     """
     Finds all values within a given range of tolerance around a reference
-    value in a one dimensional sorted numpy array of floats.
-    Returns list of floats.
+    value in a one dimensional sorted numpy array (-slice) of floats.
+    Returns list of array indices.
     
     :param numpy.array a: Sorted one dimensional float array.
     :param float m: Value to lookup.
@@ -37,9 +37,9 @@ def findall(a, m, t = .01):
         
         while True:
             
-            if a[iu + u] - m <= t:
+            if iu + u < a.shape[0] and a[iu + u] - m <= t:
                 
-                result.append(a[iu + u])
+                result.append(iu + u)
                 u += 1
                 
             else:
@@ -54,7 +54,7 @@ def findall(a, m, t = .01):
             
             if iu - l >= 0 and m - a[iu - l] <= t:
                 
-                result.append(a[iu - l])
+                result.append(iu - l)
                 l += 1
                 
             else:
@@ -68,11 +68,13 @@ def find(a, m, t = .01):
     """
     Finds closest value based on a reference value in a one dimensional
     sorted numpy array of floats.
-    Returns closest value or `None` if nothing found in the range of
-    tolerance.
+    Returns the array index closest value or `None` if nothing found
+    in the range of tolerance.
+    If the array contains contains more identical elements only the
+    index of the first is returned.
     To lookup all values in a certain range see `lookup.findall()`.
     
-    :param numpy.array a: Sorted one dimensional float array.
+    :param numpy.array a: Sorted one dimensional float array (-slice).
     :param float m: Value to lookup.
     :param float t: Range of tolerance (highest accepted difference).
     """
@@ -91,8 +93,8 @@ def find(a, m, t = .01):
         
         if dl < t:
             
-            return a[iu - 1]
+            return iu - 1
     
     elif du <= t:
         
-        return a[iu]
+        return iu

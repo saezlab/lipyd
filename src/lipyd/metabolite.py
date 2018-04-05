@@ -15,6 +15,8 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+from __future__ import generator_stop
+
 from future.utils import iteritems
 from past.builtins import xrange, range
 
@@ -88,11 +90,16 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
                     )
                 ),
             subs = [],
+            sum_only = False,
             **kwargs
         ):
         """
         Represents a metabolite with an unchanged core and a set of variable
         substituents.
+        
+        :param bool sum_only: Do not iterate all aliphatic chains
+            independently but consider only sum of chain lengths and
+            unsaturations.
         """
         
         AbstractMetaboliteComponent.__init__(
@@ -106,6 +113,8 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         )
         
         self.subs = subs
+        self.sum_only = sum_only
+        self.sub0 = None
     
     def __iter__(self):
         
@@ -134,6 +143,8 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         Yields tuples of substituents.
         """
         
+        self._restore_sub0()
+        
         for subs in itertools.product(*self.subs):
             
             yield subs
@@ -146,7 +157,9 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         Second element is the actual instance, i.e. the whole molecule.
         """
         
-        for subs in self.itersubs():
+        iterator = self.itersum() if self.sum_only else self.itersubs()
+        
+        for subs in iterator:
             
             self.inst_name = self.getname(self, subs)
             
@@ -177,9 +190,72 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
                         sub.u
                     ])
             
+            # TODO: do not assume here max 3 substituents with
+            # variable aliphatic chain
+            # as this is lipid specific
             identity.extend([np.nan] * (11 - len(identity)))
             
             yield inst.mass, tuple(identity)
+    
+    def itersum(self):
+        """
+        Iterates by consifering only the sum of chain lengths and
+        unsaturations.
+        """
+        
+        self._restore_sub0()
+        
+        chains = [
+            (i, s.chlens, s.unsats)
+            for i, s in enumerate(self.subs)
+            if self.has_variable_aliphatic_chain(s)
+        ]
+        
+        if len(chains) <= 1:
+            
+            for subs in self.itersubs():
+                
+                yield subs
+            
+            return
+        
+        min_chlens = sum(min(c[1]) for c in chains[1:])
+        min_unsats = sum(min(c[2]) for c in chains[1:])
+        sum_chlens = list(set(
+            sum(cc) - min_chlens for cc in
+            itertools.product(*(c[1] for c in chains))
+        ))
+        sum_unsats = list(set(
+            sum(uu) - min_unsats for uu in
+            itertools.product(*(c[2] for c in chains))
+        ))
+        
+        self.sub0 = chains[0]
+        isub0 = self.sub0[0]
+        sub0 = self.subs[isub0]
+        
+        sub0.chlens = sum_chlens
+        sub0.unsats = sum_unsats
+        
+        for subs in itertools.product(*(
+                s.__iter__()
+                if i == isub0 else
+                # other substituents iterated by their cores only
+                s.__iter__(cores_only = True)
+                for i, s in enumerate(self.subs)
+            )):
+            
+            yield subs
+        
+        # at the end restore the real values
+        self._restore_sub0()
+    
+    def _restore_sub0(self):
+        
+        if self.sub0:
+            
+            self.subs[self.sub0[0]].chlens = self.sub0[1]
+            self.subs[self.sub0[0]].unsats = self.sub0[2]
     
     def has_variable_aliphatic_chain(self, sub):
         
@@ -279,7 +355,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             )
         )
     
-    def __iter__(self):
+    def __iter__(self, cores_only = False):
         
         for i in range(len(self.cores)):
             
@@ -316,6 +392,14 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     new.cc_unsat_str = new.name if self.total > 1 else None
                     
                     yield new
+                    
+                    if cores_only:
+                        
+                        break
+                
+                if cores_only:
+                    
+                    break
     
     def set_chlens(self, c):
         

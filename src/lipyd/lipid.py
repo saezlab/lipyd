@@ -135,16 +135,29 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
         
         def _getname(parent, subs):
             
+            sep = '-' if self.sum_only else '/'
+            chains = [
+                s for s in subs
+                if parent.has_variable_aliphatic_chain(s)
+            ]
+            
             return (
-                '%s(%s)' % (
+                '%s(%s%s)' % (
                     parent.name,
-                    '/'.join(
-                        '%s%s' % (
-                            sub.get_prefix(),
-                            sub.name
-                        )
-                        for sub in subs
-                        if parent.has_variable_aliphatic_chain(sub)
+                    sep.join(
+                        n for n in (
+                            '%s%s' % (
+                                s.get_prefix(),
+                                '' if self.sum_only else s.name
+                            )
+                            for s in chains
+                        ) if n
+                    ),
+                    (
+                        '%u:%u' % (
+                            sum(s.c for s in chains),
+                            sum(s.u for s in chains)
+                        ) if self.sum_only else ''
                     )
                 )
             )

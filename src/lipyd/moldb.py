@@ -880,7 +880,8 @@ class MoleculeDatabaseAggregator(object):
     def auto_metabolites(
             self,
             fa_args = {'c': (4, 36), 'u': (0, 10)},
-            sph_args = {'c': (16, 22), 'u': (0, 1)}
+            sph_args = {'c': (16, 22), 'u': (0, 1)},
+            sum_only = True
         ):
         
         masses = []
@@ -891,7 +892,11 @@ class MoleculeDatabaseAggregator(object):
             sys.stdout.write('\t:: Generating `%s`\n' % name)
             
             cls = getattr(lipid, name)
-            gen = cls(fa_args = fa_args, sph_args = sph_args)
+            gen = cls(
+                fa_args = fa_args,
+                sph_args = sph_args,
+                sum_only = sum_only
+            )
             
             for m, d in gen.iterlines():
                 

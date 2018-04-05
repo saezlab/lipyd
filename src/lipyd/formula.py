@@ -177,7 +177,7 @@ class Formula(mass.MassBase, mz.Mz):
         
         return self
     
-    def __iter__(self):
+    def __iter__(self, **kwargs):
         
         yield self
     
