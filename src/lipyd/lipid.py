@@ -28,6 +28,10 @@ import lipyd.formula as formula
 sphingolipids = [
     'Sphingosine',
     'SphingosinePhosphate',
+    'HydroxySphingosine',
+    'MethylSphingosine',
+    'DiMethylSphingosine',
+    'TriMethylSphingosine',
     'CeramideD',
     'CeramideT',
     'DihydroCeramide',
@@ -159,6 +163,9 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             **kwargs
         )
 
+#
+# Sphingoid bases
+#
 
 class Sphingosine(AbstractSphingolipid):
     
@@ -198,6 +205,63 @@ class SphingosinePhosphate(AbstractSphingolipid):
         )
 
 
+class HydroxySphingosine(AbstractSphingolipid):
+    
+    def __init__(self, sph_args = {}, **kwargs):
+        
+        sph = substituent.HydroxySphingosine(**sph_args)
+        
+        AbstractSphingolipid.__init__(
+            self,
+            sph = sph,
+            name = 'SphOH',
+            **kwargs
+        )
+
+
+
+class MethylSphingosine(AbstractSphingolipid):
+    
+    def __init__(self, sph_args = {}, **kwargs):
+        
+        AbstractSphingolipid.__init__(
+            self,
+            n = 'CH3',
+            sph_args = sph_args,
+            name = 'SphM',
+            **kwargs
+        )
+
+
+class DiMethylSphingosine(AbstractSphingolipid):
+    
+    def __init__(self, sph_args = {}, **kwargs):
+        
+        AbstractSphingolipid.__init__(
+            self,
+            n = 'C2H6',
+            sph_args = sph_args,
+            name = 'SphM2',
+            **kwargs
+        )
+
+
+class TriMethylSphingosine(AbstractSphingolipid):
+    
+    def __init__(self, sph_args = {}, **kwargs):
+        
+        AbstractSphingolipid.__init__(
+            self,
+            n = 'C3H9',
+            sph_args = sph_args,
+            name = 'SphM3',
+            **kwargs
+        )
+
+#
+# Ceramides and Sphingomyelins
+#
+
 class AbstractCeramide(AbstractSphingolipid):
     
     def __init__(
@@ -210,6 +274,7 @@ class AbstractCeramide(AbstractSphingolipid):
             t = False,
             dihydro = False,
             name = 'Cer',
+            getname = None,
             **kwargs
         ):
         
@@ -230,17 +295,17 @@ class AbstractCeramide(AbstractSphingolipid):
         self.dihydro = dihydro
         self.fa_hydroxy = fa_hydroxy
         
-        def getname(parent, subs):
+        #def getname(parent, subs):
             
-            return (
-                '%s(%s%s/%s%s)' % (
-                    parent.name,
-                    subs[0].get_prefix(),
-                    subs[0].name,
-                    subs[1].get_prefix(),
-                    subs[1].name
-                )
-            )
+            #return (
+                #'%s(%s%s/%s%s)' % (
+                    #parent.name,
+                    #subs[0].get_prefix(),
+                    #subs[0].name,
+                    #subs[1].get_prefix(),
+                    #subs[1].name
+                #)
+            #)
         
         AbstractSphingolipid.__init__(
             self,
@@ -252,7 +317,6 @@ class AbstractCeramide(AbstractSphingolipid):
             **kwargs
         )
 
-# Ceramides
 
 class CeramideD(AbstractCeramide):
     
@@ -319,12 +383,13 @@ class DihydroCeramide(AbstractCeramide):
             **kwargs
         ):
         """
-        This is perfectly isobaric with dCer.
+        This is isobaric with dCer.
         """
         
         AbstractCeramide.__init__(
             self,
             dihydro = True,
+            o = o,
             **kwargs
         )
 
@@ -358,6 +423,7 @@ class HydroxyacylCeramideD(CeramideD):
         CeramideD.__init__(
             self,
             fa_hydroxy = True,
+            o = o,
             **kwargs
         )
 
@@ -373,6 +439,7 @@ class HydroxyacylCeramideT(CeramideT):
         CeramideT.__init__(
             self,
             fa_hydroxy = True,
+            o = o,
             **kwargs
         )
 
@@ -389,13 +456,14 @@ class HydroxyacylDihydroCeramide(CeramideD):
             self,
             dihydro = True,
             fa_hydroxy = True,
+            o = o,
             **kwargs
         )
 
 
 class CeramideFactory(object):
     
-    def __init__(self):
+    def __init__(self, fa_args_1o = {'c': (4, 24), 'u': (0, 9)}, **kwargs):
         
         l_t = [True, False]
         l_fa_hydroxy = [True, False]
@@ -406,7 +474,8 @@ class CeramideFactory(object):
             ('C12H21O10', 'Hex2Cer'),
             ('C6H11O5', 'HexCer'),
             ('PO3C2H4NC3H9', 'SM'),
-            ('PO3C2H4NH3', 'CerPE')
+            ('PO3C2H4NH3', 'CerPE'),
+            (None, 'CerA')
             
         ]
         l_dihydro = [True, False]
@@ -516,7 +585,7 @@ class CeramideFactory(object):
                     http://www.swisslipids.org/#/entity/SLM:000397236/
                     
                     [(m.name, m.mass) for m in
-                        lipid.HydroxyacylCeramideD(
+                        lipid.HydroxyacylCeramideD1OAcyl(
                             sph_args = {'c': (14, 14), 'u': (1, 1)},
                             fa_args = {'c': (20, 20), 'u': (1, 1)}
                         )
@@ -531,7 +600,7 @@ class CeramideFactory(object):
                 """,
             'DihydroCeramide':
                 """
-                This is perfectly isobaric with dCer.
+                This is isobaric with dCer.
                 """,
             'CeramideT':
                 """
@@ -573,21 +642,36 @@ class CeramideFactory(object):
                 
                 continue
             
-            parent, child = self.class_name(name, t, dihydro, fa_hydroxy)
+            parent, child = self.class_name(name, t, dihydro, fa_hydroxy, o)
             
             exec(
                 (
-                    'def __init__(self, **kwargs):\n'
-                    '    \n'
+                    'def __init__(self, %s**kwargs):\n'
+                    '    \n%s'
                     '    %s.__init__(\n'
                     '        self,\n'
-                    '        o = \'%s\',\n'
+                    '        o = %s,\n'
                     '        name = \'%s\',\n'
                     '        **kwargs\n'
                     '        )\n'
                 ) % (
+                    # `fa_args_1o` is an argument for
+                    # 1-O-acyl ceramides
+                    (
+                        '\nfa_args_1o = %s,\n' % fa_args_1o.__str__()
+                    )
+                    if o is None
+                    else '',
+                    # the 1O substituent is a fatty acyl
+                    # if o is None
+                    (
+                        '\n    fa1o = substituent.FattyAcyl('
+                        '**fa_args_1o)\n'
+                    )
+                    if o is None
+                    else '',
                     parent,
-                    o,
+                    'fa1o' if o is None else '\'%s\'' % o,
                     name
                 ),
                 mod.__dict__,
@@ -610,7 +694,7 @@ class CeramideFactory(object):
         
         delattr(mod, '__init__')
     
-    def class_name(self, name, t, dihydro, hydroxyacyl):
+    def class_name(self, name, t, dihydro, hydroxyacyl, o):
         
         dt = 'T' if t else 'D' if not dihydro else ''
         
@@ -639,6 +723,7 @@ class CeramideFactory(object):
                 'Phosphoethanolamine'
                     if 'CerPE' in name
                     else 'Phosphate' if 'CerP' in name
+                    else '1OAcyl' if o is None
                     else ''
             )
         

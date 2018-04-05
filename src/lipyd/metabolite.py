@@ -203,6 +203,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             getname = lambda parent: '%u:%u' % (parent.c, parent.u),
             c_u_diff = lambda c, u: c > u + 1,
             prefix = '',
+            even = False,
             **kwargs
         ):
         """
@@ -238,10 +239,12 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             length must be greater by 2 than unsaturation, it means at acyl
             chains we avoid to assume double bond right next to the carboxyl
             group which is clearly impossible.
+        :param bool even: If true only even chain lengths are considered.
         """
         
         self.prefix   = prefix
         self.c_u_diff = c_u_diff
+        self.even     = even
         self.getname  = getname
         self.cores    = cores if type(cores) is list else [cores]
         self.charges  = charges if type(charges) is list else [charges]
@@ -261,8 +264,9 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         )
         
         # range of possible lengths and unsats
-        self.chlens = list(range(c[0], c[1] + 1))
-        self.unsats = list(range(u[0], u[1] + 1))
+        self.set_chlens(c)
+        self.set_unsats(u)
+        
         # current value of length and unsat
         self.c = self.chlens[0]
         self.u = self.unsats[0]
@@ -312,6 +316,24 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     new.cc_unsat_str = new.name if self.total > 1 else None
                     
                     yield new
+    
+    def set_chlens(self, c):
+        
+        self.chlens = (
+            c if type(c) is list
+            else [
+                i for i in
+                range(c[0], c[1] + 1)
+                if not self.even or i % 2 == 0
+            ]
+        )
+    
+    def set_unsats(self, u):
+        
+        self.unsats = (
+            u if type(u) is list
+            else list(range(u[0], u[1] + 1))
+        )
     
     def update_core(self, i = 0):
         

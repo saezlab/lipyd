@@ -22,19 +22,29 @@ import lipyd.metabolite as metabolite
 
 class FattyAcyl(metabolite.AbstractSubstituent):
     
-    def __init__(self, c = (2, 24), u = (0, 6), counts = {'H': -2}):
+    def __init__(self, c = (2, 24), u = (0, 6), counts = {'H': -2}, **kwargs):
         
         metabolite.AbstractSubstituent.__init__(
-            self, cores = ['O'], counts = counts, c = c, u = u
+            self, cores = ['O'], counts = counts, c = c, u = u, **kwargs
         )
 
 
 class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
     
-    def __init__(self, c = (2, 24), u = (0, 6), counts = {'H': -2, 'O': 1}):
+    def __init__(
+            self,
+            c = (2, 24),
+            u = (0, 6),
+            counts = {'H': -2, 'O': 1},
+            **kwargs
+        ):
         
         metabolite.AbstractSubstituent.__init__(
-            self, cores = ['O'], counts = counts, c = c, u = u, prefix = '2OH'
+            self, cores = ['O'],
+            counts = counts,
+            c = c,
+            u = u,
+            prefix = '2OH', **kwargs
         )
 
 
@@ -45,7 +55,8 @@ class Sphingosine(metabolite.AbstractSubstituent):
             c = (12, 24),
             u = (1, 6),
             counts = {},
-            prefix = 'd'
+            prefix = 'd',
+            **kwargs
         ):
         """
         Note: this is a sphingosine backbone in a sphingolipid
@@ -55,7 +66,7 @@ class Sphingosine(metabolite.AbstractSubstituent):
         
         metabolite.AbstractSubstituent.__init__(
             self, cores = ['O2N'], counts = counts, c = c, u = u,
-            prefix = prefix
+            prefix = prefix, **kwargs
         )
     
     def get_prefix(self):
@@ -65,10 +76,10 @@ class Sphingosine(metabolite.AbstractSubstituent):
 
 class DihydroSphingosine(Sphingosine):
     
-    def __init__(self, c = (12, 24), u = (0, 6), counts = {}):
+    def __init__(self, c = (12, 24), u = (0, 6), counts = {}, **kwargs):
         
         Sphingosine.__init__(
-            self, c = c, u = u, counts = counts, prefix = 'DH'
+            self, c = c, u = u, counts = counts, prefix = 'DH', **kwargs
         )
 
 

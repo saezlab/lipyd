@@ -879,8 +879,8 @@ class MoleculeDatabaseAggregator(object):
     
     def auto_metabolites(
             self,
-            fa_args = {'c': (4, 30), 'u': (0, 9)},
-            sph_args = {'c': (14, 22), 'u': (0, 4)}
+            fa_args = {'c': (4, 36), 'u': (0, 10)},
+            sph_args = {'c': (16, 22), 'u': (0, 1)}
         ):
         
         masses = []
