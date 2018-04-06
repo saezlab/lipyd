@@ -15,8 +15,6 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
-from future.utils import iteritems
-
 import lipyd.metabolite as metabolite
 
 

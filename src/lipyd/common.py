@@ -23,6 +23,8 @@ import os
 import warnings
 import traceback
 import itertools
+import xlrd
+import openpyxl
 
 ROOT = os.path.abspath(os.path.dirname(__file__))
 
@@ -166,3 +168,137 @@ for cc, uns, end in itertools.product(
     
     fa_greek['%s%s%s' % (cc[0], uns[0], end[0])] = (cc[1], uns[1] * end[1])
 
+
+adducts = {
+    'pos': ['[M+H]+', '[M+NH4]+', '[M+Na]+'],
+    'neg': ['[M-H]-', '[M+HCOO]-']
+}
+
+
+ad2ex = {
+    1: {
+        'pos': {
+            '[M+H]+': 'remove_h',
+            '[M+NH4]+': 'remove_nh4',
+            '[M+Na]+': 'remove_na',
+        },
+        'neg': {
+            '[M-H]-': 'add_h',
+            '[M+HCOO]-': 'remove_fo'
+        }
+    },
+    2: {
+        'pos': {},
+        'neg': {
+            '[M-2H]2-': 'add_2h'
+        }
+    },
+    3: {
+        'pos': {},
+        'neg': {
+            '[M-3H]3-': 'add_3h'
+        }
+    }
+}
+
+exact_method = {
+    '[M+OAc]-': 'remove_ac',
+    '[M+H]+': 'remove_h',
+    '[M-H]-': 'add_h',
+    '[M+HCOO]-': 'remove_fo',
+    '[M+NH4]+': 'remove_nh4',
+    '[M+Na]+': 'remove_na'
+}
+
+# method names to convert between exact and adduct masses
+adduct_method = {
+    '[M+OAc]-': 'add_ac',
+    '[M+H]+': 'add_h',
+    '[M-H]-': 'remove_h',
+    '[M+HCOO]-': 'add_fo',
+    '[M+NH4]+': 'add_nh4',
+    '[M+Na]+': 'add_na'
+}
+
+ex2ad = {
+    1: {
+        'pos': {
+            '[M+H]+': 'add_h',
+            '[M+NH4]+': 'add_nh4',
+            '[M+Na]+': 'add_na'
+        },
+        'neg': {
+            '[M-H]-': 'remove_h',
+            '[M+HCOO]-': 'add_fo'
+        }
+    },
+    2: {
+        'pos': {},
+        'neg': {
+            '[M-2H]2-': 'remove_2h'
+        }
+    },
+    3: {
+        'pos': {},
+        'neg': {
+            '[M-3H]3-': 'remove_3h'
+        }
+    }
+}
+
+
+def read_xls(xls_file, sheet = 0, csv_file = None,
+    return_table = True):
+    """
+    Generic function to read MS Excel XLS file, and convert one sheet
+    to CSV, or return as a list of lists
+    """
+    table = []
+    try:
+        book = xlrd.open_workbook(xls_file, on_demand = True)
+        try:
+            if type(sheet) is int:
+                sheet = book.sheet_by_index(sheet)
+            else:
+                sheet = book.sheet_by_name(sheet)
+        except xlrd.biffh.XLRDError:
+            sheet = book.sheet_by_index(0)
+        table = [[unicode(c.value) \
+            for c in sheet.row(i)] \
+            for i in xrange(sheet.nrows)]
+    except IOError:
+        sys.stdout.write('No such file: %s\n' % xls_file)
+        sys.stdout.flush()
+    except:
+        try:
+            book = openpyxl.load_workbook(filename = xls_file,
+                read_only = True)
+        except:
+            sys.stdout.write('\tCould not open xls: %s\n' % xls_file)
+            if not os.path.exists(xls_file):
+                sys.stdout.write('\tFile does not exist.\n')
+            sys.stdout.flush()
+        try:
+            if type(sheet) is int:
+                sheet = book.worksheets[sheet]
+            else:
+                sheet = book[sheet]
+        except:
+            sheet = book.worksheets[0]
+        cells = sheet.get_squared_range(1, 1,
+            sheet.max_column, sheet.max_row)
+        table = map(lambda row:
+            map(lambda c:
+                unicode(c.value) if c.value else '',
+                row
+            ),
+            cells
+        )
+    if csv_file:
+        with open(csv_file, 'w') as csv:
+            csv.write('\n'.join(['\t'.join(r) for r in table]))
+    if not return_table:
+        table = None
+    if 'book' in locals() and hasattr(book, 'release_resources'):
+        book.release_resources()
+    return table

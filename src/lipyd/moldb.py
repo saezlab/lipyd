@@ -39,10 +39,11 @@ except:
 import lipyd._curl as _curl
 import lipyd.common as common
 import lipyd.settings as settings
-import lipyd.mz as mz
+import lipyd.mz as mzmod
 import lipyd.progress as progress
 import lipyd.sdf as sdf
 import lipyd.lipid as lipid
+import lipyd.lookup as lookup
 
 
 class Reader(object):
@@ -862,11 +863,13 @@ class MoleculeDatabaseAggregator(object):
             resources = {
                 'SwissLipids': (SwissLipids, {}),
                 'LipidMaps': (LipidMaps, {})
-            }
+            },
+            tolerance = .01
         ):
         
         self.resource = resources
         self.dbs = {}
+        self.tolerance = tolerance
         #self.db = np.array()
     
     def reload(self, children = False):
@@ -905,6 +908,8 @@ class MoleculeDatabaseAggregator(object):
         
         self.masses = np.array(masses, dtype = np.float)
         self.data = np.array(data, dtype = np.object)
+        
+        self.sort()
     
     def sort(self):
         
@@ -923,6 +928,49 @@ class MoleculeDatabaseAggregator(object):
             self.dbs[name] = np.array(
                 list(res.iterlines())
             )
+    
+    def ilookup(self, m):
+        
+        return lookup.findall(self.masses, m, t = self.tolerance)
+    
+    def lookup(self, m):
+        
+        i = self.ilookup(m)
+        
+        return (
+            self.masses[i],
+            self.data[i]
+        )
+    
+    def lookup_accuracy(self, m):
+        
+        r = self.lookup(m)
+        
+        a = np.array([
+            (m - rm) / m * 10**6 for rm in r[0]
+        ])
+        
+        return r[0], r[1], a
+    
+    def adduct_lookup(self, mz, adducts = None, ionm = None, charge = 1):
+        
+        result = {}
+        
+        mz = mzmod.Mz(mz)
+        
+        if ionm in {'pos', 'neg'}:
+            
+            adducts = list(common.ad2ex[charge][ionm].keys())
+        
+        methods = dict((ad, common.exact_method[ad]) for ad in adducts)
+        
+        for ad, method in iteritems(methods):
+            
+            exmz = getattr(mz, method)()
+            
+            result[ad] = self.lookup_accuracy(exmz)
+        
+        return result
 
 
 class TestMoldb(object):

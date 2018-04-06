@@ -1,9 +1,9 @@
-.. emese documentation master file, created by
+.. lipyd documentation master file, created by
    sphinx-quickstart on Mon Jan 30 17:10:27 2017.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to emese's documentation!
+Welcome to lipyd's documentation!
 =================================
 
 .. toctree::
@@ -22,7 +22,7 @@ Indices and tables
 Reference
 =========
 
-emese.main
+lipyd.main
 ----------
 
 The main module contains the **Screening** class which
@@ -31,10 +31,89 @@ represents the total analysis workflow on multiple objects (proteins).
 The Screening class
 +++++++++++++++++++
 
-.. autoclass:: emese.main.Screening
+.. autoclass:: lipyd.main.Screening
    :members:
 
-emese.ms2
+lipyd.mz
+--------
+
+Submodule for calculations with m/z values.
+
+.. automodule:: lipyd.mz
+   :members:
+
+
+lipyd.mass
+----------
+
+Submodule with molecular mass calculation classes.
+
+.. automodule:: lipyd.mass
+   :members:
+
+lipyd.formula
+-------------
+
+Defines the `Formula` class which represents a chemical formula.
+
+.. automodule:: lipyd.formula
+   :members:
+
+lipyd.metabolite
+----------------
+
+Abstract base classes for representation of metabolites with
+various constant cores and substituent groups.
+
+.. automodule:: lipyd.metabolite
+   :members:
+
+lipyd.substituent
+-----------------
+
+Classes representing certain substituents e.g. `FattyAcyl`.
+
+.. automodule:: lipyd.substituent
+   :members:
+
+lipyd.lipid
+-----------
+
+Many classes representing generic or more specific lipids.
+These are all based on `metabolite.AbstractMetabolite`.
+
+.. automodule:: lipyd.lipid
+   :members:
+
+lipyd.moldb
+-----------
+
+Handling of molecular mass databases. Here you find `SwissLipids` and
+`LipidMaps` and also the `MoleculeDatabaseAggregator` which you can
+use to combine all the databases and also to build your own database
+by auto-generating masses either by the module defaults or your custom
+rules.
+
+.. automodule:: lipyd.moldb
+   :members:
+
+lipyd.sdf
+---------
+
+Parsing `sdf` files.
+
+.. automodule:: lipyd.sdf
+   :members:
+
+lipyd.mgf
+---------
+
+Parsing `mgf` files.
+
+.. automodule:: lipyd.mgf
+   :members:
+
+lipyd.ms2
 ---------
 
 Submodule with methods for MS2 spectra analysis.
@@ -44,7 +123,7 @@ The Feature class
 
 Represents one MS1 m/z detected across multiple samples (fractions).
 
-.. autoclass:: emese.ms2.Feature
+.. autoclass:: lipyd.ms2.Feature
    :members:
 
 The MS2Scan class
@@ -52,55 +131,38 @@ The MS2Scan class
 
 Represents one MS2 spectrum with all the methods for its analysis.
 
-.. autoclass:: emese.ms2.MS2Scan
+.. autoclass:: lipyd.ms2.MS2Scan
    :members:
 
-
-emese.mz
---------
-
-Submodule for calculations with m/z values.
-
-.. automodule:: emese.mz
-   :members:
-
-emese.fragments
+lipyd.fragments
 ---------------
 
 Classes representing fragment ions in MS2 spectra.
 
-.. automodule:: emese.fragments
+.. automodule:: lipyd.fragments
    :members:
 
-emese.mass
-----------
-
-Submodule with molecular mass calculation classes.
-
-.. automodule:: emese.mass
-   :members:
-
-emese._curl
+lipyd._curl
 -----------
 
 Submodule for the built-in curl based downloader.
 
-.. automodule:: emese._curl
+.. automodule:: lipyd._curl
    :members:
 
-emese.common
+lipyd.common
 ------------
 
 Submodule for small methods commonly used in other modules
 and some generic constant data structures.
 
-.. automodule:: emese.common
+.. automodule:: lipyd.common
    :members:
 
-emese.progress
+lipyd.progress
 --------------
 
 In this submodule the progress bar takes place.
 
-.. automodule:: emese.progress
+.. automodule:: lipyd.progress
    :members:

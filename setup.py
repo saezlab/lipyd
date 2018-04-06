@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2014-2017 - EMBL
+#  Copyright (c) 2014-2018 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -30,7 +30,7 @@ metainfo = {
     },
     'version': __version__,
     'license': 'GPLv3',
-    'download_url': ['https://github.com/saezlab/lipyd/archive/dev2.zip'],
+    'download_url': ['https://github.com/saezlab/lipyd/archive/dev3.zip'],
     'url': ['https://github.com/saezlab/lipyd'],
     'description': 'Analysis of lipidomics mass spectrometry data',
     'platforms': [

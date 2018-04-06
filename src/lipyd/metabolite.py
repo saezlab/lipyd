@@ -180,9 +180,9 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             
             identity = [self.name, inst.getname()]
             
-            for sub in self.subs:
+            for i, sub in enumerate(subs):
                 
-                if self.has_variable_aliphatic_chain(sub):
+                if self.has_variable_aliphatic_chain(self.subs[i]):
                     
                     identity.extend([
                         sub.get_prefix(),
@@ -251,6 +251,16 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         self._restore_sub0()
     
     def _restore_sub0(self):
+        """
+        For iterating with considering only total carbon count and
+        unsaturation accross all aliphatic chains, we pretend that
+        all extra carbons and unsaturations are added to the first
+        substituent with vatriable aliphatic chain, e.g. it may
+        have C54 while in reality it has max C18 and the other 36
+        carbons are in the other chains. After setting these fake
+        numbers on the first substituent we need to restore the
+        real numbers otherwise it could mess up things later.
+        """
         
         if self.sub0:
             
@@ -258,6 +268,10 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             self.subs[self.sub0[0]].unsats = self.sub0[2]
     
     def has_variable_aliphatic_chain(self, sub):
+        """
+        Tells if the substituent really has more than one possible
+        chain length or unsaturation variation.
+        """
         
         return (
             hasattr(sub, 'variable_aliphatic_chain') and
