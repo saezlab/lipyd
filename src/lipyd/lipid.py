@@ -66,7 +66,6 @@ class AbstractGlycerol(metabolite.AbstractMetabolite):
                 self.get_substituent(sn2),
                 self.get_substituent(sn3)
             ],
-            name = name,
             charge = self.netcharge,
             **kwargs
         )
@@ -82,8 +81,53 @@ class AbstractGPL(AbstractGlycerol):
             fa_args = {},
             name = 'GPL',
             typ  = 'GPL',
+            lyso_sn1_fa = True,
+            sn2_fa_args = None,
+            sn1_ether = False,
+            sn2_ether = False,
             **kwargs
         ):
+        """
+        Represents a generic glycerophospholipid.
+        
+        :param str headgroup: Formula of the moiety attached to the phosphate.
+        :param bool lyso: Whether it is a lyso form or not.
+        :param bool ether: Whether it is an ether i.e. having fatty alcohol
+            ether on one or both of the sn1 and sn2 positions.
+        :param dict fa_args: Arguments for the `substituent.FattyAcyl()`.
+        :param str name: Name stem of the lipid class.
+        :param str typ: Name of the lipid family, here should be GPL.
+        :param bool lyso_sn1_fa: In case of lyso form is the alkyl ester/ether
+            in sn1 position?
+        :param dict sn2_fa_args: If the sn2 fatty acyl or alcohol has
+            different parameters; if `None` it defaults to `fa_args`.
+        :param bool sn1_ether: If `ether` is `True`, is there ether in sn1
+            position? If `ether` is `True` but both this and `sn2_ether`
+            are `False`, sn1 ether position assumed.
+        :param bool sn2_ether: If `ether` is `True`, is there ether in sn2
+            position?
+        :param **kwargs: Passed to `AbstractGlycerol` and finally to
+            `metabolite.AbstractMetabolite`.
+        """
+        
+        self.lyso = lyso
+        self.ether = ether
+        self.sn2_ether = sn2_ether
+        self.sn1_ether = sn1_ether or (ether and not sn2_ether)
+        self.lyso_sn1_fa = lyso_sn1_fa
+        
+        self.sn1_fa_args = fa_args
+        self.sn2_fa_args = sn2_fa_args or fa_args
+        sn1_cls = (
+            substituent.FattyAlkoxy
+            if self.sn1_ether else
+            substituent.FattyAcyl
+        )
+        sn2_cls = (
+            substituent.FattyAlkoxy
+            if self.sn2_ether else
+            substituent.FattyAcyl
+        )
         
         AbstractGlycerol.__init__(
             self,
@@ -91,6 +135,7 @@ class AbstractGPL(AbstractGlycerol):
             sn2  = 'H' if lyso else substituent.FattyAcyl(**fa_args),
             sn3  = 'PO3H%s' % headgroup,
             name = name,
+            typ  = typ,
             **kwargs
         )
 
@@ -163,8 +208,8 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             )
         
         metabolite.AbstractMetabolite.__init__(
-            self,
             core = '',
+            self,
             subs = [
                 sph,
                 self.get_substituent(n),
@@ -474,12 +519,285 @@ class HydroxyacylDihydroCeramide(CeramideD):
         )
 
 
+
 class CeramideFactory(object):
     
     def __init__(self, fa_args_1o = {'c': (4, 24), 'u': (0, 9)}, **kwargs):
         
         l_t = [True, False]
         l_fa_hydroxy = [True, False]
+        l_classes = [
+            ('PO3H2', 'CerP'),
+            ('C12H21O10SO3', 'SHex2Cer'),
+            ('C6H11O5SO3', 'SHexCer'),
+            ('C12H21O10', 'Hex2Cer'),
+            ('C6H11O5', 'HexCer'),
+            ('PO3C2H4NC3H9', 'SM'),
+            ('PO3C2H4NH3', 'CerPE'),
+            (None, 'CerA')
+            
+        ]
+        l_dihydro = [True, False]
+        
+        docs = {
+            'CeramideDPhosphoethanolamine':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000398516/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.CeramideDPhosphoethanolamine(
+                            sph_args = {'c': (16, 16), 'u': (0, 0)},
+                            fa_args = {'c': (30, 30), 'u': (6, 6)}
+                        )
+                    ]
+                    
+                    exact mass = 818.63017553472
+                """,
+            'SulfoDiHexosylCeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000396884/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.SulfoDiHexosylCeramideD(
+                            sph_args = {'c': (18, 18), 'u': (1, 1)},
+                            fa_args = {'c': (18, 18), 'u': (1, 1)}
+                        )
+                    ]
+                    
+                    exact mass = 967.59020697344
+                """,
+            'DiHexosylCeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000395342/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.DiHexosylCeramideD(
+                            sph_args = {'c': (18, 18), 'u': (1, 1)},
+                            fa_args = {'c': (26, 26), 'u': (0, 0)}
+                        )
+                    ]
+                    
+                    exact mass = 1001.77424251862
+                """,
+            'SulfoHexosylCeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000396804/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.SulfoHexosylCeramideD(
+                            sph_args = {'c': (18, 18), 'u': (1, 1)},
+                            fa_args = {'c': (18, 18), 'u': (2, 2)}
+                        )
+                    ]
+                    
+                    exact mass = 803.5217334853199
+                """,
+            'HexosylCeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000395423/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.HexosylCeramideD(
+                            sph_args = {'c': (18, 18), 'u': (1, 1)},
+                            fa_args = {'c': (16, 16), 'u': (0, 0)}
+                        )
+                    ]
+                    
+                    exact mass = 699.56491844982
+                """,
+            'SphingomyelinT':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000485623/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.SphingomyelinT(
+                            sph_args = {'c': (17, 17), 'u': (0, 0)},
+                            fa_args = {'c': (32, 32), 'u': (5, 5)}
+                        )
+                    ]
+                    
+                    exact mass = 920.73464060656
+                """,
+            'SphingomyelinD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000397988/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.SphingomyelinD(
+                            sph_args = {'c': (16, 16), 'u': (1, 1)},
+                            fa_args = {'c': (18, 18), 'u': (1, 1)}
+                        )
+                    ]
+                    
+                    exact mass = 700.5519252121201
+                """,
+            'HydroxyacylCeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000397236/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.HydroxyacylCeramideD(
+                            sph_args = {'c': (14, 14), 'u': (1, 1)},
+                            fa_args = {'c': (20, 20), 'u': (1, 1)}
+                        )
+                    ]
+                    
+                    exact mass = 551.4913595819
+                    
+                    551.4913595819 - formula.Formula('O').mass = 535.4964449617
+                    
+                    I.e. this species is always one oxygen heavier than the
+                    corresponding dCer.
+                """,
+            'DihydroCeramide':
+                """
+                This is isobaric with dCer.
+                """,
+            'CeramideT':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000395636/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.CeramideT(
+                            sph_args = {'c': (18, 18), 'u': (0, 0)},
+                            fa_args = {'c': (10, 10), 'u': (0, 0)}
+                        )
+                    ]
+                    
+                    exact mass = 471.42875932382003
+                """,
+            'CeramideD':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000397236/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.CeramideD(
+                            sph_args = {'c': (14, 14), 'u': (1, 1)},
+                            fa_args = {'c': (20, 20), 'u': (1, 1)}
+                        )
+                    ]
+                    
+                    exact mass = 535.4964449617
+                """
+        }
+        
+        mod = sys.modules[__name__]
+        
+        for t, fa_hydroxy, dihydro, (o, name) in itertools.product(
+                l_t, l_fa_hydroxy, l_dihydro, l_classes
+            ):
+            
+            if (t and dihydro):
+                
+                continue
+            
+            parent, child = self.class_name(name, t, dihydro, fa_hydroxy, o)
+            
+            exec(
+                (
+                    'def __init__(self, %s**kwargs):\n'
+                    '    \n%s'
+                    '    %s.__init__(\n'
+                    '        self,\n'
+                    '        o = %s,\n'
+                    '        name = \'%s\',\n'
+                    '        **kwargs\n'
+                    '        )\n'
+                ) % (
+                    # `fa_args_1o` is an argument for
+                    # 1-O-acyl ceramides
+                    (
+                        '\nfa_args_1o = %s,\n' % fa_args_1o.__str__()
+                    )
+                    if o is None
+                    else '',
+                    # the 1O substituent is a fatty acyl
+                    # if o is None
+                    (
+                        '\n    fa1o = substituent.FattyAcyl('
+                        '**fa_args_1o)\n'
+                    )
+                    if o is None
+                    else '',
+                    parent,
+                    'fa1o' if o is None else '\'%s\'' % o,
+                    name
+                ),
+                mod.__dict__,
+                mod.__dict__
+            )
+            
+            if child in docs:
+                
+                mod.__dict__['__init__'].__doc__ = docs[child]
+            
+            cls = type(
+                child,
+                (getattr(mod, parent), ),
+                {'__init__': mod.__dict__['__init__']}
+            )
+            
+            setattr(mod, child, cls)
+            
+            sphingolipids.append(child)
+        
+        delattr(mod, '__init__')
+    
+    def class_name(self, name, t, dihydro, hydroxyacyl, o):
+        
+        dt = 'T' if t else 'D' if not dihydro else ''
+        
+        maintype = '%s%s' % (
+            'Ceramide' if 'Cer' in name else 'Sphingomyelin',
+            dt
+        )
+        
+        parmaintype = 'Ceramide%s' % dt
+        
+        subtype = '%s%s' % (
+            'Hydroxyacyl' if hydroxyacyl else '',
+            'Dihydro' if dihydro else ''
+        )
+        
+        parent = '%s%s' % (subtype, parmaintype)
+        
+        child = '%s%s%s%s%s' % (
+                subtype,
+                'Sulfo' if 'SHex' in name else '',
+                'DiHexosyl'
+                    if 'Hex2' in name
+                    else 'Hexosyl' if 'Hex' in name
+                    else '',
+                maintype,
+                'Phosphoethanolamine'
+                    if 'CerPE' in name
+                    else 'Phosphate' if 'CerP' in name
+                    else '1OAcyl' if o is None
+                    else ''
+            )
+        
+        return parent, child
+
+
+class GPLFactory(object):
+    
+    def __init__(
+            self,
+            fa1_args = {'c': (4, 24), 'u': (0, 9)},
+            fa2_args = {'c': (4, 24), 'u': (0, 9)},
+            **kwargs
+        ):
+        
         l_classes = [
             ('PO3H2', 'CerP'),
             ('C12H21O10SO3', 'SHex2Cer'),

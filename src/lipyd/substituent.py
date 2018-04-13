@@ -62,6 +62,10 @@ class Sphingosine(metabolite.AbstractSubstituent):
         by the appropriate substituents.
         """
         
+        if u[0] == 0:
+            
+            u = (1, u[1])
+        
         metabolite.AbstractSubstituent.__init__(
             self, cores = ['O2N'], counts = counts, c = c, u = u,
             prefix = prefix, **kwargs
