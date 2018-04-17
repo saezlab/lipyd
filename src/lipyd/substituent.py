@@ -20,7 +20,7 @@ import lipyd.metabolite as metabolite
 
 class FattyAcyl(metabolite.AbstractSubstituent):
     
-    def __init__(self, c = (2, 24), u = (0, 6), counts = {'H': -2}, **kwargs):
+    def __init__(self, c = (2, 36), u = (0, 10), counts = {'H': -2}, **kwargs):
         
         metabolite.AbstractSubstituent.__init__(
             self, cores = ['O'], counts = counts, c = c, u = u, **kwargs
@@ -46,6 +46,15 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
         )
 
 
+class FattyAlkoxy(metabolite.AbstractSubstituent):
+    
+    def __init__(self, c = (2, 36), u = (0, 10), counts = {}, **kwargs):
+        
+        metabolite.AbstractSubstituent.__init__(
+            self, cores = [''], counts = counts, c = c, u = u, **kwargs
+        )
+
+
 class Sphingosine(metabolite.AbstractSubstituent):
     
     def __init__(
@@ -61,6 +70,10 @@ class Sphingosine(metabolite.AbstractSubstituent):
         hence 2 hydrogens are missing and these should be replaced
         by the appropriate substituents.
         """
+        
+        if u[0] == 0:
+            
+            u = (1, u[1])
         
         metabolite.AbstractSubstituent.__init__(
             self, cores = ['O2N'], counts = counts, c = c, u = u,
