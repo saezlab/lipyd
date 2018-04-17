@@ -20,7 +20,7 @@ import lipyd.metabolite as metabolite
 
 class FattyAcyl(metabolite.AbstractSubstituent):
     
-    def __init__(self, c = (2, 24), u = (0, 6), counts = {'H': -2}, **kwargs):
+    def __init__(self, c = (2, 36), u = (0, 10), counts = {'H': -2}, **kwargs):
         
         metabolite.AbstractSubstituent.__init__(
             self, cores = ['O'], counts = counts, c = c, u = u, **kwargs
@@ -43,6 +43,15 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
             c = c,
             u = u,
             prefix = '2OH', **kwargs
+        )
+
+
+class FattyAlkoxy(metabolite.AbstractSubstituent):
+    
+    def __init__(self, c = (2, 36), u = (0, 10), counts = {}, **kwargs):
+        
+        metabolite.AbstractSubstituent.__init__(
+            self, cores = [''], counts = counts, c = c, u = u, **kwargs
         )
 
 
