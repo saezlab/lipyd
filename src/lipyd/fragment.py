@@ -23,6 +23,7 @@ import re
 import imp
 
 import lipyd.mass as mass
+import lipyd.metabolite as metabolite
 
 class AdductCalculator(object):
     
@@ -53,12 +54,12 @@ class AdductCalculator(object):
 class FattyFragment(mass.MassBase, AdductCalculator):
     
     def __init__(self, charge, c = 3, unsat = 0,
-        minus = [], plus = [], isotope = 0, name = None, hg = []):
+        minus = None, plus = None, isotope = 0, name = None, hg = None):
         self.c = c
         self.unsat = unsat
-        self.minus = minus
-        self.plus = plus
-        self.hg = hg
+        self.minus = minus or []
+        self.plus  = plus or []
+        self.hg = hg or []
         self.init_counts()
         self.add_atoms('C', self.c)
         self.add_atoms('H', self.c * 2)
@@ -105,6 +106,12 @@ class FattyFragment(mass.MassBase, AdductCalculator):
             '[M%s]%s' % (self.adduct_str(), self.charge_str()),
             ';'.join(self.hg)]
 
+
+class FattyFragmentFactory(object):
+    
+    def __init__(self):
+        
+        
 
 class LysoPEAlkenyl(FattyFragment):
     """

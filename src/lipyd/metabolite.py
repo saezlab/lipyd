@@ -89,7 +89,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
                         if hasattr(s, 'cc_unsat_str') and s.cc_unsat_str
                     )
                 ),
-            subs = [],
+            subs = None,
             sum_only = False,
             **kwargs
         ):
@@ -112,7 +112,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             **kwargs
         )
         
-        self.subs = subs
+        self.subs = subs or []
         self.sum_only = sum_only
         self.sub0 = None
     
@@ -125,7 +125,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
     @staticmethod
     def get_substituent(sub):
         """
-        Creates a `Forula` object if the substituent is not
+        Creates a `Formula` object if the substituent is not
         already an instance of `Formula` or `Substituent`.
         """
         
@@ -283,17 +283,18 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
     
     def __init__(
             self,
-            cores = [0.0],
+            cores = 0.0,
             c = (0, 1),
             u = (0, 1),
-            counts = {},
-            charges = [0],
-            isotopes = [0],
-            names = ['Unknown'],
+            counts = None,
+            charges = 0,
+            isotopes = 0,
+            names = 'Unknown',
             getname = lambda parent: '%u:%u' % (parent.c, parent.u),
             c_u_diff = lambda c, u: c > u + 1,
             prefix = '',
             even = False,
+            valence = 1,
             **kwargs
         ):
         """
@@ -301,12 +302,18 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         a homolog series spanning accross a range of aliphatic chain
         length and unsaturated bonds.
         
-        :param list cores: List of core variations. Same kind of definitions
+        Args:
+        -----
+        :param list cores:
+            List of core variations. Same kind of definitions
             are possible like at `formula.Formula`: formula as `str`, `dict` of
             atoms or exact mass as `float`.
-        :param tuple c: Tuple of 2 integers: range of chain lengths.
-        :param tuple u: Tuple of 2 integers: range of unsaturations.
-        :param list counts: Dictionary with extra atom counts.
+        :param tuple c:
+            Tuple of 2 integers: range of chain lengths.
+        :param tuple u:
+            Tuple of 2 integers: range of unsaturations.
+        :param list counts:
+            Dictionary with extra atom counts.
             If you have one or more extra oxygen, nitrogen, phosphorous or
             any other atoms in the compound you can include here.
             Alternatively you can also include them in the core.
@@ -317,31 +324,40 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             hydrogen. Otherwise, as this data structure has no information
             about constitution, we could not guess the number of hydrogens.
             Similarly, for oxo groups removal of 2 hydrogens necessary.
-        :param list charges: List of integers: charges for each core
+        :param list charges:
+            List of integers: charges for each core
             variation.
-        :param list isotopes: List of integers: extra neutrons for each core
+        :param list isotopes:
+            List of integers: extra neutrons for each core
             variation.
-        :param getname: Method (callable) to create a name from the chain
+        :param getname:
+            Method (callable) to create a name from the chain
             length and the unsaturation.
-        :param c_u_diff: Method (callable) to decide if the chain length and
+        :param c_u_diff:
+            Method (callable) to decide if the chain length and
             unsaturation are compatible. E.g. if chain length is only C2, an
             unsaturation of 4 double bonds is not possible. By default, chain
             length must be greater by 2 than unsaturation, it means at acyl
             chains we avoid to assume double bond right next to the carboxyl
             group which is clearly impossible.
-        :param bool even: If true only even chain lengths are considered.
+        :param bool even:
+            If true only even chain lengths are considered.
+        :param int valence:
+            Total valence of the substituent. Number of bonds connecting
+            to other parts of the molecule.
         """
         
         self.prefix   = prefix
         self.c_u_diff = c_u_diff
         self.even     = even
+        self.valence  = valence
         self.getname  = getname
         self.cores    = cores if type(cores) is list else [cores]
         self.charges  = charges if type(charges) is list else [charges]
         self.isotopes = isotopes if type(isotopes) is list else [isotopes]
         self.names    = names if type(names) is list else [names]
         self.counts   = collections.defaultdict(lambda: 0)
-        self.counts.update(counts)
+        self.counts.update(counts or {})
         
         AbstractMetaboliteComponent.__init__(
             self,
@@ -388,7 +404,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                         continue
                     
                     # implicit hydrogens
-                    h = c * 2 + 1 - 2 * u
+                    h = c * 2 + 2 - self.valence - 2 * u
                     p = self.get_prefix()
                     new_counts = self.counts.copy()
                     new_counts['C'] += c
@@ -417,6 +433,8 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
     
     def set_chlens(self, c):
         
+        if type(c) is int: c = [c]
+        
         self.chlens = (
             c if type(c) is list
             else [
@@ -427,6 +445,8 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         )
     
     def set_unsats(self, u):
+        
+        if type(u) is int: u = [u]
         
         self.unsats = (
             u if type(u) is list

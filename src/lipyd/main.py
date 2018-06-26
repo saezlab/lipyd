@@ -15380,4 +15380,23 @@ class Screening(object):
                 self.ms2_oneprotein(protein)
                 self.good_features(proteins = [protein])
                 
-                
+                pass
+    
+    
+    #
+    
+    def ms2_find(self, protein, ionm, lookup):
+        
+        return [
+            _s for _s in
+            (
+                (
+                    fi,
+                    si,
+                    getattr(s, '%s_%s_1' % (lookup.lower(), ionm))()
+                )
+                for fi, f in self.valids[protein][ionm]['ms2f'].items()
+                for si, s in f._scans.items()
+            )
+            if _s[2]['score'] > 0
+        ]

@@ -23,6 +23,7 @@ import bs4
 import re
 import warnings
 import imp
+import sys
 import copy
 from collections import defaultdict
 
@@ -472,3 +473,16 @@ class MassBase(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+
+
+parts = {
+    'water': 'H2O',
+    'twowater': 'H4O2',
+    'carboxyl': 'COOH',
+    'aldehyde': 'CHO'
+}
+
+
+for name, form in parts.items():
+    
+    setattr(sys.modules[__name__], name, MassBase(form))

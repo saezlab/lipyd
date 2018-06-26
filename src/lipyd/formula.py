@@ -17,6 +17,8 @@
 from future.utils import iteritems
 
 from collections import defaultdict
+from argparse import Namespace
+import copy
 
 import lipyd.mass as mass
 import lipyd.mz as mz
@@ -32,14 +34,19 @@ class Formula(mass.MassBase, mz.Mz):
             z = 1,
             sign = None,
             tolerance = .01,
+            attrs = None,
             **kwargs
         ):
+        
+        self._set_attrs(attrs)
         
         if isinstance(formula, Formula):
             
             charge = formula.charge
             isotope = formula.isotope
             formula = formula.formula
+            _attrs = copy.deepcopy(formula.attrs.__dict__)
+            self.attrs = _attrs.update(self.attrs.__dict__)
         
         mass.MassBase.__init__(self, formula, charge, isotope, **kwargs)
         
@@ -89,7 +96,8 @@ class Formula(mass.MassBase, mz.Mz):
             new = Formula(
                 new_mass,
                 charge = new_charge,
-                isotope = new_isotope
+                isotope = new_isotope,
+                attrs = self.attrs.__dict__
             )
             
         else:
@@ -109,9 +117,18 @@ class Formula(mass.MassBase, mz.Mz):
                     other.isotope
                     if hasattr(other, 'isotope')
                     else 0
-                )
+                ),
+                attrs = self.attrs.__dict__
             )
             
+            for a in ('c', 'u')
+                if a in self.attrs and a in other.attrs:
+                    setattr(
+                        new.attrs,
+                        a,
+                        getattr(self.attrs, a) + getattr(other.attrs, a)
+                    )
+        
         if new.mass == 0.0 or new.formula == '':
             
             new.formula = ''
@@ -122,6 +139,8 @@ class Formula(mass.MassBase, mz.Mz):
             sign = self.sign,
             tolerance = self.tol
         )
+        
+        new._set_attrs
         
         return new
     
@@ -246,6 +265,11 @@ class Formula(mass.MassBase, mz.Mz):
     def __str__(self):
         
         return str(self.formula)
+    
+    def _set_attrs(self, attrs):
+        
+        attrs = attrs or {}
+        self.attrs = Namespace(**attrs)
 
 
 class Mass(Formula):

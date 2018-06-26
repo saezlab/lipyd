@@ -20,10 +20,15 @@ import lipyd.metabolite as metabolite
 
 class FattyAcyl(metabolite.AbstractSubstituent):
     
-    def __init__(self, c = (2, 36), u = (0, 10), counts = {'H': -2}, **kwargs):
+    def __init__(self, c = (2, 36), u = (0, 10), counts = None, **kwargs):
         
         metabolite.AbstractSubstituent.__init__(
-            self, cores = ['O'], counts = counts, c = c, u = u, **kwargs
+            self,
+            cores = ['O'], 
+            counts = counts or {'H': -2},
+            c = c,
+            u = u,
+            **kwargs
         )
 
 
@@ -33,13 +38,14 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
             self,
             c = (2, 24),
             u = (0, 6),
-            counts = {'H': -2, 'O': 1},
+            counts = None,
             **kwargs
         ):
         
         metabolite.AbstractSubstituent.__init__(
-            self, cores = ['O'],
-            counts = counts,
+            self,
+            cores = ['O'],
+            counts = counts or {'H': -2, 'O': 1},
             c = c,
             u = u,
             prefix = '2OH', **kwargs
@@ -48,10 +54,10 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
 
 class FattyAlkoxy(metabolite.AbstractSubstituent):
     
-    def __init__(self, c = (2, 36), u = (0, 10), counts = {}, **kwargs):
+    def __init__(self, c = (2, 36), u = (0, 10), counts = None, **kwargs):
         
         metabolite.AbstractSubstituent.__init__(
-            self, cores = [''], counts = counts, c = c, u = u, **kwargs
+            self, cores = [''], counts = counts or {}, c = c, u = u, **kwargs
         )
 
 
@@ -61,8 +67,9 @@ class Sphingosine(metabolite.AbstractSubstituent):
             self,
             c = (12, 24),
             u = (1, 6),
-            counts = {},
+            counts = None,
             prefix = 'd',
+            keto = False,
             **kwargs
         ):
         """
@@ -71,9 +78,10 @@ class Sphingosine(metabolite.AbstractSubstituent):
         by the appropriate substituents.
         """
         
-        if u[0] == 0:
-            
-            u = (1, u[1])
+        counts = counts or {}
+        
+        if keto:
+            counts['H'] = counts['H'] - 2 if 'H' in counts else -2
         
         metabolite.AbstractSubstituent.__init__(
             self, cores = ['O2N'], counts = counts, c = c, u = u,
@@ -87,17 +95,17 @@ class Sphingosine(metabolite.AbstractSubstituent):
 
 class DihydroSphingosine(Sphingosine):
     
-    def __init__(self, c = (12, 24), u = (0, 6), counts = {}, **kwargs):
+    def __init__(self, c = (12, 24), u = (0, 6), counts = None, **kwargs):
         
         Sphingosine.__init__(
-            self, c = c, u = u, counts = counts, prefix = 'DH', **kwargs
+            self, c = c, u = u, counts = counts or {}, prefix = 'DH', **kwargs
         )
 
 
 class HydroxySphingosine(Sphingosine):
     
-    def __init__(self, c = (12, 24), u = (0, 6), counts = {'O': 1}):
+    def __init__(self, c = (12, 24), u = (0, 6), counts = None):
         
         Sphingosine.__init__(
-            self, c = c, u = u, counts = counts, prefix = 't'
+            self, c = c, u = u, counts = counts or {'O': 1}, prefix = 't'
         )

@@ -27,6 +27,7 @@ import lipyd.formula as formula
 
 sphingolipids = [
     'Sphingosine',
+    'KetoSphingosine',
     'SphingosinePhosphate',
     'HydroxySphingosine',
     'MethylSphingosine',
@@ -172,14 +173,17 @@ class GPLFactory(object):
     
     def __init__(
             self,
-            fa1_args = {'c': (4, 24), 'u': (0, 9)},
-            fa2_args = {'c': (4, 24), 'u': (0, 9)},
+            fa1_args = None,
+            fa2_args = None,
             double_ester = True,
             ether_ester = True,
             lyso = True,
             lyso_ether = True,
             **kwargs
         ):
+        
+        fa1_args = fa1_args or {'c': (4, 24), 'u': (0, 9)}
+        fa2_args = fa2_args or {'c': (4, 24), 'u': (0, 9)}
         
         l_classes = [
             ('C2H4NH2', 'PE'),
@@ -321,7 +325,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             o = 'H',
             n = 'H',
             sph = None,
-            sph_args = {},
+            sph_args = None,
             pcharge = 0,
             ncharge = 0,
             name = 'Sphingolipid',
@@ -329,6 +333,8 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             getname = None,
             **kwargs
         ):
+        
+        sph_args = sph_args or None
         
         self.pcharge = pcharge
         self.ncharge = ncharge
@@ -368,8 +374,8 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             )
         
         metabolite.AbstractMetabolite.__init__(
-            core = '',
             self,
+            core = '',
             subs = [
                 sph,
                 self.get_substituent(n),
@@ -387,7 +393,9 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
 
 class Sphingosine(AbstractSphingolipid):
     
-    def __init__(self, sph_args = {}, **kwargs):
+    def __init__(self, sph_args = None, **kwargs):
+        
+        sph_args = sph_args or {}
         
         AbstractSphingolipid.__init__(
             self,
@@ -396,10 +404,24 @@ class Sphingosine(AbstractSphingolipid):
             **kwargs
         )
 
+class KetoSphingosine(AbstractSphingolipid):
+    
+    def __init__(self, sph_args = None, **kwargs):
+        
+        sph_args = sph_args or {}
+        sph_args['keto'] = True
+        
+        AbstractSphingolipid.__init__(
+            self,
+            sph_args = sph_args,
+            name = 'KetoSph',
+            **kwargs
+        )
+
 
 class SphingosinePhosphate(AbstractSphingolipid):
     
-    def __init__(self, sph_args = {}, **kwargs):
+    def __init__(self, sph_args = None, **kwargs):
         """
         Example:
             http://www.swisslipids.org/#/entity/SLM:000000438/
@@ -425,8 +447,9 @@ class SphingosinePhosphate(AbstractSphingolipid):
 
 class HydroxySphingosine(AbstractSphingolipid):
     
-    def __init__(self, sph_args = {}, **kwargs):
+    def __init__(self, sph_args = None, **kwargs):
         
+        sph_args = sph_args or {}
         sph = substituent.HydroxySphingosine(**sph_args)
         
         AbstractSphingolipid.__init__(
@@ -440,7 +463,7 @@ class HydroxySphingosine(AbstractSphingolipid):
 
 class MethylSphingosine(AbstractSphingolipid):
     
-    def __init__(self, sph_args = {}, **kwargs):
+    def __init__(self, sph_args = None, **kwargs):
         
         AbstractSphingolipid.__init__(
             self,
@@ -453,11 +476,11 @@ class MethylSphingosine(AbstractSphingolipid):
 
 class DiMethylSphingosine(AbstractSphingolipid):
     
-    def __init__(self, sph_args = {}, **kwargs):
+    def __init__(self, sph_args = None, **kwargs):
         
         AbstractSphingolipid.__init__(
             self,
-            n = 'C2H6',
+            n = 'C2H5',
             sph_args = sph_args,
             name = 'SphM2',
             **kwargs
@@ -466,11 +489,11 @@ class DiMethylSphingosine(AbstractSphingolipid):
 
 class TriMethylSphingosine(AbstractSphingolipid):
     
-    def __init__(self, sph_args = {}, **kwargs):
+    def __init__(self, sph_args = None, **kwargs):
         
         AbstractSphingolipid.__init__(
             self,
-            n = 'C3H9',
+            n = 'C3H8',
             sph_args = sph_args,
             name = 'SphM3',
             **kwargs
@@ -485,8 +508,8 @@ class AbstractCeramide(AbstractSphingolipid):
     def __init__(
             self,
             core = '',
-            sph_args = {},
-            fa_args = {},
+            sph_args = None,
+            fa_args = None,
             o = 'H',
             fa_hydroxy = False,
             t = False,
@@ -495,6 +518,9 @@ class AbstractCeramide(AbstractSphingolipid):
             getname = None,
             **kwargs
         ):
+        
+        sph_args = sph_args or {}
+        fa_args  = fa_args  or {}
         
         if t:
             
@@ -682,7 +708,9 @@ class HydroxyacylDihydroCeramide(CeramideD):
 
 class CeramideFactory(object):
     
-    def __init__(self, fa_args_1o = {'c': (4, 24), 'u': (0, 9)}, **kwargs):
+    def __init__(self, fa_args_1o = None, **kwargs):
+        
+        fa_args_1o = fa_args_1o or {'c': (4, 24), 'u': (0, 9)}
         
         l_t = [True, False]
         l_fa_hydroxy = [True, False]
