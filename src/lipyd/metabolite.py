@@ -284,7 +284,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
     def __init__(
             self,
             cores = 0.0,
-            c = (0, 1),
+            c = (14, 20),
             u = (0, 1),
             counts = None,
             charges = 0,

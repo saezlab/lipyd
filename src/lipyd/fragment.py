@@ -20,10 +20,47 @@ from future.utils import iteritems
 from past.builtins import xrange, range, reduce
 
 import re
+import sys
 import imp
 
 import lipyd.mass as mass
 import lipyd.metabolite as metabolite
+
+
+fattyfragments = []
+
+
+fragments = {
+    'neg': {
+        'PI [InsP-H2O]-': 'C6H12O9P',
+        'PI [InsP-H]-': 'C6H12O9P',
+        'PI [InsP-2H2O]-': 'C6H12O9P',
+        'PI headgroup [G-P-I]': 'C9H14O9P',
+        'PG/PA/PS/PI partial headgroup': 'C3H6O5P',
+        'Cer1P/PIP phosphate': 'H2O4P',
+        'SM CH3+COOH': 'CH3COOH',
+        'Cer1P/PIP/PL metaphosphate': 'O3P',
+        'PE headgroup [P-E]': 'C2H7O4NP',
+        'PE headgroup [G-P-E]': 'C5H11O5PN',
+        'PG headgroup [G-P]': 'C3H8O6P',
+        'PS headgroup NL': 'C3H5O2N'
+    },
+    'pos': {
+        'PC headgroup [P-C]': 'C5H15O4NP',
+        'PC/SM choline [C]': 'C5H12N',
+        'PC/SM choline [N(CH3)2CH2]': 'C3H8N',
+        'PC/SM choline [C+H2O]': 'C5H14ON',
+        'PC/SM choline [Et+P]': 'C2H6O4P',
+        'PC/SM choline [NH(CH3)3]': 'C3H10N',
+        'Cer sphingosine(d18:1)-carbon-2xH2O': 'C17H34N',
+        'Cer sphingosine(d18:1)-2xH2O': 'C18H34N',
+        'Cer/SM sphingosine(d18:1)-H2O': 'C18H36ON',
+        'PI headgroup NL': 'C6H12O9P',
+        'PC/SM headgroup NL': 'C5H14NO4P',
+        'Cer sphingosine(d18:1)-2xH2O': 'C18H34N'
+    }
+}
+
 
 class AdductCalculator(object):
     
@@ -51,7 +88,37 @@ class AdductCalculator(object):
             else self.counts[elem] + num
 
 
-class FattyFragment(mass.MassBase, AdductCalculator):
+class FattyFragment(metabolite.AbstractSubstituent):
+    
+    def __init__(
+            self,
+            head = '',
+            minus = '',
+            charge = 0,
+            name = 'UnknownFattyFragment',
+            attrs = None,
+            **kwargs
+        ):
+        
+        cminus = dict(
+            (elem, -cnt) for elem, cnt in
+            iteritems(metabolite.formula.formula2atoms(minus))
+        )
+        
+        cminus['H'] = cminus['H'] - 2 if 'H' in cminus else -2
+        
+        metabolite.AbstractSubstituent.__init__(
+            self,
+            cores = [head],
+            counts = cminus,
+            names = name,
+            charges = charge,
+            # we keep this 0 to avoid further complicating
+            valence = 0,
+            **kwargs
+        )
+
+class FattyFragmentOld(mass.MassBase, AdductCalculator):
     
     def __init__(self, charge, c = 3, unsat = 0,
         minus = None, plus = None, isotope = 0, name = None, hg = None):
@@ -109,662 +176,199 @@ class FattyFragment(mass.MassBase, AdductCalculator):
 
 class FattyFragmentFactory(object):
     
+    docs = {
+        'LysoPEAlkyl':
+            """
+            from massbank.jp:
+            [lyso PE(alkenyl-18:0,-)]- 464.3140997565 -417 C23H47NO6P-
+            """,
+        'LysoPE':
+            """
+            from massbank.jp:
+            [lyso PE(18:0,-)]- 480.3090143786 -476 C23H47NO7P-
+            """,
+        'LysoPCAlkyl':
+            """
+            from massbank.jp:
+            [lyso PC(alkenyl-18:0,-)]- 492.3453998849 -436 C25H51NO6P-
+            
+            from massbank.jp:
+            [lyso PC(alkyl-18:0,-)]- 494.3610499491 -143 C25H53NO6P-
+            """,
+        'LysoPC':
+            """
+            from massbank.jp:
+            [lyso PC(18:0,-)]- 508.340314507 -373 C25H51NO7P-
+            """,
+        'LysoPA_mH2O':
+            """
+            from massbank.eu:
+            https://massbank.eu/MassBank/jsp/RecordDisplay.jsp?id=UT002963&dsn=CHUBU
+            [lyso PS(18:0,-)-H2O]- 419.2562505266 -610 C21H40O6P-
+            
+            Frega 2007 Fig 15a
+            """,
+        'LysoPI':
+            """
+            from massbank:
+            [lyso PI(-,18:0)]- 599.3196386444 -432 C27H52O12P-
+            """,
+        'LysoPIAlkyl':
+            """
+            from massbank.jp:
+            [lyso PI(alkyl-16:1,-)-H2O]- 537.2828592076 -228 C25H46O10P-
+            
+            from this, derived 18:0-:
+            [lyso PI(alkyl-18:0,-)]- 585.3403740858 -228 C27H54O11P-
+            """,
+        'LysoPG':
+            """
+            from massbank:
+            [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
+            """,
+        'LysoPGAlkyl':
+            """
+            from massbank:
+            [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
+            """,
+        'LysoPAAlkyl':
+            """
+            from Characterization of Phospholipid
+            Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
+            [lyso PA(18:1,-)]- 435.2 C21H40O7P-
+            """,
+        'LysoPA':
+            """
+            from Characterization of Phospholipid
+            Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
+            [lyso PA(18:1,-)]- 435.2 C21H40O7P-
+            
+            from massbank.jp:
+            https://massbank.eu/MassBank/jsp/RecordDisplay.jsp?id=UT002963&dsn=CHUBU
+            [lyso PS(18:0,-)]- 437.2668152129 -358 C21H42O7P-
+            
+            Frega 2007 Fig 15a
+            """,
+        'FA_mO_pC2H2NH2':
+            """
+            https://metlin.scripps.edu/metabo_info.php?molid=6214
+            [Cer-FA(C8:0)]- 168.1382904 C8H14O1N1-
+            """,
+        'FA_mH2O_mH':
+            """
+            209 at C14:0 FA, 263 at C18:1
+            """,
+        'FA_mO_pNH2':
+            """
+            226 at C14:0 FA, 280 at C18:1
+            """,
+        'FA_mH':
+            """
+            227 at C14:0 FA, 281 at C18:1
+            """,
+        'FAL_mH':
+            """
+            18:1 = 267.2693393
+            """
+    }
+    
+    # class name: (head formula, minus, charge, name, headgroups)
+    param = {
+        'LysoPE':           ('C5H9O7NH2P', '', -1, 'LysoPE', ['PE']),
+        'LysoPEAlkyl':      ('C5H11O6NH2P', '', -1, 'LysoPEAlkyl', ['PE']),
+        'LysoPCAlkyl':      ('C7H17O6NP', '', -1, 'LysoPCAlkyl', ['PC']),
+        'LysoPC':           ('C7H15O7NP', '', -1, 'LysoPC', ['PC']),
+        'LysoPI':           ('C9H16O12P', '', -1, 'LysoPI', ['PI']),
+        'LysoPIAlkyl':      ('C9H18O11P', '', -1, 'LysoPIAlkyl', ['PI']),
+        'LysoPG':           ('C6H12O9P', '', -1, 'LysoPG', ['PG']),
+        'LysoPGAlkyl':      ('C6H14O8P', '', -1, 'LysoPGAlkyl', ['PG']),
+        'LysoPA':           ('C3H6O7P',  '', -1, 'LysoPA', ['PA', 'PS']),
+        'LysoPAAlkyl':      ('C3H8O6P',  '', -1, 'LysoPAAlkyl', ['PA', 'PS']),
+        'LysoPA_mH2O':      ('C3H4O6P',  '', -1, 'LysoPA-H2O', ['PA', 'PS']),
+        # CerFA
+        'FA_mO_pC2H2NH2':   ('C2H2ON', '',   -1, 'FA-O+C2H2NH2', ['Cer']),
+        # CerFAminusC2H5N
+        'FA_mH2O_mH':       ('O', 'H3', -1, 'FA-H2O-H', ['Cer']),
+        # CerFAminusC
+        'FA_mO_pNH2':       ('NO', '', -1, 'FA-O+NH2', ['Cer']),
+        # CerSphiMinusN
+        'Sph_mC2H4_mNH2_mH2O':
+                            ('O', 'C2H5', -1, 'Sph-C2H4-NH2-H2O', ['Cer']),
+        # CerSphiMinusNO
+        'Sph_mH2O_mNH2_m2H':
+                            ('O', 'H3', -1, 'Sph-H2O-NH2-2H', ['Cer']),
+        # CerSphi
+        'Sph_mC2H4_m3H':   ('NO2', 'C2H4', -1, 'Sph-C2H4-3H', ['Cer']),
+        # CerFAminusN, FAminusH
+        'FA_mH':            ('O2', 'H', -1, 'FA-H'),
+        # FAAlkylminusH
+        'FAL_mH':           ('OH', '', -1, 'FAL-H'),
+        ### neutral losses
+        'NLFA':             ('O2', '', 0, 'NL FA'),
+        # NLFAminusH2O
+        'NLFA_mH2O':        ('O', 'H2', 0, 'NL FA-H20'),
+        # NLFAplusOH
+        'NLFA_pOH':         ('O3H', '', 0, 'NL FA+OH'),
+        # NLFAplusNH3
+        'NLFA_pNH3':        ('O2NH3', '', 0, 'NL FA+NH3'),
+        ### positive
+        # FAminusO
+        'FA_mOH':           ('O', 'H', 1, 'FA-OH'),
+        # FAplusGlycerol
+        'FA_pGlycerol_mOH': ('C3H5O3', '', 1, 'FA+Glycerol-OH',
+                             ['PG', 'BMP', 'DAG', 'LysoPE', 'LysoPC']),
+        # SphingosineBase
+        'Sph_pH':          ('NH4O2', '', 1, 'Sph+H',
+                             ['Sph', 'SM', 'Cer', 'HexCer'])
+    }
+    
     def __init__(self):
         
+        mod = sys.modules[__name__]
         
-
-class LysoPEAlkenyl(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PE(alkenyl-18:0,-)]- 464.3140997565 -417 C23H47NO6P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 5,
-            'H': 11,
-            'O': 4,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPEAlkenyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PE-alkenyl',
-            hg = ['PE']
-        )
-
-
-class LysoPE(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PE(18:0,-)]- 480.3090143786 -476 C23H47NO7P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 5,
-            'H': 11,
-            'O': 5,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPE, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PE',
-            hg = ['PE']
-        )
+        for name, par in iteritems(self.param):
+            
+            exec(
+                (
+                    'def __init__(self, **kwargs):'
+                    '    FattyFragment.__init__('
+                    '        self,'
+                    '        head = \'%s\','
+                    '        minus = \'%s\','
+                    '        name = \'%s\','
+                    '        charge = %u,'
+                    '        attrs = None,'
+                    '        **kwargs'
+                    '    )'
+                ) % (
+                    par[0],
+                    par[1],
+                    par[3],
+                    par[2]
+                ),
+                mod.__dict__,
+                mod.__dict__
+            )
+            
+            if name in self.docs:
+                
+                mod.__dict__['__init__'].__doc__ = self.docs[name]
+            
+            cls = type(
+                name,
+                (FattyFragment, ),
+                {'__init__': mod.__dict__['__init__']}
+            )
+            
+            setattr(mod, name, cls)
+            
+            fattyfragments.append(name)
+        
+        delattr(mod, '__init__')
 
 
-class LysoPEAlkyl(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 5,
-            'H': 13,
-            'O': 4,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPEAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PE-alkyl',
-            hg = ['PE']
-        )
-
-class LysoPCAlkenyl(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PC(alkenyl-18:0,-)]- 492.3453998849 -436 C25H51NO6P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 7,
-            'H': 15,
-            'O': 4,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPCAlkenyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PC-alkenyl',
-            hg = ['PC']
-        )
-
-
-class LysoPCAlkyl(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PC(alkyl-18:0,-)]- 494.3610499491 -143 C25H53NO6P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 7,
-            'H': 17,
-            'O': 4,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPCAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PC-alkyl',
-            hg = ['PC']
-        )
-
-
-class LysoPC(FattyFragment):
-    
-    # from massbank.jp:
-    # [lyso PC(18:0,-)]- 508.340314507 -373 C25H51NO7P-
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 7,
-            'H': 15,
-            'O': 5,
-            'N': 1,
-            'P': 1
-        }
-        super(LysoPC, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PC',
-            hg = ['PC']
-        )
-
-
-class LysoPS(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PS(18:0,-)]- 437.2668152129 -358 C21H42O7P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 3,
-            'H': 6,
-            'O': 5,
-            'P': 1
-        }
-        super(LysoPS, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PS',
-            hg = ['PS']
-        )
-
-
-class LysoPSAlkenyl(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 3,
-            'H': 6,
-            'O': 4,
-            'P': 1
-        }
-        super(LysoPSAlkenyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PS-alkenyl',
-            hg = ['PS']
-        )
-
-
-class LysoPSAlkyl(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 3,
-            'H': 8,
-            'O': 4,
-            'P': 1
-        }
-        super(LysoPSAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PS-alkyl',
-            hg = ['PS']
-        )
-
-
-class LysoPI(FattyFragment):
-    """
-    from massbank:
-    [lyso PI(-,18:0)]- 599.3196386444 -432 C27H52O12P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 9,
-            'H': 16,
-            'O': 10,
-            'P': 1
-        }
-        super(LysoPI, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PI',
-            hg = ['PI']
-        )
-
-
-class LysoPIAlkyl(FattyFragment):
-    """
-    from massbank.jp:
-    [lyso PI(alkyl-16:1,-)-H2O]- 537.2828592076 -228 C25H46O10P-
-    from this, derived 18:0-:
-    [lyso PI(alkyl-18:0,-)]- 585.3403740858 -228 C27H54O11P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 9,
-            'H': 18,
-            'O': 9,
-            'P': 1
-        }
-        super(LysoPIAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PI-alkyl',
-            hg = ['PI']
-        )
-
-
-class LysoPG(FattyFragment):
-    """
-    from massbank:
-    [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 6,
-            'H': 12,
-            'O': 7,
-            'P': 1
-        }
-        super(LysoPG, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PG',
-            hg = ['PG']
-        )
-
-
-class LysoPGAlkyl(FattyFragment):
-    """
-    from massbank:
-    [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 6,
-            'H': 14,
-            'O': 6,
-            'P': 1
-        }
-        super(LysoPGAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PG-alkyl',
-            hg = ['PG']
-        )
-
-
-class LysoPA(FattyFragment):
-    """
-    from Characterization of Phospholipid 
-    Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
-    [lyso PA(18:1,-)]- 435.2 C21H40O7P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 3,
-            'H': 6,
-            'O': 5,
-            'P': 1
-        }
-        super(LysoPA, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PA',
-            hg = ['PA']
-        )
-
-
-class LysoPAAlkyl(FattyFragment):
-    """
-    from Characterization of Phospholipid 
-    Molecular Species by Means of HPLC-Tandem Mass Spectrometry:
-    [lyso PA(18:1,-)]- 435.2 C21H40O7P-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 3,
-            'H': 8,
-            'O': 4,
-            'P': 1
-        }
-        super(LysoPAAlkyl, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'Lyso-PA-alkyl',
-            hg = ['PA']
-        )
-
-class CerFA(FattyFragment):
-    """
-    https://metlin.scripps.edu/metabo_info.php?molid=6214
-    [Cer-FA(C8:0)]- 168.1382904 C8H14O1N1-
-    """
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 2,
-            'H': 2,
-            'O': -1,
-            'N': 1
-        }
-        super(CerFA, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerFA',
-            hg = ['Cer']
-        )
-
-
-class CerFAminusC2H5N(FattyFragment):
-    
-    # 209 at C14:0 FA, 263 at C18:1
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 0,
-            'H': -3,
-            'O': -1
-        }
-        super(CerFAminusC2H5N, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerFA-C2N',
-            hg = ['Cer']
-        )
-
-
-class CerFAminusC(FattyFragment):
-    
-    # 226 at C14:0 FA, 280 at C18:1
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 0,
-            'H': 0,
-            'O': -1,
-            'N': 1
-        }
-        super(CerFAminusC, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerFA-C',
-            hg = ['Cer']
-        )
-
-
-class CerFAminusN(FattyFragment):
-    
-    # 227 at C14:0 FA, 281 at C18:1
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 0,
-            'H': -1,
-            'O': 0,
-        }
-        super(CerFAminusN, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerFA-N',
-            hg = ['Cer']
-        )
-
-
-class CerSphiMinusN(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': -2,
-            'H': -5,
-            'O': -1
-        }
-        super(CerSphiMinusN, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerSphi-N',
-            hg = ['Cer']
-        )
-
-
-class CerSphiMinusNO(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': 0,
-            'H': -3,
-            'O': -1
-        }
-        super(CerSphiMinusNO, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerSphi-N-H2O',
-            hg = ['Cer']
-        )
-
-
-class CerSphi(FattyFragment):
-    
-    def __init__(self, c, unsat = 0,
-        minus = [], plus = [], isotope = 0,
-        charge = -1):
-        self.counts = {
-            'C': -2,
-            'H': -4,
-            'O': 0,
-            'N': 1
-        }
-        super(CerSphi, self).__init__(
-            charge = charge,
-            c = c,
-            unsat = unsat,
-            minus = minus,
-            plus = plus,
-            isotope = isotope,
-            name = 'CerSphi',
-            hg = ['Cer']
-        )
-
-
-class FAminusH(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(FAminusH, self).__init__(charge = -1, c = c, unsat = unsat,
-            minus = ['H'], isotope = isotope, name = 'FA')
-
-
-class FAAlkylminusH(FattyFragment):
-    """
-    18:0 = 267.2693393
-    """
-    
-    def __init__(self, c, unsat = 1, isotope = 0, **kwargs):
-        self.counts = {
-            'O': -1,
-            'H': 2
-        }
-        super(FAAlkylminusH, self).__init__(charge = -1, c = c, unsat = unsat,
-            minus = ['H'], isotope = isotope, name = 'FA-alkyl')
-
-
-class NLFA(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(NLFA, self).__init__(charge = 0, c = c, unsat = unsat,
-            isotope = isotope, name = 'NL FA')
-
-
-class NLFAminusH2O(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(NLFAminusH2O, self).__init__(charge = 0, c = c, unsat = unsat,
-            minus = ['H2O'], isotope = isotope, name = 'NL FA')
-
-
-class NLFAplusOH(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(NLFAplusOH, self).__init__(charge = 0, c = c, unsat = unsat,
-            plus = ['OH'], isotope = isotope, name = 'NL FA')
-
-
-class NLFAplusNH3(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(NLFAplusNH3, self).__init__(charge = 0, c = c, unsat = unsat,
-            plus = ['NH3'], isotope = isotope, name = 'NL FA')
-
-
-class FAminusO(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0, **kwargs):
-        super(FAminusO, self).__init__(charge = 1, c = c, unsat = unsat,
-            minus = ['O', 'H'], isotope = isotope, name = 'FA')
-
-
-class FAplusGlycerol(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0,
-        minus = [], plus = [], **kwargs):
-        self.counts = {
-            'C': 3,
-            'H': 5,
-            'O': 1
-        }
-        super(FAplusGlycerol, self).__init__(charge = 1, c = c, unsat = unsat,
-            minus = minus, plus = plus,
-            isotope = isotope,
-            name = 'FA+G',
-            hg = ['PG', 'BMP', 'DAG', 'LysoPE', 'LysoPC']
-        )
-
-
-class SphingosineBase(FattyFragment):
-    
-    def __init__(self, c, unsat = 0, isotope = 0,
-        minus = [], plus = [], **kwargs):
-        self.counts = {
-            'N': 1,
-            'H': 4
-        }
-        super(SphingosineBase, self).__init__(charge = 1, c = c, unsat = unsat,
-            isotope = isotope, name = 'Sphingosine',
-            minus = minus, plus = plus,
-            hg = ['Sph', 'SM', 'Cer', 'HexCer'])
+_factory = FattyFragmentFactory()
+del _factory
 
 
 class FAFragSeries(object):

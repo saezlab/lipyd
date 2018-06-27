@@ -38,6 +38,8 @@ proton = 1.00727646677
 electron = 0.00054857990924
 neutron = 1.00866491588
 
+reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
+
 # ##
 def getMasses(url):
     
@@ -293,44 +295,8 @@ iso_freq = {
     "S35": 0.0002
 }
 
-fragments = {
-    'neg': {
-        'PI [InsP-H2O]-': 'C6H12O9P',
-        'PI [InsP-H]-': 'C6H12O9P',
-        'PI [InsP-2H2O]-': 'C6H12O9P',
-        'PI headgroup [G-P-I]': 'C9H14O9P',
-        'PG/PA/PS/PI partial headgroup': 'C3H6O5P',
-        'Cer1P/PIP phosphate': 'H2O4P',
-        'SM CH3+COOH': 'CH3COOH',
-        'Cer1P/PIP/PL metaphosphate': 'O3P',
-        'PE headgroup [P-E]': 'C2H7O4NP',
-        'PE headgroup [G-P-E]': 'C5H11O5PN',
-        'PG headgroup [G-P]': 'C3H8O6P',
-        'PS headgroup NL': 'C3H5O2N'
-    },
-    'pos': {
-        'PC headgroup [P-C]': 'C5H15O4NP',
-        'PC/SM choline [C]': 'C5H12N',
-        'PC/SM choline [N(CH3)2CH2]': 'C3H8N',
-        'PC/SM choline [C+H2O]': 'C5H14ON',
-        'PC/SM choline [Et+P]': 'C2H6O4P',
-        'PC/SM choline [NH(CH3)3]': 'C3H10N',
-        'Cer sphingosine(d18:1)-carbon-2xH2O': 'C17H34N',
-        'Cer sphingosine(d18:1)-2xH2O': 'C18H34N',
-        'Cer/SM sphingosine(d18:1)-H2O': 'C18H36ON',
-        'PI headgroup NL': 'C6H12O9P',
-        'PC/SM headgroup NL': 'C5H14NO4P',
-        'Cer sphingosine(d18:1)-2xH2O': 'C18H34N'
-    }
-}
 
 class MassBase(object):
-    """
-    
-    Thanks for
-    https://github.com/bsimas/molecular-weight/blob/master/chemweight.py
-    
-    """
     
     def __init__(
             self,
@@ -352,11 +318,16 @@ class MassBase(object):
         Finally `Mass` is able to provide both behaviours but
         adding two `Mass` instances will result a new `Mass`.
         
+        Args
+        ----
         :param str,float,NoneType formula_mass: Either a string
             expressing a chemical formula (e.g. H2O) or a molecular
             mass (e.g. 237.1567) or `None` if you provide the
             formula as keyword arguments.
         **kwargs: elements & counts, e.g. c = 6, h = 12, o = 6...
+        
+        Thanks for
+        https://github.com/bsimas/molecular-weight/blob/master/chemweight.py
         """
         if 'massFirstIso' not in globals():
             getMassFirstIso()
@@ -364,7 +335,6 @@ class MassBase(object):
         self.exmass = massFirstIso
         self.charge = charge
         self.isotope = isotope
-        self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
         
         if formula_mass is None:
             self.formula_from_dict(kwargs)
@@ -435,9 +405,9 @@ class MassBase(object):
             else:
                 
                 atoms = (
-                    self.reform.findall(self.formula)
+                    reform.findall(self.formula)
                     if not hasattr(self, 'atoms')
-                    else self.atoms.items()
+                    else iteritems(self.atoms)
                 )
                 m = 0.0
                 for element, count in atoms:

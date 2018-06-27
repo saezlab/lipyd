@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #
@@ -24,6 +25,25 @@ import lipyd.mass as mass
 import lipyd.mz as mz
 
 
+def formula2atoms(formula):
+    """
+    Converts chemical formula string to dict of atom counts.
+    
+    Args
+    ----
+    :param str formula:
+        Chemical formula
+    """
+    
+    atoms = defaultdict(lambda: 0)
+    
+    for elem, cnt in mass.reform.findall(formula):
+        
+        atoms[elem] += int(cnt or '1')
+    
+    return atoms
+
+
 class Formula(mass.MassBase, mz.Mz):
     
     def __init__(
@@ -42,10 +62,10 @@ class Formula(mass.MassBase, mz.Mz):
         
         if isinstance(formula, Formula):
             
+            _attrs = copy.deepcopy(formula.attrs.__dict__)
             charge = formula.charge
             isotope = formula.isotope
             formula = formula.formula
-            _attrs = copy.deepcopy(formula.attrs.__dict__)
             self.attrs = _attrs.update(self.attrs.__dict__)
         
         mass.MassBase.__init__(self, formula, charge, isotope, **kwargs)
@@ -121,7 +141,7 @@ class Formula(mass.MassBase, mz.Mz):
                 attrs = self.attrs.__dict__
             )
             
-            for a in ('c', 'u')
+            for a in ('c', 'u'):
                 if a in self.attrs and a in other.attrs:
                     setattr(
                         new.attrs,
@@ -164,6 +184,7 @@ class Formula(mass.MassBase, mz.Mz):
         self.charge += (other.charge if hasattr(other, 'charge') else 0)
         self.isotope += (other.isotope if hasattr(other, 'isotope') else 0)
         
+        self.calc_mass()
         self.update_mz()
         
         return self
@@ -210,14 +231,14 @@ class Formula(mass.MassBase, mz.Mz):
     
     def add(self, formula):
         
-        for elem, cnt in self.reform.findall(formula):
+        for elem, cnt in mass.reform.findall(formula):
             self.atoms[elem] += int(cnt or '1')
         
         self.update()
     
     def sub(self, formula):
         
-        for elem, cnt in self.reform.findall(formula):
+        for elem, cnt in mass.reform.findall(formula):
             self.atoms[elem] -= int(cnt or '1')
             
             if self.atoms[elem] < 0:
