@@ -116,6 +116,13 @@ class FattyFragment(metabolite.AbstractSubstituent):
         
         cminus['H'] = cminus['H'] - 2 if 'H' in cminus else -2
         
+        attrs = attrs or {}
+        attrs['typ'] = (
+            attrs['typ']
+            if 'typ' in attrs else
+            lambda parent: parent.name % ''
+        )
+        
         metabolite.AbstractSubstituent.__init__(
             self,
             cores = [head],
@@ -125,12 +132,18 @@ class FattyFragment(metabolite.AbstractSubstituent):
             getname = getname,
             # we keep this 0 to avoid further complicating
             valence = 0,
+            attrs = attrs,
             **kwargs
         )
     
     def iterfraglines(self):
         
-        pass
+        for fr in self:
+            
+            yield [
+                fr.mass, fr.name, fr.attrs.typ,
+                self.c, self.u, self.charge
+            ]
 
 class FattyFragmentOld(mass.MassBase, AdductCalculator):
     

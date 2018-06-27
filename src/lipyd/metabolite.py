@@ -24,6 +24,7 @@ import itertools
 import collections
 import operator
 import functools
+import copy
 
 import numpy as np
 
@@ -409,15 +410,25 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     new_counts = self.counts.copy()
                     new_counts['C'] += c
                     new_counts['H'] += h
+                    new_attrs = copy.deepcopy(self.attrs)
+                    # `attrs` might contain methods which are called
+                    # with the present instance passed and their returned
+                    # value will be the attribute value of the
+                    # iteration products
+                    for k, v in iteritems(new_attrs.__dict__):
+                        if hasattr(v, '__call__'):
+                            setattr(new_attrs, k, v(self))
                     
                     new = self + formula.Formula(**new_counts)
-                    name = self.getname(self)
                     
-                    new.name = name
+                    new.attrs = new_attrs
+                    new.name = self.getname(self)
                     new.c = c
                     new.u = u
                     new.get_prefix = lambda: p
-                    new.variable_aliphatic_chain = self.variable_aliphatic_chain
+                    new.variable_aliphatic_chain = (
+                        self.variable_aliphatic_chain
+                    )
                     
                     new.cc_unsat_str = new.name if self.total > 1 else None
                     

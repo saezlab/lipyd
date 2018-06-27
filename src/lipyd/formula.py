@@ -266,7 +266,8 @@ class Formula(mass.MassBase, mz.Mz):
         
         return product1, self - product1 + add
     
-    def update_mz(self, mz = None, z = 1, sign = None, tolerance = .01, overwrite = False):
+    def update_mz(self, mz = None, z = 1, sign = None, tolerance = .01,
+                  overwrite = False):
         
         if not hasattr(self, 'z') or overwrite:
             self.z = z
@@ -290,7 +291,11 @@ class Formula(mass.MassBase, mz.Mz):
     def _set_attrs(self, attrs):
         
         attrs = attrs or {}
-        self.attrs = Namespace(**attrs)
+        self.attrs = (
+            attrs
+            if hasattr(attrs, '__dict__') else
+            Namespace(**attrs)
+        )
 
 
 class Mass(Formula):
