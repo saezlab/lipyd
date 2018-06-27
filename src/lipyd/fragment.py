@@ -100,6 +100,15 @@ class FattyFragment(metabolite.AbstractSubstituent):
             **kwargs
         ):
         
+        def getname(parent):
+            return '[%s]%s' % (
+                parent.name % ('(C%u:%u)' % (parent.c, parent.u)),
+                'NL' if parent.name[:2] == 'NL' else
+                '+'  if parent.charge == 1 else
+                '-'  if parent.charge == -1 else
+                ''
+            )
+        
         cminus = dict(
             (elem, -cnt) for elem, cnt in
             iteritems(metabolite.formula.formula2atoms(minus))
@@ -113,10 +122,15 @@ class FattyFragment(metabolite.AbstractSubstituent):
             counts = cminus,
             names = name,
             charges = charge,
+            getname = getname,
             # we keep this 0 to avoid further complicating
             valence = 0,
             **kwargs
         )
+    
+    def iterfraglines(self):
+        
+        pass
 
 class FattyFragmentOld(mass.MassBase, AdductCalculator):
     
@@ -274,51 +288,53 @@ class FattyFragmentFactory(object):
     
     # class name: (head formula, minus, charge, name, headgroups)
     param = {
-        'LysoPE':           ('C5H9O7NH2P', '', -1, 'LysoPE', ['PE']),
-        'LysoPEAlkyl':      ('C5H11O6NH2P', '', -1, 'LysoPEAlkyl', ['PE']),
-        'LysoPCAlkyl':      ('C7H17O6NP', '', -1, 'LysoPCAlkyl', ['PC']),
-        'LysoPC':           ('C7H15O7NP', '', -1, 'LysoPC', ['PC']),
-        'LysoPI':           ('C9H16O12P', '', -1, 'LysoPI', ['PI']),
-        'LysoPIAlkyl':      ('C9H18O11P', '', -1, 'LysoPIAlkyl', ['PI']),
-        'LysoPG':           ('C6H12O9P', '', -1, 'LysoPG', ['PG']),
-        'LysoPGAlkyl':      ('C6H14O8P', '', -1, 'LysoPGAlkyl', ['PG']),
-        'LysoPA':           ('C3H6O7P',  '', -1, 'LysoPA', ['PA', 'PS']),
-        'LysoPAAlkyl':      ('C3H8O6P',  '', -1, 'LysoPAAlkyl', ['PA', 'PS']),
-        'LysoPA_mH2O':      ('C3H4O6P',  '', -1, 'LysoPA-H2O', ['PA', 'PS']),
+        'LysoPE':           ('C5H9O7NH2P', '', -1, 'LysoPE%s', ['PE']),
+        'LysoPEAlkyl':      ('C5H11O6NH2P', '', -1, 'LysoPEAlkyl%s', ['PE']),
+        'LysoPCAlkyl':      ('C7H17O6NP', '', -1, 'LysoPCAlkyl%s', ['PC']),
+        'LysoPC':           ('C7H15O7NP', '', -1, 'LysoPC%s', ['PC']),
+        'LysoPI':           ('C9H16O12P', '', -1, 'LysoPI%s', ['PI']),
+        'LysoPIAlkyl':      ('C9H18O11P', '', -1, 'LysoPIAlkyl%s', ['PI']),
+        'LysoPG':           ('C6H12O9P', '', -1, 'LysoPG%s', ['PG']),
+        'LysoPGAlkyl':      ('C6H14O8P', '', -1, 'LysoPGAlkyl%s', ['PG']),
+        'LysoPA':           ('C3H6O7P',  '', -1, 'LysoPA%s', ['PA', 'PS']),
+        'LysoPAAlkyl':      ('C3H8O6P',  '', -1, 'LysoPAAlkyl%s',
+                             ['PA', 'PS']),
+        'LysoPA_mH2O':      ('C3H4O6P',  '', -1, 'LysoPA%s-H2O',
+                             ['PA', 'PS']),
         # CerFA
-        'FA_mO_pC2H2NH2':   ('C2H2ON', '',   -1, 'FA-O+C2H2NH2', ['Cer']),
+        'FA_mO_pC2H2NH2':   ('C2H2ON', '',   -1, 'FA%s-O+C2H2NH2', ['Cer']),
         # CerFAminusC2H5N
-        'FA_mH2O_mH':       ('O', 'H3', -1, 'FA-H2O-H', ['Cer']),
+        'FA_mH2O_mH':       ('O', 'H3', -1, 'FA%s-H2O-H', ['Cer']),
         # CerFAminusC
-        'FA_mO_pNH2':       ('NO', '', -1, 'FA-O+NH2', ['Cer']),
+        'FA_mO_pNH2':       ('NO', '', -1, 'FA%s-O+NH2', ['Cer']),
         # CerSphiMinusN
         'Sph_mC2H4_mNH2_mH2O':
-                            ('O', 'C2H5', -1, 'Sph-C2H4-NH2-H2O', ['Cer']),
+                            ('O', 'C2H5', -1, 'Sph%s-C2H4-NH2-H2O', ['Cer']),
         # CerSphiMinusNO
         'Sph_mH2O_mNH2_m2H':
-                            ('O', 'H3', -1, 'Sph-H2O-NH2-2H', ['Cer']),
+                            ('O', 'H3', -1, 'Sph%s-H2O-NH2-2H', ['Cer']),
         # CerSphi
-        'Sph_mC2H4_m3H':   ('NO2', 'C2H4', -1, 'Sph-C2H4-3H', ['Cer']),
+        'Sph_mC2H4_m3H':    ('NO2', 'C2H4', -1, 'Sph%s-C2H4-3H', ['Cer']),
         # CerFAminusN, FAminusH
-        'FA_mH':            ('O2', 'H', -1, 'FA-H'),
+        'FA_mH':            ('O2', 'H', -1, 'FA%s-H'),
         # FAAlkylminusH
-        'FAL_mH':           ('OH', '', -1, 'FAL-H'),
+        'FAL_mH':           ('OH', '', -1, 'FAL%s-H'),
         ### neutral losses
-        'NLFA':             ('O2', '', 0, 'NL FA'),
+        'NLFA':             ('O2', '', 0, 'NL FA%s'),
         # NLFAminusH2O
-        'NLFA_mH2O':        ('O', 'H2', 0, 'NL FA-H20'),
+        'NLFA_mH2O':        ('O', 'H2', 0, 'NL FA%s-H20'),
         # NLFAplusOH
-        'NLFA_pOH':         ('O3H', '', 0, 'NL FA+OH'),
+        'NLFA_pOH':         ('O3H', '', 0, 'NL FA%s+OH'),
         # NLFAplusNH3
-        'NLFA_pNH3':        ('O2NH3', '', 0, 'NL FA+NH3'),
+        'NLFA_pNH3':        ('O2NH3', '', 0, 'NL FA%s+NH3'),
         ### positive
         # FAminusO
-        'FA_mOH':           ('O', 'H', 1, 'FA-OH'),
+        'FA_mOH':           ('O', 'H', 1, 'FA%s-OH'),
         # FAplusGlycerol
-        'FA_pGlycerol_mOH': ('C3H5O3', '', 1, 'FA+Glycerol-OH',
+        'FA_pGlycerol_mOH': ('C3H5O3', '', 1, 'FA%s+Glycerol-OH',
                              ['PG', 'BMP', 'DAG', 'LysoPE', 'LysoPC']),
         # SphingosineBase
-        'Sph_pH':          ('NH4O2', '', 1, 'Sph+H',
+        'Sph_pH':           ('NH4O2', '', 1, 'Sph%s+H',
                              ['Sph', 'SM', 'Cer', 'HexCer'])
     }
     
