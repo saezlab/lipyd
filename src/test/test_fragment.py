@@ -65,7 +65,12 @@ class TestFragment(object):
             lipyd.fragment.mass.MassBase('H2').mass
         )
         
-        for name in lipyd.fragment.fattyfragments:
+        for name in itertools.chain(
+                *(
+                    lipyd.fragment.fattyfragments[mode]
+                    for mode in ('pos', 'neg')
+                )
+            ):
             
             if name in standards:
                 
@@ -87,3 +92,26 @@ class TestFragment(object):
                     aff = list(acls(c = 18, u = 0))[0]
                     
                     assert abs(aff.mass + toalkyl - ff.mass) < 0.0000001
+    
+    def test_fragment_names(self):
+        
+        fr = list(lipyd.fragment.Sph_mH2O_mNH2_m2H(c = (18), u = (1)))[0]
+        
+        assert fr.name == '[Sph(C18:1)-H2O-NH2-2H]-'
+    
+    def test_fatty_fraglines(self):
+        
+        sample_line = [
+            '[Sph(C18:1)-H2O-NH2-2H]-', '', '',
+            18, 1, -1, 'Sph-H2O-NH2-2H'
+        ]
+        
+        fl = list(
+            lipyd.fragment.Sph_mH2O_mNH2_m2H(
+                c = (18), u = (1)
+            ).iterfraglines()
+        )
+        
+        for real, sample in zip(fl[1:], sample_line):
+            
+            assert real == sample

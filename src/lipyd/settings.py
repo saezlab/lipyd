@@ -128,8 +128,8 @@ _defaults = {
     'membranesf': 'membranes_lipid_composition.xlsx',
     # Original MS2 fragment lists manually compiled by Marco.
     # One for positive and one for negative mode.
-    'pfragmentsfile': 'lipid_fragments_positive_mode_v10d2%s.txt',
-    'nfragmentsfile': 'lipid_fragments_negative_mode_v10d2.txt',
+    'pfragmentsfile': 'lipid_fragments_positive_mode_v11d.txt',
+    'nfragmentsfile': 'lipid_fragments_negative_mode_v11d.txt',
     # This is a file to output protein profiles to.
     # Serves only the purpose of checking for errors.
     'pptable_file': 'protein_profiles.txt',
@@ -394,10 +394,14 @@ _defaults = {
 
 in_basedir = ['fractionsf', 'ppfracf', 'seqfile',
     'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
-    'pfragmentsfile', 'nfragmentsfile', 'featurescache',
+    'featurescache',
     'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
     'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
     'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir']
+
+in_datadir = {
+    'pfragmentsfile', 'nfragmentsfile'
+}
 
 def reset_all():
     
@@ -405,7 +409,12 @@ def reset_all():
     
     for k in _defaults.keys():
         
-        setattr(settings, k, getattr(defaults, k))
+        val = getattr(defaults, k)
+        
+        if k in in_datadir:
+            val = os.path.join(common.ROOT, 'data', val)
+        
+        setattr(settings, k, val)
     
     globals()['settings'] = settings
 

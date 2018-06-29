@@ -27,38 +27,9 @@ import lipyd.mass as mass
 import lipyd.metabolite as metabolite
 
 
-fattyfragments = []
-
-
-fragments = {
-    'neg': {
-        'PI [InsP-H2O]-': 'C6H12O9P',
-        'PI [InsP-H]-': 'C6H12O9P',
-        'PI [InsP-2H2O]-': 'C6H12O9P',
-        'PI headgroup [G-P-I]': 'C9H14O9P',
-        'PG/PA/PS/PI partial headgroup': 'C3H6O5P',
-        'Cer1P/PIP phosphate': 'H2O4P',
-        'SM CH3+COOH': 'CH3COOH',
-        'Cer1P/PIP/PL metaphosphate': 'O3P',
-        'PE headgroup [P-E]': 'C2H7O4NP',
-        'PE headgroup [G-P-E]': 'C5H11O5PN',
-        'PG headgroup [G-P]': 'C3H8O6P',
-        'PS headgroup NL': 'C3H5O2N'
-    },
-    'pos': {
-        'PC headgroup [P-C]': 'C5H15O4NP',
-        'PC/SM choline [C]': 'C5H12N',
-        'PC/SM choline [N(CH3)2CH2]': 'C3H8N',
-        'PC/SM choline [C+H2O]': 'C5H14ON',
-        'PC/SM choline [Et+P]': 'C2H6O4P',
-        'PC/SM choline [NH(CH3)3]': 'C3H10N',
-        'Cer sphingosine(d18:1)-carbon-2xH2O': 'C17H34N',
-        'Cer sphingosine(d18:1)-2xH2O': 'C18H34N',
-        'Cer/SM sphingosine(d18:1)-H2O': 'C18H36ON',
-        'PI headgroup NL': 'C6H12O9P',
-        'PC/SM headgroup NL': 'C5H14NO4P',
-        'Cer sphingosine(d18:1)-2xH2O': 'C18H34N'
-    }
+fattyfragments = {
+    'pos' = set([]),
+    'neg' = set([])
 }
 
 
@@ -95,7 +66,7 @@ class FattyFragment(metabolite.AbstractSubstituent):
             head = '',
             minus = '',
             charge = 0,
-            name = 'UnknownFattyFragment',
+            name = 'UnknownFattyFragment%s',
             attrs = None,
             **kwargs
         ):
@@ -120,7 +91,11 @@ class FattyFragment(metabolite.AbstractSubstituent):
         attrs['typ'] = (
             attrs['typ']
             if 'typ' in attrs else
-            lambda parent: parent.name % ''
+            lambda parent: (
+                parent.name % ''
+                if '%s' in parent.name else
+                parent.name
+            )
         )
         
         metabolite.AbstractSubstituent.__init__(
@@ -130,7 +105,7 @@ class FattyFragment(metabolite.AbstractSubstituent):
             names = name,
             charges = charge,
             getname = getname,
-            # we keep this 0 to avoid further complicating
+            # we keep this 0 to avoid complicating further
             valence = 0,
             attrs = attrs,
             **kwargs
