@@ -10,6 +10,12 @@ Welcome to lipyd's documentation!
    :maxdepth: 5 
    :caption: Contents:
 
+.. autosummary::
+   :toctree: _autosummary
+
+   lipyd.fragment
+   lipyd.lipid
+   lipyd.formula
 
 
 Indices and tables
@@ -134,12 +140,22 @@ Represents one MS2 spectrum with all the methods for its analysis.
 .. autoclass:: lipyd.ms2.MS2Scan
    :members:
 
-lipyd.fragments
----------------
+lipyd.fragment
+--------------
 
 Classes representing fragment ions in MS2 spectra.
 
-.. automodule:: lipyd.fragments
+.. automodule:: lipyd.fragment
+   :members:
+   :undoc-members:
+
+
+lipyd.fragdb
+------------
+
+Classes for building databases of MS2 fragment ions and do lookups.
+
+.. automodule:: lipyd.fragdb
    :members:
 
 lipyd._curl

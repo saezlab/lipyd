@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Welcome to lipyd’s documentation! &#8212; lipyd 0.5.0 documentation</title>
+    <title>Welcome to lipyd’s documentation! &#8212; lipyd 0.6.6 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript" src="_static/documentation_options.js"></script>
@@ -33,6 +33,23 @@
 <h1>Welcome to lipyd’s documentation!<a class="headerlink" href="#welcome-to-lipyd-s-documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#module-lipyd.fragment" title="lipyd.fragment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lipyd.fragment</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#module-lipyd.lipid" title="lipyd.lipid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lipyd.lipid</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#module-lipyd.formula" title="lipyd.formula"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lipyd.formula</span></code></a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
@@ -1404,7 +1421,7 @@ to CSV, or return as a list of lists</p>
 <dt id="lipyd.main.Screening.results_df">
 <code class="descname">results_df</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/main.html#Screening.results_df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.main.Screening.results_df" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads manually curated result tables. Returns the 2 tables
-and their union in <a href="#id1"><span class="problematic" id="id2">`</span></a>pandas.DataFrame`s.</p>
+and their union in <cite>pandas.DataFrame</cite> s.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1650,14 +1667,7 @@ fractions to zero.</p>
 <div class="section" id="lipyd-mass">
 <h2>lipyd.mass<a class="headerlink" href="#lipyd-mass" title="Permalink to this headline">¶</a></h2>
 <p>Submodule with molecular mass calculation classes.</p>
-<span class="target" id="module-lipyd.mass"></span><dl class="class">
-<dt id="lipyd.mass.MassBase">
-<em class="property">class </em><code class="descclassname">lipyd.mass.</code><code class="descname">MassBase</code><span class="sig-paren">(</span><em>formula_mass=None</em>, <em>charge=0</em>, <em>isotope=0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/mass.html#MassBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.mass.MassBase" title="Permalink to this definition">¶</a></dt>
-<dd><p>Thanks for
-<a class="reference external" href="https://github.com/bsimas/molecular-weight/blob/master/chemweight.py">https://github.com/bsimas/molecular-weight/blob/master/chemweight.py</a></p>
-</dd></dl>
-
-<dl class="function">
+<span class="target" id="module-lipyd.mass"></span><dl class="function">
 <dt id="lipyd.mass.getFreqIso">
 <code class="descclassname">lipyd.mass.</code><code class="descname">getFreqIso</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/mass.html#getFreqIso"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.mass.getFreqIso" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtains isotope abundances from CIAAW webpage.
@@ -1695,439 +1705,35 @@ Stores the result in <cite>weightStd</cite> module level variable.</p>
 <div class="section" id="lipyd-formula">
 <h2>lipyd.formula<a class="headerlink" href="#lipyd-formula" title="Permalink to this headline">¶</a></h2>
 <p>Defines the <cite>Formula</cite> class which represents a chemical formula.</p>
-<span class="target" id="module-lipyd.formula"></span><dl class="class">
-<dt id="lipyd.formula.Formula">
-<em class="property">class </em><code class="descclassname">lipyd.formula.</code><code class="descname">Formula</code><span class="sig-paren">(</span><em>formula=None</em>, <em>charge=0</em>, <em>isotope=0</em>, <em>z=1</em>, <em>sign=None</em>, <em>tolerance=0.01</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/formula.html#Formula"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.formula.Formula" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.formula.Mass">
-<em class="property">class </em><code class="descclassname">lipyd.formula.</code><code class="descname">Mass</code><span class="sig-paren">(</span><em>formula_mass=None</em>, <em>charge=0</em>, <em>isotope=0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/formula.html#Mass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.formula.Mass" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<span class="target" id="module-lipyd.formula"></span><dl class="function">
+<dt id="lipyd.formula.formula2atoms">
+<code class="descclassname">lipyd.formula.</code><code class="descname">formula2atoms</code><span class="sig-paren">(</span><em>formula</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/formula.html#formula2atoms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.formula.formula2atoms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts chemical formula string to dict of atom counts.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>formula</strong> (<em>str</em>) – Chemical formula</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </div>
 <div class="section" id="lipyd-metabolite">
 <h2>lipyd.metabolite<a class="headerlink" href="#lipyd-metabolite" title="Permalink to this headline">¶</a></h2>
 <p>Abstract base classes for representation of metabolites with
 various constant cores and substituent groups.</p>
-<span class="target" id="module-lipyd.metabolite"></span><dl class="class">
-<dt id="lipyd.metabolite.AbstractMetabolite">
-<em class="property">class </em><code class="descclassname">lipyd.metabolite.</code><code class="descname">AbstractMetabolite</code><span class="sig-paren">(</span><em>core=0.0</em>, <em>charge=0</em>, <em>isotope=0</em>, <em>name='Unknown'</em>, <em>getname=&lt;function AbstractMetabolite.&lt;lambda&gt;&gt;</em>, <em>subs=[]</em>, <em>sum_only=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/metabolite.html#AbstractMetabolite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.metabolite.AbstractMetabolite" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="staticmethod">
-<dt id="lipyd.metabolite.AbstractMetabolite.get_substituent">
-<em class="property">static </em><code class="descname">get_substituent</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/metabolite.html#AbstractMetabolite.get_substituent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.metabolite.AbstractMetabolite.get_substituent" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a <cite>Forula</cite> object if the substituent is not
-already an instance of <cite>Formula</cite> or <cite>Substituent</cite>.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lipyd.metabolite.AbstractMetabolite.has_variable_aliphatic_chain">
-<code class="descname">has_variable_aliphatic_chain</code><span class="sig-paren">(</span><em>sub</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/metabolite.html#AbstractMetabolite.has_variable_aliphatic_chain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.metabolite.AbstractMetabolite.has_variable_aliphatic_chain" title="Permalink to this definition">¶</a></dt>
-<dd><p>Tells if the substituent really has more than one possible
-chain length or unsaturation variation.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lipyd.metabolite.AbstractMetabolite.iterlines">
-<code class="descname">iterlines</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/metabolite.html#AbstractMetabolite.iterlines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.metabolite.AbstractMetabolite.iterlines" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterates standard lines.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lipyd.metabolite.AbstractMetabolite.itersubs">
-<code class="descname">itersubs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/metabolite.html#AbstractMetabolite.itersubs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.metabolite.AbstractMetabolite.itersubs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterates all combinations of all substituents.
-Yields tuples of substituents.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lipyd.metabolite.AbstractMetabolite.itersum">
-<code class="descname">itersum</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/metabolite.html#AbstractMetabolite.itersum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.metabolite.AbstractMetabolite.itersum" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterates by consifering only the sum of chain lengths and
-unsaturations.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lipyd.metabolite.AbstractMetabolite.subsproduct">
-<code class="descname">subsproduct</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/metabolite.html#AbstractMetabolite.subsproduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.metabolite.AbstractMetabolite.subsproduct" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterates instances and substituents in parallel.
-Yields tuples of two elements.
-First element is a tuple of all molecule parts (substituents).
-Second element is the actual instance, i.e. the whole molecule.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="lipyd.metabolite.AbstractMetaboliteComponent">
-<em class="property">class </em><code class="descclassname">lipyd.metabolite.</code><code class="descname">AbstractMetaboliteComponent</code><span class="sig-paren">(</span><em>core=0.0</em>, <em>charge=0</em>, <em>isotope=0</em>, <em>name='Unknown'</em>, <em>getname=&lt;function AbstractMetaboliteComponent.&lt;lambda&gt;&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/metabolite.html#AbstractMetaboliteComponent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.metabolite.AbstractMetaboliteComponent" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.metabolite.AbstractSubstituent">
-<em class="property">class </em><code class="descclassname">lipyd.metabolite.</code><code class="descname">AbstractSubstituent</code><span class="sig-paren">(</span><em>cores=[0.0], c=(0, 1), u=(0, 1), counts={}, charges=[0], isotopes=[0], names=['Unknown'], getname=&lt;function AbstractSubstituent.&lt;lambda&gt;&gt;, c_u_diff=&lt;function AbstractSubstituent.&lt;lambda&gt;&gt;, prefix='', even=False, **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/metabolite.html#AbstractSubstituent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.metabolite.AbstractSubstituent" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
+<span class="target" id="module-lipyd.metabolite"></span></div>
 <div class="section" id="lipyd-substituent">
 <h2>lipyd.substituent<a class="headerlink" href="#lipyd-substituent" title="Permalink to this headline">¶</a></h2>
 <p>Classes representing certain substituents e.g. <cite>FattyAcyl</cite>.</p>
-<span class="target" id="module-lipyd.substituent"></span><dl class="class">
-<dt id="lipyd.substituent.DihydroSphingosine">
-<em class="property">class </em><code class="descclassname">lipyd.substituent.</code><code class="descname">DihydroSphingosine</code><span class="sig-paren">(</span><em>c=(12</em>, <em>24)</em>, <em>u=(0</em>, <em>6)</em>, <em>counts={}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/substituent.html#DihydroSphingosine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.substituent.DihydroSphingosine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.substituent.FattyAcyl">
-<em class="property">class </em><code class="descclassname">lipyd.substituent.</code><code class="descname">FattyAcyl</code><span class="sig-paren">(</span><em>c=(2</em>, <em>24)</em>, <em>u=(0</em>, <em>6)</em>, <em>counts={'H': -2}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/substituent.html#FattyAcyl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.substituent.FattyAcyl" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.substituent.HydroxyFattyAcyl">
-<em class="property">class </em><code class="descclassname">lipyd.substituent.</code><code class="descname">HydroxyFattyAcyl</code><span class="sig-paren">(</span><em>c=(2</em>, <em>24)</em>, <em>u=(0</em>, <em>6)</em>, <em>counts={'H': -2</em>, <em>'O': 1}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/substituent.html#HydroxyFattyAcyl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.substituent.HydroxyFattyAcyl" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.substituent.HydroxySphingosine">
-<em class="property">class </em><code class="descclassname">lipyd.substituent.</code><code class="descname">HydroxySphingosine</code><span class="sig-paren">(</span><em>c=(12</em>, <em>24)</em>, <em>u=(0</em>, <em>6)</em>, <em>counts={'O': 1}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/substituent.html#HydroxySphingosine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.substituent.HydroxySphingosine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.substituent.Sphingosine">
-<em class="property">class </em><code class="descclassname">lipyd.substituent.</code><code class="descname">Sphingosine</code><span class="sig-paren">(</span><em>c=(12</em>, <em>24)</em>, <em>u=(1</em>, <em>6)</em>, <em>counts={}</em>, <em>prefix='d'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/substituent.html#Sphingosine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.substituent.Sphingosine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
+<span class="target" id="module-lipyd.substituent"></span></div>
 <div class="section" id="lipyd-lipid">
 <h2>lipyd.lipid<a class="headerlink" href="#lipyd-lipid" title="Permalink to this headline">¶</a></h2>
 <p>Many classes representing generic or more specific lipids.
 These are all based on <cite>metabolite.AbstractMetabolite</cite>.</p>
-<span class="target" id="module-lipyd.lipid"></span><dl class="class">
-<dt id="lipyd.lipid.AbstractCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">AbstractCeramide</code><span class="sig-paren">(</span><em>core=''</em>, <em>sph_args={}</em>, <em>fa_args={}</em>, <em>o='H'</em>, <em>fa_hydroxy=False</em>, <em>t=False</em>, <em>dihydro=False</em>, <em>name='Cer'</em>, <em>getname=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#AbstractCeramide"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.AbstractCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.AbstractGPL">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">AbstractGPL</code><span class="sig-paren">(</span><em>headgroup='H'</em>, <em>lyso=False</em>, <em>ether=False</em>, <em>fa_args={}</em>, <em>name='GPL'</em>, <em>typ='GPL'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#AbstractGPL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.AbstractGPL" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.AbstractGlycerol">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">AbstractGlycerol</code><span class="sig-paren">(</span><em>sn1='H'</em>, <em>sn2='H'</em>, <em>sn3='H'</em>, <em>pcharge=0</em>, <em>ncharge=0</em>, <em>name='Glycerol'</em>, <em>typ='G'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#AbstractGlycerol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.AbstractGlycerol" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.AbstractSphingolipid">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">AbstractSphingolipid</code><span class="sig-paren">(</span><em>core=''</em>, <em>o='H'</em>, <em>n='H'</em>, <em>sph=None</em>, <em>sph_args={}</em>, <em>pcharge=0</em>, <em>ncharge=0</em>, <em>name='Sphingolipid'</em>, <em>typ='SL'</em>, <em>getname=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#AbstractSphingolipid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.AbstractSphingolipid" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.CeramideD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">CeramideD</code><span class="sig-paren">(</span><em>o='H'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#CeramideD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.CeramideD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.CeramideD1OAcyl">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">CeramideD1OAcyl</code><span class="sig-paren">(</span><em>fa_args_1o={'c': (4</em>, <em>24)</em>, <em>'u': (0</em>, <em>9)}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.CeramideD1OAcyl" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.CeramideDPhosphate">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">CeramideDPhosphate</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.CeramideDPhosphate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.CeramideDPhosphoethanolamine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">CeramideDPhosphoethanolamine</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.CeramideDPhosphoethanolamine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.CeramideT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">CeramideT</code><span class="sig-paren">(</span><em>o='H'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#CeramideT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.CeramideT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.CeramideT1OAcyl">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">CeramideT1OAcyl</code><span class="sig-paren">(</span><em>fa_args_1o={'c': (4</em>, <em>24)</em>, <em>'u': (0</em>, <em>9)}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.CeramideT1OAcyl" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.CeramideTPhosphate">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">CeramideTPhosphate</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.CeramideTPhosphate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.CeramideTPhosphoethanolamine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">CeramideTPhosphoethanolamine</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.CeramideTPhosphoethanolamine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DiHexosylCeramideD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DiHexosylCeramideD</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.DiHexosylCeramideD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DiHexosylCeramideT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DiHexosylCeramideT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.DiHexosylCeramideT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DiMethylSphingosine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DiMethylSphingosine</code><span class="sig-paren">(</span><em>sph_args={}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#DiMethylSphingosine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.DiMethylSphingosine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DihydroCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DihydroCeramide</code><span class="sig-paren">(</span><em>o='H'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#DihydroCeramide"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.DihydroCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DihydroCeramide1OAcyl">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DihydroCeramide1OAcyl</code><span class="sig-paren">(</span><em>fa_args_1o={'c': (4</em>, <em>24)</em>, <em>'u': (0</em>, <em>9)}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.DihydroCeramide1OAcyl" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DihydroCeramidePhosphate">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DihydroCeramidePhosphate</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.DihydroCeramidePhosphate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DihydroCeramidePhosphoethanolamine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DihydroCeramidePhosphoethanolamine</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.DihydroCeramidePhosphoethanolamine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DihydroDiHexosylCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DihydroDiHexosylCeramide</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.DihydroDiHexosylCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DihydroHexosylCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DihydroHexosylCeramide</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.DihydroHexosylCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DihydroSphingomyelin">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DihydroSphingomyelin</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.DihydroSphingomyelin" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DihydroSulfoDiHexosylCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DihydroSulfoDiHexosylCeramide</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.DihydroSulfoDiHexosylCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.DihydroSulfoHexosylCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">DihydroSulfoHexosylCeramide</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.DihydroSulfoHexosylCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HexosylCeramideD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HexosylCeramideD</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HexosylCeramideD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HexosylCeramideT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HexosylCeramideT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HexosylCeramideT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxySphingosine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxySphingosine</code><span class="sig-paren">(</span><em>sph_args={}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#HydroxySphingosine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.HydroxySphingosine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylCeramideD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylCeramideD</code><span class="sig-paren">(</span><em>o='H'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#HydroxyacylCeramideD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.HydroxyacylCeramideD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylCeramideD1OAcyl">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylCeramideD1OAcyl</code><span class="sig-paren">(</span><em>fa_args_1o={'c': (4</em>, <em>24)</em>, <em>'u': (0</em>, <em>9)}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylCeramideD1OAcyl" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylCeramideDPhosphate">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylCeramideDPhosphate</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylCeramideDPhosphate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylCeramideDPhosphoethanolamine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylCeramideDPhosphoethanolamine</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylCeramideDPhosphoethanolamine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylCeramideT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylCeramideT</code><span class="sig-paren">(</span><em>o='H'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#HydroxyacylCeramideT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.HydroxyacylCeramideT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylCeramideT1OAcyl">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylCeramideT1OAcyl</code><span class="sig-paren">(</span><em>fa_args_1o={'c': (4</em>, <em>24)</em>, <em>'u': (0</em>, <em>9)}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylCeramideT1OAcyl" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylCeramideTPhosphate">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylCeramideTPhosphate</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylCeramideTPhosphate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylCeramideTPhosphoethanolamine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylCeramideTPhosphoethanolamine</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylCeramideTPhosphoethanolamine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDiHexosylCeramideD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDiHexosylCeramideD</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylDiHexosylCeramideD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDiHexosylCeramideT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDiHexosylCeramideT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylDiHexosylCeramideT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDihydroCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDihydroCeramide</code><span class="sig-paren">(</span><em>o='H'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#HydroxyacylDihydroCeramide"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.HydroxyacylDihydroCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDihydroCeramide1OAcyl">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDihydroCeramide1OAcyl</code><span class="sig-paren">(</span><em>fa_args_1o={'c': (4</em>, <em>24)</em>, <em>'u': (0</em>, <em>9)}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylDihydroCeramide1OAcyl" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDihydroCeramidePhosphate">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDihydroCeramidePhosphate</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylDihydroCeramidePhosphate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDihydroCeramidePhosphoethanolamine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDihydroCeramidePhosphoethanolamine</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylDihydroCeramidePhosphoethanolamine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDihydroDiHexosylCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDihydroDiHexosylCeramide</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylDihydroDiHexosylCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDihydroHexosylCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDihydroHexosylCeramide</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylDihydroHexosylCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDihydroSphingomyelin">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDihydroSphingomyelin</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylDihydroSphingomyelin" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDihydroSulfoDiHexosylCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDihydroSulfoDiHexosylCeramide</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylDihydroSulfoDiHexosylCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylDihydroSulfoHexosylCeramide">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylDihydroSulfoHexosylCeramide</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylDihydroSulfoHexosylCeramide" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylHexosylCeramideD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylHexosylCeramideD</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylHexosylCeramideD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylHexosylCeramideT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylHexosylCeramideT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylHexosylCeramideT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylSphingomyelinD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylSphingomyelinD</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylSphingomyelinD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylSphingomyelinT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylSphingomyelinT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylSphingomyelinT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylSulfoDiHexosylCeramideD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylSulfoDiHexosylCeramideD</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylSulfoDiHexosylCeramideD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylSulfoDiHexosylCeramideT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylSulfoDiHexosylCeramideT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylSulfoDiHexosylCeramideT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylSulfoHexosylCeramideD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylSulfoHexosylCeramideD</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylSulfoHexosylCeramideD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.HydroxyacylSulfoHexosylCeramideT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">HydroxyacylSulfoHexosylCeramideT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.HydroxyacylSulfoHexosylCeramideT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.MethylSphingosine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">MethylSphingosine</code><span class="sig-paren">(</span><em>sph_args={}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#MethylSphingosine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.MethylSphingosine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.Phosphatidylethanolamine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">Phosphatidylethanolamine</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#Phosphatidylethanolamine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.Phosphatidylethanolamine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.SphingomyelinD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">SphingomyelinD</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.SphingomyelinD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.SphingomyelinT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">SphingomyelinT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.SphingomyelinT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.Sphingosine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">Sphingosine</code><span class="sig-paren">(</span><em>sph_args={}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#Sphingosine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.Sphingosine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.SphingosinePhosphate">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">SphingosinePhosphate</code><span class="sig-paren">(</span><em>sph_args={}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#SphingosinePhosphate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.SphingosinePhosphate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.SulfoDiHexosylCeramideD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">SulfoDiHexosylCeramideD</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.SulfoDiHexosylCeramideD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.SulfoDiHexosylCeramideT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">SulfoDiHexosylCeramideT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.SulfoDiHexosylCeramideT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.SulfoHexosylCeramideD">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">SulfoHexosylCeramideD</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.SulfoHexosylCeramideD" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.SulfoHexosylCeramideT">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">SulfoHexosylCeramideT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.SulfoHexosylCeramideT" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.TriMethylSphingosine">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">TriMethylSphingosine</code><span class="sig-paren">(</span><em>sph_args={}</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/lipid.html#TriMethylSphingosine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.TriMethylSphingosine" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
+<span class="target" id="module-lipyd.lipid"></span></div>
 <div class="section" id="lipyd-moldb">
 <h2>lipyd.moldb<a class="headerlink" href="#lipyd-moldb" title="Permalink to this headline">¶</a></h2>
 <p>Handling of molecular mass databases. Here you find <cite>SwissLipids</cite> and
@@ -2789,12 +2395,12 @@ In the labels of fatty acid fragments we always</p>
 </ul>
 <p><strong>Principle:</strong></p>
 <ul class="simple">
-<li>Choline-phosphate 184.0733, ethyl-triethylammonium 86.0964 and</li>
+<li>Choline-phosphate 184.0733, ethyl-triethylammonium 86.0964 and
+neutral loss 183.0660 must be present.</li>
+<li>The latter neutral loss corresponds to a fatty acid+glycerol ion.</li>
+<li>The carbon count and unsaturation of this fragment should match
+that of the whole molecule.</li>
 </ul>
-<p>neutral loss 183.0660 must be present.
-- The latter neutral loss corresponds to a fatty acid+glycerol ion.
-- The carbon count and unsaturation of this fragment should match
-that of the whole molecule.</p>
 </dd></dl>
 
 <dl class="method">
@@ -3378,10 +2984,244 @@ This method is not implemented, does nothing.</p>
 
 </div>
 </div>
-<div class="section" id="lipyd-fragments">
-<h2>lipyd.fragments<a class="headerlink" href="#lipyd-fragments" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="lipyd-fragment">
+<h2>lipyd.fragment<a class="headerlink" href="#lipyd-fragment" title="Permalink to this headline">¶</a></h2>
 <p>Classes representing fragment ions in MS2 spectra.</p>
+<span class="target" id="module-lipyd.fragment"></span><dl class="class">
+<dt id="lipyd.fragment.AdductCalculator">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">AdductCalculator</code><a class="reference internal" href="_modules/lipyd/fragment.html#AdductCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.AdductCalculator" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="lipyd.fragment.AdductCalculator.add">
+<code class="descname">add</code><span class="sig-paren">(</span><em>formula</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#AdductCalculator.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.AdductCalculator.add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lipyd.fragment.AdductCalculator.add_atoms">
+<code class="descname">add_atoms</code><span class="sig-paren">(</span><em>elem</em>, <em>num</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#AdductCalculator.add_atoms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.AdductCalculator.add_atoms" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lipyd.fragment.AdductCalculator.formula2counts">
+<code class="descname">formula2counts</code><span class="sig-paren">(</span><em>formula</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#AdductCalculator.formula2counts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.AdductCalculator.formula2counts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lipyd.fragment.AdductCalculator.init_counts">
+<code class="descname">init_counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#AdductCalculator.init_counts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.AdductCalculator.init_counts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lipyd.fragment.AdductCalculator.remove">
+<code class="descname">remove</code><span class="sig-paren">(</span><em>formula</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#AdductCalculator.remove"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.AdductCalculator.remove" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FAFragSeries">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FAFragSeries</code><span class="sig-paren">(</span><em>typ</em>, <em>charge</em>, <em>cmin=2</em>, <em>unsatmin=0</em>, <em>cmax=36</em>, <em>unsatmax=6</em>, <em>minus=[]</em>, <em>plus=[]</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#FAFragSeries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FAFragSeries" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="lipyd.fragment.FAFragSeries.iterfraglines">
+<code class="descname">iterfraglines</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#FAFragSeries.iterfraglines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FAFragSeries.iterfraglines" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lipyd.fragment.FAFragSeries.itermass">
+<code class="descname">itermass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#FAFragSeries.itermass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FAFragSeries.itermass" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FAL_mH">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FAL_mH</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.FAL_mH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FA_mH">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FA_mH</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.FA_mH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FA_mH2O_mH">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FA_mH2O_mH</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.FA_mH2O_mH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FA_mOH">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FA_mOH</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.FA_mOH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FA_mO_pC2H2NH2">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FA_mO_pC2H2NH2</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.FA_mO_pC2H2NH2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FA_mO_pNH2">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FA_mO_pNH2</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.FA_mO_pNH2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FA_pGlycerol_mOH">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FA_pGlycerol_mOH</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.FA_pGlycerol_mOH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FattyFragment">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FattyFragment</code><span class="sig-paren">(</span><em>head=''</em>, <em>minus=''</em>, <em>charge=0</em>, <em>name='UnknownFattyFragment%s'</em>, <em>attrs=None</em>, <em>mode=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#FattyFragment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FattyFragment" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="lipyd.fragment.FattyFragment.iterfraglines">
+<code class="descname">iterfraglines</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#FattyFragment.iterfraglines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FattyFragment.iterfraglines" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FattyFragmentFactory">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FattyFragmentFactory</code><a class="reference internal" href="_modules/lipyd/fragment.html#FattyFragmentFactory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FattyFragmentFactory" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="lipyd.fragment.FattyFragmentFactory.docs">
+<code class="descname">docs</code><em class="property"> = {'FAL_mH': '\n            18:1 = 267.2693393\n            ', 'FA_mH': '\n            227 at C14:0 FA, 281 at C18:1\n            ', 'FA_mH2O_mH': '\n            209 at C14:0 FA, 263 at C18:1\n            ', 'FA_mO_pC2H2NH2': '\n            https://metlin.scripps.edu/metabo_info.php?molid=6214\n            [Cer-FA(C8:0)]- 168.1382904 C8H14O1N1-\n            ', 'FA_mO_pNH2': '\n            226 at C14:0 FA, 280 at C18:1\n            ', 'LysoPA': '\n            from Characterization of Phospholipid\n            Molecular Species by Means of HPLC-Tandem Mass Spectrometry:\n            [lyso PA(18:1,-)]- 435.2 C21H40O7P-\n            \n            from massbank.jp:\n            https://massbank.eu/MassBank/jsp/RecordDisplay.jsp?id=UT002963&amp;dsn=CHUBU\n            [lyso PS(18:0,-)]- 437.2668152129 -358 C21H42O7P-\n            \n            Frega 2007 Fig 15a\n            ', 'LysoPAAlkyl': '\n            from Characterization of Phospholipid\n            Molecular Species by Means of HPLC-Tandem Mass Spectrometry:\n            [lyso PA(18:1,-)]- 435.2 C21H40O7P-\n            ', 'LysoPA_mH2O': '\n            from massbank.eu:\n            https://massbank.eu/MassBank/jsp/RecordDisplay.jsp?id=UT002963&amp;dsn=CHUBU\n            [lyso PS(18:0,-)-H2O]- 419.2562505266 -610 C21H40O6P-\n            \n            Frega 2007 Fig 15a\n            ', 'LysoPC': '\n            from massbank.jp:\n            [lyso PC(18:0,-)]- 508.340314507 -373 C25H51NO7P-\n            ', 'LysoPCAlkyl': '\n            from massbank.jp:\n            [lyso PC(alkenyl-18:0,-)]- 492.3453998849 -436 C25H51NO6P-\n            \n            from massbank.jp:\n            [lyso PC(alkyl-18:0,-)]- 494.3610499491 -143 C25H53NO6P-\n            ', 'LysoPE': '\n            from massbank.jp:\n            [lyso PE(18:0,-)]- 480.3090143786 -476 C23H47NO7P-\n            ', 'LysoPEAlkyl': '\n            from massbank.jp:\n            [lyso PE(alkenyl-18:0,-)]- 464.3140997565 -417 C23H47NO6P-\n            ', 'LysoPG': '\n            from massbank:\n            [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-\n            ', 'LysoPGAlkyl': '\n            from massbank:\n            [lyso PG(18:0,-)]- 511.3035946497 -495 C24H48O9P-\n            ', 'LysoPI': '\n            from massbank:\n            [lyso PI(-,18:0)]- 599.3196386444 -432 C27H52O12P-\n            ', 'LysoPIAlkyl': '\n            from massbank.jp:\n            [lyso PI(alkyl-16:1,-)-H2O]- 537.2828592076 -228 C25H46O10P-\n            \n            from this, derived 18:0-:\n            [lyso PI(alkyl-18:0,-)]- 585.3403740858 -228 C27H54O11P-\n            '}</em><a class="headerlink" href="#lipyd.fragment.FattyFragmentFactory.docs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lipyd.fragment.FattyFragmentFactory.param_neg">
+<code class="descname">param_neg</code><em class="property"> = {'FAL_mH': ('OH', '', -1, 'FAL%s-H'), 'FA_mH': ('O2', 'H', -1, 'FA%s-H'), 'FA_mH2O_mH': ('O', 'H3', -1, 'FA%s-H2O-H', ['Cer']), 'FA_mO_pC2H2NH2': ('C2H2ON', '', -1, 'FA%s-O+C2H2NH2', ['Cer']), 'FA_mO_pNH2': ('NO', '', -1, 'FA%s-O+NH2', ['Cer']), 'LysoPA': ('C3H6O7P', '', -1, 'LysoPA%s', ['PA', 'PS']), 'LysoPAAlkyl': ('C3H8O6P', '', -1, 'LysoPAAlkyl%s', ['PA', 'PS']), 'LysoPA_mH2O': ('C3H4O6P', '', -1, 'LysoPA%s-H2O', ['PA', 'PS']), 'LysoPC': ('C7H15O7NP', '', -1, 'LysoPC%s', ['PC']), 'LysoPCAlkyl': ('C7H17O6NP', '', -1, 'LysoPCAlkyl%s', ['PC']), 'LysoPE': ('C5H9O7NH2P', '', -1, 'LysoPE%s', ['PE']), 'LysoPEAlkyl': ('C5H11O6NH2P', '', -1, 'LysoPEAlkyl%s', ['PE']), 'LysoPG': ('C6H12O9P', '', -1, 'LysoPG%s', ['PG']), 'LysoPGAlkyl': ('C6H14O8P', '', -1, 'LysoPGAlkyl%s', ['PG']), 'LysoPI': ('C9H16O12P', '', -1, 'LysoPI%s', ['PI']), 'LysoPIAlkyl': ('C9H18O11P', '', -1, 'LysoPIAlkyl%s', ['PI']), 'Sph_mC2H4_m3H': ('NO2', 'C2H4', -1, 'Sph%s-C2H4-3H', ['Cer']), 'Sph_mC2H4_mNH2_mH2O': ('O', 'C2H5', -1, 'Sph%s-C2H4-NH2-H2O', ['Cer']), 'Sph_mH2O_mNH2_m2H': ('O', 'H3', -1, 'Sph%s-H2O-NH2-2H', ['Cer'])}</em><a class="headerlink" href="#lipyd.fragment.FattyFragmentFactory.param_neg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lipyd.fragment.FattyFragmentFactory.param_pos">
+<code class="descname">param_pos</code><em class="property"> = {'FA_mOH': ('O', 'H', 1, 'FA%s-OH'), 'FA_pGlycerol_mOH': ('C3H5O3', '', 1, 'FA%s+Glycerol-OH', ['PG', 'BMP', 'DAG', 'LysoPE', 'LysoPC']), 'NLFA': ('O2', '', 0, 'NL FA%s'), 'NLFA_mH2O': ('O', 'H2', 0, 'NL FA%s-H20'), 'NLFA_pNH3': ('O2NH3', '', 0, 'NL FA%s+NH3'), 'NLFA_pOH': ('O3H', '', 0, 'NL FA%s+OH'), 'Sph_pH': ('NH4O2', '', 1, 'Sph%s+H', ['Sph', 'SM', 'Cer', 'HexCer'])}</em><a class="headerlink" href="#lipyd.fragment.FattyFragmentFactory.param_pos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.FattyFragmentOld">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">FattyFragmentOld</code><span class="sig-paren">(</span><em>charge</em>, <em>c=3</em>, <em>unsat=0</em>, <em>minus=None</em>, <em>plus=None</em>, <em>isotope=0</em>, <em>name=None</em>, <em>hg=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#FattyFragmentOld"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FattyFragmentOld" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="lipyd.fragment.FattyFragmentOld.adduct_str">
+<code class="descname">adduct_str</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#FattyFragmentOld.adduct_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FattyFragmentOld.adduct_str" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lipyd.fragment.FattyFragmentOld.charge_str">
+<code class="descname">charge_str</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#FattyFragmentOld.charge_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FattyFragmentOld.charge_str" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lipyd.fragment.FattyFragmentOld.get_fragline">
+<code class="descname">get_fragline</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#FattyFragmentOld.get_fragline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FattyFragmentOld.get_fragline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lipyd.fragment.FattyFragmentOld.set_name">
+<code class="descname">set_name</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lipyd/fragment.html#FattyFragmentOld.set_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.fragment.FattyFragmentOld.set_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPA">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPA</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPA" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPAAlkyl">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPAAlkyl</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPAAlkyl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPA_mH2O">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPA_mH2O</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPA_mH2O" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPC">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPC</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPC" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPCAlkyl">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPCAlkyl</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPCAlkyl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPE">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPE</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPEAlkyl">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPEAlkyl</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPEAlkyl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPG">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPG</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPG" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPGAlkyl">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPGAlkyl</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPGAlkyl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPI">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPI</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPI" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.LysoPIAlkyl">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">LysoPIAlkyl</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.LysoPIAlkyl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.NLFA">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">NLFA</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.NLFA" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.NLFA_mH2O">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">NLFA_mH2O</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.NLFA_mH2O" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.NLFA_pNH3">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">NLFA_pNH3</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.NLFA_pNH3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.NLFA_pOH">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">NLFA_pOH</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.NLFA_pOH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.Sph_mC2H4_m3H">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">Sph_mC2H4_m3H</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.Sph_mC2H4_m3H" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.Sph_mC2H4_mNH2_mH2O">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">Sph_mC2H4_mNH2_mH2O</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.Sph_mC2H4_mNH2_mH2O" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.Sph_mH2O_mNH2_m2H">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">Sph_mH2O_mNH2_m2H</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.Sph_mH2O_mNH2_m2H" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lipyd.fragment.Sph_pH">
+<em class="property">class </em><code class="descclassname">lipyd.fragment.</code><code class="descname">Sph_pH</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.fragment.Sph_pH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
+<div class="section" id="lipyd-fragdb">
+<h2>lipyd.fragdb<a class="headerlink" href="#lipyd-fragdb" title="Permalink to this headline">¶</a></h2>
+<p>Classes for building databases of MS2 fragment ions and do lookups.</p>
+<span class="target" id="module-lipyd.fragdb"></span></div>
 <div class="section" id="lipyd-curl">
 <h2>lipyd._curl<a class="headerlink" href="#lipyd-curl" title="Permalink to this headline">¶</a></h2>
 <p>Submodule for the built-in curl based downloader.</p>
@@ -3474,7 +3314,9 @@ to give information about the current stage of the task.</p>
         <div class="sphinxsidebarwrapper">
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Welcome to lipyd’s documentation!</a></li>
+<li><a class="reference internal" href="#">Welcome to lipyd’s documentation!</a><ul>
+</ul>
+</li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 <li><a class="reference internal" href="#reference">Reference</a><ul>
 <li><a class="reference internal" href="#lipyd-main">lipyd.main</a><ul>
@@ -3495,7 +3337,8 @@ to give information about the current stage of the task.</p>
 <li><a class="reference internal" href="#the-ms2scan-class">The MS2Scan class</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#lipyd-fragments">lipyd.fragments</a></li>
+<li><a class="reference internal" href="#lipyd-fragment">lipyd.fragment</a></li>
+<li><a class="reference internal" href="#lipyd-fragdb">lipyd.fragdb</a></li>
 <li><a class="reference internal" href="#lipyd-curl">lipyd._curl</a></li>
 <li><a class="reference internal" href="#lipyd-common">lipyd.common</a></li>
 <li><a class="reference internal" href="#lipyd-progress">lipyd.progress</a></li>

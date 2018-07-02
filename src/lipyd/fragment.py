@@ -15,6 +15,10 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+"""
+Classes representing fragment ions in MS2 spectra.
+"""
+
 from __future__ import print_function
 from future.utils import iteritems
 from past.builtins import xrange, range, reduce
@@ -27,10 +31,7 @@ import lipyd.mass as mass
 import lipyd.metabolite as metabolite
 
 
-fattyfragments = {
-    'pos' = set([]),
-    'neg' = set([])
-}
+fattyfragments = set([])
 
 
 class AdductCalculator(object):
@@ -68,8 +69,11 @@ class FattyFragment(metabolite.AbstractSubstituent):
             charge = 0,
             name = 'UnknownFattyFragment%s',
             attrs = None,
+            mode = None,
             **kwargs
         ):
+        
+        self.mode = mode
         
         def getname(parent):
             return '[%s]%s' % (
@@ -274,99 +278,135 @@ class FattyFragmentFactory(object):
             """
     }
     
-    # class name: (head formula, minus, charge, name, headgroups)
-    param = {
-        'LysoPE':           ('C5H9O7NH2P', '', -1, 'LysoPE%s', ['PE']),
-        'LysoPEAlkyl':      ('C5H11O6NH2P', '', -1, 'LysoPEAlkyl%s', ['PE']),
-        'LysoPCAlkyl':      ('C7H17O6NP', '', -1, 'LysoPCAlkyl%s', ['PC']),
-        'LysoPC':           ('C7H15O7NP', '', -1, 'LysoPC%s', ['PC']),
-        'LysoPI':           ('C9H16O12P', '', -1, 'LysoPI%s', ['PI']),
-        'LysoPIAlkyl':      ('C9H18O11P', '', -1, 'LysoPIAlkyl%s', ['PI']),
-        'LysoPG':           ('C6H12O9P', '', -1, 'LysoPG%s', ['PG']),
-        'LysoPGAlkyl':      ('C6H14O8P', '', -1, 'LysoPGAlkyl%s', ['PG']),
-        'LysoPA':           ('C3H6O7P',  '', -1, 'LysoPA%s', ['PA', 'PS']),
+    # class name: (head formula, minus, charge, name, headgroups, type)
+    # TODO make this an input file instead of dict
+    param_neg = {
+        'LysoPE':           ('C5H9O7NH2P', '', -1, 'LysoPE%s', ['PE'], 'fa'),
+        'LysoPEAlkyl':      ('C5H11O6NH2P', '', -1, 'LysoPEAlkyl%s', ['PE'],
+                             'fal'),
+        'LysoPCAlkyl':      ('C7H17O6NP', '', -1, 'LysoPCAlkyl%s', ['PC'],
+                             'fal'),
+        'LysoPC':           ('C7H15O7NP', '', -1, 'LysoPC%s', ['PC'], 'fa'),
+        'LysoPI':           ('C9H16O12P', '', -1, 'LysoPI%s', ['PI'], 'fa'),
+        'LysoPIAlkyl':      ('C9H18O11P', '', -1, 'LysoPIAlkyl%s', ['PI'],
+                             'fal'),
+        'LysoPG':           ('C6H12O9P', '', -1, 'LysoPG%s', ['PG'], 'fa'),
+        'LysoPGAlkyl':      ('C6H14O8P', '', -1, 'LysoPGAlkyl%s', ['PG'],
+                             'fal'),
+        'LysoPA':           ('C3H6O7P',  '', -1, 'LysoPA%s', ['PA', 'PS'],
+                             'fa'),
         'LysoPAAlkyl':      ('C3H8O6P',  '', -1, 'LysoPAAlkyl%s',
-                             ['PA', 'PS']),
+                             ['PA', 'PS'], 'fal'),
         'LysoPA_mH2O':      ('C3H4O6P',  '', -1, 'LysoPA%s-H2O',
-                             ['PA', 'PS']),
+                             ['PA', 'PS'], 'fa'),
         # CerFA
-        'FA_mO_pC2H2NH2':   ('C2H2ON', '',   -1, 'FA%s-O+C2H2NH2', ['Cer']),
+        'FA_mO_pC2H2NH2':   ('C2H2ON', '',   -1, 'FA%s-O+C2H2NH2', ['Cer'],
+                             'fa'),
         # CerFAminusC2H5N
-        'FA_mH2O_mH':       ('O', 'H3', -1, 'FA%s-H2O-H', ['Cer']),
+        'FA_mH2O_mH':       ('O', 'H3', -1, 'FA%s-H2O-H', ['Cer'],
+                             'fa'),
         # CerFAminusC
-        'FA_mO_pNH2':       ('NO', '', -1, 'FA%s-O+NH2', ['Cer']),
+        'FA_mO_pNH2':       ('NO', '', -1, 'FA%s-O+NH2', ['Cer'], 'fa'),
         # CerSphiMinusN
         'Sph_mC2H4_mNH2_mH2O':
-                            ('O', 'C2H5', -1, 'Sph%s-C2H4-NH2-H2O', ['Cer']),
+                            ('O', 'C2H5', -1, 'Sph%s-C2H4-NH2-H2O', ['Cer'],
+                             'sphingo'),
         # CerSphiMinusNO
         'Sph_mH2O_mNH2_m2H':
-                            ('O', 'H3', -1, 'Sph%s-H2O-NH2-2H', ['Cer']),
+                            ('O', 'H3', -1, 'Sph%s-H2O-NH2-2H', ['Cer'],
+                             'sphingo'),
         # CerSphi
-        'Sph_mC2H4_m3H':    ('NO2', 'C2H4', -1, 'Sph%s-C2H4-3H', ['Cer']),
+        'Sph_mC2H4_m3H':    ('NO2', 'C2H4', -1, 'Sph%s-C2H4-3H', ['Cer'],
+                             'sphingo'),
         # CerFAminusN, FAminusH
-        'FA_mH':            ('O2', 'H', -1, 'FA%s-H'),
+        'FA_mH':            ('O2', 'H', -1, 'FA%s-H', [], 'fa'),
         # FAAlkylminusH
-        'FAL_mH':           ('OH', '', -1, 'FAL%s-H'),
+        'FAL_mH':           ('OH', '', -1, 'FAL%s-H', [], 'fal')
+    }
+    
+    param_pos = {
         ### neutral losses
-        'NLFA':             ('O2', '', 0, 'NL FA%s'),
+        'NLFA':             ('O2', '', 0, 'NL FA%s', [], 'fa'),
         # NLFAminusH2O
-        'NLFA_mH2O':        ('O', 'H2', 0, 'NL FA%s-H20'),
+        'NLFA_mH2O':        ('O', 'H2', 0, 'NL FA%s-H20', [], 'fa'),
         # NLFAplusOH
-        'NLFA_pOH':         ('O3H', '', 0, 'NL FA%s+OH'),
+        'NLFA_pOH':         ('O3H', '', 0, 'NL FA%s+OH', [], 'fa'),
         # NLFAplusNH3
-        'NLFA_pNH3':        ('O2NH3', '', 0, 'NL FA%s+NH3'),
+        'NLFA_pNH3':        ('O2NH3', '', 0, 'NL FA%s+NH3', [], 'fa'),
         ### positive
         # FAminusO
-        'FA_mOH':           ('O', 'H', 1, 'FA%s-OH'),
+        'FA_mOH':           ('O', 'H', 1, 'FA%s-OH', [], 'fa'),
         # FAplusGlycerol
         'FA_pGlycerol_mOH': ('C3H5O3', '', 1, 'FA%s+Glycerol-OH',
-                             ['PG', 'BMP', 'DAG', 'LysoPE', 'LysoPC']),
+                             ['PG', 'BMP', 'DAG', 'LysoPE', 'LysoPC'], 'fa'),
         # SphingosineBase
         'Sph_pH':           ('NH4O2', '', 1, 'Sph%s+H',
-                             ['Sph', 'SM', 'Cer', 'HexCer'])
+                             ['Sph', 'SM', 'Cer', 'HexCer'], 'sphingo')
     }
     
     def __init__(self):
         
         mod = sys.modules[__name__]
         
-        for name, par in iteritems(self.param):
+        for mode in ('neg', 'pos'):
             
-            exec(
-                (
-                    'def __init__(self, **kwargs):'
-                    '    FattyFragment.__init__('
-                    '        self,'
-                    '        head = \'%s\','
-                    '        minus = \'%s\','
-                    '        name = \'%s\','
-                    '        charge = %u,'
-                    '        attrs = None,'
-                    '        **kwargs'
-                    '    )'
-                ) % (
-                    par[0],
-                    par[1],
-                    par[3],
-                    par[2]
-                ),
-                mod.__dict__,
-                mod.__dict__
-            )
+            param = getattr(self, 'param_%s' % mode)
             
-            if name in self.docs:
+            for name, par in iteritems(param):
                 
-                mod.__dict__['__init__'].__doc__ = self.docs[name]
-            
-            cls = type(
-                name,
-                (FattyFragment, ),
-                {'__init__': mod.__dict__['__init__']}
-            )
-            
-            setattr(mod, name, cls)
-            
-            fattyfragments.append(name)
+                exec(
+                    (
+                        'def __init__(self, **kwargs):\n'
+                        '    FattyFragment.__init__(\n'
+                        '        self,\n'
+                        '        head = \'%s\',\n'
+                        '        minus = \'%s\',\n'
+                        '        name = \'%s\',\n'
+                        '        charge = %u,\n'
+                        '        mode = \'%s\',\n'
+                        '        attrs = {\n'
+                        '            \'headgroups\': %s,\n'
+                        '            \'type\': \'%s\'\n'
+                        '        },\n'
+                        '        **kwargs\n'
+                        '    )\n'
+                    ) % (
+                        par[0],
+                        par[1],
+                        par[3],
+                        par[2],
+                        mode,
+                        str(par[4]),
+                        par[5]
+                    ),
+                    mod.__dict__,
+                    mod.__dict__
+                )
+                
+                if name in self.docs:
+                    
+                    mod.__dict__['__init__'].__doc__ = self.docs[name]
+                
+                cls = type(
+                    name,
+                    (FattyFragment, ),
+                    {'__init__': mod.__dict__['__init__']}
+                )
+                
+                # these we set as attributes of the class
+                # in order to be able later to inspect them
+                # and get information about the class
+                for attr, val in (
+                    ('typ', par[5]),
+                    ('headgroups', par[4]),
+                    ('mode', mode)
+                ):
+                    
+                    setattr(cls, attr, val)
+                
+                setattr(mod, name, cls)
+                
+                fattyfragments.add(name)
         
         delattr(mod, '__init__')
 

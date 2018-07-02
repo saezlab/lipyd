@@ -15308,7 +15308,7 @@ class Screening(object):
     def results_df(self):
         """
         Reads manually curated result tables. Returns the 2 tables
-        and their union in `pandas.DataFrame`s.
+        and their union in `pandas.DataFrame` s.
         """
         
         self.read_manual()

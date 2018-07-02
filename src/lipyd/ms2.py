@@ -2516,10 +2516,10 @@ class MS2Scan(object):
         **Principle:**
         
         - Choline-phosphate 184.0733, ethyl-triethylammonium 86.0964 and
-        neutral loss 183.0660 must be present.
+          neutral loss 183.0660 must be present.
         - The latter neutral loss corresponds to a fatty acid+glycerol ion.
         - The carbon count and unsaturation of this fragment should match
-        that of the whole molecule.
+          that of the whole molecule.
         
         """
         

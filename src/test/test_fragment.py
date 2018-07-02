@@ -65,12 +65,7 @@ class TestFragment(object):
             lipyd.fragment.mass.MassBase('H2').mass
         )
         
-        for name in itertools.chain(
-                *(
-                    lipyd.fragment.fattyfragments[mode]
-                    for mode in ('pos', 'neg')
-                )
-            ):
+        for name in lipyd.fragment.fattyfragments:
             
             if name in standards:
                 

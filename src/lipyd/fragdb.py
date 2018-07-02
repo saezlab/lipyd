@@ -20,6 +20,9 @@ from future.utils import iteritems
 from past.builtins import xrange, range, reduce
 
 import itertools
+import collections
+import copy
+import numpy as np
 
 import lipyd.fragment as fragment
 import lipyd.formula as formula
@@ -28,6 +31,12 @@ import lipyd.settings as settings
 
 class FragmentDatabaseAggregator(object):
     
+    default_args = {
+        'sphingo': 'sph_default',
+        'fa': 'fa_default',
+        'fal': 'fal_default'
+    }
+    
     def __init__(
             self,
             ionmode = 'pos',
@@ -35,7 +44,8 @@ class FragmentDatabaseAggregator(object):
             include = None,
             exclude = None,
             fa_default  = None,
-            sph_default = None
+            sph_default = None,
+            fal_default = None
         ):
         """
         Builds and serves a database of MS2 fragment ions according to
@@ -65,19 +75,28 @@ class FragmentDatabaseAggregator(object):
             List of class names not to be used to generate fragment
             series.
         :param dict fa_default:
-            Default arguments for fatty acyl or fatty alkyl derived
-            fragment series.
+            Default arguments for fatty acyl derived fragment series.
+        :param dict fa_default:
+            Default arguments for fatty alkyl derived fragment series.
         :param dict sph_default:
             Default arguements for sphingoid long chain base derived
             fragment series.
         """
         
+        self.fragments = []
         self.mode  = ionmode
         self.files = files
         self.include = include
-        self.exclude = exclude
-        self.fa_default  = fa_default  or {}
-        self.sph_default = sph_default or {}
+        self.exclude = exclude or []
+        self.fa_default  = fa_default  or {
+            'c': range(2, 37),
+            'u': range(0, 7)
+        }
+        self.fal_default = fal_default or self.fa_default
+        self.sph_default = sph_default or {
+            'c': [14, 16, 17, 18, 19, 20, 21],
+            'u': (0, 1)
+        }
     
     def build(self):
         """
@@ -87,8 +106,22 @@ class FragmentDatabaseAggregator(object):
         homolog series.
         """
         
+        self.fragments = []
+        
         self.set_filenames()
         self.fragments = self.read_files()
+        self.fragments.extend(self.generate_series())
+        self.fragments = np.array(
+            sorted(
+                self.fragments,
+                key = lambda x: x[0]
+            ),
+            dtype = np.object
+        )
+    
+    def __iter__(self):
+        
+        return self.fragments.__iter__()
     
     def set_filenames(self):
         """
@@ -160,6 +193,14 @@ class FragmentDatabaseAggregator(object):
         See the built in fragment lists for examples.
         """
         
+        def get_charge(typ):
+            
+            return (
+                0  if typ.startswith('NL') else
+                -1 if self.mode == 'neg' else
+                1
+            )
+        
         def process_line(l):
             
             l = l.split('\t')
@@ -172,7 +213,7 @@ class FragmentDatabaseAggregator(object):
                     None
             )
             
-            return [mass, l[2], l[3], l[4]]
+            return [mass, l[2], l[3], np.nan, np.nan, get_charge(l[3])]
         
         fname = fname or self.get_default_file()
         
@@ -186,3 +227,75 @@ class FragmentDatabaseAggregator(object):
                     )
                 if ll and ll[0]
             ]
+    
+    def set_series(self):
+        """
+        Selects the homolog series to be generated and their parameters.
+        See details in docs of `exclude` and `include` arguments for
+        `__init__()`.
+        """
+        
+        def get_class(name):
+            
+            # TODO be able to use classes defined elsewhere
+            return getattr(fragment, name)
+        
+        self.specific_args = collections.defaultdict(dict)
+        
+        if self.include is not None:
+            
+            # a set of fragment class names
+            self.series = set(
+                i[0] if type(i) is tuple else i for i in self.include
+            )
+            # a dict with class specific arguments
+            # whereever it's provided
+            self.specific_args.update(
+                dict(filter(lambda x: type(x) is tuple, self.include))
+            )
+            
+        else:
+            
+            # all fragment classes by default except those in `exclude`
+            self.series = fragment.fattyfragments - set(self.exclude)
+        
+        self.series = map(get_class, self.series)
+        self.series = [cls for cls in self.series if cls.mode == self.mode]
+    
+    def get_series_args(self, cls):
+        """
+        Provides a dict of arguments for fragment homolog series.
+        
+        Args
+        ----
+        :param class cls:
+            Fragment homolog series class
+            e.g. `fragment.FA_mH` -- fatty acid minus hydrogen.
+        """
+        
+        args = (
+                copy.copy(getattr(self, self.default_args[cls.typ]))
+            if cls.typ in self.default_args else
+                {}
+        )
+        
+        args.update(self.specific_args[cls])
+        
+        return args
+    
+    def generate_series(self):
+        """
+        Generates homolog series fragments.
+        """
+        
+        result = []
+        
+        self.set_series()
+        
+        for cls in self.series:
+            
+            args = self.get_series_args(cls)
+            
+            result.extend(list(cls(**args).iterfraglines()))
+        
+        return result
