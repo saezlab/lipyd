@@ -76,6 +76,7 @@ class FattyFragment(metabolite.AbstractSubstituent):
         self.mode = mode
         
         def getname(parent):
+            
             return '[%s]%s' % (
                 parent.name % ('(C%u:%u)' % (parent.c, parent.u)),
                 'NL' if parent.name[:2] == 'NL' else
@@ -280,6 +281,7 @@ class FattyFragmentFactory(object):
     
     # class name: (head formula, minus, charge, name, headgroups, type)
     # TODO make this an input file instead of dict
+    # in comments masses at 18:0
     param_neg = {
         'LysoPE':           ('C5H9O7NH2P', '', -1, 'LysoPE%s', ['PE'], 'fa'),
         'LysoPEAlkyl':      ('C5H11O6NH2P', '', -1, 'LysoPEAlkyl%s', ['PE'],
@@ -299,29 +301,77 @@ class FattyFragmentFactory(object):
                              ['PA', 'PS'], 'fal'),
         'LysoPA_mH2O':      ('C3H4O6P',  '', -1, 'LysoPA%s-H2O',
                              ['PA', 'PS'], 'fa'),
-        # CerFA
+        # former CerFA
         'FA_mO_pC2H2NH2':   ('C2H2ON', '',   -1, 'FA%s-O+C2H2NH2', ['Cer'],
-                             'fa'),
-        # CerFAminusC2H5N
+                             'fa'), # 308.2959
+        # former CerFAminusC2H5N
         'FA_mH2O_mH':       ('O', 'H3', -1, 'FA%s-H2O-H', ['Cer'],
-                             'fa'),
-        # CerFAminusC
+                             'fa'), # 265.2537
+        # former CerFAminusC
         'FA_mO_pNH2':       ('NO', '', -1, 'FA%s-O+NH2', ['Cer'], 'fa'),
-        # CerSphiMinusN
+        # former CerSphiMinusN
         'Sph_mC2H4_mNH2_mH2O':
                             ('O', 'C2H5', -1, 'Sph%s-C2H4-NH2-H2O', ['Cer'],
-                             'sphingo'),
-        # CerSphiMinusNO
+                             'sphingo'), # 239.2380
+        # former CerSphiMinusNO
         'Sph_mH2O_mNH2_m2H':
                             ('O', 'H3', -1, 'Sph%s-H2O-NH2-2H', ['Cer'],
-                             'sphingo'),
-        # CerSphi
+                             'sphingo'), # 265.2537
+        # former CerSphi
         'Sph_mC2H4_m3H':    ('NO2', 'C2H4', -1, 'Sph%s-C2H4-3H', ['Cer'],
-                             'sphingo'),
-        # CerFAminusN, FAminusH
+                             'sphingo'), # 270.2436
+        # former CerFAminusN, FAminusH
         'FA_mH':            ('O2', 'H', -1, 'FA%s-H', [], 'fa'),
-        # FAAlkylminusH
-        'FAL_mH':           ('OH', '', -1, 'FAL%s-H', [], 'fal')
+        # former FAAlkylminusH
+        'FAL_mH':           ('OH', '', -1, 'FAL%s-H', [], 'fal'),
+        # fatty acyl fragments for hydroxyacyl ceramides:
+        'FA_pC2H3_pNH2_pH2O': ('C2NH4O3', '', -1, 'FA%s+C2H3+NH2+H2O', [],
+                                 'fa'), # 342.3014
+        'FA_pC2H3_pNH2_pO': ('C2NH2O3', '', -1, 'FA%s+C2H3+NH2+O', [],
+                              'fa'), # 340.2857
+        'FA_pC2H3_pNH2':    ('C2NH2O2', '', -1, 'FA%s+C2H3+NH2', [],
+                             'fa'), # 324.2908
+        'FA_pO':            ('O3', 'H', -1, 'FA%s+O', [], 'fa'), # 299.2592
+        'FA_pC2H3_pNH2_m2H':
+                            ('C2NO2', '', -1, 'FA%s+C2H3+NH2-2H', [],
+                             'fa'), # 322.2752
+        'FA_pC2H3_pNH2_mH2O': ('C2NO', '', -1, 'FA%s+C2H3+NH2-H2O', [],
+                               'fa'), # 306.2802
+        'FA_pNH2_m2H':      ('NO2', '', -1, 'FA%s+NH2-2H', [],
+                             'fa'), # 298.2752
+        'FA_m3H':           ('O2', 'H3', -1, 'FA%s-3H', [], 'fa'), # 281.2486
+        'FA_mCO_m3H':       ('O', 'CH3', -1, 'FA%s-CO-3H', [],
+                             'fa'), # 253.2537
+        # fatty acyl fragments from ceramides
+        'FA_pC2H3_pNH2_p2H': ('C2NH4O2', '', -1, 'FA%s+C2H3+NH2+2H', [],
+                              'fa'), # 326.3065
+        'FA_pC2H3_pNH2_mO': ('C2NH2O', '', -1, 'FA%s+C2H3+NH2-O', [],
+                               'fa'), # 308.2959
+        'FA_pNH2_mH2O_mH':  ('ONH', '', -1, 'FA%s+NH2-H2O-H', [],
+                             'fa'), # 282.2802
+        'FA_pC3H7_mNH2':    ('O2NC3H4', '', -1, 'FA%s+C3H7+NH2', [],
+                             'fa'), # 338.3064
+        # sphingosine long chain base fragments from t-ceramides
+        'Sph_pO':           ('NH2O3', '', -1, 'Sph%s+O', ['Cer'],
+                             'sphingo'), # 316.2857
+        'Sph_mCH2_m3H':     ('NO2', 'CH2', -1, 'Sph%s-CH2-3H', ['Cer'],
+                             'sphingo'), # 284.2595
+        'Sph_mNH2_m3H':     ('O2', 'H3', -1, 'Sph%s-NH2-3H', ['Cer'],
+                             'sphingo'), # 281.2486
+        'Sph_mC2H4_mNH2_m2H':
+                            ('O2', 'C2H5', -1, 'Sph%s-C2H4-NH2-2H', ['Cer'],
+                             'sphingo'), # 255.2330
+        'Sph_mCH2_mNH2_m4H':
+                            ('O2', 'CH5', -1, 'Sph%s-CH2-NH2-4H', ['Cer'],
+                             'sphingo'), # 267.2330
+        # sphingosine long chain base fragments from DH-ceramides
+        'Sph_mH':           ('NH2O2', '', -1, 'Sph%s-H', ['Cer'],
+                             'sphingo'), # 300.2908
+        'Sph_mCH2_mH2O_mH': ('NO', 'CH2', -1, 'Sph%s-CH2-H2O-H', ['Cer'],
+                             'sphingo'), # 268.2646
+        # sphingosine long chain base fragments from d-ceramides
+        'Sph_mCH2_mOH':     ('NO', 'C', -1, 'Sph%s-CH2-OH', ['Cer'],
+                             'sphingo') # 270.2802
     }
     
     param_pos = {
@@ -341,7 +391,8 @@ class FattyFragmentFactory(object):
                              ['PG', 'BMP', 'DAG', 'LysoPE', 'LysoPC'], 'fa'),
         # SphingosineBase
         'Sph_pH':           ('NH4O2', '', 1, 'Sph%s+H',
-                             ['Sph', 'SM', 'Cer', 'HexCer'], 'sphingo')
+                             ['Sph', 'SM', 'Cer', 'HexCer'],
+                             'sphingo') # 302.3053
     }
     
     def __init__(self):
