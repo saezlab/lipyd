@@ -321,7 +321,7 @@ class FattyFragmentFactory(object):
         'Sph_mC2H4_m3H':    ('NO2', 'C2H4', -1, 'Sph%s-C2H4-3H', ['Cer'],
                              'sphingo'), # 270.2436
         # former CerFAminusN, FAminusH
-        'FA_mH':            ('O2', 'H', -1, 'FA%s-H', [], 'fa'),
+        'FA_mH':            ('O2', 'H', -1, 'FA%s-H', [], 'fa'), # 283.2643
         # former FAAlkylminusH
         'FAL_mH':           ('OH', '', -1, 'FAL%s-H', [], 'fal'),
         # fatty acyl fragments for hydroxyacyl ceramides:
@@ -365,13 +365,25 @@ class FattyFragmentFactory(object):
                             ('O2', 'CH5', -1, 'Sph%s-CH2-NH2-4H', ['Cer'],
                              'sphingo'), # 267.2330
         # sphingosine long chain base fragments from DH-ceramides
-        'Sph_mH':           ('NH2O2', '', -1, 'Sph%s-H', ['Cer'],
+        'Sph_mH_N':         ('NH2O2', '', -1, 'Sph%s-H', ['Cer'],
                              'sphingo'), # 300.2908
         'Sph_mCH2_mH2O_mH': ('NO', 'CH2', -1, 'Sph%s-CH2-H2O-H', ['Cer'],
                              'sphingo'), # 268.2646
         # sphingosine long chain base fragments from d-ceramides
         'Sph_mCH2_mOH':     ('NO', 'C', -1, 'Sph%s-CH2-OH', ['Cer'],
-                             'sphingo') # 270.2802
+                             'sphingo'), # 270.2802
+        # sphingosine long chain base fragments from sphingomyelin
+        'Sph_pPCh_mCH3':    ('N2H12O5PC4', '', -1, 'Sph%s+PCh-CH3', ['SM'],
+                             'sphingo'), # 449.3150
+        # sphingosine fragments from sphingosine
+        'Sph_mC2H3_mNH2_mOH':
+                            ('O', 'C2H3', -1, 'Sph%s-C2H3-NH2-OH', ['Sph'],
+                             'sphingo'), # 241.2537
+        # fatty acyl fragments from ceramide-1-phosphate
+        'FA_mH2O':          ('O', 'H2', -1, 'FA%s-H2O', ['CerP'],
+                             'fa'), # 266.2615
+        'FA':               ('O2', '', -1, 'FA%s-', ['CerP'],
+                             'fa'), # 284.2721
     }
     
     param_pos = {
@@ -392,7 +404,47 @@ class FattyFragmentFactory(object):
         # SphingosineBase
         'Sph_pH':           ('NH4O2', '', 1, 'Sph%s+H',
                              ['Sph', 'SM', 'Cer', 'HexCer'],
-                             'sphingo') # 302.3053
+                             'sphingo'), # 302.3053
+        # sphingosine long chain base fragments from ceramide-1-phosphate
+        'Sph_m2xH2O':       ('N', '', 1, 'Sph%s-2xH2O',
+                             ['CerP', 'SphP', 'SM', 'MSph', 'M2Sph', 'dCer',
+                              'DHCer'],
+                             'sphingo'), # 266.2842
+        # fatty acyl fragments from ceramide-1-phosphate
+        'FA_pNH_pC2H2_mOH': ('ONC2H2', '', 1, 'FA%s+NH+C2H2-OH', [],
+                             'fa'), # 308.2948
+        'FA_pNH2_mO':       ('ONH2', '', 1, 'FA%s+NH2-O', ['dCer', 'DHCer'],
+                             'fa'), # 284.2948
+        # sphingosine long chain base fragments from hexosyl-t-ceramide
+        'Sph_mH_P':         ('NH2O2', '', 1, 'Sph%s-H', ['HexCer', 'tCer'],
+                             'sphingo'), # 300.2897
+        'Sph_pH2O_mH':      ('NH4O3', '', 1, 'Sph%s+H2O-H', ['HexCer'],
+                             'sphingo'), # 318.3003
+        'Sph_mH2O_mH':      ('NO', '', 1, 'Sph%s-H2O-H', ['HexCer', 'tCer'],
+                             'sphingo'), # 282.2791
+        'Sph_mH2O_pH':      ('NOH2', '', 1, 'Sph%s-H2O+H',
+                             ['SphP', 'MSph', 'M2Sph', 'DHCer'],
+                             'sphingo'), # 284.2948
+        # sphingosine fragments from N-(n)methyl-safingols
+        'Sph_mH2O_pCH3':    ('NOCH4', '', 1, 'Sph%s-H2O+CH3',
+                             ['MSph', 'M2Sph'], 'sphingo'), # 298.3104
+        'Sph_mH2O_p2xCH3_mH':
+                            ('NOC2H6', '', 1, 'Sph%s-H2O+2xCH3-H',
+                             ['M2Sph'], 'sphingo'), # 312.3261
+        # sphinosine fragments from keto-sphingosine
+        'Sph_mC_mH2O_mH':   ('NO', 'C', 1, 'Sph%s-C-H2O-H', ['KSph'],
+                             'sphingo'), # 270.2791
+        'Sph_mC_mO_mH2O_mH':
+                            ('N', 'C', 1, 'Sph%s-C-O-H2O-H', ['KSph', 'dCer'],
+                             'sphingo'), # 254.2842
+        'Sph_mNH2_mH2O_m2H':
+                            ('O', 'H3', 1, 'Sph%s-C-H2O-2H', ['KSph'],
+                             'sphingo'), # 265.2526
+        'Sph_mC_m2xH2O':    ('N', 'CH2', 1, 'Sph%s-C-2xH2O', ['KSph'],
+                             'sphingo'), # 252.2686
+        # sphingosine fragments from d-ceramide
+        'Sph_mO_pH':        ('NOH4', '', 1, 'Sph%s-O+H',
+                             ['dCer'], 'sphingo'), # 286.3104
     }
     
     def __init__(self):

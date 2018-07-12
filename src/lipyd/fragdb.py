@@ -27,6 +27,7 @@ import numpy as np
 import lipyd.fragment as fragment
 import lipyd.formula as formula
 import lipyd.settings as settings
+import lipyd.lookup as lookup
 
 
 class FragmentDatabaseAggregator(object):
@@ -40,12 +41,14 @@ class FragmentDatabaseAggregator(object):
     def __init__(
             self,
             ionmode = 'pos',
+            tolerance = 50,
             files = None,
             include = None,
             exclude = None,
             fa_default  = None,
             sph_default = None,
-            fal_default = None
+            fal_default = None,
+            build = True
         ):
         """
         Builds and serves a database of MS2 fragment ions according to
@@ -64,6 +67,8 @@ class FragmentDatabaseAggregator(object):
         ----
         :param str ionmode:
             Ion mode, either `pos` or `neg`.
+        :param int tolerance:
+            Tolerance at lookup in ppm.
         :param str,list files:
             Fragment list filenames. List of filenames or a single
             filename. If `None` the built in fragment list file used.
@@ -81,10 +86,13 @@ class FragmentDatabaseAggregator(object):
         :param dict sph_default:
             Default arguements for sphingoid long chain base derived
             fragment series.
+        :param bool build:
+            Build the fragment database at initialization.
         """
         
         self.fragments = []
         self.mode  = ionmode
+        self.tolerance = tolerance
         self.files = files
         self.include = include
         self.exclude = exclude or []
@@ -97,6 +105,10 @@ class FragmentDatabaseAggregator(object):
             'c': [14, 16, 17, 18, 19, 20, 21],
             'u': (0, 1)
         }
+        
+        if build:
+            
+            self.build()
     
     def build(self):
         """
@@ -299,3 +311,19 @@ class FragmentDatabaseAggregator(object):
             result.extend(list(cls(**args).iterfraglines()))
         
         return result
+    
+    def __getitem__(self, i):
+        
+        return self.fragments[i,:]
+    
+    def lookup(self, mz):
+        """
+        Searches for fragments in the database matching the `mz` within the
+        actual range of tolerance. To change the tolerance set the
+        `tolerance` attribute to the desired ppm value.
+        """
+        
+        return self.fragments[
+            lookup.findall(self.fragments[:,0], mz, self.tolerance),
+            :
+        ]

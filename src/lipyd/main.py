@@ -6480,7 +6480,9 @@ class Screening(object):
         
         if not silent:
             prg = progress.Progress(len(self.valids) * 2,
-                'Analysing MS2 scans and identifying features', 1, percent = False)
+                'Analysing MS2 scans and identifying features',
+                1, percent = False
+            )
         
         logdir = 'ms2log_%s' % self.today()
         

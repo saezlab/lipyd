@@ -24,6 +24,7 @@ import os
 import sys
 import imp
 import re
+import copy
 import struct
 import itertools
 import collections
@@ -864,12 +865,20 @@ class MoleculeDatabaseAggregator(object):
                 'SwissLipids': (SwissLipids, {}),
                 'LipidMaps': (LipidMaps, {})
             },
-            tolerance = .01
+            tolerance = 20,
+            fa_args = None,
+            sph_args = None
         ):
+        """
         
-        self.resource = resources
+        """
+        
+        self.resources = resources
         self.dbs = {}
         self.tolerance = tolerance
+        
+        self.fa_args  = fa_args or {'c': (4, 36), 'u': (0, 10)}
+        self.sph_args = sph_args or {'c': (16, 22), 'u': (0, 1)}
         #self.db = np.array()
     
     def reload(self, children = False):
@@ -882,10 +891,13 @@ class MoleculeDatabaseAggregator(object):
     
     def auto_metabolites(
             self,
-            fa_args = {'c': (4, 36), 'u': (0, 10)},
-            sph_args = {'c': (16, 22), 'u': (0, 1)},
+            fa_args = None,
+            sph_args = None,
             sum_only = True
         ):
+        
+        fa_args  = fa_args  or self.fa_args
+        sph_args = sph_args or self.sph_args
         
         masses = []
         data   = []
@@ -896,8 +908,8 @@ class MoleculeDatabaseAggregator(object):
             
             cls = getattr(lipid, name)
             gen = cls(
-                fa_args = fa_args,
-                sph_args = sph_args,
+                fa_args  = copy.copy(fa_args),
+                sph_args = copy.copy(sph_args),
                 sum_only = sum_only
             )
             

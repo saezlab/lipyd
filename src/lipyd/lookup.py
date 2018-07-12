@@ -15,7 +15,21 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
-def findall(a, m, t = .01):
+
+def ppm_tolerance(ppm, m):
+    """
+    Converts ppm value to plus/minus range.
+    
+    :param int ppm:
+        Tolerance in ppm.
+    :param float m:
+        The m/z value.
+    """
+    
+    return m * ppm * 1e-6
+
+
+def findall(a, m, t = 20):
     """
     Finds all values within a given range of tolerance around a reference
     value in a one dimensional sorted numpy array (-slice) of floats.
@@ -23,10 +37,12 @@ def findall(a, m, t = .01):
     
     :param numpy.array a: Sorted one dimensional float array.
     :param float m: Value to lookup.
-    :param float t: Range of tolerance (highest accepted difference).
+    :param float t: Range of tolerance (highest accepted difference) in ppm.
     """
     
     result = []
+    
+    t = ppm_tolerance(t, m)
     
     # the upper closest index
     iu = a.searchsorted(m)
@@ -64,7 +80,7 @@ def findall(a, m, t = .01):
     return result
 
 
-def find(a, m, t = .01):
+def find(a, m, t = 20):
     """
     Finds closest value based on a reference value in a one dimensional
     sorted numpy array of floats.
@@ -76,8 +92,10 @@ def find(a, m, t = .01):
     
     :param numpy.array a: Sorted one dimensional float array (-slice).
     :param float m: Value to lookup.
-    :param float t: Range of tolerance (highest accepted difference).
+    :param float t: Range of tolerance (highest accepted difference) in ppm.
     """
+    
+    t = ppm_tolerance(t, m)
     
     iu = a.searchsorted(m)
     

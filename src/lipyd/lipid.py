@@ -326,19 +326,24 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             n = 'H',
             sph = None,
             sph_args = None,
-            pcharge = 0,
-            ncharge = 0,
+            charge  = None,
+            pcharge = None,
+            ncharge = None,
             name = 'Sphingolipid',
             typ  = 'SL',
             getname = None,
             **kwargs
         ):
         
-        sph_args = sph_args or None
+        sph_args = sph_args or {}
         
-        self.pcharge = pcharge
-        self.ncharge = ncharge
-        self.netcharge = self.pcharge - self.ncharge
+        self.pcharge = pcharge or 0
+        self.ncharge = ncharge or 0
+        self.charge  = (
+                charge
+            if type(charge) is int else
+                self.pcharge - self.ncharge
+        )
         
         if not sph:
             
@@ -382,7 +387,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 self.get_substituent(o)
             ],
             name = name,
-            charge = self.netcharge,
+            charge = self.charge,
             getname = getname or _getname,
             **kwargs
         )
@@ -403,6 +408,7 @@ class Sphingosine(AbstractSphingolipid):
             name = 'Sph',
             **kwargs
         )
+
 
 class KetoSphingosine(AbstractSphingolipid):
     
