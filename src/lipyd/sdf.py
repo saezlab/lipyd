@@ -90,6 +90,7 @@ class SdfReader(object):
             setattr(self, name, {})
         
         self._byte_mode()
+        self._file_size()
         self.index()
     
     def reload(self):
@@ -108,6 +109,11 @@ class SdfReader(object):
                 
                 self.fp.close()
                 self.fp = open(self.name, 'rb')
+    
+    def _file_size(self):
+        
+        self.fp.seek(-1, 2)
+        self.eof = self.fp.tell()
     
     def read(self,
             index_only = True,
@@ -130,8 +136,6 @@ class SdfReader(object):
             Go to this byte offset in the file and start reading there.
         """
         
-        self.fp.seek(-1, 2)
-        eof = self.fp.tell()
         self.fp.seek(go_to)
         
         expect_new = True
@@ -212,7 +216,7 @@ class SdfReader(object):
                     namepart = True
                     name_or_id = True
             
-            if expect_new or self.fp.tell() == eof:
+            if expect_new or self.fp.tell() == self.eof:
                 
                 if one_record:
                     
@@ -491,6 +495,31 @@ class SdfReader(object):
         if return_data:
             
             return rr
+    
+    def __iter__(self):
+        """
+        Iterates over all records in the sdf file.
+        """
+        
+        for offset in self.mainkey.values():
+            
+            yield self.read(
+                index_only = False,
+                one_record = True,
+                go_to = offset
+            )
+    
+    def iter_obmol(self):
+        """
+        Iterates all structures in the file and yields `pybel.Molecule`
+        objects.
+        """
+        
+        for _id in self.mainkey.keys():
+            
+            for mol in self.get_obmol(_id, typ = 'mainkey'):
+                
+                yield mol
     
     def index_info(self):
         """
