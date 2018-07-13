@@ -400,7 +400,7 @@ in_basedir = ['fractionsf', 'ppfracf', 'seqfile',
     'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir']
 
 in_datadir = {
-    'pfragmentsfile', 'nfragmentsfile'
+    'pfragmentsfile', 'nfragmentsfile', 'lipnamesf'
 }
 
 def reset_all():

@@ -45,6 +45,7 @@ import lipyd.progress as progress
 import lipyd.sdf as sdf
 import lipyd.lipid as lipid
 import lipyd.lookup as lookup
+import lipyd.name as lipidname
 
 
 class Reader(object):
@@ -206,7 +207,7 @@ class SwissLipids(Reader):
         at indexing.
         """
         
-        self.nameproc = LipidNameProcessor(
+        self.nameproc = lipidname.LipidNameProcessor(
             iso = 'Isomeric subspecies' in self.levels,
             **self.nameproc_args
         )

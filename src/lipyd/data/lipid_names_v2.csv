@@ -1,15 +1,17 @@
 Abbrev	Name	SwissLipids_keywords	LipidMaps_keywords	Positive_adduct	Negative_adduct
 PA	Phosphatidic acid	hosphatidate		[M+NH4]+	[M-H]-
-PC	Phosphatidylcholine	hosphatidylcholine!yso	phosphocholine;!phing;!yso;!0:0	[M+H]+	[M+HCOO]-
+PC	Phosphatidylcholine	hosphatidylcholine;!yso	phosphocholine;!phing;!yso;!0:0	[M+H]+	[M+HCOO]-
 LysoPC	Lysophosphatidylcholine	ysophosphatidylcholine	lysophosphocholine;!phing|PC;0:0	[M+H]+	[M+HCOO]-
-PE	Phosphatidylethanolamine	hosphatidylethanolamine!yso	phosphoethanolamine;!eramide;!yso;!0:0	[M+H]+	[M-H]-
+PE	Phosphatidylethanolamine	hosphatidylethanolamine;!yso	phosphoethanolamine;!eramide;!yso;!0:0	[M+H]+	[M-H]-
 LysoPE	Lysophosphatidylethanolamine	ysophosphatidylethanolamine	ysophosphoethanolamine;!eramide|PE;0:0	[M+H]+	[M-H]-
 PG	Phosphoglycerol	hosphatidylglycerol	PG;!PGF;!PGC;!PGA;!PGD;!PGE	[M+NH4]+	[M-H]-
 PS	Phosphatidylserine	hosphatidylserine	PS|phosphoserine	[M+H]+	[M-H]-
 Sph1P	Sphingosine-1-phosphate		phingosine-1-phosphate	ND	[M-H]-
 SM	Shingomyelin	phingomyelin	phingomyelin	[M+H]+	[M+HCOO]-
 Sph	Sphingosine		phingosine|	[M+H]+	ND
-Cer	Ceramide	eramide;!phosphate;!exo	Cer;!phosphate	[M+H]+	[M+HCOO]-
+DHCer	Dihydro ceramide		ihydro;eramide|Cer;:0/	ND	ND
+dCer	Ceramide	eramide;!phosphate;!exo	Cer(d;!phosphate;!Glc;!Lac;!Gal;!ulfo	[M+H]+	[M+HCOO]-
+tCer	Ceramide	eramide;!phosphate;!exo	Cer(t;!phosphate;!Glc;!Lac;!Gal;!ulfo	[M+H]+	[M+HCOO]-
 Cer1P	Ceramide-1-phosphate	eramide;phosphate	Cer;1-phosphate	ND	[M-H]-
 TAG	Triacylglycerol	Triacylglycerol	TG	[M+NH4]+	ND
 PI	Phosphatidylinositol	hosphatidylinositol	phospho;inositol	ND	ND

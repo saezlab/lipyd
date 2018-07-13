@@ -245,6 +245,20 @@ class Curl(object):
         if process and not self.download_failed:
             self.process_file()
     
+    def __del__(self):
+        
+        fileattrs = ['tarfile', 'zipfile', 'gzfile', 'fileobj']
+        
+        for fattr in fileattrs:
+            
+            if hasattr(self, fattr):
+                
+                f = getattr(self, fattr)
+                
+                if hasattr(f, 'close'):
+                    
+                    f.close()
+    
     def reload(self):
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist = [modname.split('.')[0]])

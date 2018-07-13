@@ -22,6 +22,7 @@ from future.utils import iteritems
 
 import imp
 import re
+import itertools
 
 import lipyd.settings as settings
 
@@ -29,7 +30,7 @@ import lipyd.settings as settings
 class LipidNameProcessor(object):
     
     def __init__(self, with_alcohols = True, with_coa = True, iso = False):
-        
+
         self.with_alcohols = with_alcohols
         self.with_coa = with_coa
         self.iso = iso
@@ -307,7 +308,13 @@ class LipidNameProcessor(object):
             lyso =  hg and hg[:4] == 'Lyso'
             
             # how many aliphatic chains this molecule has
-            ccexp = 1 if hg in {'FA', 'MAG'} or lyso else 3 if hg == 'TAG' else 2
+            ccexp = (
+                    1
+                if hg in {'FA', 'MAG'} or lyso else
+                    3
+                if hg == 'TAG' else
+                    2
+            )
             
             if lyso and '0:0' in n:
                 # SwissLipids adds `0:0` to lyso glycerolipids

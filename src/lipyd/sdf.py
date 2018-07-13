@@ -82,7 +82,23 @@ class SdfReader(object):
     def read(self,
             index_only = True,
             one_record = False,
-            go_to = 0):
+            go_to = 0
+        ):
+        """
+        Performs all reading operations on the sdf file.
+        
+        This method is able to read the entire file, scan the file and build
+        an index of records, and retrieve one record.
+        
+        Args
+        ----
+        :param bool index_only:
+            Do not read the file but only build an index.
+        :param bool one_record:
+            Read only one record.
+        :param int go_to:
+            Go to this byte offset in the file and start reading there.
+        """
         
         self.fp.seek(-1, 2)
         eof = self.fp.tell()
@@ -100,8 +116,6 @@ class SdfReader(object):
         annotkey = None
         
         for l in self.fp:
-            
-            #print(l)
             
             llen = len(l)
             l = l.decode('utf-8')
@@ -268,6 +282,19 @@ class SdfReader(object):
         self.index_info()
     
     def get_record(self, name, typ):
+        """
+        Retrieves all records matching `name`.
+        
+        Returns list of records or empty list if none found.
+        Each record is a dict of processed values from the sdf file.
+        
+        Args
+        ----
+        :param str name:
+            Molecule name or identifier.
+        :param str typ:
+            Type of name or identifier. This 
+        """
         
         result = []
         
@@ -349,7 +376,8 @@ class SdfReader(object):
         
         return pybel.readstring('mol', self.get_mol(record))
     
-    def get_mol(self, record):
+    @staticmethod
+    def get_mol(record):
         """
         Returns structure as a string in mol format.
         """
@@ -398,6 +426,9 @@ class SdfReader(object):
             return rr
     
     def index_info(self):
+        """
+        Prints number of records indexed and name of the source file.
+        """
         
         if not self.silent:
             
