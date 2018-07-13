@@ -22,12 +22,18 @@ import lipyd.moldb
 
 class TestMoldb(object):
     
-    def test_lipidmaps(self):
-        
-        lm = lipyd.moldb.LipidMaps()
+    lm = lipyd.moldb.LipidMaps()
+    
+    def test_lipidmaps_record(self):
         
         gibberellin = list(
-            lm.get_record('LMPR0104170034', typ = 'mainkey')
+            self.lm.get_record('LMPR0104170034', typ = 'mainkey')
         )[0]
         
-        assert gibberellin['annot']['COMMON_NAME'] == 'gibberellin A17'
+        assert gibberellin['name']['COMMON_NAME'] == 'gibberellin A17'
+    
+    def test_lipidmaps_obmol(self):
+        
+        tag = list(self.lm.get_obmol('TAG(15:0_20:4_20:5)', 'synonym'))[0]
+        
+        assert abs(tag.exactmass - 886.7050407280012) < 0.000001

@@ -33,8 +33,9 @@ hgsyn = {
 
 class SdfReader(object):
     
-    annots = {
+    names_default = {
         'PUBCHEM_CID': 'pubchem',
+        'CHEBI_ID': 'chebi',
         'SYNONYMS': 'synonym',
         'INCHI': 'inchi',
         'INCHIKEY': 'inchikey',
@@ -42,10 +43,36 @@ class SdfReader(object):
         'SYSTEMATIC_NAME': 'sysname'
     }
     
-    def __init__(self, fp, annots = {}, silent = False):
+    annots_default = {'EXACT_MASS', 'FORMULA'}
+    
+    def __init__(self, fp, names = None, annots = None, silent = False):
         """
-        :param file fp: An open file pointer to the SDF file.
+        Processes and serves data from an sdf file.
+        
+        Builds an index of the file and retrieve the records on demand.
+        Note, sdf is not a well defined or well kept standard, this reader
+        has been developed to process the LipidMaps database. Once there
+        is a need to use with other databases we are happy to adapt to
+        their formats.
+        
+        Args
+        ----
+        :param file fp:
+            An open file pointer to the SDF file.
+        :param dict names:
+            These are the names to build indexes for. Once indexing is done
+            it's possible to search and retrieve records by these IDs and
+            names. By deafult the names in `names_default` are used. Names
+            provided here are added to the defaults. Keys of the dict are
+            labels as used in the sdf, values of the dict are the attribute
+            names of the indexes.
+        :param set annots:
+            Additional annotations to be read. These are the data to be
+            retrieved with each record. Works the same way as `names`.
+        :param bool silent:
+            Print number of records at the end of indexing.
         """
+        
         self.fp = fp
         self.name = self.fp.name
         self.data = {}
@@ -53,11 +80,14 @@ class SdfReader(object):
         self.indexed = False
         self.silent = silent
         
-        self.annots.update(annots)
+        self.names = names or {}
+        self.names.update(self.names_default)
+        self.annots = annots or set()
+        self.annots.update(self.annots_default)
         
-        for annot in self.annots.values():
+        for name in self.names.values():
             
-            setattr(self, annot, {})
+            setattr(self, name, {})
         
         self._byte_mode()
         self.index()
@@ -106,14 +136,15 @@ class SdfReader(object):
         
         expect_new = True
         molpart = None
-        annotpart = False
-        annot_or_id = False
+        namepart = False
+        name_or_id = False
         _id = None
         mol = ''
         this_offset = None
         offset = 0
-        annot  = {}
-        annotkey = None
+        name  = {}
+        annot = {}
+        namekey = None
         
         for l in self.fp:
             
@@ -123,24 +154,29 @@ class SdfReader(object):
             
             if not molpart:
                 
-                if annot_or_id and len(sl) and sl[0] != '>' and sl[0] != '$':
+                if name_or_id and len(sl) and sl[0] != '>' and sl[0] != '$':
                     expect_new = True
                 
-                if annotkey and annotkey in self.annots:
-                    annot[annotkey] = sl
-                    annotkey = None
+                if namekey and namekey in self.names:
+                    name[namekey] = sl
+                    namekey = None
+                
+                if namekey and namekey in self.annots:
+                    annot[namekey] = sl
+                    namekey = None
                 
                 if sl[:3] == '> <':
-                    annot_or_id = False
-                    annotpart = True
-                    annotkey = sl[3:-1]
+                    name_or_id = False
+                    namepart = True
+                    namekey  = sl[3:-1]
                 
-                if annotpart and sl == '':
-                    annot_or_id = True
+                if namepart and sl == '':
+                    name_or_id = True
                 
                 if expect_new and len(l):
                     
                     _id = sl
+                    name = {}
                     annot = {}
                     this_offset = offset
                     expect_new = False
@@ -173,8 +209,8 @@ class SdfReader(object):
                 
                 if sl == 'M  END':
                     molpart = None
-                    annotpart = True
-                    annot_or_id = True
+                    namepart = True
+                    name_or_id = True
             
             if expect_new or self.fp.tell() == eof:
                 
@@ -185,36 +221,39 @@ class SdfReader(object):
                         'source': source,
                         'comment': comment,
                         'mol': mol,
+                        'name': name,
                         'annot': annot
                     }
                 
                 # this is indexing: we build dicts of names
                 self.mainkey[_id] = this_offset
                 
-                if 'COMMON_NAME' in annot:
+                if 'COMMON_NAME' in name:
                     
-                    m = refa2.match(annot['COMMON_NAME'])
+                    m = refa2.match(name['COMMON_NAME'])
                     
                     if m:
                         
-                        if 'SYNONYMS' not in annot:
+                        if 'SYNONYMS' not in name:
                             
-                            annot['SYNONYMS'] = 'FA(%s)' % m.groups()[0]
+                            name['SYNONYMS'] = 'FA(%s)' % m.groups()[0]
                             
                         else:
                             
-                            annot['SYNONYMS'] = '%s;FA(%s)' % (
-                                annot['SYNONYMS'],
+                            name['SYNONYMS'] = '%s;FA(%s)' % (
+                                name['SYNONYMS'],
                                 m.groups()[0]
                             )
                 
-                for k, v in self.annots.items():
+                for k, v in self.names.items():
                     
-                    if k in annot:
+                    if k in name:
                         
                         if k == 'SYNONYMS':
                             
-                            syns = set(syn.strip() for syn in annot[k].split(';'))
+                            syns = set(
+                                syn.strip() for syn in name[k].split(';')
+                            )
                             
                             syns2 = set([])
                             
@@ -228,7 +267,9 @@ class SdfReader(object):
                                     
                                     if m[0] in hgsyn:
                                         
-                                        syns2.add('%s%s' % (hgsyn[m[0]], m[1]))
+                                        syns2.add(
+                                            '%s%s' % (hgsyn[m[0]], m[1])
+                                        )
                             
                             syns.update(syns2)
                             syn2 = set([])
@@ -258,7 +299,7 @@ class SdfReader(object):
                             
                         else:
                             
-                            getattr(self, v)[annot[k]] = this_offset
+                            getattr(self, v)[name[k]] = this_offset
                 
                 if not index_only:
                     
@@ -267,6 +308,7 @@ class SdfReader(object):
                         'source': source,
                         'comment': comment,
                         'mol': mol,
+                        'name': name,
                         'annot': annot
                     }
             
@@ -293,7 +335,9 @@ class SdfReader(object):
         :param str name:
             Molecule name or identifier.
         :param str typ:
-            Type of name or identifier. This 
+            Type of name or identifier. These are the attribute names of the
+            index dicts which are taken from the values in the `names`
+            dict.
         """
         
         result = []
@@ -330,46 +374,66 @@ class SdfReader(object):
         return result
     
     def get_obmol(self, name, typ, use_mol = False):
+        """
+        Returns generator yielding `pybel.Molecule` instances for `name`.
         
-        rec = self.get_record(name, typ)
+        Args
+        ----
+        :param str name:
+            Molecule name or ID.
+        :param str typ:
+            Type of the name or identifier.
+        :param bool use_mol:
+            Process structures from mol format.
+            By default structures are processed from InChI.
+        """
         
-        for r in rec:
+        records = self.get_record(name, typ)
+        
+        for rec in records:
             
             if use_mol:
                 
-                mol = self.record_to_obmol_mol(r)
+                mol = self.record_to_obmol_mol(rec)
                 
             else:
                 
-                mol = self.record_to_obmol(r)
+                mol = self.record_to_obmol(rec)
             
             mol.db_id = rec['id']
             title = []
-            if 'COMMON_NAME' in rec['annot']:
-                title.append(rec['annot']['COMMON_NAME'])
-            if 'SYNONYMS' in rec['annot']:
-                title.extend(rec['annot']['SYNONYMS'].split(';'))
-            if 'SYSTEMATIC_NAME' in rec['annot']:
-                title.append(rec['annot']['SYSTEMATIC_NAME'])
-            mol.title = '|'.join(title)
+            if 'COMMON_NAME' in rec['name']:
+                title.append(rec['name']['COMMON_NAME'])
+            if 'SYNONYMS' in rec['name']:
+                title.extend(rec['name']['SYNONYMS'].split(';'))
+            if 'SYSTEMATIC_NAME' in rec['name']:
+                title.append(rec['name']['SYSTEMATIC_NAME'])
+            mol.title = '|'.join(n.strip() for n in title)
             mol.lipidmaps = rec['id']
-            if 'INCHI' in rec['annot']:
-                mol.inchi = rec['annot']['INCHI']
-            if 'PUBCHEM_CID' in rec['annot']:
-                mol.pubchem = rec['annot']['PUBCHEM_CID']
+            if 'INCHI' in rec['name']:
+                mol.inchi = rec['name']['INCHI']
+            if 'PUBCHEM_CID' in rec['name']:
+                mol.pubchem = rec['name']['PUBCHEM_CID']
+            if 'CHEBI_ID' in rec['name']:
+                mol.chebi = rec['name']['CHEBI_ID']
+            if 'COMMON_NAME' in rec['name']:
+                mol.name = rec['name']['COMMON_NAME']
             
             yield mol
     
     def record_to_obmol(self, record):
+        """
+        Processes a record to `pybel.Molecule` object.
+        """
         
-        if 'INCHI' in record['annot']:
+        if 'INCHI' in record['name']:
             
-            return pybel.readstring('inchi', record['annot']['INCHI'])
-        
+            return pybel.readstring('inchi', record['name']['INCHI'])
+            
         else:
             
             sys.stdout.write(
-                'No InChI for `%s`!\n' % record['annot']['COMMON_NAME']
+                'No InChI for `%s`!\n' % record['name']['COMMON_NAME']
             )
     
     def record_to_obmol_mol(self, record):
@@ -390,6 +454,9 @@ class SdfReader(object):
         )
     
     def write_mol(self, name, typ, outf = None, return_data = False):
+        """
+        Writes a record into file in mol format.
+        """
         
         outf = outf or '%s_%s_%s.mol'
         
@@ -407,8 +474,8 @@ class SdfReader(object):
             
             _outf = outf % (
                 name.replace('/', '.'),
-                r['annot']['COMMON_NAME'].replace('/', '.').replace(' ', '..')
-                    if 'COMMON_NAME' in r['annot']
+                r['name']['COMMON_NAME'].replace('/', '.').replace(' ', '..')
+                    if 'COMMON_NAME' in r['name']
                     else '',
                 r['id']
             )

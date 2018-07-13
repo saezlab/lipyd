@@ -581,10 +581,3 @@ class MoleculeDatabaseAggregator(object):
             result[ad] = self.lookup_accuracy(exmz)
         
         return result
-
-
-class TestMoldb(object):
-    
-    def __init__(self):
-        
-        pass
