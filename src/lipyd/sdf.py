@@ -497,6 +497,10 @@ class SdfReader(object):
             return rr
     
     def __iter__(self):
+        
+        return self.iter_records()
+    
+    def iter_records(self):
         """
         Iterates over all records in the sdf file.
         """

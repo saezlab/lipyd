@@ -20,6 +20,7 @@ from past.builtins import xrange, range, reduce
 
 from future.utils import iteritems
 
+import sys
 import imp
 import re
 import itertools
@@ -29,28 +30,56 @@ import lipyd.settings as settings
 
 class LipidNameProcessor(object):
     
-    def __init__(self, with_alcohols = True, with_coa = True, iso = False):
-
+    def __init__(
+            self,
+            database = 'swisslipids',
+            with_alcohols = True,
+            with_coa = True,
+            iso = False
+        ):
+        """
+        Processes lipid names used in databases. Converts names to the
+        standard used in this module and extracts carbon count and
+        unsaturation information and other features.
+        """
+        
+        self.database = database.lower()
         self.with_alcohols = with_alcohols
         self.with_coa = with_coa
         self.iso = iso
         self.lipnamesf = settings.get('lipnamesf')
         self.adducts_constraints = settings.get('adducts_constraints')
-        self.recount1 = re.compile(r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})\)')
-        self.recount2 = re.compile(r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})/'
-                                   r'([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
-                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
-        self.recount3 = re.compile(r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})[/_]?'
-                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})[/_]?'
-                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})[/_]?'
-                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)')
-        self.recount4 = re.compile(r'\(?([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
-                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
-                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
-                                   r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\(?([0-9EZ,]*)\)?((?:-2OH)?)\)?')
+        self.recount1 = re.compile(
+            r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})\)'
+        )
+        self.recount2 = re.compile(
+            r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})/'
+            r'([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
+            r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)'
+        )
+        self.recount3 = re.compile(
+            r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})[/_]?'
+            r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})[/_]?'
+            r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})[/_]?'
+            r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)'
+        )
+        self.recount4 = re.compile(
+            r'\(?'
+            r'((?:[0-9]+-)?[POdt]?)-?([0-9]{1,2}):([0-9]{1,2})'
+            r'\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
+            r'((?:[0-9]+-)?[POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})'
+            r'\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
+            r'((?:[0-9]+-)?[POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})'
+            r'\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
+            r'((?:[0-9]+-)?[POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})'
+            r'\(?([0-9EZ,]*)\)?((?:-2OH)?)\)?'
+        )
         self.reme     = re.compile(r'methyl|ethyl')
-        self.rebr2    = re.compile(r'(1(?:,2-di)?)-\(((?:[0-9]{0,2}[-]?methyl|ethyl)?)[A-z0-9-]+\)'
-                                   r'-([2,3]{1,3}(?:-di)?)-\(((?:[0-9]{0,2}[-]?methyl|ethyl)?)[A-z0-9-]+\)')
+        self.rebr2    = re.compile(
+            r'(1(?:,2-di)?)-\(((?:[0-9]{0,2}[-]?methyl|ethyl)?)[A-z0-9-]+\)'
+            r'-([2,3]{1,3}(?:-di)?)-'
+            r'\(((?:[0-9]{0,2}[-]?methyl|ethyl)?)[A-z0-9-]+\)'
+        )
         self.gen_fa_greek()
         self.read_lipid_names()
     
@@ -82,8 +111,16 @@ class LipidNameProcessor(object):
                     'full_name': l[1],
                     'swl': self.process_db_keywords(l[2]),
                     'lmp': self.process_db_keywords(l[3]),
-                    'pos_adduct': l[4] if l[4] != 'ND' and self.adducts_constraints else None,
-                    'neg_adduct': l[5] if l[5] != 'ND' and self.adducts_constraints else None
+                    'pos_adduct': (
+                            l[4]
+                        if l[4] != 'ND' and self.adducts_constraints else
+                            None
+                        ),
+                    'neg_adduct': (
+                            l[5]
+                        if l[5] != 'ND' and self.adducts_constraints else
+                            None
+                        )
                 }
         
         result['FA'] = {'full_name': 'Fatty acid', 'swl': [], 'lmp': [],
@@ -128,6 +165,18 @@ class LipidNameProcessor(object):
             )
     
     def carbon_counts(self, name, ccexp = 2):
+        """
+        Processes carbon and unsaturation counts from name.
+        
+        Args
+        ----
+        :param str name:
+            Lipid name.
+        :param int ccexp:
+            Expected number of fatty acyl or other residues constaining
+            aliphatic chain. E.g. for DAG this should be 2 and for TAG 3
+            as the latter has 3 fatty acyls.
+        """
         
         # regex finds the total carbon count
         cc1 = self.recount1.findall(name)
@@ -180,10 +229,10 @@ class LipidNameProcessor(object):
                     )
                     for i in xrange(0, 16, 5)
                     # keep only existing aliphatic chains
-                    if icc[0][i + 1]
+                    if icc[0][i + 1] and icc[0][i + 2]
                 ]
             
-            except:
+            except Exception as e:
                 
                 sys.stdout.write(''.join([
                     '\n\n\n',
@@ -196,13 +245,15 @@ class LipidNameProcessor(object):
         
         return icc
     
-    def headgroup_from_lipid_name(self, name, database = 'SwissLipids'):
+    def headgroup_from_lipid_name(self, name, database = None):
         """
         For one database record attempts to identify the lipid class
         by looking up keywords.
         Calls greek name identification, greek fatty acid names are
         identified as 'FA'.
         """
+        
+        database = database or self.database
         
         db = 'lmp' if database.lower() == 'lipidmaps' else 'swl'
         for shortname, spec in iteritems(self.lipnames):
@@ -273,12 +324,22 @@ class LipidNameProcessor(object):
         
         return bool(self.reme.search(name))
     
-    def process(self, name, database = 'swisslipids'):
+    def process(self, name, database = None):
         """
         The main method of this class. Processes a lipid name string
         and returns a standard name, prefix, carbon counts and
         unsaturations.
+        
+        Args
+        ----
+        :param str name:
+            One or more names to process. Single result will be returned
+            and names will be attempted to be processed one after the other
+            until processing is successful. Names in one string can be
+            separated by `|`.
         """
+        
+        database = database or self.database
         
         hg, cc1, cc2, icc = None, None, None, None
         

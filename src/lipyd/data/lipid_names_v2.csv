@@ -1,8 +1,8 @@
 Abbrev	Name	SwissLipids_keywords	LipidMaps_keywords	Positive_adduct	Negative_adduct
 PA	Phosphatidic acid	hosphatidate		[M+NH4]+	[M-H]-
-PC	Phosphatidylcholine	hosphatidylcholine;!yso	phosphocholine;!phing;!yso;!0:0	[M+H]+	[M+HCOO]-
+PC	Phosphatidylcholine	hosphatidylcholine;!yso	PC;!0:0|phosphocholine;!phing;!yso;!0:0	[M+H]+	[M+HCOO]-
 LysoPC	Lysophosphatidylcholine	ysophosphatidylcholine	lysophosphocholine;!phing|PC;0:0	[M+H]+	[M+HCOO]-
-PE	Phosphatidylethanolamine	hosphatidylethanolamine;!yso	phosphoethanolamine;!eramide;!yso;!0:0	[M+H]+	[M-H]-
+PE	Phosphatidylethanolamine	hosphatidylethanolamine;!yso	PE;!0:0|phosphoethanolamine;!eramide;!yso;!0:0	[M+H]+	[M-H]-
 LysoPE	Lysophosphatidylethanolamine	ysophosphatidylethanolamine	ysophosphoethanolamine;!eramide|PE;0:0	[M+H]+	[M-H]-
 PG	Phosphoglycerol	hosphatidylglycerol	PG;!PGF;!PGC;!PGA;!PGD;!PGE	[M+NH4]+	[M-H]-
 PS	Phosphatidylserine	hosphatidylserine	PS|phosphoserine	[M+H]+	[M-H]-

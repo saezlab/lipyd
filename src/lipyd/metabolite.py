@@ -179,7 +179,12 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         
         for subs, inst in self.subsproduct():
             
-            identity = [self.name, inst.getname()]
+            full_name = inst.getname()
+            # full_name twice, the second in place of
+            # database provided names
+            # 4th value is empty string in place of database ID
+            # 5th value is the source of the record (database name)
+            identity = [self.name, full_name, full_name, '', 'lipyd']
             
             for i, sub in enumerate(subs):
                 
@@ -194,7 +199,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             # TODO: do not assume here max 3 substituents with
             # variable aliphatic chain
             # as this is lipid specific
-            identity.extend([np.nan] * (11 - len(identity)))
+            identity.extend([np.nan] * (14 - len(identity)))
             
             yield inst.mass, tuple(identity)
     
