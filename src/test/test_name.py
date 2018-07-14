@@ -37,20 +37,49 @@ lmp_names = {
 
 class TestName(object):
     
-    def test_name(self):
-        
-        nameproc = lipyd.name.LipidNameProcessor()
+    nameproc = lipyd.name.LipidNameProcessor()
+    
+    def test_name_swisslipids(self):
         
         for name, result in swl_names.items():
             
             assert (
-                nameproc.process(name, database = 'swisslipids') ==
+                self.nameproc.process(name, database = 'swisslipids') ==
                 result
             )
+    
+    def test_name_lipidmaps(self):
         
         for name, result in lmp_names.items():
             
             assert (
-                nameproc.process(name, database = 'lipidmaps') ==
+                self.nameproc.process(name, database = 'lipidmaps') ==
                 result
             )
+    
+    def test_name_iso(self):
+        
+        self.nameproc.iso = True
+        self.nameproc.database = 'lipidmaps'
+        
+        assert (
+            self.nameproc.process(
+                'PE(16:0/18:1(9Z))-15-isoLG hydroxylactam'
+            ) ==
+            (
+                'PE',
+                ['', 34, 1],
+                [('', 16, 0), ('', 18, 1)],
+                [(('', 16, 0), '', False), (('', 18, 1), '9Z', False)]
+            )
+        )
+        
+        assert (
+            self.nameproc.process('FAHFA(16:0/10-O-18:0)') ==
+            (
+                'FA',
+                ['10-O', 34, 0],
+                [('', 16, 0), ('10-O', 18, 0)],
+                [(('', 16, 0), '', False), (('10-O', 18, 0), '', False)]
+            )
+        )
