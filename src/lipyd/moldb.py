@@ -28,6 +28,7 @@ import copy
 import struct
 import itertools
 import collections
+from argparse import Namespace
 
 import numpy as np
 import pandas as pd
@@ -240,7 +241,7 @@ class SwissLipids(Reader):
     
     def set_levels(self, levels):
         """
-        Sets levels considered. Levels in SwissLipids are `Species`,
+        Sets the levels to be processed. Levels in SwissLipids are `Species`,
         `Molecular subspecies`, `Structural subspecies` and
         `Isomeric subspecies`.
         
@@ -445,7 +446,11 @@ class SwissLipids(Reader):
             
             return None
         
-        mol = pybel.readstring('inchi', record[9])
+        return pybel.readstring('inchi', record[9])
+    
+    @staticmethod
+    def add_annotations(mol, record):
+        
         mol.db_id = record[0]
         mol.name  = record[3]
         mol.title = '|'.join(record[2:5])
@@ -461,7 +466,19 @@ class SwissLipids(Reader):
         
         return mol
     
-    def __iter__(self):
+    def itermol(self, obmol = False):
+        """
+        Iterates the database either by yielding `pybel.Molecule` objects
+        with extra attributes or dummy objects with the same attributes
+        containing the various IDs and structure representations
+        (see code of `add_annotation`) for details.
+        
+        Args
+        ----
+        :param bool obmol:
+            Yield `pybel.Molecule` objects. By default simple dummy objects
+            produced.
+        """
         
         nosmiles = 0
         
@@ -475,9 +492,46 @@ class SwissLipids(Reader):
                     nosmiles += 1
                     continue
                 
-                mol = self.to_obmol(line)
+                if obmol:
+                    
+                    mol = self.to_obmol(line)
+                    
+                else:
+                    
+                    mol = Namespace()
+                
+                mol = self.add_annotations(mol, line)
                 
                 yield mol
+    
+    def __iter__(self):
+        
+        for mol in self.itermol(obmol = False):
+            
+            stdname = self.nameproc.process(mol.title)
+            name_main = stdname[0] if stdname[0] else mol.name
+            name_full = '%s%s' % (
+                name_main,
+                '(%s%u:%u)' % tuple(stdname[1]) if stdname[1] else ''
+            )
+            
+            line = [
+                name_main, # name stem (lipid class)
+                name_full, # name with prefix, and sum cc and unsat
+                mol.title, # all names
+                mol.db_id, # database ID
+                'SwissLipids' # database name
+            ]
+            
+            for i in xrange(3):
+                
+                line.extend(
+                        stdname[2][i]
+                    if len(stdname[2]) > i else
+                        (np.nan, np.nan, np.nan)
+                )
+            
+            yield mol.swl_exact_mass or np.nan, line
     
     def __del__(self):
         
