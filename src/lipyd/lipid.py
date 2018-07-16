@@ -195,12 +195,12 @@ class AbstractGlycerolipid(AbstractGlycerol):
             self,
             sn1  = (
                 'H'
-                    if sn1_cls is None else
+                    if self.sn1_cls is None else
                 self.sn1_cls(**self.sn1_fa_args)
             ),
             sn2  = (
                 'H'
-                    if sn2_cls is None else
+                    if self.sn2_cls is None else
                 self.sn2_cls(**self.sn2_fa_args)
             ),
             sn3  = (
@@ -239,7 +239,7 @@ class GlycerolipidFactory(object):
             fa2_args = None,
             double_ester = True,
             ether_ester = True,
-            lyso = True,
+            lyso_ester = True,
             lyso_ether = True,
             **kwargs
         ):
@@ -251,78 +251,73 @@ class GlycerolipidFactory(object):
         fa2_args = fa2_args or {'c': (4, 24), 'u': (0, 9)}
         
         l_classes = [
-            ('C2H4NH2', 'PE'),
-            ('C2H4NC3H9', 'PC'),
-            ('C2H4NH2COOH', 'PS'),
-            ('C3O2H5', 'PG'),
-            ('H', 'PA'),
-            ('C3O2H5PO3', 'PGP'),
-            ('C6O5H11', 'PI'),
-            ('C6O5H11PO3', 'PIP'),
-            ('C6O5H11P3O6', 'PIP2'),
-            ('C6O5H11P3O9', 'PIP3')
+            ('C2H4NH2', 'PE', True),
+            ('C2H4NC3H9', 'PC', True),
+            ('C2H4NH2COOH', 'PS', True),
+            ('C3O2H5', 'PG', True),
+            ('H', 'PA', True),
+            ('C3O2H5PO3', 'PGP', True),
+            ('C6O5H11', 'PI', True),
+            ('C6O5H11PO3', 'PIP', True),
+            ('C6O5H11P3O6', 'PIP2', True),
+            ('C6O5H11P3O9', 'PIP3', True)
         ]
         l_ether = [False, True]
         l_lyso  = [False, True]
         
         docs = {
-            'Phosphatidylethanolamine':
+            'PE':
                 """
                 Example:
-                    http://www.swisslipids.org/#/entity/SLM:000398516/
+                    http://www.swisslipids.org/#/entity/SLM:000096355/
                     
                     [(m.name, m.mass) for m in
-                        lipid.CeramideDPhosphoethanolamine(
-                            sph_args = {'c': (16, 16), 'u': (0, 0)},
-                            fa_args = {'c': (30, 30), 'u': (6, 6)}
+                        lipid.PE(
+                            fa_args = {'c': 26, 'u': 0},
+                            sn2_fa_args = {'c': 22, 'u': 6}
                         )
                     ]
                     
-                    exact mass = 818.63017553472
+                    exact mass = 903.6717059967399
                 """
         }
         
         mod = sys.modules[__name__]
         
-        for (o, name), ether, lyso in itertools.product(
+        for (hg, name, phospho), ether, lyso in itertools.product(
                 l_classes, l_ether, l_lyso
             ):
             
-            if (t and dihydro):
-                
+            if not lyso and not ether and not double_ester:
+                continue
+            if ether and not lyso and not ether_ester:
+                continue
+            if lyso and ether and not lyso_ether:
+                continue
+            if lyso and not ether and not lyso_ester:
                 continue
             
-            parent, child = self.class_name(name, t, dihydro, fa_hydroxy, o)
+            child = self.class_name(name, lyso, ether)
             
             exec(
                 (
-                    'def __init__(self, %s**kwargs):\n'
-                    '    \n%s'
-                    '    %s.__init__(\n'
+                    'def __init__(self, **kwargs):\n'
+                    '    \n'
+                    '    AbstractGlycerolipid.__init__(\n'
                     '        self,\n'
-                    '        o = %s,\n'
+                    '        headgroup = \'%s\',\n'
                     '        name = \'%s\',\n'
+                    '        phospho = %s,\n'
+                    '        lyso = %s,\n'
+                    '        ether = %s,\n'
                     '        **kwargs\n'
                     '        )\n'
                 ) % (
-                    # `fa_args_1o` is an argument for
-                    # 1-O-acyl ceramides
-                    (
-                        '\nfa_args_1o = %s,\n' % fa_args_1o.__str__()
-                    )
-                    if o is None
-                    else '',
-                    # the 1O substituent is a fatty acyl
-                    # if o is None
-                    (
-                        '\n    fa1o = substituent.FattyAcyl('
-                        '**fa_args_1o)\n'
-                    )
-                    if o is None
-                    else '',
-                    parent,
-                    'fa1o' if o is None else '\'%s\'' % o,
-                    name
+                    hg,
+                    name,
+                    str(phospho),
+                    str(lyso),
+                    str(ether)
                 ),
                 mod.__dict__,
                 mod.__dict__
@@ -334,50 +329,29 @@ class GlycerolipidFactory(object):
             
             cls = type(
                 child,
-                (getattr(mod, parent), ),
+                (AbstractGlycerolipid, ),
                 {'__init__': mod.__dict__['__init__']}
             )
             
             setattr(mod, child, cls)
             
-            sphingolipids.append(child)
+            if phospho:
+                
+                glycerophospholipids.append(child)
+                
+            else:
+                
+                glycerolipids.append(child)
         
         delattr(mod, '__init__')
     
-    def class_name(self, name, t, dihydro, hydroxyacyl, o):
+    def class_name(self, name, lyso, ether):
         
-        dt = 'T' if t else 'D' if not dihydro else ''
-        
-        maintype = '%s%s' % (
-            'Ceramide' if 'Cer' in name else 'Sphingomyelin',
-            dt
+        return '%s%s%s' % (
+            'Lyso' if lyso else '',
+            'Ether' if ether else '',
+            name
         )
-        
-        parmaintype = 'Ceramide%s' % dt
-        
-        subtype = '%s%s' % (
-            'Hydroxyacyl' if hydroxyacyl else '',
-            'Dihydro' if dihydro else ''
-        )
-        
-        parent = '%s%s' % (subtype, parmaintype)
-        
-        child = '%s%s%s%s%s' % (
-                subtype,
-                'Sulfo' if 'SHex' in name else '',
-                'DiHexosyl'
-                    if 'Hex2' in name
-                    else 'Hexosyl' if 'Hex' in name
-                    else '',
-                maintype,
-                'Phosphoethanolamine'
-                    if 'CerPE' in name
-                    else 'Phosphate' if 'CerP' in name
-                    else '1OAcyl' if o is None
-                    else ''
-            )
-        
-        return parent, child
 
 #
 # Shpingolipids
@@ -1051,4 +1025,8 @@ class CeramideFactory(object):
 
 # creating further Ceramide derived classes:
 _factory = CeramideFactory()
+del _factory
+
+# creating further Glycerolipid derived classes:
+_factory = GlycerolipidFactory()
 del _factory
