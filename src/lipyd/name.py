@@ -164,6 +164,11 @@ class LipidNameProcessor(object):
                 )
             )
     
+    @staticmethod
+    def prefix_proc(prfx):
+        
+        return 'O-' if prfx in {'O', 'P'} else prfx
+    
     def carbon_counts(self, name, ccexp = 2):
         """
         Processes carbon and unsaturation counts from name.
@@ -185,7 +190,7 @@ class LipidNameProcessor(object):
         
         # the total carbon count
         ccpart = (
-            [cc1[0][0], int(cc1[0][1]), int(cc1[0][2])]
+            [self.prefix_proc(cc1[0][0]), int(cc1[0][1]), int(cc1[0][2])]
             if len(cc1) else
             None
         )
@@ -199,7 +204,7 @@ class LipidNameProcessor(object):
                 if cc3[0][i * 3 + 1]:
                     
                     faccparts.append((
-                            cc3[0][i * 3],
+                            self.prefix_proc(cc3[0][i * 3]),
                             int(cc3[0][i * 3 + 1]),
                             int(cc3[0][i * 3 + 2])
                     ))
@@ -221,7 +226,11 @@ class LipidNameProcessor(object):
                 icc = [
                     (
                         # the usual prefix, carbon, unsat tuple:
-                        (icc[0][i], int(icc[0][i + 1]), int(icc[0][i + 2])),
+                        (
+                            self.prefix_proc(icc[0][i]),
+                            int(icc[0][i + 1]),
+                            int(icc[0][i + 2])
+                        ),
                         # and the isomeric conformation string:
                         icc[0][i + 3],
                         # and the hydroxyl group on C2:
@@ -418,6 +427,16 @@ class LipidNameProcessor(object):
                 cc1, cc2, icc = self.fa_greek_cc(name0)
                 
                 if cc1:
+                    break
+        
+        # if the sphingolipid headgroup does not contain the prefix:
+        if hg and cc1 and cc1[0]:
+            
+            for prfx in ('d', 't', 'DH'):
+                
+                if cc1[0] == prfx and not hg.startswith(prfx):
+                    
+                    hg = '%s%s' % (prfx, hg)
                     break
         
         return hg, cc1, cc2, icc
