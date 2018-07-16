@@ -166,9 +166,19 @@ class LipidMaps(sdf.SdfReader):
         
         for rec in sdf.SdfReader.__iter__(self):
             
-            if 'EXACT_MASS' not in rec['annot']:
-                # if no exact mass it means this is a higher level category
-                continue
+            if (
+                'EXACT_MASS' not in rec['annot'] or
+                float(rec['annot']['EXACT_MASS']) == 0
+            ):
+                
+                try:
+                    exmass = formula.Formula(rec['annot']['FORMULA']).mass
+                except KeyError:
+                    # if no exact mass it means
+                    # this is a higher level category
+                    continue
+            else:
+                exmass = float(rec['annot']['EXACT_MASS'])
             
             names = [
                 rec['name'][nametype]
@@ -207,7 +217,7 @@ class LipidMaps(sdf.SdfReader):
                         (np.nan, np.nan, np.nan)
                 )
             
-            yield float(rec['annot']['EXACT_MASS']), line
+            yield exmass, line
 
 
 class SwissLipids(Reader):
