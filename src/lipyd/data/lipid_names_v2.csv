@@ -3,7 +3,7 @@ PA	Phosphatidic acid	hosphatidate		[M+NH4]+	[M-H]-
 LysoPC	Lysophosphatidylcholine	ysophosphatidylcholine	lysophosphocholine;!phing;!manno|PC;/0:0;!MI	[M+H]+	[M+HCOO]-
 PC	Phosphatidylcholine	hosphatidylcholine;!yso	PC;!0:0|phosphocholine;!phing;!yso;!/0:0;!gluc;!manno	[M+H]+	[M+HCOO]-
 LysoPE	Lysophosphatidylethanolamine	ysophosphatidylethanolamine	ysophosphoethanolamine;!eramide|PE;/0:0	[M+H]+	[M-H]-
-PE	Phosphatidylethanolamine	hosphatidylethanolamine;!yso	PE;!/0:0;!Cer;!NA|phosphoethanolamine;!eramide;!yso;!/0:0;!N-;!yrro;!lact;!cald	[M+H]+	[M-H]-
+PE	Phosphatidylethanolamine	hosphatidylethanolamine;!yso	PE;!/0:0;!Cer;!NA;!isoLG|phosphoethanolamine;!eramide;!yso;!/0:0;!N-;!yrro;!lact;!cald	[M+H]+	[M-H]-
 NAPE	N-acyl-phosphatidylethanolamine		NAPE|phosphoethanolamine;N-	ND	ND
 CerPE	Ceramide-phosphoethanolamine		PE-Cer	ND	ND
 PG	Phosphoglycerol	hosphatidylglycerol	PG;!PGF;!PGC;!PGA;!PGD;!PGE	[M+NH4]+	[M-H]-
@@ -27,6 +27,7 @@ DAG	Diacylglycerol	Diacylglycerol	DG	[M+NH4]+	ND
 HexdCer	Hexosyl ceramide	Hexosyl ceramide;!ulfo;(d;!(t	GlcCer;(d;!(t|GalCer;(d;!(t	ND	ND
 HextCer	Hexosyl ceramide	Hexosyl ceramide;!ulfo;(t;!(d	GlcCer;(t;!(d|GalCer;(t;!(d	ND	ND
 SHexCer	Sulfohexosyl ceramide	Sulfohexosyl ceramide		ND	ND
+Hex2Cer	Dihexosyl ceramide		LacCer|Lactosylceramide	ND	ND
 KetoSph	Ketosphingosine		eto;phingos	ND	ND
 Sph	Shingosine		phinganine;!manno;!inos|phingenine;!manno;!inos|phingosine;!manno;!inos|afingol;!manno;!inos	ND	ND
 PGP	Phosphatidylglycerophosphate	Phosphatidylglycerophosphate		ND	ND

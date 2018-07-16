@@ -66,13 +66,13 @@ class LipidNameProcessor(object):
         self.recount4 = re.compile(
             r'\(?'
             r'((?:[0-9]+-)?[POdt]?)-?([0-9]{1,2}):([0-9]{1,2})'
-            r'\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
+            r'\(?([0-9EZ,]*)\)?((?:[-\(]2OH\)?)?)[/_]?'
             r'((?:[0-9]+-)?[POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})'
-            r'\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
+            r'\(?([0-9EZ,]*)\)?((?:[-\(]2OH\)?)?)[/_]?'
             r'((?:[0-9]+-)?[POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})'
-            r'\(?([0-9EZ,]*)\)?((?:-2OH)?)[/_]?'
+            r'\(?([0-9EZ,]*)\)?((?:[-\(]2OH\)?)?)[/_]?'
             r'((?:[0-9]+-)?[POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})'
-            r'\(?([0-9EZ,]*)\)?((?:-2OH)?)\)?'
+            r'\(?([0-9EZ,]*)\)?((?:[-\(]2OH\)?)?)\)?'
         )
         self.reme     = re.compile(r'methyl|ethyl')
         self.rebr2    = re.compile(
@@ -428,6 +428,10 @@ class LipidNameProcessor(object):
                 
                 if cc1:
                     break
+        
+        if cc1 and cc1[0] == 'd' and cc1[2] == 0:
+            
+            cc1[0] = 'DH'
         
         # if the sphingolipid headgroup does not contain the prefix:
         if hg and cc1 and cc1[0]:
