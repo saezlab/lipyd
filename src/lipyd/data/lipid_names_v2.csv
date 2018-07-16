@@ -1,24 +1,24 @@
 Abbrev	Name	SwissLipids_keywords	LipidMaps_keywords	Positive_adduct	Negative_adduct
 PA	Phosphatidic acid	hosphatidate		[M+NH4]+	[M-H]-
-LysoPC	Lysophosphatidylcholine	ysophosphatidylcholine	lysophosphocholine;!phing;!manno|PC;0:0;!MI	[M+H]+	[M+HCOO]-
-PC	Phosphatidylcholine	hosphatidylcholine;!yso	PC;!0:0|phosphocholine;!phing;!yso;!0:0;!gluc;!manno	[M+H]+	[M+HCOO]-
-LysoPE	Lysophosphatidylethanolamine	ysophosphatidylethanolamine	ysophosphoethanolamine;!eramide|PE;0:0	[M+H]+	[M-H]-
-PE	Phosphatidylethanolamine	hosphatidylethanolamine;!yso	PE;!0:0;!Cer;!NA|phosphoethanolamine;!eramide;!yso;!0:0;!N-	[M+H]+	[M-H]-
+LysoPC	Lysophosphatidylcholine	ysophosphatidylcholine	lysophosphocholine;!phing;!manno|PC;/0:0;!MI	[M+H]+	[M+HCOO]-
+PC	Phosphatidylcholine	hosphatidylcholine;!yso	PC;!0:0|phosphocholine;!phing;!yso;!/0:0;!gluc;!manno	[M+H]+	[M+HCOO]-
+LysoPE	Lysophosphatidylethanolamine	ysophosphatidylethanolamine	ysophosphoethanolamine;!eramide|PE;/0:0	[M+H]+	[M-H]-
+PE	Phosphatidylethanolamine	hosphatidylethanolamine;!yso	PE;!/0:0;!Cer;!NA|phosphoethanolamine;!eramide;!yso;!/0:0;!N-;!yrro;!lact;!cald	[M+H]+	[M-H]-
 NAPE	N-acyl-phosphatidylethanolamine		NAPE|phosphoethanolamine;N-	ND	ND
 CerPE	Ceramide-phosphoethanolamine		PE-Cer	ND	ND
 PG	Phosphoglycerol	hosphatidylglycerol	PG;!PGF;!PGC;!PGA;!PGD;!PGE	[M+NH4]+	[M-H]-
-LysoPS	Lysophosphatidylserine	ysophosphatidylserine	LPS|phosphoserine;0:0	ND	ND
-PS	Phosphatidylserine	hosphatidylserine	PS;!LPS;!NAc|phosphoserine;!yso;!0:0;!NAc;!N-	[M+H]+	[M-H]-
+LysoPS	Lysophosphatidylserine	ysophosphatidylserine	LPS|phosphoserine;/0:0	ND	ND
+PS	Phosphatidylserine	hosphatidylserine	PS;!LPS;!NAc|phosphoserine;!yso;!/0:0;!NAc;!N-	[M+H]+	[M-H]-
 NAPS	N-acyl-phosphatidylserine		PS-NAc	ND	ND
-Sph1P	Sphingosine-1-phosphate		phingosine-1-phosphate	ND	[M-H]-
+SphP	Sphingosine-1-phosphate		phingosine-1-phosphate	ND	[M-H]-
 SM	Shingomyelin	phingomyelin	phingomyelin	[M+H]+	[M+HCOO]-
 DHCer	Dihydro ceramide		ihydro;eramide;!Lac;!Gal;!Glc|Cer;:0/;!actosyl;!lucosyl	ND	ND
 dCer	Ceramide	eramide;!phosphate;!exo	Cer(d;!phosphate;!Glc;!Lac;!Gal;!ulfo;!1-O	[M+H]+	[M+HCOO]-
 tCer	Ceramide	eramide;!phosphate;!exo	Cer(t;!phosphate;!Glc;!Lac;!Gal;!ulfo;!1-O	[M+H]+	[M+HCOO]-
 CerP	Ceramide-1-phosphate	eramide;phosphate	Cer;1-phosphate	ND	[M-H]-
 TAG	Triacylglycerol	Triacylglycerol	TG	[M+NH4]+	ND
-LysoPI	Lysophosphatidylinositol		PI;0:0;!PIP;!Manp;!PIM	ND	ND
-PI	Phosphatidylinositol	hosphatidylinositol	PI;!0:0;!PIP;!Manp;!PIM	ND	ND
+LysoPI	Lysophosphatidylinositol		PI;/0:0;!PIP;!Manp;!PIM	ND	ND
+PI	Phosphatidylinositol	hosphatidylinositol	PI;!/0:0;!PIP;!Manp;!PIM	ND	ND
 BMP	lysobisphosphatidic acid, (LBPA) also termed bis(monoacylglyceryl)phosphate (	Bismonoacylglycerolphosphate	2-acyl;glycero;phosphate	ND	ND
 VE	Vitamin E=tocopherol		toco	ND	ND
 VA	Vitamin A=retinol, retinoic acid		retin;!hlo	ND	ND
@@ -28,7 +28,7 @@ HexdCer	Hexosyl ceramide	Hexosyl ceramide;!ulfo;(d;!(t	GlcCer;(d;!(t|GalCer;(d;!
 HextCer	Hexosyl ceramide	Hexosyl ceramide;!ulfo;(t;!(d	GlcCer;(t;!(d|GalCer;(t;!(d	ND	ND
 SHexCer	Sulfohexosyl ceramide	Sulfohexosyl ceramide		ND	ND
 KetoSph	Ketosphingosine		eto;phingos	ND	ND
-Sph	Shingosine		phinganine|phingenine|phingosine|afingol	ND	ND
+Sph	Shingosine		phinganine;!manno;!inos|phingenine;!manno;!inos|phingosine;!manno;!inos|afingol;!manno;!inos	ND	ND
 PGP	Phosphatidylglycerophosphate	Phosphatidylglycerophosphate		ND	ND
 MAG	Monoacylglycerol	onoacylglyc;!Bis;!alk;!cholin;!inosit;!ethanolam		ND	ND
 P40	Nonidet-P-40	Nonidet		[M+NH4]+	ND
