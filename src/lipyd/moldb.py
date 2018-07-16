@@ -47,6 +47,7 @@ import lipyd.sdf as sdf
 import lipyd.lipid as lipid
 import lipyd.lookup as lookup
 import lipyd.name as lipidname
+import lipyd.formula as formula
 
 
 class Reader(object):
@@ -212,7 +213,8 @@ class LipidMaps(sdf.SdfReader):
 class SwissLipids(Reader):
     
     def __init__(self, levels = set(['Species']), silent = False,
-                 nameproc_args = None, branched = False):
+                 nameproc_args = None, branched = False,
+                 exact_mass_formula_fallback = True):
         """
         Downloads and serves the SwissLipids database.
         
@@ -230,6 +232,11 @@ class SwissLipids(Reader):
             Include lipids with branched alkyl chain (iso).
         :param dict nameproc_args:
             Arguments passed to the name processor.
+        :param bool exact_mass_formula_fallback:
+            If exact mass not available form SwissLipids calculate it from
+            the formula. This is dangerous because the formula is sometimes
+            dehydrogenated and charged state while exact mass should be
+            uncharged with all hydrogenes
         """
         
         self.silent = silent
@@ -459,6 +466,16 @@ class SwissLipids(Reader):
         mol.hmdb = record[26] if len(record) > 26 else ''
         mol.smiles = record[8]
         mol.swl_exact_mass = float(record[14]) if record[14] else None
+        if not mol.swl_exact_mass and self.exact_mass_formula_fallback:
+            
+            try:
+                # note: this is dangerous because the formula is sometimes
+                # dehydrogenated and charged state while exact mass
+                # should be uncharged with all hydrogenes
+                mol.swl_exact_mass = formula.Formula(record[11]).mass
+            except KeyError:
+                pass
+        
         mol.swl_formula = record[11]
         mol.inchi = record[9]
         mol.inchikey = record[10]
@@ -507,6 +524,9 @@ class SwissLipids(Reader):
     def __iter__(self):
         
         for mol in self.itermol(obmol = False):
+            
+            if not mol.swl_exact_mass:
+                continue
             
             stdname = self.nameproc.process(mol.title)
             name_main = stdname[0] if stdname[0] else mol.name
@@ -594,7 +614,6 @@ class MoleculeDatabaseAggregator(object):
             'SwissLipids': (SwissLipids, {}),
             'LipidMaps': (LipidMaps, {})
         }
-        self.dbs = {}
         self.tolerance = tolerance
         
         self.fa_args  = fa_args or {'c': (4, 36), 'u': (0, 10)}
@@ -608,9 +627,44 @@ class MoleculeDatabaseAggregator(object):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
-    def build(self):
+    def init_rebuild(self):
+        """
+        Creates an empty list where this object collects the masses and
+        molecule annotations. This needs to be done before (re)building the
+        database in order to start from an empty array.
+        """
         
         self._mass_data = []
+    
+    def build(self):
+        """
+        Executes the workflow of the entire database building process.
+        
+        First loads the third party databases (SwissLipids and LipidMaps),
+        then autogenerates glycerophospholipid, glycerolipid and sphingolipid
+        series. At the end all data merged into common `masses` and `data`
+        arrays and sorted by increasing mass. At this point the instance
+        is able to do lookups.
+        """
+        
+        self.init_rebuild()
+        self.load_databases()
+        self.auto_glycerophospholipids()
+        self.auto_glycerolipids()
+        self.auto_sphingolipids()
+        self.mass_data_arrays()
+        self.sort()
+    
+    def load_databases(self):
+        """
+        Loads all databases and generates main array.
+        """
+        
+        for cls, resargs in self.resources.values():
+            
+            resource = cls(**resargs)
+            
+            self._mass_data.extend(resource)
     
     def mass_data_arrays(self):
         
@@ -634,7 +688,8 @@ class MoleculeDatabaseAggregator(object):
             fa_args = None,
             sph_args = None,
             sum_only = True,
-            classes = None
+            classes = None,
+            **kwargs
         ):
         
         fa_args  = fa_args  or self.fa_args
@@ -645,7 +700,7 @@ class MoleculeDatabaseAggregator(object):
         
         for clsname in classes:
             
-            sys.stdout.write('\t:: Generating `%s`\n' % name)
+            sys.stdout.write('\t:: Generating `%s`\n' % clsname)
             
             cls = getattr(lipid, clsname)
             
@@ -653,7 +708,8 @@ class MoleculeDatabaseAggregator(object):
                 cls,
                 fa_args = fa_args,
                 sph_args = sph_args,
-                sum_only = sum_only
+                sum_only = sum_only,
+                **kwargs
             )
     
     def add_metabolite_series(
@@ -661,57 +717,88 @@ class MoleculeDatabaseAggregator(object):
             cls,
             fa_args = None,
             sph_args = None,
-            sum_only = True
+            sum_only = True,
+            **kwargs
         ):
         """
         Adds metabolites of a single class generated along a defined
         range of homolog series.
         """
         
-        cls = getattr(lipid, clsname) if hasattr(lipid, cls) else cls
+        if not hasattr(cls, '__call__'):
+            
+            if hasattr(cls, 'lower') and hasattr(lipid, cls):
+                
+                cls = getattr(lipid, cls)
+                
+            else:
+                
+                raise ValueError(
+                    'Don\'t know how to '
+                    'generate lipids from this: %s' % str(cls)
+                )
+        
+        fa_args  = fa_args or self.fa_args
+        sph_args = sph_args or self.sph_args
         
         gen = cls(
             fa_args  = copy.copy(fa_args),
             sph_args = copy.copy(sph_args),
-            sum_only = sum_only
+            sum_only = sum_only,
+            **kwargs
         )
         
         self._mass_data.extend(gen.iterlines())
     
-    def auto_sphingolipids(
-            self,
-            fa_args = None,
-            sph_args = None,
-            sum_only = True
-        ):
+    def auto_sphingolipids(self, **kwargs):
         """
-        Autogenerates 
+        Autogenerates all sphingolipids from classes listed in
+        `lipid.sphingolipids`.
+        
+        Args
+        ----
+        :param **kwargs:
+            Arguments for sphingolipid classes (`fa_args`, `sph_args`, etc).
         """
         
-        self.auto_metabolites(
-            fa_args = fa_args,
-            sph_args = sph_args,
-            sum_only = sum_only,
-            classes = lipid.sphingolipids
-        )
+        self.auto_metabolites(classes = lipid.sphingolipids, **kwargs)
+    
+    def auto_glycerolipids(self, **kwargs):
+        """
+        Autogenerates all glycerolipids from classes listed in
+        `lipid.glycerolipids`.
+        
+        Args
+        ----
+        :param **kwargs:
+            Arguments for glycerolipid classes
+            (`fa_args`, `sn2_fa_args`, etc).
+        """
+        
+        self.auto_metabolites(classes = lipid.glycerolipids, **kwargs)
+    
+    def auto_glycerophospholipids(self, **kwargs):
+        """
+        Autogenerates all glycerophospholipids from classes listed in
+        `lipid.glycerophospholipids`.
+        
+        Args
+        ----
+        :param **kwargs:
+            Arguments for glycerophospholipid classes
+            (`fa_args`, `sn2_fa_args`, etc).
+        """
+        
+        self.auto_metabolites(classes = lipid.glycerophospholipids, **kwargs)
     
     def sort(self):
+        """
+        Sorts the `masses` and `data` arrays by increasing mass in order to
+        make fast lookups possible.
+        """
         
         self.data = self.data[self.masses.argsort(),:]
         self.masses.sort()
-    
-    def load(self):
-        """
-        Loads all databases and generates main array.
-        """
-        
-        for name, (cls, resargs) in self.resources.items():
-            
-            res = cls(**resargs)
-            
-            self.dbs[name] = np.array(
-                list(res.iterlines())
-            )
     
     def ilookup(self, m):
         
