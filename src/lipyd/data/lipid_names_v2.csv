@@ -8,7 +8,6 @@ PG	Phosphoglycerol	hosphatidylglycerol	PG;!PGF;!PGC;!PGA;!PGD;!PGE	[M+NH4]+	[M-H
 PS	Phosphatidylserine	hosphatidylserine	PS|phosphoserine	[M+H]+	[M-H]-
 Sph1P	Sphingosine-1-phosphate		phingosine-1-phosphate	ND	[M-H]-
 SM	Shingomyelin	phingomyelin	phingomyelin	[M+H]+	[M+HCOO]-
-Sph	Sphingosine		phingosine|	[M+H]+	ND
 DHCer	Dihydro ceramide		ihydro;eramide|Cer;:0/	ND	ND
 dCer	Ceramide	eramide;!phosphate;!exo	Cer(d;!phosphate;!Glc;!Lac;!Gal;!ulfo	[M+H]+	[M+HCOO]-
 tCer	Ceramide	eramide;!phosphate;!exo	Cer(t;!phosphate;!Glc;!Lac;!Gal;!ulfo	[M+H]+	[M+HCOO]-
@@ -17,12 +16,14 @@ TAG	Triacylglycerol	Triacylglycerol	TG	[M+NH4]+	ND
 PI	Phosphatidylinositol	hosphatidylinositol	phospho;inositol	ND	ND
 BMP	lysobisphosphatidic acid, (LBPA) also termed bis(monoacylglyceryl)phosphate (	Bismonoacylglycerolphosphate	2-acyl;glycero;phosphate	ND	ND
 VE	Vitamin E=tocopherol		toco	ND	ND
-VA	Vitamin A=retinol, retinoic acid		retin	ND	ND
+VA	Vitamin A=retinol, retinoic acid		retin;!hlo	ND	ND
 VD	Vitamin D		vitamin D	ND	ND
 DAG	Diacylglycerol	Diacylglycerol	DG	[M+NH4]+	ND
 HexCer	Hexosyl ceramide	Hexosyl ceramide;!ulfo;(d;!(t	GlcCer;(d;!(t|GalCer;(d;!(t	ND	ND
 HexCerOH	Hexosyl ceramide	Hexosyl ceramide;!ulfo;(t;!(d	GlcCer;(t;!(d|GalCer;(t;!(d	ND	ND
 SHexCer	Sulfohexosyl ceramide	Sulfohexosyl ceramide		ND	ND
+KetoSph	Ketosphingosine		eto;phingos	ND	ND
+Sph	Shingosine		phinganine|phingenine|phingosine|afingol	ND	ND
 PGP	Phosphatidylglycerophosphate	Phosphatidylglycerophosphate		ND	ND
 MAG	Monoacylglycerol	onoacylglyc;!Bis;!alk;!cholin;!inosit;!ethanolam		ND	ND
 P40	Nonidet-P-40	Nonidet		[M+NH4]+	ND

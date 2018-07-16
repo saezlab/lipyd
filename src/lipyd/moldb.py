@@ -855,3 +855,23 @@ class MoleculeDatabaseAggregator(object):
             result[ad] = self.lookup_accuracy(exmz)
         
         return result
+    
+    def export_db(self, fname = 'molecule_database.tsv'):
+        
+        hdr = [
+            'exact_mass', 'category', 'std_name', 'database_names',
+            'database_id', 'database', 'prefix', 'sum_cc', 'sum_unsat',
+            'fa1_cc', 'fa1_unsat', 'fa2_cc', 'fa2_unsat',
+            'fa3_cc', 'fa3_unsat'
+        ]
+        
+        with open(fname, 'w') as fp:
+            
+            _ = fp.write('%s\n' % '\t'.join(hdr))
+            
+            for mass, data in zip(self.masses, self.data):
+                
+                _ = fp.write('%.12f\t%s\n' % (
+                    mass,
+                    '\t'.join(str(f) for f in data)
+                ))
