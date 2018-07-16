@@ -157,6 +157,18 @@ fa_greek_parts = {
     }
 }
 
+count_prefix = {
+    1: 'mono',
+    2: 'di',
+    3: 'tri',
+    4: 'tetra',
+    5: 'penta',
+    6: 'hexa',
+    7: 'hepta',
+    8: 'octa',
+    9: 'nona'
+}
+
 fa_greek = {}
 for cc, uns, end in itertools.product(
     fa_greek_parts['cc'].items(),

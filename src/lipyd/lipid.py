@@ -19,10 +19,12 @@ from future.utils import iteritems
 
 import sys
 import itertools
+import collections
 
 import lipyd.metabolite as metabolite
 import lipyd.substituent as substituent
 import lipyd.formula as formula
+import lipyd.common as common
 
 # will be further populated
 sphingolipids = [
@@ -239,7 +241,7 @@ class AbstractGlycerolipid(AbstractGlycerol):
                 ('PO3H%s' % headgroup)
                     if phospho else
                 self.sn3_cls(**self.sn3_fa_args)
-                    if sn3_cls is not None else
+                    if self.sn3_cls is not None else
                 headgroup
             ),
             name = name,
@@ -293,7 +295,13 @@ class GlycerolipidFactory(object):
             ('C6O5H11', 'PI', True),
             ('C6O5H11PO3', 'PIP', True),
             ('C6O5H11P3O6', 'PIP2', True),
-            ('C6O5H11P3O9', 'PIP3', True)
+            ('C6O5H11P3O9', 'PIP3', True),
+            ((True,), 'MAG', False),
+            ((False,), 'MAG', False),
+            ((True, True), 'DAG', False),
+            ((False, True), 'DAG', False),
+            ((True, True, True), 'TAG', False),
+            ((False, True, True), 'TAG', False)
         ]
         l_ether = [False, True]
         l_lyso  = [False, True]
@@ -356,8 +364,23 @@ class GlycerolipidFactory(object):
                 continue
             if lyso and not ether and not lyso_ester:
                 continue
+            if not phospho and (ether or lyso):
+                continue
             
-            child = self.class_name(name, lyso, ether)
+            if not phospho:
+                
+                faa = hg
+                sn1_ether = not faa[0]
+                sn2_ether = not faa[1] if len(faa) > 1 else False
+                sn3_ether = not faa[2] if len(faa) > 2 else False
+                lyso = len(faa) == 1
+                sn3_fa = len(faa) == 3
+                hg = 'H'
+                child = self.gl_class_name(faa)
+                
+            else:
+                sn1_ether = sn2_ether = sn3_ether = sn3_fa = False
+                child = self.gpl_class_name(name, lyso, ether)
             
             exec(
                 (
@@ -370,14 +393,22 @@ class GlycerolipidFactory(object):
                     '        phospho = %s,\n'
                     '        lyso = %s,\n'
                     '        ether = %s,\n'
+                    '        sn1_ether = %s,\n'
+                    '        sn2_ether = %s,\n'
+                    '        sn3_ether = %s,\n'
+                    '        sn3_fa = %s,\n'
                     '        **kwargs\n'
                     '        )\n'
                 ) % (
                     hg,
-                    '%s%s' % ('Lyso' if lyso else '', name),
+                    '%s%s' % ('Lyso' if phospho and lyso else '', name),
                     str(phospho),
                     str(lyso),
-                    str(ether)
+                    str(ether),
+                    str(sn1_ether),
+                    str(sn2_ether),
+                    str(sn3_ether),
+                    str(sn3_fa)
                 ),
                 mod.__dict__,
                 mod.__dict__
@@ -405,12 +436,29 @@ class GlycerolipidFactory(object):
         
         delattr(mod, '__init__')
     
-    def class_name(self, name, lyso, ether):
+    @staticmethod
+    def gpl_class_name(name, lyso, ether):
         
         return '%s%s%s' % (
             'Lyso' if lyso else '',
             'Ether' if ether else '',
             name
+        )
+    
+    @staticmethod
+    def gl_class_name(faa):
+        
+        cnt = collections.Counter(faa)
+        
+        return (
+            '%s%sGlycerol' % (
+                '%salkyl' % common.count_prefix[cnt[False]].capitalize()
+                    if False in cnt else
+                '',
+                '%sacyl' % common.count_prefix[cnt[True]].capitalize()
+                    if True in cnt else
+                ''
+            )
         )
 
 #
