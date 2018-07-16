@@ -24,7 +24,7 @@ import lipyd.metabolite as metabolite
 import lipyd.substituent as substituent
 import lipyd.formula as formula
 
-
+# will be further populated
 sphingolipids = [
     'Sphingosine',
     'KetoSphingosine',
@@ -40,6 +40,10 @@ sphingolipids = [
     'HydroxyacylCeramideT',
     'HydroxyacylDihydroCeramide'
 ]
+
+# will be populated by the factory
+glycerolipids = []
+glycerophospholipids = []
 
 #
 # Glycerolipids
@@ -80,46 +84,78 @@ class AbstractGlycerol(metabolite.AbstractMetabolite):
 # Glycerophospholipids
 #
 
-class AbstractGPL(AbstractGlycerol):
+class AbstractGlycerolipid(AbstractGlycerol):
     
     def __init__(
             self,
             headgroup = 'H',
+            phospho = True,
             lyso = False,
             ether = False,
-            fa_args = {},
-            name = 'GPL',
-            typ  = 'GPL',
+            fa_args = None,
+            name = 'GL',
+            typ  = None,
+            sn3_fa = False,
             lyso_sn1_fa = True,
             sn2_fa_args = None,
+            sn3_fa_args = None,
             sn1_ether = False,
             sn2_ether = False,
+            sn3_ether = False,
             **kwargs
         ):
         """
-        Represents a generic glycerophospholipid.
+        Represents a generic glycerolipid.
         
-        :param str headgroup: Formula of the moiety attached to the phosphate.
-        :param bool lyso: Whether it is a lyso form or not.
-        :param bool ether: Whether it is an ether i.e. having fatty alcohol
+        Args
+        ----
+        :param str headgroup:
+            Formula of the moiety attached to the phosphate.
+        :param bool phospho:
+            Is this a glycerophospholipid? If `True` implicitely
+            adds `PO3H` to sn3 position hence only the remaining
+            part of the headgroup needs to be defined, e.g. choline.
+        :param bool lyso:
+            Whether it is a lyso form or not.
+        :param bool ether:
+            Whether it is an ether i.e. having fatty alcohol
             ether on one or both of the sn1 and sn2 positions.
-        :param dict fa_args: Arguments for the `substituent.FattyAcyl()`.
-        :param str name: Name stem of the lipid class.
-        :param str typ: Name of the lipid family, here should be GPL.
-        :param bool lyso_sn1_fa: In case of lyso form is the alkyl ester/ether
+        :param dict fa_args:
+            Arguments for the `substituent.FattyAcyl()`.
+        :param str name:
+            Name stem of the lipid class.
+        :param str typ:
+            Name of the lipid family, here should be GL or GPL,
+            which is set automatically depending on `phospho`.
+        :param bool sn3_fa:
+            Is there a 3rd fatty acyl or alkyl moiety at the sn3 position?
+        :param bool lyso_sn1_fa:
+            In case of lyso form is the alkyl ester/ether
             in sn1 position?
-        :param dict sn2_fa_args: If the sn2 fatty acyl or alcohol has
+        :param dict sn2_fa_args:
+            If the sn2 fatty acyl or alkyl has
             different parameters; if `None` it defaults to `fa_args`.
-        :param bool sn1_ether: If `ether` is `True`, is there ether in sn1
+        :param dict sn3_fa_args:
+            If the sn3 fatty acyl or alkyl has
+            different parameters; if `None` it defaults to `fa_args`.
+        :param bool sn1_ether:
+            If `ether` is `True`, is there ether in sn1
             position? If `ether` is `True` but both this and `sn2_ether`
             are `False`, sn1 ether position assumed.
-        :param bool sn2_ether: If `ether` is `True`, is there ether in sn2
+        :param bool sn2_ether:
+            If `ether` is `True`, is there ether in sn2
             position?
-        :param **kwargs: Passed to `AbstractGlycerol` and finally to
+        :param bool sn3_ether:
+            If `ether` is `True`, is there ether in sn3
+            position? For example to hace trialkyl-glycerol
+            set `sn1_ether`, `sn2_ether` and `sn3_ether` all
+            to `True`.
+        :param **kwargs:
+            Passed to `AbstractGlycerol` and finally to
             `metabolite.AbstractMetabolite`.
         """
         
-        def get_cls(lyso, fa, ether):
+        def get_cls(fa, ether):
             """
             Returns `substituent.FattyAcyl` or `substituent.FattyAlkoxy`
             class for sn1 and sn2 positions and or `None` if the hydroxyl
@@ -128,35 +164,61 @@ class AbstractGPL(AbstractGlycerol):
             
             return (
                 None
-                if lyso and not fa else
+                if self.lyso and not fa else
                 substituent.FattyAlkoxy
                 if ether else
                 substituent.FattyAcyl
             )
         
+        self.fa_args = fa_args or {}
         self.lyso = lyso
         self.ether = ether
+        # ether is default on sn1
         self.sn2_ether = sn2_ether
+        self.sn3_ether = sn3_ether
+        # both sn1 and sn2 can be ether if set explicitely
+        # otherwise sn1 is ether sn2 is ester
         self.sn1_ether = sn1_ether or (ether and not sn2_ether)
+        # in lyso forms the alkyl ester/ether is on the sn1 by default
         self.lyso_sn1_fa = lyso_sn1_fa
         
-        self.sn1_fa_args = fa_args
-        self.sn2_fa_args = sn2_fa_args or fa_args
-        self.sn1_cls = get_cls(lyso, lyso_sn1_fa, self.sn1_ether)
-        self.sn1_cls = get_cls(lyso, not lyso_sn1_fa, self.sn2_ether)
+        # by default all fatty acyls have the same parameters
+        # except if arguments given explicitely
+        self.sn1_fa_args = self.fa_args
+        self.sn2_fa_args = sn2_fa_args or self.fa_args
+        self.sn3_fa_args = sn3_fa_args or self.fa_args
+        self.sn1_cls = get_cls(lyso_sn1_fa, self.sn1_ether)
+        self.sn2_cls = get_cls(not lyso_sn1_fa, self.sn2_ether)
+        self.sn3_cls = None if not sn3_fa else get_cls(True, self.sn3_ether)
         
         AbstractGlycerol.__init__(
             self,
-            sn1  = 'H' if sn1_cls is None else sn1_cls(**sn1_fa_args),
-            sn2  = 'H' if sn2_cls is None else sn2_cls(**sn2_fa_args),
-            sn3  = 'PO3H%s' % headgroup,
+            sn1  = (
+                'H'
+                    if sn1_cls is None else
+                self.sn1_cls(**self.sn1_fa_args)
+            ),
+            sn2  = (
+                'H'
+                    if sn2_cls is None else
+                self.sn2_cls(**self.sn2_fa_args)
+            ),
+            sn3  = (
+                ('PO3H%s' % headgroup)
+                    if phospho else
+                self.sn3_cls(**self.sn3_fa_args)
+                    if sn3_cls is not None else
+                headgroup
+            ),
             name = name,
-            typ  = typ,
+            typ  = typ or ('GPL' if phospho else 'GL'),
             **kwargs
         )
 
 
-class Phosphatidylethanolamine(AbstractGPL):
+# just an exemple (or reference) how to create a specific
+# glycerolipid on top of the abstract one
+class Phosphatidylethanolamine(AbstractGlycerolipid):
     
     def __init__(self, **kwargs):
         
@@ -169,7 +231,7 @@ class Phosphatidylethanolamine(AbstractGPL):
         )
 
 
-class GPLFactory(object):
+class GlycerolipidFactory(object):
     
     def __init__(
             self,
@@ -181,6 +243,9 @@ class GPLFactory(object):
             lyso_ether = True,
             **kwargs
         ):
+        """
+        Populates glycerolipid classes.
+        """
         
         fa1_args = fa1_args or {'c': (4, 24), 'u': (0, 9)}
         fa2_args = fa2_args or {'c': (4, 24), 'u': (0, 9)}
@@ -197,10 +262,11 @@ class GPLFactory(object):
             ('C6O5H11P3O6', 'PIP2'),
             ('C6O5H11P3O9', 'PIP3')
         ]
-        l_dihydro = [True, False]
+        l_ether = [False, True]
+        l_lyso  = [False, True]
         
         docs = {
-            'CeramideDPhosphoethanolamine':
+            'Phosphatidylethanolamine':
                 """
                 Example:
                     http://www.swisslipids.org/#/entity/SLM:000398516/
@@ -218,8 +284,8 @@ class GPLFactory(object):
         
         mod = sys.modules[__name__]
         
-        for t, fa_hydroxy, dihydro, (o, name) in itertools.product(
-                l_t, l_fa_hydroxy, l_dihydro, l_classes
+        for (o, name), ether, lyso in itertools.product(
+                l_classes, l_ether, l_lyso
             ):
             
             if (t and dihydro):

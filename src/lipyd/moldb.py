@@ -608,11 +608,33 @@ class MoleculeDatabaseAggregator(object):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
+    def build(self):
+        
+        self._mass_data = []
+    
+    def mass_data_arrays(self):
+        
+        if hasattr(self, '_mass_data'):
+            
+            self.masses = np.array(
+                [i[0] for i in self._mass_data],
+                dtype = np.float
+            )
+            self.data = np.array(
+                [i[1] for i in self._mass_data],
+                dtype = np.object
+            )
+            
+            self.sort()
+        
+        delattr(self, '_mass_data')
+    
     def auto_metabolites(
             self,
             fa_args = None,
             sph_args = None,
-            sum_only = True
+            sum_only = True,
+            classes = None
         ):
         
         fa_args  = fa_args  or self.fa_args
@@ -621,26 +643,57 @@ class MoleculeDatabaseAggregator(object):
         masses = []
         data   = []
         
-        for name in lipid.sphingolipids:
+        for clsname in classes:
             
             sys.stdout.write('\t:: Generating `%s`\n' % name)
             
-            cls = getattr(lipid, name)
-            gen = cls(
-                fa_args  = copy.copy(fa_args),
-                sph_args = copy.copy(sph_args),
+            cls = getattr(lipid, clsname)
+            
+            self.add_metabolite_series(
+                cls,
+                fa_args = fa_args,
+                sph_args = sph_args,
                 sum_only = sum_only
             )
-            
-            for m, d in gen.iterlines():
-                
-                masses.append(m)
-                data.append(d)
+    
+    def add_metabolite_series(
+            self,
+            cls,
+            fa_args = None,
+            sph_args = None,
+            sum_only = True
+        ):
+        """
+        Adds metabolites of a single class generated along a defined
+        range of homolog series.
+        """
         
-        self.masses = np.array(masses, dtype = np.float)
-        self.data = np.array(data, dtype = np.object)
+        cls = getattr(lipid, clsname) if hasattr(lipid, cls) else cls
         
-        self.sort()
+        gen = cls(
+            fa_args  = copy.copy(fa_args),
+            sph_args = copy.copy(sph_args),
+            sum_only = sum_only
+        )
+        
+        self._mass_data.extend(gen.iterlines())
+    
+    def auto_sphingolipids(
+            self,
+            fa_args = None,
+            sph_args = None,
+            sum_only = True
+        ):
+        """
+        Autogenerates 
+        """
+        
+        self.auto_metabolites(
+            fa_args = fa_args,
+            sph_args = sph_args,
+            sum_only = sum_only,
+            classes = lipid.sphingolipids
+        )
     
     def sort(self):
         
