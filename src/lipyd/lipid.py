@@ -58,6 +58,7 @@ class AbstractGlycerol(metabolite.AbstractMetabolite):
             sn1 = 'H',
             sn2 = 'H',
             sn3 = 'H',
+            charge = None,
             pcharge = 0,
             ncharge = 0,
             name = 'Glycerol',
@@ -67,7 +68,11 @@ class AbstractGlycerol(metabolite.AbstractMetabolite):
         
         self.pcharge = pcharge
         self.ncharge = ncharge
-        self.netcharge = self.pcharge - self.ncharge
+        self.netcharge = (
+            charge
+                if charge is not None else
+            self.pcharge - self.ncharge
+        )
         self.typ = typ
         
         metabolite.AbstractMetabolite.__init__(
@@ -262,6 +267,8 @@ class Phosphatidylethanolamine(AbstractGlycerolipid):
             headgroup = 'C2H4NH2',
             name = 'PE',
             typ  = 'PE',
+            pcharge = 1,
+            ncharge = 1,
             **kwargs
         )
 
@@ -286,16 +293,16 @@ class GlycerolipidFactory(object):
         fa2_args = fa2_args or {'c': (4, 24), 'u': (0, 9)}
         
         l_classes = [
-            ('C2H4NH2', 'PE', True),
-            ('C2H4NC3H9', 'PC', True),
-            ('C2H4NH2COOH', 'PS', True),
-            ('C3O2H5', 'PG', True),
+            ('C2H3NH3', 'PE', True),
+            ('C2H3NC3H9', 'PC', True),
+            ('C2H3NH2COOH', 'PS', True),
+            ('C3H5O2H2', 'PG', True),
             ('H', 'PA', True),
-            ('C3O2H5PO3', 'PGP', True),
+            ('C3O2H8PO3', 'PGP', True),
             ('C6O5H11', 'PI', True),
-            ('C6O5H11PO3', 'PIP', True),
-            ('C6O5H11P3O6', 'PIP2', True),
-            ('C6O5H11P3O9', 'PIP3', True),
+            ('C6O5H12PO3', 'PIP', True),
+            ('C6O5H13P2O6', 'PIP2', True),
+            ('C6O5H14P3O9', 'PIP3', True),
             ((True,), 'MAG', False),
             ((False,), 'MAG', False),
             ((True, True), 'DAG', False),
@@ -347,7 +354,204 @@ class GlycerolipidFactory(object):
                     ]
                     
                     exact mass = 479.30118982806
+                """,
+            'MonoalkylGlycerol':
                 """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000308014/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.MonoalkylGlycerol(
+                            fa_args = {'c': 18, 'u': 2}
+                        )
+                    ]
+                    
+                    exact mass = 340.297745151
+                """,
+            'MonoalkylMonoacylGlycerol':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000321943/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.MonoalkylMonoacylGlycerol(
+                            fa_args = {'c': 20, 'u': 1},
+                            sn2_fa_args = {'c': 24, 'u': 6}
+                        )
+                    ]
+                    
+                    exact mass = 708.6056610616
+                """,
+            'MonoalkylDiacylGlycerol':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000198889/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.MonoalkylDiacylGlycerol(
+                            fa_args = {'c': 18, 'u': 0},
+                            sn2_fa_args = {'c': 17, 'u': 0},
+                            sn3_fa_args = {'c': 22, 'u': 0}
+                        )
+                    ]
+                    
+                    exact mass = 918.89792690768
+                """,
+            'TriacylGlycerol':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000237541/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.TriacylGlycerol(
+                            fa_args = {'c': 18, 'u': 1},
+                            sn2_fa_args = {'c': 26, 'u': 0},
+                            sn3_fa_args = {'c': 16, 'u': 1}
+                        )
+                    ]
+                    
+                    exact mass = 970.89284152788
+                """,
+            'DiacylGlycerol':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000124274/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.DiacylGlycerol(
+                            fa_args = {'c': 18, 'u': 4},
+                            sn2_fa_args = {'c': 24, 'u': 5}
+                        )
+                    ]
+                    
+                    exact mass = 690.5223253592001
+                """,
+            'PI':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000016800/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.PI(
+                            fa_args = {'c': 38, 'u': 5},
+                            sn2_fa_args = {'c': 18, 'u': 3}
+                        )
+                    ]
+                    
+                    exact mass = 1130.7762306419602
+                """,
+            'PGP':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000412170/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.PGP(
+                            fa_args = {'c': 16, 'u': 2},
+                            sn2_fa_args = {'c': 26, 'u': 5}
+                        )
+                    ]
+                    
+                    exact mass = 928.5230667049199
+                """,
+            'PC':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000011977/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.PC(
+                            fa_args = {'c': 18, 'u': 3},
+                            sn2_fa_args = {'c': 34, 'u': 4}
+                        )
+                    ]
+                    
+                    exact mass = 999.76560638386
+                """,
+            'EtherPA':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000085779/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.EtherPA(
+                            fa_args = {'c': 15, 'u': 0},
+                            sn2_fa_args = {'c': 30, 'u': 4}
+                        )
+                    ]
+                    
+                    exact mass = 808.6345922110401
+                """,
+            'PS':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000002856/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.PS(
+                            fa_args = {'c': 34, 'u': 6},
+                            sn2_fa_args = {'c': 28, 'u': 5}
+                        )
+                    ]
+                    
+                    exact mass = 1133.80238581782
+                """,
+            'PG':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000072349/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.PG(
+                            fa_args = {'c': 20, 'u': 4},
+                            sn2_fa_args = {'c': 34, 'u': 5}
+                        )
+                    ]
+                    
+                    exact mass = 1012.71323645876
+                """,
+            'PIP':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000495110/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.PIP(
+                            fa_args = {'c': 32, 'u': 5},
+                            sn2_fa_args = {'c': 13, 'u': 0}
+                        )
+                    ]
+                    
+                    exact mass = 1062.61736101716
+                """,
+            'PIP2':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000491707/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.PIP2(
+                            fa_args = {'c': 16, 'u': 1},
+                            sn2_fa_args = {'c': 38, 'u': 5}
+                        )
+                    ]
+                    
+                    exact mass = 1266.70889242468
+                """,
+            'PIP3':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000492994/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.PIP3(
+                            fa_args = {'c': 18, 'u': 1},
+                            sn2_fa_args = {'c': 36, 'u': 5}
+                        )
+                    ]
+                    
+                    exact mass = 1346.6790633754044
+                """,
         }
         
         mod = sys.modules[__name__]
