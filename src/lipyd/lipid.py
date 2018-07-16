@@ -66,6 +66,7 @@ class AbstractGlycerol(metabolite.AbstractMetabolite):
         self.pcharge = pcharge
         self.ncharge = ncharge
         self.netcharge = self.pcharge - self.ncharge
+        self.typ = typ
         
         metabolite.AbstractMetabolite.__init__(
             self,
@@ -76,6 +77,7 @@ class AbstractGlycerol(metabolite.AbstractMetabolite):
                 self.get_substituent(sn3)
             ],
             charge = self.netcharge,
+            name = name,
             **kwargs
         )
 
@@ -94,6 +96,7 @@ class AbstractGlycerolipid(AbstractGlycerol):
             ether = False,
             fa_args = None,
             name = 'GL',
+            getname = None,
             typ  = None,
             sn3_fa = False,
             lyso_sn1_fa = True,
@@ -191,6 +194,35 @@ class AbstractGlycerolipid(AbstractGlycerol):
         self.sn2_cls = get_cls(not lyso_sn1_fa, self.sn2_ether)
         self.sn3_cls = None if not sn3_fa else get_cls(True, self.sn3_ether)
         
+        def _getname(parent, subs):
+            
+            sep = '-' if self.sum_only else '/'
+            chains = [
+                s for s in subs
+                if parent.has_variable_aliphatic_chain(s)
+            ]
+            
+            return (
+                '%s(%s%s)' % (
+                    parent.name,
+                    sep.join(
+                        n for n in (
+                            '%s%s' % (
+                                s.get_prefix(),
+                                '' if self.sum_only else s.name
+                            )
+                            for s in chains
+                        ) if n
+                    ),
+                    (
+                        '%u:%u' % (
+                            sum(s.c for s in chains),
+                            sum(s.u for s in chains)
+                        ) if self.sum_only else ''
+                    )
+                )
+            )
+        
         AbstractGlycerol.__init__(
             self,
             sn1  = (
@@ -212,6 +244,7 @@ class AbstractGlycerolipid(AbstractGlycerol):
             ),
             name = name,
             typ  = typ or ('GPL' if phospho else 'GL'),
+            getname = getname or _getname,
             **kwargs
         )
 
@@ -279,6 +312,33 @@ class GlycerolipidFactory(object):
                     ]
                     
                     exact mass = 903.6717059967399
+                """,
+            'EtherPE':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000029613/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.EtherPE(
+                            fa_args = {'c': 16, 'u': 0},
+                            sn2_fa_args = {'c': 28, 'u': 0}
+                        )
+                    ]
+                    
+                    exact mass = 845.7237415701001
+                """,
+            'LysoPE':
+                """
+                Example:
+                    http://www.swisslipids.org/#/entity/SLM:000055415/
+                    
+                    [(m.name, m.mass) for m in
+                        lipid.EtherPE(
+                            fa_args = {'c': 18, 'u': 1}
+                        )
+                    ]
+                    
+                    exact mass = 479.30118982806
                 """
         }
         
@@ -314,7 +374,7 @@ class GlycerolipidFactory(object):
                     '        )\n'
                 ) % (
                     hg,
-                    name,
+                    '%s%s' % ('Lyso' if lyso else '', name),
                     str(phospho),
                     str(lyso),
                     str(ether)

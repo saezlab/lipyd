@@ -24,7 +24,7 @@ class FattyAcyl(metabolite.AbstractSubstituent):
         
         metabolite.AbstractSubstituent.__init__(
             self,
-            cores = ['O'], 
+            cores = ['O'],
             counts = counts or {'H': -2},
             c = c,
             u = u,
@@ -48,7 +48,8 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
             counts = counts or {'H': -2, 'O': 1},
             c = c,
             u = u,
-            prefix = '2OH', **kwargs
+            prefix = '2OH',
+            **kwargs
         )
 
 
@@ -57,7 +58,13 @@ class FattyAlkoxy(metabolite.AbstractSubstituent):
     def __init__(self, c = (2, 36), u = (0, 10), counts = None, **kwargs):
         
         metabolite.AbstractSubstituent.__init__(
-            self, cores = [''], counts = counts or {}, c = c, u = u, **kwargs
+            self,
+            cores = [''],
+            counts = counts or {},
+            c = c,
+            u = u,
+            prefix = 'O-',
+            **kwargs
         )
 
 
