@@ -17,6 +17,7 @@
 
 import pytest
 
+import numpy as np
 import lipyd.moldb
 
 
@@ -37,3 +38,12 @@ class TestMoldb(object):
         tag = list(self.lm.get_obmol('TAG(15:0_20:4_20:5)', 'synonym'))[0]
         
         assert abs(tag.exactmass - 886.7050407280012) < 0.000001
+    
+    def test_aggregator_build(self):
+        
+        mda = lipyd.moldb.MoleculeDatabaseAggregator()
+        mda.build()
+        
+        assert len([i for i in mda.mass if i == 0 or np.isnan(i)]) == 0
+        assert mda.masses.shape[0] == mda.data.shape[0]
+        assert mda.data.shape[1] == 14

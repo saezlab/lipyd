@@ -250,6 +250,7 @@ class SwissLipids(Reader):
         """
         
         self.silent = silent
+        self.exact_mass_formula_fallback = exact_mass_formula_fallback
         self.nameproc_args = nameproc_args or {}
         self.set_levels(levels)
         self.url = settings.get('swisslipids_url')
@@ -466,7 +467,7 @@ class SwissLipids(Reader):
         return pybel.readstring('inchi', record[9])
     
     @staticmethod
-    def add_annotations(mol, record):
+    def add_annotations(mol, record, exact_mass_formula_fallback = True):
         
         mol.db_id = record[0]
         mol.name  = record[3]
@@ -476,7 +477,7 @@ class SwissLipids(Reader):
         mol.hmdb = record[26] if len(record) > 26 else ''
         mol.smiles = record[8]
         mol.swl_exact_mass = float(record[14]) if record[14] else None
-        if not mol.swl_exact_mass and self.exact_mass_formula_fallback:
+        if not mol.swl_exact_mass and exact_mass_formula_fallback:
             
             try:
                 # note: this is dangerous because the formula is sometimes
@@ -527,7 +528,9 @@ class SwissLipids(Reader):
                     
                     mol = Namespace()
                 
-                mol = self.add_annotations(mol, line)
+                mol = self.add_annotations(
+                    mol, line, self.exact_mass_formula_fallback
+                )
                 
                 yield mol
     
