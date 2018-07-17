@@ -48,6 +48,7 @@ import lipyd.lipid as lipid
 import lipyd.lookup as lookup
 import lipyd.name as lipidname
 import lipyd.formula as formula
+import lipyd.lipproc as lipproc
 
 
 class Reader(object):

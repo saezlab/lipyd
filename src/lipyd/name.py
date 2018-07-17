@@ -26,6 +26,7 @@ import re
 import itertools
 
 import lipyd.settings as settings
+import lipyd.lipproc as lipproc
 
 
 class LipidNameProcessor(object):
@@ -49,41 +50,12 @@ class LipidNameProcessor(object):
         self.iso = iso
         self.lipnamesf = settings.get('lipnamesf')
         self.adducts_constraints = settings.get('adducts_constraints')
-        self.recount1 = re.compile(
-            r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})\)'
-        )
-        self.recount2 = re.compile(
-            r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})/'
-            r'([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})/?'
-            r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)'
-        )
-        self.recount3 = re.compile(
-            r'\(([POdt]?)-?([0-9]{1,2}):([0-9]{1,2})[/_]?'
-            r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})[/_]?'
-            r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})[/_]?'
-            r'([POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})\)'
-        )
-        self.recount4 = re.compile(
-            r'\(?'
-            r'((?:[0-9]+-)?[POdt]?)-?([0-9]{1,2}):([0-9]{1,2})'
-            r'\(?([0-9EZ,]*)\)?((?:[-\(]2OH\)?)?)[/_]?'
-            r'((?:[0-9]+-)?[POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})'
-            r'\(?([0-9EZ,]*)\)?((?:[-\(]2OH\)?)?)[/_]?'
-            r'((?:[0-9]+-)?[POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})'
-            r'\(?([0-9EZ,]*)\)?((?:[-\(]2OH\)?)?)[/_]?'
-            r'((?:[0-9]+-)?[POdt]?)-?([0-9]{0,2}):?([0-9]{0,2})'
-            r'\(?([0-9EZ,]*)\)?((?:[-\(]2OH\)?)?)\)?'
-        )
-        self.reme     = re.compile(r'methyl|ethyl')
-        self.rebr2    = re.compile(
-            r'(1(?:,2-di)?)-\(((?:[0-9]{0,2}[-]?methyl|ethyl)?)[A-z0-9-]+\)'
-            r'-([2,3]{1,3}(?:-di)?)-'
-            r'\(((?:[0-9]{0,2}[-]?methyl|ethyl)?)[A-z0-9-]+\)'
-        )
+        
         self.gen_fa_greek()
         self.read_lipid_names()
     
     def reload(self, children = False):
+        
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
@@ -165,11 +137,26 @@ class LipidNameProcessor(object):
             )
     
     @staticmethod
-    def prefix_proc(prfx):
+    def prefix_proc(match):
         
-        return 'O-' if prfx in {'O', 'P'} else prfx
+        return tuple(
+            tuple(p for p in (match[i], match[i + 3]) if p)
+            for i in
+            xrange(0, len(match), 4)
+        )
     
-    def carbon_counts(self, name, ccexp = 2):
+    @staticmethod
+    def get_type(i, sphingo = False, types = None):
+        
+        return (
+            types[i]
+                if types else
+            'Sph'
+                if sphingo and i == 0 else
+            'FA'
+        )
+    
+    def carbon_counts(self, name, ccexp = 2, sphingo = False, types = None):
         """
         Processes carbon and unsaturation counts from name.
         
@@ -183,37 +170,54 @@ class LipidNameProcessor(object):
             as the latter has 3 fatty acyls.
         """
         
+        # number of groups in one
+        # regex match unit
+        _g = 4
+        
         # regex finds the total carbon count
-        cc1 = self.recount1.findall(name)
+        cc1 = lipproc.rechainsum.search(name)
+        cc1 = cc1.groups() if cc1 else cc1
         # regex finds 2-3 fatty acids
-        cc3 = self.recount3.findall(name)
+        cc2 = lipproc.rechain.search(name)
+        cc2 = cc2.groups() if cc2 else cc2
         
-        # the total carbon count
-        ccpart = (
-            [self.prefix_proc(cc1[0][0]), int(cc1[0][1]), int(cc1[0][2])]
-            if len(cc1) else
-            None
-        )
+        chains = []
         
-        faccparts = []
-        
-        if ccexp and cc3 and cc3[0][(ccexp - 1) * 3 + 1]:
+        if ccexp and cc2 and cc2[(ccexp - 1) * _g + 1]:
             
             for i in range(ccexp):
                 
-                if cc3[0][i * 3 + 1]:
+                if cc2[i * _g + 1]:
                     
-                    faccparts.append((
-                            self.prefix_proc(cc3[0][i * 3]),
-                            int(cc3[0][i * 3 + 1]),
-                            int(cc3[0][i * 3 + 2])
+                    chains.append(lipproc.Chain(
+                        c = int(cc2[i * _g + 1]),
+                        u = int(cc2[i * _g + 2]),
+                        p = (self.prefix_proc(cc2[i * _g:i * _g + _g])[0]),
+                        t = self.get_type(i, sphingo, types)
                     ))
             
-            if len(faccparts) != ccexp:
-                
-                faccparts = None
+            chains = None if len(chains) != ccexp else tuple(chains)
         
-        return ccpart, faccparts
+        # the total carbon count
+        chainsum = (
+            lipproc.Chain(
+                c = sum(i.c for i in chains),
+                u = sum(i.u for i in chains),
+                p = tuple(itertools.chain(*(i.p for i in chains))),
+                t = None
+            )
+            if chains else
+            lipproc.Chain(
+                c = int(cc1[1]),
+                u = int(cc1[2]),
+                p = self.prefix_proc(cc1)[0],
+                t = None
+            )
+            if cc1 else
+            None
+        )
+        
+        return chainsum, chains
     
     def isomeric_carbon_counts(self, name):
         
@@ -355,8 +359,6 @@ class LipidNameProcessor(object):
         hg = self.headgroup_from_lipid_name(name, database = database)
         
         # try greek fatty acyl carbon counts:
-        
-        
         if not hg and self.iso and database == 'swisslipids':
             
             try:
