@@ -31,7 +31,7 @@ ChainAttr.__new__.__defaults__ = ('', False, ())
 
 Chain = collections.namedtuple(
     'Chain',
-    ['c', 'u', 't', 'a', 'i']
+    ['c', 'u', 'typ', 'attr', 'iso']
 )
 # by default type id `FA` the prefix is empty tuple
 Chain.__new__.__defaults__ = ('FA', ChainAttr(), ())
@@ -57,7 +57,7 @@ def empty_chain():
     Returns an empty Chain object which might serve as a dummy object.
     """
     
-    return Chain(c = 0, u = 0, a = ChainAttr())
+    return Chain(c = 0, u = 0, attr = ChainAttr())
 
 
 def str2hg(hgstr):
@@ -79,8 +79,8 @@ def sum_chains(chains):
         Chain(
             c = sum(i.c for i in chains),
             u = sum(i.u for i in chains),
-            a = collapse_attrs(chains),
-            t = None
+            attr = collapse_attrs(chains),
+            typ = None
         )
     )
 
@@ -90,7 +90,7 @@ def collapse_attrs(chains):
     Combine the attributes of arbitrary number of chains.
     """
     
-    return functools.reduce(combine_attrs, (c.a for c in chains))
+    return functools.reduce(combine_attrs, (c.attr for c in chains))
 
 
 def combine_attrs(a1, a2):
@@ -168,15 +168,15 @@ def get_attributes(hg, chaisum = None):
     
     chainsum = chainsum or empty_chain()
     
-    hydroxy = '-'.join(chainsum.a.hydroxy)
+    hydroxy = '-'.join(chainsum.attr.hydroxy)
     hydroxy = '-%s' % hydroxy if hydroxy else ''
     
     subcls  = '-'.join(i for i in hg.sub if i != '1P')
     subcls  = '%s-' % subcls if subcls else ''
     p1 = '1P' if '1P' in hg.sub else ''
     
-    sphingo_prefix = chainsum.a.sph
-    ether_prefix = chainsum.a.ether
+    sphingo_prefix = chainsum.attr.sph
+    ether_prefix = chainsum.attr.ether
     # this I leave here if maybe later I decide to have
     # plain tuples...
     #
@@ -202,18 +202,22 @@ rechainsum = re.compile(
 # captures 1-4 aliphatic chains data
 rechain = re.compile(
     r'\('
+    # 1
     r'([POdtDH]{0,2})-?'
     r'([0-9]{1,2}):([0-9]{1,2})'
     r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
     r'[/_]?'
+    # 2
     r'([POdtDH]{0,2})-?'
     r'([0-9]{0,2}):?([0-9]{0,2})'
     r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
     r'[/_]?'
+    # 3
     r'([POdtDH]{0,2})-?'
     r'([0-9]{0,2}):?([0-9]{0,2})'
     r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
     r'[/_]?'
+    # 4
     r'([POdtDH]{0,2})-?'
     r'([0-9]{0,2}):?([0-9]{0,2})'
     r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
@@ -229,28 +233,28 @@ rechainiso = re.compile(
     r'[POdtDH]{0,2})-?'
     r'([0-9]{1,2}):([0-9]{1,2})'
     r'\(?([0-9EZ,]*)\)?'
-    r'((?:[-\(][0-9]{0,2}OH\)?)?)'
+    r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
     r'[/_]?'
     # 2
     r'((?:[0-9]+-)?'
     r'[POdtDH]{0,2})-?'
     r'([0-9]{0,2}):?([0-9]{0,2})'
     r'\(?([0-9EZ,]*)\)?'
-    r'((?:[-\(][0-9]{0,2}OH\)?)?)'
+    r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
     r'[/_]?'
     # 3
     r'((?:[0-9]+-)?'
     r'[POdtDH]{0,2})-?'
     r'([0-9]{0,2}):?([0-9]{0,2})'
     r'\(?([0-9EZ,]*)\)?'
-    r'((?:[-\(][0-9]{0,2}OH\)?)?)'
+    r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
     r'[/_]?'
     # 4
     r'((?:[0-9]+-)?'
     r'[POdtDH]{0,2})-?'
     r'([0-9]{0,2}):?([0-9]{0,2})'
     r'\(?([0-9EZ,]*)\)?'
-    r'((?:[-\(][0-9]{0,2}OH\)?)?)'
+    r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
     r'\)?'
 )
 

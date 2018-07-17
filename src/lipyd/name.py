@@ -144,7 +144,7 @@ class LipidNameProcessor(object):
         return lipproc.ChainAttr(
             sph = sph,
             ether = match[0] in {'O', 'P'},
-            oh = match[3] or ()
+            oh = (match[-1],) if match[-1] else ()
         )
     
     @staticmethod
@@ -158,7 +158,14 @@ class LipidNameProcessor(object):
             'FA'
         )
     
-    def carbon_counts(self, name, ccexp = 2, sphingo = False, types = None):
+    def carbon_counts(
+            self,
+            name,
+            ccexp = 2,
+            sphingo = False,
+            iso = False,
+            types = None
+        ):
         """
         Processes carbon and unsaturation counts from name.
         
@@ -170,17 +177,24 @@ class LipidNameProcessor(object):
             Expected number of fatty acyl or other residues constaining
             aliphatic chain. E.g. for DAG this should be 2 and for TAG 3
             as the latter has 3 fatty acyls.
+        :param bool sphingo:
+            Is this a sphingolipid, is the first chain a sphingosine base?
+        :param bool iso:
+            Process conformation isomer details for example 18:2(9E,11Z).
+        :param tuple types:
+            Explicit types for each chains.
         """
         
-        # number of groups in one
-        # regex match unit
-        _g = 4
+        # number of groups in one regex match unit
+        _g = 5 if iso else 4
+        _i = 3
+        rechain = lipproc.rechainiso if iso else lipproc.rechain
         
         # regex finds the total carbon count
         cc1 = lipproc.rechainsum.search(name)
         cc1 = cc1.groups() if cc1 else cc1
         # regex finds 1-4 fatty acids
-        cc2 = lipproc.rechain.search(name)
+        cc2 = rechain.search(name)
         cc2 = cc2.groups() if cc2 else cc2
         
         chains = []
@@ -191,11 +205,19 @@ class LipidNameProcessor(object):
                 
                 if cc2[i * _g + 1]:
                     
+                    attr = self.attr_proc(cc2[i * _g:i * _g + _g])
+                    sphingo = sphingo or bool(attr.sph)
+                    
                     chains.append(lipproc.Chain(
                         c = int(cc2[i * _g + 1]),
                         u = int(cc2[i * _g + 2]),
-                        a = self.attr_proc(cc2[i * _g:i * _g + _g]),
-                        t = self.get_type(i, sphingo, types)
+                        attr = attr,
+                        typ = self.get_type(i, sphingo, types),
+                        iso = (
+                            tuple(cc2[i * _g + _i].split(','))
+                                if iso and cc2[i * _g + _i] else
+                            ()
+                        )
                     ))
             
             chains = None if len(chains) != ccexp else tuple(chains)
@@ -207,8 +229,8 @@ class LipidNameProcessor(object):
             lipproc.Chain(
                 c = int(cc1[1]),
                 u = int(cc1[2]),
-                a = self.attr_proc(cc1),
-                t = None # this is None as multiple chains either does
+                attr = self.attr_proc(cc1),
+                typ = None # this is None as multiple chains either does
                     # not have a single type or we don't wan't to give
                     # the impression this is a single fatty acyl
             )
@@ -217,45 +239,6 @@ class LipidNameProcessor(object):
         )
         
         return chainsum, chains
-    
-    def isomeric_carbon_counts(self, name):
-        
-        icc = self.recount4.findall(name)
-        
-        if icc:
-            
-            try:
-                
-                icc = [
-                    (
-                        # the usual prefix, carbon, unsat tuple:
-                        (
-                            self.prefix_proc(icc[0][i]),
-                            int(icc[0][i + 1]),
-                            int(icc[0][i + 2])
-                        ),
-                        # and the isomeric conformation string:
-                        icc[0][i + 3],
-                        # and the hydroxyl group on C2:
-                        bool(icc[0][i + 4])
-                    )
-                    for i in xrange(0, 16, 5)
-                    # keep only existing aliphatic chains
-                    if icc[0][i + 1] and icc[0][i + 2]
-                ]
-            
-            except Exception as e:
-                
-                sys.stdout.write(''.join([
-                    '\n\n\n',
-                    '!!! Incomprehensible results at isomeric carbon counts:',
-                    '\nRegex match: %s\nName processed: %s\n' % (
-                        icc, name
-                    ),
-                    '\n\n\n'
-                ]))
-        
-        return icc
     
     def headgroup_from_lipid_name(self, name, database = None):
         """
