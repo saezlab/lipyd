@@ -137,12 +137,14 @@ class LipidNameProcessor(object):
             )
     
     @staticmethod
-    def prefix_proc(match):
+    def attr_proc(match):
         
-        return tuple(
-            tuple(p for p in (match[i], match[i + 3]) if p)
-            for i in
-            xrange(0, len(match), 4)
+        sph = match[0] if match[0] in {'t', 'd', 'k', 'DH'} else ''
+        
+        return lipproc.ChainAttr(
+            sph = sph,
+            ether = match[0] in {'O', 'P'},
+            oh = match[3] or ()
         )
     
     @staticmethod
@@ -177,7 +179,7 @@ class LipidNameProcessor(object):
         # regex finds the total carbon count
         cc1 = lipproc.rechainsum.search(name)
         cc1 = cc1.groups() if cc1 else cc1
-        # regex finds 2-3 fatty acids
+        # regex finds 1-4 fatty acids
         cc2 = lipproc.rechain.search(name)
         cc2 = cc2.groups() if cc2 else cc2
         
@@ -192,7 +194,7 @@ class LipidNameProcessor(object):
                     chains.append(lipproc.Chain(
                         c = int(cc2[i * _g + 1]),
                         u = int(cc2[i * _g + 2]),
-                        p = (self.prefix_proc(cc2[i * _g:i * _g + _g])[0]),
+                        a = self.attr_proc(cc2[i * _g:i * _g + _g]),
                         t = self.get_type(i, sphingo, types)
                     ))
             
@@ -200,18 +202,15 @@ class LipidNameProcessor(object):
         
         # the total carbon count
         chainsum = (
-            lipproc.Chain(
-                c = sum(i.c for i in chains),
-                u = sum(i.u for i in chains),
-                p = tuple(itertools.chain(*(i.p for i in chains))),
-                t = None
-            )
+            lipproc.sum_chains(chains)
             if chains else
             lipproc.Chain(
                 c = int(cc1[1]),
                 u = int(cc1[2]),
-                p = self.prefix_proc(cc1)[0],
-                t = None
+                a = self.attr_proc(cc1),
+                t = None # this is None as multiple chains either does
+                    # not have a single type or we don't wan't to give
+                    # the impression this is a single fatty acyl
             )
             if cc1 else
             None
