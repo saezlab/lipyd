@@ -432,15 +432,28 @@ class LipidNameProcessor(object):
         if cc1 and cc1[0] == 'd' and cc1[2] == 0:
             
             cc1[0] = 'DH'
+            
+            if hg:
+                hg = hg.replace('d', 'DH')
+            
+            if cc2 and cc2[0][0] == 'd':
+                
+                cc2 = [('DH', cc2[0][1], cc2[0][2])] + cc2[1:]
         
         # if the sphingolipid headgroup does not contain the prefix:
         if hg and cc1 and cc1[0]:
             
             for prfx in ('d', 't', 'DH'):
                 
-                if cc1[0] == prfx and not hg.startswith(prfx):
+                if cc1[0] == prfx and prfx not in hg:
                     
-                    hg = '%s%s' % (prfx, hg)
+                    hg0 = hg.split('-')
+                    
+                    hg = '%s%s%s' % (
+                        '%s-' % hg0[0] if len(hg0) == 2 else '',
+                        prfx,
+                        hg0[0] if len(hg0) == 1 else hg0[1]
+                    )
                     break
         
         return hg, cc1, cc2, icc

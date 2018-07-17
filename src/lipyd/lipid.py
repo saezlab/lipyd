@@ -681,6 +681,8 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             charge  = None,
             pcharge = None,
             ncharge = None,
+            t = False,
+            dihydro = False,
             name = 'Sphingolipid',
             typ  = 'SL',
             getname = None,
@@ -697,9 +699,17 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 self.pcharge - self.ncharge
         )
         
+        self.t = t
+        self.dihydro = dihydro
+        
         if not sph:
             
-            sph = substituent.Sphingosine(**sph_args)
+            if self.t:
+                sph = substituent.HydroxySphingosine(**sph_args)
+            elif self.dihydro:
+                sph = substituent.DihydroSphingosine(**sph_args)
+            else:
+                sph = substituent.Sphingosine(**sph_args)
         
         def _getname(parent, subs):
             
@@ -709,9 +719,18 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 if parent.has_variable_aliphatic_chain(s)
             ]
             
+            prfx = 'DH' if parent.dihydro else 't' if parent.t else 'd'
+            prfx = '' if prfx in parent.name else prfx
+            name = parent.name.split('-')
+            name = '%s%s%s' % (
+                '%s-' % name[0] if len(name) > 1 else '',
+                prfx,
+                name[1] if len(name) > 1 else name[0]
+            )
+            
             return (
                 '%s(%s%s)' % (
-                    parent.name,
+                    name,
                     sep.join(
                         n for n in (
                             '%s%s' % (
@@ -772,7 +791,7 @@ class KetoSphingosine(AbstractSphingolipid):
         AbstractSphingolipid.__init__(
             self,
             sph_args = sph_args,
-            name = 'KetoSph',
+            name = 'Keto-Sph',
             **kwargs
         )
 
@@ -813,10 +832,10 @@ class HydroxySphingosine(AbstractSphingolipid):
         AbstractSphingolipid.__init__(
             self,
             sph = sph,
-            name = 'SphOH',
+            name = 'tSph',
+            t = True,
             **kwargs
         )
-
 
 
 class MethylSphingosine(AbstractSphingolipid):
@@ -881,7 +900,6 @@ class AbstractCeramide(AbstractSphingolipid):
         fa_args  = fa_args  or {}
         
         if t:
-            
             sph = substituent.HydroxySphingosine(**sph_args)
         elif dihydro:
             sph = substituent.DihydroSphingosine(**sph_args)
@@ -893,8 +911,6 @@ class AbstractCeramide(AbstractSphingolipid):
         else:
             fa = substituent.FattyAcyl(**fa_args)
         
-        self.t = t
-        self.dihydro = dihydro
         self.fa_hydroxy = fa_hydroxy
         
         #def getname(parent, subs):
@@ -916,6 +932,8 @@ class AbstractCeramide(AbstractSphingolipid):
             sph = sph,
             name = name,
             getname = getname,
+            t = t,
+            dihydro = dihydro,
             **kwargs
         )
 
@@ -1074,12 +1092,12 @@ class CeramideFactory(object):
         l_fa_hydroxy = [True, False]
         l_classes = [
             ('PO3H2', 'CerP'),
-            ('C12H21O10SO3', 'SHex2Cer'),
-            ('C6H11O5SO3', 'SHexCer'),
-            ('C12H21O10', 'Hex2Cer'),
-            ('C6H11O5', 'HexCer'),
+            ('C12H21O10SO3', 'SHex2-Cer'),
+            ('C6H11O5SO3', 'SHex-Cer'),
+            ('C12H21O10', 'Hex2-Cer'),
+            ('C6H11O5', 'Hex-Cer'),
             ('PO3C2H4NC3H9', 'SM'),
-            ('PO3C2H4NH3', 'CerPE'),
+            ('PO3C2H4NH3', 'PE-Cer'),
             (None, 'CerA')
             
         ]
@@ -1326,7 +1344,7 @@ class CeramideFactory(object):
                     else '',
                 maintype,
                 'Phosphoethanolamine'
-                    if 'CerPE' in name
+                    if 'PE-Cer' in name
                     else 'Phosphate' if 'CerP' in name
                     else '1OAcyl' if o is None
                     else ''

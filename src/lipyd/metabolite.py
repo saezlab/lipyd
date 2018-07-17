@@ -180,26 +180,56 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         for subs, inst in self.subsproduct():
             
             full_name = inst.getname()
-            # full_name twice, the second in place of
-            # database provided names
-            # 4th value is empty string in place of database ID
-            # 5th value is the source of the record (database name)
-            identity = [self.name, full_name, full_name, '', 'lipyd']
+            
+            ccpart = []
+            
+            prfx = []
+            csum = 0
+            usum = 0
             
             for i, sub in enumerate(subs):
                 
                 if self.has_variable_aliphatic_chain(self.subs[i]):
                     
-                    identity.extend([
+                    prfx.append(sub.get_prefix())
+                    csum += sub.c
+                    usum += sub.u
+                    
+                    ccpart.extend([
                         sub.get_prefix(),
                         sub.c,
                         sub.u
                     ])
             
+            prfx = ''.join(prfx)
+            
+            ccsum = [
+                prfx if csum > 0 else np.nan,
+                csum if csum > 0 else np.nan,
+                usum if usum > 0 else np.nan
+            ]
+            
+            prfx = '' if prfx in self.name else prfx
+            name = self.name.split('-')
+            name = '%s%s%s' % (
+                '%s-' % name[0] if len(name) > 1 else '',
+                prfx,
+                name[1] if len(name) > 1 else name[0]
+            )
+            
+            # full_name twice, the second in place of
+            # database provided names
+            # 4th value is empty string in place of database ID
+            # 5th value is the source of the record (database name)
+            identity = [name, full_name, full_name, '', 'lipyd']
+            
+            identity.extend(ccsum)
+            identity.extend(ccpart)
+            
             # TODO: do not assume here max 3 substituents with
             # variable aliphatic chain
             # as this is lipid specific
-            identity.extend([np.nan] * (14 - len(identity)))
+            identity.extend([np.nan] * (17 - len(identity)))
             
             yield inst.mass, tuple(identity)
     
