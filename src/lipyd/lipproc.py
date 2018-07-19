@@ -29,12 +29,21 @@ ChainAttr = collections.namedtuple(
 # defaults:
 ChainAttr.__new__.__defaults__ = ('', False, ())
 
-Chain = collections.namedtuple(
-    'Chain',
-    ['c', 'u', 'typ', 'attr', 'iso']
-)
-# by default type id `FA` the prefix is empty tuple
-Chain.__new__.__defaults__ = ('FA', ChainAttr(), ())
+
+class Chain(collections.namedtuple(
+        'ChainBase',
+        ['c', 'u', 'typ', 'attr', 'iso']
+    )):
+    
+    def __new__(cls, c, u, typ = 'FA', attr = ChainAttr(), iso = ()):
+        
+        if attr.sph == 'd' and u == 0:
+            
+            attr = ChainAttr(sph = 'DH', ether = attr.ether, oh = attr.oh)
+        
+        return super(Chain, cls).__new__(
+            cls, c, u, typ = typ, attr = attr, iso = iso
+        )
 
 
 Headgroup = collections.namedtuple(

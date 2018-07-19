@@ -282,21 +282,30 @@ class LipidNameProcessor(object):
         by looking up keywords.
         Calls greek name identification, greek fatty acid names are
         identified as 'FA'.
+        
+        Returns `lipproc.Headgroup` object.
         """
         
         database = database or self.database
         
         db = 'lmp' if database.lower() == 'lipidmaps' else 'swl'
-        for shortname, spec in iteritems(self.lipnames):
+        for lipclass, spec in iteritems(self.lipnames):
             for kwset in spec[db]:
                 matched = [kw in name for kw in kwset['pos']]
                 if sum(matched) == len(kwset['pos']) and \
                     sum(matched) > 0:
                     matched = [kw in name for kw in kwset['neg']]
                     if sum(matched) == 0:
-                        return shortname
+                        return lipproc.Headgroup(
+                            main = lipclass[1], # main class, e.g. Cer
+                            sub  = lipclass[0]  # subclass, e.g. Hex
+                        )
         
-        return self.process_fa_name(name)
+        fa_name = self.process_fa_name(name)
+        
+        if fa_name:
+            
+            return lipproc.Headgroup(main = fa_name)
     
     def process_fa_name(self, name):
         """
@@ -324,29 +333,33 @@ class LipidNameProcessor(object):
     
     def fa_greek_cc(self, name):
         
-        cc1, cc2, cc3 = None, [], []
+        chainsum, chains = None, None
         
         try:
             
             name1 = name.split('-')[1] if '-' in name else name
             
-            for dct in ['fa', 'fal', 'facoa']:
+            for typ in {'fa', 'fal', 'facoa'}:
                 
-                if name1 in getattr(self, '%s_greek' % dct):
+                if name1 in getattr(self, '%s_greek' % typ):
                     
-                    cc1 = getattr(self, '%s_greek' % dct)[name1]
-                    cc1 = ('', cc1[0], cc1[1])
-                    cc2 = [cc1]
-                    cc3 = [(
-                        cc1,
-                        name.split(')')[0][1:] if '(' in name else '',
-                        False
+                    cc1 = getattr(self, '%s_greek' % typ)[name1]
+                    iso = (
+                        tuple(name.split(')')[0][1:].split(','))
+                            if self.iso and '(' in name else
+                        ()
+                    )
+                    chains   = [lipproc.Chain(
+                        c = cc1[0],
+                        u = cc1[1],
+                        iso = iso
                     )]
+                    chainsum = lipproc.sum_chains(chains)
         
         except:
             pass
         
-        return cc1, cc2, cc3
+        return chainsum, chains
     
     def test_branched(self, name):
         """
@@ -372,7 +385,7 @@ class LipidNameProcessor(object):
         
         database = database or self.database
         
-        hg, cc1, cc2, icc = None, None, None, None
+        hg, chainsum, chains, chainsiso = None, None, None, None
         
         hg = self.headgroup_from_lipid_name(name, database = database)
         
@@ -383,11 +396,15 @@ class LipidNameProcessor(object):
                 
                 for name0 in name.split('|'):
                     
-                    fa_greek = name0.split('-')[1]
-                    hg = self.process_fa_name(fa_greek)
-                    if hg:
+                    fa_greek = name0.split('-')
+                    
+                    if len(fa_greek) > 1:
                         
-                        break
+                        hg = self.process_fa_name(fa_greek[1])
+                        
+                        if hg:
+                            
+                            break
                 
             except:
                 
@@ -395,14 +412,14 @@ class LipidNameProcessor(object):
         
         for n in name.split('|'):
             
-            lyso =  hg and hg[:4] == 'Lyso'
+            lyso =  hg and 'Lyso' in hg.sub
             
             # how many aliphatic chains this molecule has
             ccexp = (
                     1
-                if hg in {'FA', 'MAG'} or lyso else
+                if hg.main in {'FA', 'MAG'} or lyso else
                     3
-                if hg == 'TAG' else
+                if hg.main == 'TAG' else
                     2
             )
             
@@ -410,73 +427,35 @@ class LipidNameProcessor(object):
                 # SwissLipids adds `0:0` to lyso glycerolipids
                 ccexp += 1
             
-            if hg == 'BMP' and '0:0' in n:
+            if hg.main == 'BMP' and '0:0' in n:
                 # SwissLipids shows 4 acyl residues for BMP
                 # 2 of them are `0:0`
                 ccexp = 4
             
-            _cc1, _cc2 = self.carbon_counts(n, ccexp = ccexp)
+            chainsum, chains = self.carbon_counts(
+                n, ccexp = ccexp, iso = self.iso
+            )
             
-            if self.iso and not icc:
-                
-                icc = self.isomeric_carbon_counts(n)
-                
-                if icc and not cc2:
-                    
-                    cc2 = [i[0] for i in icc]
-            
-            cc1 = cc1 or _cc1
-            cc2 = cc2 or _cc2
-            
-            if cc2 and cc1 and (not self.iso or icc):
+            if (
+                chainsum and chains and (
+                    not self.iso or
+                    any(c.iso for c in chains)
+                )
+            ):
                 
                 break
         
-        if not cc1 and cc2:
-            
-            cc1 = [
-                ''.join(i[0] for i in cc2),
-                sum(i[1] for i in cc2),
-                sum(i[2] for i in cc2)
-            ]
-        
-        if hg in set(['FA', 'FAL', 'FACoA']) and not cc1:
+        if hg in {'FA', 'FAL', 'FACoA'} and not chainsum:
             
             for name0 in name.split('|'):
                 
-                cc1, cc2, icc = self.fa_greek_cc(name0)
+                chainsum, chains = self.fa_greek_cc(name0)
                 
-                if cc1:
+                if chainsum:
+                    
                     break
         
-        if cc1 and cc1[0] == 'd' and cc1[2] == 0:
-            
-            cc1[0] = 'DH'
-            
-            if hg:
-                hg = hg.replace('d', 'DH')
-            
-            if cc2 and cc2[0][0] == 'd':
-                
-                cc2 = [('DH', cc2[0][1], cc2[0][2])] + cc2[1:]
-        
-        # if the sphingolipid headgroup does not contain the prefix:
-        if hg and cc1 and cc1[0]:
-            
-            for prfx in ('d', 't', 'DH'):
-                
-                if cc1[0] == prfx and prfx not in hg:
-                    
-                    hg0 = hg.split('-')
-                    
-                    hg = '%s%s%s' % (
-                        '%s-' % hg0[0] if len(hg0) == 2 else '',
-                        prfx,
-                        hg0[0] if len(hg0) == 1 else hg0[1]
-                    )
-                    break
-        
-        return hg, cc1, cc2, icc
+        return hg, chainsum, chains
     
     def gen_fa_greek(self):
         """
