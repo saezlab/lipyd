@@ -75,22 +75,39 @@ class LipidNameProcessor(object):
         """
         result = {}
         
-        with open(self.lipnamesf, 'r') as f:
-            nul = f.readline()
-            for l in f:
+        with open(self.lipnamesf, 'r') as fp:
+            
+            hdr = True
+            
+            for l in fp:
+                
+                if l[0] == '#':
+                    continue
+                
+                if hdr:
+                    hdr = False
+                    continue
+                
                 l = l.strip().split('\t')
-                result[l[0]] = {
-                    'full_name': l[1],
-                    'swl': self.process_db_keywords(l[2]),
-                    'lmp': self.process_db_keywords(l[3]),
+                
+                lip = (
+                    tuple(l[0].split(';')),
+                    l[1],
+                    tuple(l[2].split(';'))
+                )
+                
+                result[lip] = {
+                    'full_name': l[3],
+                    'swl': self.process_db_keywords(l[4]),
+                    'lmp': self.process_db_keywords(l[5]),
                     'pos_adduct': (
-                            l[4]
-                        if l[4] != 'ND' and self.adducts_constraints else
+                            l[6]
+                        if l[6] != 'ND' and self.adducts_constraints else
                             None
                         ),
                     'neg_adduct': (
-                            l[5]
-                        if l[5] != 'ND' and self.adducts_constraints else
+                            l[7]
+                        if l[7] != 'ND' and self.adducts_constraints else
                             None
                         )
                 }
@@ -239,6 +256,25 @@ class LipidNameProcessor(object):
         )
         
         return chainsum, chains
+    
+    def isomeric_carbon_counts(
+            self,
+            name,
+            ccexp = 2,
+            sphingo = False,
+            types = None
+        ):
+        """
+        Calls `carbon_counts` with `iso=True`.
+        """
+        
+        return self.carbon_counts(
+            name,
+            ccexp = ccexp,
+            phingo = sphingo,
+            iso = True,
+            types = types
+        )
     
     def headgroup_from_lipid_name(self, name, database = None):
         """
