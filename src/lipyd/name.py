@@ -91,8 +91,8 @@ class LipidNameProcessor(object):
                 l = l.strip().split('\t')
                 
                 lip = (
-                    tuple(l[0].split(';')),
-                    l[1],
+                    tuple(l[1].split(';')),
+                    l[0],
                     tuple(l[2].split(';'))
                 )
                 
@@ -276,7 +276,7 @@ class LipidNameProcessor(object):
             types = types
         )
     
-    def headgroup_from_lipid_name(self, name, database = None):
+    def headgroup_from_lipid_name(self, names, database = None):
         """
         For one database record attempts to identify the lipid class
         by looking up keywords.
@@ -288,20 +288,22 @@ class LipidNameProcessor(object):
         
         database = database or self.database
         
+        names = '|'.join(names)
+        
         db = 'lmp' if database.lower() == 'lipidmaps' else 'swl'
         for lipclass, spec in iteritems(self.lipnames):
             for kwset in spec[db]:
-                matched = [kw in name for kw in kwset['pos']]
+                matched = [kw in names for kw in kwset['pos']]
                 if sum(matched) == len(kwset['pos']) and \
                     sum(matched) > 0:
-                    matched = [kw in name for kw in kwset['neg']]
+                    matched = [kw in names for kw in kwset['neg']]
                     if sum(matched) == 0:
                         return lipproc.Headgroup(
                             main = lipclass[1], # main class, e.g. Cer
                             sub  = lipclass[0]  # subclass, e.g. Hex
                         )
         
-        fa_name = self.process_fa_name(name)
+        fa_name = self.process_fa_name(names)
         
         if fa_name:
             
@@ -368,7 +370,7 @@ class LipidNameProcessor(object):
         
         return bool(self.reme.search(name))
     
-    def process(self, name, database = None):
+    def process(self, names, database = None):
         """
         The main method of this class. Processes a lipid name string
         and returns a standard name, prefix, carbon counts and
@@ -376,25 +378,24 @@ class LipidNameProcessor(object):
         
         Args
         ----
-        :param str name:
+        :param list names:
             One or more names to process. Single result will be returned
             and names will be attempted to be processed one after the other
-            until processing is successful. Names in one string can be
-            separated by `|`.
+            until processing is successful.
         """
         
         database = database or self.database
         
         hg, chainsum, chains, chainsiso = None, None, None, None
         
-        hg = self.headgroup_from_lipid_name(name, database = database)
+        hg = self.headgroup_from_lipid_name(names, database = database)
         
         # try greek fatty acyl carbon counts:
         if not hg and self.iso and database == 'swisslipids':
             
             try:
                 
-                for name0 in name.split('|'):
+                for name0 in names:
                     
                     fa_greek = name0.split('-')
                     
@@ -410,12 +411,14 @@ class LipidNameProcessor(object):
                 
                 pass
         
-        for n in name.split('|'):
+        for n in names:
             
             lyso =  hg and 'Lyso' in hg.sub
             
             # how many aliphatic chains this molecule has
             ccexp = (
+                    2
+                if not hg else
                     1
                 if hg.main in {'FA', 'MAG'} or lyso else
                     3
@@ -427,7 +430,7 @@ class LipidNameProcessor(object):
                 # SwissLipids adds `0:0` to lyso glycerolipids
                 ccexp += 1
             
-            if hg.main == 'BMP' and '0:0' in n:
+            if hg and hg.main == 'BMP' and '0:0' in n:
                 # SwissLipids shows 4 acyl residues for BMP
                 # 2 of them are `0:0`
                 ccexp = 4
@@ -447,7 +450,7 @@ class LipidNameProcessor(object):
         
         if hg in {'FA', 'FAL', 'FACoA'} and not chainsum:
             
-            for name0 in name.split('|'):
+            for name0 in names:
                 
                 chainsum, chains = self.fa_greek_cc(name0)
                 

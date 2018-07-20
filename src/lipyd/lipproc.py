@@ -44,6 +44,27 @@ class Chain(collections.namedtuple(
         return super(Chain, cls).__new__(
             cls, c, u, typ = typ, attr = attr, iso = iso
         )
+    
+    def __str__(self, iso = False):
+        
+        return '%s%s%u:%u%s%s' % (
+            # ether prefix
+            'O-' if self.attr.ether else '',
+            # sphingoid base prefix e.g. dCer(d38:1)
+            self.attr.sph,
+            # the carbon count
+            self.c,
+            # the unsaturation
+            self.u,
+            # isomer information
+            '(%s)' % ','.join(self.iso) if self.iso else '',
+            # postfix for hydroxylated fatty acyls e.g. PC(32:1-2OH)
+            '-%s' % '-'.join(self.attr.oh) if self.attr.oh else ''
+        )
+    
+    def isomer_str(self):
+        
+        return self.__str__(iso = True)
 
 
 Headgroup = collections.namedtuple(
@@ -55,10 +76,32 @@ Headgroup.__new__.__defaults__ = ((),)
 
 LipidLabel = collections.namedtuple(
     'LipidLabel',
-    ['cls', 'db_id', 'db', 'names']
+    ['db_id', 'db', 'names']
 )
 # names are empty tuple by default
 LipidLabel.__new__.defaults__ = ((),)
+
+
+class LipidRecord(collections.namedtuple(
+        'LipidRecordBase',
+        ['lab', 'hg', 'chainsum', 'chains']
+    )):
+    
+    def __new__(cls, lab, hg, chainsum, chains):
+        
+        return super(LipidRecord, cls).__new__(cls, lab, hg, chainsum, chains)
+    
+    def full_str(self):
+        
+        return full_str(self.hg, self.chains, iso = False)
+    
+    def summary_str(self):
+        
+        return summary_str(self.hg, self.chainsum)
+    
+    def subclass_str(self):
+        
+        return subclass_str(self.hg, self.chainsum)
 
 
 def empty_chain():
@@ -120,30 +163,42 @@ def summary_str(hg, chainsum):
     """
     
     subcls, sphingo_prefix, ether_prefix, p1, hydroxy = get_attributes(
-        hg, chaisum
+        hg, chainsum
     )
     
-    return '%s%s%s(%s%s%u:%u%s)' % (
+    return '%s%s%s(%s)' % (
         # subclass attributes like *PE*-Cer, *Lyso*-PC
         subcls,
         # main class of headgroup e.g. Cer, PS
         hg.main,
         # 1-O-phosphate group of Cer1P, Sph1P, etc
         p1,
-        # prefix of carbon counts at ether lipids e.g. PC(O-36:1)
-        'O-' if ether_prefix else '',
-        # sphingoid base prefix e.g. dCer(d38:1)
-        sphingo_prefix,
-        # the total carbon count
-        chainsum.c,
-        # the total unsaturation
-        chainsum.u,
-        # postfix for hydroxylated fatty acyls e.g. PC(32:1-2OH)
-        hydroxy
+        # chains summary
+        chainsum.__str__()
     )
 
 
-def subclass(hg, chainsum = None):
+def full_str(hg, chains, iso = False):
+    """
+    From a Headgroup and a tuple of Chain objects returns a 
+    """
+    
+    subcls, sphingo_prefix, ether_prefix, p1, hydroxy = get_attributes(
+        hg, sum_chains(chains)
+    )
+    
+    return '%s%s%s(%s)' % (
+        # subclass attributes like *PE*-Cer, *Lyso*-PC
+        subcls,
+        # main class of headgroup e.g. Cer, PS
+        hg.main,
+        # 1-O-phosphate group of Cer1P, Sph1P, etc
+        p1,
+        # chains
+        '/'.join(c.__str__(iso = iso) for c in chains)
+    )
+
+def subclass_str(hg, chainsum = None):
     """
     From Headgroup and summary Chain object creates a subclass level
     headgroup string.
@@ -169,7 +224,7 @@ def subclass(hg, chainsum = None):
     )
 
 
-def get_attributes(hg, chaisum = None):
+def get_attributes(hg, chainsum = None):
     """
     Processes a Headgroup and a summary Chain object and returns the
     name pre- and postfix string elements.
@@ -177,7 +232,7 @@ def get_attributes(hg, chaisum = None):
     
     chainsum = chainsum or empty_chain()
     
-    hydroxy = '-'.join(chainsum.attr.hydroxy)
+    hydroxy = '-'.join(chainsum.attr.oh)
     hydroxy = '-%s' % hydroxy if hydroxy else ''
     
     subcls  = '-'.join(i for i in hg.sub if i != '1P')

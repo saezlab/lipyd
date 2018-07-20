@@ -18,22 +18,97 @@
 import pytest
 
 import lipyd.name
+import lipyd.lipproc
+
 
 swl_names = {
     'Phosphatidylcholine(36:1)':
-        ('PC', ['', 36, 1], [], None),
-    'Phosphatidylcholine(18:1/18:0)':
-        ('PC', ['', 36, 1], [('', 18, 1), ('', 18, 0)], None)
+        (
+            lipyd.lipproc.Headgroup(main = 'PC', sub = ('',)),
+            lipyd.lipproc.Chain(
+                c = 36, u = 1, typ = None, iso = (),
+                attr = lipyd.lipproc.ChainAttr(
+                    sph = '', ether = False, oh = ()
+                )
+            ),
+            []
+        ),
+    'Phosphatidylinositol(18:1/18:0)':
+        (
+            lipyd.lipproc.Headgroup(main = 'PI', sub = ('',)),
+            lipyd.lipproc.Chain(
+                c = 36, u = 1, typ = None, iso = (),
+                attr = lipyd.lipproc.ChainAttr(
+                    sph = '', ether = False, oh = ()
+                )
+            ),
+            (
+                lipyd.lipproc.Chain(
+                    c = 18, u = 1, typ = 'FA', iso = (),
+                    attr = lipyd.lipproc.ChainAttr(
+                        sph = '', ether = False, oh = ()
+                    )
+                ),
+                lipyd.lipproc.Chain(
+                    c = 18, u = 0, typ = 'FA', iso = (),
+                    attr = lipyd.lipproc.ChainAttr(
+                        sph = '', ether = False, oh = ()
+                    )
+                )
+            )
+        )
 }
 
 lmp_names = {
     'Cer(t18:1/18:1)':
-        ('tCer', ['t', 36, 2], [('t', 18, 1), ('', 18, 1)], None),
-    'Cer(d18:1/18:1)':
-        ('dCer', ['d', 36, 2], [('d', 18, 1), ('', 18, 1)], None),
+        (
+            lipyd.lipproc.Headgroup(main='Cer', sub=('',)),
+            lipyd.lipproc.Chain(
+                c = 36, u = 2, typ = None, iso = (),
+                attr = lipyd.lipproc.ChainAttr(
+                    sph = 't', ether = False, oh = ()
+                )
+            ),
+            (
+                lipyd.lipproc.Chain(
+                    c = 18, u = 1, typ = 'Sph', iso = (),
+                    attr = lipyd.lipproc.ChainAttr(
+                        sph = 't', ether = False, oh = ()
+                    )
+                ),
+                lipyd.lipproc.Chain(
+                    c = 18, u = 1, typ = 'FA', iso = (),
+                    attr = lipyd.lipproc.ChainAttr(
+                        sph = '', ether = False, oh = ()
+                    )
+                )
+            )
+        ),
     'Cer(d18:0/18:1)':
-        ('DHCer', ['d', 36, 1], [('d', 18, 0), ('', 18, 1)], None)
+        (
+            lipyd.lipproc.Headgroup(main = 'Cer', sub = ('',)),
+            lipyd.lipproc.Chain(
+                c = 36, u = 1, typ = None, iso = (),
+                attr = lipyd.lipproc.ChainAttr(
+                    sph = 'DH', ether = False, oh = ()
+                )
+            ),
+            (
+                lipyd.lipproc.Chain(
+                    c = 18, u = 0, typ = 'Sph', iso = (),
+                    attr = lipyd.lipproc.ChainAttr(
+                        sph = 'DH', ether = False, oh = ()
+                    )
+                ),
+                lipyd.lipproc.Chain(
+                    c = 18, u = 1, typ = 'FA', iso = (),
+                    attr = lipyd.lipproc.ChainAttr(
+                        sph = '', ether = False, oh = ())
+                )
+            )
+        )
 }
+
 
 class TestName(object):
     
@@ -62,24 +137,56 @@ class TestName(object):
         self.nameproc.iso = True
         self.nameproc.database = 'lipidmaps'
         
-        assert (
-            self.nameproc.process(
-                'PE(16:0/18:1(9Z))-15-isoLG hydroxylactam'
-            ) ==
-            (
-                'PE',
-                ['', 34, 1],
-                [('', 16, 0), ('', 18, 1)],
-                [(('', 16, 0), '', False), (('', 18, 1), '9Z', False)]
+        pelghl = self.nameproc.process(
+            'PE(16:0/18:1(9Z))-15-isoLG hydroxylactam'
+        )
+        
+        pelghl_hg = lipyd.lipproc.Headgroup(main = 'PE', sub = ('LGHL',))
+        pelghl_chainsum = lipyd.lipproc.Chain(
+            c = 34, u = 1, typ = None, iso = (),
+            attr = lipyd.lipproc.ChainAttr(sph = '', ether = False, oh = ())
+        )
+        pelghl_chains = (
+            lipyd.lipproc.Chain(
+                c = 16, u = 0, typ = 'FA', iso = (),
+                attr = lipyd.lipproc.ChainAttr(
+                    sph = '', ether = False, oh = ()
+                )
+            ),
+            lipyd.lipproc.Chain(
+                c = 18, u = 1, typ = 'FA', iso = ('9Z',),
+                attr = lipyd.lipproc.ChainAttr(
+                    sph = '', ether = False, oh = ()
+                )
             )
         )
         
-        assert (
-            self.nameproc.process('FAHFA(16:0/10-O-18:0)') ==
-            (
-                'FA',
-                ['10-O', 34, 0],
-                [('', 16, 0), ('10-O', 18, 0)],
-                [(('', 16, 0), '', False), (('10-O', 18, 0), '', False)]
+        assert pelghl_hg == pelghl[0]
+        assert pelghl_chainsum == pelghl[1]
+        assert pelghl_chains == pelghl[2]
+        
+        fahfa = self.nameproc.process('FAHFA(16:0/10-O-18:0)')
+        
+        fahfa_hg = lipyd.lipproc.Headgroup(main='FAHFA', sub=('',))
+        fahfa_chainsum = lipyd.lipproc.Chain(
+            c = 34, u = 0, typ = None, iso = (),
+            attr = lipyd.lipproc.ChainAttr(sph='', ether=False, oh=())
+        )
+        fahfa_chains = (
+            lipyd.lipproc.Chain(
+                c = 16, u = 0, typ = 'FA', iso = (),
+                attr = lipyd.lipproc.ChainAttr(
+                    sph = '', ether = False, oh = ()
+                )
+            ),
+            lipyd.lipproc.Chain(
+                c = 18, u = 0, typ = 'FA', iso = (),
+                attr = lipyd.lipproc.ChainAttr(
+                    sph = '', ether = False, oh = ()
+                )
             )
         )
+        
+        assert fahfa_hg == fahfa[0]
+        assert fahfa_chainsum == fahfa[1]
+        assert fahfa_chains == fahfa[2]

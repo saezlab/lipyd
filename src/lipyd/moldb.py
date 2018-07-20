@@ -360,38 +360,28 @@ class SwissLipids(Reader):
                         
                         self.index[n].add(offset)
                     
-                    hg, cc1, cc2, icc = self.nameproc.process(names)
+                    hg, chainsum, chains = self.nameproc.process(names)
                     
                     if hg:
                         
                         self.hg_index[hg].add(offset)
                     
-                    if cc1:
+                    if chainsum:
                         
                         self.species_index[
-                            '%s(%s)' % (hg, cc2str(cc1))
+                            lipproc.summary_str(hg, chainsum)
                         ].add(offset)
                     
-                    if cc2:
+                    if chains:
                         
                         self.subspec_index[
-                            '%s(%s)' % (
-                                hg,
-                                '/'.join(cc2str(a) for a in cc2)
-                            )
+                            lipproc.full_str(hg, chains)
                         ].add(offset)
                     
-                    if icc:
+                    if chains:
                         
                         self.isomer_index[
-                            '%s(%s)' % (
-                                hg,
-                                '/'.join('%s(%s)%s' % (
-                                    cc2str(a[0]),
-                                    a[1],
-                                    '-2OH' if a[2] else ''
-                                ) for a in icc)
-                            )
+                            lipproc.full_str(hg, chains, iso = True)
                         ].add(offset)
                 
                 offset = self._gzfile.tell()
@@ -472,7 +462,7 @@ class SwissLipids(Reader):
         
         mol.db_id = record[0]
         mol.name  = record[3]
-        mol.title = '|'.join(record[2:5])
+        mol.title = tuple(record[2:5])
         mol.chebi = record[24] if len(record) > 24 else ''
         mol.lipidmaps = record[25] if len(record) > 25 else ''
         mol.hmdb = record[26] if len(record) > 26 else ''
@@ -542,30 +532,21 @@ class SwissLipids(Reader):
             if not mol.swl_exact_mass:
                 continue
             
-            stdname = self.nameproc.process(mol.title)
-            name_main = stdname[0] if stdname[0] else mol.name
-            name_full = '%s%s' % (
-                name_main,
-                '(%s%u:%u)' % tuple(stdname[1]) if stdname[1] else ''
+            hg, chainsum, chains = self.nameproc.process(mol.title)
+            
+            rec = lipproc.LipidRecord(
+                lab = lipproc.LipidLabel(
+                    db_id = mol.db_id,
+                    db    = 'SwissLipids',
+                    names = mol.title,
+                ),
+                hg = hg,
+                chainsum = chainsum,
+                chains = chains
             )
             
-            line = [
-                name_main, # name stem (lipid class)
-                name_full, # name with prefix, and sum cc and unsat
-                mol.title, # all names
-                mol.db_id, # database ID
-                'SwissLipids' # database name
-            ]
-            
-            for i in xrange(3):
-                
-                line.extend(
-                        stdname[2][i]
-                    if len(stdname[2]) > i else
-                        (np.nan, np.nan, np.nan)
-                )
-            
-            yield mol.swl_exact_mass or np.nan, line
+            # yielding mass and record
+            yield mol.swl_exact_mass or np.nan, rec
     
     def __del__(self):
         

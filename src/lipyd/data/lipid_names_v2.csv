@@ -6,6 +6,7 @@ PC	Lyso		Lysophosphatidylcholine	ysophosphatidylcholine	lysophosphocholine;!phin
 PC			Phosphatidylcholine	hosphatidylcholine;!yso	PC;!0:0|phosphocholine;!phing;!yso;!/0:0;!gluc;!manno	[M+H]+	[M+HCOO]-
 PE	Lyso		Lysophosphatidylethanolamine	ysophosphatidylethanolamine	ysophosphoethanolamine;!eramide|PE;/0:0	[M+H]+	[M-H]-
 PE			Phosphatidylethanolamine	hosphatidylethanolamine;!yso	PE;!/0:0;!Cer;!NA;!isoLG|phosphoethanolamine;!eramide;!yso;!/0:0;!N-;!yrro;!lact;!cald	[M+H]+	[M-H]-
+PE	LGHL		Phosphatidylethanolamine-isolevuglandin-hydroxylactam		PE;isoLG;hydroxylactam	ND	ND
 PE	NA		N-acyl-phosphatidylethanolamine		NAPE|phosphoethanolamine;N-;!eramide;!sphing	ND	ND
 Cer	PE		Ceramide-phosphoethanolamine	PE-Cer|eramide;phosphoethanolamine	PE-Cer	ND	ND
 Cer	PI		Ceramide-phosphoinositol		PI-Cer	ND	ND
@@ -36,3 +37,4 @@ Sph			Shingosine		phinganine;!manno;!inos|phingenine;!manno;!inos|phingosine;!ma
 PGP			Phosphatidylglycerophosphate	Phosphatidylglycerophosphate		ND	ND
 MAG			Monoacylglycerol	onoacylglyc;!Bis;!alk;!cholin;!inosit;!ethanolam		ND	ND
 P40			Nonidet-P-40	Nonidet		[M+NH4]+	ND
+FAHFA			Fatty acyl-OH-fatty acyl ester		FAHFA	ND	ND
