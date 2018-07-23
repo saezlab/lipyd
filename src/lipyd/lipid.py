@@ -943,7 +943,6 @@ class AbstractCeramide(AbstractSphingolipid):
             #)
         
         hg = hg or lipproc.Headgroup(main = 'Cer')
-        print(hg)
         
         AbstractSphingolipid.__init__(
             self,

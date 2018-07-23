@@ -5502,6 +5502,8 @@ class Screening(object):
     def ms2_map(self, proteins = None, silent = False):
         """
         Maps offsets of the beginning of each scan in MS2 mgf files.
+        
+        Calls ms2_index for each protein, ion mode and fractions.
         """
         stRpos = 'pos'
         stRneg = 'neg'

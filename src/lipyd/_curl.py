@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2015-2016 - EMBL-EBI
+#  Copyright (c) 2015-2018 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -90,6 +90,7 @@ except:
 from contextlib import closing
 
 import lipyd.progress as progress
+import lipyd.session as session
 
 if 'unicode' not in globals():
     unicode = str
@@ -99,6 +100,7 @@ ERASE_LINE = '\x1b[2K'
 CACHE = None
 
 show_cache = False
+
 
 class cache_on(object):
     
@@ -170,6 +172,7 @@ class RemoteFile(object):
                     for line in f:
                         yield line
 
+
 class Curl(object):
     
     def __init__(self,
@@ -184,6 +187,9 @@ class Curl(object):
         sftp_port = 22, sftp_host = None, sftp_ask = None,
         setup = True, call = True, process = True,
         retries = 3, cache_dir = 'cache'):
+        
+        self.session = session.get_session()
+        self.log = self.session.log
         
         self.result = None
         self.download_failed = False
@@ -239,7 +245,7 @@ class Curl(object):
                 if call:
                     self.curl_call()
         elif not self.silent:
-            sys.stdout.write('\t:: Loading data from cache '\
+            self.log.msg('\t:: Loading data from cache '\
                 'previously downloaded from %s\n' % self.domain)
             sys.stdout.flush()
         if process and not self.download_failed:
@@ -268,7 +274,7 @@ class Curl(object):
     
     def print_debug_info(self, msg):
         msg = self.bytes2unicode(msg)
-        sys.stdout.write('\n\t%s\n' % msg)
+        self.log.msg('\n\t%s\n' % msg)
         sys.stdout.flush()
     
     def process_url(self):
@@ -724,7 +730,7 @@ class Curl(object):
                     self.outfile
                 )
             )
-            sys.stdout.write('\n')
+            self.log.msg('\n')
             sys.stdout.flush()
     
     def print_status(self, status):
@@ -733,8 +739,8 @@ class Curl(object):
         if self.debug:
             self.print_debug_info(status)
         elif not self.silent:
-            sys.stdout.write('\r%s' % (' ' * 150))
-            sys.stdout.write('\r\t:: %s' % status)
+            self.log.msg('\r%s' % (' ' * 150))
+            self.log.msg('\r\t:: %s' % status)
             sys.stdout.flush()
     
     # sftp part:
@@ -757,7 +763,7 @@ class Curl(object):
                 self.sftp_user = f.readline().strip()
                 self.passwd = f.readline().strip()
             return None
-        sys.stdout.write(self.sftp_ask)
+        self.log.msg(self.sftp_ask)
         sys.stdout.flush()
         while True:
             self.user = raw_input('\n\tUsername: ')

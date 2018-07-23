@@ -20,46 +20,62 @@ import re
 import imp
 import numpy as np
 
+import lipyd.lookup as lookup
+import lipyd.session as session
+
+
 class MgfReader(object):
     
-    def __init__(self, fname, charge = 1, name_callback = lambda x: {}):
+    stRrtinseconds = 'RTINSECONDS'
+    stRtitle = 'TITLE'
+    stRbe = 'BE'
+    stRen = 'EN'
+    stRch = 'CH'
+    stRpepmass = 'PEPMASS'
+    stRempty = ''
+    reln = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
+    
+    def __init__(
+            self,
+            fname,
+            label = None,
+            charge = 1,
+            rt_tolerance = 1.0,
+            drift = 1.0
+        ):
+        """
+        Provides methods for looking up MS2 scans from an MGF file.
+        """
         
-        self.fname = fname
-        self.process_name = name_callback
-        self.charge_to_read = charge
-        
-        for k, v in self.process_name(os.path.split(self.fname)[-1]):
-            
-            setattr(self, k, v)
-        
-        self.var = ['mz', 'intensity', 'rtime', 'scan', 'charge', 'offset']
+        self.fname  = fname
+        self.label  = label
+        self.charge = charge
+        self.rt_tolerance = rt_tolerance
+        self.drift  = drift
+        self.index()
     
     def reload(self):
+        
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
-    def read(self):
+    def index(self):
         """
-        Reads MS1 data from MGF file.
-        Indexes offsets of MS2 scans with purpose of later reading.
+        Indexing offsets in one MS2 MGF file.
+        
+        Columns:
+            -- pepmass
+            -- intensity
+            -- retention time
+            -- scan num
+            -- offset in file
+            -- fraction num
         """
         
-        stRrtinseconds = 'RTINSECONDS'
-        stRtitle = 'TITLE'
-        stRbe = 'BE'
-        stRen = 'EN'
-        stRch = 'CH'
-        stRpepmass = 'PEPMASS'
-        stRempty = ''
-        reln = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
-        renondigit = re.compile(r'[^\d\.-]+')
-        for var in self.var:
-            
-            setattr(self, var, [])
-
+        features = []
         offset = 0
         cap_next = False
         
@@ -69,53 +85,81 @@ class MgfReader(object):
                 
                 l = l.decode('ascii')
                 
-                if not l[0].isdigit() and \
-                    not l[:2] == stRbe and not l[:2] == stRen:
+                if (
+                    not l[0].isdigit() and
+                    not l[:2] == self.stRbe and
+                    not l[:2] == self.stRen
+                ):
                     
-                    if not l[:2] == stRch:
+                    if not l[:2] == self.stRch:
                         
                         try:
-                            m = reln.match(l).groups()
+                            
+                            m = self.reln.match(l).groups()
+                            
                         except:
-                            print(fl, l)
+                            
+                            sys.stdout.write(
+                                'Line in MGF file `%s`'
+                                'could not be processed: '
+                                '\n\t`%s`\n' % (fl, l)
+                            )
                             continue
                         
-                        if m[0] == stRtitle:
-                            scan = int(m[1])
+                        if m[0] == self.stRtitle:
+                            
+                            scan = float(m[1])
                         
-                        if m[0] == stRrtinseconds:
+                        if m[0] == self.stRrtinseconds:
+                            
                             rtime = float(m[1]) / 60.0
                         
-                        if m[0] == stRpepmass:
+                        if m[0] == self.stRpepmass:
+                            
                             pepmass = float(m[1])
-                            intensity = 0.0 if m[2] == stRempty else float(m[2])
+                            intensity = (
+                                0.0
+                                    if m[2] == self.stRempty else
+                                float(m[2])
+                            )
+                            
+                            if self.charge is None:
+                                
+                                cap_next = True
                         
                     else:
-                        charge = int(l[7:-2]) if len(l) >= 8 else None
-                        if (self.charge_to_read is None or
-                            charge == self.charge_to_read):
-                            
+                        _charge = int(l[7]) if len(l) >= 8 else None
+                        if self.charge is None or _charge == self.charge:
                             cap_next = True
                 
                 elif cap_next:
                     
-                    self.mz.append(pepmass)
-                    self.intensity.append(intensity)
-                    self.rtime.append(rtime)
-                    self.scan.append(scan)
-                    self.charge.append(
-                        charge if charge is not None else np.nan
-                    )
-                    self.offset.append(offset)
+                    features.append([
+                        pepmass, # precursor ion mass
+                        intensity, # intensity
+                        rtime, # retention time
+                        scan, # scan ID
+                        offset, # byte offset in file
+                        self.label # fraction ID
+                    ])
+                    # reset all values
                     scan = None
                     rtime = None
                     intensity = None
                     pepmass = None
-                    charge = None
+                    _charge = None
                     cap_next = False
                 
                 offset += len(l)
         
-        for var in self.var:
-            
-            setattr(self, var, np.array(getattr(self, var)))
+        # sorted by precursor mass
+        self.mgfindex = np.array(sorted(features, key = lambda x: x[0]))
+    
+    def lookup(self, mz, rt = None):
+        """
+        Looks up an MS1 m/z and returns MS2 scans.
+        """
+        
+        mz_uncorr = mz / self.drift
+        
+        idx = lookup.findall(self.mgfindex[:,0], mz)

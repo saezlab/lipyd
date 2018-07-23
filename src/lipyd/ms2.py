@@ -28,6 +28,9 @@ import imp
 import math
 
 from lipyd.common import *
+import lipyd.mgf as mgf
+import lipyd.session as session
+
 
 class MS2Feature(object):
     """
@@ -2917,10 +2920,3 @@ class MS2Scan(object):
     def pc_pos(self, hg):
         return self.mz_most_abundant_fold(184.0733, 3) \
             and self.fa_ccs_agree_ms1(hg, head = 4)
-
-
-class MS2File(object):
-    
-    def __init__(self):
-        
-        pass

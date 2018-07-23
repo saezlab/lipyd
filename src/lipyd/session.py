@@ -58,6 +58,11 @@ def get_session():
     return sys.modules[__name__].session
 
 
+def get_log():
+    
+    return get_session().log
+
+
 def new_session(label = None, log_verbosity = 0):
     
     mod = sys.modules[__name__]
