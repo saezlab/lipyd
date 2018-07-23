@@ -205,7 +205,7 @@ def subclass_str(hg, chainsum = None):
     """
     
     subcls, sphingo_prefix, ether_prefix, p1, hydroxy = get_attributes(
-        hg, chaisum
+        hg, chainsum
     )
     
     return '%s%s%s%s%s%s' % (

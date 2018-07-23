@@ -25,6 +25,7 @@ import lipyd.metabolite as metabolite
 import lipyd.substituent as substituent
 import lipyd.formula as formula
 import lipyd.common as common
+import lipyd.lipproc as lipproc
 
 # will be further populated
 sphingolipids = [
@@ -61,6 +62,7 @@ class AbstractGlycerol(metabolite.AbstractMetabolite):
             charge = None,
             pcharge = 0,
             ncharge = 0,
+            hg = None,
             name = 'Glycerol',
             typ  = 'G',
             **kwargs
@@ -74,6 +76,7 @@ class AbstractGlycerol(metabolite.AbstractMetabolite):
             self.pcharge - self.ncharge
         )
         self.typ = typ
+        hg = hg or lipproc.Headgroup(main = name)
         
         metabolite.AbstractMetabolite.__init__(
             self,
@@ -85,6 +88,7 @@ class AbstractGlycerol(metabolite.AbstractMetabolite):
             ],
             charge = self.netcharge,
             name = name,
+            hg = hg,
             **kwargs
         )
 
@@ -104,6 +108,7 @@ class AbstractGlycerolipid(AbstractGlycerol):
             fa_args = None,
             name = 'GL',
             getname = None,
+            hg = None,
             typ  = None,
             sn3_fa = False,
             lyso_sn1_fa = True,
@@ -267,6 +272,7 @@ class Phosphatidylethanolamine(AbstractGlycerolipid):
             headgroup = 'C2H4NH2',
             name = 'PE',
             typ  = 'PE',
+            hg = lipproc.Headgroup('PE'),
             pcharge = 1,
             ncharge = 1,
             **kwargs
@@ -556,7 +562,7 @@ class GlycerolipidFactory(object):
         
         mod = sys.modules[__name__]
         
-        for (hg, name, phospho), ether, lyso in itertools.product(
+        for (headgroup, name, phospho), ether, lyso in itertools.product(
                 l_classes, l_ether, l_lyso
             ):
             
@@ -573,13 +579,13 @@ class GlycerolipidFactory(object):
             
             if not phospho:
                 
-                faa = hg
+                faa = headgroup
                 sn1_ether = not faa[0]
                 sn2_ether = not faa[1] if len(faa) > 1 else False
                 sn3_ether = not faa[2] if len(faa) > 2 else False
                 lyso = len(faa) == 1
                 sn3_fa = len(faa) == 3
-                hg = 'H'
+                headgroup = 'H'
                 child = self.gl_class_name(faa)
                 
             else:
@@ -601,10 +607,14 @@ class GlycerolipidFactory(object):
                     '        sn2_ether = %s,\n'
                     '        sn3_ether = %s,\n'
                     '        sn3_fa = %s,\n'
+                    '        hg = lipproc.Headgroup(\n'
+                    '            main = \'%s\',\n'
+                    '            sub = (%s)\n'
+                    '        ),\n'
                     '        **kwargs\n'
                     '        )\n'
                 ) % (
-                    hg,
+                    headgroup,
                     '%s%s' % ('Lyso' if phospho and lyso else '', name),
                     str(phospho),
                     str(lyso),
@@ -612,7 +622,9 @@ class GlycerolipidFactory(object):
                     str(sn1_ether),
                     str(sn2_ether),
                     str(sn3_ether),
-                    str(sn3_fa)
+                    str(sn3_fa),
+                    name,
+                    '\'Lyso\',' if lyso else ''
                 ),
                 mod.__dict__,
                 mod.__dict__
@@ -685,6 +697,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             dihydro = False,
             name = 'Sphingolipid',
             typ  = 'SL',
+            hg = None,
             getname = None,
             **kwargs
         ):
@@ -749,6 +762,8 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 )
             )
         
+        hg = hg or lipproc.Headgroup(main = name)
+        
         metabolite.AbstractMetabolite.__init__(
             self,
             core = '',
@@ -758,6 +773,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 self.get_substituent(o)
             ],
             name = name,
+            hg = hg,
             charge = self.charge,
             getname = getname or _getname,
             **kwargs
@@ -892,6 +908,7 @@ class AbstractCeramide(AbstractSphingolipid):
             t = False,
             dihydro = False,
             name = 'Cer',
+            hg = None,
             getname = None,
             **kwargs
         ):
@@ -925,6 +942,9 @@ class AbstractCeramide(AbstractSphingolipid):
                 #)
             #)
         
+        hg = hg or lipproc.Headgroup(main = 'Cer')
+        print(hg)
+        
         AbstractSphingolipid.__init__(
             self,
             o = o,
@@ -934,6 +954,7 @@ class AbstractCeramide(AbstractSphingolipid):
             getname = getname,
             t = t,
             dihydro = dihydro,
+            hg = hg,
             **kwargs
         )
 
@@ -1091,14 +1112,14 @@ class CeramideFactory(object):
         l_t = [True, False]
         l_fa_hydroxy = [True, False]
         l_classes = [
-            ('PO3H2', 'CerP'),
-            ('C12H21O10SO3', 'SHex2-Cer'),
-            ('C6H11O5SO3', 'SHex-Cer'),
-            ('C12H21O10', 'Hex2-Cer'),
-            ('C6H11O5', 'Hex-Cer'),
-            ('PO3C2H4NC3H9', 'SM'),
-            ('PO3C2H4NH3', 'PE-Cer'),
-            (None, 'CerA')
+            ('PO3H2', 'Cer', ('1P',)),
+            ('C12H21O10SO3', 'Cer', ('SHex2',)),
+            ('C6H11O5SO3', 'Cer', ('SHex',)),
+            ('C12H21O10', 'Cer', ('Hex2',)),
+            ('C6H11O5', 'Cer', ('Hex',)),
+            ('PO3C2H4NC3H9', 'SM', ()),
+            ('PO3C2H4NH3', 'Cer', ('PE',)),
+            (None, 'Cer', ('1OAcyl',))
             
         ]
         l_dihydro = [True, False]
@@ -1257,7 +1278,7 @@ class CeramideFactory(object):
         
         mod = sys.modules[__name__]
         
-        for t, fa_hydroxy, dihydro, (o, name) in itertools.product(
+        for t, fa_hydroxy, dihydro, (o, name, subtype) in itertools.product(
                 l_t, l_fa_hydroxy, l_dihydro, l_classes
             ):
             
@@ -1265,7 +1286,9 @@ class CeramideFactory(object):
                 
                 continue
             
-            parent, child = self.class_name(name, t, dihydro, fa_hydroxy, o)
+            parent, child = self.class_name(
+                name, subtype, t, dihydro, fa_hydroxy, o
+            )
             
             exec(
                 (
@@ -1275,6 +1298,10 @@ class CeramideFactory(object):
                     '        self,\n'
                     '        o = %s,\n'
                     '        name = \'%s\',\n'
+                    '        hg = lipproc.Headgroup(\n'
+                    '            main = \'%s\',\n'
+                    '            sub = %s\n'
+                    '        ),\n'
                     '        **kwargs\n'
                     '        )\n'
                 ) % (
@@ -1295,7 +1322,9 @@ class CeramideFactory(object):
                     else '',
                     parent,
                     'fa1o' if o is None else '\'%s\'' % o,
-                    name
+                    name,
+                    name,
+                    str(subtype),
                 ),
                 mod.__dict__,
                 mod.__dict__
@@ -1317,35 +1346,35 @@ class CeramideFactory(object):
         
         delattr(mod, '__init__')
     
-    def class_name(self, name, t, dihydro, hydroxyacyl, o):
+    def class_name(self, name, subtype, t, dihydro, hydroxyacyl, o):
         
         dt = 'T' if t else 'D' if not dihydro else ''
         
         maintype = '%s%s' % (
-            'Ceramide' if 'Cer' in name else 'Sphingomyelin',
+            'Ceramide' if name == 'Cer' else 'Sphingomyelin',
             dt
         )
         
         parmaintype = 'Ceramide%s' % dt
         
-        subtype = '%s%s' % (
+        sub1 = '%s%s' % (
             'Hydroxyacyl' if hydroxyacyl else '',
             'Dihydro' if dihydro else ''
         )
         
-        parent = '%s%s' % (subtype, parmaintype)
+        parent = '%s%s' % (sub1, parmaintype)
         
         child = '%s%s%s%s%s' % (
-                subtype,
-                'Sulfo' if 'SHex' in name else '',
+                sub1,
+                'Sulfo' if any('SHex' in s for s in subtype) else '',
                 'DiHexosyl'
-                    if 'Hex2' in name
-                    else 'Hexosyl' if 'Hex' in name
+                    if any('Hex2' in s for s in subtype)
+                    else 'Hexosyl' if any('Hex' in s for s in subtype)
                     else '',
                 maintype,
                 'Phosphoethanolamine'
-                    if 'PE-Cer' in name
-                    else 'Phosphate' if 'CerP' in name
+                    if 'PE' in subtype
+                    else 'Phosphate' if '1P' in subtype
                     else '1OAcyl' if o is None
                     else ''
             )

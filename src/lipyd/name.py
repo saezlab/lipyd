@@ -216,7 +216,12 @@ class LipidNameProcessor(object):
         
         chains = []
         
-        if ccexp and cc2 and cc2[(ccexp - 1) * _g + 1]:
+        if (
+            ccexp and
+            cc2 and
+            cc2[(ccexp - 1) * _g + 1] and
+            cc2[(ccexp - 1) * _g + 2]
+        ):
             
             for i in range(ccexp):
                 

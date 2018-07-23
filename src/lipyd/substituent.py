@@ -16,11 +16,14 @@
 #
 
 import lipyd.metabolite as metabolite
+import lipyd.lipproc as lipproc
 
 
 class FattyAcyl(metabolite.AbstractSubstituent):
     
     def __init__(self, c = (2, 36), u = (0, 10), counts = None, **kwargs):
+        
+        chain_attr = lipproc.ChainAttr()
         
         metabolite.AbstractSubstituent.__init__(
             self,
@@ -28,6 +31,8 @@ class FattyAcyl(metabolite.AbstractSubstituent):
             counts = counts or {'H': -2},
             c = c,
             u = u,
+            chain_attr = chain_attr,
+            chain_type = 'FA',
             **kwargs
         )
 
@@ -42,6 +47,8 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
             **kwargs
         ):
         
+        chain_attr = lipproc.ChainAttr(oh = ('2OH',))
+        
         metabolite.AbstractSubstituent.__init__(
             self,
             cores = ['O'],
@@ -49,6 +56,8 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
             c = c,
             u = u,
             prefix = '2OH',
+            chain_attr = chain_attr,
+            chain_type = 'FA',
             **kwargs
         )
 
@@ -57,6 +66,8 @@ class FattyAlkoxy(metabolite.AbstractSubstituent):
     
     def __init__(self, c = (2, 36), u = (0, 10), counts = None, **kwargs):
         
+        chain_attr = lipproc.ChainAttr(ether = True)
+        
         metabolite.AbstractSubstituent.__init__(
             self,
             cores = [''],
@@ -64,6 +75,8 @@ class FattyAlkoxy(metabolite.AbstractSubstituent):
             c = c,
             u = u,
             prefix = 'O-',
+            chain_attr = chain_attr,
+            chain_type = 'FAL',
             **kwargs
         )
 
@@ -89,30 +102,49 @@ class Sphingosine(metabolite.AbstractSubstituent):
         
         if keto:
             counts['H'] = counts['H'] - 2 if 'H' in counts else -2
+            prefix = 'k'
+        
+        chain_attr = lipproc.ChainAttr(sph = prefix)
         
         metabolite.AbstractSubstituent.__init__(
-            self, cores = ['O2N'], counts = counts, c = c, u = u,
-            prefix = prefix, **kwargs
+            self,
+            cores = ['O2N'],
+            counts = counts,
+            c = c,
+            u = u,
+            chain_attr = chain_attr,
+            chain_type = 'Sph',
+            prefix = prefix,
+            **kwargs
         )
     
     def get_prefix(self):
         
         return 'DH' if self.u == 0 and self.prefix == 'd' else self.prefix
 
-
 class DihydroSphingosine(Sphingosine):
     
     def __init__(self, c = (12, 24), u = (0, 6), counts = None, **kwargs):
         
         Sphingosine.__init__(
-            self, c = c, u = u, counts = counts or {}, prefix = 'DH', **kwargs
+            self,
+            c = c,
+            u = u,
+            counts = counts or {},
+            prefix = 'DH',
+            **kwargs
         )
 
 
 class HydroxySphingosine(Sphingosine):
     
-    def __init__(self, c = (12, 24), u = (0, 6), counts = None):
+    def __init__(self, c = (12, 24), u = (0, 6), counts = None, **kwargs):
         
         Sphingosine.__init__(
-            self, c = c, u = u, counts = counts or {'O': 1}, prefix = 't'
+            self,
+            c = c,
+            u = u,
+            counts = counts or {'O': 1},
+            prefix = 't',
+            **kwargs
         )

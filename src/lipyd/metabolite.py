@@ -29,6 +29,7 @@ import copy
 import numpy as np
 
 import lipyd.formula as formula
+import lipyd.lipproc as lipproc
 
 
 class AbstractMetaboliteComponent(formula.Formula):
@@ -81,6 +82,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             charge = 0,
             isotope = 0,
             name = 'Unknown',
+            hg = None,
             getname = lambda parent, subs:
                 '%s(%s)' % (
                     parent.name,
@@ -116,6 +118,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         self.subs = subs or []
         self.sum_only = sum_only
         self.sub0 = None
+        self.hg = hg
     
     def __iter__(self):
         
@@ -166,7 +169,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             
             self.inst = functools.reduce(
                 operator.add,
-                itertools.chain([self], (s for s in subs))
+                itertools.chain((self,), (s for s in subs))
             )
             self.inst.name = self.inst_name
             
@@ -181,57 +184,30 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             
             full_name = inst.getname()
             
-            ccpart = []
-            
-            prfx = []
-            csum = 0
-            usum = 0
-            
-            for i, sub in enumerate(subs):
-                
-                if self.has_variable_aliphatic_chain(self.subs[i]):
-                    
-                    prfx.append(sub.get_prefix())
-                    csum += sub.c
-                    usum += sub.u
-                    
-                    ccpart.extend([
-                        sub.get_prefix(),
-                        sub.c,
-                        sub.u
-                    ])
-            
-            prfx = ''.join(prfx)
-            
-            ccsum = [
-                prfx if csum > 0 else np.nan,
-                csum if csum > 0 else np.nan,
-                usum if usum > 0 else np.nan
-            ]
-            
-            prfx = '' if prfx in self.name else prfx
-            name = self.name.split('-')
-            name = '%s%s%s' % (
-                '%s-' % name[0] if len(name) > 1 else '',
-                prfx,
-                name[1] if len(name) > 1 else name[0]
+            chains = tuple(
+                s.attrs.chain for s in subs if hasattr(s.attrs, 'chain')
+            )
+            chainsum = lipproc.sum_chains(chains)
+            name = (
+                (lipproc.summary_str(self.hg, chainsum),)
+                    if self.hg and self.sum_only else
+                (lipproc.full_str(self.hg, chains),)
+                    if self.hg and not self.sum_only else
+                ()
+            )
+            lab = lipproc.LipidLabel(
+                db_id = None,
+                db = 'lipyd.lipid',
+                names = name
+            )
+            rec = lipproc.LipidRecord(
+                lab = lab,
+                hg  = self.hg,
+                chainsum = chainsum,
+                chains = () if self.sum_only else chains
             )
             
-            # full_name twice, the second in place of
-            # database provided names
-            # 4th value is empty string in place of database ID
-            # 5th value is the source of the record (database name)
-            identity = [name, full_name, full_name, '', 'lipyd']
-            
-            identity.extend(ccsum)
-            identity.extend(ccpart)
-            
-            # TODO: do not assume here max 3 substituents with
-            # variable aliphatic chain
-            # as this is lipid specific
-            identity.extend([np.nan] * (17 - len(identity)))
-            
-            yield inst.mass, tuple(identity)
+            yield inst.mass, rec
     
     def itersum(self):
         """
@@ -291,7 +267,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         For iterating with considering only total carbon count and
         unsaturation accross all aliphatic chains, we pretend that
         all extra carbons and unsaturations are added to the first
-        substituent with vatriable aliphatic chain, e.g. it may
+        substituent with variable aliphatic chain, e.g. it may
         have C54 while in reality it has max C18 and the other 36
         carbons are in the other chains. After setting these fake
         numbers on the first substituent we need to restore the
@@ -326,6 +302,8 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             charges = 0,
             isotopes = 0,
             names = 'Unknown',
+            chain_attr = None,
+            chain_type = None,
             getname = lambda parent: '%u:%u' % (parent.c, parent.u),
             c_u_diff = lambda c, u: c > u + 1,
             prefix = '',
@@ -420,6 +398,9 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                 self.chlens[0] == 0
             )
         )
+        
+        self.chain_attr = chain_attr
+        self.chain_type = chain_type
     
     def __iter__(self, cores_only = False):
         
@@ -453,6 +434,15 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     for k, v in iteritems(new_attrs.__dict__):
                         if hasattr(v, '__call__'):
                             setattr(new_attrs, k, v(self))
+                    
+                    if self.chain_type and self.chain_attr:
+                        
+                        new_attrs.chain = lipproc.Chain(
+                            c = c,
+                            u = u,
+                            typ = self.chain_type,
+                            attr = self.chain_attr
+                        )
                     
                     new = self + formula.Formula(**new_counts)
                     

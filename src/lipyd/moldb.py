@@ -191,34 +191,20 @@ class LipidMaps(sdf.SdfReader):
                     n.strip() for n in rec['name']['SYNONYMS'].split(';')
                 )
             
-            stdname = self.nameproc.process('|'.join(names))
-            name_main = stdname[0] or (
-                rec['name']['COMMON_NAME']
-                    if 'COMMON_NAME' in rec['name'] else
-                rec['name']['SYSTEMATIC_NAME']
+            hg, chainsum, chains = self.nameproc.process(names)
+            
+            liprec = lipproc.LipidRecord(
+                lab = lipproc.LipidLabel(
+                    db_id = rec['id'],
+                    db    = 'LipidMaps',
+                    names = tuple(names),
+                ),
+                hg  = hg,
+                chainsum = chainsum,
+                chains = chains,
             )
-            name_full = '%s%s' % (
-                name_main,
-                '(%s%u:%u)' % tuple(stdname[1]) if stdname[1] else ''
-            )
             
-            line = [
-                name_main, # name stem (lipid class)
-                name_full, # name with prefix, and sum cc and unsat
-                '|'.join(names),
-                rec['id'], # database ID
-                'LipidMaps' # database name
-            ]
-            
-            for i in xrange(3):
-                
-                line.extend(
-                        stdname[2][i]
-                    if len(stdname[2]) > i else
-                        (np.nan, np.nan, np.nan)
-                )
-            
-            yield exmass, line
+            yield exmass, liprec
 
 
 class SwissLipids(Reader):
