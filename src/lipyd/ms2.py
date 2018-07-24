@@ -30,6 +30,57 @@ import math
 from lipyd.common import *
 import lipyd.mgf as mgf
 import lipyd.session as session
+import lipyd.fragdb as fragdb
+
+
+class ScanBase(object):
+    
+    def __init__(
+            self,
+            mzs,
+            precursor = None,
+            intensities = None
+        ):
+        
+        self.mzs = mzs
+        self.intensities = intensities or np.array([np.nan] * len(self.mzs))
+        self.precursor = precursor
+        
+        if self.mzs is not np.ndarray:
+            
+            self.mzs = np.array(self.mzs)
+        
+        if self.intensities is not np.ndarray:
+            
+            self.intensities = np.array(self.intensities)
+    
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+    
+    def sort_mz(self):
+        """
+        Sorts the scan by m/z values ascending.
+        """
+        
+        isort = np.argsort(self.mzs)
+        self.intensities = self.intensities[isort]
+        self.mzs = self.mzs[isort]
+    
+    def sort_intensity(self):
+        """
+        Sorts the scan by intensities descending.
+        """
+        
+        isort = np.argsort(self.intensities)[::-1]
+        self.intensities = self.intensities[isort]
+        self.mzs = self.mzs[isort]
+    
+    def 
 
 
 class MS2Feature(object):

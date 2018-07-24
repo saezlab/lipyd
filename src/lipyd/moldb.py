@@ -569,7 +569,8 @@ class MoleculeDatabaseAggregator(object):
             resources = None,
             tolerance = 20,
             fa_args = None,
-            sph_args = None
+            sph_args = None,
+            build = True
         ):
         """
         Builds a database of molecules and provides methods for look up by
@@ -599,6 +600,10 @@ class MoleculeDatabaseAggregator(object):
         
         self.fa_args  = fa_args or {'c': (4, 36), 'u': (0, 10)}
         self.sph_args = sph_args or {'c': (16, 22), 'u': (0, 1)}
+        
+        if build:
+            
+            self.build()
     
     def reload(self, children = False):
         

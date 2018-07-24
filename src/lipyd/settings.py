@@ -326,6 +326,7 @@ _defaults = {
     'deltart_threshold': 0.5,
     # Don't know what it is for
     'uniprots': None,
+    'mgf_example': 'example_mgf__2016-12-03_GLTPD1_pos_E07.mgf',
     # Method names to convert between adduct and exact masses
     'ad2ex': {
         1: {
@@ -400,7 +401,7 @@ in_basedir = ['fractionsf', 'ppfracf', 'seqfile',
     'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir']
 
 in_datadir = {
-    'pfragmentsfile', 'nfragmentsfile', 'lipnamesf'
+    'pfragmentsfile', 'nfragmentsfile', 'lipnamesf', 'mgf_example'
 }
 
 def reset_all():

@@ -5859,7 +5859,7 @@ class Screening(object):
     def ms2_lookup(self, protein, mode, ms1matches, verbose = False, outfile = None):
         """
         For the matching MS2 m/z's given, reads and identifies
-        the list of fragment.
+        the list of fragments.
         
         Columns in output arrays (15):
             # MS1 m/z, MS2 fragment m/z, MS2 fragment intensity, (0-2)
@@ -5909,8 +5909,10 @@ class Screening(object):
                 if frlab in files:
                     outfile.write('\t -- Have file for fraction %s\n' % frlab)
                 else:
-                    outfile.write('\t -- Do not have file for fraction %s; files: %s\n' % \
-                        (frlab, str(files.keys())))
+                    outfile.write(
+                        '\t -- Do not have file for fraction %s; files: %s\n' % \
+                        (frlab, str(files.keys()))
+                    )
             
             if (not self.ms2_only_protein_fractions or \
                 fractions[sample_i[fr]] == 1) and frlab in files:
@@ -5940,6 +5942,7 @@ class Screening(object):
                         mass = float(mi[0])
                         
                         intensity = float(mi[1]) if len(mi) > 1 else np.nan
+                        # !!! in mgf.MgfReader.get_scan() until here !!!
                         # matching fragment --- direct
                         ms2hit1 = self.ms2_identify(mass, fraglist,
                             compl = False)

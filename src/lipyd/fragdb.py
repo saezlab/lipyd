@@ -19,6 +19,8 @@ from __future__ import print_function
 from future.utils import iteritems
 from past.builtins import xrange, range, reduce
 
+import sys
+import imp
 import itertools
 import collections
 import copy
@@ -27,7 +29,8 @@ import numpy as np
 import lipyd.fragment as fragment
 import lipyd.formula as formula
 import lipyd.settings as settings
-import lipyd.lookup as lookup
+import lipyd.lookup as lookup_
+import lipyd.session as session
 
 
 class FragmentDatabaseAggregator(object):
@@ -316,14 +319,193 @@ class FragmentDatabaseAggregator(object):
         
         return self.fragments[i,:]
     
-    def lookup(self, mz):
+    def lookup(self, mz, nl = False):
         """
         Searches for fragments in the database matching the `mz` within the
         actual range of tolerance. To change the tolerance set the
         `tolerance` attribute to the desired ppm value.
+        
+        Args
+        ----
+        :param bool nl:
+            The m/z is a neutral loss.
         """
         
-        return self.fragments[
-            lookup.findall(self.fragments[:,0], mz, self.tolerance),
-            :
+        idx = lookup_.findall(self.fragments[:,0], mz, self.tolerance)
+        # filtering for NL or not NL
+        idx = [
+            i for i in idx
+            if (
+                nl and self.fragments[i, 5] == 0
+            ) or (
+                not nl and self.fragments[i, 5] != 0
+            )
         ]
+        
+        return self.fragments[idx,:]
+
+
+def init_db(ionmode, **kwargs):
+    """
+    Creates a fragment database.
+    """
+    
+    mod = sys.modules[__name__]
+    attr = 'db_%s' % ionmode
+    
+    setattr(mod, attr, FragmentDatabaseAggregator(ionmode, **kwargs))
+
+def get_db(ionmode, **kwargs):
+    """
+    Returns fragment database for the ion mode requested.
+    Creates a database with the keyword arguments provided if no database
+    has been initialized yet.
+    """
+    
+    mod = sys.modules[__name__]
+    attr = 'db_%s' % ionmode
+    
+    if not hasattr(mod, attr):
+        
+        init_db(ionmode, **kwargs)
+    
+    return getattr(mod, attr)
+
+def lookup(mz, ionmode, nl = False):
+    """
+    Looks up an m/z in the fragment database, returns all fragment identities
+    within range of tolerance.
+    
+    Args
+    ----
+    :param float mz:
+        Measured MS2 fragment m/z value.
+    :param str ionmode:
+        MS ion mode; `pos` or `neg`.
+    :param bool nl:
+        Look up charged ion or neutral loss m/z.
+    """
+    
+    db = get_db(ionmode)
+    return db.lookup(mz, nl = nl)
+
+def lookup_nl(mz, precursor, ionmode):
+    """
+    Looks up an MS2 neutral loss in the fragment database.
+    """
+    
+    nlmz = precursor - mz
+    
+    return lookup(nlmz, ionmode, nl = True)
+
+def lookup_pos(mz):
+    
+    return lookup(mz, 'pos')
+
+def lookup_neg(mz):
+    
+    return lookup(mz, 'neg')
+
+def lookup_pos_nl(mz, precursor):
+    
+    return lookup_nl(mz, precursor, 'pos')
+
+def lookup_neg_nl(mz, precursor):
+    
+    return lookup_nl(mz, precursor, 'neg')
+
+
+AnnotatedScan = collections.namedtuple(
+    'AnnotatedScan',
+    ['mz', 'idx', 'annot', 'data']
+)
+AnnotatedScan.__new__.__defaults__ = ((),)
+
+
+class FragmentAnnotator(object):
+    
+    def __init__(
+            self,
+            mzs,
+            ionmode,
+            precursor = None,
+            data = ()
+        ):
+        """
+        Annotates all fragmenta in MS2 scan with possible identites.
+        
+        Args
+        ----
+        :param np.ndarray mzs:
+            MS2 scan fragment m/z's.
+        :param str ionmode:
+            MS ion mode; `pos` or `neg`.
+        :param float precursor:
+            Precursor ion m/z.
+        :param tuple of arrays
+        """
+        
+        self.mzs = mzs
+        self.ionmode = ionmode
+        self.data = data or ([[]] * len(self.mzs),)
+        self.precursor = precursor
+        
+        if not all(len(self.mzs) == len(d) for d in self.data):
+            
+            raise ValueError(
+                'Row counts of data arrays '
+                'must be equal with number of m/z\'s'
+            )
+    
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+    
+    def annotate(self):
+        """
+        Annotates the fragments in MS2 scan with possible identities taken
+        from the fragment database.
+        """
+        
+        amz = []
+        ann = []
+        adt = []
+        idx = []
+        
+        for (i, mz), dat in zip(enumerate(self.mzs), zip(*self.data)):
+            
+            if self.precursor:
+                
+                nl_annot = lookup_nl(mz, self.precursor, self.ionmode)
+                
+                amz.extend([mz]  * len(nl_annot))
+                adt.extend([dat] * len(nl_annot))
+                idx.extend([i]   * len(nl_annot))
+                ann.extend(nl_annot)
+            
+            annot = lookup(mz, self.ionmode)
+            
+            if not (annot.shape[0] or self.precursor and nl_annot.shape[0]):
+                
+                annot = [None]
+            
+            amz.extend([mz]  * len(annot))
+            adt.extend([dat] * len(annot))
+            idx.extend([i]   * len(annot))
+            ann.extend(annot)
+        
+        adt = tuple(
+            np.array([adt[i][a] for i in range(len(amz))])
+            for a in range(len(adt[0]))
+        )
+        
+        return AnnotatedScan(
+            mz = np.array(amz),
+            idx = np.array(idx),
+            annot = ann,
+            data = adt
+        )

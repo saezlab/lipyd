@@ -22,6 +22,7 @@ import numpy as np
 
 import lipyd.lookup as lookup
 import lipyd.session as session
+import lipyd.settings as settings
 
 
 class MgfReader(object):
@@ -33,6 +34,7 @@ class MgfReader(object):
     stRch = 'CH'
     stRpepmass = 'PEPMASS'
     stRempty = ''
+    stRcharge = 'CHARGE'
     reln = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
     
     def __init__(
@@ -53,6 +55,8 @@ class MgfReader(object):
         self.rt_tolerance = rt_tolerance
         self.drift  = drift
         self.index()
+        self.log = session.get_log()
+        self.ms2_within_range = settings.get('ms2_within_range')
     
     def reload(self):
         
@@ -153,13 +157,149 @@ class MgfReader(object):
                 offset += len(l)
         
         # sorted by precursor mass
-        self.mgfindex = np.array(sorted(features, key = lambda x: x[0]))
+        self.mgfindex = np.array(
+            sorted(features, key = lambda x: x[0]),
+            dtype = np.object
+        )
     
     def lookup(self, mz, rt = None):
         """
-        Looks up an MS1 m/z and returns MS2 scans.
+        Looks up an MS1 m/z and returns the indices of MS2 scans in the
+        MGF file.
+        
+        Returns 2 numpy arrays of the same length: first one with the indices,
+        second one with the RT differences.
         """
         
+        if self.log.verbosity > 4:
+            
+            self.log.msg(
+                'Recalibrated m/z: %.08f; drift = %.08f; '
+                'measured m/z: %.08f' % (mz, self.drift, mz / self.drift)
+            )
+        
+        rt = rt or np.nan
         mz_uncorr = mz / self.drift
         
-        idx = lookup.findall(self.mgfindex[:,0], mz)
+        idx    = np.array(lookup.findall(self.mgfindex[:,0], mz_uncorr))
+        rtdiff = np.array([self.mgfindex[i,2] - rt for i in idx])
+        
+        if self.log.verbosity > 4:
+            
+            self.log.msg(
+                'Looking up MS1 m/z %.08f. '
+                'MS2 scans with matching precursor mass: %u' % (
+                    mz_uncorr,
+                    len(idx),
+                )
+            )
+        
+        if self.ms2_within_range:
+            
+            if np.isnan(rt):
+                
+                self.log.msg(
+                    'No MS1 RT provided, could not check RT '
+                    'difference of MS2 scans.'
+                )
+                
+            else:
+                
+                idx = idx[
+                    np.logical_or(
+                        np.isnan(rtdiff),
+                        np.abs(rtdiff) < self.rt_tolerance
+                    )
+                ]
+                
+                if self.log.verbosity > 4:
+                    
+                    self.log.msg(
+                    'RT range: %.03f--%.03f; '
+                    'Matching MS2 scans within this range: %u' % (
+                        rtlower,
+                        rtupper,
+                        len(idx),
+                    )
+                )
+            
+        elif self.log.verbosity > 4:
+            
+            self.log.msg('Not checking RT.')
+        
+        return idx, rtdiff
+    
+    def get_scan(self, i):
+        """
+        Reads MS2 fragment peaks from one scan.
+        
+        Returns m/z's and intensities in 2 columns array.
+        """
+        
+        scan = []
+        
+        self.get_file()
+        # jumping to offset
+        self.fp.seek(int(self.mgfindex[i, 4]), 0)
+        
+        # zero means no clue about charge
+        charge = 0
+        
+        for l in self.fp:
+            
+            if l[:6] == self.stRcharge:
+                # one chance to obtain the charge
+                charge = int(l.strip()[-2])
+                continue
+            if not l[0].isdigit():
+                # end of scan
+                break
+            else:
+                # reading fragment masses
+                mi = l.strip().split()
+                scan.append([
+                    float(mi[0]), # mass
+                    float(mi[1]) if len(mi) > 1 else np.nan # intensity
+                ])
+        
+        if self.log.verbosity > 4:
+            
+            self.log.msg(
+                'Read scan #%u from file `%s`;'
+                '%u peaks retrieved.' % (
+                    self.mgfindex[i, 3],
+                    self.fname,
+                    len(scan),
+                )
+            )
+        
+        return np.array(scan)
+    
+    def get_scans(self, mz, rt = None):
+        """
+        Looks up all scans for one precursor mass and RT, yields 2 column
+        arrays of MS2 m/z's and intensities and delta RTs.
+        
+        Calls `get_scan` for all indices returned by `lookup`.
+        """
+        
+        idx, rtdiff = self.lookup(mz, rt = rt)
+        
+        for i, r in zip(idx, rtdiff):
+            
+            yield self.get_scan(i), r
+    
+    def get_file(self):
+        """
+        Returns the file pointer, opens the file if necessary.
+        """
+        
+        if not hasattr(self, 'fp') or self.fp.closed:
+            
+            self.fp = open(self.fname, 'r')
+        
+    def __del__(self):
+        
+        if hasattr(self, 'fp') and not self.fp.closed:
+            
+            self.fp.close()
