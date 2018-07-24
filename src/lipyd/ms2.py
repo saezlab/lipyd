@@ -20,12 +20,12 @@ from future.utils import iteritems
 from past.builtins import xrange, range, reduce
 
 import sys
+import imp
 import re
-import numpy as np
+import math
 import itertools
 import collections
-import imp
-import math
+import numpy as np
 
 from lipyd.common import *
 import lipyd.mgf as mgf
@@ -38,11 +38,13 @@ class ScanBase(object):
     def __init__(
             self,
             mzs,
+            ionmode,
             precursor = None,
             intensities = None
         ):
         
         self.mzs = mzs
+        self.ionmode = ionmode
         self.intensities = intensities or np.array([np.nan] * len(self.mzs))
         self.precursor = precursor
         
@@ -53,6 +55,11 @@ class ScanBase(object):
         if self.intensities is not np.ndarray:
             
             self.intensities = np.array(self.intensities)
+        
+        self.sort_intensity()
+        self.irank = np.arange(len(self.mzs))
+        self.sort_mz()
+        self.annotate()
     
     def reload(self):
         
@@ -68,8 +75,7 @@ class ScanBase(object):
         """
         
         isort = np.argsort(self.mzs)
-        self.intensities = self.intensities[isort]
-        self.mzs = self.mzs[isort]
+        self.sort(isort)
     
     def sort_intensity(self):
         """
@@ -77,10 +83,139 @@ class ScanBase(object):
         """
         
         isort = np.argsort(self.intensities)[::-1]
+        self.sort(isort)
+    
+    def sort(self, isort):
+        """
+        Applies sorted indices to the scan.
+        """
+        
         self.intensities = self.intensities[isort]
         self.mzs = self.mzs[isort]
+        
+        for attr in ('idx', 'irank', 'annot'):
+            
+            if hasattr(self, attr):
+                
+                setattr(self, getattr(self, attr)[isort])
     
-    def 
+    def annotate(self):
+        """
+        Annotates the fragments in the scan with identities provided by
+        the fragment database.
+        """
+        
+        annotator = fragdb.FragmentAnnotator(
+            self.mzs,
+            self.ionmode,
+            self.precursor,
+            (self.intensities,)
+        )
+        
+        annotated = annotator.annotate()
+        
+        self.mzs         = annotated.mzs
+        self.intensities = annotated.data[0]
+        self.idx         = annotated.idx
+        self.annot       = annotated.annot
+
+
+class Scan(ScanBase):
+    
+    def __init__(
+            self,
+            mzs,
+            ionmode,
+            precursor = None,
+            intensities = None,
+            scan_id = None,
+            sample = None,
+            logger = None
+        ):
+        
+        super(Scan, self).__init__(mzs, ionmode, precursor, intensities)
+        
+        self.scan_id = scan_id
+        self.sample = sample
+        self.log = logger
+    
+    def reload(self):
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+    
+    def print_scan(self):
+        """
+        Prints the list of fragments as an annotated table.
+        """
+        
+        if self.log:
+            
+            self.log.msg(self.scan_str())
+    
+    def show(self):
+        """
+        Prints the scan table to standard output.
+        """
+        
+        sys.stdout.write(self.scan_str())
+    
+    def scan_str(self):
+        """
+        Returns the scan table as string.
+        """
+        
+        lindent = ' ' * 12
+        
+        header = '%s\n%s%s\n' % (
+            ''.join((
+                lindent,
+                'Frag. m/z'.ljust(12),
+                'Intensity'.ljust(12),
+                'Identity'.ljust(36),
+                'NL mass'.rjust(12)
+            )),
+            lindent,
+            '=' * 12 * 6
+        )
+        
+        table = '\n'.join((
+            ''.join((
+                lindent,
+                '%12.4f' % self.mz[i],
+                '%10u'   % self.intensities[i],
+                self.annot[i, 1] if self.annot[i] else 'Unknown',
+                (
+                    '%12.4f' % self.nl(mz[i])
+                        if self.precursor else
+                    'NA'.rjust(12)
+                )
+            ))
+            for i in xrange(len(self.mz))
+        ))
+        
+        fri = self.scan_id[1] - 9 if self.scan_id[1] != 1 else 4
+        
+        return '%s\n%s\n\n' % (
+            self.sample.__str__(),
+            header,
+            table
+        )
+    
+    def html_table(self):
+        
+        # TODO
+        pass
+    
+    def nl(self, i):
+        """
+        For index returns the corresponding neutral loss m/z.
+        If precursor ion mass is unknown returns `numpy.nan`.
+        """
+        
+        return self.precursor - self.mzs[i] if self.precursor else np.nan
 
 
 class MS2Feature(object):
@@ -259,6 +394,7 @@ class MS2Feature(object):
         Within the groups the scans are sorted from lowest to highest
         deltaRT.
         """
+        
         self.highest = []
         self.secondary = []
         self.other = []

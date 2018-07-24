@@ -417,7 +417,7 @@ def lookup_neg_nl(mz, precursor):
 
 AnnotatedScan = collections.namedtuple(
     'AnnotatedScan',
-    ['mz', 'idx', 'annot', 'data']
+    ['mzs', 'idx', 'annot', 'data']
 )
 AnnotatedScan.__new__.__defaults__ = ((),)
 
@@ -504,8 +504,8 @@ class FragmentAnnotator(object):
         )
         
         return AnnotatedScan(
-            mz = np.array(amz),
-            idx = np.array(idx),
+            mzs   = np.array(amz),
+            idx   = np.array(idx),
             annot = ann,
-            data = adt
+            data  = adt
         )
