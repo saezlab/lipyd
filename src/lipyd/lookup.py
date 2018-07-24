@@ -116,3 +116,10 @@ def find(a, m, t = 20):
     elif du <= t:
         
         return iu
+
+
+def match(observed, theoretical, tolerance = 20):
+    
+    tolerance = ppm_tolerance(tolerance, theoretical)
+    
+    return abs(theoretical - observed) <= tolerance

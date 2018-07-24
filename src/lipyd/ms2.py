@@ -30,6 +30,8 @@ import numpy as np
 from lipyd.common import *
 import lipyd.mgf as mgf
 import lipyd.session as session
+import lipyd.settings as settings
+import lipyd.lookup as lookup
 import lipyd.fragdb as fragdb
 
 
@@ -138,6 +140,7 @@ class Scan(ScanBase):
         self.scan_id = scan_id
         self.sample = sample
         self.log = logger
+        self.tolerance = settings.get('ms2_tolerance')
     
     def reload(self):
         modname = self.__class__.__module__
@@ -216,6 +219,854 @@ class Scan(ScanBase):
         """
         
         return self.precursor - self.mzs[i] if self.precursor else np.nan
+    
+    def i_by_rank(self, rank = 1, min_mz = 0.0):
+        """
+        Return the current (intensity desc. ordered) indices of the lines
+        corresponding to the rank (first = 1), ignoring the fragments
+        with m/z below `min_mz`.
+        """
+        
+        try:
+            
+            irank_level = self.irank[self.mzs > min_mz][rank - 1]
+            
+        except IndexError:
+            
+            return np.array([])
+        
+        return np.where(self.irank == irank_level)
+    
+    def full_list_str(self):
+        """
+        Returns list of fragments as single string.
+        """
+        
+        result = []
+        i = 0
+        
+        for k, gr in itertools.groupby(self.irank):
+            
+            l = len(list(gr))
+            
+            result.append(
+                '/'.join(
+                    '%s (%u)' % (
+                        self.annot[i + j][1],
+                        self.intensities[i + j]
+                    )
+                    if self.annot[i + j] else
+                    'Unknown (%.03f) (%u)' % (
+                        self.mz[i + j],
+                        self.intensities[i + j]
+                    )
+                    for j in xrange(l)]
+                )
+            )
+            
+            i += l
+            
+        return '; '.join(result)
+    
+    def most_abundant_mz(self):
+        """
+        Returns the m/z of the fragment with highest intensity.
+        """
+        
+        result = self.mz[0]
+        
+        self.log.msg('\t\t  -- Most abundant m/z is %.03f' % result)
+        
+        return result
+    
+    def mz_match(self, mz_detected, mz):
+        """
+        Tests if two m/z's can be accepted to be equal.
+        """
+        
+        return lookup.match(mz_detected, mz, self.tolerance)
+    
+    def mz_lookup(self, mz):
+        """
+        Returns the index of the closest m/z value
+        detected in the scan if it is within the
+        range of tolerance, otherwise None.
+        """
+        du = 999.0
+        dl = 999.0
+        self.sort_by_mz()
+        ui = self.scan[:,1].searchsorted(mz)
+        if ui < self.scan.shape[0]:
+            du = self.scan[ui,1] - mz
+        if ui > 0:
+            dl = mz - self.scan[ui - 1,1]
+        i = ui if du < dl else ui - 1
+        i = i if self.mz_match(self.scan[i,1], mz) else None
+        sort = self.sort_by_i(return_order = True)
+        if i is not None:
+            i = np.where(sort == i)[0][0]
+        return i
+    
+    def has_mz(self, mz):
+        """
+        Tells if an m/z exists in this scan.
+        """
+        
+        result = self.mz_lookup(mz) is not None
+        
+        self.feature.msg('\t\t  -- m/z %.03f occures in this scan? -- %s\n' % \
+            (mz, str(result)))
+        
+        return result
+    
+    def has_nl(self, nl):
+        """
+        Tells if a neutral loss exists in this scan.
+        """
+        
+        result = self.has_mz(self.ms1_mz() - nl)
+        
+        self.feature.msg('\t\t  -- neutral loss of %.03f occures in '\
+            'this scan? Looked up m/z %.03f - %.03f = %.03f -- %s\n' % \
+            (nl, self.feature.tbl['mz'][self.feature.i], nl,
+             self.feature.tbl['mz'][self.feature.i] - nl, str(result)))
+        
+        return result
+    
+    def ms1_mz(self):
+        """
+        Returns the MS1 m/z (which should be the precursor ion).
+        """
+        
+        return self.feature.tbl['mz'][self.feature.i]
+    
+    def nl_lookup(self, nl):
+        """
+        Looks up if a neutral loss exists in this scan and returns its index.
+        """
+        
+        return self.mz_lookup(self.feature.tbl['mz'][self.feature.i] - nl)
+    
+    def most_abundant_mz_is(self, mz):
+        """
+        Tells if the m/z with the highest intensity is `mz`.
+        """
+        
+        result = self.mz_match(self.most_abundant_mz(), mz)
+        self.feature.msg('\t\t  -- m/z %.03f is the most abundant? -- %s\n' % \
+            (mz, str(result)))
+        return result
+    
+    def mz_among_most_abundant(self, mz, n = 2):
+        """
+        Tells if an m/z is among the most aboundant `n` fragments
+        in a spectrum.
+        
+        :param float mz: The m/z value.
+        :param int n: The number of most abundant fragments considered.
+        
+        """
+        
+        result = False
+        
+        for i in xrange(min(n, self.scan.shape[0])):
+            
+            if self.mz_match(self.scan[i,1], mz):
+                
+                result = True
+                break
+        
+        self.feature.msg('\t\t  -- m/z %.03f is among the %u most abundant? -- '\
+            '%s\n' % (mz, n, str(result)))
+        
+        return result
+    
+    def nl_among_most_abundant(self, nl, n = 2):
+        """
+        Tells if a neutral loss corresponds to one of the
+        most aboundant `n` fragments in a spectrum.
+        
+        :param float nl: The mass of the neutral loss.
+        :param int n: The number of most abundant fragments considered.
+        
+        """
+        
+        result = False
+        
+        for i in xrange(min(n, self.scan.shape[0])):
+            
+            if self.mz_match(self.scan[i,1], self.ms1_mz() - nl):
+                
+                result = True
+                break
+        
+        self.feature.msg('\t\t  -- neutral loss %.03f is among '\
+            'the %u most abundant? -- '\
+            '%s\n' % (nl, n, str(result)))
+        
+        return result
+    
+    def get_intensity(self, mz):
+        """
+        Returns the intensity of a fragment ion from its m/z.
+        Value is `None` if m/z does not present.
+        """
+        
+        i = self.mz_lookup(mz)
+        
+        if i is not None:
+            
+            return self.scan[i,2]
+        
+        return None
+    
+    def get_nl_intensity(self, nl):
+        """
+        Returns the intensity of a fragment ion from its a neutral loss.
+        Value is `None` if neutral loss does not present.
+        """
+        
+        return self.get_intensity(self.ms1_mz() - nl)
+    
+    def mz_percent_of_most_abundant(self, mz, percent = 80.0):
+        """
+        Tells if an m/z has at least certain percent of intensity
+        compared to the most intensive fragment.
+        
+        :param float mz: The m/z value.
+        :param float percent: The threshold in percent
+                              of the highest intensity.
+        
+        """
+        
+        insmax = self.scan[0,2]
+        result = False
+        
+        for frag in self.scan:
+            
+            if self.mz_match(frag[1], mz):
+                
+                result = True
+                break
+            
+            if frag[2] < insmax * 100.0 / percent:
+                result = False
+                break
+        
+        self.feature.msg('\t\t  -- m/z %.03f has abundance at least %.01f %% of'\
+            ' the highest abundance? -- %s\n' % \
+            (mz, percent, str(result)))
+        
+        return result
+    
+    def fa_type_is(self, i, fa_type, sphingo = False, uns = None,
+                   scan_index = True):
+        """
+        Tells if a fatty acid fragment is a specified type. The type
+        should be a part of the string representation of the fragment,
+        e.g. `-O]` for fragments with one oxygen loss.
+        """
+        
+        ifa = None
+        
+        if not scan_index:
+            ifa = i
+            i   = self.fa_list[ifa][5]
+        
+        result = (
+            (fa_type in self.scan[i,8] or fa_type in self.scan[i,7]) and
+            (not sphingo or 'Sphingosine' in self.scan[i,7]) and
+            (uns is None or ifa is None or self.fa_list[ifa][0][1] <= uns)
+        )
+        
+        self.feature.msg('\t\t  -- Fragment #%u (%s, %s): fatty acid type '\
+            'is %s?  -- %s\n' % \
+                (i, self.scan[i,7], self.scan[i,8], fa_type, str(result)))
+        
+        return result
+    
+    def is_fa(self, i, sphingo = False):
+        """
+        Examines whether a fragment is fatty acid-like or not.
+        In the labels of fatty acid fragments we always 
+        """
+        
+        result = 'FA' in self.scan[i,7] or 'Lyso' in self.scan[i,7] or \
+            (sphingo and 'Sphi' in self.scan[i,7])
+        
+        self.feature.msg('\t\t  -- Fragment #%u (%s): is fatty acid? '\
+            '-- %s\n' % (i, self.scan[i,7], str(result)))
+        
+        return result
+    
+    def most_abundant_fa(self, fa_type, head = 1, sphingo = False):
+        """
+        Returns `True` if there is a fatty acid among the most abundant
+        fragments and it is of the defined type; `False` if there is no
+        fatty acid, or it is different type.
+        
+        :param str fa_type: The type of the fatty acid fragment ion.
+        :param int head: The number of most abundant fragments considered.
+        :param bool sphingo: Look for a sphingolipid backbone.
+        """
+        
+        result = False
+        
+        for i in xrange(self.scan.shape[0]):
+            
+            if i == head:
+                
+                break
+            
+            if self.is_fa(i, sphingo = sphingo):
+                
+                result = self.fa_type_is(i, fa_type, sphingo = sphingo)
+        
+        self.feature.msg('\t\t  -- Having fatty acid %s among %u most abundant '\
+            'features? -- %s\n' % (fa_type, head, str(result)))
+        
+        return result
+    
+    def get_most_abundant_fa(self, fa_type = None, head = 1, sphingo = False):
+        """
+        Looks up the most abundant fatty acid fragment of the given type.
+        Returns tuple with mz, intensity, carbon count and unsaturation, index.
+        """
+        
+        self.build_fa_list()
+        
+        for fa_frag in self.fa_list[:head]:
+            
+            if (
+                fa_type is None  or
+                self.fa_type_is(fa_frag[5], fa_type, sphingo)
+            ):
+                
+                return self.scan[fa_frag[5],1], fa_frag[4], fa_frag[0], fa_frag[5]
+        
+        return None, None, None, None
+    
+    def fa_cc_among_most_abundant(self, cc, hg, n = 2, sphingo = False):
+        """
+        Returns `True` if there is one  fatty acid with the defined
+        carbon count and unsaturation and compatible with the given
+        headgroup among the most abundant `n` fragments.
+        """
+        
+        self.build_fa_list()
+        
+        for fa_frag in self.fa_list:
+            
+            if fa_frag[5] >= n:
+                
+                break
+            
+            if (
+                fa_frag[0] == cc and
+                (fa_frag[1] is None or hg in fa_frag[1]) and
+                (sphingo or fa_frag[3])
+            ):
+                
+                return True
+        
+        return False
+    
+    def fa_among_most_abundant(self, fa_type, n = 2,
+                               min_mass = None, sphingo = False,
+                               uns = None):
+        """
+        Returns `True` if there is one of the defined type of fatty acid
+        fragments among the given number of most abundant fragments, and
+        it has a mass greater than the given threhold.
+        """
+        
+        self.build_fa_list()
+        result = False
+        
+        for i, fa in enumerate(self.fa_list):
+            
+            if not sphingo or fa[3] and (
+                    min_mass is None or
+                    self.scan[fa[5],1] >= min_mass
+                ):
+                
+                if min_mass is not None:
+                    
+                    self.feature.msg('\t\t\t-- Fragment #%u having mass larger '\
+                        'than %.01f\n' % (i, min_mass))
+                
+                if self.fa_type_is(i, fa_type, sphingo = sphingo,
+                                   uns = uns, scan_index = False):
+                    result = True
+            
+            if i == n:
+                break
+            
+            elif min_mass is not None:
+                self.feature.msg('\t\t\t-- Fragment #%u having mass lower '\
+                        'than %.01f\n' % (i, min_mass))
+        
+        self.feature.msg('\t\t  -- Having fatty acid fragment %s among %u most '\
+            'abundant -- %s\n' % (fa_type, n, str(result)))
+        
+        return result
+    
+    def fa_percent_of_most_abundant(self, fa_type, percent = 80.0, sphingo = False):
+        for i in xrange(self.scan.shape[0]):
+            if self.is_fa(i, sphingo = sphingo):
+                if self.fa_type_is(i, fa_type, sphingo = sphingo):
+                    return True
+            if self.scan[i,2] < self.insmax * 100.0 / percent:
+                return False
+        return False
+    
+    def mz_most_abundant_fold(self, mz, fold):
+        """
+        Tells if an m/z is the most abundant fragment
+        and it has at least a certain
+        fold higher intensity than any other fragment.
+        
+        :param float mz: The m/z value.
+        :param float fold: The m/z must be this times higher than any other.
+        """
+        
+        result = False
+        if self.most_abundant_mz_is(mz):
+            result = self.scan.shape[0] == 1 or \
+                self.scan[1,2] * fold <= self.scan[0,2]
+        self.feature.msg('\t\t  -- m/z %.03f is at least %u times higher than '\
+            'any other? -- %s\n' % (mz, fold, str(result)))
+        return result
+    
+    def sum_cc_is(self, cc1, cc2, cc):
+        """
+        Returns `True` if the sum of the 2 carbon counts and
+        unsaturations is equal with the third one.
+        
+        :param tuple cc1: Carbon count and unsaturation 1.
+        :param tuple cc2: Carbon count and unsaturation 2.
+        :param str cc: Expected total carbon count and unsaturation.
+        """
+        
+        return self.cc2str(self.sum_cc([cc1, cc2])) == cc
+    
+    def cer_fa_test(self, frag1, frag2):
+        return \
+            self.fa_type_is(frag1[5], 'CerFA(') and \
+            self.fa_type_is(frag2[5], 'CerSphi-N(') and \
+            frag1[4] > frag2[4] * 2
+    
+    def fa_combinations3(self, hg, head = None, expected_intensities = None):
+        """
+        Finds all combinations of 3 fatty acids which match the
+        total carbon count and unsaturation resulted by database
+        lookups of the MS1 precursor mass.
+        This can be used for example at TAG.
+        
+        :param str hg: The short name of the headgroup, e.g. `TAG`.
+        :param int head: If `None` or `numpy.inf` all fragment ions
+                         will be considered, otherwise only the first
+                         most aboundant until the number `head`.
+        """
+        
+        result = set([])
+        
+        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
+            ccs = list(self.feature.ms1fa[hg])
+        else:
+            return result
+        
+        head = np.inf if head is None else head
+        
+        for cc in ccs:
+            
+            try:
+                icc = self.cc2int(cc)
+            except AttributeError:
+                continue
+            
+            for frag0 in self.fa_list:
+                
+                if frag0[5] >= head:
+                    break
+                
+                cc0 = frag0[0]
+                
+                cc12e = '%u:%u' % tuple(map(lambda x: x[0] - x[1],
+                                            zip(*[icc, cc0])))
+                
+                cc12s = self.fa_combinations_tuples(cc12e, head = head, by_cc = True)
+                
+                for cc12 in cc12s:
+                    
+                    cc012 = '/'.join(sorted(list(cc12[0]) + [self.cc2str(cc0)]))
+                    
+                    if self.sum_cc_str(cc012) == icc:
+                    
+                        if self.intensity_ratios([
+                            (cc12[1][0], cc12[2][0]),
+                            (cc12[1][1], cc12[2][1]),
+                            (frag0[4], frag0[5])],
+                            expected = expected_intensities
+                        ):
+                            
+                            result.add(cc012)
+        
+        return result
+    
+    def intensity_ratios(self, intensities, expected = None, logbase = 1.5):
+        """
+        Tells if the ratio of a list of intensities fits
+        the one in `expected` or is even if `expected` is `None`.
+        
+        :param list intensities: List of tuples, first element is the
+                                 intensity, the second is an uniqe
+                                 identifier of the fragments.
+        :param list expected: List with expected intensity proportions.
+                              E.g. `[1, 1, 2]` means the third ion is
+                              twice higher intense than the 2 others.
+        :param int logbase: The fold difference tolerance when comparing
+                            intensities. E.g. if this is 2, then an almost
+                            twice less or more intense ion will considered
+                            to have similar intensity.
+        
+        """
+        
+        if len(intensities) == 1:
+            
+            return True
+        
+        i = intensities
+        
+        if any(map(lambda ii: ii[0] <= 0.0, i)):
+            
+            return False
+        
+        # to know if one fragment contributes more than one times;
+        # intensities divided by the times the fragment is incident
+        cntr = collections.Counter(map(lambda ii: ii[1], i))
+        
+        # by default expecting more or less equal intensities
+        if expected is None:
+            
+            expected = [1.0] * len(i)
+        
+        i = list(
+            map(
+                lambda ii:
+                    (ii[1][0] / (expected[ii[0]] * cntr[ii[1][1]]), ii[1][1]),
+                enumerate(i)
+            )
+        )
+        
+        return (
+            all(
+                map(
+                    lambda co:
+                        (
+                            (math.log(co[0][0], logbase) -
+                            math.log(co[1][0], logbase)) <= 1
+                        ),
+                    itertools.combinations(i, 2)
+                )
+            )
+        )
+    
+    def fa_combinations_old(self, hg, sphingo = False,
+                            head = None, by_cc = False):
+        """
+        Finds all combinations of 2 fatty acids which match the
+        total carbon count and unsaturation resulted by database
+        lookups of the MS1 precursor mass.
+        Alternatively a carbon count and unsaturation can be provided
+        if `by_cc` is set to `True`.
+        
+        :param str hg: Short name of the headgroup, e.g. `PC`; or cc:unsat e.g.
+                       `32:1` if `by_cc` is `True`.
+        :param bool sphingo: Assume sphingolipid.
+        :param int head: If `None` the total fragment list used, if a number,
+                         only the most intensive fragments accordingly.
+        :param bool by_cc: Use the MS1 database identification to find out
+                           the possible carbon counts and unsaturations for
+                           the given headgroup, or a cc:uns provided and
+                           search combinations accordingly.
+        
+        """
+        
+        result = set([])
+        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
+            ccs = list(self.feature.ms1fa[hg])
+        elif by_cc:
+            ccs = [hg]
+        else:
+            return result
+        
+        head = np.inf if head is None else head
+        
+        self.build_fa_list()
+        
+        for cc in ccs:
+            
+            for frag1 in self.fa_list:
+                
+                for frag2 in self.fa_list:
+                    
+                    result.update(
+                        self.get_fa_combinations(frag1, frag2, hg,
+                                                cc, sphingo, head)
+                    )
+        
+        return result
+    
+    def fa_combinations_preprocess(self, regenerate = False):
+        """
+        Generates a lookup table for all possible combinations of two
+        fatty acids.
+        """
+        
+        if not hasattr(self, 'fa_co_2') or regenerate:
+            
+            self.fa_co_2 = {}
+            l = self.fa_list
+            
+            for i, j in itertools.combinations_with_replacement(
+                xrange(len(self.fa_list)), 2):
+                
+                key = self.sum_cc([(l[i][0][0], l[i][0][1]),
+                                   (l[j][0][0], l[j][0][1])])
+                
+                if key not in self.fa_co_2:
+                    self.fa_co_2[key] = set([])
+                
+                self.fa_co_2[key].add((i, j))
+    
+    def fa_combinations(self, hg, sphingo = False,
+                               head = None, by_cc = False):
+        """
+        Finds all combinations of 2 fatty acids which match the
+        total carbon count and unsaturation resulted by database
+        lookups of the MS1 precursor mass.
+        Alternatively a carbon count and unsaturation can be provided
+        if `by_cc` is set to `True`.
+        
+        This method does the same as `fa_combinations` but works with
+        a preprocessed lookup table.
+        
+        Returns set of strings.
+        
+        :param str hg: Short name of the headgroup, e.g. `PC`; or cc:unsat e.g.
+                       `32:1` if `by_cc` is `True`.
+        :param bool sphingo: Assume sphingolipid.
+        :param int head: If `None` the total fragment list used, if a number,
+                         only the most intensive fragments accordingly.
+        :param bool by_cc: Use the MS1 database identification to find out
+                           the possible carbon counts and unsaturations for
+                           the given headgroup, or a cc:uns provided and
+                           search combinations accordingly.
+        
+        """
+        
+        return set(map(lambda co: '%s/%s' % co[0],
+                       self.fa_combinations_tuples(hg, sphingo, head, by_cc)))
+    
+    
+    def fa_combinations_tuples(self, hg, sphingo = False,
+                               head = None, by_cc = False):
+        """
+        Finds all combinations of 2 fatty acids which match the
+        total carbon count and unsaturation resulted by database
+        lookups of the MS1 precursor mass.
+        Alternatively a carbon count and unsaturation can be provided
+        if `by_cc` is set to `True`.
+        
+        Returns tuples of tuples with carbon count/unsaturation,
+        intensities and indices.
+        
+        :param str hg: Short name of the headgroup, e.g. `PC`; or cc:unsat e.g.
+                       `32:1` if `by_cc` is `True`.
+        :param bool sphingo: Assume sphingolipid.
+        :param int head: If `None` the total fragment list used, if a number,
+                         only the most intensive fragments accordingly.
+        :param bool by_cc: Use the MS1 database identification to find out
+                           the possible carbon counts and unsaturations for
+                           the given headgroup, or a cc:uns provided and
+                           search combinations accordingly.
+        
+        """
+        
+        result = []
+        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
+            ccs = list(self.feature.ms1fa[hg])
+        elif by_cc:
+            ccs = [hg]
+        else:
+            return result
+        
+        head = np.inf if head is None else head
+        
+        self.build_fa_list()
+        self.fa_combinations_preprocess()
+        
+        for cc in ccs:
+            
+            icc = self.cc2int(cc)
+            
+            if icc in self.fa_co_2:
+                
+                for i, j in self.fa_co_2[icc]:
+                    
+                    frag1 = self.fa_list[i]
+                    frag2 = self.fa_list[j]
+                    
+                    result.extend(
+                        self.get_fa_combinations(frag1, frag2, hg,
+                                                 cc, sphingo, head)
+                    )
+        
+        return result
+    
+    def get_fa_combinations(self, frag1, frag2, hg, cc, sphingo, head):
+        """
+        Processes two fatty acid fragments to decide
+        if their combination is valid.
+        """
+        
+        result = []
+        
+        if frag1[5] >= head or frag2[5] >= head:
+            return result
+        
+        if hg == 'Cer' and not self.cer_fa_test(frag1, frag2):
+            # where not the 'CerFA' is the most intensive
+            # those are clearly false
+            return result
+        
+        if frag1[0][0] is not None and frag2[0][0] is not None and \
+            (frag1[1] is None or hg in frag1[1]) and \
+            (frag2[1] is None or hg in frag2[1]) and \
+            (not sphingo or frag1[3] or frag2[3]):
+            if self.sum_cc_is(frag1[0], frag2[0], cc):
+                ether_1 = 'O-' if frag1[2] else ''
+                ether_2 = 'O-' if frag2[2] else ''
+                fa_1 = '%s%u:%u' % (ether_1, frag1[0][0], frag1[0][1])
+                fa_2 = '%s%u:%u' % (ether_2, frag2[0][0], frag2[0][1])
+                if frag1[3]:
+                    fa_1 = 'd%s' % fa_1
+                elif frag2[3]:
+                    sph = 'd%s' % fa_2
+                    fa_2 = fa_1
+                    fa_1 = sph
+                if not frag1[3] and not frag2[3]:
+                    fa = tuple(sorted([fa_1, fa_2]))
+                else:
+                    fa = (fa_1, fa_2)
+                
+                result.append((
+                    fa,
+                    (frag1[4], frag2[4]),
+                    (frag1[5], frag2[5])
+                ))
+        
+        return result
+    
+    def matching_fa_frags_of_type(self, hg, typ, sphingo = False,
+        return_details = False):
+        """
+        Returns carbon counts of those fragments which are of the given type
+        and have complement fatty acid fragment of any type.
+        
+        Details is a dict with carbon counts as keys
+        and fragment names as values.
+        """
+        result = set([])
+        details = {}
+        
+        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
+            
+            for cc in self.feature.ms1fa[hg]:
+                
+                self.build_fa_list()
+                
+                for frag1 in self.fa_list:
+                    
+                    for frag2 in self.fa_list:
+                        
+                        if frag1[0][0] is not None and \
+                            frag2[0][0] is not None and \
+                            (frag1[1] is None or hg in frag1[1]) and \
+                            (frag2[1] is None or hg in frag2[1]) and \
+                            (not sphingo or frag1[3]):
+                            
+                            if self.fa_type_is(frag1[5], typ) and \
+                                self.sum_cc_is(frag1[0], frag2[0], cc):
+                                
+                                result.add(frag1[0])
+                                
+                                if return_details:
+                                    
+                                    if frag1[0] not in details:
+                                        
+                                        details[frag1[0]] = set([])
+                                    
+                                    details[frag1[0]].add(self.scan[frag2[5],7])
+        
+        if return_details:
+            return (result, details)
+        else:
+            return result
+    
+    def cer_missing_fa(self, cer_hg):
+        """
+        Infers the fatty acid carbon count and unsaturation
+        by subtracting the sphingoid backbone from the total.
+        This works with Cer, CerP and HexCer.
+        """
+        
+        result = set([])
+        
+        cer_ccs = set([])
+        
+        for frag in self.scan[:5]:
+            
+            if 'phingo' in frag[7]:
+                
+                cer_ccs.add(self.get_cc(frag[7]))
+        
+        if cer_hg in self.feature.ms1fa:
+            
+            for cc in self.feature.ms1fa[cer_hg]:
+                
+                cc = self.get_cc(cc)
+                
+                for cer_cc in cer_ccs:
+                    
+                    carb = cc[0] - cer_cc[0]
+                    unsat = cc[1] - cer_cc[1]
+                    
+                    result.add('d%u:%u/%u:%u' % (
+                        cer_cc[0], cer_cc[1], carb, unsat))
+        
+        return result
+    
+    def cer_matching_fa(self, cer_fa):
+        score = 0
+        if 'Cer' in self.feature.ms1fa:
+            cer_cc = self.get_cc(cer_fa)
+            for cc in self.feature.ms1fa['Cer']:
+                cc = self.get_cc(cc)
+                carb = cc[0] - cer_cc[0]
+                unsat = cc[1] - cer_cc[1] + 2
+                if self.frag_name_present(
+                    '[FA-alkyl(C%u:%u)-H]-' % (carb, unsat)):
+                    score += 1
+                carb = cc[0] - cer_cc[0] - 2
+                unsat = cc[1] - cer_cc[1] + 1
+                if self.frag_name_present(
+                    '[FA-alkyl(C%u:%u)-H]-' % (carb, unsat)):
+                    score += 1
+        return score
+
+##############################################################################
 
 
 class MS2Feature(object):

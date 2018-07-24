@@ -264,12 +264,12 @@ _defaults = {
     # see method ``pp_baseline_correction()``
     'basefrac': 'A5',
     # the tolerance when looking up MS1 m/z values in databases
-    # (Daltons)
-    'ms1_tolerance': 0.01,
-    # the tolerance when looking up MS2 fragment masses (Daltons)
-    'ms2_tolerance': 0.05,
-    # the tolerance at identifying features in standards (Daltons)
-    'std_tolerance': 0.02,
+    # ppm
+    'ms1_tolerance': 20,
+    # the tolerance when looking up MS2 fragment masses ppm
+    'ms2_tolerance': 100,
+    # the tolerance at identifying features in standards ppm
+    'std_tolerance': 20,
     # MS2 precursors must have their charges determined
     'ms2_precursor_charge': None,
     # Use only fragments from Marco's lists (note: the series)
