@@ -453,7 +453,7 @@ class LipidNameProcessor(object):
                 
                 break
         
-        if hg in {'FA', 'FAL', 'FACoA'} and not chainsum:
+        if hg.main in {'FA', 'FAL', 'FACoA'} and not chainsum:
             
             for name0 in names:
                 

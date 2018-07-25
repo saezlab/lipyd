@@ -36,9 +36,9 @@ import lipyd.session as session
 class FragmentDatabaseAggregator(object):
     
     default_args = {
-        'sphingo': 'sph_default',
-        'fa': 'fa_default',
-        'fal': 'fal_default'
+        'Sph': 'sph_default',
+        'FA': 'fa_default',
+        'FAL': 'fal_default'
     }
     
     def __init__(
@@ -112,6 +112,14 @@ class FragmentDatabaseAggregator(object):
         if build:
             
             self.build()
+    
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
     
     def build(self):
         """
@@ -321,6 +329,10 @@ class FragmentDatabaseAggregator(object):
         
         return self.fragments[i,:]
     
+    def __len__(self):
+        
+        return self.fragments.shape[0]
+    
     def lookup(self, mz, nl = False):
         """
         Searches for fragments in the database matching the `mz` within the
@@ -338,9 +350,9 @@ class FragmentDatabaseAggregator(object):
         idx = [
             i for i in idx
             if (
-                nl and self.fragments[i, 5] == 0
+                nl and self.fragments[i, 6] == 0
             ) or (
-                not nl and self.fragments[i, 5] != 0
+                not nl and self.fragments[i, 6] != 0
             )
         ]
         
@@ -448,13 +460,6 @@ class FragmentAnnotator(object):
         self.mzs = mzs
         self.ionmode = ionmode
         self.precursor = precursor
-        
-        if not all(len(self.mzs) == len(d) for d in self.data):
-            
-            raise ValueError(
-                'Row counts of data arrays '
-                'must be equal with number of m/z\'s'
-            )
     
     def reload(self):
         

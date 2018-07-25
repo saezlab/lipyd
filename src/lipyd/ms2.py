@@ -38,30 +38,30 @@ import lipyd.fragdb as fragdb
 
 class mz_sorted(object):
     
-    __init__(self, scan):
+    def __init__(self, scan):
         
         self.scan = scan
     
-    __enter__(self):
+    def __enter__(self):
         
         self.scan.sort_mz()
     
-    __exit__(self):
+    def __exit__(self):
         
         self.scan.sort_intensity()
 
 
 class intensity_sorted(object):
     
-    __init__(self, scan):
+    def __init__(self, scan):
         
         self.scan = scan
     
-    __enter__(self):
+    def __enter__(self):
         
         self.scan.sort_intensity()
     
-    __exit__(self):
+    def __exit__(self):
         
         self.scan.sort_mz()
 
@@ -76,9 +76,14 @@ class ScanBase(object):
             intensities = None
         ):
         
+        self.sorted_by = None
         self.mzs = mzs
         self.ionmode = ionmode
-        self.intensities = intensities or np.array([np.nan] * len(self.mzs))
+        self.intensities = (
+            intensities
+                if intensities is None else
+            np.array([np.nan] * len(self.mzs))
+        )
         self.precursor = precursor
         
         if self.mzs is not np.ndarray:
@@ -136,7 +141,7 @@ class ScanBase(object):
         Sorts the scan by intensities descending.
         """
         
-        if self.sorted_by = 'intensities':
+        if self.sorted_by == 'intensities':
             
             return
             
@@ -574,19 +579,76 @@ class Scan(ScanBase):
         
         return result
     
-    def is_fa(self, i, sphingo = False):
+    def is_chain(self, i):
         """
-        Examines whether a fragment is fatty acid-like or not.
-        In the labels of fatty acid fragments we always 
+        Examines if a fragment has an aliphatic chain.
         """
         
-        result = 'FA' in self.scan[i,7] or 'Lyso' in self.scan[i,7] or \
-            (sphingo and 'Sphi' in self.scan[i,7])
+        result = any(not np.isnan(annot.c) for annot in self.annot[i])
         
-        self.feature.msg('\t\t  -- Fragment #%u (%s): is fatty acid? '\
-            '-- %s\n' % (i, self.scan[i,7], str(result)))
+        if self.verbose:
+            
+            self.log.msg(
+                '\t\t -- Fragment #%u (%.03f)'
+                'has an aliphatic chain? -- %s' % (
+                    i,
+                    self.mz[i],
+                    str(result)
+                )
+            )
         
         return result
+    
+    def is_chain_type(self, i, typ = 'FA'):
+        """
+        Checks if a fragment might origin from a certain aliphatic
+        chain type (e.g. `FA` -- fatty acyl, `FAL` -- fatty alkyl,
+        `Sph` -- sphingosin base).
+        """
+        
+        return self.chain_fragment_type_is(i, chain_type = typ)
+    
+    def is_fa(self, i):
+        """
+        Tells if a fragment origins from a fatty acyl moiety.
+        """
+        
+        return self.is_chain_type(i)
+    
+    def is_fal(self, i):
+        """
+        Tells if a fragment origins from a fatty alkyl moiety.
+        """
+        
+        return self.is_chain_type(i, 'FAL')
+    
+    def is_sph(self, i):
+        """
+        Tells if a fragment origins from a shpingosin backbone.
+        """
+        
+        return self.is_chain_type(i, 'Sph')
+    
+    def is_type(self, i, typ):
+        """
+        Tells if a fragment is a certain type.
+        """
+        
+        return self.chain_fragment_type_is(i, frag_type = typ)
+    
+    def annot_by_type(self, i, chain_type = None, frag_type = None):
+        """
+        Returns the annotations matching certain types.
+        """
+        
+        return tuple(
+            annot
+            for annot in self.annot[i]
+            if (
+                (not chain_type or annot.chaintype == chain_type) and
+                (not frag_type  or annot.fragtype  == frag_type)
+            )
+        )
     
     def most_abundant_fa(self, fa_type, head = 1, sphingo = False):
         """
