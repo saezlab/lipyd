@@ -25,6 +25,7 @@ import re
 import math
 import itertools
 import collections
+from argparse import Namespace
 import numpy as np
 
 from lipyd.common import *
@@ -33,6 +34,36 @@ import lipyd.session as session
 import lipyd.settings as settings
 import lipyd.lookup as lookup
 import lipyd.fragdb as fragdb
+
+
+class mz_sorted(object):
+    
+    __init__(self, scan):
+        
+        self.scan = scan
+    
+    __enter__(self):
+        
+        self.scan.sort_mz()
+    
+    __exit__(self):
+        
+        self.scan.sort_intensity()
+
+
+class intensity_sorted(object):
+    
+    __init__(self, scan):
+        
+        self.scan = scan
+    
+    __enter__(self):
+        
+        self.scan.sort_intensity()
+    
+    __exit__(self):
+        
+        self.scan.sort_mz()
 
 
 class ScanBase(object):
@@ -58,13 +89,14 @@ class ScanBase(object):
             
             self.intensities = np.array(self.intensities)
         
-        self.sort_intensity()
-        self.irank = np.arange(len(self.mzs))
-        self.sort_mz()
         self.annotate()
         self.normalize_intensities()
-        self.iisort = np.argsort(self.intensities)[::-1]
-        self.sort_intensity()
+        
+        with mz_sorted(self):
+            
+            self.iisort = np.argsort(self.intensities)[::-1]
+        
+        self.irank = np.arange(len(self.mzs))
         self.imzsort  = np.argsort(self.mzs)
         self.sorted_by = 'intensities'
     
@@ -75,6 +107,10 @@ class ScanBase(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
+    def __len__(self):
+        
+        return len(self.mzs)
     
     def sort_mz(self):
         """
@@ -122,7 +158,7 @@ class ScanBase(object):
         self.intensities = self.intensities[isort]
         self.mzs = self.mzs[isort]
         
-        for attr in ('idx', 'irank', 'annot', 'inorm'):
+        for attr in ('irank', 'annot', 'inorm'):
             
             if hasattr(self, attr):
                 
@@ -137,17 +173,10 @@ class ScanBase(object):
         annotator = fragdb.FragmentAnnotator(
             self.mzs,
             self.ionmode,
-            self.precursor,
-            (self.intensities, self.irank)
+            self.precursor
         )
         
-        annotated = annotator.annotate()
-        
-        self.mzs         = annotated.mzs
-        self.intensities = annotated.data[0]
-        self.irank       = annotated.data[1]
-        self.idx         = annotated.idx
-        self.annot       = annotated.annot
+        self.annot = list(annotator)
     
     def normalize_intensities(self):
         """
@@ -168,7 +197,8 @@ class Scan(ScanBase):
             intensities = None,
             scan_id = None,
             sample = None,
-            logger = None
+            logger = None,
+            verbose = False
         ):
         
         super(Scan, self).__init__(mzs, ionmode, precursor, intensities)
@@ -176,9 +206,11 @@ class Scan(ScanBase):
         self.scan_id = scan_id
         self.sample = sample
         self.log = logger
+        self.verbose = verbose
         self.tolerance = settings.get('ms2_tolerance')
     
     def reload(self):
+        
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
@@ -225,7 +257,7 @@ class Scan(ScanBase):
                 lindent,
                 '%12.4f' % self.mz[i],
                 '%10u'   % self.intensities[i],
-                self.annot[i, 1] if self.annot[i] else 'Unknown',
+                ann.name,
                 (
                     '%12.4f' % self.nl(mz[i])
                         if self.precursor else
@@ -233,9 +265,12 @@ class Scan(ScanBase):
                 )
             ))
             for i in xrange(len(self.mz))
+            for ann in (
+                self.annot[i]
+                    if self.annot[i] else
+                (Namespace(name = 'Unknown'),)
+            )
         ))
-        
-        fri = self.scan_id[1] - 9 if self.scan_id[1] != 1 else 4
         
         return '%s\n%s\n\n' % (
             self.sample.__str__(),
@@ -256,53 +291,30 @@ class Scan(ScanBase):
         
         return self.precursor - self.mzs[i] if self.precursor else np.nan
     
-    def i_by_rank(self, rank = 1, min_mz = 0.0):
-        """
-        Return the current (intensity desc. ordered) indices of the lines
-        corresponding to the rank (first = 1), ignoring the fragments
-        with m/z below `min_mz`.
-        """
-        
-        try:
-            
-            irank_level = self.irank[self.mzs > min_mz][rank - 1]
-            
-        except IndexError:
-            
-            return np.array([])
-        
-        return np.where(self.irank == irank_level)
-    
     def full_list_str(self):
         """
         Returns list of fragments as single string.
         """
         
-        result = []
-        i = 0
-        
-        for k, gr in itertools.groupby(self.irank):
-            
-            l = len(list(gr))
-            
-            result.append(
-                '/'.join(
-                    '%s (%u)' % (
-                        self.annot[i + j][1],
-                        self.intensities[i + j]
-                    )
-                    if self.annot[i + j] else
-                    'Unknown (%.03f) (%u)' % (
-                        self.mz[i + j],
-                        self.intensities[i + j]
-                    )
-                    for j in xrange(l)]
+        return '; '.join(
+            '/'.join(
+                '%s (%u)' % (
+                    ann.name,
+                    self.intensities[i]
+                )
+                    if ann is not None else
+                'Unknown (%.03f) (%u)' % (
+                    self.mzs[i],
+                    self.intensities[i]
                 )
             )
-            
-            i += l
-            
-        return '; '.join(result)
+            for i in xrange(len(self))
+            for ann in (
+                self.annot[i]
+                    if self.annot[i] else
+                (None,)
+            )
+        )
     
     def most_abundant_mz(self):
         """
@@ -384,7 +396,7 @@ class Scan(ScanBase):
         Looks up if a neutral loss exists in this scan and returns its index.
         """
         
-        return self.mz_lookup( - nl)
+        return self.has_nl(nl)
     
     def most_abundant_mz_is(self, mz):
         """
@@ -418,7 +430,7 @@ class Scan(ScanBase):
         """
         
         i = lookup.find(
-            self.mzs[self.irank <= n], # intensity rank <= n
+            self.mzs[:n], # intensity rank <= n
             mz,
             self.tolerance
         )
@@ -528,14 +540,14 @@ class Scan(ScanBase):
             Index of the fragment.
         """
         
-        annot = self.annot[i]
-        
-        result = all(
-            annot is not None,
-            frag_type is None or annot[2] == frag_type,
-            chain_type is None or annot[3] == chain_type,
-            c is None or annot[4] == c,
-            u is None or annot[5] == u
+        result = any(
+            all(
+                annot.fragtype == frag_type,
+                annot.chaintype == chain_type,
+                annot.c == c,
+                annot.u == u
+            )
+            for annot in self.annot[i]
         )
         
         if self.verbose:
@@ -551,21 +563,16 @@ class Scan(ScanBase):
                 criteria.append('with unsaturation of %u' % u)
             
             self.log.msg(
-                '\t\t  -- Fragment #%u (%.03f, %s): '
+                '\t\t  -- Fragment #%u (%.03f): '
                 'is it a fragment %s? -- %s' % (
                     i,
                     self.mz[i],
-                    'Unknown' if self.annot is None else annot[1],
                     ' and '.join(criteria),
                     str(result)
                 )
             )
         
         return result
-    
-    def i_idx(self):
-        
-        
     
     def is_fa(self, i, sphingo = False):
         """

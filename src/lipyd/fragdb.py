@@ -417,11 +417,10 @@ def lookup_neg_nl(mz, precursor):
     return lookup_nl(mz, precursor, 'neg')
 
 
-AnnotatedScan = collections.namedtuple(
-    'AnnotatedScan',
-    ['mzs', 'idx', 'annot', 'data']
+FragmentAnnotation = collections.namedtuple(
+    'FragmentAnnotation',
+    ['mz', 'name', 'fragtype', 'chaintype', 'c', 'u', 'charge']
 )
-AnnotatedScan.__new__.__defaults__ = ((),)
 
 
 class FragmentAnnotator(object):
@@ -430,8 +429,7 @@ class FragmentAnnotator(object):
             self,
             mzs,
             ionmode,
-            precursor = None,
-            data = ()
+            precursor = None
         ):
         """
         Annotates all fragmenta in MS2 scan with possible identites.
@@ -449,7 +447,6 @@ class FragmentAnnotator(object):
         
         self.mzs = mzs
         self.ionmode = ionmode
-        self.data = data or ([[]] * len(self.mzs),)
         self.precursor = precursor
         
         if not all(len(self.mzs) == len(d) for d in self.data):
@@ -467,47 +464,28 @@ class FragmentAnnotator(object):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
-    def annotate(self):
+    def __iter__(self):
+        
+        for mz in self.mzs:
+            
+            yield self.annotate(mz)
+    
+    def annotate(self, mz):
         """
         Annotates the fragments in MS2 scan with possible identities taken
         from the fragment database.
         """
         
-        amz = []
-        ann = []
-        adt = []
-        idx = []
+        result = []
         
-        for (i, mz), dat in zip(enumerate(self.mzs), zip(*self.data)):
+        if self.precursor:
             
-            if self.precursor:
-                
-                nl_annot = lookup_nl(mz, self.precursor, self.ionmode)
-                
-                amz.extend([mz]  * len(nl_annot))
-                adt.extend([dat] * len(nl_annot))
-                idx.extend([i]   * len(nl_annot))
-                ann.extend(nl_annot)
+            nl_annot = lookup_nl(mz, self.precursor, self.ionmode)
             
-            annot = lookup(mz, self.ionmode)
-            
-            if not (annot.shape[0] or self.precursor and nl_annot.shape[0]):
-                
-                annot = [None]
-            
-            amz.extend([mz]  * len(annot))
-            adt.extend([dat] * len(annot))
-            idx.extend([i]   * len(annot))
-            ann.extend(annot)
+            result.extend(FragmentAnnotation(*a) for a in nl_annot)
         
-        adt = tuple(
-            np.array([adt[i][a] for i in range(len(amz))])
-            for a in range(len(adt[0]))
-        )
+        annot = lookup(mz, self.ionmode)
         
-        return AnnotatedScan(
-            mzs   = np.array(amz),
-            idx   = np.array(idx),
-            annot = ann,
-            data  = adt
-        )
+        result.extend(FragmentAnnotation(*a) for a in annot)
+        
+        return tuple(result)
