@@ -62,6 +62,11 @@ class ScanBase(object):
         self.irank = np.arange(len(self.mzs))
         self.sort_mz()
         self.annotate()
+        self.normalize_intensities()
+        self.iisort = np.argsort(self.intensities)[::-1]
+        self.sort_intensity()
+        self.imzsort  = np.argsort(self.mzs)
+        self.sorted_by = 'intensities'
     
     def reload(self):
         
@@ -76,16 +81,38 @@ class ScanBase(object):
         Sorts the scan by m/z values ascending.
         """
         
-        isort = np.argsort(self.mzs)
-        self.sort(isort)
+        if self.sorted_by == 'mzs':
+            
+            return
+            
+        elif hasattr(self, 'imzsort') and self.sorted_by == 'intensities':
+            
+            self.sort(self.imzsort)
+            
+        else:
+            
+            isort = np.argsort(self.mzs)
+            self.sort(isort)
+            self.sorted_by = 'mzs'
     
     def sort_intensity(self):
         """
         Sorts the scan by intensities descending.
         """
         
-        isort = np.argsort(self.intensities)[::-1]
-        self.sort(isort)
+        if self.sorted_by = 'intensities':
+            
+            return
+            
+        elif hasattr(self, 'iisort') and self.sorted_by == 'mzs':
+            
+            self.sort(self.iisort)
+            
+        else:
+            
+            isort = np.argsort(self.intensities)[::-1]
+            self.sort(isort)
+            self.sorted_by = 'intensities'
     
     def sort(self, isort):
         """
@@ -95,7 +122,7 @@ class ScanBase(object):
         self.intensities = self.intensities[isort]
         self.mzs = self.mzs[isort]
         
-        for attr in ('idx', 'irank', 'annot'):
+        for attr in ('idx', 'irank', 'annot', 'inorm'):
             
             if hasattr(self, attr):
                 
@@ -111,15 +138,24 @@ class ScanBase(object):
             self.mzs,
             self.ionmode,
             self.precursor,
-            (self.intensities,)
+            (self.intensities, self.irank)
         )
         
         annotated = annotator.annotate()
         
         self.mzs         = annotated.mzs
         self.intensities = annotated.data[0]
+        self.irank       = annotated.data[1]
         self.idx         = annotated.idx
         self.annot       = annotated.annot
+    
+    def normalize_intensities(self):
+        """
+        Creates a vector of normalized intensities i.e. divides intensities
+        by their maximum.
+        """
+        
+        self.inorm = self.intensities / self.intensities.max()
 
 
 class Scan(ScanBase):
@@ -275,7 +311,9 @@ class Scan(ScanBase):
         
         result = self.mz[0]
         
-        self.log.msg('\t\t  -- Most abundant m/z is %.03f' % result)
+        if self.verbose:
+            
+            self.log.msg('\t\t  -- Most abundant m/z is %.03f' % result)
         
         return result
     
@@ -292,19 +330,14 @@ class Scan(ScanBase):
         detected in the scan if it is within the
         range of tolerance, otherwise None.
         """
-        du = 999.0
-        dl = 999.0
-        self.sort_by_mz()
-        ui = self.scan[:,1].searchsorted(mz)
-        if ui < self.scan.shape[0]:
-            du = self.scan[ui,1] - mz
-        if ui > 0:
-            dl = mz - self.scan[ui - 1,1]
-        i = ui if du < dl else ui - 1
-        i = i if self.mz_match(self.scan[i,1], mz) else None
-        sort = self.sort_by_i(return_order = True)
-        if i is not None:
-            i = np.where(sort == i)[0][0]
+        
+        self.sort_mz()
+        
+        imz = lookup.find(self.mzs, mz, self.tolerance)
+        i = self.iisort[imz] if imz else None
+        
+        self.sort_intensity()
+        
         return i
     
     def has_mz(self, mz):
@@ -314,8 +347,13 @@ class Scan(ScanBase):
         
         result = self.mz_lookup(mz) is not None
         
-        self.feature.msg('\t\t  -- m/z %.03f occures in this scan? -- %s\n' % \
-            (mz, str(result)))
+        if self.verbose:
+            
+            self.log.msg(
+                '\t\t  -- m/z %.03f occures in this scan? -- %s' % (
+                    mz, str(result)
+                )
+            )
         
         return result
     
@@ -324,28 +362,29 @@ class Scan(ScanBase):
         Tells if a neutral loss exists in this scan.
         """
         
-        result = self.has_mz(self.ms1_mz() - nl)
+        result = self.has_mz(self.nl(nl))
         
-        self.feature.msg('\t\t  -- neutral loss of %.03f occures in '\
-            'this scan? Looked up m/z %.03f - %.03f = %.03f -- %s\n' % \
-            (nl, self.feature.tbl['mz'][self.feature.i], nl,
-             self.feature.tbl['mz'][self.feature.i] - nl, str(result)))
+        if self.verbose:
+            
+            self.feature.msg(
+                '\t\t  -- neutral loss of %.03f occures in '
+                'this scan? Looked up m/z %.03f - %.03f = %.03f -- %s' % (
+                    nl,
+                    self.precursor,
+                    nl,
+                    self.nl(nl),
+                    str(result)
+                )
+            )
         
         return result
-    
-    def ms1_mz(self):
-        """
-        Returns the MS1 m/z (which should be the precursor ion).
-        """
-        
-        return self.feature.tbl['mz'][self.feature.i]
     
     def nl_lookup(self, nl):
         """
         Looks up if a neutral loss exists in this scan and returns its index.
         """
         
-        return self.mz_lookup(self.feature.tbl['mz'][self.feature.i] - nl)
+        return self.mz_lookup( - nl)
     
     def most_abundant_mz_is(self, mz):
         """
@@ -353,8 +392,16 @@ class Scan(ScanBase):
         """
         
         result = self.mz_match(self.most_abundant_mz(), mz)
-        self.feature.msg('\t\t  -- m/z %.03f is the most abundant? -- %s\n' % \
-            (mz, str(result)))
+        
+        if self.verbose:
+            
+            self.log.msg(
+                '\t\t  -- Is m/z %.03f the most abundant one? -- %s' % (
+                    mz,
+                    str(result)
+                )
+            )
+        
         return result
     
     def mz_among_most_abundant(self, mz, n = 2):
@@ -362,53 +409,59 @@ class Scan(ScanBase):
         Tells if an m/z is among the most aboundant `n` fragments
         in a spectrum.
         
-        :param float mz: The m/z value.
-        :param int n: The number of most abundant fragments considered.
-        
+        Args
+        ----
+        :param float mz:
+            The m/z value.
+        :param int n:
+            The number of most abundant fragments considered.
         """
         
-        result = False
+        i = lookup.find(
+            self.mzs[self.irank <= n], # intensity rank <= n
+            mz,
+            self.tolerance
+        )
         
-        for i in xrange(min(n, self.scan.shape[0])):
+        if self.verbose:
             
-            if self.mz_match(self.scan[i,1], mz):
-                
-                result = True
-                break
+            self.log.msg(
+                '\t\t  -- m/z %.03f is among the %u most abundant? -- %s' % (
+                    mz, n, str(i is not None)
+                )
+            )
         
-        self.feature.msg('\t\t  -- m/z %.03f is among the %u most abundant? -- '\
-            '%s\n' % (mz, n, str(result)))
-        
-        return result
+        return i is not None
     
     def nl_among_most_abundant(self, nl, n = 2):
         """
         Tells if a neutral loss corresponds to one of the
         most aboundant `n` fragments in a spectrum.
         
-        :param float nl: The mass of the neutral loss.
-        :param int n: The number of most abundant fragments considered.
-        
+        Args
+        ----
+        :param float nl:
+            The mass of the neutral loss.
+        :param int n:
+            The number of most abundant fragments considered.
         """
         
-        result = False
+        result = self.mz_among_most_abundant(self.nl(nl), n = n)
         
-        for i in xrange(min(n, self.scan.shape[0])):
+        if self.verbose:
             
-            if self.mz_match(self.scan[i,1], self.ms1_mz() - nl):
-                
-                result = True
-                break
-        
-        self.feature.msg('\t\t  -- neutral loss %.03f is among '\
-            'the %u most abundant? -- '\
-            '%s\n' % (nl, n, str(result)))
+            self.log.msg(
+                '\t\t  -- neutral loss %.03f is among '
+                'the %u most abundant? -- %s' % (
+                    nl, n, str(result)
+                )
+            )
         
         return result
     
     def get_intensity(self, mz):
         """
-        Returns the intensity of a fragment ion from its m/z.
+        Returns the relative intensity of a fragment ion from its m/z.
         Value is `None` if m/z does not present.
         """
         
@@ -416,74 +469,103 @@ class Scan(ScanBase):
         
         if i is not None:
             
-            return self.scan[i,2]
+            return self.inorm[i]
         
         return None
     
     def get_nl_intensity(self, nl):
         """
-        Returns the intensity of a fragment ion from its a neutral loss.
+        Returns the relative intensity of a neutral loss fragment ion.
         Value is `None` if neutral loss does not present.
         """
         
-        return self.get_intensity(self.ms1_mz() - nl)
+        return self.get_intensity(self.nl(nl))
     
     def mz_percent_of_most_abundant(self, mz, percent = 80.0):
         """
         Tells if an m/z has at least certain percent of intensity
         compared to the most intensive fragment.
         
-        :param float mz: The m/z value.
-        :param float percent: The threshold in percent
-                              of the highest intensity.
+        Args
+        ----
+        :param float mz:
+            The m/z value.
+        :param float percent:
+            The threshold in percent of the highest intensity.
         
         """
         
-        insmax = self.scan[0,2]
-        result = False
+        i = self.get_intensity(mz)
+        result = i and i >= percent / 100.
         
-        for frag in self.scan:
+        if self.verbose:
             
-            if self.mz_match(frag[1], mz):
-                
-                result = True
-                break
-            
-            if frag[2] < insmax * 100.0 / percent:
-                result = False
-                break
-        
-        self.feature.msg('\t\t  -- m/z %.03f has abundance at least %.01f %% of'\
-            ' the highest abundance? -- %s\n' % \
-            (mz, percent, str(result)))
+            self.feature.msg(
+                '\t\t  -- m/z %.03f has abundance at least %.01f %% of'
+                ' the highest abundance? -- %s\n' % (
+                    mz, percent, str(result)
+                )
+            )
         
         return result
     
-    def fa_type_is(self, i, fa_type, sphingo = False, uns = None,
-                   scan_index = True):
+    def chain_fragment_type_is(
+            self,
+            i,
+            frag_type = None,
+            chain_type = None,
+            c = None,
+            u = None
+        ):
         """
         Tells if a fatty acid fragment is a specified type. The type
-        should be a part of the string representation of the fragment,
-        e.g. `-O]` for fragments with one oxygen loss.
+        should be the string representation of the fragment,
+        e.g. `FA-O` for fatty acid minus oxygen fragments.
+        
+        Args
+        ----
+        :param int i:
+            Index of the fragment.
         """
         
-        ifa = None
+        annot = self.annot[i]
         
-        if not scan_index:
-            ifa = i
-            i   = self.fa_list[ifa][5]
-        
-        result = (
-            (fa_type in self.scan[i,8] or fa_type in self.scan[i,7]) and
-            (not sphingo or 'Sphingosine' in self.scan[i,7]) and
-            (uns is None or ifa is None or self.fa_list[ifa][0][1] <= uns)
+        result = all(
+            annot is not None,
+            frag_type is None or annot[2] == frag_type,
+            chain_type is None or annot[3] == chain_type,
+            c is None or annot[4] == c,
+            u is None or annot[5] == u
         )
         
-        self.feature.msg('\t\t  -- Fragment #%u (%s, %s): fatty acid type '\
-            'is %s?  -- %s\n' % \
-                (i, self.scan[i,7], self.scan[i,8], fa_type, str(result)))
+        if self.verbose:
+            
+            criteria = []
+            if frag_type is not None:
+                criteria.append('of type `%s`' % frag_type)
+            if chain_type is not None:
+                criteria.append('of chain type `%s`' % chain_type)
+            if c is not None:
+                criteria.append('with carbon count of %u' % c)
+            if u is not None:
+                criteria.append('with unsaturation of %u' % u)
+            
+            self.log.msg(
+                '\t\t  -- Fragment #%u (%.03f, %s): '
+                'is it a fragment %s? -- %s' % (
+                    i,
+                    self.mz[i],
+                    'Unknown' if self.annot is None else annot[1],
+                    ' and '.join(criteria),
+                    str(result)
+                )
+            )
         
         return result
+    
+    def i_idx(self):
+        
+        
     
     def is_fa(self, i, sphingo = False):
         """
@@ -1811,7 +1893,7 @@ class MS2Scan(object):
         
         if i is not None:
             
-            return self.scan[i,2]
+            return self.intensities[i,2]
         
         return None
     

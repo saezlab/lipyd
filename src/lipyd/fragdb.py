@@ -228,7 +228,9 @@ class FragmentDatabaseAggregator(object):
                     None
             )
             
-            return [mass, l[2], l[3], np.nan, np.nan, get_charge(l[3])]
+            return [
+                mass, l[2], l[3], np.nan, np.nan, np.nan, get_charge(l[3])
+            ]
         
         fname = fname or self.get_default_file()
         
@@ -289,9 +291,9 @@ class FragmentDatabaseAggregator(object):
         """
         
         args = (
-                copy.copy(getattr(self, self.default_args[cls.typ]))
-            if cls.typ in self.default_args else
-                {}
+            copy.copy(getattr(self, self.default_args[cls.fragtype]))
+                if cls.fragtype in self.default_args else
+            {}
         )
         
         args.update(self.specific_args[cls])
