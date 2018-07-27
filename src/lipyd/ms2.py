@@ -46,7 +46,7 @@ class mz_sorted(object):
         
         self.scan.sort_mz()
     
-    def __exit__(self):
+    def __exit__(self, extyp, exval, tb):
         
         self.scan.sort_intensity()
 
@@ -61,7 +61,7 @@ class intensity_sorted(object):
         
         self.scan.sort_intensity()
     
-    def __exit__(self):
+    def __exit__(self, extyp, exval, tb):
         
         self.scan.sort_mz()
 
@@ -80,9 +80,9 @@ class ScanBase(object):
         self.mzs = mzs
         self.ionmode = ionmode
         self.intensities = (
-            intensities
+            np.array([1.0] * len(self.mzs))
                 if intensities is None else
-            np.array([np.nan] * len(self.mzs))
+            intensities
         )
         self.precursor = precursor
         
@@ -167,7 +167,7 @@ class ScanBase(object):
             
             if hasattr(self, attr):
                 
-                setattr(self, getattr(self, attr)[isort])
+                setattr(self, attr, getattr(self, attr)[isort])
     
     def annotate(self):
         """
@@ -181,7 +181,8 @@ class ScanBase(object):
             self.precursor
         )
         
-        self.annot = list(annotator)
+        self.annot = np.array(list(annotator)) # this is array
+                                               # only to be sortable
     
     def normalize_intensities(self):
         """
@@ -206,7 +207,7 @@ class Scan(ScanBase):
             verbose = False
         ):
         
-        super(Scan, self).__init__(mzs, ionmode, precursor, intensities)
+        ScanBase.__init__(self, mzs, ionmode, precursor, intensities)
         
         self.scan_id = scan_id
         self.sample = sample
@@ -545,15 +546,15 @@ class Scan(ScanBase):
             Index of the fragment.
         """
         
-        result = any(
-            all(
-                annot.fragtype == frag_type,
-                annot.chaintype == chain_type,
-                annot.c == c,
-                annot.u == u
-            )
+        result = any((
+            all((
+                frag_type is None or annot.fragtype == frag_type,
+                chain_type is None or annot.chaintype == chain_type,
+                c is None or annot.c == c,
+                u is None or annot.u == u
+            ))
             for annot in self.annot[i]
-        )
+        ))
         
         if self.verbose:
             
@@ -650,31 +651,37 @@ class Scan(ScanBase):
             )
         )
     
-    def most_abundant_fa(self, fa_type, head = 1, sphingo = False):
+    def most_abundant_chain(
+            self,
+            i,
+            head = 1,
+            chain_type = None,
+            frag_type = None,
+            c = None,
+            u = None
+        ):
         """
-        Returns `True` if there is a fatty acid among the most abundant
-        fragments and it is of the defined type; `False` if there is no
-        fatty acid, or it is different type.
-        
-        :param str fa_type: The type of the fatty acid fragment ion.
-        :param int head: The number of most abundant fragments considered.
-        :param bool sphingo: Look for a sphingolipid backbone.
+        Returns `True` if the defined type of chain fragment can be found
+        among the most abundant fragments.
         """
         
-        result = False
+        result = any(
+            self.chain_fragment_type_is(
+                i,
+                frag_type = frag_type,
+                chain_type = chain_type,
+                c = c,
+                u = u
+            )
+            for i in xrange(head)
+        )
         
-        for i in xrange(self.scan.shape[0]):
+        if self.verbose:
             
-            if i == head:
-                
-                break
-            
-            if self.is_fa(i, sphingo = sphingo):
-                
-                result = self.fa_type_is(i, fa_type, sphingo = sphingo)
-        
-        self.feature.msg('\t\t  -- Having fatty acid %s among %u most abundant '\
-            'features? -- %s\n' % (fa_type, head, str(result)))
+            self.log.msg(
+                '\t\t -- Checking for certain type of chain among the top '
+                '%u fragments.' % head
+            )
         
         return result
     

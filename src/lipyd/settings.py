@@ -268,6 +268,9 @@ _defaults = {
     'ms1_tolerance': 20,
     # the tolerance when looking up MS2 fragment masses ppm
     'ms2_tolerance': 100,
+    # tolarance at matching MS1 peaks against precursors in
+    # mgf files with MS2 spectra
+    'precursor_match_tolerance': 50,
     # the tolerance at identifying features in standards ppm
     'std_tolerance': 20,
     # MS2 precursors must have their charges determined

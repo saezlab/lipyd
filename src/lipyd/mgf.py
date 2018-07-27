@@ -43,7 +43,8 @@ class MgfReader(object):
             label = None,
             charge = 1,
             rt_tolerance = 1.0,
-            drift = 1.0
+            drift = 1.0,
+            tolerance = None
         ):
         """
         Provides methods for looking up MS2 scans from an MGF file.
@@ -57,6 +58,9 @@ class MgfReader(object):
         self.index()
         self.log = session.get_log()
         self.ms2_within_range = settings.get('ms2_within_range')
+        self.tolerance = (
+            tolerance or settings.get('precursor_match_tolerance')
+        )
     
     def reload(self):
         
@@ -162,7 +166,7 @@ class MgfReader(object):
             dtype = np.object
         )
     
-    def lookup(self, mz, rt = None):
+    def lookup(self, mz, rt = None, tolerance = None):
         """
         Looks up an MS1 m/z and returns the indices of MS2 scans in the
         MGF file.
@@ -181,7 +185,10 @@ class MgfReader(object):
         rt = rt or np.nan
         mz_uncorr = mz / self.drift
         
-        idx    = np.array(lookup.findall(self.mgfindex[:,0], mz_uncorr))
+        idx    = np.array(lookup.findall(
+            self.mgfindex[:,0], mz_uncorr,
+            tolerance or self.tolerance
+        ))
         rtdiff = np.array([self.mgfindex[i,2] - rt for i in idx])
         
         if self.log.verbosity > 4:

@@ -390,7 +390,7 @@ class FattyFragmentFactory(object):
         ### neutral losses
         'NLFA':             ('O2', '', 0, 'NL FA%s', [], 'FA'),
         # NLFAminusH2O
-        'NLFA_mH2O':        ('O', 'H2', 0, 'NL FA%s-H20', [], 'FA'),
+        'NLFA_mH2O':        ('O', 'H2', 0, 'NL FA%s-H2O', [], 'FA'),
         # NLFAplusOH
         'NLFA_pOH':         ('O3H', '', 0, 'NL FA%s+OH', [], 'FA'),
         # NLFAplusNH3
