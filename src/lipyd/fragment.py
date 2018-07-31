@@ -45,7 +45,7 @@ FragConstraint = collections.namedtuple(
     'FragConstraint',
     ['hg', 'sub', 'sph']
 )
-FragConstraint.__new__.__defaults__ = (None, (), None, None, False, None)
+FragConstraint.__new__.__defaults__ = (None, (), None)
 
 
 class AdductCalculator(object):

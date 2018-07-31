@@ -238,6 +238,19 @@ class FragmentDatabaseAggregator(object):
                     None
             )
             
+            self.constraints[l[1]] = tuple(
+                fragment.FragConstraint(
+                    hg = constr.split(',')[0],
+                    sub = (
+                        tuple(constr.split(',')[1:])
+                            if ',' in constr else
+                        ()
+                    ),
+                    sph = constr.split('|')[1] if '|' in constr else None
+                )
+                for constr in l[4].split(';')
+            )
+            
             return [
                 mass, l[2], l[3], np.nan, np.nan, np.nan, get_charge(l[3])
             ]
