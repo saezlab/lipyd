@@ -91,29 +91,27 @@ class LipidNameProcessor(object):
                 l = l.strip().split('\t')
                 
                 lip = (
-                    tuple(l[1].split(';')),
+                    tuple(l[1].split(';')) if l[1] else (),
                     l[0],
-                    tuple(l[2].split(';'))
+                    tuple(l[2].split(';')) if l[2] else ()
                 )
                 
                 result[lip] = {
-                    'full_name': l[3],
-                    'swl': self.process_db_keywords(l[4]),
-                    'lmp': self.process_db_keywords(l[5]),
+                    'full_name': l[4],
+                    'swl': self.process_db_keywords(l[5]),
+                    'lmp': self.process_db_keywords(l[6]),
                     'pos_adduct': (
-                            l[6]
-                        if l[6] != 'ND' and self.adducts_constraints else
-                            None
-                        ),
-                    'neg_adduct': (
                             l[7]
                         if l[7] != 'ND' and self.adducts_constraints else
                             None
-                        )
+                        ),
+                    'neg_adduct': (
+                            l[8]
+                        if l[8] != 'ND' and self.adducts_constraints else
+                            None
+                        ),
+                    'chains': tuple(l[3].split(';')) if l[3] else ()
                 }
-        
-        result['FA'] = {'full_name': 'Fatty acid', 'swl': [], 'lmp': [],
-                        'pos_adduct': None, 'neg_adduct': None}
         
         self.lipnames = result
     
@@ -154,13 +152,22 @@ class LipidNameProcessor(object):
             )
     
     @staticmethod
-    def attr_proc(match):
+    def has_sph_prefix(match):
         
-        sph = match[0] if match[0] in {'t', 'd', 'k', 'DH'} else ''
+        return match[0] in {'t', 'd', 'k', 'DH'}
+    
+    @staticmethod
+    def is_ether(match):
+        
+        return match[0] in {'O', 'P'}
+    
+    def attr_proc(self, match):
+        
+        sph = match[0] if self.has_sph_prefix(match) else ''
         
         return lipproc.ChainAttr(
             sph = sph,
-            ether = match[0] in {'O', 'P'},
+            ether = self.is_ether(match),
             oh = (match[-1],) if match[-1] else ()
         )
     
@@ -175,10 +182,39 @@ class LipidNameProcessor(object):
             'FA'
         )
     
+    def attrs_types(self, cc1, chainsexp):
+        
+        sph    = cc1[0] if self.has_sph_prefix(cc1) else ''
+        ether  = self.is_ether(cc1)
+        fa1    = min(i for i, c in enumerate(chainsexp) if c in {'FA', 'FAL'})
+        hasfal = 'FAL' in chainsexp
+        oh     = (cc1[-1],) if cc1[-1] else ()
+        
+        chainsexp = tuple(
+            'FAL'
+                if not hasfal and ether and i == fa1 else
+            c
+                for i, c in enumerate(chainsexp)
+        )
+        
+        attrs  = tuple(
+            lipproc.ChainAttr(
+                sph = sph if c == 'Sph' else '',
+                ether = ether and c == 'FAL',
+                # here have no idea which chain carries OHs
+                # hence we add them to the last chain
+                oh = oh if i == len(chainsexp) - 1 else ()
+            )
+            for i, c in enumerate(chainsexp)
+        )
+        
+        return attr, chainsexp
+    
     def carbon_counts(
             self,
             name,
             ccexp = 2,
+            chainsexp = None,
             sphingo = False,
             iso = False,
             types = None
@@ -194,6 +230,10 @@ class LipidNameProcessor(object):
             Expected number of fatty acyl or other residues constaining
             aliphatic chain. E.g. for DAG this should be 2 and for TAG 3
             as the latter has 3 fatty acyls.
+        :param tuple chainsexp:
+            The type of the expected chains, e.g. `('Sph', 'FA')` for one
+            sphingosine and a fatty acyl. This matters only if the chain
+            types can not be inferred from the processed names.
         :param bool sphingo:
             Is this a sphingolipid, is the first chain a sphingosine base?
         :param bool iso:
@@ -245,20 +285,30 @@ class LipidNameProcessor(object):
             chains = None if len(chains) != ccexp else tuple(chains)
         
         # the total carbon count
-        chainsum = (
-            lipproc.sum_chains(chains)
-            if chains else
-            lipproc.Chain(
+        if chains:
+            
+            chainsum = lipproc.sum_chains(chains)
+            
+        elif cc1:
+            
+            if not chainsexp:
+                
+                attrs = (self.attr_proc(cc1),)
+                types = ()
+                
+            else:
+                attrs, types = self.attrs_types(cc1, chainsexp)
+            
+            chainsum = lipproc.ChainSummary(
                 c = int(cc1[1]),
                 u = int(cc1[2]),
-                attr = self.attr_proc(cc1),
-                typ = None # this is None as multiple chains either does
-                    # not have a single type or we don't wan't to give
-                    # the impression this is a single fatty acyl
+                attr = attrs,
+                typ  = types
             )
-            if cc1 else
-            None
-        )
+            
+        else:
+            
+            chainsum = None
         
         return chainsum, chains
     
@@ -288,7 +338,7 @@ class LipidNameProcessor(object):
         Calls greek name identification, greek fatty acid names are
         identified as 'FA'.
         
-        Returns `lipproc.Headgroup` object.
+        Returns tuple of `lipproc.Headgroup` object and expected chain types.
         """
         
         database = database or self.database
@@ -303,16 +353,21 @@ class LipidNameProcessor(object):
                     sum(matched) > 0:
                     matched = [kw in names for kw in kwset['neg']]
                     if sum(matched) == 0:
-                        return lipproc.Headgroup(
-                            main = lipclass[1], # main class, e.g. Cer
-                            sub  = lipclass[0]  # subclass, e.g. Hex
+                        return (
+                            lipproc.Headgroup(
+                                main = lipclass[1], # main class, e.g. Cer
+                                sub  = lipclass[0]  # subclass, e.g. Hex
+                            ),
+                            spec['chains']
                         )
         
         fa_name = self.process_fa_name(names)
         
         if fa_name:
             
-            return lipproc.Headgroup(main = fa_name)
+            return (lipproc.Headgroup(main = fa_name), (fa_name,))
+        
+        return None, None
     
     def process_fa_name(self, name):
         """
@@ -346,11 +401,11 @@ class LipidNameProcessor(object):
             
             name1 = name.split('-')[1] if '-' in name else name
             
-            for typ in {'fa', 'fal', 'facoa'}:
+            for typ in {'FA', 'FAL', 'FACoA'}:
                 
-                if name1 in getattr(self, '%s_greek' % typ):
+                if name1 in getattr(self, '%s_greek' % typ.lower()):
                     
-                    cc1 = getattr(self, '%s_greek' % typ)[name1]
+                    cc1 = getattr(self, '%s_greek' % typ.lower())[name1]
                     iso = (
                         tuple(name.split(')')[0][1:].split(','))
                             if self.iso and '(' in name else
@@ -359,6 +414,7 @@ class LipidNameProcessor(object):
                     chains   = [lipproc.Chain(
                         c = cc1[0],
                         u = cc1[1],
+                        typ = typ,
                         iso = iso
                     )]
                     chainsum = lipproc.sum_chains(chains)
@@ -391,9 +447,13 @@ class LipidNameProcessor(object):
         
         database = database or self.database
         
-        hg, chainsum, chains, chainsiso = None, None, None, None
+        hg, chainsum, chains, chainsiso, chainsexp = (
+            None, None, None, None, None
+        )
         
-        hg = self.headgroup_from_lipid_name(names, database = database)
+        hg, chainsexp = self.headgroup_from_lipid_name(
+            names, database = database
+        )
         
         # try greek fatty acyl carbon counts:
         if not hg and self.iso and database == 'swisslipids':
@@ -410,6 +470,8 @@ class LipidNameProcessor(object):
                         
                         if hg:
                             
+                            hg = lipproc.Headgroup(main = fa_name)
+                            chainsexp = (fa_name,)
                             break
                 
             except:
@@ -441,7 +503,7 @@ class LipidNameProcessor(object):
                 ccexp = 4
             
             chainsum, chains = self.carbon_counts(
-                n, ccexp = ccexp, iso = self.iso
+                n, ccexp = ccexp, chainsexp = chainsexp, iso = self.iso
             )
             
             if (
@@ -453,7 +515,7 @@ class LipidNameProcessor(object):
                 
                 break
         
-        if hg.main in {'FA', 'FAL', 'FACoA'} and not chainsum:
+        if hg and hg.main in {'FA', 'FAL', 'FACoA'} and not chainsum:
             
             for name0 in names:
                 

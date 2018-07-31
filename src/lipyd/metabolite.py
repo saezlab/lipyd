@@ -211,7 +211,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
     
     def itersum(self):
         """
-        Iterates by consifering only the sum of chain lengths and
+        Iterates by considering only the sum of chain lengths and
         unsaturations.
         """
         

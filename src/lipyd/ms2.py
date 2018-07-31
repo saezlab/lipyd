@@ -36,6 +36,13 @@ import lipyd.lookup as lookup
 import lipyd.fragdb as fragdb
 
 
+
+ChainFragment = collections.namedtuple(
+    'ChainFragment',
+    ['c', 'u', 'fragtype', 'chaintype', 'i', 'intensity']
+)
+
+
 class mz_sorted(object):
     
     def __init__(self, scan):
@@ -651,30 +658,57 @@ class Scan(ScanBase):
             )
         )
     
-    def most_abundant_chain(
+    def cu_by_type(self, i, chain_type = None, frag_type = None):
+        """
+        Returns `(carbon count, unsaturation)` tuples for fragment `i`
+        considering only the the requested chain types and fragment types.
+        """
+        
+        return tuple(
+            (a.c, a.u)
+            for a in
+            self.annot_by_type(
+                i,
+                chain_type = chain_type,
+                frag_type = frag_type
+            )
+        )
+    
+    def build_chain_list(self, rebuild = False):
+        """
+        Builds a list of chains which facilitates the anlysis of chain
+        combinations.
+        """
+        
+        if (
+            not rebuild and
+            hasattr(self, 'chain_list')
+        ):
+            return
+        
+        self.chain_list = tuple(
+            ChainFragment(
+                a.c, a.u, a.chaintype, a.fragtype, i, self.intensities[i]
+            )
+            for i, aa in enumerate(self.annot)
+            for a in aa
+            if a.c and not np.isnan(a.c)
+        )
+    
+    def chain_among_most_abundant(
             self,
-            i,
             head = 1,
             chain_type = None,
             frag_type = None,
             c = None,
-            u = None
+            u = None,
+            min_mass = None,
+            skip_non_chains = False
         ):
         """
         Returns `True` if the defined type of chain fragment can be found
         among the most abundant fragments.
         """
-        
-        result = any(
-            self.chain_fragment_type_is(
-                i,
-                frag_type = frag_type,
-                chain_type = chain_type,
-                c = c,
-                u = u
-            )
-            for i in xrange(head)
-        )
         
         if self.verbose:
             
@@ -683,151 +717,171 @@ class Scan(ScanBase):
                 '%u fragments.' % head
             )
         
+        result = any((
+            self.chain_fragment_type_is(
+                i,
+                frag_type = frag_type,
+                chain_type = chain_type,
+                c = c,
+                u = u
+            )
+            for i in (
+                xrange(head)
+                    if not skip_non_chains else
+                itertools.islice(
+                    (
+                        i for i in xrange(len(self.mzs))
+                            if (
+                                not skip_non_chains or self.is_chain(i)
+                            ) and (
+                                min_mass is None or self.mzs[i] >= min_mass
+                            )
+                    ),
+                    head
+                )
+            )
+        ))
+        
+        if self.verbose:
+            
+            self.log.msg(
+                '\t\t -- Checked certain type of chain among the top '
+                '%u fragments. -- %s' % (head, str(result))
+            )
+        
         return result
     
-    def get_most_abundant_fa(self, fa_type = None, head = 1, sphingo = False):
+    def get_most_abundant_chain(
+            self,
+            head = 1,
+            frag_type = None,
+            chain_type = None,
+            c = None,
+            u = None
+        ):
         """
         Looks up the most abundant fatty acid fragment of the given type.
-        Returns tuple with mz, intensity, carbon count and unsaturation, index.
+        Returns the fragment index.
         """
         
-        self.build_fa_list()
-        
-        for fa_frag in self.fa_list[:head]:
+        for i, annot in enumerate(self.annot):
             
-            if (
-                fa_type is None  or
-                self.fa_type_is(fa_frag[5], fa_type, sphingo)
+            if self.chain_fragment_type_is(
+                i,
+                frag_type = frag_type,
+                chain_type = chain_type,
+                c = c,
+                u = u
             ):
                 
-                return self.scan[fa_frag[5],1], fa_frag[4], fa_frag[0], fa_frag[5]
-        
-        return None, None, None, None
+                return i
     
-    def fa_cc_among_most_abundant(self, cc, hg, n = 2, sphingo = False):
+    def chain_percent_of_most_abundant(
+            self,
+            percent,
+            frag_type = None,
+            chain_type = None,
+            c = None,
+            u = None
+        ):
         """
-        Returns `True` if there is one  fatty acid with the defined
-        carbon count and unsaturation and compatible with the given
-        headgroup among the most abundant `n` fragments.
-        """
+        Tells if a certain chain present with an abundance at least the
+        given percent of the most abundant fragment.
         
-        self.build_fa_list()
-        
-        for fa_frag in self.fa_list:
-            
-            if fa_frag[5] >= n:
-                
-                break
-            
-            if (
-                fa_frag[0] == cc and
-                (fa_frag[1] is None or hg in fa_frag[1]) and
-                (sphingo or fa_frag[3])
-            ):
-                
-                return True
-        
-        return False
-    
-    def fa_among_most_abundant(self, fa_type, n = 2,
-                               min_mass = None, sphingo = False,
-                               uns = None):
-        """
-        Returns `True` if there is one of the defined type of fatty acid
-        fragments among the given number of most abundant fragments, and
-        it has a mass greater than the given threhold.
+        Args
+        ----
+        :param float percent:
+            Percentage, between 0 and 100.
         """
         
-        self.build_fa_list()
-        result = False
-        
-        for i, fa in enumerate(self.fa_list):
-            
-            if not sphingo or fa[3] and (
-                    min_mass is None or
-                    self.scan[fa[5],1] >= min_mass
-                ):
-                
-                if min_mass is not None:
-                    
-                    self.feature.msg('\t\t\t-- Fragment #%u having mass larger '\
-                        'than %.01f\n' % (i, min_mass))
-                
-                if self.fa_type_is(i, fa_type, sphingo = sphingo,
-                                   uns = uns, scan_index = False):
-                    result = True
-            
-            if i == n:
-                break
-            
-            elif min_mass is not None:
-                self.feature.msg('\t\t\t-- Fragment #%u having mass lower '\
-                        'than %.01f\n' % (i, min_mass))
-        
-        self.feature.msg('\t\t  -- Having fatty acid fragment %s among %u most '\
-            'abundant -- %s\n' % (fa_type, n, str(result)))
+        result = any((
+            self.chain_among_most_abundant(
+                i,
+                frag_type = frag_type,
+                chain_type = chain_type,
+                c = c,
+                u = u
+            )
+            for i in
+            itertools.takewhile(
+                lambda i:
+                    self.inorm[i] > percent / 100.0,
+                xrange(len(self.mzs))
+            )
+        ))
         
         return result
-    
-    def fa_percent_of_most_abundant(self, fa_type, percent = 80.0, sphingo = False):
-        for i in xrange(self.scan.shape[0]):
-            if self.is_fa(i, sphingo = sphingo):
-                if self.fa_type_is(i, fa_type, sphingo = sphingo):
-                    return True
-            if self.scan[i,2] < self.insmax * 100.0 / percent:
-                return False
-        return False
     
     def mz_most_abundant_fold(self, mz, fold):
         """
         Tells if an m/z is the most abundant fragment
-        and it has at least a certain
-        fold higher intensity than any other fragment.
+        and it has at least a certain fold higher intensity
+        than any other fragment.
         
-        :param float mz: The m/z value.
-        :param float fold: The m/z must be this times higher than any other.
+        Args
+        ----
+        :param float mz:
+            The m/z value.
+        :param float fold:
+            The m/z must be this times higher than any other.
         """
         
-        result = False
-        if self.most_abundant_mz_is(mz):
-            result = self.scan.shape[0] == 1 or \
-                self.scan[1,2] * fold <= self.scan[0,2]
-        self.feature.msg('\t\t  -- m/z %.03f is at least %u times higher than '\
-            'any other? -- %s\n' % (mz, fold, str(result)))
+        result = (
+            self.most_abundant_mz_is(mz) and (
+                len(self.mzs) == 1 or
+                self.intensities[1] * fold <= self.intensities[0]
+            )
+        )
+        
+        if self.verbose:
+            
+            self.log.msg(
+                '\t\t  -- m/z %.03f is at least %u times higher than '
+                'any other? -- %s\n' % (mz, fold, str(result))
+            )
+        
         return result
     
-    def sum_cc_is(self, cc1, cc2, cc):
-        """
-        Returns `True` if the sum of the 2 carbon counts and
-        unsaturations is equal with the third one.
+    def cer_fa_test(self, i_fa, i_sph):
         
-        :param tuple cc1: Carbon count and unsaturation 1.
-        :param tuple cc2: Carbon count and unsaturation 2.
-        :param str cc: Expected total carbon count and unsaturation.
-        """
-        
-        return self.cc2str(self.sum_cc([cc1, cc2])) == cc
+        return (
+            self.chain_fragment_type_is(
+                i_fa,
+                frag_type = 'FA-O+C2H2NH2'
+            ) and
+            self.chain_fragment_type_id(
+                i_sph,
+                frag_type = 'Sph-C2H4-NH2-H2O'
+            ) and
+            self.intensities[i_fa] > self.intensities[i_sph] * 2
+        )
     
-    def cer_fa_test(self, frag1, frag2):
-        return \
-            self.fa_type_is(frag1[5], 'CerFA(') and \
-            self.fa_type_is(frag2[5], 'CerSphi-N(') and \
-            frag1[4] > frag2[4] * 2
-    
-    def fa_combinations3(self, hg, head = None, expected_intensities = None):
+    def fa_combinations3(
+            self,
+            rec,
+            head = None,
+            expected_intensities = None
+        ):
         """
         Finds all combinations of 3 fatty acids which match the
         total carbon count and unsaturation resulted by database
         lookups of the MS1 precursor mass.
         This can be used for example at TAG.
         
-        :param str hg: The short name of the headgroup, e.g. `TAG`.
-        :param int head: If `None` or `numpy.inf` all fragment ions
-                         will be considered, otherwise only the first
-                         most aboundant until the number `head`.
+        Args
+        ----
+        :param lipproc.LipidRecord rec:
+            The database record to match against.
+        :param str hg:
+            The short name of the headgroup, e.g. `TAG`.
+        :param int head:
+            If `None` or `numpy.inf` all fragment ions will be considered,
+            otherwise only the first most aboundant until the number `head`.
         """
         
         result = set([])
+        
+        
         
         if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
             ccs = list(self.feature.ms1fa[hg])

@@ -26,12 +26,26 @@ from past.builtins import xrange, range, reduce
 import re
 import sys
 import imp
+import collections
 
 import lipyd.mass as mass
 import lipyd.metabolite as metabolite
 
 
 fattyfragments = set([])
+
+
+ChainFragParam = collections.namedtuple(
+    'ChainFragParam',
+    ['plus', 'minus', 'charge', 'name', 'chainype', 'constraints'] )
+ChainFragParam.__new__.__defaults__ = ((),)
+
+
+FragConstraint = collections.namedtuple(
+    'FragConstraint',
+    ['hg', 'sub', 'sph']
+)
+FragConstraint.__new__.__defaults__ = (None, (), None, None, False, None)
 
 
 class AdductCalculator(object):
@@ -283,168 +297,739 @@ class FattyFragmentFactory(object):
     # TODO make this an input file instead of dict
     # in comments masses at 18:0
     param_neg = {
-        'LysoPE':           ('C5H9O7NH2P', '', -1, 'LysoPE%s', ['PE'], 'FA'),
-        'LysoPEAlkyl':      ('C5H11O6NH2P', '', -1, 'LysoPEAlkyl%s', ['PE'],
-                             'FAL'),
-        'LysoPCAlkyl':      ('C7H17O6NP', '', -1, 'LysoPCAlkyl%s', ['PC'],
-                             'FAL'),
-        'LysoPC':           ('C7H15O7NP', '', -1, 'LysoPC%s', ['PC'], 'FA'),
-        'LysoPI':           ('C9H16O12P', '', -1, 'LysoPI%s', ['PI'], 'FA'),
-        'LysoPIAlkyl':      ('C9H18O11P', '', -1, 'LysoPIAlkyl%s', ['PI'],
-                             'FAL'),
-        'LysoPG':           ('C6H12O9P', '', -1, 'LysoPG%s', ['PG'], 'FA'),
-        'LysoPGAlkyl':      ('C6H14O8P', '', -1, 'LysoPGAlkyl%s', ['PG'],
-                             'FAL'),
-        'LysoPA':           ('C3H6O7P',  '', -1, 'LysoPA%s', ['PA', 'PS'],
-                             'FA'),
-        'LysoPAAlkyl':      ('C3H8O6P',  '', -1, 'LysoPAAlkyl%s',
-                             ['PA', 'PS'], 'FAL'),
-        'LysoPA_mH2O':      ('C3H4O6P',  '', -1, 'LysoPA%s-H2O',
-                             ['PA', 'PS'], 'FA'),
+        'LysoPE':
+            ChainFragParam(
+                plus = 'C5H9O7NH2P',
+                minus = '',
+                charge = -1,
+                name = 'LysoPE%s',
+                constraints = (
+                    FragConstraint(hg = 'PE'),
+                ),
+                chaintype = 'FA'
+            ),
+        'LysoPEAlkyl':
+            ChainFragParam(
+                plus = 'C5H11O6NH2P',
+                minus = '',
+                charge = -1,
+                name = 'LysoPEAlkyl%s',
+                constraints = (
+                    FragConstraint(
+                        hg = 'PE'
+                    ),
+                ),
+                chaintype = 'FAL'
+            ),
+        'LysoPCAlkyl':
+            ChainFragParam(
+                plus = 'C7H17O6NP',
+                minus = '',
+                charge = -1,
+                name = 'LysoPCAlkyl%s',
+                constraints = (
+                    FragConstraint(hg = 'PC'),
+                ),
+                chaintype = 'FAL'
+            ),
+        'LysoPC':
+            ChainFragParam(
+                plus = 'C7H15O7NP',
+                minus = '',
+                charge = -1,
+                name = 'LysoPC%s',
+                constraints = (
+                    FragConstraint(hg = 'PC'),
+                ),
+                chaintype = 'FA'
+            ),
+        'LysoPI':
+            ChainFragParam(
+                plus = 'C9H16O12P',
+                minus = '',
+                charge = -1,
+                name = 'LysoPI%s',
+                constraints = (
+                    FragConstraint(hg = 'PI'),
+                ),
+                chaintype = 'FA'
+            ),
+        'LysoPIAlkyl':
+            ChainFragParam(
+                plus = 'C9H18O11P',
+                minus = '',
+                charge = -1,
+                name = 'LysoPIAlkyl%s',
+                constraints = (
+                    FragConstraint(hg = 'PI'),
+                ),
+                chaintype = 'FAL'
+            ),
+        'LysoPG':
+            ChainFragParam(
+                plus = 'C6H12O9P',
+                minus = '',
+                charge = -1,
+                name = 'LysoPG%s',
+                constraints = (
+                    FragConstraint(hg = 'PG'),
+                    FragConstraint(hg = 'BMP'),
+                ),
+                chaintype = 'FA'
+            ),
+        'LysoPGAlkyl':
+            ChainFragParam(
+                plus = 'C6H14O8P',
+                minus = '',
+                charge = -1,
+                name = 'LysoPGAlkyl%s',
+                constraints = (
+                    FragConstraint(hg = 'PG'),
+                ),
+                chaintype = 'FAL'
+            ),
+        'LysoPA':
+            ChainFragParam(
+                plus = 'C3H6O7P',
+                minus = '',
+                charge = -1,
+                name = 'LysoPA%s',
+                constraints = (
+                    FragConstraint(hg = 'PA'),
+                    FragConstraint(hg = 'PS'),
+                ),
+                chaintype = 'FA'
+            ),
+        'LysoPAAlkyl':
+            ChainFragParam(
+                plus = 'C3H8O6P',
+                minus = '',
+                charge = -1,
+                name = 'LysoPAAlkyl%s',
+                constraints = (
+                    FragConstraint(hg = 'PA'),
+                    FragConstraint(hg = 'PS'),
+                ),
+                chaintype = 'FAL'
+            ),
+        'LysoPA_mH2O':
+            ChainFragParam(
+                plus = 'C3H4O6P',
+                minus = '',
+                charge = -1,
+                name = 'LysoPA%s-H2O',
+                constraints = (
+                    FragConstraint(hg = 'PA'),
+                    FragConstraint(hg = 'PS'),
+                ),
+                chaintype = 'FA'
+            ),
         # former CerFA
-        'FA_mO_pC2H2NH2':   ('C2H2ON', '',   -1, 'FA%s-O+C2H2NH2', ['Cer'],
-                             'FA'), # 308.2959
+        'FA_mO_pC2H2NH2':
+            ChainFragParam(
+                plus = 'C2H2ON',
+                minus = '',
+                charge = -1,
+                name = 'FA%s-O+C2H2NH2',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'FA'
+            ), # 308.2959
         # former CerFAminusC2H5N
-        'FA_mH2O_mH':       ('O', 'H3', -1, 'FA%s-H2O-H', ['Cer'],
-                             'FA'), # 265.2537
+        'FA_mH2O_mH':
+            ChainFragParam(
+                plus = 'O',
+                minus = 'H3',
+                charge = -1,
+                name = 'FA%s-H2O-H',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'FA'
+            ), # 265.2537
         # former CerFAminusC
-        'FA_mO_pNH2':       ('NO', '', -1, 'FA%s-O+NH2', ['Cer'], 'FA'),
+        'FA_mO_pNH2':
+            ChainFragParam(
+                plus = 'NO',
+                minus = '',
+                charge = -1,
+                name = 'FA%s-O+NH2',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'FA'
+            ),
         # former CerSphiMinusN
         'Sph_mC2H4_mNH2_mH2O':
-                            ('O', 'C2H5', -1, 'Sph%s-C2H4-NH2-H2O', ['Cer'],
-                             'Sph'), # 239.2380
+            ChainFragParam(
+                plus = 'O',
+                minus = 'C2H5',
+                charge = -1,
+                name = 'Sph%s-C2H4-NH2-H2O',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 239.2380
         # former CerSphiMinusNO
         'Sph_mH2O_mNH2_m2H':
-                            ('O', 'H3', -1, 'Sph%s-H2O-NH2-2H', ['Cer'],
-                             'Sph'), # 265.2537
+            ChainFragParam(
+                plus = 'O',
+                minus = 'H3',
+                charge = -1,
+                name = 'Sph%s-H2O-NH2-2H',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 265.2537
         # former CerSphi
-        'Sph_mC2H4_m3H':    ('NO2', 'C2H4', -1, 'Sph%s-C2H4-3H', ['Cer'],
-                             'Sph'), # 270.2436
+        'Sph_mC2H4_m3H':
+            ChainFragParam(
+                plus = 'NO2',
+                minus = 'C2H4',
+                charge = -1,
+                name = 'Sph%s-C2H4-3H',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 270.2436
         # former CerFAminusN, FAminusH
-        'FA_mH':            ('O2', 'H', -1, 'FA%s-H', [], 'FA'), # 283.2643
+        'FA_mH':
+            ChainFragParam(
+                plus = 'O2',
+                minus = 'H',
+                charge = -1,
+                name = 'FA%s-H',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 283.2643
         # former FAAlkylminusH
-        'FAL_mH':           ('OH', '', -1, 'FAL%s-H', [], 'FAL'),
+        'FAL_mH':
+            ChainFragParam(
+                plus = 'OH',
+                minus = '',
+                charge = -1,
+                name = 'FAL%s-H',
+                constraints = (),
+                chaintype = 'FAL'
+            ),
         # fatty acyl fragments for hydroxyacyl ceramides:
-        'FA_pC2H3_pNH2_pH2O': ('C2NH4O3', '', -1, 'FA%s+C2H3+NH2+H2O', [],
-                                 'FA'), # 342.3014
-        'FA_pC2H3_pNH2_pO': ('C2NH2O3', '', -1, 'FA%s+C2H3+NH2+O', [],
-                              'FA'), # 340.2857
-        'FA_pC2H3_pNH2':    ('C2NH2O2', '', -1, 'FA%s+C2H3+NH2', [],
-                             'FA'), # 324.2908
-        'FA_pO':            ('O3', 'H', -1, 'FA%s+O', [], 'FA'), # 299.2592
+        'FA_pC2H3_pNH2_pH2O':
+            ChainFragParam(
+                plus = 'C2NH4O3',
+                minus = '',
+                charge = -1,
+                name = 'FA%s+C2H3+NH2+H2O',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 342.3014
+        'FA_pC2H3_pNH2_pO':
+            ChainFragParam(
+                plus = 'C2NH2O3',
+                minus = '',
+                charge = -1,
+                name = 'FA%s+C2H3+NH2+O',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 340.2857
+        'FA_pC2H3_pNH2':
+            ChainFragParam(
+                plus = 'C2NH2O2',
+                minus = '',
+                charge = -1,
+                name = 'FA%s+C2H3+NH2',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 324.2908
+        'FA_pO':
+            ChainFragParam(
+                plus = 'O3',
+                minus = 'H',
+                charge = -1,
+                name = 'FA%s+O',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 299.2592
         'FA_pC2H3_pNH2_m2H':
-                            ('C2NO2', '', -1, 'FA%s+C2H3+NH2-2H', [],
-                             'FA'), # 322.2752
-        'FA_pC2H3_pNH2_mH2O': ('C2NO', '', -1, 'FA%s+C2H3+NH2-H2O', [],
-                               'FA'), # 306.2802
-        'FA_pNH2_m2H':      ('NO2', '', -1, 'FA%s+NH2-2H', [],
-                             'FA'), # 298.2752
-        'FA_m3H':           ('O2', 'H3', -1, 'FA%s-3H', [], 'FA'), # 281.2486
-        'FA_mCO_m3H':       ('O', 'CH3', -1, 'FA%s-CO-3H', [],
-                             'FA'), # 253.2537
+            ChainFragParam(
+                plus = 'C2NO2',
+                minus = '',
+                charge = -1,
+                name = 'FA%s+C2H3+NH2-2H',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 322.2752
+        'FA_pC2H3_pNH2_mH2O':
+            ChainFragParam(
+                plus = 'C2NO',
+                minus = '',
+                charge = -1,
+                name = 'FA%s+C2H3+NH2-H2O',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 306.2802
+        'FA_pNH2_m2H':
+            ChainFragParam(
+                plus = 'NO2',
+                minus = '',
+                charge = -1,
+                name = 'FA%s+NH2-2H',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 298.2752
+        'FA_m3H':
+            ChainFragParam(
+                plus = 'O2',
+                minus = 'H3',
+                charge = -1,
+                name = 'FA%s-3H',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 281.2486
+        'FA_mCO_m3H':
+            ChainFragParam(
+                plus = 'O',
+                minus = 'CH3',
+                charge = -1,
+                name = 'FA%s-CO-3H',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 253.2537
         # fatty acyl fragments from ceramides
-        'FA_pC2H3_pNH2_p2H': ('C2NH4O2', '', -1, 'FA%s+C2H3+NH2+2H', [],
-                              'FA'), # 326.3065
-        'FA_pC2H3_pNH2_mO': ('C2NH2O', '', -1, 'FA%s+C2H3+NH2-O', [],
-                               'FA'), # 308.2959
-        'FA_pNH2_mH2O_mH':  ('ONH', '', -1, 'FA%s+NH2-H2O-H', [],
-                             'FA'), # 282.2802
-        'FA_pC3H7_mNH2':    ('O2NC3H4', '', -1, 'FA%s+C3H7+NH2', [],
-                             'FA'), # 338.3064
+        'FA_pC2H3_pNH2_p2H':
+            ChainFragParam(
+                plus = 'C2NH4O2',
+                minus = '',
+                charge = -1,
+                name = 'FA%s+C2H3+NH2+2H',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 326.3065
+        'FA_pC2H3_pNH2_mO':
+            ChainFragParam(
+                plus = 'C2NH2O',
+                minus = '',
+                charge = -1,
+                name = 'FA%s+C2H3+NH2-O',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 308.2959
+        'FA_pNH2_mH2O_mH':
+            ChainFragParam(
+                plus = 'ONH',
+                minus = '',
+                charge = -1,
+                name = 'FA%s+NH2-H2O-H',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 282.2802
+        'FA_pC3H7_mNH2':
+            ChainFragParam(
+                plus = 'O2NC3H4',
+                minus = '',
+                charge = -1,
+                name = 'FA%s+C3H7+NH2',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 338.3064
         # sphingosine long chain base fragments from t-ceramides
-        'Sph_pO':           ('NH2O3', '', -1, 'Sph%s+O', ['Cer'],
-                             'Sph'), # 316.2857
-        'Sph_mCH2_m3H':     ('NO2', 'CH2', -1, 'Sph%s-CH2-3H', ['Cer'],
-                             'Sph'), # 284.2595
-        'Sph_mNH2_m3H':     ('O2', 'H3', -1, 'Sph%s-NH2-3H', ['Cer'],
-                             'Sph'), # 281.2486
+        'Sph_pO':
+            ChainFragParam(
+                plus = 'NH2O3',
+                minus = '',
+                charge = -1,
+                name = 'Sph%s+O',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 316.2857
+        'Sph_mCH2_m3H':
+            ChainFragParam(
+                plus = 'NO2',
+                minus = 'CH2',
+                charge = -1,
+                name = 'Sph%s-CH2-3H',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 284.2595
+        'Sph_mNH2_m3H':
+            ChainFragParam(
+                plus = 'O2',
+                minus = 'H3',
+                charge = -1,
+                name = 'Sph%s-NH2-3H',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 281.2486
         'Sph_mC2H4_mNH2_m2H':
-                            ('O2', 'C2H5', -1, 'Sph%s-C2H4-NH2-2H', ['Cer'],
-                             'Sph'), # 255.2330
+            ChainFragParam(
+                plus = 'O2',
+                minus = 'C2H5',
+                charge = -1,
+                name = 'Sph%s-C2H4-NH2-2H',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 255.2330
         'Sph_mCH2_mNH2_m4H':
-                            ('O2', 'CH5', -1, 'Sph%s-CH2-NH2-4H', ['Cer'],
-                             'Sph'), # 267.2330
+            ChainFragParam(
+                plus = 'O2',
+                minus = 'CH5',
+                charge = -1,
+                name = 'Sph%s-CH2-NH2-4H',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 267.2330
         # sphingosine long chain base fragments from DH-ceramides
-        'Sph_mH_N':         ('NH2O2', '', -1, 'Sph%s-H', ['Cer'],
-                             'Sph'), # 300.2908
-        'Sph_mCH2_mH2O_mH': ('NO', 'CH2', -1, 'Sph%s-CH2-H2O-H', ['Cer'],
-                             'Sph'), # 268.2646
+        'Sph_mH_N':
+            ChainFragParam(
+                plus = 'NH2O2',
+                minus = '',
+                charge = -1,
+                name = 'Sph%s-H',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 300.2908
+        'Sph_mCH2_mH2O_mH':
+            ChainFragParam(
+                plus = 'NO',
+                minus = 'CH2',
+                charge = -1,
+                name = 'Sph%s-CH2-H2O-H',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 268.2646
         # sphingosine long chain base fragments from d-ceramides
-        'Sph_mCH2_mOH':     ('NO', 'C', -1, 'Sph%s-CH2-OH', ['Cer'],
-                             'Sph'), # 270.2802
+        'Sph_mCH2_mOH':
+            ChainFragParam(
+                plus = 'NO',
+                minus = 'C',
+                charge = -1,
+                name = 'Sph%s-CH2-OH',
+                constraints = (
+                    FragConstraint(hg = 'Cer'),
+                ),
+                chaintype = 'Sph'
+            ), # 270.2802
         # sphingosine long chain base fragments from sphingomyelin
-        'Sph_pPCh_mCH3':    ('N2H12O5PC4', '', -1, 'Sph%s+PCh-CH3', ['SM'],
-                             'Sph'), # 449.3150
+        'Sph_pPCh_mCH3':
+            ChainFragParam(
+                plus = 'N2H12O5PC4',
+                minus = '',
+                charge = -1,
+                name = 'Sph%s+PCh-CH3',
+                constraints = (
+                    FragConstraint(hg = 'SM'),
+                ),
+                chaintype = 'Sph'
+            ), # 449.3150
         # sphingosine fragments from sphingosine
         'Sph_mC2H3_mNH2_mOH':
-                            ('O', 'C2H3', -1, 'Sph%s-C2H3-NH2-OH', ['Sph'],
-                             'Sph'), # 241.2537
+            ChainFragParam(
+                plus = 'O',
+                minus = 'C2H3',
+                charge = -1,
+                name = 'Sph%s-C2H3-NH2-OH',
+                constraints = (
+                    FragConstraint(hg = 'Sph'),
+                ),
+                chaintype = 'Sph'
+            ), # 241.2537
         # fatty acyl fragments from ceramide-1-phosphate
-        'FA_mH2O':          ('O', 'H2', -1, 'FA%s-H2O', ['CerP'],
-                             'FA'), # 266.2615
-        'FA':               ('O2', '', -1, 'FA%s-', ['CerP'],
-                             'FA'), # 284.2721
+        'FA_mH2O':
+            ChainFragParam(
+                plus = 'O',
+                minus = 'H2',
+                charge = -1,
+                name = 'FA%s-H2O',
+                constraints = (
+                    FragConstraint(hg = 'Cer', sub = ('1P',)),
+                ),
+                chaintype = 'FA'
+            ), # 266.2615
+        'FA':
+            ChainFragParam(
+                plus = 'O2',
+                minus = '',
+                charge = -1,
+                name = 'FA%s-',
+                constraints = (
+                    FragConstraint(hg = 'Cer', sub = ('1P',)),
+                ),
+                chaintype = 'FA'
+            ), # 284.2721
     }
     
     param_pos = {
         ### neutral losses
-        'NLFA':             ('O2', '', 0, 'NL FA%s', [], 'FA'),
+        'NLFA':
+            ChainFragParam(
+                plus = 'O2',
+                minus = '',
+                charge = 0,
+                name = 'NL FA%s',
+                constraints = (),
+                chaintype = 'FA'
+            ),
         # NLFAminusH2O
-        'NLFA_mH2O':        ('O', 'H2', 0, 'NL FA%s-H2O', [], 'FA'),
+        'NLFA_mH2O':
+            ChainFragParam(
+                plus = 'O',
+                minus = 'H2',
+                charge = 0,
+                name = 'NL FA%s-H2O',
+                constraints = (),
+                chaintype = 'FA'
+            ),
         # NLFAplusOH
-        'NLFA_pOH':         ('O3H', '', 0, 'NL FA%s+OH', [], 'FA'),
+        'NLFA_pOH':
+            ChainFragParam(
+                plus = 'O3H',
+                minus = '',
+                charge = 0,
+                name = 'NL FA%s+OH',
+                constraints = (),
+                chaintype = 'FA'
+            ),
         # NLFAplusNH3
-        'NLFA_pNH3':        ('O2NH3', '', 0, 'NL FA%s+NH3', [], 'FA'),
+        'NLFA_pNH3':
+            ChainFragParam(
+                plus = 'O2NH3',
+                minus = '',
+                charge = 0,
+                name = 'NL FA%s+NH3',
+                constraints = (),
+                chaintype = 'FA'
+            ),
         ### positive
         # FAminusO
-        'FA_mOH':           ('O', 'H', 1, 'FA%s-OH', [], 'FA'),
+        'FA_mOH':
+            ChainFragParam(
+                plus = 'O',
+                minus = 'H',
+                charge = 1,
+                name = 'FA%s-OH',
+                constraints = (),
+                chaintype = 'FA'
+            ),
         # FAplusGlycerol
-        'FA_pGlycerol_mOH': ('C3H5O3', '', 1, 'FA%s+Glycerol-OH',
-                             ['PG', 'BMP', 'DAG', 'LysoPE', 'LysoPC'], 'FA'),
+        'FA_pGlycerol_mOH':
+            ChainFragParam(
+                plus = 'C3H5O3',
+                minus = '',
+                charge = 1,
+                name = 'FA%s+Glycerol-OH',
+                constraints = (
+                    FragConstraint(hg = 'PG'),
+                    FragConstraint(hg = 'BMP'),
+                    FragConstraint(hg = 'DAG'),
+                    FragConstraint(hg = 'PE', sub = ('Lyso',)),
+                    FragConstraint(hg = 'PC', sub = ('Lyso',)),
+                ),
+                chaintype = 'FA'
+            ),
         # SphingosineBase
-        'Sph_pH':           ('NH4O2', '', 1, 'Sph%s+H',
-                             ['Sph', 'SM', 'Cer', 'HexCer'],
-                             'Sph'), # 302.3053
+        'Sph_pH':
+            ChainFragParam(
+                plus = 'NH4O2',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s+H',
+                constraints = (
+                    FragConstraint(hg = 'Sph'),
+                    FragConstraint(hg = 'SM'),
+                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', sub = ('Hex',)),
+                ),
+                chaintype = 'Sph'
+            ), # 302.3053
         # sphingosine long chain base fragments from ceramide-1-phosphate
-        'Sph_m2xH2O':       ('N', '', 1, 'Sph%s-2xH2O',
-                             ['CerP', 'SphP', 'SM', 'MSph', 'M2Sph', 'dCer',
-                              'DHCer'],
-                             'Sph'), # 266.2842
+        'Sph_m2xH2O':
+            ChainFragParam(
+                plus = 'N',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s-2xH2O',
+                constraints = (
+                    FragConstraint(hg = 'Sph', sub = ('1P',)),
+                    FragConstraint(hg = 'SM'),
+                    FragConstraint(hg = 'Cer', sph = 'd'),
+                    FragConstraint(hg = 'Cer', sph = 'DH'),
+                    FragConstraint(hg = 'Cer', sub = ('1P',)),
+                    FragConstraint(hg = 'Sph', sub = ('M',)),
+                    FragConstraint(hg = 'Sph', sub = ('M2',)),
+                ),
+                chaintype = 'Sph'
+            ), # 266.2842
         # fatty acyl fragments from ceramide-1-phosphate
-        'FA_pNH_pC2H2_mOH': ('ONC2H2', '', 1, 'FA%s+NH+C2H2-OH', [],
-                             'FA'), # 308.2948
-        'FA_pNH2_mO':       ('ONH2', '', 1, 'FA%s+NH2-O', ['dCer', 'DHCer'],
-                             'FA'), # 284.2948
+        'FA_pNH_pC2H2_mOH':
+            ChainFragParam(
+                plus = 'ONC2H2',
+                minus = '',
+                charge = 1,
+                name = 'FA%s+NH+C2H2-OH',
+                constraints = (),
+                chaintype = 'FA'
+            ), # 308.2948
+        'FA_pNH2_mO':
+            ChainFragParam(
+                plus = 'ONH2',
+                minus = '',
+                charge = 1,
+                name = 'FA%s+NH2-O',
+                constraints = (
+                    FragConstraint(hg = 'Cer', sph = 'd'),
+                    FragConstraint(hg = 'Cer', sph = 'DH'),
+                ),
+                chaintype = 'FA'
+            ), # 284.2948
         # sphingosine long chain base fragments from hexosyl-t-ceramide
-        'Sph_mH_P':         ('NH2O2', '', 1, 'Sph%s-H', ['HexCer', 'tCer'],
-                             'Sph'), # 300.2897
-        'Sph_pH2O_mH':      ('NH4O3', '', 1, 'Sph%s+H2O-H', ['HexCer'],
-                             'Sph'), # 318.3003
-        'Sph_mH2O_mH':      ('NO', '', 1, 'Sph%s-H2O-H', ['HexCer', 'tCer'],
-                             'Sph'), # 282.2791
-        'Sph_mH2O_pH':      ('NOH2', '', 1, 'Sph%s-H2O+H',
-                             ['SphP', 'MSph', 'M2Sph', 'DHCer'],
-                             'Sph'), # 284.2948
+        'Sph_mH_P':
+            ChainFragParam(
+                plus = 'NH2O2',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s-H',
+                constraints = (
+                    FragConstraint(hg = 'Cer', sph = 't'),
+                    FragConstraint(hg = 'Cer', sub = ('Hex',)),
+                ),
+                chaintype = 'Sph'
+            ), # 300.2897
+        'Sph_pH2O_mH':
+            ChainFragParam(
+                plus = 'NH4O3',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s+H2O-H',
+                constraints = (
+                    FragConstraint(hg = 'Cer', sub = ('Hex',)),
+                ),
+                chaintype = 'Sph'
+            ), # 318.3003
+        'Sph_mH2O_mH':
+            ChainFragParam(
+                plus = 'NO',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s-H2O-H',
+                constraints = (
+                    FragConstraint(hg = 'Cer', sph = 't'),
+                    FragConstraint(hg = 'Cer', sub = ('Hex',)),
+                ),
+                chaintype = 'Sph'
+            ), # 282.2791
+        'Sph_mH2O_pH':
+            ChainFragParam(
+                plus = 'NOH2',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s-H2O+H',
+                constraints = (
+                    FragConstraint(hg = 'Cer', sph = 'DH'),
+                    FragConstraint(hg = 'Sph', sub = ('1P',)),
+                    FragConstraint(hg = 'Sph', sub = ('M',)),
+                    FragConstraint(hg = 'Sph', sub = ('M2',)),
+                ),
+                chaintype = 'Sph'
+            ), # 284.2948
         # sphingosine fragments from N-(n)methyl-safingols
-        'Sph_mH2O_pCH3':    ('NOCH4', '', 1, 'Sph%s-H2O+CH3',
-                             ['MSph', 'M2Sph'], 'Sph'), # 298.3104
+        'Sph_mH2O_pCH3':
+            ChainFragParam(
+                plus = 'NOCH4',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s-H2O+CH3',
+                constraints = (
+                    FragConstraint(hg = 'Sph', sub = ('M',)),
+                    FragConstraint(hg = 'Sph', sub = ('M2',)),
+                ),
+                chaintype = 'Sph'
+            ), # 298.3104
         'Sph_mH2O_p2xCH3_mH':
-                            ('NOC2H6', '', 1, 'Sph%s-H2O+2xCH3-H',
-                             ['M2Sph'], 'Sph'), # 312.3261
+            ChainFragParam(
+                plus = 'NOC2H6',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s-H2O+2xCH3-H',
+                constraints = (
+                    FragConstraint(hg = 'Sph', sub = ('M2',)),
+                ),
+                chaintype = 'Sph'
+            ), # 312.3261
         # sphinosine fragments from keto-sphingosine
-        'Sph_mC_mH2O_mH':   ('NO', 'C', 1, 'Sph%s-C-H2O-H', ['KSph'],
-                             'Sph'), # 270.2791
+        'Sph_mC_mH2O_mH':
+            ChainFragParam(
+                plus = 'NO',
+                minus = 'C',
+                charge = 1,
+                name = 'Sph%s-C-H2O-H',
+                constraints = (
+                    FragConstraint(hg = 'Sph', sph = 'k'),
+                ),
+                chaintype = 'Sph'
+            ), # 270.2791
         'Sph_mC_mO_mH2O_mH':
-                            ('N', 'C', 1, 'Sph%s-C-O-H2O-H', ['KSph', 'dCer'],
-                             'Sph'), # 254.2842
+            ChainFragParam(
+                plus = 'N',
+                minus = 'C',
+                charge = 1,
+                name = 'Sph%s-C-O-H2O-H',
+                constraints = (
+                    FragConstraint(hg = 'Cer', sph = 'd'),
+                    FragConstraint(hg = 'Sph', sph = 'k'),
+                ),
+                chaintype = 'Sph'
+            ), # 254.2842
         'Sph_mNH2_mH2O_m2H':
-                            ('O', 'H3', 1, 'Sph%s-C-H2O-2H', ['KSph'],
-                             'Sph'), # 265.2526
-        'Sph_mC_m2xH2O':    ('N', 'CH2', 1, 'Sph%s-C-2xH2O', ['KSph'],
-                             'Sph'), # 252.2686
+            ChainFragParam(
+                plus = 'O',
+                minus = 'H3',
+                charge = 1,
+                name = 'Sph%s-C-H2O-2H',
+                constraints = (
+                    FragConstraint(hg = 'Sph', sph = 'k'),
+                ),
+                chaintype = 'Sph'
+            ), # 265.2526
+        'Sph_mC_m2xH2O':
+            ChainFragParam(
+                plus = 'N',
+                minus = 'CH2',
+                charge = 1,
+                name = 'Sph%s-C-2xH2O',
+                constraints = (
+                    FragConstraint(hg = 'Sph', sph = 'k'),
+                ),
+                chaintype = 'Sph'
+            ), # 252.2686
         # sphingosine fragments from d-ceramide
-        'Sph_mO_pH':        ('NOH4', '', 1, 'Sph%s-O+H',
-                             ['dCer'], 'Sph'), # 286.3104
+        'Sph_mO_pH':
+            ChainFragParam(
+                plus = 'NOH4',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s-O+H',
+                constraints = (
+                    FragConstraint(hg = 'Sph', sph = 'd'),
+                ),
+                chaintype = 'Sph'
+            ), # 286.3104
     }
     
     def __init__(self):

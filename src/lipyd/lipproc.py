@@ -37,7 +37,7 @@ class Chain(collections.namedtuple(
     
     def __new__(cls, c, u, typ = 'FA', attr = ChainAttr(), iso = ()):
         
-        if attr.sph == 'd' and u == 0:
+        if hasattr(attr, 'sph') and attr.sph == 'd' and u == 0:
             
             attr = ChainAttr(sph = 'DH', ether = attr.ether, oh = attr.oh)
         
@@ -65,6 +65,36 @@ class Chain(collections.namedtuple(
     def isomer_str(self):
         
         return self.__str__(iso = True)
+    
+    def __add__(self, other):
+        
+        return sum_chains((self, other))
+
+
+class ChainSummary(Chain):
+    
+    def __new__(cls, c, u, typ = (), attr = ()):
+        
+        return super(ChainSummary, cls).__new__(
+            cls, c, u, typ = typ, attr = attr, iso = None
+        )
+    
+    def __str__(self):
+        
+        return '%s%s%u:%u%s' % (
+            # ether prefix
+            'O-' if any(a.ether for a in self.attr) else '',
+            # sphingoid base prefix e.g. dCer(d38:1)
+            ''.join(a.sph for a in self.attr), # of course max one of these
+                                               # is not empty string
+            # the carbon count
+            self.c,
+            # the unsaturation
+            self.u,
+            # postfix for hydroxylated fatty acyls e.g. PC(32:1-2OH)
+            '-%s' % '-'.join('-'.join(a.oh) for a in self.attr if a.oh)
+                if any(a.oh for a in self.attr) else ''
+        )
 
 
 Headgroup = collections.namedtuple(
@@ -128,11 +158,11 @@ def sum_chains(chains):
     """
     
     return (
-        Chain(
+        ChainSummary(
             c = sum(i.c for i in chains),
             u = sum(i.u for i in chains),
-            attr = collapse_attrs(chains),
-            typ = None
+            attr = tuple(c.attr for c in chains),
+            typ = tuple(c.typ for c in chains)
         )
     )
 
@@ -232,15 +262,15 @@ def get_attributes(hg, chainsum = None):
     
     chainsum = chainsum or empty_chain()
     
-    hydroxy = '-'.join(chainsum.attr.oh)
+    hydroxy = '-'.join('-'.join(c.oh) for c in chainsum.attr)
     hydroxy = '-%s' % hydroxy if hydroxy else ''
     
     subcls  = '-'.join(i for i in hg.sub if i != '1P')
     subcls  = '%s-' % subcls if subcls else ''
     p1 = '1P' if '1P' in hg.sub else ''
     
-    sphingo_prefix = chainsum.attr.sph
-    ether_prefix = chainsum.attr.ether
+    sphingo_prefix = ''.join(a.sph for a in chainsum.attr)
+    ether_prefix = any(a.ether for a in chainsum.attr)
     # this I leave here if maybe later I decide to have
     # plain tuples...
     #

@@ -109,6 +109,8 @@ class FragmentDatabaseAggregator(object):
             'u': (0, 1)
         }
         
+        self.hg_constr = {}
+        
         if build:
             
             self.build()
