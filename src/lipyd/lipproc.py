@@ -281,6 +281,44 @@ def get_attributes(hg, chainsum = None):
     return subcls, sphingo_prefix, ether_prefix, p1, hydroxy
 
 
+def match_constraint(rec, constr, chaintype):
+    """
+    Matches an MS2 fragment constraint (fragment.FragConstraint)
+    against a lipid record lipproc.LipidRecord.
+    
+    Returns the indices of the chains as integers in a set.
+    
+    Args
+    ----
+    :param LipidRecord rec:
+        A lipid database record object.
+    :param fragment.FragConstraint constr:
+        An MS2 fragment constraint object.
+    :param str chaintype:
+        The type of the fragment aliphatic chain (e.g. `FA`, `Sph`).
+    """
+    
+    if constr.hg == rec.hg.main and set(constr.sub) == set(hg.sub):
+        
+        matching = set([])
+        chainsum = rec.chainsum if rec.chainsum else sum_chains(rec.chains)
+        
+        for (i, attr), rec_chaintype in zip(
+            enumerate(chainsum.attr), chainsum.typ
+        ):
+            
+            if (
+                chaintype == rec_chaintype and
+                attr.sph == constr.sph and
+                # matching only the number of OH groups
+                len(attr.oh) == constr.oh
+            ):
+                
+                matching.add(i)
+    
+    return matching
+
+
 # regex captures the summary carbon count
 rechainsum = re.compile(
     r'\('

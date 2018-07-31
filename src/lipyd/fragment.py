@@ -37,15 +37,15 @@ fattyfragments = set([])
 
 ChainFragParam = collections.namedtuple(
     'ChainFragParam',
-    ['plus', 'minus', 'charge', 'name', 'chainype', 'constraints'] )
+    ['plus', 'minus', 'charge', 'name', 'chaintype', 'constraints'] )
 ChainFragParam.__new__.__defaults__ = ((),)
 
 
 FragConstraint = collections.namedtuple(
     'FragConstraint',
-    ['hg', 'sub', 'sph']
+    ['hg', 'sub', 'sph', 'oh']
 )
-FragConstraint.__new__.__defaults__ = (None, (), None)
+FragConstraint.__new__.__defaults__ = (None, (), None, 0)
 
 
 class AdductCalculator(object):
@@ -1086,7 +1086,7 @@ class FattyFragmentFactory(object):
                 # and get information about the class
                 for attr, val in (
                     ('chaintype', par.chaintype),
-                    ('constriants', par.constraints),
+                    ('constraints', par.constraints),
                     ('name', par.name % ''),
                     ('mode', mode)
                 ):

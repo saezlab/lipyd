@@ -688,7 +688,7 @@ class Scan(ScanBase):
         
         self.chain_list = tuple(
             ChainFragment(
-                a.c, a.u, a.chaintype, a.fragtype, i, self.intensities[i]
+                a.c, a.u, a.fragtype, a.chaintype, i, self.intensities[i]
             )
             for i, aa in enumerate(self.annot)
             for a in aa
@@ -856,30 +856,76 @@ class Scan(ScanBase):
             self.intensities[i_fa] > self.intensities[i_sph] * 2
         )
     
-    def fa_combinations3(
+    def fa_combinations(
             self,
             rec,
             head = None,
             expected_intensities = None
         ):
         """
-        Finds all combinations of 3 fatty acids which match the
-        total carbon count and unsaturation resulted by database
-        lookups of the MS1 precursor mass.
-        This can be used for example at TAG.
+        Finds all combinations of chain derived fragments matching the
+        total carbon count and unsaturation in a database record.
+        
+        Yields tuple of chains (`lipproc.Chain` objects).
         
         Args
         ----
         :param lipproc.LipidRecord rec:
             The database record to match against.
-        :param str hg:
-            The short name of the headgroup, e.g. `TAG`.
         :param int head:
             If `None` or `numpy.inf` all fragment ions will be considered,
             otherwise only the first most aboundant until the number `head`.
         """
         
         result = set([])
+        
+        chainsum = rec.chainsum or lipproc.sum_chains(rec.chains)
+        
+        frags_for_position = collections.defaultdict(list)
+        
+        for frag in self.chain_list:
+            
+            # constraints for the fragment type
+            constr = fragdb.constraint(frag.fragtype, self.ionmode)
+            # set of possible positions of the chain
+            # which this fragment originates from
+            chpos = lipproc.match_constraint(rec, constr, frag.chaintype)
+            
+            for c in chpos:
+                
+                frags_for_position[c].append(frag)
+        
+        # iterate all combinations
+        for frag_comb in itertools.product(
+            *(
+                # making a sorted list of lists from the dict
+                i[1] for i in
+                sorted(frags_for_position.items(), key = lambda i: i[0])
+            )
+        ):
+            
+            if (
+                sum(frag.c for frag in frag_comb) == chainsum.c and
+                sum(frag.u for frag in frag_comb) == chainsum.u
+            ):
+                
+                yield tuple(
+                    lipproc.Chain(
+                        c = frag.c,
+                        u = frag.u,
+                        typ = frag.chaintype,
+                        attr = lipproc.ChainAttr(
+                            # take the sphingosine base type
+                            # from the chainsum of the record
+                            sph = chainsum.attr[i].sph,
+                            ether = frag.chaintype == 'FAL',
+                            oh = rec.attr[i].oh
+                        )
+                    )
+                    for i, frag in enumerate(frag_comb)
+                )
+        
+        
         
         
         
