@@ -330,6 +330,15 @@ _defaults = {
     # Don't know what it is for
     'uniprots': None,
     'mgf_example': 'example_mgf__2016-12-03_GLTPD1_pos_E07.mgf',
+    # logarithm base for matching chain fragment intensities
+    # this determines the tolerance and represents fold difference
+    'chain_fragment_instensity_ratios_logbase': 1.5,
+    # if no expected ratios provided still require the ratios to be even
+    # at glycero(phospho)lipids?
+    'even_chain_fragment_intensity_ratios_gl_gpl': True,
+    # if no expected ratios provided still require the ratios to be even
+    # at aphingolipids?
+    'even_chain_fragment_intensity_ratios_sl': False,
     # Method names to convert between adduct and exact masses
     'ad2ex': {
         1: {

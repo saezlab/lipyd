@@ -216,6 +216,17 @@ class Scan(ScanBase):
         
         ScanBase.__init__(self, mzs, ionmode, precursor, intensities)
         
+        # get some settings
+        self.check_ratio_g = settings.get(
+            'even_chain_fragment_intensity_ratios_gl_gpl'
+        )
+        self.check_ratio_s = settings.get(
+            'even_chain_fragment_intensity_ratios_sl'
+        )
+        self.iratio_logbase = settings.get(
+            'chain_fragment_instensity_ratios_logbase'
+        )
+        
         self.scan_id = scan_id
         self.sample = sample
         self.log = logger
@@ -856,7 +867,7 @@ class Scan(ScanBase):
             self.intensities[i_fa] > self.intensities[i_sph] * 2
         )
     
-    def fa_combinations(
+    def chain_combinations(
             self,
             rec,
             head = None,
@@ -909,323 +920,92 @@ class Scan(ScanBase):
                 sum(frag.u for frag in frag_comb) == chainsum.u
             ):
                 
-                yield tuple(
-                    lipproc.Chain(
-                        c = frag.c,
-                        u = frag.u,
-                        typ = frag.chaintype,
-                        attr = lipproc.ChainAttr(
-                            # take the sphingosine base type
-                            # from the chainsum of the record
-                            sph = chainsum.attr[i].sph,
-                            ether = frag.chaintype == 'FAL',
-                            oh = rec.attr[i].oh
+                if not (
+                    # need to check intensity ratios
+                    (chainsum.typ[0] == 'Sph' and check_ratio_s) or
+                    (chainsum.typ[0] != 'Sph' and check_ratio_g) or
+                    expected_intensities
+                ) or self.intensity_ratios(
+                    # intensity ratios are ok
+                    tuple(f.intensity for f in frag_comb),
+                    tuple(f.i for f in frag_comb),
+                    expected = expected_intensities,
+                    logbase
+                ):
+                    
+                    # now every conditions satisfied:
+                    
+                    yield tuple(
+                        lipproc.Chain(
+                            c = frag.c,
+                            u = frag.u,
+                            typ = frag.chaintype,
+                            attr = lipproc.ChainAttr(
+                                # take the sphingosine base type
+                                # from the chainsum of the record
+                                sph = chainsum.attr[i].sph,
+                                ether = frag.chaintype == 'FAL',
+                                oh = rec.attr[i].oh
+                            )
                         )
+                        for i, frag in enumerate(frag_comb)
                     )
-                    for i, frag in enumerate(frag_comb)
-                )
-        
-        
-        
-        
-        
-        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
-            ccs = list(self.feature.ms1fa[hg])
-        else:
-            return result
-        
-        head = np.inf if head is None else head
-        
-        for cc in ccs:
-            
-            try:
-                icc = self.cc2int(cc)
-            except AttributeError:
-                continue
-            
-            for frag0 in self.fa_list:
-                
-                if frag0[5] >= head:
-                    break
-                
-                cc0 = frag0[0]
-                
-                cc12e = '%u:%u' % tuple(map(lambda x: x[0] - x[1],
-                                            zip(*[icc, cc0])))
-                
-                cc12s = self.fa_combinations_tuples(cc12e, head = head, by_cc = True)
-                
-                for cc12 in cc12s:
-                    
-                    cc012 = '/'.join(sorted(list(cc12[0]) + [self.cc2str(cc0)]))
-                    
-                    if self.sum_cc_str(cc012) == icc:
-                    
-                        if self.intensity_ratios([
-                            (cc12[1][0], cc12[2][0]),
-                            (cc12[1][1], cc12[2][1]),
-                            (frag0[4], frag0[5])],
-                            expected = expected_intensities
-                        ):
-                            
-                            result.add(cc012)
-        
-        return result
     
-    def intensity_ratios(self, intensities, expected = None, logbase = 1.5):
+    @staticmethod
+    def intensity_ratios(
+            intensities,
+            frag_indices = None,
+            expected = None,
+            logbase = None
+        ):
         """
         Tells if the ratio of a list of intensities fits
         the one in `expected` or is even if `expected` is `None`.
         
-        :param list intensities: List of tuples, first element is the
-                                 intensity, the second is an uniqe
-                                 identifier of the fragments.
-        :param list expected: List with expected intensity proportions.
-                              E.g. `[1, 1, 2]` means the third ion is
-                              twice higher intense than the 2 others.
-        :param int logbase: The fold difference tolerance when comparing
-                            intensities. E.g. if this is 2, then an almost
-                            twice less or more intense ion will considered
-                            to have similar intensity.
+        :param list intensities:
+            List of intensities.
+        :param list expected:
+            List with expected intensity proportions. E.g. `[1, 1, 2]`
+            means the third ion is twice higher intense than the 2 others.
+        :param int logbase:
+            The fold difference tolerance when comparing intensities.
+            E.g. if this is 2, then an almost twice less or more intense
+            ion will considered to have similar intensity.
         
         """
+        
+        logbase = settings.get('chain_fragment_instensity_ratios_logbase')
         
         if len(intensities) == 1:
             
             return True
         
-        i = intensities
-        
-        if any(map(lambda ii: ii[0] <= 0.0, i)):
+        if any(i <= 0.0 for i in intensities)):
             
-            return False
+            raise ValueError('Negative intensity value encountered')
         
+        frag_indices = frag_indices or list(range(len(intensities)))
         # to know if one fragment contributes more than one times;
         # intensities divided by the times the fragment is incident
-        cntr = collections.Counter(map(lambda ii: ii[1], i))
+        cntr = collections.Counter(frag_indices)
         
         # by default expecting more or less equal intensities
         if expected is None:
             
-            expected = [1.0] * len(i)
+            expected = [1.0] * len(intensities)
         
-        i = list(
-            map(
-                lambda ii:
-                    (ii[1][0] / (expected[ii[0]] * cntr[ii[1][1]]), ii[1][1]),
-                enumerate(i)
-            )
-        )
+        # intensities corrected by the expected and the counts
+        intcorr = [
+            ins / expected[i] / cntr[ind],
+            (i, iins), ind in zip(enumerate(itensities), frag_indices)
+        ]
         
         return (
-            all(
-                map(
-                    lambda co:
-                        (
-                            (math.log(co[0][0], logbase) -
-                            math.log(co[1][0], logbase)) <= 1
-                        ),
-                    itertools.combinations(i, 2)
-                )
-            )
+            all((
+                math.log(co[0], logbase) - math.log(co[1], logbase) <= 1
+                for co in itertools.combinations(intcorr, 2)
+            ))
         )
-    
-    def fa_combinations_old(self, hg, sphingo = False,
-                            head = None, by_cc = False):
-        """
-        Finds all combinations of 2 fatty acids which match the
-        total carbon count and unsaturation resulted by database
-        lookups of the MS1 precursor mass.
-        Alternatively a carbon count and unsaturation can be provided
-        if `by_cc` is set to `True`.
-        
-        :param str hg: Short name of the headgroup, e.g. `PC`; or cc:unsat e.g.
-                       `32:1` if `by_cc` is `True`.
-        :param bool sphingo: Assume sphingolipid.
-        :param int head: If `None` the total fragment list used, if a number,
-                         only the most intensive fragments accordingly.
-        :param bool by_cc: Use the MS1 database identification to find out
-                           the possible carbon counts and unsaturations for
-                           the given headgroup, or a cc:uns provided and
-                           search combinations accordingly.
-        
-        """
-        
-        result = set([])
-        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
-            ccs = list(self.feature.ms1fa[hg])
-        elif by_cc:
-            ccs = [hg]
-        else:
-            return result
-        
-        head = np.inf if head is None else head
-        
-        self.build_fa_list()
-        
-        for cc in ccs:
-            
-            for frag1 in self.fa_list:
-                
-                for frag2 in self.fa_list:
-                    
-                    result.update(
-                        self.get_fa_combinations(frag1, frag2, hg,
-                                                cc, sphingo, head)
-                    )
-        
-        return result
-    
-    def fa_combinations_preprocess(self, regenerate = False):
-        """
-        Generates a lookup table for all possible combinations of two
-        fatty acids.
-        """
-        
-        if not hasattr(self, 'fa_co_2') or regenerate:
-            
-            self.fa_co_2 = {}
-            l = self.fa_list
-            
-            for i, j in itertools.combinations_with_replacement(
-                xrange(len(self.fa_list)), 2):
-                
-                key = self.sum_cc([(l[i][0][0], l[i][0][1]),
-                                   (l[j][0][0], l[j][0][1])])
-                
-                if key not in self.fa_co_2:
-                    self.fa_co_2[key] = set([])
-                
-                self.fa_co_2[key].add((i, j))
-    
-    def fa_combinations(self, hg, sphingo = False,
-                               head = None, by_cc = False):
-        """
-        Finds all combinations of 2 fatty acids which match the
-        total carbon count and unsaturation resulted by database
-        lookups of the MS1 precursor mass.
-        Alternatively a carbon count and unsaturation can be provided
-        if `by_cc` is set to `True`.
-        
-        This method does the same as `fa_combinations` but works with
-        a preprocessed lookup table.
-        
-        Returns set of strings.
-        
-        :param str hg: Short name of the headgroup, e.g. `PC`; or cc:unsat e.g.
-                       `32:1` if `by_cc` is `True`.
-        :param bool sphingo: Assume sphingolipid.
-        :param int head: If `None` the total fragment list used, if a number,
-                         only the most intensive fragments accordingly.
-        :param bool by_cc: Use the MS1 database identification to find out
-                           the possible carbon counts and unsaturations for
-                           the given headgroup, or a cc:uns provided and
-                           search combinations accordingly.
-        
-        """
-        
-        return set(map(lambda co: '%s/%s' % co[0],
-                       self.fa_combinations_tuples(hg, sphingo, head, by_cc)))
-    
-    
-    def fa_combinations_tuples(self, hg, sphingo = False,
-                               head = None, by_cc = False):
-        """
-        Finds all combinations of 2 fatty acids which match the
-        total carbon count and unsaturation resulted by database
-        lookups of the MS1 precursor mass.
-        Alternatively a carbon count and unsaturation can be provided
-        if `by_cc` is set to `True`.
-        
-        Returns tuples of tuples with carbon count/unsaturation,
-        intensities and indices.
-        
-        :param str hg: Short name of the headgroup, e.g. `PC`; or cc:unsat e.g.
-                       `32:1` if `by_cc` is `True`.
-        :param bool sphingo: Assume sphingolipid.
-        :param int head: If `None` the total fragment list used, if a number,
-                         only the most intensive fragments accordingly.
-        :param bool by_cc: Use the MS1 database identification to find out
-                           the possible carbon counts and unsaturations for
-                           the given headgroup, or a cc:uns provided and
-                           search combinations accordingly.
-        
-        """
-        
-        result = []
-        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
-            ccs = list(self.feature.ms1fa[hg])
-        elif by_cc:
-            ccs = [hg]
-        else:
-            return result
-        
-        head = np.inf if head is None else head
-        
-        self.build_fa_list()
-        self.fa_combinations_preprocess()
-        
-        for cc in ccs:
-            
-            icc = self.cc2int(cc)
-            
-            if icc in self.fa_co_2:
-                
-                for i, j in self.fa_co_2[icc]:
-                    
-                    frag1 = self.fa_list[i]
-                    frag2 = self.fa_list[j]
-                    
-                    result.extend(
-                        self.get_fa_combinations(frag1, frag2, hg,
-                                                 cc, sphingo, head)
-                    )
-        
-        return result
-    
-    def get_fa_combinations(self, frag1, frag2, hg, cc, sphingo, head):
-        """
-        Processes two fatty acid fragments to decide
-        if their combination is valid.
-        """
-        
-        result = []
-        
-        if frag1[5] >= head or frag2[5] >= head:
-            return result
-        
-        if hg == 'Cer' and not self.cer_fa_test(frag1, frag2):
-            # where not the 'CerFA' is the most intensive
-            # those are clearly false
-            return result
-        
-        if frag1[0][0] is not None and frag2[0][0] is not None and \
-            (frag1[1] is None or hg in frag1[1]) and \
-            (frag2[1] is None or hg in frag2[1]) and \
-            (not sphingo or frag1[3] or frag2[3]):
-            if self.sum_cc_is(frag1[0], frag2[0], cc):
-                ether_1 = 'O-' if frag1[2] else ''
-                ether_2 = 'O-' if frag2[2] else ''
-                fa_1 = '%s%u:%u' % (ether_1, frag1[0][0], frag1[0][1])
-                fa_2 = '%s%u:%u' % (ether_2, frag2[0][0], frag2[0][1])
-                if frag1[3]:
-                    fa_1 = 'd%s' % fa_1
-                elif frag2[3]:
-                    sph = 'd%s' % fa_2
-                    fa_2 = fa_1
-                    fa_1 = sph
-                if not frag1[3] and not frag2[3]:
-                    fa = tuple(sorted([fa_1, fa_2]))
-                else:
-                    fa = (fa_1, fa_2)
-                
-                result.append((
-                    fa,
-                    (frag1[4], frag2[4]),
-                    (frag1[5], frag2[5])
-                ))
-        
-        return result
     
     def matching_fa_frags_of_type(self, hg, typ, sphingo = False,
         return_details = False):
