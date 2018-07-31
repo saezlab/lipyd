@@ -109,7 +109,7 @@ class FragmentDatabaseAggregator(object):
             'u': (0, 1)
         }
         
-        self.hg_constr = {}
+        self.constraints = {}
         
         if build:
             
@@ -324,8 +324,18 @@ class FragmentDatabaseAggregator(object):
             args = self.get_series_args(cls)
             
             result.extend(list(cls(**args).iterfraglines()))
+            
+            self.add_constraints(cls)
         
         return result
+    
+    def add_constraints(self, cls):
+        
+        self.constraints[cls.name] = (cls.constraints, cls.chaintype)
+    
+    def get_constraints(self, fragtype):
+        
+        return self.constraints.get(fragtype, ())
     
     def __getitem__(self, i):
         
@@ -429,6 +439,13 @@ def lookup_pos_nl(mz, precursor):
 def lookup_neg_nl(mz, precursor):
     
     return lookup_nl(mz, precursor, 'neg')
+
+def constraints(fragtype, ionmode):
+    """
+    Returns the constraints for a given fragment type.
+    """
+    db = get_db(ionmode)
+    return db.get_constraints(fragtype)
 
 
 FragmentAnnotation = collections.namedtuple(

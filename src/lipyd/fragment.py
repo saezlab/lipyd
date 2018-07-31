@@ -1085,8 +1085,9 @@ class FattyFragmentFactory(object):
                 # in order to be able later to inspect them
                 # and get information about the class
                 for attr, val in (
-                    ('fragtype', par[5]),
-                    ('headgroups', par[4]),
+                    ('chaintype', par.chaintype),
+                    ('constriants', par.constraints),
+                    ('name', par.name % ''),
                     ('mode', mode)
                 ):
                     
