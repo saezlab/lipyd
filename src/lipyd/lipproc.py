@@ -21,6 +21,21 @@ import itertools
 import functools
 
 
+CLASSES = {
+    'SL':  {'Sph', 'Cer', 'SM'},
+    'GL':  {'MAG', 'DAG', 'TAG'},
+    'GPL': {
+        'PC', 'PE', 'PE', 'PG', 'BMP',
+        'PA', 'PI', 'PIP', 'PIP2', 'PIP3'
+    },
+    'GLGPL': {
+        'MAG', 'DAG', 'TAG',
+        'PC', 'PE', 'PE', 'PG', 'BMP',
+        'PA', 'PI', 'PIP', 'PIP2', 'PIP3'
+    }
+}
+
+
 ChainAttr = collections.namedtuple(
     'ChainAttr',
     ['sph', 'ether', 'oh']
@@ -298,7 +313,13 @@ def match_constraint(rec, constr, chaintype):
         The type of the fragment aliphatic chain (e.g. `FA`, `Sph`).
     """
     
-    if constr.hg == rec.hg.main and set(constr.sub) == set(hg.sub):
+    if (
+        constr.hg == rec.hg.main or (
+            constr.hg is None and
+            constr.cls in CLASSES and
+            rec.hg.main in CLASSES[constr.cls]
+        ) and set(constr.sub) == set(hg.sub)
+    ):
         
         matching = set([])
         chainsum = rec.chainsum if rec.chainsum else sum_chains(rec.chains)

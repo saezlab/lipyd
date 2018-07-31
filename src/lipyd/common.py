@@ -80,10 +80,6 @@ def addToList(lst, toadd):
         lst.remove(None)
     return uniqList(lst)
 
-def something(anything):
-    return not (anything is None or \
-        (type(anything) in [list, set, dict, str, unicode] \
-            and len(anything) == 0))
 
 def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
     """
