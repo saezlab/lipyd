@@ -21,7 +21,7 @@ import itertools
 import functools
 
 
-CLASSES = {
+FAMILIES = {
     'SL':  {'Sph', 'Cer', 'SM'},
     'GL':  {'MAG', 'DAG', 'TAG'},
     'GPL': {
@@ -316,8 +316,8 @@ def match_constraint(rec, constr, chaintype):
     if (
         constr.hg == rec.hg.main or (
             constr.hg is None and
-            constr.cls in CLASSES and
-            rec.hg.main in CLASSES[constr.cls]
+            constr.family in FAMILIES and
+            rec.hg.main in FAMILIES[constr.family]
         ) and set(constr.sub) == set(hg.sub)
     ):
         
