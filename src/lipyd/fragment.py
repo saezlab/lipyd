@@ -1053,19 +1053,19 @@ class FattyFragmentFactory(object):
                         '        charge = %u,\n'
                         '        mode = \'%s\',\n'
                         '        attrs = {\n'
-                        '            \'headgroups\': %s,\n'
+                        '            \'constraints\': %s,\n'
                         '            \'chaintype\': \'%s\'\n'
                         '        },\n'
                         '        **kwargs\n'
                         '    )\n'
                     ) % (
-                        par[0],
-                        par[1],
-                        par[3],
-                        par[2],
+                        par.plus,
+                        par.minus,
+                        par.name,
+                        par.charge,
                         mode,
-                        str(par[4]),
-                        par[5]
+                        str(par.constraints),
+                        par.chaintype
                     ),
                     mod.__dict__,
                     mod.__dict__
