@@ -110,6 +110,10 @@ class ChainSummary(Chain):
             '-%s' % '-'.join('-'.join(a.oh) for a in self.attr if a.oh)
                 if any(a.oh for a in self.attr) else ''
         )
+    
+    def __len__(self):
+        
+        return len(self.typ)
 
 
 Headgroup = collections.namedtuple(

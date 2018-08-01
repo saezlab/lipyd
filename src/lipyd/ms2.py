@@ -871,7 +871,10 @@ class Scan(ScanBase):
             self,
             rec,
             head = None,
-            expected_intensities = None
+            intensity_threshold = 0,
+            expected_intensities = None,
+            no_intensity_check = False,
+            frag_types = None
         ):
         """
         Finds all combinations of chain derived fragments matching the
@@ -879,32 +882,24 @@ class Scan(ScanBase):
         
         Yields tuple of chains (`lipproc.Chain` objects).
         
+        Arguments not listed here explained at `frags_for_positions`.
+        
         Args
         ----
         :param lipproc.LipidRecord rec:
             The database record to match against.
-        :param int head:
-            If `None` or `numpy.inf` all fragment ions will be considered,
-            otherwise only the first most aboundant until the number `head`.
+        :param bool no_intensity_check:
+            Completely skip checking intensity ratios.
         """
-        
-        result = set([])
         
         chainsum = rec.chainsum or lipproc.sum_chains(rec.chains)
         
-        frags_for_position = collections.defaultdict(list)
-        
-        for frag in self.chain_list:
-            
-            # constraints for the fragment type
-            constr = fragdb.constraint(frag.fragtype, self.ionmode)
-            # set of possible positions of the chain
-            # which this fragment originates from
-            chpos = lipproc.match_constraint(rec, constr, frag.chaintype)
-            
-            for c in chpos:
-                
-                frags_for_position[c].append(frag)
+        frags_for_position = self.frags_for_positions(
+            chainsum,
+            head = head,
+            intensity_threshold = intensity_threshold,
+            frag_types = frag_types
+        )
         
         # iterate all combinations
         for frag_comb in itertools.product(
@@ -920,36 +915,73 @@ class Scan(ScanBase):
                 sum(frag.u for frag in frag_comb) == chainsum.u
             ):
                 
-                if not (
-                    # need to check intensity ratios
-                    (chainsum.typ[0] == 'Sph' and check_ratio_s) or
-                    (chainsum.typ[0] != 'Sph' and check_ratio_g) or
-                    expected_intensities
-                ) or self.intensity_ratios(
-                    # intensity ratios are ok
-                    tuple(f.intensity for f in frag_comb),
-                    tuple(f.i for f in frag_comb),
-                    expected = expected_intensities,
-                    logbase
+                if (
+                    # bypass intensity check
+                    no_intensity_check or
+                    self._intensity_check(
+                        frag_comb, chainsum, expected_intensities
+                    )
                 ):
                     
-                    # now every conditions satisfied:
+                    # now all conditions satisfied:
+                    yield self._chains_frag_comb(frag_comb, chainsum)
+    
+    def frags_for_positions(
+            self,
+            chainsum,
+            head = None,
+            intensity_threshold = 0,
+            frag_types = None
+        ):
+        """
+        Returns the possible fragments for each positions (sn1, sn2 in
+        glycerophospholipids, sphingosine base and N-acyl in sphingolipids,
+        etc).
+        
+        :param int head:
+            If `None` or `numpy.inf` all fragment ions will be considered,
+            otherwise only the first most aboundant until the number `head`.
+        :param int intensity_threshold:
+            Only fragments with intensities above this threshold will be
+            considered.
+        :param tuple frag_types:
+            Limit the query to certain fragment types in addition to
+            built in fragment constraints and other criteria.
+            A tuple of tuples with fragment type names can be provided
+            each for one position with None values where default fragment
+            types should be used. E.g. `(('FA_mH', 'Lyso_PA'), None)` means
+            the chain in first position might be found as fatty acid minus
+            hydrogen fragment or lysophosphatidic acid fragment, while the
+            second position could be anything allowed by the built in
+            constraints.
+        """
+        
+        frags_for_position = collections.defaultdict(list)
+        
+        for frag in self.chain_list:
+            
+            if frag.intensity < intensity_threshold:
+                
+                break
+            
+            # constraints for the fragment type
+            constr = fragdb.constraint(frag.fragtype, self.ionmode)
+            # set of possible positions of the chain
+            # which this fragment originates from
+            chpos = lipproc.match_constraint(rec, constr, frag.chaintype)
+            
+            for ci in chpos:
+                
+                if (
+                    # frag_types constraints
+                    not frag_types or
+                    not frag_types[ci] or
+                    frag.fragtype in frag_types[ci]
+                ):
                     
-                    yield tuple(
-                        lipproc.Chain(
-                            c = frag.c,
-                            u = frag.u,
-                            typ = frag.chaintype,
-                            attr = lipproc.ChainAttr(
-                                # take the sphingosine base type
-                                # from the chainsum of the record
-                                sph = chainsum.attr[i].sph,
-                                ether = frag.chaintype == 'FAL',
-                                oh = rec.attr[i].oh
-                            )
-                        )
-                        for i, frag in enumerate(frag_comb)
-                    )
+                    frags_for_position[ci].append(frag)
+        
+        return dict(frags_for_position)
     
     @staticmethod
     def intensity_ratios(
@@ -971,7 +1003,6 @@ class Scan(ScanBase):
             The fold difference tolerance when comparing intensities.
             E.g. if this is 2, then an almost twice less or more intense
             ion will considered to have similar intensity.
-        
         """
         
         logbase = settings.get('chain_fragment_instensity_ratios_logbase')
@@ -1007,51 +1038,146 @@ class Scan(ScanBase):
             ))
         )
     
-    def matching_fa_frags_of_type(self, hg, typ, sphingo = False,
-        return_details = False):
+    def _intensity_check(
+            self,
+            frag_comb,
+            chainsum,
+            expected_intensities = None
+        ):
         """
-        Returns carbon counts of those fragments which are of the given type
-        and have complement fatty acid fragment of any type.
-        
-        Details is a dict with carbon counts as keys
-        and fragment names as values.
+        Performs the chain intensity ratio check according to settings.
         """
-        result = set([])
-        details = {}
         
-        if hg in self.feature.ms1fa and len(self.feature.ms1fa[hg]):
+        return (
+            not (
+                # need to check intensity ratios
+                (chainsum.typ[0] == 'Sph' and self.check_ratio_s) or
+                (chainsum.typ[0] != 'Sph' and self.check_ratio_g) or
+                expected_intensities
+            ) or
+            self.intensity_ratios(
+                # intensity ratios are ok
+                tuple(f.intensity for f in frag_comb),
+                tuple(f.i for f in frag_comb),
+                expected = expected_intensities,
+                self.iratio_logbase
+            )
+        )
+    
+    @staticmethod
+    def _chains_frag_comb(frag_comb, chainsum):
+        """
+        Returns a tuple of chains from a fragment annotation combination
+        and a database record chain summary object.
+        """
+        
+        return (
+            tuple(
+                lipproc.Chain(
+                    c = frag.c,
+                    u = frag.u,
+                    typ = frag.chaintype,
+                    attr = lipproc.ChainAttr(
+                        # take the sphingosine base type
+                        # from the chainsum of the record
+                        sph = chainsum.attr[i].sph,
+                        ether = frag.chaintype == 'FAL',
+                        oh = rec.attr[i].oh
+                    )
+                )
+                for i, frag in enumerate(frag_comb)
+            )
+        )
+
+    def missing_chain(
+            self,
+            rec,
+            missing_position = 1,
+            head = None,
+            intensity_threshold = 0,
+            expected_intensities = None,
+            no_intensity_check = False,
+            frag_types = None
+        ):
+        """
+        Finds ''missing'' chains i.e. which could complement the chains
+        identified among the fragments to fit the species in the record.
+        
+        Yields tuples with first element a tuple of identified chains and
+        as second element the missing chain.
+        
+        Works a similar way to `chain_combinations`.
+        
+        Args
+        ----
+        :param int missing_position:
+            Position of the missing chain. 0, 1, 2 are sn1, sn2 and sn3
+            positions on glycerol, 0 and 1 are sphingosine base and
+            N-acyl in sphingolipids, respectively.
+            By default is 1 (sn2 or N-acyl).
+        """
+        
+        chainsum = rec.chainsum or lipproc.sum_chains(rec.chains)
+        
+        frags_for_position = self.frags_for_positions(
+            chainsum,
+            head = head,
+            intensity_threshold = intensity_threshold,
+            frag_types = frag_types
+        )
+        
+        if missing_position >= len(rec.chainsum.typ):
             
-            for cc in self.feature.ms1fa[hg]:
-                
-                self.build_fa_list()
-                
-                for frag1 in self.fa_list:
-                    
-                    for frag2 in self.fa_list:
-                        
-                        if frag1[0][0] is not None and \
-                            frag2[0][0] is not None and \
-                            (frag1[1] is None or hg in frag1[1]) and \
-                            (frag2[1] is None or hg in frag2[1]) and \
-                            (not sphingo or frag1[3]):
-                            
-                            if self.fa_type_is(frag1[5], typ) and \
-                                self.sum_cc_is(frag1[0], frag2[0], cc):
-                                
-                                result.add(frag1[0])
-                                
-                                if return_details:
-                                    
-                                    if frag1[0] not in details:
-                                        
-                                        details[frag1[0]] = set([])
-                                    
-                                    details[frag1[0]].add(self.scan[frag2[5],7])
+            raise ValueError(
+                'No chain known at position %u' % missing_position
+            )
         
-        if return_details:
-            return (result, details)
+        if missing_position in frags_for_position:
+            
+            chains_at_missing = frags_for_position[missing_position]
+            del frags_for_position[chains_at_missing]
+            
         else:
-            return result
+            
+            chains_at_missing = []
+        
+        # iterate all combinations
+        for frag_comb in itertools.product(
+            *(
+                # making a sorted list of lists from the dict
+                i[1] for i in
+                sorted(frags_for_position.items(), key = lambda i: i[0])
+            )
+        ):
+            
+            missing_c = chainsum.c - sum(frag.c for frag in frag_comb)
+            missing_u = chainsum.u - sum(frag.u for frag in frag_comb)
+            
+            # do not yield impossible values
+            if missing_c < 1 or missing_u < 0 or missing_u > missing_c - 1:
+                
+                continue
+            
+            if (
+                # bypass intensity check
+                no_intensity_check or
+                self._intensity_check(
+                    frag_comb, chainsum, expected_intensities
+                )
+            ):
+                
+                # now all conditions satisfied:
+                yield (
+                    # the identified chains first:
+                    self._chains_frag_comb(frag_comb, chainsum),
+                    # the missing chain:
+                    lipproc.Chain(
+                        c = missing_c,
+                        u = missing_u,
+                        typ = chainsum.typ[missing_position],
+                        attr = chainsum.attr[missing_position]
+                    )
+                )
     
     def cer_missing_fa(self, cer_hg):
         """
