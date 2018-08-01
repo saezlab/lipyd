@@ -1179,56 +1179,18 @@ class Scan(ScanBase):
                     )
                 )
     
-    def cer_missing_fa(self, cer_hg):
+    def cu_complete(self, chainsum, chain = None, c = None, u = None):
         """
-        Infers the fatty acid carbon count and unsaturation
-        by subtracting the sphingoid backbone from the total.
-        This works with Cer, CerP and HexCer.
+        Returns the carbon count and unsaturation needed to complete
+        the `chain` or `c` and `u` to fit the `chainsum`.
+        
+        Returns tuple of c and u.
         """
         
-        result = set([])
+        c = c or chain.c
+        u = u or chain.u
         
-        cer_ccs = set([])
-        
-        for frag in self.scan[:5]:
-            
-            if 'phingo' in frag[7]:
-                
-                cer_ccs.add(self.get_cc(frag[7]))
-        
-        if cer_hg in self.feature.ms1fa:
-            
-            for cc in self.feature.ms1fa[cer_hg]:
-                
-                cc = self.get_cc(cc)
-                
-                for cer_cc in cer_ccs:
-                    
-                    carb = cc[0] - cer_cc[0]
-                    unsat = cc[1] - cer_cc[1]
-                    
-                    result.add('d%u:%u/%u:%u' % (
-                        cer_cc[0], cer_cc[1], carb, unsat))
-        
-        return result
-    
-    def cer_matching_fa(self, cer_fa):
-        score = 0
-        if 'Cer' in self.feature.ms1fa:
-            cer_cc = self.get_cc(cer_fa)
-            for cc in self.feature.ms1fa['Cer']:
-                cc = self.get_cc(cc)
-                carb = cc[0] - cer_cc[0]
-                unsat = cc[1] - cer_cc[1] + 2
-                if self.frag_name_present(
-                    '[FA-alkyl(C%u:%u)-H]-' % (carb, unsat)):
-                    score += 1
-                carb = cc[0] - cer_cc[0] - 2
-                unsat = cc[1] - cer_cc[1] + 1
-                if self.frag_name_present(
-                    '[FA-alkyl(C%u:%u)-H]-' % (carb, unsat)):
-                    score += 1
-        return score
+        return chainsum.c - c, chainsum.u - u
 
 ##############################################################################
 
