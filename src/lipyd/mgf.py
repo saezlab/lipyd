@@ -165,6 +165,11 @@ class MgfReader(object):
             sorted(features, key = lambda x: x[0]),
             dtype = np.object
         )
+        
+        self.scan_index = dict(zip(
+            self.mgfindex[:,3].astype(int), # scan indices
+            range(len(self)) # row numbers
+        ))
     
     def lookup(self, mz, rt = None, tolerance = None):
         """
@@ -296,6 +301,24 @@ class MgfReader(object):
             
             yield self.get_scan(i), r
     
+    def scan_by_id(self, scan_id):
+        """
+        Retrieves a scan by its ID as used in the MGF file.
+        Scan ID is an integer number, the number of the scan in the sequence
+        of the whole experiment.
+        
+        Returns the scan as 2 columns array by `get_scan` or `None` if the
+        scan ID could not be found.
+        """
+        
+        scan_id = int(scan_id)
+        
+        return (
+            self.get_scan(self.scan_index[scan_id])
+                if scan_id in self.scan_index else
+            None
+        )
+    
     def get_file(self):
         """
         Returns the file pointer, opens the file if necessary.
@@ -305,6 +328,10 @@ class MgfReader(object):
             
             self.fp = open(self.fname, 'r')
         
+    def __len__(self):
+        
+        return self.mgfindex.shape[0]
+    
     def __del__(self):
         
         if hasattr(self, 'fp') and not self.fp.closed:
