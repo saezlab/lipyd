@@ -172,7 +172,13 @@ class LipidNameProcessor(object):
         )
     
     @staticmethod
-    def get_type(i, sphingo = False, types = None, chainsexp = None):
+    def get_type(
+            i,
+            sphingo = False,
+            ether = False,
+            types = None,
+            chainsexp = None
+        ):
         
         # TODO: this does not feel perfect
         # some better heuristic should replace
@@ -181,8 +187,10 @@ class LipidNameProcessor(object):
                 if types else
             'Sph'
                 if sphingo and i == 0 else
+            'FAL'
+                if ether else
             chainsexp[i]
-                if chainsexp else
+                if chainsexp and len(chainsexp) > i else
             'FA'
         )
     
@@ -190,7 +198,10 @@ class LipidNameProcessor(object):
         
         sph    = cc1[0] if self.has_sph_prefix(cc1) else ''
         ether  = self.is_ether(cc1)
-        fa1    = min(i for i, c in enumerate(chainsexp) if c in {'FA', 'FAL'})
+        fa1    = min(
+            (i for i, c in enumerate(chainsexp) if c in {'FA', 'FAL'}),
+            default = None
+        )
         hasfal = 'FAL' in chainsexp
         oh     = (cc1[-1],) if cc1[-1] else ()
         
@@ -212,7 +223,7 @@ class LipidNameProcessor(object):
             for i, c in enumerate(chainsexp)
         )
         
-        return attr, chainsexp
+        return attrs, chainsexp
     
     def carbon_counts(
             self,
@@ -278,7 +289,9 @@ class LipidNameProcessor(object):
                         c = int(cc2[i * _g + 1]),
                         u = int(cc2[i * _g + 2]),
                         attr = attr,
-                        typ = self.get_type(i, sphingo, types, chainsexp),
+                        typ = self.get_type(
+                            i, sphingo, attr.ether, types, chainsexp
+                        ),
                         iso = (
                             tuple(cc2[i * _g + _i].split(','))
                                 if iso and cc2[i * _g + _i] else
@@ -286,6 +299,9 @@ class LipidNameProcessor(object):
                         )
                     ))
             
+            zerochains = sum(not c.c for c in chains)
+            ccexp = ccexp - zerochains
+            chains = tuple(c for c in chains if c.c)
             chains = None if len(chains) != ccexp else tuple(chains)
         
         # the total carbon count
@@ -500,15 +516,6 @@ class LipidNameProcessor(object):
                 if hg.main == 'TAG' else
                     2
             )
-            
-            if lyso and '0:0' in n:
-                # SwissLipids adds `0:0` to lyso glycerolipids
-                ccexp += 1
-            
-            if hg and hg.main == 'BMP' and '0:0' in n:
-                # SwissLipids shows 4 acyl residues for BMP
-                # 2 of them are `0:0`
-                ccexp = 4
             
             chainsum, chains = self.carbon_counts(
                 n, ccexp = ccexp, chainsexp = chainsexp, iso = self.iso

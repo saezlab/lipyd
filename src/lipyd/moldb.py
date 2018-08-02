@@ -300,19 +300,19 @@ class SwissLipids(Reader):
                         
                         self.hg_index[hg].add(offset)
                     
-                    if chainsum:
+                    if hg and chainsum:
                         
                         self.species_index[
                             lipproc.summary_str(hg, chainsum)
                         ].add(offset)
                     
-                    if chains:
+                    if hg and chains:
                         
                         self.subspec_index[
                             lipproc.full_str(hg, chains)
                         ].add(offset)
                     
-                    if chains:
+                    if hg and chains:
                         
                         self.isomer_index[
                             lipproc.full_str(hg, chains, iso = True)

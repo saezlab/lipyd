@@ -16,7 +16,7 @@ PS			FA;FA	Phosphatidylserine	hosphatidylserine	PS;!LPS;!NAc|phosphoserine;!yso;
 PS	NA		FA;FA;FA	N-acyl-phosphatidylserine		PS-NAc	ND	ND
 Sph	1P		Sph	Sphingosine-1-phosphate		phingosine-1-phosphate	ND	[M-H]-
 SM			Sph;FA	Shingomyelin	phingomyelin	SM|phingomyelin|sphingosine;phosphocholine|sphinganine;phosphocholine	[M+H]+	[M+HCOO]-
-Cer		DH	Sph;FA	Dihydro ceramide		ihydro;eramide;!Lac;!Gal;!Glc|Cer;:0/;!actosyl;!lucosyl	ND	ND
+Cer		DH	Sph;FA	Dihydro ceramide		ihydro;eramide;!Lac;!Gal;!Glc|Cer;:0/;!actosyl;!lucosyl;!Glc;!Gal;!Lac	ND	ND
 Cer		d	Sph;FA	Ceramide	eramide;!phosphate;!exo;(d	Cer(d;!phosphate;!Glc;!Lac;!Gal;!ulfo;!1-O	[M+H]+	[M+HCOO]-
 Cer		t	Sph;FA	Ceramide	eramide;!phosphate;!exo;(t	Cer(t;!phosphate;!Glc;!Lac;!Gal;!ulfo;!1-O	[M+H]+	[M+HCOO]-
 Cer	1P		Sph;FA	Ceramide-1-phosphate	eramide;phosphate	Cer;1-phosphate	ND	[M-H]-

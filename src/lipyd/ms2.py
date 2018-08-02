@@ -34,6 +34,7 @@ import lipyd.session as session
 import lipyd.settings as settings
 import lipyd.lookup as lookup
 import lipyd.fragdb as fragdb
+import lipyd.moldb as moldb
 
 
 
@@ -228,11 +229,23 @@ class Scan(ScanBase):
             'chain_fragment_instensity_ratios_logbase'
         )
         
+        if ms1_records is None and precursor is not None:
+            
+            # do the database lookup if not provided,
+            # this is not efficient but makes possible
+            # to easily use standalone `Scan` instances
+            # for testing and such
+            self.ms1_records = moldb.adduct_lookup(precursor, ionmode)
+            
+        else:
+            
+            # even if precursor is None, we end up with an empty list
+            self.ms1_records = ms1_records or []
+        
         self.scan_id = scan_id
         self.sample = sample
         self.log = logger
         self.verbose = verbose
-        self.ms1_records = ms1_records or []
         self.tolerance = settings.get('ms2_tolerance')
     
     @classmethod
