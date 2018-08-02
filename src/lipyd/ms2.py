@@ -35,6 +35,7 @@ import lipyd.settings as settings
 import lipyd.lookup as lookup
 import lipyd.fragdb as fragdb
 import lipyd.moldb as moldb
+import lipyd.lipproc as lipproc
 
 
 
@@ -203,6 +204,10 @@ class ScanBase(object):
 
 class Scan(ScanBase):
     
+    method_hg = {
+        'fa_neg_1': ('FA', ()),
+    }
+    
     def __init__(
             self,
             mzs,
@@ -235,7 +240,12 @@ class Scan(ScanBase):
             # this is not efficient but makes possible
             # to easily use standalone `Scan` instances
             # for testing and such
-            self.ms1_records = moldb.adduct_lookup(precursor, ionmode)
+            self.ms1_records = list(itertools.chain(
+                *(
+                    a[1] for a in
+                    moldb.adduct_lookup(precursor, ionmode).values()
+                )
+            ))
             
         else:
             
@@ -1225,7 +1235,7 @@ class Scan(ScanBase):
         
         return chainsum.c - c, chainsum.u - u
     
-    def records_by_type(self, headgroup, sub):
+    def records_by_type(self, headgroup, sub = ()):
         """
         Iterates MS1 database records with a certain headgroup and subtype.
         """
@@ -1234,13 +1244,13 @@ class Scan(ScanBase):
             sub
                 if type (sub) is set else
             set(sub)
-                if type(sub) is list else
+                if type(sub) is list or type(sub) is tuple else
             set([sub])
         )
         
         for rec in self.ms1_records:
             
-            if rec.hg.main == headgroup and set(rec.hg.sub) == sub:
+            if rec.hg and rec.hg.main == headgroup and set(rec.hg.sub) == sub:
                 
                 yield rec
     
@@ -1286,7 +1296,28 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
-    def fa_neg_1(self):
+    def foreachrecord(method):
+        
+        def foreachrecord(self):
+            
+            hg, sub = self.method_hg[method.__name__]
+            
+            result = {}
+            
+            for rec in self.records_by_type(hg, sub):
+                
+                rec_str = rec.summary_str()
+                
+                if rec_str not in result:
+                    
+                    result[rec_str] = (method(self, rec), rec)
+                
+            return result
+        
+        return foreachrecord
+    
+    @foreachrecord
+    def fa_neg_1(self, rec):
         """
         Examines if a negative mode MS2 spectrum is a fatty acid.
         Here we only check if the most abundant fragment is the
@@ -1303,8 +1334,29 @@ class Scan(ScanBase):
         
         """
         
-        # these are the same
-        return self.fa_pos_1()
+        score  = 0
+        fattya = set()
+        
+        if self.chain_fragment_type_is(
+            0,
+            frag_type = 'FA-H',
+            c = rec.chainsum.c,
+            u = rec.chainsum.u
+        ):
+            
+            score  = 5
+            fattya.add(
+                (
+                    lipproc.Chain(
+                        c = rec.chainsum.c,
+                        u = rec.chainsum.u,
+                        typ = 'FA',
+                        attr = lipproc.ChainAttr()
+                    ),
+                )
+            )
+        
+        return score, fattya
     
     #
     # Glycerolipids

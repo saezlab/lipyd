@@ -45,7 +45,7 @@ import lipyd.mz as mzmod
 import lipyd.progress as progress
 import lipyd.sdf as sdf
 import lipyd.lipid as lipid
-import lipyd.lookup as lookup
+import lipyd.lookup as _lookup
 import lipyd.name as lipidname
 import lipyd.formula as formula
 import lipyd.lipproc as lipproc
@@ -758,7 +758,7 @@ class MoleculeDatabaseAggregator(object):
     
     def ilookup(self, m):
         
-        return lookup.findall(self.masses, m, t = self.tolerance)
+        return _lookup.findall(self.masses, m, t = self.tolerance)
     
     def lookup(self, m):
         
