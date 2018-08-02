@@ -301,6 +301,22 @@ class MgfReader(object):
             
             yield self.get_scan(i), r
     
+    def i_by_id(self, scan_id):
+        """
+        Returns the row number for one scan ID.
+        """
+        
+        return self.scan_index.get(int(scan_id), None)
+    
+    def precursor_by_id(self, scan_id):
+        """
+        Returns the precursor ion mass by scan ID.
+        """
+        
+        i = self.i_by_id(scan_id)
+        
+        return self.mgfindex[i,0] if i is not None else None
+    
     def scan_by_id(self, scan_id):
         """
         Retrieves a scan by its ID as used in the MGF file.
@@ -311,13 +327,9 @@ class MgfReader(object):
         scan ID could not be found.
         """
         
-        scan_id = int(scan_id)
+        i = self.i_by_id(scan_id)
         
-        return (
-            self.get_scan(self.scan_index[scan_id])
-                if scan_id in self.scan_index else
-            None
-        )
+        return self.get_scan(i) if i is not None else None
     
     def get_file(self):
         """

@@ -208,6 +208,7 @@ class Scan(ScanBase):
             ionmode,
             precursor = None,
             intensities = None,
+            ms1_records = None,
             scan_id = None,
             sample = None,
             logger = None,
@@ -231,7 +232,26 @@ class Scan(ScanBase):
         self.sample = sample
         self.log = logger
         self.verbose = verbose
+        self.ms1_records = ms1_records or []
         self.tolerance = settings.get('ms2_tolerance')
+    
+    @classmethod
+    def from_mgf(cls, fname, scan_id, ionmode, precursor = None, **kwargs):
+        
+        mgfreader = mgf.MgfReader(fname)
+        sc = mgfreader.scan_by_id(scan_id)
+        
+        precursor = precursor or mgfreader.precursor_by_id(scan_id)
+        
+        if sc is not None:
+            
+            return cls(
+                mzs = sc[:,0],
+                intensities = sc[:,1],
+                ionmode = ionmode,
+                precursor = precursor,
+                **kwargs
+            )
     
     def reload(self):
         
@@ -1191,6 +1211,25 @@ class Scan(ScanBase):
         u = u or chain.u
         
         return chainsum.c - c, chainsum.u - u
+    
+    def records_by_type(self, headgroup, sub):
+        """
+        Iterates MS1 database records with a certain headgroup and subtype.
+        """
+        
+        sub = (
+            sub
+                if type (sub) is set else
+            set(sub)
+                if type(sub) is list else
+            set([sub])
+        )
+        
+        for rec in self.ms1_records:
+            
+            if rec.hg.main == headgroup and set(rec.hg.sub) == sub:
+                
+                yield rec
     
     #
     # Lipid identification methods

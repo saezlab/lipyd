@@ -82,58 +82,6 @@ class Reader(object):
             ]
 
 
-class LipidMapsOld(object):
-    
-    def __init__(self):
-        
-        self.url = common.get_param('lipidmaps_url')
-        self.lipidmaps_fname  = common.get_param('lipidmaps_fname')
-        
-        SdfReader.__init__(self, name = 'LipidMaps')
-        Reader.__init__(self)
-    
-    @staticmethod
-    def names(mol):
-        
-        return (mol[k]
-                for k in
-                ('COMMON_NAME', 'SYNONYMS', 'SYSTEMATIC_NAME')
-                if k in mol)
-    
-    def load(self):
-        
-        c = _curl.Curl(self.url, large = True,
-                       silent = False, files_needed = [self.lipidmaps_fname])
-        fpa = c.result[fn]
-        self.fname = os.path.join('cache', fn)
-        
-        with open(self.fname, 'wb') as fpe:
-            
-            while True:
-                
-                block = fpa.read(4096)
-                if not block:
-                    break
-                
-                fpe.write(block)
-        
-        c.close()
-    
-    def iterrows(self):
-        
-        for mol in self:
-            
-            yield [
-                    mol[2].data['LM_ID'],
-                    'Species',
-                    '|'.join(self.names(mol[2])),
-                    mol[2].data['INCHI_KEY'],
-                    '',
-                    mol[0],
-                    mol[2].data['PUBCHEM_CID']
-                ]
-
-
 class LipidMaps(sdf.SdfReader):
     
     def __init__(self, extract_file = True):
@@ -662,10 +610,7 @@ class MoleculeDatabaseAggregator(object):
                 [i[0] for i in self._mass_data],
                 dtype = np.float
             )
-            self.data = np.array(
-                [i[1] for i in self._mass_data],
-                dtype = np.object
-            )
+            self.data = [i[1] for i in self._mass_data]
             
             self.sort()
         
@@ -793,7 +738,7 @@ class MoleculeDatabaseAggregator(object):
         make fast lookups possible.
         """
         
-        self.data = self.data[self.masses.argsort(),:]
+        self.data = [self.data[i] for i in self.masses.argsort()]
         self.masses.sort()
     
     def ilookup(self, m):
@@ -810,6 +755,9 @@ class MoleculeDatabaseAggregator(object):
         )
     
     def lookup_accuracy(self, m):
+        """
+        Performs a lookup and adds accuracy information to the result.
+        """
         
         r = self.lookup(m)
         
@@ -820,6 +768,15 @@ class MoleculeDatabaseAggregator(object):
         return r[0], r[1], a
     
     def adduct_lookup(self, mz, adducts = None, ionm = None, charge = None):
+        """
+        Does a series of lookups in the database assuming various adducts.
+        Calculates the exact mass for the m/z for each possible adduct
+        and searches these exact masses in the database.
+        
+        Returns a dict of tuples with 3-3 numpy arrays.
+        Keys of the dict are adduct types. The arrays are exact masses,
+        database record details and accuracies (ppm).
+        """
         
         result = {}
         
@@ -828,7 +785,7 @@ class MoleculeDatabaseAggregator(object):
         
         if ionm in {'pos', 'neg'}:
             
-            adducts = list(common.ad2ex[charge][ionm].keys())
+            adducts = list(common.ad2ex[abs(charge)][ionm].keys())
         
         methods = dict((ad, common.exact_method[ad]) for ad in adducts)
         

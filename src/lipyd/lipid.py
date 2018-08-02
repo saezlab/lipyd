@@ -257,6 +257,7 @@ class AbstractGlycerolipid(AbstractGlycerol):
             name = name,
             typ  = typ or ('GPL' if phospho else 'GL'),
             getname = getname or _getname,
+            hg = hg,
             **kwargs
         )
 
