@@ -172,13 +172,15 @@ class LipidNameProcessor(object):
         )
     
     @staticmethod
-    def get_type(i, sphingo = False, types = None):
+    def get_type(i, sphingo = False, types = None, chainsexp = None):
         
         return (
             types[i]
                 if types else
             'Sph'
                 if sphingo and i == 0 else
+            chainsexp[i]
+                if chainsexp else
             'FA'
         )
     
@@ -274,7 +276,7 @@ class LipidNameProcessor(object):
                         c = int(cc2[i * _g + 1]),
                         u = int(cc2[i * _g + 2]),
                         attr = attr,
-                        typ = self.get_type(i, sphingo, types),
+                        typ = self.get_type(i, sphingo, types, chainsexp),
                         iso = (
                             tuple(cc2[i * _g + _i].split(','))
                                 if iso and cc2[i * _g + _i] else
@@ -444,6 +446,10 @@ class LipidNameProcessor(object):
             and names will be attempted to be processed one after the other
             until processing is successful.
         """
+        
+        if hasattr(names, 'lower'):
+            # ok, if one passes a string let us still process it
+            names = (names,)
         
         database = database or self.database
         
