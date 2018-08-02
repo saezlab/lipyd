@@ -588,6 +588,7 @@ class MoleculeDatabaseAggregator(object):
         self.auto_glycerophospholipids()
         self.auto_glycerolipids()
         self.auto_sphingolipids()
+        self.auto_fattyacids()
         self.mass_data_arrays()
         self.sort()
     
@@ -610,7 +611,8 @@ class MoleculeDatabaseAggregator(object):
                 [i[0] for i in self._mass_data],
                 dtype = np.float
             )
-            self.data = [i[1] for i in self._mass_data]
+            self.data = np.zeros(len(self._mass_data), dtype = np.object)
+            self.data[:] = [i[1] for i in self._mass_data]
             
             self.sort()
         
@@ -691,6 +693,19 @@ class MoleculeDatabaseAggregator(object):
         
         self._mass_data.extend(gen.iterlines())
     
+    def auto_fattyacids(self, **kwargs):
+        """
+        Autogenerates all fatty acids from classes listed in
+        `lipid.fattyacids`.
+        
+        Args
+        ----
+        :param **kwargs:
+            Arguments for fatty acid classes: `c`, `u`, `fa_counts`, etc.
+        """
+        
+        self.auto_metabolites(classes = lipid.fattyacids, **kwargs)
+    
     def auto_sphingolipids(self, **kwargs):
         """
         Autogenerates all sphingolipids from classes listed in
@@ -738,7 +753,7 @@ class MoleculeDatabaseAggregator(object):
         make fast lookups possible.
         """
         
-        self.data = [self.data[i] for i in self.masses.argsort()]
+        self.data = self.data[self.masses.argsort()]
         self.masses.sort()
     
     def ilookup(self, m):

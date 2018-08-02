@@ -21,7 +21,10 @@ import lipyd.lipproc as lipproc
 
 class FattyAcyl(metabolite.AbstractSubstituent):
     
-    def __init__(self, c = (2, 36), u = (0, 10), counts = None, **kwargs):
+    def __init__(self, c = None, u = None, counts = None, **kwargs):
+        
+        c = c or (2, 36)
+        u = u if u is not None else (0, 10)
         
         chain_attr = lipproc.ChainAttr()
         
@@ -41,11 +44,14 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
     
     def __init__(
             self,
-            c = (2, 24),
-            u = (0, 6),
+            c = None,
+            u = None,
             counts = None,
             **kwargs
         ):
+        
+        c = c or (2, 24)
+        u = u if u is not None else (0, 6)
         
         chain_attr = lipproc.ChainAttr(oh = ('2OH',))
         
@@ -85,8 +91,8 @@ class Sphingosine(metabolite.AbstractSubstituent):
     
     def __init__(
             self,
-            c = (12, 24),
-            u = (1, 6),
+            c = None,
+            u = None,
             counts = None,
             prefix = 'd',
             keto = False,
@@ -98,6 +104,8 @@ class Sphingosine(metabolite.AbstractSubstituent):
         by the appropriate substituents.
         """
         
+        c = c or (12, 24)
+        u = u if u is not None else (1, 6)
         counts = counts or {}
         
         if keto:
@@ -124,7 +132,10 @@ class Sphingosine(metabolite.AbstractSubstituent):
 
 class DihydroSphingosine(Sphingosine):
     
-    def __init__(self, c = (12, 24), u = (0, 6), counts = None, **kwargs):
+    def __init__(self, c = None, u = None, counts = None, **kwargs):
+        
+        c = c or (12, 24)
+        u = u if u is not None else (0, 6)
         
         Sphingosine.__init__(
             self,
@@ -138,7 +149,10 @@ class DihydroSphingosine(Sphingosine):
 
 class HydroxySphingosine(Sphingosine):
     
-    def __init__(self, c = (12, 24), u = (0, 6), counts = None, **kwargs):
+    def __init__(self, c = None, u = None, counts = None, **kwargs):
+        
+        c = c or (12, 24)
+        u = u if u is not None else (0, 6)
         
         Sphingosine.__init__(
             self,

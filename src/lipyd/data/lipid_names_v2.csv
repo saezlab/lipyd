@@ -39,3 +39,4 @@ MAG			FA	Monoacylglycerol	onoacylglyc;!Bis;!alk;!cholin;!inosit;!ethanolam		ND	N
 P40				Nonidet-P-40	Nonidet		[M+NH4]+	ND
 FAHFA			FA;FA	Fatty acyl-OH-fatty acyl ester		FAHFA	ND	ND
 FA			FA	Fatty acid			ND	ND
+WE			FAL;FA	Wax ester		WE	ND	ND

@@ -44,6 +44,10 @@ sphingolipids = [
     'HydroxyacylDihydroCeramide'
 ]
 
+fattyacids = [
+    'FattyAcid'
+]
+
 # will be populated by the factory
 glycerolipids = []
 glycerophospholipids = []
@@ -1102,7 +1106,6 @@ class HydroxyacylDihydroCeramide(CeramideD):
         )
 
 
-
 class CeramideFactory(object):
     
     def __init__(self, fa_args_1o = None, **kwargs):
@@ -1381,6 +1384,37 @@ class CeramideFactory(object):
         
         return parent, child
 
+#
+# Fatty acids
+#
+
+class FattyAcid(metabolite.AbstractMetabolite):
+    
+    def __init__(
+            self,
+            c = None,
+            u = None,
+            fa_counts = None,
+            getname = None,
+            sub = (),
+            **kwargs
+        ):
+        
+        def _getname(parent, subs):
+            
+            return '%s(%u:%u)' % (parent.name, subs[0].c, subs[0].u)
+        
+        metabolite.AbstractMetabolite.__init__(
+            self,
+            core = 'OH',
+            subs = [
+                substituent.FattyAcyl(c = c, u = u, counts = fa_counts)
+            ],
+            name = 'FA',
+            hg = lipproc.Headgroup(main = 'FA', sub = ()),
+            getname = getname or _getname,
+            **kwargs
+        )
 
 # creating further Ceramide derived classes:
 _factory = CeramideFactory()
