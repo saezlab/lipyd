@@ -174,6 +174,8 @@ class LipidNameProcessor(object):
     @staticmethod
     def get_type(i, sphingo = False, types = None, chainsexp = None):
         
+        # TODO: this does not feel perfect
+        # some better heuristic should replace
         return (
             types[i]
                 if types else

@@ -782,7 +782,13 @@ class MoleculeDatabaseAggregator(object):
         
         return r[0], r[1], a
     
-    def adduct_lookup(self, mz, adducts = None, ionm = None, charge = None):
+    def adduct_lookup(
+            self,
+            mz,
+            adducts = None,
+            ionmode = None,
+            charge = None
+        ):
         """
         Does a series of lookups in the database assuming various adducts.
         Calculates the exact mass for the m/z for each possible adduct
@@ -796,11 +802,17 @@ class MoleculeDatabaseAggregator(object):
         result = {}
         
         mz = mzmod.Mz(mz)
-        charge = charge if charge is not None else 1 if ionm == 'pos' else -1
+        charge = (
+            charge
+                if charge is not None else
+            1
+                if ionmode == 'pos' else
+            -1
+        )
         
-        if ionm in {'pos', 'neg'}:
+        if not adducts and ionmode in {'pos', 'neg'}:
             
-            adducts = list(common.ad2ex[abs(charge)][ionm].keys())
+            adducts = list(common.ad2ex[abs(charge)][ionmode].keys())
         
         methods = dict((ad, common.exact_method[ad]) for ad in adducts)
         
@@ -831,3 +843,43 @@ class MoleculeDatabaseAggregator(object):
                     mass,
                     '\t'.join(str(f) for f in data)
                 ))
+
+
+def init_db(**kwargs):
+    """
+    Initializes a database.
+    
+    Args
+    ----
+    :param **kwargs:
+        Arguments for `MoleculeDatabaseAggregator` class.
+    """
+    
+    mod = sys.modules[__name__]
+    
+    setattr(mod, 'db', MoleculeDatabaseAggregator(**kwargs))
+
+def get_db():
+    """
+    Returns the module's default database.
+    Initializes the database with default paremeters if no database
+    yet available.
+    """
+    
+    mod = sys.modules[__name__]
+    
+    if not hasattr(mod, 'db'):
+        
+        init_db()
+    
+    return getattr(mod, 'db')
+
+def lookup(m):
+    
+    db = get_db()
+    return db.lookup(m)
+
+def adduct_lookup(mz, ionmode):
+    
+    db = get_db()
+    return db.adduct_lookup(mz, ionmode = ionmode)
