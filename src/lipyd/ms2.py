@@ -39,7 +39,6 @@ import lipyd.moldb as moldb
 import lipyd.lipproc as lipproc
 
 
-
 ChainFragment = collections.namedtuple(
     'ChainFragment',
     ['c', 'u', 'fragtype', 'chaintype', 'i', 'intensity']
@@ -936,6 +935,8 @@ class Scan(ScanBase):
             Completely skip checking intensity ratios.
         """
         
+        self.build_chain_list()
+        
         chainsum = rec.chainsum or lipproc.sum_chains(rec.chains)
         
         frags_for_position = self.frags_for_positions(
@@ -972,7 +973,7 @@ class Scan(ScanBase):
     
     def frags_for_positions(
             self,
-            chainsum,
+            rec,
             head = None,
             intensity_threshold = 0,
             frag_types = None
@@ -1009,7 +1010,7 @@ class Scan(ScanBase):
                 break
             
             # constraints for the fragment type
-            constr = fragdb.constraint(frag.fragtype, self.ionmode)
+            constr = fragdb.constraints(frag.fragtype, self.ionmode)
             # set of possible positions of the chain
             # which this fragment originates from
             chpos = lipproc.match_constraint(rec, constr, frag.chaintype)
@@ -1164,7 +1165,7 @@ class Scan(ScanBase):
         chainsum = rec.chainsum or lipproc.sum_chains(rec.chains)
         
         frags_for_position = self.frags_for_positions(
-            chainsum,
+            rec,
             head = head,
             intensity_threshold = intensity_threshold,
             frag_types = frag_types
@@ -1297,30 +1298,22 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
-    #@decorator.decorator
-    def foreachrecord(method):
+    def identify(self):
         
-        def foreachrecord(self):
+        result = {}
+        
+        for rec in self.ms1_records:
             
-            hg, sub = self.method_hg[method.__name__]
+            rec_str = rec.summary_str()
             
-            result = {}
-            
-            for rec in self.records_by_type(hg, sub):
+            if rec_str not in result and rec.hg in idmethods[self.ionmode]:
                 
-                rec_str = rec.summary_str()
+                method = idmethods[self.ionmode][rec.hg]
                 
-                if rec_str not in result:
-                    
-                    result[rec_str] = (method(self, rec), rec)
-            
-            return result
-        
-        # setattr(foreachrecord, 'rec', method)
-        
-        return foreachrecord
+                result[rec_str] = tuple(
+                    method(record = rec, scan = self).identify()
+                )
     
-    @foreachrecord
     def fa_neg_1(self, rec):
         """
         Examines if a negative mode MS2 spectrum is a fatty acid.
@@ -2533,10 +2526,12 @@ class AbstractMS2Identifier(object):
             record,
             scan,
             missing_chains = None,
+            explicit_and_implicit = False,
             chain_comb_args = {},
             missing_chain_args = {}
         ):
         
+        self.score = 0
         self.rec = record
         self.scn = scan
         self.missing_chains = (
@@ -2545,18 +2540,28 @@ class AbstractMS2Identifier(object):
         )
         self.chain_comb_args = chain_comb_args
         self.missing_chain_args = missing_chain_args or self.chain_comb_args
+        self.explicit_and_implicit = explicit_and_implicit
     
     def identify(self):
         
-        hg, chainsum = self.confirm_class()
+        hg, chainsum, score = self.confirm_class()
         
         if not hg:
             
             return
         
-        for chains in self.confirm_chains():
+        chains_confirmed = False
+        
+        for chains in self.confirm_chains_explicit():
             
-            yield()
+            yield score, hg, chainsum, chains
+            chains_confirmed = True
+        
+        if not chains_confirmed or self.explicit_and_implicit:
+            
+            for chains in self.confirm_chains_implicit():
+                
+                yield score, hg, chainsum, chains
     
     def confirm_class(self):
         """
@@ -2564,7 +2569,9 @@ class AbstractMS2Identifier(object):
         Most of the subclasses should override this.
         """
         
-        return self.record.hg, self.record.chainsum
+        self.score = 5
+        
+        return self.rec.hg, self.rec.chainsum, self.score
     
     def confirm_chains_explicit(self):
         
@@ -2579,6 +2586,41 @@ class AbstractMS2Identifier(object):
                 missing_position = missing,
                 **self.missing_chain_args
             )
+
+
+class FattyAcidNegative(AbstractMS2Identifier):
+    """
+    Examines if a negative mode MS2 spectrum is a fatty acid.
+    Here we only check if the most abundant fragment is the
+    fatty acid itself.
+
+    **Specimen:**
+    
+    - Enric FABP1 -
+    
+    **Principle:**
+    
+    - The most abundant fragment must be a fatty acid which matches
+        the carbon count and the unsaturation of the whole molecule.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {'head': 1, 'frag_types': 'FA-H'}
+        )
+
+
+idmethods = {
+    'neg': {
+        lipproc.Headgroup(main = 'FA'): FattyAcidNegative,
+    }
+}
 
 ##############################################################################
 
