@@ -25,6 +25,7 @@ import re
 import math
 import itertools
 import collections
+import decorator
 from argparse import Namespace
 import numpy as np
 
@@ -1296,6 +1297,7 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
+    #@decorator.decorator
     def foreachrecord(method):
         
         def foreachrecord(self):
@@ -1311,8 +1313,10 @@ class Scan(ScanBase):
                 if rec_str not in result:
                     
                     result[rec_str] = (method(self, rec), rec)
-                
+            
             return result
+        
+        # setattr(foreachrecord, 'rec', method)
         
         return foreachrecord
     
@@ -2520,7 +2524,62 @@ class Scan(ScanBase):
         fattya = set([])
         
         return {'score': score, 'fattya': fattya}
+
+
+class AbstractMS2Identifier(object):
     
+    def __init__(
+            self,
+            record,
+            scan,
+            missing_chains = None,
+            chain_comb_args = {},
+            missing_chain_args = {}
+        ):
+        
+        self.rec = record
+        self.scn = scan
+        self.missing_chains = (
+            missing_chains if missing_chains is not None else
+            tuple(range(len(record.chainsum))) # any chain can be missing
+        )
+        self.chain_comb_args = chain_comb_args
+        self.missing_chain_args = missing_chain_args or self.chain_comb_args
+    
+    def identify(self):
+        
+        hg, chainsum = self.confirm_class()
+        
+        if not hg:
+            
+            return
+        
+        for chains in self.confirm_chains():
+            
+            yield()
+    
+    def confirm_class(self):
+        """
+        In this base class pass through everything.
+        Most of the subclasses should override this.
+        """
+        
+        return self.record.hg, self.record.chainsum
+    
+    def confirm_chains_explicit(self):
+        
+        return self.scn.chain_combinations(self.rec, **self.chain_comb_args)
+    
+    def confirm_chains_implicit(self):
+        
+        for missing in self.missing_chains:
+            
+            self.scn.missing_chain(
+                self.rec,
+                missing_position = missing,
+                **self.missing_chain_args
+            )
+
 ##############################################################################
 
 
