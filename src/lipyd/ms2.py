@@ -45,6 +45,12 @@ ChainFragment = collections.namedtuple(
 )
 
 
+MS2Identity = collections.namedtuple(
+    'MS2Identity',
+    ['score', 'hg', 'chainsum', 'chains']
+)
+MS2Identity.__new__.__defaults__ = (None, None)
+
 class mz_sorted(object):
     
     def __init__(self, scan):
@@ -1013,7 +1019,7 @@ class Scan(ScanBase):
             constr = fragdb.constraints(frag.fragtype, self.ionmode)
             # set of possible positions of the chain
             # which this fragment originates from
-            chpos = lipproc.match_constraint(rec, constr, frag.chaintype)
+            _, chpos = lipproc.match_constraints(rec, constr)
             
             for ci in chpos:
                 
@@ -1127,7 +1133,7 @@ class Scan(ScanBase):
                         # from the chainsum of the record
                         sph = chainsum.attr[i].sph,
                         ether = frag.chaintype == 'FAL',
-                        oh = rec.attr[i].oh
+                        oh = chainsum.attr[i].oh
                     )
                 )
                 for i, frag in enumerate(frag_comb)
@@ -1304,6 +1310,10 @@ class Scan(ScanBase):
         
         for rec in self.ms1_records:
             
+            if rec.hg is None:
+                
+                continue
+            
             rec_str = rec.summary_str()
             
             if rec_str not in result and rec.hg in idmethods[self.ionmode]:
@@ -1313,6 +1323,8 @@ class Scan(ScanBase):
                 result[rec_str] = tuple(
                     method(record = rec, scan = self).identify()
                 )
+        
+        return result
     
     def fa_neg_1(self, rec):
         """
@@ -2554,14 +2566,14 @@ class AbstractMS2Identifier(object):
         
         for chains in self.confirm_chains_explicit():
             
-            yield score, hg, chainsum, chains
+            yield MS2Identity(score, hg, chainsum, chains)
             chains_confirmed = True
         
         if not chains_confirmed or self.explicit_and_implicit:
             
             for chains in self.confirm_chains_implicit():
                 
-                yield score, hg, chainsum, chains
+                yield MS2Identity(score, hg, chainsum, chains)
     
     def confirm_class(self):
         """
@@ -2581,11 +2593,13 @@ class AbstractMS2Identifier(object):
         
         for missing in self.missing_chains:
             
-            self.scn.missing_chain(
+            for chain_comb in self.scn.missing_chain(
                 self.rec,
                 missing_position = missing,
                 **self.missing_chain_args
-            )
+            ):
+                
+                yield chain_comb
 
 
 class FattyAcidNegative(AbstractMS2Identifier):
@@ -2612,7 +2626,12 @@ class FattyAcidNegative(AbstractMS2Identifier):
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {'head': 1, 'frag_types': 'FA-H'}
+            chain_comb_args = {
+                'head': 1,
+                'frag_types': {
+                    0: {'FA-H'}
+                }
+            }
         )
 
 

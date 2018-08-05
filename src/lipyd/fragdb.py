@@ -238,25 +238,27 @@ class FragmentDatabaseAggregator(object):
                     None
             )
             
-            self.constraints[l[2]] = tuple(
-                fragment.FragConstraint(
-                    hg = constr.split(',')[0],
-                    sub = (
-                        tuple(constr.split(',')[1:])
-                            if ',' in constr else
-                        ()
-                    ),
-                    sph = constr.split('|')[1] if '|' in constr else None,
-                    # no way at the moment to define chain
-                    # type in file but later can be added easily
-                    chaintype = None
+            self.constraints[l[2]] = (
+                tuple(
+                    fragment.FragConstraint(
+                        hg = constr.split(',')[0],
+                        sub = (
+                            tuple(constr.split(',')[1:])
+                                if ',' in constr else
+                            ()
+                        ),
+                        sph = constr.split('|')[1] if '|' in constr else None,
+                        # no way at the moment to define chain
+                        # type in file but later can be added easily
+                        chaintype = None
+                    )
+                    for constr in l[4].strip().split(';')
                 )
-                for constr in l[4].strip().split(';')
-            )
-            if l[4].strip() else
-            (
-                # an empty constraint to make sure anything matches
-                fragment.FragConstraint(),
+                    if l[4].strip() else
+                (
+                    # an empty constraint to make sure anything matches
+                    fragment.FragConstraint(),
+                )
             )
             
             return [

@@ -161,6 +161,14 @@ def empty_chain():
     return Chain(c = 0, u = 0, attr = ChainAttr())
 
 
+def empty_chainsum():
+    """
+    Returns an empty ChainSummary object.
+    """
+    
+    return ChainSummary(c = 0, u = 0, attr = (), typ = ())
+
+
 def str2hg(hgstr):
     """
     From a headgroup string representation creates a Headgroup object.
@@ -215,7 +223,7 @@ def summary_str(hg, chainsum):
         hg, chainsum
     )
     
-    return '%s%s%s(%s)' % (
+    return '%s%s%s%s' % (
         # subclass attributes like *PE*-Cer, *Lyso*-PC
         subcls,
         # main class of headgroup e.g. Cer, PS
@@ -223,7 +231,7 @@ def summary_str(hg, chainsum):
         # 1-O-phosphate group of Cer1P, Sph1P, etc
         p1,
         # chains summary
-        chainsum.__str__()
+        '(%s)' % chainsum.__str__() if chainsum is not None else ''
     )
 
 
@@ -279,7 +287,7 @@ def get_attributes(hg, chainsum = None):
     name pre- and postfix string elements.
     """
     
-    chainsum = chainsum or empty_chain()
+    chainsum = chainsum or empty_chainsum()
     
     hydroxy = '-'.join('-'.join(c.oh) for c in chainsum.attr)
     hydroxy = '-%s' % hydroxy if hydroxy else ''
