@@ -300,12 +300,16 @@ def get_attributes(hg, chainsum = None):
     return subcls, sphingo_prefix, ether_prefix, p1, hydroxy
 
 
-def match_constraint(rec, constr, chaintype):
+def match_constraint(rec, constr):
     """
     Matches an MS2 fragment constraint (fragment.FragConstraint)
     against a lipid record lipproc.LipidRecord.
     
     Returns the indices of the chains as integers in a set.
+    
+    The default attribute values of the `FragConstraint` object always
+    correspond to bypass all filters here. Defining a specific value
+    may limit the records complying with the constraint.
     
     Args
     ----
@@ -313,21 +317,28 @@ def match_constraint(rec, constr, chaintype):
         A lipid database record object.
     :param fragment.FragConstraint constr:
         An MS2 fragment constraint object.
-    :param str chaintype:
-        The type of the fragment aliphatic chain (e.g. `FA`, `Sph`).
     """
     
-    print(constr)
+    match = False
+    chains = set()
     
     if (
-        constr.hg == rec.hg.main or (
-            constr.hg is None and
-            constr.family in FAMILIES and
-            rec.hg.main in FAMILIES[constr.family]
-        ) and set(constr.sub) == set(hg.sub)
+        (
+            constr.hg == rec.hg.main or (
+                constr.hg is None and
+                constr.family in FAMILIES and
+                rec.hg.main in FAMILIES[constr.family]
+            ) or (
+                constr.hg is None and
+                constr.family is None
+            )
+        ) and (
+            constr.sub is None or
+            set(constr.sub) == set(hg.sub)
+        )
     ):
         
-        matching = set([])
+        match = True
         chainsum = rec.chainsum if rec.chainsum else sum_chains(rec.chains)
         
         for (i, attr), rec_chaintype in zip(
@@ -335,15 +346,49 @@ def match_constraint(rec, constr, chaintype):
         ):
             
             if (
-                chaintype == rec_chaintype and
-                attr.sph == constr.sph and
+                (
+                    constr.chaintype is None or
+                    constr.chaintype == rec_chaintype
+                ) and (
+                    constr.sph is None or
+                    constr.sph == attr.sph
+                ) and
                 # matching only the number of OH groups
                 len(attr.oh) == constr.oh
             ):
                 
-                matching.add(i)
+                chains.add(i)
     
-    return matching
+    return match, chains
+
+
+def match_constraints(rec, constraints):
+    """
+    Matches all fragment constraints in the iterable `constraints`
+    against all chains in MS1 record `rec`.
+    
+    Returns a boolean (wether the fragment can possibly origin from the
+    molecular species in the record) and a tuple of chain positions which
+    can be the source of the fragment if the fragment is from an aliphatic
+    chain moiety.
+    
+    Args
+    ----
+    :param LipidRecord rec:
+        An MS1 database record object.
+    :param iterable constraints:
+        A number of `fragment.FragConstraint` objects.
+    """
+    
+    match = False
+    chains = set()
+    
+    for constr in constraints:
+        
+        match, chains_ = match_constraint(rec, constr)
+        chains.update(chains_)
+    
+    return match, chains
 
 
 # regex captures the summary carbon count

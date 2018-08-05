@@ -252,7 +252,12 @@ class FragmentDatabaseAggregator(object):
                     chaintype = None
                 )
                 for constr in l[4].strip().split(';')
-            ) if l[4].strip() else ()
+            )
+            if l[4].strip() else
+            (
+                # an empty constraint to make sure anything matches
+                fragment.FragConstraint(),
+            )
             
             return [
                 mass, l[2], l[3], np.nan, np.nan, np.nan, get_charge(l[3])
@@ -347,7 +352,7 @@ class FragmentDatabaseAggregator(object):
     
     def add_constraints(self, cls):
         
-        self.constraints[cls.name] = (cls.constraints, cls.chaintype)
+        self.constraints[cls.name] = cls.constraints
     
     def get_constraints(self, fragtype):
         

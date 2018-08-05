@@ -45,7 +45,7 @@ FragConstraint = collections.namedtuple(
     'FragConstraint',
     ['hg', 'family', 'sub', 'sph', 'oh', 'chaintype']
 )
-FragConstraint.__new__.__defaults__ = (None, None, (), None, 0, None)
+FragConstraint.__new__.__defaults__ = (None, None, None, None, 0, None)
 
 
 class AdductCalculator(object):
@@ -348,7 +348,7 @@ class FattyFragmentFactory(object):
                 constraints = (
                     FragConstraint(
                         hg = 'PC',
-                        haintype = 'FA',
+                        chaintype = 'FA',
                     )
                 ),
                 chaintype = 'FA'
@@ -990,7 +990,7 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'FA%s+NH+C2H2-OH',
                 constraints = (
-                    FragConstrint(
+                    FragConstraint(
                         chaintype = 'FA'
                     ),
                 ),
@@ -1006,7 +1006,7 @@ class FattyFragmentFactory(object):
                     FragConstraint(
                         hg = 'Cer',
                         sph = 'd',
-                        haintype = 'FA',
+                        chaintype = 'FA',
                     ),
                     FragConstraint(
                         hg = 'Cer',
