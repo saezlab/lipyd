@@ -130,7 +130,7 @@ class LipidMaps(sdf.SdfReader):
                 exmass = float(rec['annot']['EXACT_MASS'])
             
             names = [
-                rec['name'][nametype]
+                rec['name'][nametype].strip()
                 for nametype in ('COMMON_NAME', 'SYSTEMATIC_NAME')
                 if nametype in rec['name']
             ]
@@ -138,6 +138,8 @@ class LipidMaps(sdf.SdfReader):
                 names.extend(
                     n.strip() for n in rec['name']['SYNONYMS'].split(';')
                 )
+            
+            names = [n.strip() for n in names if n.strip()]
             
             hg, chainsum, chains = self.nameproc.process(names)
             
@@ -396,7 +398,7 @@ class SwissLipids(Reader):
         
         mol.db_id = record[0]
         mol.name  = record[3]
-        mol.title = tuple(record[2:5])
+        mol.title = tuple(n.strip() for n in record[2:5] if n.strip())
         mol.chebi = record[24] if len(record) > 24 else ''
         mol.lipidmaps = record[25] if len(record) > 25 else ''
         mol.hmdb = record[26] if len(record) > 26 else ''

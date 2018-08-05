@@ -1,9 +1,9 @@
 # Be aware the result of name processing depends on the order of entries in this file.
 # A name identified by the first match and the remaining entries won't be considered.
 Class		Subclass	Chainattr	Chains	Name	SwissLipids_keywords	LipidMaps_keywords	Positive_adduct	Negative_adduct
-PA				FA;FA	Phosphatidic acid	hosphatidate		[M+NH4]+	[M-H]-
-PC	Lyso			FA	Lysophosphatidylcholine	ysophosphatidylcholine	lysophosphocholine;!phing;!manno|PC;/0:0;!MI	[M+H]+	[M+HCOO]-
-PC				FA;FA	Phosphatidylcholine	hosphatidylcholine;!yso	PC;!0:0|phosphocholine;!phing;!yso;!/0:0;!gluc;!manno	[M+H]+	[M+HCOO]-
+PA			FA;FA	Phosphatidic acid	hosphatidate		[M+NH4]+	[M-H]-
+PC	Lyso		FA	Lysophosphatidylcholine	ysophosphatidylcholine	lysophosphocholine;!phing;!manno|PC;/0:0;!MI	[M+H]+	[M+HCOO]-
+PC			FA;FA	Phosphatidylcholine	hosphatidylcholine;!yso	PC;!0:0|phosphocholine;!phing;!yso;!/0:0;!gluc;!manno	[M+H]+	[M+HCOO]-
 PE	Lyso		FA	Lysophosphatidylethanolamine	ysophosphatidylethanolamine	ysophosphoethanolamine;!eramide|PE;/0:0	[M+H]+	[M-H]-
 PE			FA;FA	Phosphatidylethanolamine	Phosphatidylethanolamine;!yso	PE;!/0:0;!Cer;!NA;!isoLG|phosphoethanolamine;!eramide;!yso;!/0:0;!N-;!yrro;!lact;!cald	[M+H]+	[M-H]-
 PE	LGHL		FA;FA	Phosphatidylethanolamine-isolevuglandin-hydroxylactam		PE;isoLG;hydroxylactam	ND	ND

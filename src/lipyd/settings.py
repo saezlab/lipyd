@@ -329,7 +329,7 @@ _defaults = {
     'deltart_threshold': 0.5,
     # Don't know what it is for
     'uniprots': None,
-    'mgf_example': 'example_mgf__2016-12-03_GLTPD1_pos_E07.mgf',
+    'mgf_example': 'example_mgf__2015-06-28_GLTPD1_pos_A12.mgf',
     # logarithm base for matching chain fragment intensities
     # this determines the tolerance and represents fold difference
     'chain_fragment_instensity_ratios_logbase': 1.5,

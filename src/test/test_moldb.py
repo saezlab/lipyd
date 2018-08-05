@@ -19,11 +19,13 @@ import pytest
 
 import numpy as np
 import lipyd.moldb
+import lipyd.lipproc as lipproc
 
 
 class TestMoldb(object):
     
     lm = lipyd.moldb.LipidMaps()
+    mda = lipyd.moldb.MoleculeDatabaseAggregator()
     
     def test_lipidmaps_record(self):
         
@@ -41,9 +43,53 @@ class TestMoldb(object):
     
     def test_aggregator_build(self):
         
-        mda = lipyd.moldb.MoleculeDatabaseAggregator()
-        mda.build()
+        assert len([i for i in self.mda.masses if i == 0 or np.isnan(i)]) == 0
+        assert self.mda.masses.shape[0] == self.mda.data.shape[0]
+    
+    def test_aggregator_lookup(self):
         
-        assert len([i for i in mda.mass if i == 0 or np.isnan(i)]) == 0
-        assert mda.masses.shape[0] == mda.data.shape[0]
-        assert mda.data.shape[1] == 14
+        result = self.mda.lookup(808.634583)
+        
+        assert ('lipyd.lipid', 'PA', 45, 4) in [
+            (i.lab.db, i.hg.main, i.chainsum.c, i.chainsum.u)
+            for i in result[1]
+            if i.hg is not None and i.chainsum is not None
+        ]
+        
+        assert 'SLM:000056288' in [i.lab.db_id for i in result[1]]
+    
+    def test_aggregator_adduct_lookup(self):
+        
+        result = self.mda.adduct_lookup(
+            728.605042778354, ionmode = 'pos'
+        )['[M+H]+'][1]
+        
+        assert 'SLM:000391523' in [i.lab.db_id for i in result]
+        
+        swl_cer1p = [i for i in result if i.lab.db_id == 'SLM:000391523'][0]
+        
+        assert 'Ceramide phosphate (d42:2)' in swl_cer1p.lab.names
+        assert '' not in swl_cer1p.lab.names
+        assert '1P' in swl_cer1p.hg.sub
+        
+        lyp_cer1p = lipproc.LipidRecord(
+            lab = lipproc.LipidLabel(
+                db_id = None,
+                db = 'lipyd.lipid',
+                names = ('Cer1P(DH42:2)',)
+            ),
+            hg = lipproc.Headgroup(
+                main = 'Cer',
+                sub = ('1P',)
+            ),
+            chainsum = lipproc.ChainSummary(
+                c = 42, u = 2, typ = ('Sph', 'FA'),
+                attr = (
+                    lipproc.ChainAttr(sph = 'DH', ether = False, oh = ()),
+                    lipproc.ChainAttr(sph = '', ether = False, oh = ())
+                ),
+            ),
+            chains = ()
+        )
+        
+        assert lyp_cer1p in list(result)

@@ -24,22 +24,32 @@ import lipyd.lipproc
 swl_names = {
     'Phosphatidylcholine(36:1)':
         (
-            lipyd.lipproc.Headgroup(main = 'PC', sub = ('',)),
-            lipyd.lipproc.Chain(
-                c = 36, u = 1, typ = None, iso = (),
-                attr = lipyd.lipproc.ChainAttr(
-                    sph = '', ether = False, oh = ()
+            lipyd.lipproc.Headgroup(main = 'PC', sub = ()),
+            lipyd.lipproc.ChainSummary(
+                c = 36, u = 1, typ = ('FA', 'FA'),
+                attr = (
+                    lipyd.lipproc.ChainAttr(
+                        sph = '', ether = False, oh = ()
+                    ),
+                    lipyd.lipproc.ChainAttr(
+                        sph = '', ether = False, oh = ()
+                    ),
                 )
             ),
             []
         ),
     'Phosphatidylinositol(18:1/18:0)':
         (
-            lipyd.lipproc.Headgroup(main = 'PI', sub = ('',)),
-            lipyd.lipproc.Chain(
-                c = 36, u = 1, typ = None, iso = (),
-                attr = lipyd.lipproc.ChainAttr(
-                    sph = '', ether = False, oh = ()
+            lipyd.lipproc.Headgroup(main = 'PI', sub = ()),
+            lipyd.lipproc.ChainSummary(
+                c = 36, u = 1, typ = ('FA', 'FA'),
+                attr = (
+                    lipyd.lipproc.ChainAttr(
+                        sph = '', ether = False, oh = ()
+                    ),
+                    lipyd.lipproc.ChainAttr(
+                        sph = '', ether = False, oh = ()
+                    ),
                 )
             ),
             (
@@ -62,11 +72,16 @@ swl_names = {
 lmp_names = {
     'Cer(t18:1/18:1)':
         (
-            lipyd.lipproc.Headgroup(main='Cer', sub=('',)),
-            lipyd.lipproc.Chain(
-                c = 36, u = 2, typ = None, iso = (),
-                attr = lipyd.lipproc.ChainAttr(
-                    sph = 't', ether = False, oh = ()
+            lipyd.lipproc.Headgroup(main='Cer', sub=()),
+            lipyd.lipproc.ChainSummary(
+                c = 36, u = 2, typ = ('Sph', 'FA'),
+                attr = (
+                    lipyd.lipproc.ChainAttr(
+                        sph = 't', ether = False, oh = ()
+                    ),
+                    lipyd.lipproc.ChainAttr(
+                        sph = '', ether = False, oh = ()
+                    ),
                 )
             ),
             (
@@ -86,11 +101,16 @@ lmp_names = {
         ),
     'Cer(d18:0/18:1)':
         (
-            lipyd.lipproc.Headgroup(main = 'Cer', sub = ('',)),
-            lipyd.lipproc.Chain(
-                c = 36, u = 1, typ = None, iso = (),
-                attr = lipyd.lipproc.ChainAttr(
-                    sph = 'DH', ether = False, oh = ()
+            lipyd.lipproc.Headgroup(main = 'Cer', sub = ()),
+            lipyd.lipproc.ChainSummary(
+                c = 36, u = 1, typ = ('Sph', 'FA'),
+                attr = (
+                    lipyd.lipproc.ChainAttr(
+                        sph = 'DH', ether = False, oh = ()
+                    ),
+                    lipyd.lipproc.ChainAttr(
+                        sph = '', ether = False, oh = ()
+                    ),
                 )
             ),
             (
@@ -142,9 +162,12 @@ class TestName(object):
         )
         
         pelghl_hg = lipyd.lipproc.Headgroup(main = 'PE', sub = ('LGHL',))
-        pelghl_chainsum = lipyd.lipproc.Chain(
-            c = 34, u = 1, typ = None, iso = (),
-            attr = lipyd.lipproc.ChainAttr(sph = '', ether = False, oh = ())
+        pelghl_chainsum = lipyd.lipproc.ChainSummary(
+            c = 34, u = 1, typ = ('FA', 'FA'),
+            attr = (
+                lipyd.lipproc.ChainAttr(sph = '', ether = False, oh = ()),
+                lipyd.lipproc.ChainAttr(sph = '', ether = False, oh = ()),
+            )
         )
         pelghl_chains = (
             lipyd.lipproc.Chain(
@@ -167,10 +190,13 @@ class TestName(object):
         
         fahfa = self.nameproc.process('FAHFA(16:0/10-O-18:0)')
         
-        fahfa_hg = lipyd.lipproc.Headgroup(main='FAHFA', sub=('',))
-        fahfa_chainsum = lipyd.lipproc.Chain(
-            c = 34, u = 0, typ = None, iso = (),
-            attr = lipyd.lipproc.ChainAttr(sph='', ether=False, oh=())
+        fahfa_hg = lipyd.lipproc.Headgroup(main='FAHFA', sub=())
+        fahfa_chainsum = lipyd.lipproc.ChainSummary(
+            c = 34, u = 0, typ = ('FA', 'FA'),
+            attr = (
+                lipyd.lipproc.ChainAttr(sph='', ether=False, oh=()),
+                lipyd.lipproc.ChainAttr(sph='', ether=False, oh=()),
+            )
         )
         fahfa_chains = (
             lipyd.lipproc.Chain(

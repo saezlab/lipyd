@@ -83,11 +83,11 @@ class FattyFragment(metabolite.AbstractSubstituent):
             charge = 0,
             name = 'UnknownFattyFragment%s',
             attrs = None,
-            mode = None,
+            ionmode = None,
             **kwargs
         ):
         
-        self.mode = mode
+        self.ionmode = ionmode
         
         def getname(parent):
             
@@ -884,7 +884,7 @@ class FattyFragmentFactory(object):
                     FragConstraint(chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
-            ),
+            ), # 267.2682
         # FAplusGlycerol
         'FA_pGlycerol_mOH':
             ChainFragParam(
@@ -1226,9 +1226,9 @@ class FattyFragmentFactory(object):
         
         mod = sys.modules[__name__]
         
-        for mode in ('neg', 'pos'):
+        for ionmode in ('neg', 'pos'):
             
-            param = getattr(self, 'param_%s' % mode)
+            param = getattr(self, 'param_%s' % ionmode)
             
             for name, par in iteritems(param):
                 
@@ -1241,7 +1241,7 @@ class FattyFragmentFactory(object):
                         '        minus = \'%s\',\n'
                         '        name = \'%s\',\n'
                         '        charge = %u,\n'
-                        '        mode = \'%s\',\n'
+                        '        ionmode = \'%s\',\n'
                         '        attrs = {\n'
                         '            \'constraints\': %s,\n'
                         '            \'chaintype\': \'%s\'\n'
@@ -1253,7 +1253,7 @@ class FattyFragmentFactory(object):
                         par.minus,
                         par.name,
                         par.charge,
-                        mode,
+                        ionmode,
                         str(par.constraints),
                         par.chaintype
                     ),
@@ -1278,7 +1278,7 @@ class FattyFragmentFactory(object):
                     ('chaintype', par.chaintype),
                     ('constraints', par.constraints),
                     ('name', par.name % ''),
-                    ('mode', mode)
+                    ('ionmode', ionmode)
                 ):
                     
                     setattr(cls, attr, val)

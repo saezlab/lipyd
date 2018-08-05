@@ -94,7 +94,7 @@ class FragmentDatabaseAggregator(object):
         """
         
         self.fragments = []
-        self.mode  = ionmode
+        self.ionmode  = ionmode
         self.tolerance = tolerance
         self.files = files
         self.include = include
@@ -183,7 +183,7 @@ class FragmentDatabaseAggregator(object):
         """
         
         return settings.get('%sfragmentsfile' % (
-            'p' if self.mode == 'pos' else 'n'
+            'p' if self.ionmode == 'pos' else 'n'
         ))
     
     def read_files(self):
@@ -222,7 +222,7 @@ class FragmentDatabaseAggregator(object):
             
             return (
                 0  if typ.startswith('NL') else
-                -1 if self.mode == 'neg' else
+                -1 if self.ionmode == 'neg' else
                 1
             )
         
@@ -310,7 +310,9 @@ class FragmentDatabaseAggregator(object):
             self.series = fragment.fattyfragments - set(self.exclude)
         
         self.series = map(get_class, self.series)
-        self.series = [cls for cls in self.series if cls.mode == self.mode]
+        self.series = [
+            cls for cls in self.series if cls.ionmode == self.ionmode
+        ]
     
     def get_series_args(self, cls):
         """
