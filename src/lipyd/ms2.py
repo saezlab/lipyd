@@ -940,7 +940,7 @@ class Scan(ScanBase):
         chainsum = rec.chainsum or lipproc.sum_chains(rec.chains)
         
         frags_for_position = self.frags_for_positions(
-            chainsum,
+            rec,
             head = head,
             intensity_threshold = intensity_threshold,
             frag_types = frag_types

@@ -246,7 +246,10 @@ class FragmentDatabaseAggregator(object):
                             if ',' in constr else
                         ()
                     ),
-                    sph = constr.split('|')[1] if '|' in constr else None
+                    sph = constr.split('|')[1] if '|' in constr else None,
+                    # no way at the moment to define chain
+                    # type in file but later can be added easily
+                    chaintype = None
                 )
                 for constr in l[4].strip().split(';')
             ) if l[4].strip() else ()

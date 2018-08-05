@@ -317,6 +317,8 @@ def match_constraint(rec, constr, chaintype):
         The type of the fragment aliphatic chain (e.g. `FA`, `Sph`).
     """
     
+    print(constr)
+    
     if (
         constr.hg == rec.hg.main or (
             constr.hg is None and

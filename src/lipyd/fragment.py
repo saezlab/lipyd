@@ -43,9 +43,9 @@ ChainFragParam.__new__.__defaults__ = ((),)
 
 FragConstraint = collections.namedtuple(
     'FragConstraint',
-    ['hg', 'family', 'sub', 'sph', 'oh']
+    ['hg', 'family', 'sub', 'sph', 'oh', 'chaintype']
 )
-FragConstraint.__new__.__defaults__ = (None, None, (), None, 0)
+FragConstraint.__new__.__defaults__ = (None, None, (), None, 0, None)
 
 
 class AdductCalculator(object):
@@ -304,7 +304,10 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'LysoPE%s',
                 constraints = (
-                    FragConstraint(hg = 'PE'),
+                    FragConstraint(
+                        hg = 'PE',
+                        chaintype = 'FA',
+                    ),
                 ),
                 chaintype = 'FA'
             ),
@@ -316,7 +319,8 @@ class FattyFragmentFactory(object):
                 name = 'LysoPEAlkyl%s',
                 constraints = (
                     FragConstraint(
-                        hg = 'PE'
+                        hg = 'PE',
+                        chaintype = 'FAL',
                     ),
                 ),
                 chaintype = 'FAL'
@@ -328,7 +332,10 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'LysoPCAlkyl%s',
                 constraints = (
-                    FragConstraint(hg = 'PC'),
+                    FragConstraint(
+                        hg = 'PC',
+                        chaintype = 'FAL',
+                    ),
                 ),
                 chaintype = 'FAL'
             ),
@@ -339,7 +346,10 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'LysoPC%s',
                 constraints = (
-                    FragConstraint(hg = 'PC'),
+                    FragConstraint(
+                        hg = 'PC',
+                        haintype = 'FA',
+                    )
                 ),
                 chaintype = 'FA'
             ),
@@ -350,7 +360,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'LysoPI%s',
                 constraints = (
-                    FragConstraint(hg = 'PI'),
+                    FragConstraint(hg = 'PI', chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
             ),
@@ -361,7 +371,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'LysoPIAlkyl%s',
                 constraints = (
-                    FragConstraint(hg = 'PI'),
+                    FragConstraint(hg = 'PI', chaintype = 'FAL'),
                 ),
                 chaintype = 'FAL'
             ),
@@ -372,8 +382,8 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'LysoPG%s',
                 constraints = (
-                    FragConstraint(hg = 'PG'),
-                    FragConstraint(hg = 'BMP'),
+                    FragConstraint(hg = 'PG', chaintype = 'FA'),
+                    FragConstraint(hg = 'BMP', chaintype = 'FAL'),
                 ),
                 chaintype = 'FA'
             ),
@@ -384,7 +394,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'LysoPGAlkyl%s',
                 constraints = (
-                    FragConstraint(hg = 'PG'),
+                    FragConstraint(hg = 'PG', chaintype = 'FAL'),
                 ),
                 chaintype = 'FAL'
             ),
@@ -395,8 +405,8 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'LysoPA%s',
                 constraints = (
-                    FragConstraint(hg = 'PA'),
-                    FragConstraint(hg = 'PS'),
+                    FragConstraint(hg = 'PA', chaintype = 'FA'),
+                    FragConstraint(hg = 'PS', chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
             ),
@@ -407,8 +417,8 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'LysoPAAlkyl%s',
                 constraints = (
-                    FragConstraint(hg = 'PA'),
-                    FragConstraint(hg = 'PS'),
+                    FragConstraint(hg = 'PA', chaintype = 'FAL'),
+                    FragConstraint(hg = 'PS', chaintype = 'FAL'),
                 ),
                 chaintype = 'FAL'
             ),
@@ -419,8 +429,8 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'LysoPA%s-H2O',
                 constraints = (
-                    FragConstraint(hg = 'PA'),
-                    FragConstraint(hg = 'PS'),
+                    FragConstraint(hg = 'PA', chaintype = 'FA'),
+                    FragConstraint(hg = 'PS', chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
             ),
@@ -432,7 +442,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'FA%s-O+C2H2NH2',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
             ), # 308.2959
@@ -444,7 +454,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'FA%s-H2O-H',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
             ), # 265.2537
@@ -456,7 +466,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'FA%s-O+NH2',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
             ),
@@ -468,7 +478,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-C2H4-NH2-H2O',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 239.2380
@@ -480,7 +490,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-H2O-NH2-2H',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 265.2537
@@ -492,7 +502,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-C2H4-3H',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 270.2436
@@ -503,7 +513,9 @@ class FattyFragmentFactory(object):
                 minus = 'H',
                 charge = -1,
                 name = 'FA%s-H',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 283.2643
         # former FAAlkylminusH
@@ -513,7 +525,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FAL%s-H',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FAL')
+                ),
                 chaintype = 'FAL'
             ),
         # fatty acyl fragments for hydroxyacyl ceramides:
@@ -523,7 +537,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FA%s+C2H3+NH2+H2O',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 342.3014
         'FA_pC2H3_pNH2_pO':
@@ -532,7 +548,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FA%s+C2H3+NH2+O',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 340.2857
         'FA_pC2H3_pNH2':
@@ -541,7 +559,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FA%s+C2H3+NH2',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 324.2908
         'FA_pO':
@@ -550,7 +570,9 @@ class FattyFragmentFactory(object):
                 minus = 'H',
                 charge = -1,
                 name = 'FA%s+O',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 299.2592
         'FA_pC2H3_pNH2_m2H':
@@ -559,7 +581,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FA%s+C2H3+NH2-2H',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 322.2752
         'FA_pC2H3_pNH2_mH2O':
@@ -568,7 +592,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FA%s+C2H3+NH2-H2O',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 306.2802
         'FA_pNH2_m2H':
@@ -577,7 +603,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FA%s+NH2-2H',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 298.2752
         'FA_m3H':
@@ -586,7 +614,9 @@ class FattyFragmentFactory(object):
                 minus = 'H3',
                 charge = -1,
                 name = 'FA%s-3H',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 281.2486
         'FA_mCO_m3H':
@@ -595,7 +625,9 @@ class FattyFragmentFactory(object):
                 minus = 'CH3',
                 charge = -1,
                 name = 'FA%s-CO-3H',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 253.2537
         # fatty acyl fragments from ceramides
@@ -605,7 +637,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FA%s+C2H3+NH2+2H',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 326.3065
         'FA_pC2H3_pNH2_mO':
@@ -614,7 +648,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FA%s+C2H3+NH2-O',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 308.2959
         'FA_pNH2_mH2O_mH':
@@ -623,7 +659,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FA%s+NH2-H2O-H',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 282.2802
         'FA_pC3H7_mNH2':
@@ -632,7 +670,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = -1,
                 name = 'FA%s+C3H7+NH2',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA')
+                ),
                 chaintype = 'FA'
             ), # 338.3064
         # sphingosine long chain base fragments from t-ceramides
@@ -643,7 +683,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s+O',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 316.2857
@@ -654,7 +694,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-CH2-3H',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 284.2595
@@ -665,7 +705,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-NH2-3H',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 281.2486
@@ -676,7 +716,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-C2H4-NH2-2H',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 255.2330
@@ -687,7 +727,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-CH2-NH2-4H',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 267.2330
@@ -699,7 +739,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-H',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 300.2908
@@ -710,7 +750,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-CH2-H2O-H',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 268.2646
@@ -722,7 +762,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-CH2-OH',
                 constraints = (
-                    FragConstraint(hg = 'Cer'),
+                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 270.2802
@@ -734,7 +774,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s+PCh-CH3',
                 constraints = (
-                    FragConstraint(hg = 'SM'),
+                    FragConstraint(hg = 'SM', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 449.3150
@@ -746,7 +786,7 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-C2H3-NH2-OH',
                 constraints = (
-                    FragConstraint(hg = 'Sph'),
+                    FragConstraint(hg = 'Sph', chaintype = 'Sph'),
                 ),
                 chaintype = 'Sph'
             ), # 241.2537
@@ -758,7 +798,11 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'FA%s-H2O',
                 constraints = (
-                    FragConstraint(hg = 'Cer', sub = ('1P',)),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('1P',),
+                        chaintype = 'FA',
+                    ),
                 ),
                 chaintype = 'FA'
             ), # 266.2615
@@ -769,7 +813,11 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'FA%s-',
                 constraints = (
-                    FragConstraint(hg = 'Cer', sub = ('1P',)),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('1P',),
+                        chaintype = 'FA',
+                    ),
                 ),
                 chaintype = 'FA'
             ), # 284.2721
@@ -783,7 +831,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = 0,
                 name = 'NL FA%s',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA'),
+                ),
                 chaintype = 'FA'
             ),
         # NLFAminusH2O
@@ -793,7 +843,9 @@ class FattyFragmentFactory(object):
                 minus = 'H2',
                 charge = 0,
                 name = 'NL FA%s-H2O',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA'),
+                ),
                 chaintype = 'FA'
             ),
         # NLFAplusOH
@@ -803,7 +855,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = 0,
                 name = 'NL FA%s+OH',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA'),
+                ),
                 chaintype = 'FA'
             ),
         # NLFAplusNH3
@@ -813,7 +867,9 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = 0,
                 name = 'NL FA%s+NH3',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA'),
+                ),
                 chaintype = 'FA'
             ),
         ### positive
@@ -824,7 +880,9 @@ class FattyFragmentFactory(object):
                 minus = 'H',
                 charge = 1,
                 name = 'FA%s-OH',
-                constraints = (),
+                constraints = (
+                    FragConstraint(chaintype = 'FA'),
+                ),
                 chaintype = 'FA'
             ),
         # FAplusGlycerol
@@ -835,11 +893,19 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'FA%s+Glycerol-OH',
                 constraints = (
-                    FragConstraint(hg = 'PG'),
-                    FragConstraint(hg = 'BMP'),
-                    FragConstraint(hg = 'DAG'),
-                    FragConstraint(hg = 'PE', sub = ('Lyso',)),
-                    FragConstraint(hg = 'PC', sub = ('Lyso',)),
+                    FragConstraint(hg = 'PG', chaintype = 'FA'),
+                    FragConstraint(hg = 'BMP', chaintype = 'FA'),
+                    FragConstraint(hg = 'DAG', chaintype = 'FA'),
+                    FragConstraint(
+                        hg = 'PE',
+                        sub = ('Lyso',),
+                        chaintype = 'FA',
+                    ),
+                    FragConstraint(
+                        hg = 'PC',
+                        sub = ('Lyso',),
+                        chaintype = 'FA',
+                    ),
                 ),
                 chaintype = 'FA'
             ),
@@ -851,10 +917,23 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s+H',
                 constraints = (
-                    FragConstraint(hg = 'Sph'),
-                    FragConstraint(hg = 'SM'),
-                    FragConstraint(hg = 'Cer'),
-                    FragConstraint(hg = 'Cer', sub = ('Hex',)),
+                    FragConstraint(
+                        hg = 'Sph',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'SM',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('Hex',),
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 302.3053
@@ -866,13 +945,40 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-2xH2O',
                 constraints = (
-                    FragConstraint(hg = 'Sph', sub = ('1P',)),
-                    FragConstraint(hg = 'SM'),
-                    FragConstraint(hg = 'Cer', sph = 'd'),
-                    FragConstraint(hg = 'Cer', sph = 'DH'),
-                    FragConstraint(hg = 'Cer', sub = ('1P',)),
-                    FragConstraint(hg = 'Sph', sub = ('M',)),
-                    FragConstraint(hg = 'Sph', sub = ('M2',)),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('1P',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'SM',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 'd',
+                        chaintype = 'Sph'
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 'DH',
+                        chaintype = 'Sph'
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('1P',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M2',),
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 266.2842
@@ -883,7 +989,11 @@ class FattyFragmentFactory(object):
                 minus = '',
                 charge = 1,
                 name = 'FA%s+NH+C2H2-OH',
-                constraints = (),
+                constraints = (
+                    FragConstrint(
+                        chaintype = 'FA'
+                    ),
+                ),
                 chaintype = 'FA'
             ), # 308.2948
         'FA_pNH2_mO':
@@ -893,8 +1003,16 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'FA%s+NH2-O',
                 constraints = (
-                    FragConstraint(hg = 'Cer', sph = 'd'),
-                    FragConstraint(hg = 'Cer', sph = 'DH'),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 'd',
+                        haintype = 'FA',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 'DH',
+                        chaintype = 'FA',
+                    ),
                 ),
                 chaintype = 'FA'
             ), # 284.2948
@@ -906,8 +1024,16 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-H',
                 constraints = (
-                    FragConstraint(hg = 'Cer', sph = 't'),
-                    FragConstraint(hg = 'Cer', sub = ('Hex',)),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 't',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('Hex',),
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 300.2897
@@ -918,7 +1044,11 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s+H2O-H',
                 constraints = (
-                    FragConstraint(hg = 'Cer', sub = ('Hex',)),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('Hex',),
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 318.3003
@@ -929,8 +1059,16 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-H2O-H',
                 constraints = (
-                    FragConstraint(hg = 'Cer', sph = 't'),
-                    FragConstraint(hg = 'Cer', sub = ('Hex',)),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 't',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('Hex',),
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 282.2791
@@ -941,10 +1079,26 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-H2O+H',
                 constraints = (
-                    FragConstraint(hg = 'Cer', sph = 'DH'),
-                    FragConstraint(hg = 'Sph', sub = ('1P',)),
-                    FragConstraint(hg = 'Sph', sub = ('M',)),
-                    FragConstraint(hg = 'Sph', sub = ('M2',)),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 'DH',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('1P',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M2',),
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 284.2948
@@ -956,8 +1110,16 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-H2O+CH3',
                 constraints = (
-                    FragConstraint(hg = 'Sph', sub = ('M',)),
-                    FragConstraint(hg = 'Sph', sub = ('M2',)),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M2',),
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 298.3104
@@ -968,7 +1130,11 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-H2O+2xCH3-H',
                 constraints = (
-                    FragConstraint(hg = 'Sph', sub = ('M2',)),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M2',),
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 312.3261
@@ -980,7 +1146,11 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-C-H2O-H',
                 constraints = (
-                    FragConstraint(hg = 'Sph', sph = 'k'),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 'k',
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 270.2791
@@ -991,8 +1161,16 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-C-O-H2O-H',
                 constraints = (
-                    FragConstraint(hg = 'Cer', sph = 'd'),
-                    FragConstraint(hg = 'Sph', sph = 'k'),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 'd',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 'k',
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 254.2842
@@ -1003,7 +1181,11 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-C-H2O-2H',
                 constraints = (
-                    FragConstraint(hg = 'Sph', sph = 'k'),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 'k',
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 265.2526
@@ -1014,7 +1196,11 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-C-2xH2O',
                 constraints = (
-                    FragConstraint(hg = 'Sph', sph = 'k'),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 'k',
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 252.2686
@@ -1026,7 +1212,11 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s-O+H',
                 constraints = (
-                    FragConstraint(hg = 'Sph', sph = 'd'),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 'd',
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 286.3104
