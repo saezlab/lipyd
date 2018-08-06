@@ -113,6 +113,7 @@ specimens = [
             ),
         )}
     ),
+    # TAG positive, in vivo STARD11 + 818.7187
     (
         'pos_examples.mgf',
         'pos',
