@@ -1402,30 +1402,6 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
-    def tag_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a TAG.
-
-        **Specimen:**
-        
-        - STARD11 + 818.7187
-        
-        **Principle:**
-        
-        - Combination of fatty acid fragments must match the expected
-          carbon count and unsaturation.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        fattya.update(self.fa_combinations3('TAG'))
-        
-        if fattya:
-            score += 5
-        
-        return {'score': score, 'fattya': fattya}
     
     #
     # Glycerophospholipids
@@ -2707,6 +2683,38 @@ class DiacylGlycerolNegative(AbstractMS2Identifier):
             self.score += 2
 
 
+class TriacylGlycerolPositive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a TAG.
+
+    **Specimen:**
+    
+    - STARD11 + 818.7187
+    
+    **Principle:**
+    
+    - Combination of fatty acid fragments must match the expected
+        carbon count and unsaturation.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        if list(self.scn.chain_combinations(self.rec)):
+            
+            self.score += 5
 
 
 idmethods = {
@@ -2716,6 +2724,7 @@ idmethods = {
     'pos': {
         lipproc.Headgroup(main = 'FA'): FattyAcidPositive,
         lipproc.Headgroup(main = 'DAG'): DiacylGlycerolPositive,
+        lipproc.Headgroup(main = 'TAG'): TriacylGlycerolPositive,
     }
 }
 

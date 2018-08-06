@@ -113,7 +113,91 @@ specimens = [
             ),
         )}
     ),
-    
+    (
+        'pos_examples.mgf',
+        'pos',
+        4923,
+        {'TAG(48:3)': (
+            MS2Identity(
+                score = 5,
+                hg = Headgroup(main='TAG', sub=()),
+                chainsum = ChainSummary(
+                    c = 48,
+                    u = 3,
+                    typ = ('FA', 'FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                    iso = None
+                ),
+                chains = (
+                    Chain(
+                        c = 16,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 16,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 16,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+            MS2Identity(
+                score = 5,
+                hg = Headgroup(main='TAG', sub=()),
+                chainsum = ChainSummary(
+                    c = 48,
+                    u = 3,
+                    typ = ('FA', 'FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                    iso = None
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 14,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 16,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            )
+        )}
+    )
 ]
 
 
