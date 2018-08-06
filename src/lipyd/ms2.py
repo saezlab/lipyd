@@ -47,9 +47,17 @@ ChainFragment = collections.namedtuple(
 
 MS2Identity = collections.namedtuple(
     'MS2Identity',
-    ['score', 'hg', 'chainsum', 'chains']
+    ['score', 'hg', 'chainsum', 'chains', 'details']
 )
-MS2Identity.__new__.__defaults__ = (None, None)
+MS2Identity.__new__.__defaults__ = (None, None, None)
+
+
+ChainIdentificationDetails = collections.namedtuple(
+    'ChainIdentificationDetails',
+    ['rank', 'i', 'fragtype']
+)
+ChainIdentificationDetails.__new__.__defaults__ = (None, None, None)
+
 
 class mz_sorted(object):
     
@@ -205,7 +213,8 @@ class ScanBase(object):
         by their maximum.
         """
         
-        self.inorm = self.intensities / self.intensities.max()
+        self.imax  = self.intensities.max()
+        self.inorm = self.intensities / self.imax
 
 
 class Scan(ScanBase):
@@ -239,6 +248,7 @@ class Scan(ScanBase):
         self.iratio_logbase = settings.get(
             'chain_fragment_instensity_ratios_logbase'
         )
+        self.chain_details = settings.get('ms2_scan_chain_details')
         
         if ms1_records is None and precursor is not None:
             
@@ -941,6 +951,10 @@ class Scan(ScanBase):
             Completely skip checking intensity ratios.
         """
         
+        if not rec.chainsum and not rec.chains:
+            
+            return
+        
         self.build_chain_list()
         
         chainsum = rec.chainsum or lipproc.sum_chains(rec.chains)
@@ -1078,8 +1092,8 @@ class Scan(ScanBase):
         
         # intensities corrected by the expected and the counts
         intcorr = [
-            ins / expected[i] / cntr[ind],
-            (i, iins), ind in zip(enumerate(itensities), frag_indices)
+            ins / expected[i] / cntr[ind]
+            for (i, ins), ind in zip(enumerate(intensities), frag_indices)
         ]
         
         return (
@@ -1115,8 +1129,7 @@ class Scan(ScanBase):
             )
         )
     
-    @staticmethod
-    def _chains_frag_comb(frag_comb, chainsum):
+    def _chains_frag_comb(self, frag_comb, chainsum):
         """
         Returns a tuple of chains from a fragment annotation combination
         and a database record chain summary object.
@@ -1137,7 +1150,12 @@ class Scan(ScanBase):
                     )
                 )
                 for i, frag in enumerate(frag_comb)
-            )
+            ),
+            ChainIdentificationDetails(
+                rank     = tuple(frag.i for frag in frag_comb),
+                i        = tuple(self.inorm[frag.i] for frag in frag_comb),
+                fragtype = tuple(frag.fragtype for frag in frag_comb),
+            ) if self.chain_details else None
         )
 
     def missing_chain(
@@ -1270,40 +1288,6 @@ class Scan(ScanBase):
     # Fatty acids
     #
     
-    def fa_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a fatty acid.
-        Here we only check if the most abundant fragment is the
-        fatty acid itself.
-
-        **Specimen:**
-        
-        - Enric FABP1 +
-        
-        **Principle:**
-        
-        - The most abundant fragment must be a fatty acid which matches
-          the carbon count and the unsaturation of the whole molecule.
-        
-        """
-        score = 0
-        fattya = set([])
-        
-        self.build_fa_list()
-        
-        if self.is_fa(0):
-            
-            if 'FA' in self.feature.ms1fa:
-                
-                for cc in self.feature.ms1fa['FA']:
-                    
-                    if len(self.fa_list) and self.cc2int(cc) == self.fa_list[0][0]:
-                        
-                        score += 5
-                        fattya.add(cc)
-        
-        return {'score': score, 'fattya': fattya}
-    
     def identify(self):
         
         result = {}
@@ -1326,46 +1310,7 @@ class Scan(ScanBase):
         
         return result
     
-    def fa_neg_1(self, rec):
-        """
-        Examines if a negative mode MS2 spectrum is a fatty acid.
-        Here we only check if the most abundant fragment is the
-        fatty acid itself.
 
-        **Specimen:**
-        
-        - Enric FABP1 -
-        
-        **Principle:**
-        
-        - The most abundant fragment must be a fatty acid which matches
-          the carbon count and the unsaturation of the whole molecule.
-        
-        """
-        
-        score  = 0
-        fattya = set()
-        
-        if self.chain_fragment_type_is(
-            0,
-            frag_type = 'FA-H',
-            c = rec.chainsum.c,
-            u = rec.chainsum.u
-        ):
-            
-            score  = 5
-            fattya.add(
-                (
-                    lipproc.Chain(
-                        c = rec.chainsum.c,
-                        u = rec.chainsum.u,
-                        typ = 'FA',
-                        attr = lipproc.ChainAttr()
-                    ),
-                )
-            )
-        
-        return score, fattya
     
     #
     # Glycerolipids
@@ -2556,9 +2501,9 @@ class AbstractMS2Identifier(object):
     
     def identify(self):
         
-        hg, chainsum, score = self.confirm_class()
+        self.confirm_class()
         
-        if not hg:
+        if not self.rec.hg:
             
             return
         
@@ -2566,14 +2511,22 @@ class AbstractMS2Identifier(object):
         
         for chains in self.confirm_chains_explicit():
             
-            yield MS2Identity(score, hg, chainsum, chains)
+            yield MS2Identity(
+                self.score, self.rec.hg, self.rec.chainsum,
+                chains = chains[0],
+                details = chains[1]
+            )
             chains_confirmed = True
         
         if not chains_confirmed or self.explicit_and_implicit:
             
             for chains in self.confirm_chains_implicit():
                 
-                yield MS2Identity(score, hg, chainsum, chains)
+                yield MS2Identity(
+                    self.score, self.rec.hg, self.rec.chainsum,
+                    chains = chains[0],
+                    details = chains[1]
+                )
     
     def confirm_class(self):
         """
@@ -2582,8 +2535,6 @@ class AbstractMS2Identifier(object):
         """
         
         self.score = 5
-        
-        return self.rec.hg, self.rec.chainsum, self.score
     
     def confirm_chains_explicit(self):
         
@@ -2601,6 +2552,13 @@ class AbstractMS2Identifier(object):
                 
                 yield chain_comb
 
+#
+# Lipid identification methods
+#
+
+#
+# Fatty acids
+#
 
 class FattyAcidNegative(AbstractMS2Identifier):
     """
@@ -2610,7 +2568,7 @@ class FattyAcidNegative(AbstractMS2Identifier):
 
     **Specimen:**
     
-    - Enric FABP1 -
+    - in vitro FABP1 -
     
     **Principle:**
     
@@ -2635,9 +2593,86 @@ class FattyAcidNegative(AbstractMS2Identifier):
         )
 
 
+class FattyAcidPositive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a fatty acid.
+    Here we only check if the most abundant fragment is the
+    fatty acid itself.
+
+    **Specimen:**
+    
+    - Not known
+    
+    **Principle:**
+    
+    - The most abundant fragment must be a fatty acid which matches
+        the carbon count and the unsaturation of the whole molecule.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {
+                'head': 1
+            }
+        )
+
+#
+# Glycerolipids
+#
+
+class DiacylGlycerolPositive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a DAG.
+
+    **Specimen:**
+    
+    - in vivo: SEC14L2 + 584.52
+    - in vitro: BNIP2 + 770.67
+    
+    **Principle:**
+    
+    - Combination of fatty acid fragments among the 10 most abundant
+        fragments must match the expected carbon count and unsaturation.
+    - If these are among the 5 highest fragments the score is higher.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        if list(self.scn.chain_combinations(self.rec, head = 10)):
+            
+            self.score += 4
+        
+        if list(self.scn.chain_combinations(self.rec, head = 6)):
+            
+            self.score += 2
+
+
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'): FattyAcidNegative,
+    },
+    'pos': {
+        lipproc.Headgroup(main = 'FA'): FattyAcidPositive,
+        lipproc.Headgroup(main = 'DAG'): DiacylGlycerolPositive,
     }
 }
 

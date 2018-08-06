@@ -16,6 +16,7 @@
 #
 
 import os
+import sys
 import re
 import imp
 import numpy as np
@@ -94,6 +95,7 @@ class MgfReader(object):
                 l = l.decode('ascii')
                 
                 if (
+                    l.strip() and
                     not l[0].isdigit() and
                     not l[:2] == self.stRbe and
                     not l[:2] == self.stRen
@@ -110,7 +112,7 @@ class MgfReader(object):
                             sys.stdout.write(
                                 'Line in MGF file `%s`'
                                 'could not be processed: '
-                                '\n\t`%s`\n' % (fl, l)
+                                '\n\t`%s`\n' % (self.fname, l)
                             )
                             continue
                         

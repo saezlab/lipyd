@@ -339,6 +339,10 @@ _defaults = {
     # if no expected ratios provided still require the ratios to be even
     # at aphingolipids?
     'even_chain_fragment_intensity_ratios_sl': False,
+    # at MS2 identification, add chain details
+    # (fragment rank, intensity and type) to the MS2Identity object
+    # turning this off makes MS2 spectra analysis faster
+    'ms2_scan_chain_details': True,
     # Method names to convert between adduct and exact masses
     'ad2ex': {
         1: {

@@ -868,7 +868,7 @@ class FattyFragmentFactory(object):
                 charge = 0,
                 name = 'NL FA%s+NH3',
                 constraints = (
-                    FragConstraint(chaintype = 'FA'),
+                    FragConstraint(family = 'SL', chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
             ),
