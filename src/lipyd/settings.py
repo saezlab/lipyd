@@ -435,9 +435,11 @@ def reset_all():
     
     globals()['settings'] = settings
 
-def setup(param, value):
+def setup(**kwargs):
     
-    setattr(settings, param, value)
+    for param, value in iteritems(kwargs):
+        
+        setattr(settings, param, value)
 
 def get(param):
     

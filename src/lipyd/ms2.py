@@ -2666,6 +2666,49 @@ class DiacylGlycerolPositive(AbstractMS2Identifier):
             self.score += 2
 
 
+class DiacylGlycerolNegative(AbstractMS2Identifier):
+    """
+    Examines if a negative mode MS2 spectrum is a DAG.
+
+    **Specimen:**
+    
+    - We don't have yet.
+    
+    **Principle:**
+    
+    - Combination of fatty acid fragments among the 10 most abundant
+        fragments must match the expected carbon count and unsaturation.
+    - If these are among the 5 highest fragments the score is higher.
+    
+    (Same as in positive ionmode.)
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        if list(self.scn.chain_combinations(self.rec, head = 10)):
+            
+            self.score += 4
+        
+        if list(self.scn.chain_combinations(self.rec, head = 6)):
+            
+            self.score += 2
+
+
+
+
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'): FattyAcidNegative,

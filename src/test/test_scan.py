@@ -29,6 +29,9 @@ import lipyd.lipproc as lipproc
 from lipyd.lipproc import Headgroup, Chain, ChainSummary, ChainAttr
 from lipyd.ms2 import MS2Identity
 
+# do not include details now it would be too much
+settings.setup(ms2_scan_chain_details = False)
+
 
 specimens = [
     # FA negative mode
@@ -72,81 +75,45 @@ specimens = [
         134,
         {}
     ),
-    # DAG positive
-    (
-        'pos_examples.mgf',
-        'pos',
-        1004,
-        {'DAG(46:6)': (
-            MS2Identity(
-            score = 6,
-            hg = Headgroup(main='DAG', sub=()),
-            chainsum = ChainSummary(
-                c = 46,
-                u = 6,
-                typ = ('FA', 'FA'),
-                attr = (
-                    ChainAttr(sph='', ether=False, oh=()),
-                    ChainAttr(sph='', ether=False, oh=())
-                ),
-                iso = None
-                ),
-            chains = (
-                Chain(
-                    c = 28,
-                    u = 6,
-                    typ = 'FA',
-                    attr = ChainAttr(sph='', ether=False, oh=()),
-                    iso = ()
-                ),
-            Chain(
-                    c = 18,
-                    u = 0,
-                    typ = 'FA',
-                    attr = ChainAttr(sph='', ether=False, oh=()),
-                    iso = ()
-                )
-                )
-            ),
-            MS2Identity(
-                score = 6,
-                hg = Headgroup(main='DAG', sub=()),
-                chainsum = ChainSummary(
-                    c = 46,
-                    u = 6,
-                    typ = ('FA', 'FA'),
-                    attr = (
-                        ChainAttr(sph='', ether=False, oh=()),
-                        ChainAttr(sph='', ether=False, oh=())
-                    ),
-                    iso = None
-                    ),
-                chains = (
-                    Chain(
-                        c = 18,
-                        u = 0,
-                        typ = 'FA',
-                        attr = ChainAttr(sph='', ether=False, oh=()),
-                        iso = ()
-                    ),
-                Chain(
-                        c = 28,
-                        u = 6,
-                        typ = 'FA',
-                        attr = ChainAttr(sph='', ether=False, oh=()),
-                        iso = ()
-                    )
-                    )
-            )
-        )}
-    ),
     # DAG positive, in vivo SEC14L2
     (
         'pos_examples.mgf',
         'pos',
         3344,
-        {}
+        {'DAG(32:1)': (
+            MS2Identity(
+                score = 6,
+                hg = Headgroup(main='DAG', sub=()),
+                chainsum = ChainSummary(
+                    c = 32,
+                    u = 1,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 16,
+                        u = 0,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 16,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
     ),
+    
 ]
 
 
@@ -166,4 +133,12 @@ class TestScan(object):
             mgfpath, scan_id, ionmode
         )
         
-        assert scan.identify() == identity
+        iscan = scan.identify()
+        
+        for name, ids in identity.items():
+            
+            assert name in iscan
+            
+            for i in ids:
+                
+                assert i in iscan[name]
