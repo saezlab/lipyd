@@ -495,7 +495,7 @@ class Scan(ScanBase):
         
         frag = fragdb.by_name(name, self.ionmode)
         
-        if frag:
+        if frag is not None:
             
             if frag[6] == 0:
                 
@@ -507,7 +507,7 @@ class Scan(ScanBase):
         
         return False
     
-    def has_fragment(self. name):
+    def has_fragment(self, name):
         """
         Tells if a fragment exists in this scan by its name.
         
@@ -938,7 +938,7 @@ class Scan(ScanBase):
         """
         
         # constraints for the fragment type
-        constr = fragdb.constraints(fragtype, self.ionmode)
+        constr = fragdb.constraints(frag_type, self.ionmode)
         # set of possible positions of the chain
         # which this fragment originates from
         return lipproc.match_constraints(record, constr)[1]
@@ -1323,7 +1323,7 @@ class Scan(ScanBase):
                 
                 break
             
-            chpos = self.positions_for_frag_type(record, frag.fragtype)
+            chpos = self.positions_for_frag_type(rec, frag.fragtype)
             
             for ci in chpos:
                 
@@ -2899,7 +2899,7 @@ class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
 
     **Specimen:**
     
-    - GM2A - 714.507
+    - GM2A - 714.507 and 716.523
     
     **Principle:**
     
@@ -2941,63 +2941,31 @@ class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
                 self.scn.has_fragment('PE [G+P+E] (178.0275)'),
             ))
             
-            other_chain_frags = self.scn.missing_chain(
-                self.rec, frag_types = ('FA-H')
-            )
-            
-            
-        
-        if list(self.scn.chain_combinations(self.rec, head = 10)):
-            
-            self.score += 4
-        
-        if list(self.scn.chain_combinations(self.rec, head = 6)):
-            
-            self.score += 2
+            self.score += len(
+                list(
+                    self.scn.matching_chain_combinations(
+                        self.rec,
+                        chain_param = (
+                            {'frag_type': 'FA-H'},
+                            {'frag_type': {
+                                    'LysoPE',
+                                    'LysoPEAlkyl',
+                                    'LysoPEAlkyl-H2O',
+                                    'FA-H2O-H'
+                                }
+                            }
+                        )
+                    )
+                )
+            ) / 2
 
-def pe_neg_1(self):
-    
-        
-        score = 0
-        fattya = set([])
-        
-        if (
-            self.is_fa(0) and
-            self.fa_type_is(0, '-H]-') and
-            self.has_mz(140.0118206) and
-            not self.lysope_neg_1()['score']
-        ):
-            
-            score += 5
-            fattya = self.fa_combinations('PE')
-            
-            if self.has_mz(196.0380330):
-                score += 1
-            
-            if self.has_mz(178.0274684):
-                score += 1
-            
-            fa_h_ccs = self.matching_fa_frags_of_type('PE', '-H]-')
-        
-            for fa_h_cc in fa_h_ccs:
-                
-                for fa_other in [
-                    '[Lyso-PE(C%u:%u)-]-',
-                    '[Lyso-PE-alkyl(C%u:%u)-H2O]-',
-                    '[Lyso-PE-alkyl(C%u:%u)-]-',
-                    '[FA(C%u:%u)-H-CO2]-'
-                ]:
-                    
-                    if self.frag_name_present(fa_other % fa_h_cc):
-                        score += 1
-        
-        return {'score': score, 'fattya': fattya}
 
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidNegative,
         lipproc.Headgroup(main = 'DAG'): DiacylGlycerolNegative,
         lipproc.Headgroup(main = 'TAG'): TriacylGlycerolNegative,
+        lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolamineNegative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidPositive,
