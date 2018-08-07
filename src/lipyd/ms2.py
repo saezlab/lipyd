@@ -1252,6 +1252,24 @@ class Scan(ScanBase):
             self.intensities[i_fa] > self.intensities[i_sph] * 2
         )
     
+    def has_chain_combinations(self, rec, **kwargs):
+        """
+        Calls `chain_combinations` only to check if at least one
+        conbination explicitely confirmed.
+        """
+        
+        ccomb = self.chain_combinations(rec, **kwargs)
+        
+        try:
+            
+            _ = next(ccomb)
+            
+            return True
+            
+        except StopIteration:
+            
+            return False
+    
     def chain_combinations(
             self,
             rec,
@@ -1684,57 +1702,6 @@ class Scan(ScanBase):
             
             if not fattya:
                 score = 0
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def ps_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a Phosphatidylserine.
-
-        **Specimen:**
-        
-        - ORP9 - 788.54
-        
-        **Principle:**
-        
-        - The most abundant fragment is an [M-H]- fatty acid fragment.
-        - Glycerophosphate fragment 152.9958 must be present.
-        - Metaphosphate 78.9591 increases the score.
-        - Serine-H2O neutral loss 87.0320 adds to the score.
-        - Presence of Lyso-PS and Lyso-PA fragments complementing
-          the highest [M-H]- fatty acid fragment increase the score.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and \
-            self.mz_among_most_abundant(152.9958366, 5):
-            
-            score += 5
-            fattya = self.fa_combinations('PS')
-            
-            if not fattya:
-                score = 0
-                return {'score': score, 'fattya': fattya}
-            
-            if self.has_mz(87.03202840):
-                score += 1
-            
-            if self.has_mz(78.95905658):
-                score += 1
-            
-            fa_h_ccs = self.matching_fa_frags_of_type('PS', '-H]-')
-            
-            for fa_h_cc in fa_h_ccs:
-                
-                for fa_other in [
-                    '[Lyso-PS(C%u:%u)-]-',
-                    '[Lyso-PA(C%u:%u)-]-']:
-                    
-                    if self.frag_name_present(fa_other % fa_h_cc):
-                        score += 1
         
         return {'score': score, 'fattya': fattya}
     
@@ -3082,11 +3049,7 @@ class PhosphatidylinositolPositive(AbstractMS2Identifier):
         
         self.score = 0
         
-        ccomb = self.scn.chain_combinations(self.rec)
-        
-        try:
-            
-            _ = next(ccomb)
+        if self.scn.has_chain_combinations(self.rec):
             
             self.score += 1
             
@@ -3094,10 +3057,74 @@ class PhosphatidylinositolPositive(AbstractMS2Identifier):
                 self.scn.has_fragment('NL PI [P+Ins] (NL 259.0219)'),
                 self.scn.has_fragment('NL PI [P+Ins+NH3] (NL 277.0563)'),
             ))) * 4
+
+
+class PhosphatidylserineNegative(AbstractMS2Identifier):
+    """
+    Examines if a negative mode MS2 spectrum is a Phosphatidylserine.
+
+    **Specimen:**
+    
+    - ORP9 - 788.54
+    
+    **Principle:**
+    
+    - The most abundant fragment is an [M-H]- fatty acid fragment.
+    - Glycerophosphate fragment 152.9958 must be present.
+    - Metaphosphate 78.9591 increases the score.
+    - Serine-H2O neutral loss 87.0320 adds to the score.
+    - Presence of Lyso-PS and Lyso-PA fragments complementing
+        the highest [M-H]- fatty acid fragment increase the score.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+            must_have_chains = True,
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        if (
+            self.scn.has_chain_combinations(self.rec) and
+            self.scn.chain_fragment_type_is(
+                0, chain_type = 'FA', frag_type = 'FA-H'
+            ) and
+            self.scn.fragment_among_most_abundant(
+                'PA/PG/PI/PS [G+P] (152.9958)', 5
+            )
+        ):
             
-        except StopIteration:
+            self.score += 5
             
-            return
+            self.score += sum(map(bool, (
+                self.scn.has_fragment('Cer1P/PIP/PL metaphosphate (78.9591)'),
+                self.scn.has_fragment('PS [Ser-H2O] (87.0320)'),
+            )))
+            
+            self.score += len(
+                list(
+                    self.scn.matching_chain_combinations(
+                        self.rec,
+                        chain_param = (
+                            {'frag_type': 'FA-H'},
+                            {'frag_type': {
+                                    'LysoPS',
+                                    'LysoPA',
+                                }
+                            }
+                        )
+                    )
+                )
+            ) / 2
 
 
 idmethods = {
@@ -3108,6 +3135,7 @@ idmethods = {
         lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolamineNegative,
         lipproc.Headgroup(main = 'PC'):  PhosphatidylcholineNegative,
         lipproc.Headgroup(main = 'PI'):  PhosphatidylinositolNegative,
+        lipproc.Headgroup(main = 'PS'):  PhosphatidylserineNegative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidPositive,
