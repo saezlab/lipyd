@@ -378,6 +378,17 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'FA'
             ),
+        'LysoPI_mH2O':
+            ChainFragParam(
+                plus = 'C9H14O11P',
+                minus = '',
+                charge = -1,
+                name = 'LysoPI%s-H2O',
+                constraints = (
+                    FragConstraint(hg = 'PI', chaintype = 'FA'),
+                ),
+                chaintype = 'FA'
+            ),
         'LysoPIAlkyl':
             ChainFragParam(
                 plus = 'C9H18O11P',

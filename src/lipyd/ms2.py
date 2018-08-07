@@ -1687,46 +1687,6 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
-    def pi_neg_1(self):
-        """
-        Examines if a negative MS2 spectrum is Phosphatidylinositol.
-
-        **Specimen:**
-        
-        - GM2A - 835.52
-        
-        **Principle:**
-        
-        - Inositolphosphate-H2O fragment 241.0119, metaphosphate 78.9591 and
-          headgroup fragment 152.9958 must be present.
-        - Additional headgroup fragments 96.9696, 259.0224 and 297.0381
-          increase the score.
-        - Presence of Lyso-PI fragments complementing other [M-H]- fatty
-          acid fragments increase the score.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if self.has_mz(241.0118779) and self.has_mz(152.9958366) and \
-            self.has_mz(78.95905658):
-            
-            score += 5
-            fattya = self.fa_combinations('PI')
-            for hgfrag_mz in [96.96962158, 259.0224425, 297.0380926]:
-                if self.has_mz(hgfrag_mz):
-                    score += 1
-            fa_h_ccs = self.matching_fa_frags_of_type('PI', '-H]-')
-            for fa_h_cc in fa_h_ccs:
-                for fa_other in [
-                    '[Lyso-PI(C%u:%u)-]-',
-                    '[Lyso-PI(C%u:%u)-H2O]-]']:
-                    if self.frag_name_present(fa_other % fa_h_cc):
-                        score += 1
-        
-        return {'score': score, 'fattya': fattya}
-    
     def ps_neg_1(self):
         """
         Examines if a negative mode MS2 spectrum is a Phosphatidylserine.
@@ -3055,6 +3015,71 @@ class PhosphatidylcholinePositive(AbstractMS2Identifier):
             ))
 
 
+class PhosphatidylinositolNegative(AbstractMS2Identifier):
+    """
+    Examines if a negative MS2 spectrum is Phosphatidylinositol.
+
+    **Specimen:**
+    
+    - GM2A - 835.52
+    
+    **Principle:**
+    
+    - Inositolphosphate-H2O fragment 241.0119, metaphosphate 78.9591 and
+        headgroup fragment 152.9958 must be present.
+    - Additional headgroup fragments 96.9696, 259.0224 and 297.0381
+        increase the score.
+    - Presence of Lyso-PI fragments complementing other [M-H]- fatty
+        acid fragments increase the score.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        if (
+            self.scn.has_fragment('PI [InsP-H2O]- (241.01)') and
+            self.scn.has_fragment('PA/PG/PI/PS [G+P] (152.9958)') and
+            self.scn.has_fragment('Cer1P/PIP/PL metaphosphate (78.9591)')
+        ):
+            
+            self.score += 5
+            
+            self.score += sum((
+                self.scn.has_fragment('Cer1P/PI phosphate (96.9696)'),
+                self.scn.has_fragment('PI [InsP-H]- (259.02)'),
+                self.scn.has_fragment('PI [G+P+I] (297.04)'),
+                self.scn.has_fragment('PI [InsP-2H2O]- (223.00)')
+            ))
+            
+            self.score += len(
+                list(
+                    self.scn.matching_chain_combinations(
+                        self.rec,
+                        chain_param = (
+                            {'frag_type': 'FA-H'},
+                            {'frag_type': {
+                                    'LysoPI',
+                                    'LysoPI-H2O',
+                                }
+                            }
+                        )
+                    )
+                )
+            ) / 2
+
+
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidNegative,
@@ -3062,6 +3087,7 @@ idmethods = {
         lipproc.Headgroup(main = 'TAG'): TriacylGlycerolNegative,
         lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolamineNegative,
         lipproc.Headgroup(main = 'PC'):  PhosphatidylcholineNegative,
+        lipproc.Headgroup(main = 'PI'):  PhosphatidylinositolNegative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidPositive,

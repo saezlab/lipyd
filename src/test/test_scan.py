@@ -362,6 +362,43 @@ specimens = [
                 details = None
             ),
         )}
+    ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        2516,
+        {'PI(34:1)': (
+            MS2Identity(
+                score = 11.0,
+                hg = Headgroup(main='PI', sub=()),
+                chainsum = ChainSummary(
+                    c = 34,
+                    u = 1,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 16,
+                        u = 0,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                    ),
+                details = None
+            ),
+        )}
     )
 ]
 
