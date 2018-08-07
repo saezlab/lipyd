@@ -709,6 +709,90 @@ class Scan(ScanBase):
             u is None or annot.u == u
         ))
     
+    def highest_fragment_by_chain_type(
+            self,
+            head = None,
+            frag_type = None,
+            chain_type = None,
+            c = None,
+            u = None,
+        ):
+        """
+        Returns the highest instensity fragment matching a particular
+        chain type.
+        Returns fragment index or `None` if no such fragment exists.
+        
+        Arguments passed to `chain_fragment_type_is`.
+        """
+        
+        frags = self.fragments_by_chain_type(
+            head = head,
+            frag_type = frag_type,
+            chain_type = chain_type,
+            c = c,
+            u = u,
+        )
+        
+        try:
+            
+            return next(frag)
+            
+        except StopIteration:
+            
+            return None
+    
+    def fragments_by_chain_type(
+            self,
+            head = None,
+            frag_type = None,
+            chain_type = None,
+            c = None,
+            u = None,
+        ):
+        """
+        Collects fragments matching a particular chain type.
+        Yields indices.
+        Arguments passed to `chain_fragment_type_is`.
+        """
+        
+        for i in xrange(head if head is not None else len(self.mzs)):
+            
+            if self.chain_fragment_type_is(
+                i,
+                frag_type = frag_type,
+                chain_type = chain_type,
+                c = c,
+                u = u,
+                return_annot = False,
+            ):
+                
+                yield i
+    
+    def chain_fragment_type_among_most_abundant(
+            self,
+            n = 2,
+            frag_type = None,
+            chain_type = None,
+            c = None,
+            u = None,
+        ):
+        """
+        Tells if a particular type of aliphatic chain fragment can be
+        found among the `n` highest intensity fragments.
+        
+        Arguments passed to `chain_fragment_type_is`.
+        """
+        
+        return bool(len(list(
+            self.fragments_by_chain_type(
+                head = n,
+                frag_type = frag_type,
+                chain_type = chain_type,
+                c = c,
+                u = u,
+            )
+        )))
+    
     def chain_fragment_type_is(
             self,
             i,
@@ -719,7 +803,7 @@ class Scan(ScanBase):
             return_annot = False
         ):
         """
-        Tells if a fatty acid fragment is a specified type. The type
+        Tells if an aliphatic chain fragment is a specified type. The type
         should be the string representation of the fragment,
         e.g. `FA-O` for fatty acid minus oxygen fragments.
         
@@ -1705,146 +1789,6 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
-    def pg_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
-        The result will be the same as `bmp_neg_1`, as in negative
-        mode we do not know a way to distinguish these species.
-        
-
-        **Specimen:**
-        
-        - GM2A - 799.54
-        - BPIFB2 - 773.5258 (might be BMP)
-        
-        **Principle:**
-        
-        - The most abundant fragment is a fatty acid [M-H]- ion.
-        - The 152.9958 glycerophosphate fragment must be present.
-        - If Lyso-PG fragment present with carbon count complementing
-          the [M-H]- fatty acid score is higher.
-        - Presence of 171.0064 headgroup fragment adds to the score.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and \
-            self.has_mz(152.9958366):
-            
-            score += 5
-            
-            #if self.mz_among_most_abundant(152.9958366, 5):
-            #   score -= 3
-            
-            fattya = self.fa_combinations('PG')
-            
-            if self.has_mz(171.0064016):
-                score += 1
-            
-            fa_h_ccs = self.matching_fa_frags_of_type('PG', '-H]-')
-            
-            for fa_h_cc in fa_h_ccs:
-                
-                for fa_other in [
-                    'Lyso-PG(C%u:%u)-]-',
-                    'Lyso-PG(C%u:%u)-H2O]-']:
-                    
-                    if self.frag_name_present(fa_other % fa_h_cc):
-                        score += 1
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def bmp_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum
-        is a Bismonoacylglycerophosphate.
-
-        **Specimen:**
-        
-        - BPIFB2 + 792.57
-        
-        **Principle:**
-        
-        - A glycerol+fatty acid fragment can be found among the 3 highest?
-        - The PG headgroup neutral loss (189.0402) is among the fragments?
-        - If so, does it have a lower intensity than half of the fatty
-          acid+glycerol fragment?
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if self.fa_among_most_abundant('+G(', 3):
-            fattya.update(self.fa_combinations('BMP'))
-            if fattya:
-                score += 4
-            
-            hg_int = self.get_nl_intensity(189.0402)
-            
-            if hg_int:
-                
-                gfa_highest = self.get_most_abundant_fa('+G(', head = 4)
-                
-                if gfa_highest[1] < hg_int * 2:
-                    
-                    score = 0
-                    fattya = set([])
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def pg_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum
-        is a Phosphatidylglycerol.
-        At Antonella observed only in standard.
-        
-        **Principle:**
-        
-        - The PG headgroup neutral loss (189.0402) is the fragment ion
-          with the highest intensity?
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if self.nl_among_most_abundant(189.0402, 1):
-            
-            score += 5
-            
-            fattya.update(self.fa_combinations('PG'))
-            if fattya:
-                score += 4
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def bmp_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
-        The result will be the same as `bmp_neg_1`, as in negative
-        mode we do not know a way to distinguish these species.
-        
-
-        **Specimen:**
-        
-        - GM2A - 799.54
-        - BPIFB2 - 773.5258 (might be BMP)
-        
-        **Principle:**
-        
-        - The most abundant fragment is a fatty acid [M-H]- ion.
-        - The 152.9958 glycerophosphate fragment must be present.
-        - If Lyso-PG fragment present with carbon count complementing
-          the [M-H]- fatty acid score is higher.
-        - Presence of 171.0064 headgroup fragment adds to the score.
-        
-        """
-        
-        return self.pg_neg_1()
-    
     def lysopc_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a Lysophosphatidylcholine.
@@ -2489,6 +2433,15 @@ class AbstractMS2Identifier(object):
             ):
                 
                 yield chain_comb
+    
+    def matching_chain_combinations(self, chain_param1, chain_param2):
+        
+        self.score += len(list(
+            self.scn.matching_chain_combinations(
+                self.rec,
+                chain_param = (chain_param1, chain_param2),
+            )
+        )) / 2
 
 #
 # Lipid identification methods
@@ -2757,23 +2710,18 @@ class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
                 self.scn.has_fragment('PE [G+P+E] (178.0275)'),
             )))
             
-            self.score += len(
-                list(
-                    self.scn.matching_chain_combinations(
-                        self.rec,
-                        chain_param = (
-                            {'frag_type': 'FA-H'},
-                            {'frag_type': {
-                                    'LysoPE',
-                                    'LysoPEAlkyl',
-                                    'LysoPEAlkyl-H2O',
-                                    'FA-H2O-H'
-                                }
-                            }
-                        )
-                    )
-                )
-            ) / 2
+            
+            self.matching_chain_combinations(
+                {'frag_type': 'FA-H'},
+                {'frag_type': {
+                        'LysoPE',
+                        'LysoPEAlkyl',
+                        'LysoPEAlkyl-H2O',
+                        'FA-H2O-H'
+                    }
+                }
+            )
+
 
 class PhosphatidylethanolaminePositive(AbstractMS2Identifier):
     """
@@ -2853,17 +2801,10 @@ class PhosphatidylcholineNegative(AbstractMS2Identifier):
                 self.scn.has_fragment('PE [G+P+E] (178.0275)'),
             )))
             
-            self.score += len(
-                list(
-                    self.scn.matching_chain_combinations(
-                        self.rec,
-                        chain_param = (
-                            {'frag_type': 'FA-H'},
-                            {'frag_type': 'LysoPC'}
-                        )
-                    )
-                )
-            ) / 2
+            self.matching_chain_combinations(
+                {'frag_type': 'FA-H'},
+                {'frag_type': 'LysoPC'}
+            )
 
 
 class PhosphatidylcholinePositive(AbstractMS2Identifier):
@@ -2960,21 +2901,14 @@ class PhosphatidylinositolNegative(AbstractMS2Identifier):
                 self.scn.has_fragment('PI [InsP-2H2O]- (223.00)'),
             )))
             
-            self.score += len(
-                list(
-                    self.scn.matching_chain_combinations(
-                        self.rec,
-                        chain_param = (
-                            {'frag_type': 'FA-H'},
-                            {'frag_type': {
-                                    'LysoPI',
-                                    'LysoPI-H2O',
-                                }
-                            }
-                        )
-                    )
-                )
-            ) / 2
+            self.matching_chain_combinations(
+                {'frag_type': 'FA-H'},
+                {'frag_type': {
+                        'LysoPI',
+                        'LysoPI-H2O',
+                    }
+                }
+            )
 
 
 class PhosphatidylinositolPositive(AbstractMS2Identifier):
@@ -3065,21 +2999,10 @@ class PhosphatidylserineNegative(AbstractMS2Identifier):
                 self.scn.has_fragment('PS [Ser-H2O] (87.0320)'),
             )))
             
-            self.score += len(
-                list(
-                    self.scn.matching_chain_combinations(
-                        self.rec,
-                        chain_param = (
-                            {'frag_type': 'FA-H'},
-                            {'frag_type': {
-                                    'LysoPS',
-                                    'LysoPA',
-                                }
-                            }
-                        )
-                    )
-                )
-            ) / 2
+            self.matching_chain_combinations(
+                {'frag_type': 'FA-H'},
+                {'frag_type': {'LysoPS', 'LysoPA'}}
+            )
 
 
 class PhosphatidylserinePositive(AbstractMS2Identifier):
@@ -3113,6 +3036,177 @@ class PhosphatidylserinePositive(AbstractMS2Identifier):
             self.score += 5
 
 
+class PhosphatidylglycerolNegative(AbstractMS2Identifier):
+    """
+    Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
+    The result will be the same as `bmp_neg_1`, as in negative
+    mode we do not know a way to distinguish these species.
+    
+
+    **Specimen:**
+    
+    - GM2A - 799.54
+    - BPIFB2 - 773.5258 (might be BMP)
+    
+    **Principle:**
+    
+    - The most abundant fragment is a fatty acid [M-H]- ion.
+    - The 152.9958 glycerophosphate fragment must be present.
+    - If Lyso-PG fragment present with carbon count complementing
+        the [M-H]- fatty acid score is higher.
+    - Presence of 171.0064 headgroup fragment adds to the score.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+            must_have_chains = True,
+        )
+    
+    def confirm_class(self):
+        
+        if (
+            self.scn.has_chain_combinations(self.rec) and
+            self.scn.chain_fragment_type_is(
+                0, chain_type = 'FA', frag_type = 'FA-H'
+            ) and
+            self.scn.has_fragment('PA/PG/PI/PS [G+P] (152.9958)')
+        ):
+            
+            self.score += 5
+            
+            if self.scn.has_fragment('PG headgroup (171.0064)'):
+                
+                self.score += 1
+            
+            self.matching_chain_combinations(
+                {'frag_type': 'FA-H'},
+                {'frag_type': {
+                        'LysoPG',
+                        'LysoPG-H2O',
+                    }
+                }
+            )
+
+
+class PhosphatidylglycerolPositive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a Phosphatidylglycerol.
+    At Antonella observed only in standard.
+    
+    **Principle:**
+    
+    - The PG headgroup neutral loss (189.0402) is the fragment ion
+        with the highest intensity?
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+        )
+    
+    def confirm_class(self):
+        
+        if (
+            self.scn.most_abundant_fragment_is(
+                'NL PG [G+P+NH3] (NL 189.0402)'
+            )
+        ):
+            
+            self.score += 5
+
+
+class BismonoacylglycerophosphateNegative(PhosphatidylglycerolNegative):
+    """
+    Examines if a negative mode MS2 spectrum is Bismonoacylglycerophosphate.
+    The result will be the same as for PG, as in negative
+    mode we do not know a way to distinguish these species.
+    
+
+    **Specimen:**
+    
+    - GM2A - 799.54
+    - BPIFB2 - 773.5258 (might be BMP)
+    
+    **Principle:**
+    
+    - The most abundant fragment is a fatty acid [M-H]- ion.
+    - The 152.9958 glycerophosphate fragment must be present.
+    - If Lyso-PG fragment present with carbon count complementing
+        the [M-H]- fatty acid score is higher.
+    - Presence of 171.0064 headgroup fragment adds to the score.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        PhosphatidylglycerolNegative.__init__(self, record, scan)
+
+
+class BismonoacylglycerophosphatePositive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum
+    is a Bismonoacylglycerophosphate.
+
+    **Specimen:**
+    
+    - BPIFB2 + 792.57
+    
+    **Principle:**
+    
+    - A glycerol+fatty acid fragment can be found among the 3 highest?
+    - The PG headgroup neutral loss (189.0402) is among the fragments?
+    - If so, does it have a lower intensity than half of the fatty
+        acid+glycerol fragment?
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+            must_have_chains = True,
+        )
+    
+    def confirm_class(self):
+        
+        if (
+            self.scn.has_chain_combinations(self.rec) and
+            self.scn.chain_fragment_type_among_most_abundant(
+                chain_type = 'FA', frag_type = 'FA+Glycerol-OH', n = 3
+            )
+        ):
+            
+            self.score += 5
+            
+            i_hg = self.scn.fragment_by_name('NL PG [G+P+NH3] (NL 189.0402)')
+            
+            if i_hg is not None:
+                
+                i_gfa = self.scn.highest_fragment_by_chain_type(
+                    head = 4, frag_type = 'FA+Glycerol-OH'
+                )
+                
+                if self.scn.intensities[i_gfa] < self.scn.intensities[i_hg]:
+                    
+                    self.score = 0
+
+
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidNegative,
@@ -3122,6 +3216,8 @@ idmethods = {
         lipproc.Headgroup(main = 'PC'):  PhosphatidylcholineNegative,
         lipproc.Headgroup(main = 'PI'):  PhosphatidylinositolNegative,
         lipproc.Headgroup(main = 'PS'):  PhosphatidylserineNegative,
+        lipproc.Headgroup(main = 'PG'):  PhosphatidylglycerolNegative,
+        lipproc.Headgroup(main = 'BMP'): BismonoacylglycerophosphateNegative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidPositive,
@@ -3131,6 +3227,8 @@ idmethods = {
         lipproc.Headgroup(main = 'PC'):  PhosphatidylcholinePositive,
         lipproc.Headgroup(main = 'PI'):  PhosphatidylinositolPositive,
         lipproc.Headgroup(main = 'PS'):  PhosphatidylserinePositive,
+        lipproc.Headgroup(main = 'PG'):  PhosphatidylglycerolPositive,
+        lipproc.Headgroup(main = 'BMP'): BismonoacylglycerophosphatePositive,
     }
 }
 

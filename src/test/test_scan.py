@@ -510,6 +510,144 @@ specimens = [
                 details = None
             ),
         )}
+    ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        2551,
+        {'PG(38:3)': (
+            MS2Identity(
+                score = 5.0,
+                hg = Headgroup(main='PG', sub=()),
+                chainsum = ChainSummary(
+                    c = 38,
+                    u = 3,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 20,
+                        u = 2,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        ),
+        'BMP(38:3)': (
+            MS2Identity(
+                score = 5.0,
+                hg = Headgroup(main='BMP', sub=()),
+                chainsum = ChainSummary(
+                    c = 38,
+                    u = 3,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 20,
+                        u = 2,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
+    (
+        'pos_examples.mgf',
+        'pos',
+        2552,
+        {'BMP(36:2)': (
+            MS2Identity(
+                score = 5,
+                hg = Headgroup(main='BMP', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 2,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        ),
+        'PG(36:2)': (
+            MS2Identity(
+                score = 0,
+                hg = Headgroup(main='PG', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 2,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
     )
 ]
 

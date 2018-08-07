@@ -308,6 +308,7 @@ class GlycerolipidFactory(object):
             ('C2H3NC3H9', 'PC', True),
             ('C2H3NH2COOH', 'PS', True),
             ('C3H5O2H2', 'PG', True),
+            ('C3H5O2H2', 'BMP', True),
             ('H', 'PA', True),
             ('C3O2H8PO3', 'PGP', True),
             ('C6O5H11', 'PI', True),
