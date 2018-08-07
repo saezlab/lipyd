@@ -342,7 +342,7 @@ def match_constraint(rec, constr):
             )
         ) and (
             constr.sub is None or
-            set(constr.sub) == set(hg.sub)
+            set(constr.sub) == set(rec.hg.sub)
         )
     ):
         

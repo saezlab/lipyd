@@ -1005,6 +1005,7 @@ class FattyFragmentFactory(object):
                 name = 'FA%s+NH+C2H2-OH',
                 constraints = (
                     FragConstraint(
+                        family = 'SL',
                         chaintype = 'FA'
                     ),
                 ),

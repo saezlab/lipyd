@@ -368,13 +368,13 @@ class Scan(ScanBase):
         # TODO
         pass
     
-    def nl(self, i):
+    def nl(self, mz):
         """
-        For index returns the corresponding neutral loss m/z.
+        For m/z returns the corresponding neutral loss m/z.
         If precursor ion mass is unknown returns `numpy.nan`.
         """
         
-        return self.precursor - self.mzs[i] if self.precursor else np.nan
+        return self.precursor - mz if self.precursor else np.nan
     
     def full_list_str(self):
         """
@@ -2061,32 +2061,6 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
-    def pe_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a
-        Phosphatidylethanolamine.
-
-        **Specimen:**
-        
-        - BPI + 718.536
-        
-        **Principle:**
-        
-        - The PE headgroup neutral loss 141.0191 has the highest intensity.
-        - If it is a Lyso-PE score will be zero.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        if self.nl_among_most_abundant(141.019097, 1):
-            score += 5
-            fattya = self.fa_combinations('PE')
-            if not fattya and self.lysope_pos_1()['score']:
-                score = 0
-        
-        return {'score': score, 'fattya': fattya}
-    
     def lysope_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a
@@ -2961,6 +2935,40 @@ class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
                 )
             ) / 2
 
+class PhosphatidylethanolaminePositive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a
+    Phosphatidylethanolamine.
+
+    **Specimen:**
+    
+    - BPI + 718.536
+    
+    **Principle:**
+    
+    - The PE headgroup neutral loss 141.0191 has the highest intensity.
+    - If it is a Lyso-PE score will be zero.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        if self.scn.has_fragment('PE [P+E] (NL 141.0191)'):
+            
+            self.score += 5
+
 
 idmethods = {
     'neg': {
@@ -2973,6 +2981,7 @@ idmethods = {
         lipproc.Headgroup(main = 'FA'):  FattyAcidPositive,
         lipproc.Headgroup(main = 'DAG'): DiacylGlycerolPositive,
         lipproc.Headgroup(main = 'TAG'): TriacylGlycerolPositive,
+        lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolaminePositive,
     }
 }
 
