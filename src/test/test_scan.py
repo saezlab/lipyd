@@ -340,6 +340,28 @@ specimens = [
                 details = None
             ),
         )}
+    ),
+    (
+        'pos_examples.mgf',
+        'pos',
+        2731,
+        {'PC(36:2)': (
+            MS2Identity(
+                score = 9,
+                hg = Headgroup(main='PC', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 2,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = None,
+                details = None
+            ),
+        )}
     )
 ]
 
@@ -356,9 +378,7 @@ class TestScan(object):
         ):
         
         mgfpath = os.path.join(common.ROOT, 'data', 'ms2_examples', mgfname)
-        scan = ms2.Scan.from_mgf(
-            mgfpath, scan_id, ionmode
-        )
+        scan = ms2.Scan.from_mgf(mgfpath, scan_id, ionmode)
         
         iscan = scan.identify()
         

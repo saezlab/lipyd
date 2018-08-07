@@ -536,9 +536,39 @@ class Scan(ScanBase):
         
         return self.has_nl(nl)
     
+    def most_abundant_fragment_is(self, name):
+        """
+        Tells if the fragment name is the highest abundant.
+        Returns `None` if the fragment name could not be
+        found in the database.
+        """
+        
+        frag = fragdb.by_name(name, self.ionmode)
+        
+        if frag is not None:
+            
+            mz = self.nl(frag[0]) if frag[6] == 0 else frag[0]
+            
+            return self.mz_match(self.mzs[0], mz)
+    
+    def fragment_among_most_abundant(self, name, n = 2):
+        """
+        Tells if the fragment is among the top `n`.
+        """
+        
+        frag = fragdb.by_name(name, self.ionmode)
+        
+        if frag is not None:
+            
+            mz = self.nl(frag[0]) if frag[6] == 0 else frag[0]
+            
+            return self.mz_among_most_abundant(mz, n = n)
+    
     def most_abundant_mz_is(self, mz):
         """
         Tells if the m/z with the highest intensity is `mz`.
+        Returns `None` if the fragment name could not be
+        found in the database.
         """
         
         result = self.mz_match(self.most_abundant_mz(), mz)
@@ -1942,48 +1972,6 @@ class Scan(ScanBase):
         
         return self.pg_neg_1()
     
-    def pc_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a Phosphatidylcholine.
-
-        **Specimen:**
-        
-        - BPI + 786.607
-        
-        **Principle:**
-        
-        - The most abundant fragment must be choline+phosphate 184.0733.
-        - The 86.0964 ethyl-triethylammonium must be present.
-        - The most abundant fatty acid can not have the same carbon count
-          and unsaturation as the whole molecule (then it is Lyso-PC).
-        - Fragments 104.1069, 124.9998, 60.0808 and 58.0651 increase the
-          score.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if (
-            self.most_abundant_mz_is(184.073323) and
-            self.has_mz(86.096425) and
-            not self.lysopc_pos_1()['score']
-        ):
-            
-            score += 5
-            fattya = self.fa_combinations('PC')
-            
-            if self.has_mz(104.106990):
-                score += 1
-            if self.has_mz(124.999822):
-                score += 1
-            if self.has_mz(60.080776):
-                score +=1
-            if self.has_mz(58.065126):
-                score += 1
-        
-        return {'score': score, 'fattya': fattya}
-    
     def lysopc_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a Lysophosphatidylcholine.
@@ -2549,6 +2537,7 @@ class AbstractMS2Identifier(object):
             scan,
             missing_chains = None,
             explicit_and_implicit = False,
+            must_have_chains = True,
             chain_comb_args = {},
             missing_chain_args = {}
         ):
@@ -2563,14 +2552,15 @@ class AbstractMS2Identifier(object):
         self.chain_comb_args = chain_comb_args
         self.missing_chain_args = missing_chain_args or self.chain_comb_args
         self.explicit_and_implicit = explicit_and_implicit
+        self.must_have_chains = must_have_chains
     
     def identify(self):
-        
-        self.confirm_class()
         
         if not self.rec.hg:
             
             return
+        
+        self.confirm_class()
         
         chains_confirmed = False
         
@@ -2592,6 +2582,16 @@ class AbstractMS2Identifier(object):
                     chains = chains[0],
                     details = chains[1]
                 )
+                
+                chains_confirmed = True
+        
+        if not chains_confirmed and not self.must_have_chains:
+            
+            yield MS2Identity(
+                self.score, self.rec.hg, self.rec.chainsum,
+                chains = None,
+                details = None
+            )
     
     def confirm_class(self):
         """
@@ -3005,6 +3005,56 @@ class PhosphatidylcholineNegative(AbstractMS2Identifier):
             ) / 2
 
 
+class PhosphatidylcholinePositive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a Phosphatidylcholine.
+
+    **Specimen:**
+    
+    - BPI + 786.607
+    
+    **Principle:**
+    
+    - The most abundant fragment must be choline+phosphate 184.0733.
+    - The 86.0964 ethyl-trimetylammonium must be present.
+    - The most abundant fatty acid can not have the same carbon count
+        and unsaturation as the whole molecule (then it is Lyso-PC).
+    - Fragments 104.1069, 124.9998, 60.0808 and 58.0651 increase the
+        score.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+            must_have_chains = False
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        if (
+            self.scn.most_abundant_fragment_is('PC/SM [P+Ch] (184.0733)') and
+            self.scn.has_fragment('PC/SM [Ch] (86.096)')
+            #TODO: distinguish LyspPC
+        ):
+            
+            self.score += 5
+            
+            self.score += sum((
+                self.scn.has_fragment('PC/SM [Ch+H2O] (104.107)'),
+                self.scn.has_fragment('PC/SM [P+Et] (125.000)'),
+                self.scn.has_fragment('PC/SM [Ch-Et] (60.0808)'),
+                self.scn.has_fragment('PC/SM [Ch-Et] (58.0651)'),
+            ))
+
+
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidNegative,
@@ -3018,6 +3068,7 @@ idmethods = {
         lipproc.Headgroup(main = 'DAG'): DiacylGlycerolPositive,
         lipproc.Headgroup(main = 'TAG'): TriacylGlycerolPositive,
         lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolaminePositive,
+        lipproc.Headgroup(main = 'PC'):  PhosphatidylcholinePositive,
     }
 }
 
