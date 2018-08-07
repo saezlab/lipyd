@@ -277,9 +277,17 @@ class Scan(ScanBase):
         self.tolerance = settings.get('ms2_tolerance')
     
     @classmethod
-    def from_mgf(cls, fname, scan_id, ionmode, precursor = None, **kwargs):
+    def from_mgf(
+            cls,
+            fname,
+            scan_id,
+            ionmode,
+            precursor = None,
+            mgf_charge = None,
+            **kwargs
+        ):
         
-        mgfreader = mgf.MgfReader(fname)
+        mgfreader = mgf.MgfReader(fname, charge = mgf_charge)
         sc = mgfreader.scan_by_id(scan_id)
         
         precursor = precursor or mgfreader.precursor_by_id(scan_id)
@@ -2937,13 +2945,13 @@ class PhosphatidylethanolaminePositive(AbstractMS2Identifier):
             self.score += 5
 
 
-class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
+class PhosphatidylcholineNegative(AbstractMS2Identifier):
     """
     Examines if a negative mode MS2 spectrum is a Phosphatidylcholine.
 
     **Specimen:**
     
-    - BPI - 804.57
+    - BPI - 804.57 and 776.545
     
     **Principle:**
     
@@ -2974,7 +2982,7 @@ class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
                 chain_type = 'FA',
                 frag_type = 'FA-H'
             ) and
-            self.scn.has_fragment('PE [P+E] (140.0118)')
+            self.scn.has_fragment('PC/SM PO4+choline-CH3 (168.0431)')
         ):
             
             self.score += 5
@@ -2990,35 +2998,12 @@ class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
                         self.rec,
                         chain_param = (
                             {'frag_type': 'FA-H'},
-                            {'frag_type': {
-                                    'LysoPE',
-                                    'LysoPEAlkyl',
-                                    'LysoPEAlkyl-H2O',
-                                    'FA-H2O-H'
-                                }
-                            }
+                            {'frag_type': 'LysoPC'}
                         )
                     )
                 )
             ) / 2
 
-def pc_neg_1(self):
-
-        score = 0
-        fattya = set([])
-        
-        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and self.has_mz(168.0431206):
-            
-            score += 5
-            fattya = self.fa_combinations('PC')
-            fa_h_ccs = self.matching_fa_frags_of_type('PC', '-H]-')
-        
-            for fa_h_cc in fa_h_ccs:
-                
-                if self.frag_name_present('[Lyso-PC(c%u:%u)-]-' % fa_h_cc):
-                    score += 1
-        
-        return {'score': score, 'fattya': fattya}
 
 idmethods = {
     'neg': {
@@ -3026,6 +3011,7 @@ idmethods = {
         lipproc.Headgroup(main = 'DAG'): DiacylGlycerolNegative,
         lipproc.Headgroup(main = 'TAG'): TriacylGlycerolNegative,
         lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolamineNegative,
+        lipproc.Headgroup(main = 'PC'):  PhosphatidylcholineNegative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidPositive,
