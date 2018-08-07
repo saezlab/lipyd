@@ -88,7 +88,7 @@ class Chain(collections.namedtuple(
 
 class ChainSummary(Chain):
     
-    def __new__(cls, c, u, typ = (), attr = ()):
+    def __new__(cls, c, u, typ = (), attr = (), iso = None):
         
         return super(ChainSummary, cls).__new__(
             cls, c, u, typ = typ, attr = attr, iso = None

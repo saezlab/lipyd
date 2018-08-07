@@ -474,6 +474,51 @@ class Scan(ScanBase):
         
         return result
     
+    def fragment_by_name(self, name):
+        """
+        Returns the index of a fragment by its name.
+        Returns `None` if the fragment does not exist in the scan.
+        Returns `False` if the fragment name could not be found in
+        the database.
+        
+        The lookup still goes by m/z, the name first looked up in the
+        fragment database and the scan searched for the corresponding m/z.
+        The name makes if obvious if this is a charged fragment or a neutral
+        loss, hence it is not necessary to provide this information.
+        
+        Args
+        ----
+        :param str name:
+            Fragment full name as used in the database 2nd column,
+            e.g. `PE [P+E] (140.0118)`.
+        """
+        
+        frag = fragdb.by_name(name, self.ionmode)
+        
+        if frag:
+            
+            if frag[6] == 0:
+                
+                return self.nl_lookup(frag[0])
+                
+            else:
+                
+                return self.mz_lookup(frag[0])
+        
+        return False
+    
+    def has_fragment(self. name):
+        """
+        Tells if a fragment exists in this scan by its name.
+        
+        Returns bool or `None` if fragment name could not be found
+        in the database.
+        """
+        
+        i = self.fragment_by_name(name)
+        
+        return None if i is False else i is not None
+    
     def nl_lookup(self, nl):
         """
         Looks up if a neutral loss exists in this scan and returns its index.
@@ -604,32 +649,52 @@ class Scan(ScanBase):
         
         return result
     
-    def chain_fragment_type_is(
-            self,
-            i,
+    @staticmethod
+    def match_annot(
+            annot,
             frag_type = None,
             chain_type = None,
             c = None,
             u = None
         ):
         """
+        Tests a fragment annotation against criteria of fragment type,
+        chain type, carbon count and unsaturation.
+        """
+        
+        return all((
+            frag_type is None or annot.fragtype == frag_type,
+            chain_type is None or annot.chaintype == chain_type,
+            c is None or annot.c == c,
+            u is None or annot.u == u
+        ))
+    
+    def chain_fragment_type_is(
+            self,
+            i,
+            frag_type = None,
+            chain_type = None,
+            c = None,
+            u = None,
+            return_annot = False
+        ):
+        """
         Tells if a fatty acid fragment is a specified type. The type
         should be the string representation of the fragment,
         e.g. `FA-O` for fatty acid minus oxygen fragments.
+        
+        Returns bool or fragment annotations if `return_annot = True`.
         
         Args
         ----
         :param int i:
             Index of the fragment.
+        :param bool return_annot:
+            Return iterator with the matching fragment annotations.
         """
         
         result = any((
-            all((
-                frag_type is None or annot.fragtype == frag_type,
-                chain_type is None or annot.chaintype == chain_type,
-                c is None or annot.c == c,
-                u is None or annot.u == u
-            ))
+            self.match_annot(annot, frag_type, chain_type, c, u)
             for annot in self.annot[i]
         ))
         
@@ -655,7 +720,228 @@ class Scan(ScanBase):
                 )
             )
         
+        if return_annot:
+            
+            result = (
+                annot
+                for annot in self.annot[i]
+                if match(annot, frag_type, chain_type, c, u)
+            )
+        
         return result
+    
+    def chains_of_type(
+            self,
+            chain_type = None,
+            frag_type = None,
+            c = None,
+            u = None,
+            yield_annot = False
+        ):
+        """
+        Iterates chain fragments matching certain criteria.
+        Yields fragment indices or indices with annotations.
+        
+        Args
+        ----
+        :param bool yield_annot:
+            Yield tuples of indices and annotations instead of indices only.
+        """
+        
+        for i in xrange(len(self.mzs)):
+            
+            if self.chain_fragment_type_is(
+                i = i,
+                hain_type = chain_type,
+                frag_type = frag_type,
+                c = c,
+                u = u
+            ):
+                
+                if yield_annot:
+                    
+                    for annot in self.chain_fragment_type_is(
+                        i = i,
+                        hain_type = chain_type,
+                        frag_type = frag_type,
+                        c = c,
+                        u = u,
+                        return_annot = True
+                    ):
+                        
+                        yield i, annot
+                    
+                else:
+                    
+                    yield i
+    
+    def matching_chain_combinations(
+            self,
+            record,
+            head = None,
+            intensity_threshold = None,
+            expected_intensities = None,
+            no_intensity_check = False,
+            chain_param = ()
+        ):
+        """
+        Provides a way to see if specific chain combinations exist.
+        The database record defines the chain layout of the molecule.
+        Further arguments are passed to `chain_combinations`.
+        The `chain_param` tuple contains dicts to match against chain
+        fragments. All of these dicts must match at least one fragment
+        identification. Only combinations matching all criteria yielded.
+        
+        Args
+        ----
+        :param lipproc.LipidRecord record:
+            A lipid database record matching the MS1 m/z.
+        :param int head:
+            Consider only the n most intensive fragments.
+        :param float intensity_threshold:
+            Consider only fragments with intensity higher than threshold.
+            Relative to highest fragment, between 0 and 1.
+        :param expected_intensities:
+            See at `intensity_ratios`.
+        :param bool no_intensity_check:
+            Completely skip checking intensity ratios.
+        :param tuple chain_param:
+            Tuple of dicts. Each dict contains criteria for one chain moiety.
+            Keys can be `chain_type`, `frag_type`, `c` and `u`.
+            These can be single str or int values or sets of multiple
+            values. If omitted or `None` any value will pass the filter.
+            An empty tuple which is the default value will pass through
+            everything, this is equivalent with calling `chain_combinations`.
+        """
+        
+        def match(key, param, value):
+            
+            return (
+                key not in param or
+                param[key] is None or (
+                    type(param[key]) in {int, str} and
+                    value == param[key]
+                ) or (
+                    type(param[key]) in {set, list, tuple} and
+                    value in param[key]
+                )
+            )
+        
+        for chains, details in self.chain_combinations(
+            record,
+            head = None,
+            intensity_threshold = 0,
+            expected_intensities = None,
+            no_intensity_check = False,
+            frag_types = None,
+            fragment_details = True
+        ):
+            
+            if (
+                not chain_param or
+                all((
+                    not param or
+                    any((
+                        all((
+                            match('chain_type', param, ch.chaintype),
+                            match('frag_type', param, details.fragtype[i]),
+                            match('c', param, ch.c),
+                            match('u', param, ch.u),
+                        ))
+                        for i, ch in enumerate(chains)
+                    ))
+                    for param in chain_param
+                ))
+            ):
+                
+                yield chains, details
+    
+    def _matching_chain_pairs(
+            self,
+            record,
+            chain_type = None,
+            frag_type = None,
+            c = None,
+            u = None,
+            partner_chain_types = None,
+            partner_frag_types = None,
+            count_only = False
+        ):
+        
+        # small caching of constraint matching
+        type_pos = {}
+        
+        def get_positions(self, frag_type):
+            
+            if frag_type not in type_pos:
+                
+                type_pos[frag_type] = self.positions_for_frag_type(
+                    record, frag_type
+                )
+            
+            return type_pos[frag_type]
+        # ##
+        
+        for i, iannot in self.chains_of_type(
+            chain_type = chain_type,
+            frag_type = frag_type,
+            c = c,
+            u = u,
+            yield_annot = True
+        ):
+            
+            partner_c = record.chainsum.c - annot.c
+            partner_u = record.chainsum.u - annot.u
+            
+            if partner_c < 1 or partner_u < 0:
+                
+                continue
+            
+            pos_i = get_positions(iannot.fragtype)
+            
+            for j, jannot in self.chains_of_type(
+                c = partner_c,
+                u = partner_u,
+                yield_annot = True
+            ):
+                
+                if (
+                    partner_chain_types is None or
+                    jannot.chaintype in partner_chain_types
+                ) and (
+                    partner_frag_types is None or
+                    jannot.fragtype in partner_frag_types
+                ):
+                    
+                    pos_j = get_positions(jannot.fragtype)
+                    
+                    if (
+                        not pos_i or
+                        not pos_j or (
+                            len(pos_i) == 1 and
+                            len(pos_j) == 1 and
+                            not pos_i - pos_j
+                        )
+                    ):
+                        
+                        continue
+                    
+                    yield (
+                        lipproc.Chain(
+                            
+                        )
+                    )
+    
+    def positions_for_frag_type(self, record, frag_type):
+        """
+        Returns the possible chain positions for a record and a fragment type.
+        """
+        
+        # constraints for the fragment type
+        constr = fragdb.constraints(fragtype, self.ionmode)
+        # set of possible positions of the chain
+        # which this fragment originates from
+        return lipproc.match_constraints(record, constr)[1]
     
     def is_chain(self, i):
         """
@@ -933,7 +1219,8 @@ class Scan(ScanBase):
             intensity_threshold = 0,
             expected_intensities = None,
             no_intensity_check = False,
-            frag_types = None
+            frag_types = None,
+            fragment_details = None
         ):
         """
         Finds all combinations of chain derived fragments matching the
@@ -949,6 +1236,11 @@ class Scan(ScanBase):
             The database record to match against.
         :param bool no_intensity_check:
             Completely skip checking intensity ratios.
+        :param float intensity_threshold:
+            Only fragments with intensities above this threshold will be
+            considered. Intensities relative to the highest, between 0 and 1.
+        :param tuple frag_types:
+            See at `frags_for_positions`.
         """
         
         if not rec.chainsum and not rec.chains:
@@ -989,7 +1281,9 @@ class Scan(ScanBase):
                 ):
                     
                     # now all conditions satisfied:
-                    yield self._chains_frag_comb(frag_comb, chainsum)
+                    yield self._chains_frag_comb(
+                        frag_comb, chainsum, details = fragment_details
+                    )
     
     def frags_for_positions(
             self,
@@ -1006,9 +1300,9 @@ class Scan(ScanBase):
         :param int head:
             If `None` or `numpy.inf` all fragment ions will be considered,
             otherwise only the first most aboundant until the number `head`.
-        :param int intensity_threshold:
+        :param float intensity_threshold:
             Only fragments with intensities above this threshold will be
-            considered.
+            considered. Intensities relative to the highest, between 0 and 1.
         :param tuple frag_types:
             Limit the query to certain fragment types in addition to
             built in fragment constraints and other criteria.
@@ -1025,15 +1319,11 @@ class Scan(ScanBase):
         
         for frag in self.chain_list:
             
-            if frag.intensity < intensity_threshold:
+            if self.inorm[frag.i] < intensity_threshold:
                 
                 break
             
-            # constraints for the fragment type
-            constr = fragdb.constraints(frag.fragtype, self.ionmode)
-            # set of possible positions of the chain
-            # which this fragment originates from
-            _, chpos = lipproc.match_constraints(rec, constr)
+            chpos = self.positions_for_frag_type(record, frag.fragtype)
             
             for ci in chpos:
                 
@@ -1056,8 +1346,8 @@ class Scan(ScanBase):
             logbase = None
         ):
         """
-        Tells if the ratio of a list of intensities fits
-        the one in `expected` or is even if `expected` is `None`.
+        Tells if the ratio of a list of intensities fits the one in
+        `expected` or is more or less even if `expected` is `None`.
         
         :param list intensities:
             List of intensities.
@@ -1129,11 +1419,13 @@ class Scan(ScanBase):
             )
         )
     
-    def _chains_frag_comb(self, frag_comb, chainsum):
+    def _chains_frag_comb(self, frag_comb, chainsum, details = None):
         """
         Returns a tuple of chains from a fragment annotation combination
         and a database record chain summary object.
         """
+        
+        details = self.chain_details if details is None else details
         
         return (
             tuple(
@@ -1155,7 +1447,7 @@ class Scan(ScanBase):
                 rank     = tuple(frag.i for frag in frag_comb),
                 i        = tuple(self.inorm[frag.i] for frag in frag_comb),
                 fragtype = tuple(frag.fragtype for frag in frag_comb),
-            ) if self.chain_details else None
+            ) if details else None
         )
 
     def missing_chain(
@@ -1280,14 +1572,6 @@ class Scan(ScanBase):
                 
                 yield rec
     
-    #
-    # Lipid identification methods
-    #
-    
-    #
-    # Fatty acids
-    #
-    
     def identify(self):
         
         result = {}
@@ -1310,155 +1594,9 @@ class Scan(ScanBase):
         
         return result
     
-
-    
-    #
-    # Glycerolipids
-    #
-    
-    def dag_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a DAG.
-
-        **Specimen:**
-        
-        - SEC14L2 + 584.52
-        - Enric: BNIP2 + 770.67
-        
-        **Principle:**
-        
-        - Combination of fatty acid fragments among the 10 most abundant
-          fragments must match the expected carbon count and unsaturation.
-        - If these are among the 5 highest fragments the score is higher.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if(self.fa_combinations('DAG', head = 10)):
-            score += 4
-            
-            if(self.fa_combinations('DAG', head = 6)):
-                
-                score += 2
-            
-            fattya.update(self.fa_combinations('DAG'))
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def dag_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a DAG.
-
-        **Specimen:**
-        
-        - We don't have yet.
-        
-        **Principle:**
-        
-        - Combination of fatty acid fragments among the 10 most abundant
-          fragments must match the expected carbon count and unsaturation.
-        - If these are among the 5 highest fragments the score is higher.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if(self.fa_combinations('DAG', head = 10)):
-            score += 4
-            
-            if(self.fa_combinations('DAG', head = 6)):
-                
-                score += 2
-            
-            fattya.update(self.fa_combinations('DAG'))
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def tag_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a TAG.
-
-        **Specimen:**
-        
-        - We don't have yet.
-        
-        **Principle:**
-        
-        - Combination of fatty acid fragments must match the
-          expected carbon count and unsaturation.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        fattya.update(self.fa_combinations3('TAG'))
-        
-        if fattya:
-            score += 5
-        
-        return {'score': score, 'fattya': fattya}
-    
-    
     #
     # Glycerophospholipids
     #
-    
-    def pe_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is Phosphatidylethanolamine.
-
-        **Specimen:**
-        
-        - GM2A - 714.507
-        
-        **Principle:**
-        
-        - The most abundant fragment is a fatty acid [M-H]- ion.
-        - 140.0118 PE headgroup must be present.
-        - Other headgroup ions 196.0380 and 178.0275 add to the score.
-        - Lyso-PE and [M-H-CO2]- fatty acid fragments complementing the
-          highest [M-H]- fatty acid increase the score.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if (
-            self.is_fa(0) and
-            self.fa_type_is(0, '-H]-') and
-            self.has_mz(140.0118206) and
-            not self.lysope_neg_1()['score']
-        ):
-            
-            score += 5
-            fattya = self.fa_combinations('PE')
-            
-            if self.has_mz(196.0380330):
-                score += 1
-            
-            if self.has_mz(178.0274684):
-                score += 1
-            
-            fa_h_ccs = self.matching_fa_frags_of_type('PE', '-H]-')
-        
-            for fa_h_cc in fa_h_ccs:
-                
-                for fa_other in [
-                    '[Lyso-PE(C%u:%u)-]-',
-                    '[Lyso-PE-alkyl(C%u:%u)-H2O]-',
-                    '[Lyso-PE-alkyl(C%u:%u)-]-',
-                    '[FA(C%u:%u)-H-CO2]-'
-                ]:
-                    
-                    if self.frag_name_present(fa_other % fa_h_cc):
-                        score += 1
-        
-        return {'score': score, 'fattya': fattya}
     
     def lysope_neg_1(self):
         """
@@ -2717,12 +2855,152 @@ class TriacylGlycerolPositive(AbstractMS2Identifier):
             self.score += 5
 
 
+class TriacylGlycerolNegative(AbstractMS2Identifier):
+    """
+    Examines if a negative mode MS2 spectrum is a TAG.
+
+    **Specimen:**
+    
+    - We don't have yet.
+    
+    **Principle:**
+    
+    - Combination of fatty acid fragments must match the
+        expected carbon count and unsaturation.
+    
+    (Same as in positive ionmode.)
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        if list(self.scn.chain_combinations(self.rec)):
+            
+            self.score += 5
+
+#
+# Glycerophospholipids
+#
+
+class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
+    """
+    Examines if a negative mode MS2 spectrum is Phosphatidylethanolamine.
+
+    **Specimen:**
+    
+    - GM2A - 714.507
+    
+    **Principle:**
+    
+    - The most abundant fragment is a fatty acid [M-H]- ion.
+    - 140.0118 PE headgroup must be present.
+    - Other headgroup ions 196.0380 and 178.0275 add to the score.
+    - Lyso-PE and [M-H-CO2]- fatty acid fragments complementing the
+        highest [M-H]- fatty acid increase the score.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        if (
+            self.scn.chain_fragment_type_is(
+                i = 0,
+                chain_type = 'FA',
+                frag_type = 'FA-H'
+            ) and
+            self.scn.has_fragment('PE [P+E] (140.0118)')
+        ):
+            
+            self.score += 5
+            
+            self.score += sum((
+                self.scn.has_fragment('PE [G+P+E-H2O] (196.0380)'),
+                self.scn.has_fragment('PE [G+P+E] (178.0275)'),
+            ))
+            
+            other_chain_frags = self.scn.missing_chain(
+                self.rec, frag_types = ('FA-H')
+            )
+            
+            
+        
+        if list(self.scn.chain_combinations(self.rec, head = 10)):
+            
+            self.score += 4
+        
+        if list(self.scn.chain_combinations(self.rec, head = 6)):
+            
+            self.score += 2
+
+def pe_neg_1(self):
+    
+        
+        score = 0
+        fattya = set([])
+        
+        if (
+            self.is_fa(0) and
+            self.fa_type_is(0, '-H]-') and
+            self.has_mz(140.0118206) and
+            not self.lysope_neg_1()['score']
+        ):
+            
+            score += 5
+            fattya = self.fa_combinations('PE')
+            
+            if self.has_mz(196.0380330):
+                score += 1
+            
+            if self.has_mz(178.0274684):
+                score += 1
+            
+            fa_h_ccs = self.matching_fa_frags_of_type('PE', '-H]-')
+        
+            for fa_h_cc in fa_h_ccs:
+                
+                for fa_other in [
+                    '[Lyso-PE(C%u:%u)-]-',
+                    '[Lyso-PE-alkyl(C%u:%u)-H2O]-',
+                    '[Lyso-PE-alkyl(C%u:%u)-]-',
+                    '[FA(C%u:%u)-H-CO2]-'
+                ]:
+                    
+                    if self.frag_name_present(fa_other % fa_h_cc):
+                        score += 1
+        
+        return {'score': score, 'fattya': fattya}
+
 idmethods = {
     'neg': {
-        lipproc.Headgroup(main = 'FA'): FattyAcidNegative,
+        lipproc.Headgroup(main = 'FA'):  FattyAcidNegative,
+        lipproc.Headgroup(main = 'DAG'): DiacylGlycerolNegative,
+        lipproc.Headgroup(main = 'TAG'): TriacylGlycerolNegative,
     },
     'pos': {
-        lipproc.Headgroup(main = 'FA'): FattyAcidPositive,
+        lipproc.Headgroup(main = 'FA'):  FattyAcidPositive,
         lipproc.Headgroup(main = 'DAG'): DiacylGlycerolPositive,
         lipproc.Headgroup(main = 'TAG'): TriacylGlycerolPositive,
     }
@@ -4347,6 +4625,7 @@ class MS2Scan(object):
         return result
     
     def frag_name_present(self, name):
+        
         return name in self.scan[:,7]
     
     #### New methods

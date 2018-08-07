@@ -130,8 +130,7 @@ specimens = [
                         ChainAttr(sph='', ether=False, oh=()),
                         ChainAttr(sph='', ether=False, oh=()),
                         ChainAttr(sph='', ether=False, oh=())
-                    ),
-                    iso = None
+                    )
                 ),
                 chains = (
                     Chain(
@@ -169,8 +168,7 @@ specimens = [
                         ChainAttr(sph='', ether=False, oh=()),
                         ChainAttr(sph='', ether=False, oh=()),
                         ChainAttr(sph='', ether=False, oh=())
-                    ),
-                    iso = None
+                    )
                 ),
                 chains = (
                     Chain(

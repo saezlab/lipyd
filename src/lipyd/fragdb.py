@@ -143,6 +143,10 @@ class FragmentDatabaseAggregator(object):
             ),
             dtype = np.object
         )
+        self.frags_by_name = dict(
+            (frag[1], i)
+            for i, frag in enumerate(self.fragments)
+        )
     
     def __iter__(self):
         
@@ -394,6 +398,36 @@ class FragmentDatabaseAggregator(object):
         ]
         
         return self.fragments[idx,:]
+    
+    def by_name(self, name):
+        """
+        Returns fragment data by its name.
+        `None` if the name not in the database.
+        
+        Args
+        ----
+        :param str name:
+            The full name of a fragment, e.g. `PE [P+E] (140.0118)`.
+        """
+        
+        i = self.frags_by_name.get(name, None)
+        
+        return self.fragments[i] if i is not None else None
+    
+    def mz_by_name(self, name):
+        """
+        Returns the m/z of a fragment by its name.
+        `None` if the name not in the database.
+        
+        Args
+        ----
+        :param str name:
+            The full name of a fragment, e.g. `PE [P+E] (140.0118)`.
+        """
+        
+        i = self.frags_by_name.get(name, None)
+        
+        return self.fragments[i][0] if i is not None else None
 
 
 def init_db(ionmode, **kwargs):
@@ -469,8 +503,28 @@ def constraints(fragtype, ionmode):
     """
     Returns the constraints for a given fragment type.
     """
+    
     db = get_db(ionmode)
     return db.get_constraints(fragtype)
+
+def mz_by_name(name, ionmode):
+    """
+    Returns the m/z of a fragment by its name.
+    `None` if name not in the database.
+    """
+    
+    db = get_db(ionmode)
+    return db.mz_by_name(name)
+
+def by_name(name, ionmode):
+    """
+    Returns fragment data by its name.
+    `None` if name not in the database.
+    """
+    
+    db = get_db(ionmode)
+    return db.by_name(name)
+
 
 
 FragmentAnnotation = collections.namedtuple(
