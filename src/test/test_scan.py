@@ -203,7 +203,7 @@ specimens = [
         2961,
         {'PE(34:1)': (
             MS2Identity(
-                score = 0,
+                score = 6.5,
                 hg = Headgroup(main='PE', sub=()),
                 chainsum = ChainSummary(
                     c = 34,
