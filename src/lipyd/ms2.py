@@ -157,7 +157,8 @@ class ScanBase(object):
             
             isort = np.argsort(self.mzs)
             self.sort(isort)
-            self.sorted_by = 'mzs'
+        
+        self.sorted_by = 'mzs'
     
     def sort_intensity(self):
         """
@@ -176,7 +177,8 @@ class ScanBase(object):
             
             isort = np.argsort(self.intensities)[::-1]
             self.sort(isort)
-            self.sorted_by = 'intensities'
+        
+        self.sorted_by = 'intensities'
     
     def sort(self, isort):
         """
@@ -843,7 +845,7 @@ class Scan(ScanBase):
                     not param or
                     any((
                         all((
-                            match('chain_type', param, ch.chaintype),
+                            match('chain_type', param, ch.typ),
                             match('frag_type', param, details.fragtype[i]),
                             match('c', param, ch.c),
                             match('u', param, ch.u),
