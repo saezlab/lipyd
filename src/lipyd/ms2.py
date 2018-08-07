@@ -1649,39 +1649,6 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
-    def pc_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a Phosphatidylcholine.
-
-        **Specimen:**
-        
-        - BPI - 804.57
-        
-        **Principle:**
-        
-        - 168.0431 phosphate+choline-CH3 fragment must be present.
-        - The highest abundant fragment must be a fatty acid [M-H]- fragment.
-        - Lyso-PC fragments complementing the highest [M-H]- fatty acid
-          increase the score.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and self.has_mz(168.0431206):
-            
-            score += 5
-            fattya = self.fa_combinations('PC')
-            fa_h_ccs = self.matching_fa_frags_of_type('PC', '-H]-')
-        
-            for fa_h_cc in fa_h_ccs:
-                
-                if self.frag_name_present('[Lyso-PC(c%u:%u)-]-' % fa_h_cc):
-                    score += 1
-        
-        return {'score': score, 'fattya': fattya}
-    
     def pi_neg_1(self):
         """
         Examines if a negative MS2 spectrum is Phosphatidylinositol.
@@ -2969,6 +2936,89 @@ class PhosphatidylethanolaminePositive(AbstractMS2Identifier):
             
             self.score += 5
 
+
+class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
+    """
+    Examines if a negative mode MS2 spectrum is a Phosphatidylcholine.
+
+    **Specimen:**
+    
+    - BPI - 804.57
+    
+    **Principle:**
+    
+    - 168.0431 phosphate+choline-CH3 fragment must be present.
+    - The highest abundant fragment must be a fatty acid [M-H]- fragment.
+    - Lyso-PC fragments complementing the highest [M-H]- fatty acid
+        increase the score.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        if (
+            self.scn.chain_fragment_type_is(
+                i = 0,
+                chain_type = 'FA',
+                frag_type = 'FA-H'
+            ) and
+            self.scn.has_fragment('PE [P+E] (140.0118)')
+        ):
+            
+            self.score += 5
+            
+            self.score += sum((
+                self.scn.has_fragment('PE [G+P+E-H2O] (196.0380)'),
+                self.scn.has_fragment('PE [G+P+E] (178.0275)'),
+            ))
+            
+            self.score += len(
+                list(
+                    self.scn.matching_chain_combinations(
+                        self.rec,
+                        chain_param = (
+                            {'frag_type': 'FA-H'},
+                            {'frag_type': {
+                                    'LysoPE',
+                                    'LysoPEAlkyl',
+                                    'LysoPEAlkyl-H2O',
+                                    'FA-H2O-H'
+                                }
+                            }
+                        )
+                    )
+                )
+            ) / 2
+
+def pc_neg_1(self):
+
+        score = 0
+        fattya = set([])
+        
+        if self.is_fa(0) and self.fa_type_is(0, '-H]-') and self.has_mz(168.0431206):
+            
+            score += 5
+            fattya = self.fa_combinations('PC')
+            fa_h_ccs = self.matching_fa_frags_of_type('PC', '-H]-')
+        
+            for fa_h_cc in fa_h_ccs:
+                
+                if self.frag_name_present('[Lyso-PC(c%u:%u)-]-' % fa_h_cc):
+                    score += 1
+        
+        return {'score': score, 'fattya': fattya}
 
 idmethods = {
     'neg': {
