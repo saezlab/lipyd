@@ -534,7 +534,7 @@ class Scan(ScanBase):
         Looks up if a neutral loss exists in this scan and returns its index.
         """
         
-        return self.has_nl(nl)
+        return self.mz_lookup(self.nl(nl))
     
     def most_abundant_fragment_is(self, name):
         """
@@ -1789,35 +1789,6 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
-    def pi_pos_1(self):
-        """
-        Examines if a negative MS2 spectrum is Phosphatidylinositol.
-
-        **Specimen:**
-        
-        - SEC14L2 + 906.60 and 882.6
-        
-        **Principle:**
-        
-        - Combinations of fatty acid fragments must match the expected
-          carbon count and unsaturation for PI.
-        - Presence of neutral losses 259.0219 and 277.0563 adds to the score.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        fattya.update(self.fa_combinations('PI'))
-        if fattya:
-            score += 1
-            if self.has_nl(259.021894):
-                score += 4
-            if self.has_nl(277.056272):
-                score += 4
-        
-        return {'score': score, 'fattya': fattya}
-    
     def ps_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a Phosphatidylserine.
@@ -2545,7 +2516,7 @@ class AbstractMS2Identifier(object):
                 
                 chains_confirmed = True
         
-        if not chains_confirmed and not self.must_have_chains:
+        if not chains_confirmed and not self.must_have_chains and self.score:
             
             yield MS2Identity(
                 self.score, self.rec.hg, self.rec.chainsum,
@@ -2847,10 +2818,10 @@ class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
             
             self.score += 5
             
-            self.score += sum((
+            self.score += sum(map(bool, (
                 self.scn.has_fragment('PE [G+P+E-H2O] (196.0380)'),
                 self.scn.has_fragment('PE [G+P+E] (178.0275)'),
-            ))
+            )))
             
             self.score += len(
                 list(
@@ -2947,10 +2918,10 @@ class PhosphatidylcholineNegative(AbstractMS2Identifier):
             
             self.score += 5
             
-            self.score += sum((
+            self.score += sum(map(bool, (
                 self.scn.has_fragment('PE [G+P+E-H2O] (196.0380)'),
                 self.scn.has_fragment('PE [G+P+E] (178.0275)'),
-            ))
+            )))
             
             self.score += len(
                 list(
@@ -3007,12 +2978,12 @@ class PhosphatidylcholinePositive(AbstractMS2Identifier):
             
             self.score += 5
             
-            self.score += sum((
+            self.score += sum(map(bool, (
                 self.scn.has_fragment('PC/SM [Ch+H2O] (104.107)'),
                 self.scn.has_fragment('PC/SM [P+Et] (125.000)'),
                 self.scn.has_fragment('PC/SM [Ch-Et] (60.0808)'),
                 self.scn.has_fragment('PC/SM [Ch-Et] (58.0651)'),
-            ))
+            )))
 
 
 class PhosphatidylinositolNegative(AbstractMS2Identifier):
@@ -3056,12 +3027,12 @@ class PhosphatidylinositolNegative(AbstractMS2Identifier):
             
             self.score += 5
             
-            self.score += sum((
+            self.score += sum(map(bool, (
                 self.scn.has_fragment('Cer1P/PI phosphate (96.9696)'),
                 self.scn.has_fragment('PI [InsP-H]- (259.02)'),
                 self.scn.has_fragment('PI [G+P+I] (297.04)'),
-                self.scn.has_fragment('PI [InsP-2H2O]- (223.00)')
-            ))
+                self.scn.has_fragment('PI [InsP-2H2O]- (223.00)'),
+            )))
             
             self.score += len(
                 list(
@@ -3080,6 +3051,55 @@ class PhosphatidylinositolNegative(AbstractMS2Identifier):
             ) / 2
 
 
+class PhosphatidylinositolPositive(AbstractMS2Identifier):
+    """
+    Examines if a negative MS2 spectrum is Phosphatidylinositol.
+
+    **Specimen:**
+    
+    - SEC14L2 + 906.60 and 882.6
+    
+    **Principle:**
+    
+    - Combinations of fatty acid fragments must match the expected
+        carbon count and unsaturation for PI.
+    - Presence of neutral losses 259.0219 and 277.0563 adds to the score.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+            must_have_chains = True,
+        )
+    
+    def confirm_class(self):
+        
+        self.score = 0
+        
+        ccomb = self.scn.chain_combinations(self.rec)
+        
+        try:
+            
+            _ = next(ccomb)
+            
+            self.score += 1
+            
+            self.score += sum(map(bool, (
+                self.scn.has_fragment('NL PI [P+Ins] (NL 259.0219)'),
+                self.scn.has_fragment('NL PI [P+Ins+NH3] (NL 277.0563)'),
+            ))) * 4
+            
+        except StopIteration:
+            
+            return
+
+
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidNegative,
@@ -3095,6 +3115,7 @@ idmethods = {
         lipproc.Headgroup(main = 'TAG'): TriacylGlycerolPositive,
         lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolaminePositive,
         lipproc.Headgroup(main = 'PC'):  PhosphatidylcholinePositive,
+        lipproc.Headgroup(main = 'PI'):  PhosphatidylinositolPositive,
     }
 }
 

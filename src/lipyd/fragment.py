@@ -918,6 +918,7 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'FA%s+Glycerol-OH',
                 constraints = (
+                    FragConstraint(hg = 'PI', chaintype = 'FA'),
                     FragConstraint(hg = 'PG', chaintype = 'FA'),
                     FragConstraint(hg = 'BMP', chaintype = 'FA'),
                     FragConstraint(hg = 'DAG', chaintype = 'FA'),

@@ -399,6 +399,43 @@ specimens = [
                 details = None
             ),
         )}
+    ),
+    (
+        'pos_examples.mgf',
+        'pos',
+        2917,
+        {'PI(38:3)': (
+            MS2Identity(
+                score = 5,
+                hg = Headgroup(main='PI', sub=()),
+                chainsum = ChainSummary(
+                    c = 38,
+                    u = 3,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 20,
+                        u = 3,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
     )
 ]
 
