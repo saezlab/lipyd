@@ -99,15 +99,17 @@ def find(a, m, t = 20):
     
     iu = a.searchsorted(m)
     
-    dl = du = None
+    dl = du = 9999.
     
-    du = abs(a[iu] - m)
+    if iu < len(a):
+        
+        du = abs(a[iu] - m)
     
     if iu != 0:
         
         dl = abs(m - a[iu - 1])
     
-    if dl is not None and dl < du:
+    if dl < du:
         
         if dl < t:
             

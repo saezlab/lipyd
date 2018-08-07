@@ -1756,31 +1756,6 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
-    def ps_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a Phosphatidylserine.
-
-        **Specimen:**
-        
-        - BPI + 790.56
-        
-        **Principle:**
-        
-        - PS headgroup neutral loss 185.0089 must be the highest intensity.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if self.nl_among_most_abundant(185.008927, 1):
-            
-            score += 5
-            
-            fattya.update(self.fa_combinations('PS'))
-        
-        return {'score': score, 'fattya': fattya}
-    
     def bmp_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum
@@ -2618,8 +2593,6 @@ class DiacylGlycerolPositive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.score = 0
-        
         if list(self.scn.chain_combinations(self.rec, head = 10)):
             
             self.score += 4
@@ -2659,8 +2632,6 @@ class DiacylGlycerolNegative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.score = 0
-        
         if list(self.scn.chain_combinations(self.rec, head = 10)):
             
             self.score += 4
@@ -2696,8 +2667,6 @@ class TriacylGlycerolPositive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
-        
-        self.score = 0
         
         if list(self.scn.chain_combinations(self.rec)):
             
@@ -2772,8 +2741,6 @@ class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.score = 0
-        
         if (
             self.scn.chain_fragment_type_is(
                 i = 0,
@@ -2836,8 +2803,6 @@ class PhosphatidylethanolaminePositive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.score = 0
-        
         if self.scn.has_fragment('PE [P+E] (NL 141.0191)'):
             
             self.score += 5
@@ -2871,8 +2836,6 @@ class PhosphatidylcholineNegative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
-        
-        self.score = 0
         
         if (
             self.scn.chain_fragment_type_is(
@@ -2935,8 +2898,6 @@ class PhosphatidylcholinePositive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.score = 0
-        
         if (
             self.scn.most_abundant_fragment_is('PC/SM [P+Ch] (184.0733)') and
             self.scn.has_fragment('PC/SM [Ch] (86.096)')
@@ -2983,8 +2944,6 @@ class PhosphatidylinositolNegative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
-        
-        self.score = 0
         
         if (
             self.scn.has_fragment('PI [InsP-H2O]- (241.01)') and
@@ -3047,8 +3006,6 @@ class PhosphatidylinositolPositive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.score = 0
-        
         if self.scn.has_chain_combinations(self.rec):
             
             self.score += 1
@@ -3091,8 +3048,6 @@ class PhosphatidylserineNegative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.score = 0
-        
         if (
             self.scn.has_chain_combinations(self.rec) and
             self.scn.chain_fragment_type_is(
@@ -3127,6 +3082,37 @@ class PhosphatidylserineNegative(AbstractMS2Identifier):
             ) / 2
 
 
+class PhosphatidylserinePositive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a Phosphatidylserine.
+
+    **Specimen:**
+    
+    - BPI + 790.56
+    
+    **Principle:**
+    
+    - PS headgroup neutral loss 185.0089 must be the highest intensity.
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+            must_have_chains = True,
+        )
+    
+    def confirm_class(self):
+        
+        if self.scn.fragment_among_most_abundant('PS [P+S] (NL 185.0089)', 1):
+            
+            self.score += 5
+
+
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidNegative,
@@ -3144,6 +3130,7 @@ idmethods = {
         lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolaminePositive,
         lipproc.Headgroup(main = 'PC'):  PhosphatidylcholinePositive,
         lipproc.Headgroup(main = 'PI'):  PhosphatidylinositolPositive,
+        lipproc.Headgroup(main = 'PS'):  PhosphatidylserinePositive,
     }
 }
 
