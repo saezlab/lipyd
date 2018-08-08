@@ -3176,9 +3176,11 @@ idmethods = {
         lipproc.Headgroup(main = 'PC'):  PC_Negative,
         lipproc.Headgroup(main = 'PC', sub = ('Lyso',)): PC_Negative,
         lipproc.Headgroup(main = 'PI'):  PI_Negative,
+        lipproc.Headgroup(main = 'PI', sub = ('Lyso',)):  PI_Negative,
         lipproc.Headgroup(main = 'PS'):  PS_Negative,
         lipproc.Headgroup(main = 'PS', sub = ('Lyso',)): PS_Negative,
         lipproc.Headgroup(main = 'PG'):  PG_Negative,
+        lipproc.Headgroup(main = 'PG', sub = ('Lyso',)):  PG_Negative,
         lipproc.Headgroup(main = 'BMP'): BMP_Negative,
     },
     'pos': {
@@ -3186,10 +3188,15 @@ idmethods = {
         lipproc.Headgroup(main = 'DAG'): DAG_Positive,
         lipproc.Headgroup(main = 'TAG'): TAG_Positive,
         lipproc.Headgroup(main = 'PE'):  PE_Positive,
+        lipproc.Headgroup(main = 'PE', sub = ('Lyso',)):  PE_Positive,
         lipproc.Headgroup(main = 'PC'):  PC_Positive,
+        lipproc.Headgroup(main = 'PC', sub = ('Lyso',)):  PC_Positive,
         lipproc.Headgroup(main = 'PI'):  PI_Positive,
+        lipproc.Headgroup(main = 'PI', sub = ('Lyso',)):  PI_Positive,
         lipproc.Headgroup(main = 'PS'):  PS_Positive,
+        lipproc.Headgroup(main = 'PS', sub = ('Lyso',)):  PS_Positive,
         lipproc.Headgroup(main = 'PG'):  PG_Positive,
+        lipproc.Headgroup(main = 'PG', sub = ('Lyso',)):  PG_Positive,
         lipproc.Headgroup(main = 'BMP'): BMP_Positive,
     }
 }
