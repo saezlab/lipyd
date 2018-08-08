@@ -2178,42 +2178,7 @@ class Scan(ScanBase):
     # Vitamins
     #
     
-    def va_pos_1(self):
-        """
-        Examines if a positive MS2 spectrum is vitamin A (retinol).
 
-        **Specimen:**
-        
-        - RBP1 + 269.2245
-        - RBP4 + 269.2245
-        
-        **Principle:**
-        
-        - The most abundant ion is the whole molecule m/z = 269.224.
-        - Presence off 3 other ions adds to the score but not
-          mandatory: 213.165, 145.1027, 157.1028.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if self.mz_among_most_abundant(269.224, 3):
-            score += 5
-            score += sum(map(self.has_mz, [213.165, 145.1027, 157.1028]))
-        
-        return {'score': score, 'fattya': fattya}
-    
-    def vd_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a vitamin D.
-        This method is not implemented, does nothing.
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        return {'score': score, 'fattya': fattya}
 
 
 class AbstractMS2Identifier(object):
@@ -3212,6 +3177,46 @@ class BMP_Positive(AbstractMS2Identifier):
                     self.score = 0
 
 
+class VA_Positive(AbstractMS2Identifier):
+    """
+    Examines if a positive MS2 spectrum is vitamin A (retinol).
+
+    **Specimen:**
+    
+    - RBP1 + 269.2245
+    - RBP4 + 269.2245
+    
+    **Principle:**
+    
+    - The most abundant ion is the whole molecule m/z = 269.224.
+    - Presence off 3 other ions adds to the score but not
+        mandatory: 213.165, 145.1027, 157.1028.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        if self.fragment_among_most_abundant('Retinol I (269.2264)', 3):
+            
+            self.score += 5
+            
+            self.score += sum(map(bool, (
+                self.scn.has_fragment('Retinol II (213.1637)'),
+                self.scn.has_fragment('Retinol III (157.1012)'),
+                self.scn.has_fragment('Retinol IV (145.1012)'),
+            )))
+
+
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'):  FA_Negative,
@@ -3244,6 +3249,7 @@ idmethods = {
         lipproc.Headgroup(main = 'PG'):  PG_Positive,
         lipproc.Headgroup(main = 'PG', sub = ('Lyso',)):  PG_Positive,
         lipproc.Headgroup(main = 'BMP'): BMP_Positive,
+        lipproc.Headgroup(main = 'VA'): VA_Positive,
     }
 }
 

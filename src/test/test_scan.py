@@ -731,6 +731,15 @@ specimens = [
                 details = None
             ),
         )}
+    ),
+    # Retinol positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        1380,
+        {'VA': (
+
+        )}
     )
 ]
 
