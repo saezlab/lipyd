@@ -300,7 +300,7 @@ class LipidNameProcessor(object):
                     ))
             
             zerochains = sum(not c.c for c in chains)
-            #ccexp = ccexp - zerochains
+            # ccexp = ccexp - zerochains
             chains = tuple(c for c in chains if c.c)
             chains = None if len(chains) != ccexp else tuple(chains)
         

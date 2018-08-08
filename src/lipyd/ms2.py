@@ -1397,8 +1397,15 @@ class Scan(ScanBase):
             rec,
             head = head,
             intensity_threshold = intensity_threshold,
-            frag_types = frag_types
+            frag_types = frag_types,
         )
+        
+        if len(frags_for_position) != len(rec.chainsum.typ):
+            # if one or more chains have no corresponding fragment
+            # we do not yield anything;
+            # for finding missing those chains `missing_chains`
+            # can be used
+            return
         
         # iterate all combinations
         for frag_comb in itertools.product(
@@ -1638,7 +1645,7 @@ class Scan(ScanBase):
         if missing_position in frags_for_position:
             
             chains_at_missing = frags_for_position[missing_position]
-            del frags_for_position[chains_at_missing]
+            del frags_for_position[missing_position]
             
         else:
             
@@ -2681,7 +2688,8 @@ class PE_Positive(AbstractMS2Identifier):
 
     **Specimen:**
     
-    - BPI + 718.536
+    - in vivo BPI + 718.536
+    - Lyso-PE: in vitro FABP1 + 454.29
     
     **Principle:**
     
@@ -2697,7 +2705,7 @@ class PE_Positive(AbstractMS2Identifier):
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
         )
     
     def confirm_class(self):
