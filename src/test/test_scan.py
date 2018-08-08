@@ -654,8 +654,27 @@ specimens = [
         'neg_examples.mgf',
         'neg',
         361,
-        {'PE(16:1)': (
-
+        {'Lyso-PE(16:1)': (
+            MS2Identity(
+                score = 6.0,
+                hg = Headgroup(main='PE', sub=('Lyso',)),
+                chainsum = ChainSummary(
+                    c = 16,
+                    u = 1,
+                    typ = ('FA',),
+                    attr = (ChainAttr(sph='', ether=False, oh=()),)
+                ),
+                chains = (
+                    Chain(
+                        c = 16,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
         )}
     )
 ]

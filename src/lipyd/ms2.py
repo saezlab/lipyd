@@ -3078,7 +3078,7 @@ class PhosphatidylglycerolPositive(AbstractMS2Identifier):
             self.score += 5
 
 
-class BismonoacylglycerophosphateNegative(PhosphatidylglycerolNegative):
+class BMPNegative(PhosphatidylglycerolNegative):
     """
     Examines if a negative mode MS2 spectrum is Bismonoacylglycerophosphate.
     The result will be the same as for PG, as in negative
@@ -3105,7 +3105,7 @@ class BismonoacylglycerophosphateNegative(PhosphatidylglycerolNegative):
         PhosphatidylglycerolNegative.__init__(self, record, scan)
 
 
-class BismonoacylglycerophosphatePositive(AbstractMS2Identifier):
+class BMPPositive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum
     is a Bismonoacylglycerophosphate.
@@ -3158,66 +3158,21 @@ class BismonoacylglycerophosphatePositive(AbstractMS2Identifier):
                     self.score = 0
 
 
-
-def lysope_neg_1(self):
-    """
-    Examines if a negative mode MS2 spectrum is
-    Lysophosphatidylethanolamine.
-
-    **Specimen:** 
-    
-    - in vitro FABP1 - 450.26, 464.27
-    
-    **Principle:**
-    
-    - The most abundant fragment is a fatty acid [M-H]- ion.
-    - 140.0118 PE headgroup must be present.
-    - The carbon count and unsaturation of the highest fatty acid
-        fragment must be the same as it is expected for the whole PE molecule.
-    - Other headgroup ions 196.0380 and 178.0275 add to the score.
-    
-    """
-    
-    score = 0
-    fattya = set([])
-    
-    if (
-        self.is_fa(0) and
-        self.fa_type_is(0, '-H]-') and
-        self.has_mz(140.0118206)
-    ):
-        score += 5
-        
-        if self.has_mz(196.0380330):
-            score +=1
-        
-        if self.has_mz(178.0274684):
-            score += 1
-        
-        ccs = self.ms1_cc(['PE', 'LysoPE'])
-        
-        for cc in ccs:
-            
-            if len(self.fa_list) and self.fa_list[0][0] == self.cc2int(cc):
-                
-                score += 3
-                fattya.add(cc)
-        
-        if not fattya:
-            score = 0
-    
-    return {'score': score, 'fattya': fattya}
-
-
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'):  FattyAcidNegative,
         lipproc.Headgroup(main = 'DAG'): DiacylGlycerolNegative,
         lipproc.Headgroup(main = 'TAG'): TriacylGlycerolNegative,
         lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolamineNegative,
+        lipproc.Headgroup(main = 'PE', sub = ('Lyso',)):
+            PhosphatidylethanolamineNegative,
         lipproc.Headgroup(main = 'PC'):  PhosphatidylcholineNegative,
+        lipproc.Headgroup(main = 'PC', sub = ('Lyso',)):
+            PhosphatidylcholineNegative,
         lipproc.Headgroup(main = 'PI'):  PhosphatidylinositolNegative,
         lipproc.Headgroup(main = 'PS'):  PhosphatidylserineNegative,
+        lipproc.Headgroup(main = 'PS', sub = ('Lyso',)):
+            PhosphatidylserineNegative,
         lipproc.Headgroup(main = 'PG'):  PhosphatidylglycerolNegative,
         lipproc.Headgroup(main = 'BMP'): BismonoacylglycerophosphateNegative,
     },
