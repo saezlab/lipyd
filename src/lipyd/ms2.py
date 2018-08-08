@@ -2402,7 +2402,7 @@ class AbstractMS2Identifier(object):
 # Fatty acids
 #
 
-class FattyAcidNegative(AbstractMS2Identifier):
+class FA_Negative(AbstractMS2Identifier):
     """
     Examines if a negative mode MS2 spectrum is a fatty acid.
     Here we only check if the most abundant fragment is the
@@ -2435,7 +2435,7 @@ class FattyAcidNegative(AbstractMS2Identifier):
         )
 
 
-class FattyAcidPositive(AbstractMS2Identifier):
+class FA_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum is a fatty acid.
     Here we only check if the most abundant fragment is the
@@ -2468,7 +2468,7 @@ class FattyAcidPositive(AbstractMS2Identifier):
 # Glycerolipids
 #
 
-class DiacylGlycerolPositive(AbstractMS2Identifier):
+class DAG_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum is a DAG.
 
@@ -2506,7 +2506,7 @@ class DiacylGlycerolPositive(AbstractMS2Identifier):
             self.score += 2
 
 
-class DiacylGlycerolNegative(AbstractMS2Identifier):
+class DAG_Negative(AbstractMS2Identifier):
     """
     Examines if a negative mode MS2 spectrum is a DAG.
 
@@ -2545,7 +2545,7 @@ class DiacylGlycerolNegative(AbstractMS2Identifier):
             self.score += 2
 
 
-class TriacylGlycerolPositive(AbstractMS2Identifier):
+class TAG_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum is a TAG.
 
@@ -2577,7 +2577,7 @@ class TriacylGlycerolPositive(AbstractMS2Identifier):
             self.score += 5
 
 
-class TriacylGlycerolNegative(AbstractMS2Identifier):
+class TAG_Negative(AbstractMS2Identifier):
     """
     Examines if a negative mode MS2 spectrum is a TAG.
 
@@ -2615,7 +2615,7 @@ class TriacylGlycerolNegative(AbstractMS2Identifier):
 # Glycerophospholipids
 #
 
-class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
+class PE_Negative(AbstractMS2Identifier):
     """
     Examines if a negative mode MS2 spectrum is Phosphatidylethanolamine.
 
@@ -2674,7 +2674,7 @@ class PhosphatidylethanolamineNegative(AbstractMS2Identifier):
             )
 
 
-class PhosphatidylethanolaminePositive(AbstractMS2Identifier):
+class PE_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum is a
     Phosphatidylethanolamine.
@@ -2707,7 +2707,7 @@ class PhosphatidylethanolaminePositive(AbstractMS2Identifier):
             self.score += 5
 
 
-class PhosphatidylcholineNegative(AbstractMS2Identifier):
+class PC_Negative(AbstractMS2Identifier):
     """
     Examines if a negative mode MS2 spectrum is a Phosphatidylcholine.
 
@@ -2758,7 +2758,7 @@ class PhosphatidylcholineNegative(AbstractMS2Identifier):
             )
 
 
-class PhosphatidylcholinePositive(AbstractMS2Identifier):
+class PC_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum is a Phosphatidylcholine.
 
@@ -2806,7 +2806,7 @@ class PhosphatidylcholinePositive(AbstractMS2Identifier):
             )))
 
 
-class PhosphatidylinositolNegative(AbstractMS2Identifier):
+class PI_Negative(AbstractMS2Identifier):
     """
     Examines if a negative MS2 spectrum is Phosphatidylinositol.
 
@@ -2862,7 +2862,7 @@ class PhosphatidylinositolNegative(AbstractMS2Identifier):
             )
 
 
-class PhosphatidylinositolPositive(AbstractMS2Identifier):
+class PI_Positive(AbstractMS2Identifier):
     """
     Examines if a negative MS2 spectrum is Phosphatidylinositol.
 
@@ -2901,7 +2901,7 @@ class PhosphatidylinositolPositive(AbstractMS2Identifier):
             ))) * 4
 
 
-class PhosphatidylserineNegative(AbstractMS2Identifier):
+class PS_Negative(AbstractMS2Identifier):
     """
     Examines if a negative mode MS2 spectrum is a Phosphatidylserine.
 
@@ -2956,7 +2956,7 @@ class PhosphatidylserineNegative(AbstractMS2Identifier):
             )
 
 
-class PhosphatidylserinePositive(AbstractMS2Identifier):
+class PS_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum is a Phosphatidylserine.
 
@@ -2987,7 +2987,7 @@ class PhosphatidylserinePositive(AbstractMS2Identifier):
             self.score += 5
 
 
-class PhosphatidylglycerolNegative(AbstractMS2Identifier):
+class PG_Negative(AbstractMS2Identifier):
     """
     Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
     The result will be the same as `bmp_neg_1`, as in negative
@@ -3046,7 +3046,7 @@ class PhosphatidylglycerolNegative(AbstractMS2Identifier):
             )
 
 
-class PhosphatidylglycerolPositive(AbstractMS2Identifier):
+class PG_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum is a Phosphatidylglycerol.
     At Antonella observed only in standard.
@@ -3078,7 +3078,7 @@ class PhosphatidylglycerolPositive(AbstractMS2Identifier):
             self.score += 5
 
 
-class BMPNegative(PhosphatidylglycerolNegative):
+class BMP_Negative(PG_Negative):
     """
     Examines if a negative mode MS2 spectrum is Bismonoacylglycerophosphate.
     The result will be the same as for PG, as in negative
@@ -3105,7 +3105,7 @@ class BMPNegative(PhosphatidylglycerolNegative):
         PhosphatidylglycerolNegative.__init__(self, record, scan)
 
 
-class BMPPositive(AbstractMS2Identifier):
+class BMP_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum
     is a Bismonoacylglycerophosphate.
@@ -3160,32 +3160,29 @@ class BMPPositive(AbstractMS2Identifier):
 
 idmethods = {
     'neg': {
-        lipproc.Headgroup(main = 'FA'):  FattyAcidNegative,
-        lipproc.Headgroup(main = 'DAG'): DiacylGlycerolNegative,
-        lipproc.Headgroup(main = 'TAG'): TriacylGlycerolNegative,
-        lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolamineNegative,
-        lipproc.Headgroup(main = 'PE', sub = ('Lyso',)):
-            PhosphatidylethanolamineNegative,
-        lipproc.Headgroup(main = 'PC'):  PhosphatidylcholineNegative,
-        lipproc.Headgroup(main = 'PC', sub = ('Lyso',)):
-            PhosphatidylcholineNegative,
-        lipproc.Headgroup(main = 'PI'):  PhosphatidylinositolNegative,
-        lipproc.Headgroup(main = 'PS'):  PhosphatidylserineNegative,
-        lipproc.Headgroup(main = 'PS', sub = ('Lyso',)):
-            PhosphatidylserineNegative,
-        lipproc.Headgroup(main = 'PG'):  PhosphatidylglycerolNegative,
-        lipproc.Headgroup(main = 'BMP'): BismonoacylglycerophosphateNegative,
+        lipproc.Headgroup(main = 'FA'):  FA_Negative,
+        lipproc.Headgroup(main = 'DAG'): DAG_Negative,
+        lipproc.Headgroup(main = 'TAG'): TAG_Negative,
+        lipproc.Headgroup(main = 'PE'):  PE_Negative,
+        lipproc.Headgroup(main = 'PE', sub = ('Lyso',)): PE_Negative,
+        lipproc.Headgroup(main = 'PC'):  PC_Negative,
+        lipproc.Headgroup(main = 'PC', sub = ('Lyso',)): PC_Negative,
+        lipproc.Headgroup(main = 'PI'):  PI_Negative,
+        lipproc.Headgroup(main = 'PS'):  PS_Negative,
+        lipproc.Headgroup(main = 'PS', sub = ('Lyso',)): PS_Negative,
+        lipproc.Headgroup(main = 'PG'):  PG_Negative,
+        lipproc.Headgroup(main = 'BMP'): BMP_Negative,
     },
     'pos': {
-        lipproc.Headgroup(main = 'FA'):  FattyAcidPositive,
-        lipproc.Headgroup(main = 'DAG'): DiacylGlycerolPositive,
-        lipproc.Headgroup(main = 'TAG'): TriacylGlycerolPositive,
-        lipproc.Headgroup(main = 'PE'):  PhosphatidylethanolaminePositive,
-        lipproc.Headgroup(main = 'PC'):  PhosphatidylcholinePositive,
-        lipproc.Headgroup(main = 'PI'):  PhosphatidylinositolPositive,
-        lipproc.Headgroup(main = 'PS'):  PhosphatidylserinePositive,
-        lipproc.Headgroup(main = 'PG'):  PhosphatidylglycerolPositive,
-        lipproc.Headgroup(main = 'BMP'): BismonoacylglycerophosphatePositive,
+        lipproc.Headgroup(main = 'FA'):  FA_Positive,
+        lipproc.Headgroup(main = 'DAG'): DAG_Positive,
+        lipproc.Headgroup(main = 'TAG'): TAG_Positive,
+        lipproc.Headgroup(main = 'PE'):  PE_Positive,
+        lipproc.Headgroup(main = 'PC'):  PC_Positive,
+        lipproc.Headgroup(main = 'PI'):  PI_Positive,
+        lipproc.Headgroup(main = 'PS'):  PS_Positive,
+        lipproc.Headgroup(main = 'PG'):  PG_Positive,
+        lipproc.Headgroup(main = 'BMP'): BMP_Positive,
     }
 }
 
