@@ -1721,6 +1721,21 @@ class Scan(ScanBase):
                 
                 yield rec
     
+    def first_record(self, headgroup, sub = ()):
+        """
+        Returns the first MS1 database record matching headgroup and subtype.
+        """
+        
+        recbytyp = self.records_by_type(headgroup, sub = sub)
+        
+        try:
+            
+            return next(recbytyp)
+            
+        except StopIteration:
+            
+            return None
+    
     def identify(self):
         
         result = {}
@@ -2754,6 +2769,18 @@ class PC_Positive(AbstractMS2Identifier):
             
             self.score += 5
             
+            rec_lyso = self.scn.first_record('PC', sub = ('Lyso',))
+            
+            if rec_lyso:
+                
+                lyso = LysoPC_Positive(rec_lyso, self.scn)
+                lyso.confirm_class()
+                
+                if lyso.score > 5:
+                    
+                    self.score = 0
+                    return
+            
             self.score += sum(map(bool, (
                 self.scn.has_fragment('PC/SM [Ch+H2O] (104.107)'),
                 self.scn.has_fragment('PC/SM [P+Et] (125.000)'),
@@ -2810,7 +2837,7 @@ class LysoPC_Positive(AbstractMS2Identifier):
                 yield_annot = True,
             ):
                 
-                if (abs(frag.mz - self.scn.mzs[hg_i]) < 0.0001):
+                if self.scn.mz_match(frag.mz, self.scn.mzs[hg_i]):
                     
                     self.score += 5
 
