@@ -709,20 +709,20 @@ specimens = [
         'pos_examples.mgf',
         'pos',
         604,
-        {'Lyso-PC(16:0)': (
+        {'Lyso-PC(18:1)': (
             MS2Identity(
                 score = 10,
-                hg = Headgroup(main='PE', sub=('Lyso',)),
+                hg = Headgroup(main='PC', sub=('Lyso',)),
                 chainsum = ChainSummary(
-                    c = 16,
-                    u = 0,
+                    c = 18,
+                    u = 1,
                     typ = ('FA',),
                     attr = (ChainAttr(sph='', ether=False, oh=()),)
                 ),
                 chains = (
                     Chain(
-                        c = 16,
-                        u = 0,
+                        c = 18,
+                        u = 1,
                         typ = 'FA',
                         attr = ChainAttr(sph='', ether=False, oh=()),
                         iso = ()

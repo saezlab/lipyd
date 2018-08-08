@@ -2327,8 +2327,11 @@ class AbstractMS2Identifier(object):
         
         if rec_lyso:
             
-            lyso_hg = lipproc.Headgroup(self.rec.hg.main, sub = ('Lyso',))
-            lyso = idmethods[lyso_hg](rec_lyso, self.scn)
+            lyso_hg = lipproc.Headgroup(
+                main = self.rec.hg.main,
+                sub = ('Lyso',),
+            )
+            lyso = idmethods[self.scn.ionmode][lyso_hg](rec_lyso, self.scn)
             lyso.confirm_class()
             
             return lyso.score > score_threshold
@@ -2685,6 +2688,8 @@ class LysoPE_Positive(AbstractMS2Identifier):
         if self.scn.has_fragment('PE [P+E] (NL 141.0191)'):
             
             self.score += 5
+            
+            self.scn.build_chain_list()
             
             if (
                 len(self.scn.chain_list) and
@@ -3151,7 +3156,7 @@ class BMP_Negative(PG_Negative):
     
     def __init__(self, record, scan):
         
-        PhosphatidylglycerolNegative.__init__(self, record, scan)
+        PG_Negative.__init__(self, record, scan)
 
 
 class BMP_Positive(AbstractMS2Identifier):
