@@ -703,6 +703,34 @@ specimens = [
                 details = None
             ),
         )}
+    ),
+    # Lyso-PC
+    (
+        'pos_examples.mgf',
+        'pos',
+        604,
+        {'Lyso-PC(16:0)': (
+            MS2Identity(
+                score = 5,
+                hg = Headgroup(main='PE', sub=('Lyso',)),
+                chainsum = ChainSummary(
+                    c = 16,
+                    u = 0,
+                    typ = ('FA',),
+                    attr = (ChainAttr(sph='', ether=False, oh=()),)
+                ),
+                chains = (
+                    Chain(
+                        c = 16,
+                        u = 0,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
+        )}
     )
 ]
 

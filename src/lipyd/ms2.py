@@ -439,7 +439,7 @@ class Scan(ScanBase):
         self.sort_mz()
         
         imz = lookup.find(self.mzs, mz, self.tolerance)
-        i = self.iisort[imz] if imz else None
+        i = self.imzsort[imz] if imz else None
         
         self.sort_intensity()
         
@@ -849,7 +849,7 @@ class Scan(ScanBase):
             result = (
                 annot
                 for annot in self.annot[i]
-                if match(annot, frag_type, chain_type, c, u)
+                if self.match_annot(annot, frag_type, chain_type, c, u)
             )
         
         return result
@@ -876,7 +876,7 @@ class Scan(ScanBase):
             
             if self.chain_fragment_type_is(
                 i = i,
-                hain_type = chain_type,
+                chain_type = chain_type,
                 frag_type = frag_type,
                 c = c,
                 u = u
@@ -886,7 +886,7 @@ class Scan(ScanBase):
                     
                     for annot in self.chain_fragment_type_is(
                         i = i,
-                        hain_type = chain_type,
+                        chain_type = chain_type,
                         frag_type = frag_type,
                         c = c,
                         u = u,
@@ -1746,58 +1746,6 @@ class Scan(ScanBase):
     #
     # Glycerophospholipids
     #
-    
-    def lysopc_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a Lysophosphatidylcholine.
-        
-        **Specimen:**
-        
-        - Enric FABP1 + 522.36
-        
-        **Principle:**
-        
-        - Choline-phosphate 184.0733, ethyl-triethylammonium 86.0964 and
-          neutral loss 183.0660 must be present.
-        - The latter neutral loss corresponds to a fatty acid+glycerol ion.
-        - The carbon count and unsaturation of this fragment should match
-          that of the whole molecule.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if (
-            self.most_abundant_mz_is(184.073323) and
-            self.has_mz(86.096425) and
-            self.has_nl(183.066045)
-        ):
-            
-            score += 5
-            
-            fa_mz = self.scan[self.nl_lookup(183.066045),1]
-            
-            ccs = self.ms1_cc(['PC', 'LysoPC'])
-            
-            for cc in ccs:
-                
-                for fa_frag in self.fa_list:
-                    
-                    if (
-                        fa_frag[0] == self.cc2int(cc) and
-                        abs(self.scan[fa_frag[5],1] - fa_mz) < 0.0001 and
-                        'FA+G(' in self.scan[fa_frag[5],7] and
-                        self.cc2int(cc)[0] < 21
-                    ):
-                        
-                        score += 5
-                        fattya.add(cc)
-            
-            if not fattya:
-                score = 0
-        
-        return {'score': score, 'fattya': fattya}
     
     def lysope_pos_1(self):
         """
@@ -2814,6 +2762,59 @@ class PC_Positive(AbstractMS2Identifier):
             )))
 
 
+class LysoPC_Positive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a Lysophosphatidylcholine.
+    
+    **Specimen:**
+    
+    - in vitro FABP1 + 522.36
+    
+    **Principle:**
+    
+    - Choline-phosphate 184.0733, ethyl-trimethylammonium 86.0964 and
+        neutral loss 183.0660 must be present.
+    - The latter neutral loss corresponds to a fatty acid+glycerol ion.
+    - The carbon count and unsaturation of this fragment should match
+        that of the whole molecule.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+            must_have_chains = False
+        )
+    
+    def confirm_class(self):
+        
+        if (
+            self.scn.most_abundant_fragment_is('PC/SM [P+Ch] (184.0733)') and
+            self.scn.has_fragment('PC/SM [Ch] (86.096)') and
+            self.scn.has_fragment('NL PC/SM [P+Ch] (NL 183.066)')
+        ):
+            
+            self.score += 5
+            
+            hg_i = self.scn.fragment_by_name('NL PC/SM [P+Ch] (NL 183.066)')
+            
+            for i, frag in self.scn.chains_of_type(
+                frag_type = 'FA+Glycerol-OH',
+                c = self.rec.chainsum.c,
+                u = self.rec.chainsum.u,
+                yield_annot = True,
+            ):
+                
+                if (abs(frag.mz - self.scn.mzs[hg_i]) < 0.0001):
+                    
+                    self.score += 5
+
+
 class PI_Negative(AbstractMS2Identifier):
     """
     Examines if a negative MS2 spectrum is Phosphatidylinositol.
@@ -3190,7 +3191,7 @@ idmethods = {
         lipproc.Headgroup(main = 'PE'):  PE_Positive,
         lipproc.Headgroup(main = 'PE', sub = ('Lyso',)):  PE_Positive,
         lipproc.Headgroup(main = 'PC'):  PC_Positive,
-        lipproc.Headgroup(main = 'PC', sub = ('Lyso',)):  PC_Positive,
+        lipproc.Headgroup(main = 'PC', sub = ('Lyso',)):  LysoPC_Positive,
         lipproc.Headgroup(main = 'PI'):  PI_Positive,
         lipproc.Headgroup(main = 'PI', sub = ('Lyso',)):  PI_Positive,
         lipproc.Headgroup(main = 'PS'):  PS_Positive,
