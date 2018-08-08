@@ -273,9 +273,9 @@ class LipidNameProcessor(object):
         
         if (
             ccexp and
-            cc2 and
-            cc2[(ccexp - 1) * _g + 1] and
-            cc2[(ccexp - 1) * _g + 2]
+            cc2 #and
+            #cc2[(ccexp - 1) * _g + 1] and
+            #cc2[(ccexp - 1) * _g + 2]
         ):
             
             for i in xrange(len(cc2) // _g):
@@ -517,9 +517,16 @@ class LipidNameProcessor(object):
                     2
             )
             
-            chainsum, chains = self.carbon_counts(
+            _chainsum, _chains = self.carbon_counts(
                 n, ccexp = ccexp, chainsexp = chainsexp, iso = self.iso
             )
+            
+            chains = chains or _chains
+            chainsum = chainsum or _chainsum
+            
+            if self.iso and any(c.iso for c in _chains):
+                
+                chains = _chains
             
             if (
                 chainsum and chains and (
