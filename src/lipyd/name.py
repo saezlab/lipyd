@@ -524,7 +524,7 @@ class LipidNameProcessor(object):
             chains = chains or _chains
             chainsum = chainsum or _chainsum
             
-            if self.iso and any(c.iso for c in _chains):
+            if self.iso and _chains and any(c.iso for c in _chains):
                 
                 chains = _chains
             
