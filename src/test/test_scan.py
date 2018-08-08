@@ -683,7 +683,7 @@ specimens = [
         619,
         {'Lyso-PE(16:0)': (
             MS2Identity(
-                score = 5,
+                score = 10,
                 hg = Headgroup(main='PE', sub=('Lyso',)),
                 chainsum = ChainSummary(
                     c = 16,
@@ -711,7 +711,7 @@ specimens = [
         604,
         {'Lyso-PC(16:0)': (
             MS2Identity(
-                score = 5,
+                score = 10,
                 hg = Headgroup(main='PE', sub=('Lyso',)),
                 chainsum = ChainSummary(
                     c = 16,

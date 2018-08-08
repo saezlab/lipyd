@@ -1759,57 +1759,6 @@ class Scan(ScanBase):
         return result
     
     #
-    # Glycerophospholipids
-    #
-    
-    def lysope_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a
-        Lysophosphatidylethanolamine.
-
-        **Specimen:**
-        
-        - Enric FABP1 + 454.29
-        
-        **Principle:**
-        
-        - The PE headgroup neutral loss 141.0191 has the highest intensity.
-        - A fatty acid-glycerol fragment should match the carbon count and
-          unsaturation of the whole molecule.
-        
-        """
-        
-        score  = 0
-        fattya = set([])
-        
-        if self.nl_among_most_abundant(141.019097, 2):
-            
-            score += 6
-            
-            if len(self.fa_list):
-            
-                frag1 = self.fa_list[0]
-            
-                ccs = self.ms1_cc(['PE', 'LysoPE'])
-                
-                for cc in ccs:
-                    
-                    if (frag1[0] == self.cc2int(cc) and
-                        self.fa_type_is(frag1[5], 'FA+G(')):
-                        
-                        score += 1
-                        fattya.add(cc)
-                        
-                    
-                    else:
-                        score -= 1
-            
-            else:
-                score -= 1
-        
-        return {'score': score, 'fattya': fattya}
-    
-    #
     # Sphingolipids
     #
     
@@ -2363,6 +2312,29 @@ class AbstractMS2Identifier(object):
                 chain_param = (chain_param1, chain_param2),
             )
         )) / 2
+    
+    def check_lyso(self, score_threshold = 5):
+        """
+        Checks whether the this mass has been identified in the database
+        as a lyso species and calls the corresponding lyso identification
+        method.
+        
+        Returns `True` if the score from the lyso is larger than
+        `score_threshold`.
+        """
+        
+        rec_lyso = self.scn.first_record(self.rec.hg.main, sub = ('Lyso',))
+        
+        if rec_lyso:
+            
+            lyso_hg = lipproc.Headgroup(self.rec.hg.main, sub = ('Lyso',))
+            lyso = idmethods[lyso_hg](rec_lyso, self.scn)
+            lyso.confirm_class()
+            
+            return lyso.score > score_threshold
+        
+        return False
+
 
 #
 # Lipid identification methods
@@ -2631,7 +2603,6 @@ class PE_Negative(AbstractMS2Identifier):
                 self.scn.has_fragment('PE [G+P+E] (178.0275)'),
             )))
             
-            
             self.matching_chain_combinations(
                 {'frag_type': 'FA-H'},
                 {'frag_type': {
@@ -2675,7 +2646,57 @@ class PE_Positive(AbstractMS2Identifier):
         
         if self.scn.has_fragment('PE [P+E] (NL 141.0191)'):
             
+            if self.check_lyso():
+                
+                return
+            
             self.score += 5
+
+
+class LysoPE_Positive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a
+    Lysophosphatidylethanolamine.
+
+    **Specimen:**
+    
+    - in vitro FABP1 + 454.29
+    
+    **Principle:**
+    
+    - The PE headgroup neutral loss 141.0191 has the highest intensity.
+    - A fatty acid-glycerol fragment should match the carbon count and
+        unsaturation of the whole molecule.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+        )
+    
+    def confirm_class(self):
+        
+        if self.scn.has_fragment('PE [P+E] (NL 141.0191)'):
+            
+            self.score += 5
+            
+            if (
+                len(self.scn.chain_list) and
+                self.scn.chain_fragment_type_is(
+                    self.scn.chain_list[0].i,
+                    frag_type = 'FA+Glycerol-OH',
+                    c = self.rec.chainsum.c,
+                    u = self.rec.chainsum.u,
+                )
+            ):
+                
+                self.score += 5
 
 
 class PC_Negative(AbstractMS2Identifier):
@@ -2767,19 +2788,11 @@ class PC_Positive(AbstractMS2Identifier):
             #TODO: distinguish LyspPC
         ):
             
+            if self.check_lyso():
+                
+                return
+            
             self.score += 5
-            
-            rec_lyso = self.scn.first_record('PC', sub = ('Lyso',))
-            
-            if rec_lyso:
-                
-                lyso = LysoPC_Positive(rec_lyso, self.scn)
-                lyso.confirm_class()
-                
-                if lyso.score > 5:
-                    
-                    self.score = 0
-                    return
             
             self.score += sum(map(bool, (
                 self.scn.has_fragment('PC/SM [Ch+H2O] (104.107)'),
@@ -3216,7 +3229,7 @@ idmethods = {
         lipproc.Headgroup(main = 'DAG'): DAG_Positive,
         lipproc.Headgroup(main = 'TAG'): TAG_Positive,
         lipproc.Headgroup(main = 'PE'):  PE_Positive,
-        lipproc.Headgroup(main = 'PE', sub = ('Lyso',)):  PE_Positive,
+        lipproc.Headgroup(main = 'PE', sub = ('Lyso',)):  LysoPE_Positive,
         lipproc.Headgroup(main = 'PC'):  PC_Positive,
         lipproc.Headgroup(main = 'PC', sub = ('Lyso',)):  LysoPC_Positive,
         lipproc.Headgroup(main = 'PI'):  PI_Positive,
