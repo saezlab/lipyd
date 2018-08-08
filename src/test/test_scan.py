@@ -648,6 +648,15 @@ specimens = [
                 details = None
             ),
         )}
+    ),
+    # Lyso-PE
+    (
+        'neg_examples.mgf',
+        'neg',
+        361,
+        {'PE(16:1)': (
+
+        )}
     )
 ]
 

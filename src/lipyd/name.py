@@ -278,9 +278,9 @@ class LipidNameProcessor(object):
             cc2[(ccexp - 1) * _g + 2]
         ):
             
-            for i in range(ccexp):
+            for i in xrange(len(cc2) // _g):
                 
-                if cc2[i * _g + 1]:
+                if cc2[i * _g + 1] and cc2[i * _g + 2]:
                     
                     attr = self.attr_proc(cc2[i * _g:i * _g + _g])
                     sphingo = sphingo or bool(attr.sph)
@@ -300,7 +300,7 @@ class LipidNameProcessor(object):
                     ))
             
             zerochains = sum(not c.c for c in chains)
-            ccexp = ccexp - zerochains
+            #ccexp = ccexp - zerochains
             chains = tuple(c for c in chains if c.c)
             chains = None if len(chains) != ccexp else tuple(chains)
         
@@ -323,7 +323,7 @@ class LipidNameProcessor(object):
                 c = int(cc1[1]),
                 u = int(cc1[2]),
                 attr = attrs,
-                typ  = types
+                typ  = types,
             )
             
         else:

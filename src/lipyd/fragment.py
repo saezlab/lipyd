@@ -412,7 +412,7 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'FA'
             ),
-        'LysoPG':
+        'LysoPG_mH2O':
             ChainFragParam(
                 plus = 'C6H10O8P',
                 minus = '',

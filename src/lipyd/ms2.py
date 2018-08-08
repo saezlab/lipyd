@@ -1740,55 +1740,6 @@ class Scan(ScanBase):
     # Glycerophospholipids
     #
     
-    def lysope_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is
-        Lysophosphatidylethanolamine.
-
-        **Specimen:** 
-        
-        - Enric FABP1 - 464.27
-        
-        **Principle:**
-        
-        - The most abundant fragment is a fatty acid [M-H]- ion.
-        - 140.0118 PE headgroup must be present.
-        - The carbon count and unsaturation of the highest fatty acid
-          fragment must be the same as it is expected for the whole PE molecule.
-        - Other headgroup ions 196.0380 and 178.0275 add to the score.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if (
-            self.is_fa(0) and
-            self.fa_type_is(0, '-H]-') and
-            self.has_mz(140.0118206)
-        ):
-            score += 5
-            
-            if self.has_mz(196.0380330):
-                score +=1
-            
-            if self.has_mz(178.0274684):
-                score += 1
-            
-            ccs = self.ms1_cc(['PE', 'LysoPE'])
-            
-            for cc in ccs:
-                
-                if len(self.fa_list) and self.fa_list[0][0] == self.cc2int(cc):
-                    
-                    score += 3
-                    fattya.add(cc)
-            
-            if not fattya:
-                score = 0
-        
-        return {'score': score, 'fattya': fattya}
-    
     def lysopc_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a Lysophosphatidylcholine.
@@ -3205,6 +3156,57 @@ class BismonoacylglycerophosphatePositive(AbstractMS2Identifier):
                 if self.scn.intensities[i_gfa] < self.scn.intensities[i_hg]:
                     
                     self.score = 0
+
+
+
+def lysope_neg_1(self):
+    """
+    Examines if a negative mode MS2 spectrum is
+    Lysophosphatidylethanolamine.
+
+    **Specimen:** 
+    
+    - in vitro FABP1 - 450.26, 464.27
+    
+    **Principle:**
+    
+    - The most abundant fragment is a fatty acid [M-H]- ion.
+    - 140.0118 PE headgroup must be present.
+    - The carbon count and unsaturation of the highest fatty acid
+        fragment must be the same as it is expected for the whole PE molecule.
+    - Other headgroup ions 196.0380 and 178.0275 add to the score.
+    
+    """
+    
+    score = 0
+    fattya = set([])
+    
+    if (
+        self.is_fa(0) and
+        self.fa_type_is(0, '-H]-') and
+        self.has_mz(140.0118206)
+    ):
+        score += 5
+        
+        if self.has_mz(196.0380330):
+            score +=1
+        
+        if self.has_mz(178.0274684):
+            score += 1
+        
+        ccs = self.ms1_cc(['PE', 'LysoPE'])
+        
+        for cc in ccs:
+            
+            if len(self.fa_list) and self.fa_list[0][0] == self.cc2int(cc):
+                
+                score += 3
+                fattya.add(cc)
+        
+        if not fattya:
+            score = 0
+    
+    return {'score': score, 'fattya': fattya}
 
 
 idmethods = {
