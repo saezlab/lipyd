@@ -1417,6 +1417,43 @@ class FattyAcid(metabolite.AbstractMetabolite):
             **kwargs
         )
 
+#
+# Vitamins
+#
+
+class VitaminA(metabolite.AbstractMetabolite):
+    
+    def __init__(
+            self,
+            c = None,
+            u = None,
+            fa_counts = None,
+            getname = None,
+            sub = (),
+            **kwargs
+        ):
+        
+        def _getname(parent, subs):
+            
+            return '%s' % (parent.name)
+        
+        metabolite.AbstractMetabolite.__init__(
+            self,
+            core = 'C19H27',
+            subs = (
+                metabolite.AbstractSubstituent(
+                    cores = ('COOH', 'CH2OH'),
+                    c = (0,),
+                    u = (0,),
+                ),
+            ),
+            name = 'VA',
+            hg = lipproc.Headgroup(main = 'VA', sub = ()),
+            getname = getname or _getname,
+            **kwargs
+        )
+
+
 # creating further Ceramide derived classes:
 _factory = CeramideFactory()
 del _factory

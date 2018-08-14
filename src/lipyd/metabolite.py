@@ -54,11 +54,14 @@ class AbstractMetaboliteComponent(formula.Formula):
             As a `dict` of atom counts, e.g. `{'C': 2, 'H': 6, 'O': 1}`.
         """
         
-        formula.Mass.__init__(self,
+        print(core)
+        formula.Formula.__init__(
+            self,
             core if type(core) is not float else None,
             charge,
             isotope,
-            **kwargs)
+            **kwargs
+        )
         
         if not self.has_mass():
             
@@ -115,7 +118,8 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             **kwargs
         )
         
-        self.subs = subs or []
+        self.subs = subs or ()
+        self.subs = tuple(self.get_substituent(s) for s in self.subs)
         self.sum_only = sum_only
         self.sub0 = None
         self.hg = hg
@@ -366,10 +370,12 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         self.even     = even
         self.valence  = valence
         self.getname  = getname
-        self.cores    = cores if type(cores) is list else [cores]
-        self.charges  = charges if type(charges) is list else [charges]
-        self.isotopes = isotopes if type(isotopes) is list else [isotopes]
-        self.names    = names if type(names) is list else [names]
+        self.cores    = (
+            cores if type(cores) in {list, set, tuple} else [cores]
+        )
+        self.set_attr(charges, 'charges')
+        self.set_attr(names, 'names')
+        self.set_attr(isotopes, 'isotopes')
         self.counts   = collections.defaultdict(lambda: 0)
         self.counts.update(counts or {})
         
@@ -467,12 +473,22 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     
                     break
     
+    def set_attr(self, val, name):
+        
+        setattr(
+            self,
+            name,
+            val
+                if type(val) in {list, set, tuple} else
+            (val,) * len(self.cores)
+        )
+    
     def set_chlens(self, c):
         
         if type(c) is int: c = [c]
         
         self.chlens = (
-            c if type(c) is list
+            c if type(c) in {list, set, tuple}
             else [
                 i for i in
                 range(c[0], c[1] + 1)
@@ -485,7 +501,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         if type(u) is int: u = [u]
         
         self.unsats = (
-            u if type(u) is list
+            u if type(u) in {list, set, tuple}
             else list(range(u[0], u[1] + 1))
         )
     
@@ -514,9 +530,21 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             
             raise ValueError('Wrong mass or formula: `%s`' % str(new))
         
-        self.charge = self.charges[i]
-        self.isotope = self.isotopes[i]
-        self.name = self.names[i]
+        self.charge = (
+            self.charges[i]
+            if type(self.charges) in {list, set, tuple} else
+            self.charges
+        )
+        self.isotope = (
+            self.isotopes[i]
+            if type(self.isotopes) in {list, set, tuple} else
+            self.isotypes
+        )
+        self.name = (
+            self.names[i]
+            if type(self.names) in {list, set, tuple} else
+            self.names
+        )
         
         self.reset_atoms()
         self.calc_mass()

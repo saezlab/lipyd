@@ -18,6 +18,7 @@
 """
 Classes representing fragment ions in MS2 spectra.
 """
+#
 
 from __future__ import print_function
 from future.utils import iteritems

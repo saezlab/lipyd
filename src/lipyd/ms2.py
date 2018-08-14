@@ -2082,103 +2082,6 @@ class Scan(ScanBase):
             score += 1
         
         return {'score': score, 'fattya': fattya}
-    
-    def cer_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a Ceramide.
-
-        **Specimen:**
-        
-        - SEC14L1 + 538.52
-        - STARD11 + 538.526
-        
-        **Principle:**
-        
-        - A sphingosine backbone with two H2O loss must be among the
-          10 most abundant fragments.
-        - Fatty acid [M+H]+ or [M-O]+ fragments or neutral losses
-          complementing the one above increase the score.
-        - Sphingosine backbone fragments with same carbon count and
-          unsaturation with the one with 2 water loss but [Sph-C-2(H2O)]+
-          or [Sph-H2O]+ add to the score.
-        - The score increases if the following choline fragments
-          can not be found: 58.0651, 104.1070, 124.9998 and 184.0733.
-        - The presence of the following fragments increase the score:
-          60.0444, 70.0651, 82.0651, 96.0808, 107.0730, 121.0886,
-          135.1042 and 149.1199.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if 'Cer' not in self.feature.ms1fa:
-            ms1uns = None
-            
-        else:
-            # larger unsaturation than the whole molecule
-            # does not make sense
-            ms1uns = max(map(lambda _cc: self.cc2int(_cc)[1],
-                             self.feature.ms1fa['Cer']))
-        
-        if self.fa_among_most_abundant('-H2O-H2O+]+', n = 10,
-                                       sphingo = True, uns = ms1uns):
-            
-            score += 5
-            fattya = self.fa_combinations('Cer', sphingo = True)
-            
-            sph_ccs, fa_frags = self.matching_fa_frags_of_type('Cer',
-                '-H2O-H2O+]+', sphingo = True, return_details = True)
-            
-            for cc, fa_frag_names in iteritems(fa_frags):
-                
-                for fa_frag_name in fa_frag_names:
-                    
-                    if '+H]+' in fa_frag_name:
-                        score += 1
-                    if '-O]+' in fa_frag_name:
-                        score += 1
-                    if 'NL' in fa_frag_name:
-                        score += 1
-            
-            for sph_cc in sph_ccs:
-                for fa_other in [
-                    '[Sphingosine(C%u:%u)-C-H2O-H2O+]+',
-                    '[Sphingosine(C%u:%u)-H2O+]+']:
-                    if self.frag_name_present(fa_other % sph_cc):
-                        
-                        score += 1
-            
-            if not len(
-                list(
-                    filter(
-                        lambda mz:
-                            self.has_mz(mz),
-                        [58.065126, 104.106990, 124.999822, 184.073323]
-                    )
-                )
-            ):
-                
-                score += 1
-            
-            score += len(
-                list(
-                    filter(
-                        lambda mz:
-                            self.has_mz(mz),
-                        [60.0443902, 70.0651257, 82.0651257, 96.0807757,
-                        107.072951, 121.088601, 135.104251, 149.119901]
-                    )
-                )
-            )
-        
-        return {'score': score, 'fattya': fattya}
-    
-    #
-    # Vitamins
-    #
-    
-
 
 
 class AbstractMS2Identifier(object):
@@ -3176,6 +3079,9 @@ class BMP_Positive(AbstractMS2Identifier):
                     
                     self.score = 0
 
+#
+# Vitamins
+#
 
 class VA_Positive(AbstractMS2Identifier):
     """
@@ -3183,8 +3089,8 @@ class VA_Positive(AbstractMS2Identifier):
 
     **Specimen:**
     
-    - RBP1 + 269.2245
-    - RBP4 + 269.2245
+    - in vivo RBP1 + 269.2245
+    - in vivo RBP4 + 269.2245
     
     **Principle:**
     
@@ -3215,6 +3121,165 @@ class VA_Positive(AbstractMS2Identifier):
                 self.scn.has_fragment('Retinol III (157.1012)'),
                 self.scn.has_fragment('Retinol IV (145.1012)'),
             )))
+
+
+class VA_Negative(AbstractMS2Identifier):
+    """
+    Examines if a positive MS2 spectrum is vitamin A (retinol).
+
+    **Specimen:**
+    
+    - Standards 141020 negative scan 673
+    
+    **Principle:**
+    
+    - 3 fragments seems to always present and be among the most abundant:
+    79.055, 119.087 and 255.212; presence of these is the main condition.
+    - We also detected 125.061 in our standards which is special because
+    contains 2 oxygens; presence of this increase the score.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        if all((
+            self.scn.fragment_among_most_abundant(fragname, 7)
+            for fragname in (
+                'Retinoic acid I (79.0553)',
+                'Retinoic acid II (119.0866)',
+                'Retinoic acid IV (255.2118)',
+            )
+        )):
+            
+            self.score += 5
+            
+            if self.scn.has_fragment('Retinoic acid III (125.0608)'):
+                
+                self.score += 3
+
+#
+# Sphingolipids
+#
+
+class CerD_Positive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a d Ceramide.
+
+    **Specimen:**
+    
+    - Sphingolipid standards scans 
+    - SEC14L1 + 538.52
+    - STARD11 + 538.526
+    
+    **Principle:**
+    
+    - A sphingosine backbone with two H2O loss must be among the
+        10 most abundant fragments.
+    - Fatty acid [M+H]+ or [M-O]+ fragments or neutral losses
+        complementing the one above increase the score.
+    - Sphingosine backbone fragments with same carbon count and
+        unsaturation with the one with 2 water loss but [Sph-C-2(H2O)]+
+        or [Sph-H2O]+ add to the score.
+    - The score increases if the following choline fragments
+        can not be found: 58.0651, 104.1070, 124.9998 and 184.0733.
+    - The presence of the following fragments increase the score:
+        60.0444, 70.0651, 82.0651, 96.0808, 107.0730, 121.0886,
+        135.1042 and 149.1199.
+    
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+            must_have_chains = True,
+        )
+    
+    def confirm_class(self):
+        
+        pass
+
+
+def cer_pos_1(self):
+    
+    score = 0
+    fattya = set([])
+    
+    if 'Cer' not in self.feature.ms1fa:
+        ms1uns = None
+        
+    else:
+        # larger unsaturation than the whole molecule
+        # does not make sense
+        ms1uns = max(map(lambda _cc: self.cc2int(_cc)[1],
+                            self.feature.ms1fa['Cer']))
+    
+    if self.fa_among_most_abundant('-H2O-H2O+]+', n = 10,
+                                    sphingo = True, uns = ms1uns):
+        
+        score += 5
+        fattya = self.fa_combinations('Cer', sphingo = True)
+        
+        sph_ccs, fa_frags = self.matching_fa_frags_of_type('Cer',
+            '-H2O-H2O+]+', sphingo = True, return_details = True)
+        
+        for cc, fa_frag_names in iteritems(fa_frags):
+            
+            for fa_frag_name in fa_frag_names:
+                
+                if '+H]+' in fa_frag_name:
+                    score += 1
+                if '-O]+' in fa_frag_name:
+                    score += 1
+                if 'NL' in fa_frag_name:
+                    score += 1
+        
+        for sph_cc in sph_ccs:
+            for fa_other in [
+                '[Sphingosine(C%u:%u)-C-H2O-H2O+]+',
+                '[Sphingosine(C%u:%u)-H2O+]+']:
+                if self.frag_name_present(fa_other % sph_cc):
+                    
+                    score += 1
+        
+        if not len(
+            list(
+                filter(
+                    lambda mz:
+                        self.has_mz(mz),
+                    [58.065126, 104.106990, 124.999822, 184.073323]
+                )
+            )
+        ):
+            
+            score += 1
+        
+        score += len(
+            list(
+                filter(
+                    lambda mz:
+                        self.has_mz(mz),
+                    [60.0443902, 70.0651257, 82.0651257, 96.0807757,
+                    107.072951, 121.088601, 135.104251, 149.119901]
+                )
+            )
+        )
+    
+    return {'score': score, 'fattya': fattya}
 
 
 idmethods = {
