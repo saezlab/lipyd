@@ -3152,7 +3152,8 @@ class VA_Negative(AbstractMS2Identifier):
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            must_have_chains = False,
         )
     
     def confirm_class(self):
@@ -3303,6 +3304,7 @@ idmethods = {
         lipproc.Headgroup(main = 'PG'):  PG_Negative,
         lipproc.Headgroup(main = 'PG', sub = ('Lyso',)):  PG_Negative,
         lipproc.Headgroup(main = 'BMP'): BMP_Negative,
+        lipproc.Headgroup(main = 'VA'): VA_Negative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FA_Positive,

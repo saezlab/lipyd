@@ -738,7 +738,28 @@ specimens = [
         'pos',
         1380,
         {'VA': (
-
+            MS2Identity(
+                score = 8,
+                hg = Headgroup(main='VA', sub=()),
+                chainsum = None,
+                chains = None,
+                details = None,
+            ),
+        )}
+    ),
+    # Retinol negative
+    (
+        'neg_examples.mgf',
+        'neg',
+        673,
+        {'VA': (
+            MS2Identity(
+                score = 8,
+                hg = Headgroup(main='VA', sub=()),
+                chainsum = None,
+                chains = None,
+                details = None,
+            ),
         )}
     )
 ]
