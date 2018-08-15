@@ -1439,7 +1439,7 @@ class VitaminA(metabolite.AbstractMetabolite):
         
         def _getname(parent, subs):
             
-            return '%s' % (parent.name)
+            return 'VA'
         
         metabolite.AbstractMetabolite.__init__(
             self,

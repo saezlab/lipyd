@@ -440,7 +440,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                         if hasattr(v, '__call__'):
                             setattr(new_attrs, k, v(self))
                     
-                    if self.chain_type and self.chain_attr:
+                    if self.chain_type and self.chain_attr and c > 0:
                         
                         new_attrs.chain = lipproc.Chain(
                             c = c,

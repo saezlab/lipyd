@@ -597,11 +597,15 @@ class Scan(ScanBase):
             The number of most abundant fragments considered.
         """
         
+        self.sort_mz()
+        
         i = lookup.find(
-            self.mzs[:n], # intensity rank <= n
+            self.mzs[self.irank < n], # intensity rank < n
             mz,
             self.tolerance
         )
+        
+        self.sort_intensity()
         
         if self.verbose:
             
@@ -3107,12 +3111,13 @@ class VA_Positive(AbstractMS2Identifier):
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            must_have_chains = False,
         )
     
     def confirm_class(self):
         
-        if self.fragment_among_most_abundant('Retinol I (269.2264)', 3):
+        if self.scn.fragment_among_most_abundant('Retinol I (269.2264)', 3):
             
             self.score += 5
             

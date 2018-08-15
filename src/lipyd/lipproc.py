@@ -184,7 +184,7 @@ def sum_chains(chains):
     From a list of chains creates a summary Chain object.
     """
     
-    return (
+    return None if not chains else (
         ChainSummary(
             c = sum(i.c for i in chains),
             u = sum(i.u for i in chains),
