@@ -215,7 +215,8 @@ exact_method = {
     '[M-H]-': 'add_h',
     '[M+HCOO]-': 'remove_fo',
     '[M+NH4]+': 'remove_nh4',
-    '[M+Na]+': 'remove_na'
+    '[M+Na]+': 'remove_na',
+    '[M+H-H2O]+': 'add_oh',
 }
 
 # method names to convert between exact and adduct masses

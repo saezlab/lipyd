@@ -350,10 +350,11 @@ _defaults = {
                 '[M+H]+': 'remove_h',
                 '[M+NH4]+': 'remove_nh4',
                 '[M+Na]+': 'remove_na',
+                '[M+H-H2O]+': 'add_oh',
             },
             'neg': {
                 '[M-H]-': 'add_h',
-                '[M+HCOO]-': 'remove_fo'
+                '[M+HCOO]-': 'remove_fo',
             }
         },
         2: {
@@ -375,11 +376,12 @@ _defaults = {
             'pos': {
                 '[M+H]+': 'add_h',
                 '[M+NH4]+': 'add_nh4',
-                '[M+Na]+': 'add_na'
+                '[M+Na]+': 'add_na',
+                '[M+H-H2O]+': 'remove_oh',
             },
             'neg': {
                 '[M-H]-': 'remove_h',
-                '[M+HCOO]-': 'add_fo'
+                '[M+HCOO]-': 'add_fo',
             }
         },
         2: {

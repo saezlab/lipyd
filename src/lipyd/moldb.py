@@ -591,6 +591,7 @@ class MoleculeDatabaseAggregator(object):
         self.auto_glycerolipids()
         self.auto_sphingolipids()
         self.auto_fattyacids()
+        self.auto_misc()
         self.mass_data_arrays()
         self.sort()
     
@@ -708,6 +709,18 @@ class MoleculeDatabaseAggregator(object):
         
         self.auto_metabolites(classes = lipid.fattyacids, **kwargs)
     
+    def auto_misc(self, **kwargs):
+        """
+        Autogenerates all miscellanous classes listed in `lipid.misc`.
+        
+        Args
+        ----
+        :param **kwargs:
+            Arguments for misc classes.
+        """
+        
+        self.auto_metabolites(classes = lipid.misc, **kwargs)
+    
     def auto_sphingolipids(self, **kwargs):
         """
         Autogenerates all sphingolipids from classes listed in
@@ -814,9 +827,10 @@ class MoleculeDatabaseAggregator(object):
         
         if not adducts and ionmode in {'pos', 'neg'}:
             
-            adducts = list(common.ad2ex[abs(charge)][ionmode].keys())
+            adducts = list(settings.get('ex2ad')[abs(charge)][ionmode].keys())
         
-        methods = dict((ad, common.exact_method[ad]) for ad in adducts)
+        exmethods = settings.get('ad2ex')[abs(charge)][ionmode]
+        methods = dict((ad, exmethods[ad]) for ad in adducts)
         
         for ad, method in iteritems(methods):
             

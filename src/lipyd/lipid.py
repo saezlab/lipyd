@@ -48,6 +48,10 @@ fattyacids = [
     'FattyAcid'
 ]
 
+misc = [
+    'VitaminA'
+]
+
 # will be populated by the factory
 glycerolipids = []
 glycerophospholipids = []
