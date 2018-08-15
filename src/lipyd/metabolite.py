@@ -54,7 +54,6 @@ class AbstractMetaboliteComponent(formula.Formula):
             As a `dict` of atom counts, e.g. `{'C': 2, 'H': 6, 'O': 1}`.
         """
         
-        print(core)
         formula.Formula.__init__(
             self,
             core if type(core) is not float else None,
@@ -309,7 +308,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             chain_attr = None,
             chain_type = None,
             getname = lambda parent: '%u:%u' % (parent.c, parent.u),
-            c_u_diff = lambda c, u: c > u + 1,
+            c_u_diff = lambda c, u: c > u + 1 or (c == 0 and u == 0),
             prefix = '',
             even = False,
             valence = 1,

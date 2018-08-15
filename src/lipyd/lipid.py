@@ -1439,7 +1439,7 @@ class VitaminA(metabolite.AbstractMetabolite):
         
         metabolite.AbstractMetabolite.__init__(
             self,
-            core = 'C19H27',
+            core = 'C19H26',
             subs = (
                 metabolite.AbstractSubstituent(
                     cores = ('COOH', 'CH2OH'),
