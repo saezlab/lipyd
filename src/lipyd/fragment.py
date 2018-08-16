@@ -237,7 +237,7 @@ class FattyFragmentFactory(object):
             """,
         'LysoPIAlkyl':
             """
-            from massbank.jp:
+            from massbank.jp:3
             [lyso PI(alkyl-16:1,-)-H2O]- 537.2828592076 -228 C25H46O10P-
             
             from this, derived 18:0-:
@@ -1137,6 +1137,11 @@ class FattyFragmentFactory(object):
                     FragConstraint(
                         hg = 'Sph',
                         sub = ('M2',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 'd',
                         chaintype = 'Sph',
                     ),
                 ),

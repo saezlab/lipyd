@@ -3177,7 +3177,7 @@ class VA_Negative(AbstractMS2Identifier):
 # Sphingolipids
 #
 
-class CerD_Positive(AbstractMS2Identifier):
+class Cer_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum is a d Ceramide.
 
@@ -3213,12 +3213,50 @@ class CerD_Positive(AbstractMS2Identifier):
             missing_chains = (),
             chain_comb_args = {},
             must_have_chains = True,
+            explicit_and_implicit = True,
         )
+        
+        self.sph = {}
     
     def confirm_class(self):
         
-        pass
-
+        self.score += 5
+        
+        self.score += sum(map(
+            self.scn.has_fragment,
+            (
+                'NL [H2O] (NL 18.0106)',
+                'NL [2xH2O] (NL 36.0211)',
+                'NL [C+2xH2O] (NL 48.0211)',
+            )
+        ))
+    
+    def confirm_chains_explicit(self):
+        
+        for chains in AbstractMS2Identifier.confirm_chains_explicit(self):
+            
+            if chains[0][0].attr.sph == self.rec.chainsum.attr[0].sph:
+                
+                yield chains
+    
+    def sphingosine_base(self, sph):
+        
+        if sph in self.sph:
+            
+            return self.sph[sph]
+        
+    def sphingosine_d(self):
+        
+        score = 0
+        
+        if (
+            self.scn.chain_fragment_type_is(0, fragtype = 'Sph-2xH2O') and
+            not self.scn.chain_fragment_type_is(0, u = 0)
+        ):
+            
+            score += 5
+            
+            
 
 def cer_pos_1(self):
     
@@ -3322,6 +3360,7 @@ idmethods = {
         lipproc.Headgroup(main = 'PG', sub = ('Lyso',)):  PG_Positive,
         lipproc.Headgroup(main = 'BMP'): BMP_Positive,
         lipproc.Headgroup(main = 'VA'): VA_Positive,
+        lipproc.Headgroup(main = 'Cer'): Cer_Positive,
     }
 }
 

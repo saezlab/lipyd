@@ -374,7 +374,7 @@ class FragmentDatabaseAggregator(object):
         
         return self.fragments.shape[0]
     
-    def lookup(self, mz, nl = False):
+    def lookup(self, mz, nl = False, tolerance = None):
         """
         Searches for fragments in the database matching the `mz` within the
         actual range of tolerance. To change the tolerance set the
@@ -386,7 +386,11 @@ class FragmentDatabaseAggregator(object):
             The m/z is a neutral loss.
         """
         
-        idx = lookup_.findall(self.fragments[:,0], mz, self.tolerance)
+        idx = lookup_.findall(
+            self.fragments[:,0],
+            mz,
+            tolerance or self.tolerance
+        )
         # filtering for NL or not NL
         idx = [
             i for i in idx
@@ -398,6 +402,17 @@ class FragmentDatabaseAggregator(object):
         ]
         
         return self.fragments[idx,:]
+    
+    def lookup_nl(self, mz, precursor):
+        """
+        Searches for neutral loss fragments in the database matching the
+        m/z within the actual range of tolerance.
+        """
+        
+        nlmz = precursor - mz
+        nl_tolerance = mz / nlmz * self.tolerance
+        
+        return self.lookup(nlmz, nl = True, tolerance = nl_tolerance)
     
     def by_name(self, name):
         """
@@ -479,9 +494,8 @@ def lookup_nl(mz, precursor, ionmode):
     Looks up an MS2 neutral loss in the fragment database.
     """
     
-    nlmz = precursor - mz
-    
-    return lookup(nlmz, ionmode, nl = True)
+    db = get_db(ionmode)
+    return db.lookup_nl(mz, precursor)
 
 def lookup_pos(mz):
     
