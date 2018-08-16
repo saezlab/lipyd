@@ -705,7 +705,7 @@ class Scan(ScanBase):
         """
         
         return (
-            value is None or
+            accepted is None or
             (type(accepted) is int and value == accepted) or
             (
                 type(accepted) is not int and (
@@ -717,8 +717,9 @@ class Scan(ScanBase):
             )
         )
     
-    @staticmethod
+    @classmethod
     def match_annot(
+            cls,
             annot,
             frag_type = None,
             chain_type = None,
@@ -733,8 +734,8 @@ class Scan(ScanBase):
         return all((
             frag_type is None or annot.fragtype == frag_type,
             chain_type is None or annot.chaintype == chain_type,
-            self.match_count(annot.c, c),
-            self.match_count(annot.u, u),
+            cls.match_count(annot.c, c),
+            cls.match_count(annot.u, u),
         ))
     
     def highest_fragment_by_chain_type(
@@ -3261,30 +3262,46 @@ class Cer_Positive(AbstractMS2Identifier):
             
             if chains[0][0].attr.sph == self.rec.chainsum.attr[0].sph:
                 
+                sph_score = self.sphingosine_base(chains[0][0].attr.sph)
+                self.score += sph_score
+                
                 yield chains
+                
+                self.score -= sph_score
     
     def sphingosine_base(self, sph):
         
-        if sph in self.sph:
+        if sph not in self.sph:
             
-            return self.sph[sph]
+            method = 'sphingosine_%s' % sph.lower()
+            
+            self.sph[sph] = (
+                getattr(self, method)() if hasattr(self, method) else 0
+            )
         
+        return self.sph[sph]
+    
     def sphingosine_d(self):
         
         score = 0
         
-        if (
-            self.scn.chain_fragment_type_is(0, fragtype = 'Sph-2xH2O') and
-            not self.scn.chain_fragment_type_is(0, u = 0)
+        if self.scn.chain_fragment_type_is(
+            0, frag_type = 'Sph-2xH2O', u = (False, {0})
         ):
             
             score += 5
             
             if (
                 self.scn.chain_fragment_type_among_most_abundant(
-                    fragtype = 'Sph-H2O+H'
+                    4, frag_type = 'Sph-H2O+H', u = (False, {0})
                 ) and
-            )
+                self.scn.chain_fragment_type_among_most_abundant(
+                    4, frag_type = 'Sph-C-O-H2O-H', u = (False, {0})
+                )
+            ):
+                score += 10
+        
+        return score
 
 
 def cer_pos_1(self):
