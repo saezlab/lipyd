@@ -694,6 +694,30 @@ class Scan(ScanBase):
         return result
     
     @staticmethod
+    def match_count(value, accepted):
+        """
+        Args
+        ----
+        :param int value:
+            The actual value.
+        :param int,set accepted:
+            A single value or a set of values to match against.
+        """
+        
+        return (
+            value is None or
+            (type(accepted) is int and value == accepted) or
+            (
+                type(accepted) is not int and (
+                    value in accepted or (
+                        accepted[0] == False and
+                        value not in accepted[1]
+                    )
+                )
+            )
+        )
+    
+    @staticmethod
     def match_annot(
             annot,
             frag_type = None,
@@ -709,8 +733,8 @@ class Scan(ScanBase):
         return all((
             frag_type is None or annot.fragtype == frag_type,
             chain_type is None or annot.chaintype == chain_type,
-            c is None or annot.c == c,
-            u is None or annot.u == u
+            self.match_count(annot.c, c),
+            self.match_count(annot.u, u),
         ))
     
     def highest_fragment_by_chain_type(
@@ -834,9 +858,9 @@ class Scan(ScanBase):
             if chain_type is not None:
                 criteria.append('of chain type `%s`' % chain_type)
             if c is not None:
-                criteria.append('with carbon count of %u' % c)
+                criteria.append('with carbon count of %a' % c)
             if u is not None:
-                criteria.append('with unsaturation of %u' % u)
+                criteria.append('with unsaturation of %a' % u)
             
             self.log.msg(
                 '\t\t  -- Fragment #%u (%.03f): '
@@ -3256,7 +3280,12 @@ class Cer_Positive(AbstractMS2Identifier):
             
             score += 5
             
-            
+            if (
+                self.scn.chain_fragment_type_among_most_abundant(
+                    fragtype = 'Sph-H2O+H'
+                ) and
+            )
+
 
 def cer_pos_1(self):
     
