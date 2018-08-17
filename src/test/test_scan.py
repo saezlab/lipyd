@@ -769,7 +769,7 @@ specimens = [
         3172,
         {'Cer(d36:1)': (
             MS2Identity(
-                score = 23,
+                score = 24,
                 hg = Headgroup(main='Cer', sub=()),
                 chainsum = ChainSummary(
                     c = 36,
@@ -798,6 +798,91 @@ specimens = [
                 ),
                 details = None
             ),
+        )}
+    ),
+    # DHCer positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        2367,
+        {'Cer(DH36:0)': (
+            MS2Identity(
+                score = 27,
+                hg = Headgroup(main='Cer', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 0,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='DH', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='DH', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
+    # tCer positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        2070,
+        {'Cer(t36:0)': (
+            MS2Identity(
+                score = 25,
+                hg = Headgroup(main='Cer', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 0,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='t', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
+    # OH-acyl-Cer positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        2421,
+        {'': (
+
         )}
     )
 ]

@@ -764,7 +764,7 @@ class Scan(ScanBase):
         
         try:
             
-            return next(frag)
+            return next(frags)
             
         except StopIteration:
             
@@ -927,6 +927,25 @@ class Scan(ScanBase):
                 else:
                     
                     yield i
+    
+    def has_chain_fragment_type(
+            self,
+            chain_type = None,
+            frag_type = None,
+            c = None,
+            u = None,
+        ):
+        """
+        Tells if at least one fragment matches certain criteria.
+        Arguments passed to `chain_fragment_type_is`.
+        """
+        
+        return self.highest_fragment_by_chain_type(
+            chain_type = chain_type,
+            frag_type = frag_type,
+            c = c,
+            u = u,
+        ) is not None
     
     def matching_chain_combinations(
             self,
@@ -3252,7 +3271,6 @@ class Cer_Positive(AbstractMS2Identifier):
             (
                 'NL [H2O] (NL 18.0106)',
                 'NL [2xH2O] (NL 36.0211)',
-                'NL [C+2xH2O] (NL 48.0211)',
             )
         ))
     
@@ -3286,10 +3304,17 @@ class Cer_Positive(AbstractMS2Identifier):
         score = 0
         
         if self.scn.chain_fragment_type_is(
-            0, frag_type = 'Sph-2xH2O', u = (False, {0})
+            0, frag_type = 'Sph-2xH2O+H', u = (False, {0})
         ):
             
             score += 5
+            
+            score += sum(map(bool,
+                (
+                    not self.scn.has_fragment('[C2+NH2+O] (60.0444)'),
+                    self.scn.has_fragment('NL [C+2xH2O] (NL 48.0211)')
+                )
+            ))
             
             if (
                 self.scn.chain_fragment_type_among_most_abundant(
@@ -3300,6 +3325,79 @@ class Cer_Positive(AbstractMS2Identifier):
                 )
             ):
                 score += 10
+        
+        return score
+    
+    def sphingosine_dh(self):
+        
+        score = 0
+        
+        score += sum(map(bool,
+            (
+                self.scn.has_fragment('[C2+NH2+O] (60.0444)'),
+                not self.scn.has_fragment('NL [C+2xH2O] (NL 48.0211)')
+            )
+        ))
+        
+        score += sum(map(bool,
+            (
+                self.scn.chain_fragment_type_among_most_abundant(
+                    5, frag_type = 'Sph-H2O+H', u = 0
+                ),
+                self.scn.chain_fragment_type_among_most_abundant(
+                    5, frag_type = 'FA+NH2-O', u = 0
+                ),
+                self.scn.chain_fragment_type_among_most_abundant(
+                    10, frag_type = 'Sph-2xH2O+H', u = 0
+                ),
+                self.scn.has_chain_fragment_type(
+                    frag_type = 'Sph-C-O-H2O-H', u = 0
+                ),
+                self.scn.has_chain_fragment_type(
+                    frag_type = 'Sph+H', u = 0
+                ),
+                self.scn.has_chain_fragment_type(
+                    frag_type = 'Sph-C-O-H2O-NH', u = 0
+                )
+            )
+        )) * 3
+        
+        return score
+    
+    def sphingosine_t(self):
+        
+        score = 0
+        
+        score += sum(map(bool,
+            (
+                self.scn.has_fragment('[C2+NH2+O] (60.0444)'),
+                not self.scn.has_fragment('NL [C+2xH2O] (NL 48.0211)'),
+                self.scn.has_fragment('NL [3xH2O] (NL 54.0317)')
+            )
+        ))
+        
+        score += sum(map(bool,
+            (
+                self.scn.fragment_among_most_abundant(
+                    '[C2+NH2+O] (60.0444)'
+                ),
+                self.scn.chain_fragment_type_among_most_abundant(
+                    5, frag_type = 'Sph-H', u = 0
+                ),
+                self.scn.chain_fragment_type_among_most_abundant(
+                    5, frag_type = 'Sph-H2O-H', u = 0
+                ),
+                self.scn.chain_fragment_type_among_most_abundant(
+                    5, frag_type = 'Sph-2xH2O-H', u = 0
+                ),
+                self.scn.has_chain_fragment_type(
+                    frag_type = 'Sph-C-2xH2O', u = 0
+                ),
+                self.scn.has_chain_fragment_type(
+                    frag_type = 'Sph+H2O_mH', u = 0
+                ),
+            )
+        )) * 3
         
         return score
 

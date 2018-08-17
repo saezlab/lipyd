@@ -977,12 +977,12 @@ class FattyFragmentFactory(object):
                 chaintype = 'Sph'
             ), # 302.3053
         # sphingosine long chain base fragments from ceramide-1-phosphate
-        'Sph_m2xH2O':
+        'Sph_m2xH2O_pH':
             ChainFragParam(
                 plus = 'N',
                 minus = '',
                 charge = 1,
-                name = 'Sph%s-2xH2O',
+                name = 'Sph%s-2xH2O+H',
                 constraints = (
                     FragConstraint(
                         hg = 'Sph',
@@ -1021,6 +1021,22 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'Sph'
             ), # 266.2842
+        # from tCer
+        'Sph_m2xH2O_mH':
+            ChainFragParam(
+                plus = 'N',
+                minus = 'H2',
+                charge = 1,
+                name = 'Sph%s-2xH2O-H',
+                constraints = (
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 't',
+                        chaintype = 'Sph'
+                    ),
+                ),
+                chaintype = 'Sph'
+            ), # 264.2686
         # fatty acyl fragments from ceramide-1-phosphate
         'FA_pNH_pC2H2_mOH':
             ChainFragParam(
@@ -1057,6 +1073,7 @@ class FattyFragmentFactory(object):
                 chaintype = 'FA'
             ), # 284.2948
         # sphingosine long chain base fragments from hexosyl-t-ceramide
+        # also from tCer
         'Sph_mH_P':
             ChainFragParam(
                 plus = 'NH2O2',
@@ -1077,6 +1094,7 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'Sph'
             ), # 300.2897
+        # also from tCer
         'Sph_pH2O_mH':
             ChainFragParam(
                 plus = 'NH4O3',
@@ -1092,6 +1110,7 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'Sph'
             ), # 318.3003
+        # also from tCer
         'Sph_mH2O_mH':
             ChainFragParam(
                 plus = 'NO',
@@ -1212,6 +1231,11 @@ class FattyFragmentFactory(object):
                         chaintype = 'Sph',
                     ),
                     FragConstraint(
+                        hg = 'Cer',
+                        sph = 'DH',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
                         hg = 'Sph',
                         sph = 'k',
                         chaintype = 'Sph',
@@ -1219,6 +1243,21 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'Sph'
             ), # 254.2842
+        'Sph_mC_mO_mH2O_mNH':
+            ChainFragParam(
+                plus = '',
+                minus = 'C',
+                charge = 1,
+                name = 'Sph%s-C-O-H2O-NH',
+                constraints = (
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 'DH',
+                        chaintype = 'Sph',
+                    ),
+                ),
+                chaintype = 'Sph'
+            ), # 240.2812
         'Sph_mNH2_mH2O_m2H':
             ChainFragParam(
                 plus = 'O',
@@ -1244,6 +1283,11 @@ class FattyFragmentFactory(object):
                     FragConstraint(
                         hg = 'Sph',
                         sph = 'k',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sph = 't',
                         chaintype = 'Sph',
                     ),
                 ),

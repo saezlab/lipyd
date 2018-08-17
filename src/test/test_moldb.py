@@ -17,6 +17,7 @@
 
 import pytest
 
+import itertools
 import numpy as np
 import lipyd.moldb
 import lipyd.lipproc as lipproc
@@ -26,6 +27,30 @@ class TestMoldb(object):
     
     lm = lipyd.moldb.LipidMaps()
     mda = lipyd.moldb.MoleculeDatabaseAggregator()
+    
+    def test_database_size(self):
+        
+        assert self.mda.data.shape[0] > 120000
+    
+    def test_chainlength_unsaturation(self):
+        
+        supposed_to_have = set(
+            cu for cu in
+            itertools.product(range(8, 73), range(0, 21))
+            if cu[1] <= cu[0] - 6
+        )
+        
+        actually_got = set(
+            (r.chainsum.c, r.chainsum.u)
+            for r in mda.data
+            if (
+                r.lab.db == 'lipyd.lipid' and
+                r.hg.main == 'PC' and
+                not r.hg.sub
+            )
+        )
+        
+        assert supposed_to_have == actually_got
     
     def test_lipidmaps_record(self):
         

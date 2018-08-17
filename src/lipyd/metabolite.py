@@ -485,9 +485,10 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
     def set_chlens(self, c):
         
         if type(c) is int: c = [c]
+        if type(c) is tuple and len(c) != 2: c = list(c)
         
         self.chlens = (
-            c if type(c) in {list, set, tuple}
+            list(c) if type(c) in {list, set, range}
             else [
                 i for i in
                 range(c[0], c[1] + 1)
@@ -498,9 +499,10 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
     def set_unsats(self, u):
         
         if type(u) is int: u = [u]
+        if type(u) is tuple and len(u) != 2: u = list(u)
         
         self.unsats = (
-            u if type(u) in {list, set, tuple}
+            list(u) if type(u) in {list, set, range}
             else list(range(u[0], u[1] + 1))
         )
     
