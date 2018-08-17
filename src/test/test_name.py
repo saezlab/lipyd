@@ -216,3 +216,21 @@ class TestName(object):
         assert fahfa_hg == fahfa[0]
         assert fahfa_chainsum == fahfa[1]
         assert fahfa_chains == fahfa[2]
+    
+    def test_name_oh(self):
+        
+        self.nameproc.database = 'lipidmaps'
+        self.nameproc.iso = True
+        result = self.nameproc.process('Cer(d16:1(4E)/20:0(2OH))')
+        
+        expected = lipyd.lipproc.ChainSummary(
+            c = 36,
+            u = 1,
+            typ = ('Sph', 'FA'),
+            attr = (
+                lipyd.lipproc.ChainAttr(sph='d', ether=False, oh=()),
+                lipyd.lipproc.ChainAttr(sph='', ether=False, oh=('2OH',))
+            )
+        )
+        
+        assert result[1] == expected
