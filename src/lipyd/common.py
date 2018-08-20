@@ -81,14 +81,18 @@ def addToList(lst, toadd):
     return uniqList(lst)
 
 
-def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
+def warn_with_traceback(
+        message, category, filename, lineno, file=None, line=None
+    ):
     """
     Prints warnings with traceback.
     From https://stackoverflow.com/a/22376126/854988
     """
     traceback.print_stack()
     log = file if hasattr(file,'write') else sys.stderr
-    log.write(warnings.formatwarning(message, category, filename, lineno, line))
+    log.write(
+        warnings.formatwarning(message, category, filename, lineno, line)
+    )
 
 
 class _const:
@@ -311,3 +315,30 @@ def read_xls(xls_file, sheet = 0, csv_file = None,
     if 'book' in locals() and hasattr(book, 'release_resources'):
         book.release_resources()
     return table
+
+
+def iterator_insert(full_length, insert):
+    """
+    Yields indices from two iterators.
+    At the index `insert` it inserts a `None` instead of the second index.
+    
+    E.g. if full_length = 3 and insert = 1 it yields:
+        (0, 0), (1, None), (2, 1)
+    
+    If insert is None or greater or equal than full_length, it yields
+    always tuples of the same indices.
+    """
+    
+    j = 0
+    
+    for i in xrange(full_length):
+        
+        if i == insert:
+            
+            yield i, None
+            
+        else:
+            
+            yield i, j
+            
+            j += 1

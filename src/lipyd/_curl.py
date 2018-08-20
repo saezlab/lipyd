@@ -144,27 +144,46 @@ class RemoteFile(object):
         header = True, rownames = True):
         for key, val in iteritems(locals()):
             setattr(self, key, val)
-        env.keepalive = 60
-        env.connection_attempts = 5
-        env.password = self.passwd
+            
+        #env.keepalive = 60
+        #env.connection_attempts = 5
+        #env.password = self.passwd
     
     def wcl(self):
-        with closing(connect(self.user, self.host, self.port, \
-            HostConnectionCache())) as ssh:
+        
+        with closing(connection.Connection(
+            self.host,
+            self.user,
+            self.port,
+            connect_kwargs = {'password': self.passwd},
+        )) as ssh:
+            
             stdin, stdout, stderr = ssh.exec_command('wc -l %s'%self.filename)
             return int(stdout.readlines()[0].split()[0]) - (1 if self.header else 0)
     
     def rowns(self):
-        with closing(connect(self.user, self.host, self.port, \
-            HostConnectionCache())) as ssh:
+        
+        with closing(connection.Connection(
+            self.host,
+            self.user,
+            self.port,
+            connect_kwargs = {'password': self.passwd},
+        )) as ssh:
+            
             stdin, stdout, stderr = ssh.exec_command(
                 'awk \'BEGIN{FS="%s"}{print $1}\' %s%s' % \
                 (self.sep, self.filename, '' if not self.header else ' | tail -n +2'))
             return [x.strip() for x in stdout.readlines()]
     
     def open(self, return_header = True):
-        with closing(connect(self.user, self.host, self.port, \
-            HostConnectionCache())) as ssh:
+        
+        with closing(connection.Connection(
+            self.host,
+            self.user,
+            self.port,
+            connect_kwargs = {'password': self.passwd},
+        )) as ssh:
+            
             with closing(ssh.open_sftp()) as sftp:
                 with closing(sftp.open(self.filename)) as f:
                     if not return_header:

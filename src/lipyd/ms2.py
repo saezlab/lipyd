@@ -1616,37 +1616,75 @@ class Scan(ScanBase):
             )
         )
     
-    def _chains_frag_comb(self, frag_comb, chainsum, details = None):
+    def _chains_frag_comb(
+            self,
+            frag_comb,
+            chainsum,
+            details = None,
+            missing_position = None,
+            missing_chain = None,
+        ):
         """
         Returns a tuple of chains from a fragment annotation combination
         and a database record chain summary object.
+        
+        Potentially includes a missing chain which does not yield any
+        fragment.
         """
         
+        # boolean: whether we provide details or not
         details = self.chain_details if details is None else details
         
         return (
             tuple(
                 lipproc.Chain(
-                    c = frag.c,
-                    u = frag.u,
-                    typ = frag.chaintype,
+                    c = frag_comb[ifrag].c,
+                    u = frag_comb[ifrag].u,
+                    typ = frag_comb[ifrag].chaintype,
                     attr = lipproc.ChainAttr(
                         # take the sphingosine base type
                         # from the chainsum of the record
-                        sph = chainsum.attr[i].sph,
-                        ether = frag.chaintype == 'FAL',
-                        oh = chainsum.attr[i].oh
+                        sph = chainsum.attr[ichain].sph,
+                        ether = frag_comb[ifrag].chaintype == 'FAL',
+                        oh = chainsum.attr[ichain].oh
                     )
                 )
-                for i, frag in enumerate(frag_comb)
+                if ifrag is not None else
+                missing_chain
+                # chain indices and fragment indices
+                for ichain, ifrag in iterator_insert(
+                    len(chainsum),
+                    missing_position,
+                )
             ),
             ChainIdentificationDetails(
-                rank     = tuple(frag.i for frag in frag_comb),
-                i        = tuple(self.inorm[frag.i] for frag in frag_comb),
-                fragtype = tuple(frag.fragtype for frag in frag_comb),
+                rank     = tuple(
+                    frag_comb[ifrag].i
+                    if ifrag is not None else None
+                    for ichain, ifrag in iterator_insert(
+                        len(chainsum),
+                        missing_position,
+                    )
+                ),
+                i        = tuple(
+                    self.inorm[frag_comb[ifrag].i]
+                    if ifrag is not None else None
+                    for ichain, ifrag in iterator_insert(
+                        len(chainsum),
+                        missing_position,
+                    )
+                ),
+                fragtype = tuple(
+                    frag_comb[ifrag].fragtype
+                    if ifrag is not None else None
+                    for ichain, ifrag in iterator_insert(
+                        len(chainsum),
+                        missing_position,
+                    )
+                ),
             ) if details else None
         )
-
+    
     def missing_chain(
             self,
             rec,
@@ -1655,7 +1693,7 @@ class Scan(ScanBase):
             intensity_threshold = 0,
             expected_intensities = None,
             no_intensity_check = False,
-            frag_types = None
+            frag_types = None,
         ):
         """
         Finds ''missing'' chains i.e. which could complement the chains
@@ -1724,17 +1762,19 @@ class Scan(ScanBase):
                 )
             ):
                 
+                missing_chain = lipproc.Chain(
+                    c = missing_c,
+                    u = missing_u,
+                    typ = chainsum.typ[missing_position],
+                    attr = chainsum.attr[missing_position]
+                )
+                
                 # now all conditions satisfied:
-                yield (
-                    # the identified chains first:
-                    self._chains_frag_comb(frag_comb, chainsum),
-                    # the missing chain:
-                    lipproc.Chain(
-                        c = missing_c,
-                        u = missing_u,
-                        typ = chainsum.typ[missing_position],
-                        attr = chainsum.attr[missing_position]
-                    )
+                yield self._chains_frag_comb(
+                    frag_comb,
+                    chainsum,
+                    missing_position = missing_position,
+                    missing_chain = missing_chain,
                 )
     
     def cu_complete(self, chainsum, chain = None, c = None, u = None):
@@ -3254,10 +3294,9 @@ class Cer_Positive(AbstractMS2Identifier):
             self,
             record,
             scan,
-            missing_chains = (),
+            missing_chains = (1,),
             chain_comb_args = {},
             must_have_chains = True,
-            explicit_and_implicit = True,
         )
         
         self.sph = {}
@@ -3275,17 +3314,43 @@ class Cer_Positive(AbstractMS2Identifier):
         ))
     
     def confirm_chains_explicit(self):
+        """
+        Most of the time we don't really have fatty acid derived
+        fragments from ceramides in positive mode. However certain
+        sphingosin base derived fragments correspond to neutral losses
+        of fatty acids as the molecule is composed of a sphingosine
+        and a fatty acid but this is redundant. Hence we call both
+        explicit and implicit identification as practically the it
+        is implicit anyways.
+        """
         
-        for chains in AbstractMS2Identifier.confirm_chains_explicit(self):
+        #for chains in itertools.chain(
+            #AbstractMS2Identifier.confirm_chains_explicit(self),
+            #AbstractMS2Identifier.confirm_chains_implicit(self),
+        #):
+        for chains in AbstractMS2Identifier.confirm_chains_implicit(self):
             
             if chains[0][0].attr.sph == self.rec.chainsum.attr[0].sph:
                 
                 sph_score = self.sphingosine_base(chains[0][0].attr.sph)
                 self.score += sph_score
+                fa_score  = self.fatty_acyl(chains[0][1])
+                self.score += fa_score
                 
                 yield chains
                 
                 self.score -= sph_score
+                self.score -= fa_score
+    
+    def fatty_acyl(self, fa):
+        
+        score = 0
+        
+        if fa.attr.oh:
+            
+            pass
+        
+        return score
     
     def sphingosine_base(self, sph):
         
@@ -3368,36 +3433,40 @@ class Cer_Positive(AbstractMS2Identifier):
         
         score = 0
         
-        score += sum(map(bool,
-            (
-                self.scn.has_fragment('[C2+NH2+O] (60.0444)'),
-                not self.scn.has_fragment('NL [C+2xH2O] (NL 48.0211)'),
-                self.scn.has_fragment('NL [3xH2O] (NL 54.0317)')
+        if all((
+            self.scn.fragment_among_most_abundant(
+                '[C2+NH2+O] (60.0444)'
+            ),
+            self.scn.chain_fragment_type_among_most_abundant(
+                5, frag_type = 'Sph-H', u = 0
+            ),
+            self.scn.chain_fragment_type_among_most_abundant(
+                5, frag_type = 'Sph-H2O-H', u = 0
+            ),
+            self.scn.chain_fragment_type_among_most_abundant(
+                5, frag_type = 'Sph-2xH2O-H', u = 0
             )
-        ))
-        
-        score += sum(map(bool,
-            (
-                self.scn.fragment_among_most_abundant(
-                    '[C2+NH2+O] (60.0444)'
-                ),
-                self.scn.chain_fragment_type_among_most_abundant(
-                    5, frag_type = 'Sph-H', u = 0
-                ),
-                self.scn.chain_fragment_type_among_most_abundant(
-                    5, frag_type = 'Sph-H2O-H', u = 0
-                ),
-                self.scn.chain_fragment_type_among_most_abundant(
-                    5, frag_type = 'Sph-2xH2O-H', u = 0
-                ),
-                self.scn.has_chain_fragment_type(
-                    frag_type = 'Sph-C-2xH2O', u = 0
-                ),
-                self.scn.has_chain_fragment_type(
-                    frag_type = 'Sph+H2O_mH', u = 0
-                ),
-            )
-        )) * 3
+        )):
+            
+            score = 12
+            
+            score += sum(map(bool,
+                (
+                    not self.scn.has_fragment('NL [C+2xH2O] (NL 48.0211)'),
+                    self.scn.has_fragment('NL [3xH2O] (NL 54.0317)')
+                )
+            ))
+            
+            score += sum(map(bool,
+                (
+                    self.scn.has_chain_fragment_type(
+                        frag_type = 'Sph-C-2xH2O', u = 0
+                    ),
+                    self.scn.has_chain_fragment_type(
+                        frag_type = 'Sph+H2O_mH', u = 0
+                    ),
+                )
+            )) * 3
         
         return score
 
