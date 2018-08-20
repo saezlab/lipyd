@@ -1713,6 +1713,8 @@ class Scan(ScanBase):
             By default is 1 (sn2 or N-acyl).
         """
         
+        self.build_chain_list()
+        
         chainsum = rec.chainsum or lipproc.sum_chains(rec.chains)
         
         frags_for_position = self.frags_for_positions(
@@ -1745,6 +1747,11 @@ class Scan(ScanBase):
                 sorted(frags_for_position.items(), key = lambda i: i[0])
             )
         ):
+            
+            # if more than one chain missing
+            if len(rec.chainsum) - len(frag_comb) > 1:
+                
+                continue
             
             missing_c = chainsum.c - sum(frag.c for frag in frag_comb)
             missing_u = chainsum.u - sum(frag.u for frag in frag_comb)
@@ -3299,7 +3306,13 @@ class Cer_Positive(AbstractMS2Identifier):
             must_have_chains = True,
         )
         
-        self.sph = {}
+        self.sph   = {}
+        self.fa    = {}
+        self.p1    = None
+        self.hex1  = None
+        self.hex1s = None
+        self.hex2  = None
+        self.hex2s = None
     
     def confirm_class(self):
         
@@ -3351,6 +3364,10 @@ class Cer_Positive(AbstractMS2Identifier):
             pass
         
         return score
+    
+    def cer1p(self):
+        
+        pass
     
     def sphingosine_base(self, sph):
         
@@ -3574,6 +3591,7 @@ idmethods = {
         lipproc.Headgroup(main = 'BMP'): BMP_Positive,
         lipproc.Headgroup(main = 'VA'): VA_Positive,
         lipproc.Headgroup(main = 'Cer'): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = '1P'): Cer_Positive,
     }
 }
 

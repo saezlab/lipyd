@@ -81,8 +81,7 @@ import tarfile
 import hashlib
 
 try:
-    from fabric.network import connect, HostConnectionCache
-    from fabric.state import env
+    import fabric.connection
 except:
     sys.stdout.write('No `fabric` available.\n')
     sys.stdout.flush()
@@ -144,14 +143,14 @@ class RemoteFile(object):
         header = True, rownames = True):
         for key, val in iteritems(locals()):
             setattr(self, key, val)
-            
-        #env.keepalive = 60
-        #env.connection_attempts = 5
-        #env.password = self.passwd
+        
+        # these were in fabric1 but not implemented yet in fabric2
+        # env.keepalive = 60
+        # env.connection_attempts = 5
     
     def wcl(self):
         
-        with closing(connection.Connection(
+        with closing(fabric.connection.Connection(
             self.host,
             self.user,
             self.port,
@@ -163,7 +162,7 @@ class RemoteFile(object):
     
     def rowns(self):
         
-        with closing(connection.Connection(
+        with closing(fabric.connection.Connection(
             self.host,
             self.user,
             self.port,
@@ -177,7 +176,7 @@ class RemoteFile(object):
     
     def open(self, return_header = True):
         
-        with closing(connection.Connection(
+        with closing(fabric.connection.Connection(
             self.host,
             self.user,
             self.port,

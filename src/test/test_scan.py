@@ -845,7 +845,7 @@ specimens = [
         2070,
         {'Cer(t36:0)': (
             MS2Identity(
-                score = 25,
+                score = 24,
                 hg = Headgroup(main='Cer', sub=()),
                 chainsum = ChainSummary(
                     c = 36,
@@ -876,13 +876,42 @@ specimens = [
             ),
         )}
     ),
-    # OH-acyl-Cer positive
+    # 2OH-acyl-Cer positive
     (
         'pos_examples.mgf',
         'pos',
         2421,
-        {'': (
-
+        {'Cer(d36:1-2OH)': (
+            MS2Identity(
+                score = 22,
+                hg = Headgroup(main='Cer', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 1,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='d', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=('2OH',))
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='d', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=('2OH',)),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
         )}
     )
 ]
