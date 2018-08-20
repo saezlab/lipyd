@@ -913,6 +913,44 @@ specimens = [
                 details = None
             ),
         )}
+    ),
+    # dCer-1-P positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        3208,
+        {'Cer1P(d42:2)': (
+            MS2Identity(
+                score = 27,
+                hg = Headgroup(main='Cer', sub=('1P',)),
+                chainsum = ChainSummary(
+                    c = 42,
+                    u = 2,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='d', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='d', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 24,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
     )
 ]
 

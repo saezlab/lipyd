@@ -1028,6 +1028,40 @@ class Scan(ScanBase):
                 
                 yield chains, details
     
+    def has_chain_combination(
+            self,
+            record,
+            head = None,
+            intensity_threshold = None,
+            expected_intensities = None,
+            no_intensity_check = False,
+            chain_param = (),
+        ):
+        """
+        Tells if a certain chain combination exists in the scan.
+        
+        Arguments passed to `matching_chain_combinations`.
+        """
+        
+        ccomb = self.matching_chain_combinations(
+            record = record,
+            head = head,
+            intensity_threshold = intensity_threshold,
+            expected_intensities = expected_intensities,
+            no_intensity_check = no_intensity_check,
+            chain_param = chain_param,
+        )
+        
+        try:
+            
+            _ = next(ccomb)
+            
+            return True
+            
+        except StopIteration:
+            
+            return False
+    
     def _matching_chain_pairs(
             self,
             record,
@@ -1968,39 +2002,6 @@ class Scan(ScanBase):
         """
         
         return self.hexcer_pos_1()
-    
-    def cer1p_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.
-
-        **Specimen:**
-        
-        - GLTPD1 + 728.59
-        
-        **Principle:**
-        
-        - A shpingosine backbone with 2 H2O loss must be among the 3 highest
-          intensity fragments.
-        - Presence of any of the following fragments increases the score:
-          82.0651, 107.0729, 135.1043, 149.1199.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if self.fa_among_most_abundant('-H2O-H2O+]+', n = 3, sphingo = True):
-            score += 4
-            
-            if any(map(self.has_mz,
-                       # these present at Cer too
-                       # a specific difference needed!
-                       [82.0651257, 107.072951, 135.104251, 149.119901])):
-                score += 1
-            
-            fattya.update(self.cer_missing_fa('Cer1P'))
-        
-        return {'score': score, 'fattya': fattya}
     
     def sm_neg_1(self):
         """
@@ -3270,8 +3271,11 @@ class VA_Negative(AbstractMS2Identifier):
 
 class Cer_Positive(AbstractMS2Identifier):
     """
-    Examines if a positive mode MS2 spectrum is a d Ceramide.
-
+    Examines if a positive mode MS2 spectrum is a Ceramide.
+    
+    dCer
+    ====
+    
     **Specimen:**
     
     - Sphingolipid standards scans 
@@ -3292,6 +3296,60 @@ class Cer_Positive(AbstractMS2Identifier):
     - The presence of the following fragments increase the score:
         60.0444, 70.0651, 82.0651, 96.0808, 107.0730, 121.0886,
         135.1042 and 149.1199.
+    
+    DHCer
+    =====
+    
+    **Specimen:**
+    
+    - Standards 180626 m/z 568.56 scan 2367
+    
+    **Principle:**
+    
+    - Same pattern as at dCer but from the sphingosine derived fragments
+        it becomes clear if it has no unsaturation.
+    
+    tCer
+    ====
+    
+    **Specimen:**
+    
+    - Standards 180628 m/z 584.56 scan 2070
+    
+    **Principle:**
+    
+    - Has Sph+H2O-H fragment which does not occur at dCer.
+    - Sph-H2O-H and Sph-H are much higher abundant than at dCer.
+    - Strong fragment at 60.044 which is missing at dCer.
+    - H2O and 2xH2O neutral losses are much higher than at dCer.
+    
+    dCer-2OH-acyl
+    =============
+    
+    **Specimen:**
+    
+    - Standards 180615 m/z 584.22 scan 2421
+    
+    **Principle:**
+    
+    - Same as other ceramides. It's d and DH forms are isobaric with tCer
+        but d and t are clearly distinguishable so this does not cause
+        confusion.
+    
+    dCer-1-P
+    ========
+    
+    **Specimen:**
+    
+    - in vivo GLTPD1 + 728.59
+    
+    **Principle:**
+    
+    - A shpingosine backbone with 2 H2O loss must be among the 3 highest
+        intensity fragments.
+    - Presence of any of the following fragments increases the score:
+        82.0651, 115.9875.
+        107.0729, 135.1043, 149.1199.
     
     """
     
@@ -3337,11 +3395,10 @@ class Cer_Positive(AbstractMS2Identifier):
         is implicit anyways.
         """
         
-        #for chains in itertools.chain(
-            #AbstractMS2Identifier.confirm_chains_explicit(self),
-            #AbstractMS2Identifier.confirm_chains_implicit(self),
-        #):
-        for chains in AbstractMS2Identifier.confirm_chains_implicit(self):
+        for chains in itertools.chain(
+            AbstractMS2Identifier.confirm_chains_explicit(self),
+            AbstractMS2Identifier.confirm_chains_implicit(self),
+        ):
             
             if chains[0][0].attr.sph == self.rec.chainsum.attr[0].sph:
                 
@@ -3349,11 +3406,14 @@ class Cer_Positive(AbstractMS2Identifier):
                 self.score += sph_score
                 fa_score  = self.fatty_acyl(chains[0][1])
                 self.score += fa_score
+                p1_score  = self.cer1p()
+                self.score += p1_score
                 
                 yield chains
                 
                 self.score -= sph_score
                 self.score -= fa_score
+                self.score -= p1_score
     
     def fatty_acyl(self, fa):
         
@@ -3367,7 +3427,39 @@ class Cer_Positive(AbstractMS2Identifier):
     
     def cer1p(self):
         
-        pass
+        if self.p1 is None:
+            
+            self.p1 = 0
+            
+            if '1P' in self.rec.hg.sub:
+                
+                if self.scn.has_fragment('NL [P+H2O] (NL 115.9875)'):
+                    
+                    self.p1 += 10
+                
+                if self.scn.has_chain_combination(
+                    self.rec,
+                    chain_param = (
+                        {'frag_type': {
+                                'Sph-2xH2O+H',
+                                'Sph-H2O+H',
+                                'Sph-H2O-H'
+                            }
+                        },
+                        {'frag_type': 'FA+NH+C2H2-OH'},
+                    )
+                ):
+                    
+                    self.p1 += 5
+                
+                self.p1 += sum(map(bool,
+                    (
+                        self.scn.has_fragment('NL [P] (NL 79.9663)'),
+                        self.scn.has_fragment('NL [P] (NL 97.9769)'),
+                    )
+                )) * 3
+        
+        return self.p1
     
     def sphingosine_base(self, sph):
         
@@ -3488,6 +3580,30 @@ class Cer_Positive(AbstractMS2Identifier):
         return score
 
 
+def cer1p_pos_1(self):
+    """
+    Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.
+
+    
+    
+    """
+    
+    score = 0
+    fattya = set([])
+    
+    if self.fa_among_most_abundant('-H2O-H2O+]+', n = 3, sphingo = True):
+        score += 4
+        
+        if any(map(self.has_mz,
+                    # these present at Cer too
+                    # a specific difference needed!
+                    [82.0651257, 107.072951, 135.104251, 149.119901])):
+            score += 1
+        
+        fattya.update(self.cer_missing_fa('Cer1P'))
+    
+    return {'score': score, 'fattya': fattya}
+
 def cer_pos_1(self):
     
     score = 0
@@ -3591,7 +3707,7 @@ idmethods = {
         lipproc.Headgroup(main = 'BMP'): BMP_Positive,
         lipproc.Headgroup(main = 'VA'): VA_Positive,
         lipproc.Headgroup(main = 'Cer'): Cer_Positive,
-        lipproc.Headgroup(main = 'Cer', sub = '1P'): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Positive,
     }
 }
 
