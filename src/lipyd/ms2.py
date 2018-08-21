@@ -1957,34 +1957,7 @@ class Scan(ScanBase):
         
         return self.hexcer_neg_1()
     
-    def hexcer_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a Hexosyl-Ceramide.
 
-        **Specimen:**
-        
-        - GLTP + 810.68
-        
-        **Principle:**
-        
-        - Hexose fragments 198.0740, 180.0634 and 162.0528 must present.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        hexfrags = sum(map(lambda nl: self.nl_among_most_abundant(nl, n = 15),
-                           [198.073955, 180.06339, 162.052825]))
-        
-        if hexfrags:
-            score += hexfrags + 4
-        
-        if score:
-            
-            fattya.update(self.cer_missing_fa('HexCer'))
-        
-        return {'score': score, 'fattya': fattya}
     
     def hexceroh_pos_1(self):
         """
@@ -2182,6 +2155,8 @@ class Scan(ScanBase):
 
 class AbstractMS2Identifier(object):
     
+    subclass_methods = {}
+    
     def __init__(
             self,
             record,
@@ -2204,6 +2179,8 @@ class AbstractMS2Identifier(object):
         self.missing_chain_args = missing_chain_args or self.chain_comb_args
         self.explicit_and_implicit = explicit_and_implicit
         self.must_have_chains = must_have_chains
+        
+        self.scores = {}
     
     def identify(self):
         
@@ -2251,6 +2228,17 @@ class AbstractMS2Identifier(object):
         """
         
         self.score = 5
+    
+    def confirm_subclass(self):
+        
+        for sub in self.rec.hg.sub:
+            
+            if sub not in self.scores and sub in self.subclass_methods:
+                
+                score = getattr(self, self.subclass_methods[sub])()
+                
+                self.scores[sub] = score
+                self.score += score
     
     def confirm_chains_explicit(self):
         
@@ -3351,7 +3339,26 @@ class Cer_Positive(AbstractMS2Identifier):
         82.0651, 115.9875.
         107.0729, 135.1043, 149.1199.
     
+    Hex-dCer
+    ========
+    
+    **Specimen:**
+    
+    - in vivo GLTP + 810.68
+    
+    **Principle:**
+    
+    - Hexose fragments 198.0740, 180.0634 and 162.0528 must present.
+    
     """
+    
+    subclass_methods = {
+        '1P': 'cer1p',
+        'Hex': 'hexcer',
+        'Hex2': 'hex2cer',
+        'SHex': 'shexcer',
+        'SHex2': 'shex2cer',
+    }
     
     def __init__(self, record, scan):
         
@@ -3366,11 +3373,6 @@ class Cer_Positive(AbstractMS2Identifier):
         
         self.sph   = {}
         self.fa    = {}
-        self.p1    = None
-        self.hex1  = None
-        self.hex1s = None
-        self.hex2  = None
-        self.hex2s = None
     
     def confirm_class(self):
         
@@ -3383,6 +3385,8 @@ class Cer_Positive(AbstractMS2Identifier):
                 'NL [2xH2O] (NL 36.0211)',
             )
         ))
+        
+        self.confirm_subclass()
     
     def confirm_chains_explicit(self):
         """
@@ -3406,14 +3410,11 @@ class Cer_Positive(AbstractMS2Identifier):
                 self.score += sph_score
                 fa_score  = self.fatty_acyl(chains[0][1])
                 self.score += fa_score
-                p1_score  = self.cer1p()
-                self.score += p1_score
                 
                 yield chains
                 
                 self.score -= sph_score
                 self.score -= fa_score
-                self.score -= p1_score
     
     def fatty_acyl(self, fa):
         
@@ -3427,39 +3428,68 @@ class Cer_Positive(AbstractMS2Identifier):
     
     def cer1p(self):
         
-        if self.p1 is None:
-            
-            self.p1 = 0
-            
-            if '1P' in self.rec.hg.sub:
-                
-                if self.scn.has_fragment('NL [P+H2O] (NL 115.9875)'):
-                    
-                    self.p1 += 10
-                
-                if self.scn.has_chain_combination(
-                    self.rec,
-                    chain_param = (
-                        {'frag_type': {
-                                'Sph-2xH2O+H',
-                                'Sph-H2O+H',
-                                'Sph-H2O-H'
-                            }
-                        },
-                        {'frag_type': 'FA+NH+C2H2-OH'},
-                    )
-                ):
-                    
-                    self.p1 += 5
-                
-                self.p1 += sum(map(bool,
-                    (
-                        self.scn.has_fragment('NL [P] (NL 79.9663)'),
-                        self.scn.has_fragment('NL [P] (NL 97.9769)'),
-                    )
-                )) * 3
+        score = 0
         
-        return self.p1
+        if self.scn.has_fragment('NL [P+H2O] (NL 115.9875)'):
+            
+            score += 10
+        
+        if self.scn.has_chain_combination(
+            self.rec,
+            chain_param = (
+                {'frag_type': {
+                        'Sph-2xH2O+H',
+                        'Sph-H2O+H',
+                        'Sph-H2O-H'
+                    }
+                },
+                {'frag_type': 'FA+NH+C2H2-OH'},
+            )
+        ):
+            
+            score += 5
+        
+        score += sum(map(bool,
+            (
+                self.scn.has_fragment('NL [P] (NL 79.9663)'),
+                self.scn.has_fragment('NL [P] (NL 97.9769)'),
+            )
+        )) * 3
+        
+        return score
+    
+    def hexcer(self):
+        
+        score = 0
+        
+        score += sum(map(bool,
+            (
+                self.scn.has_fragment('NL [Hexose-H2O] (NL 162.05)'),
+                self.scn.has_fragment('NL [Hexose] (NL 180.06)'),
+                self.scn.has_fragment('NL [Hexose+H2O] (NL 198.07)'),
+            )
+        )) * 5
+        
+        if self.scn.has_chain_combination(
+            self.rec,
+            chain_param = (
+                {'frag_type': {
+                        'Sph-2xH2O+H',
+                        'Sph-H2O+H',
+                        'Sph-H2O-H',
+                    }
+                },
+                {'frag_type': {
+                        'FA-OH',
+                        'NL FA',
+                    }
+                },
+            )
+        ):
+            
+            score += 10
+        
+        return score
     
     def sphingosine_base(self, sph):
         
@@ -3579,6 +3609,27 @@ class Cer_Positive(AbstractMS2Identifier):
         
         return score
 
+def hexcer_pos_1(self):
+    """
+    Examines if a positive mode MS2 spectrum is a Hexosyl-Ceramide.
+
+    
+    """
+    
+    score = 0
+    fattya = set([])
+    
+    hexfrags = sum(map(lambda nl: self.nl_among_most_abundant(nl, n = 15),
+                        [198.073955, 180.06339, 162.052825]))
+    
+    if hexfrags:
+        score += hexfrags + 4
+    
+    if score:
+        
+        fattya.update(self.cer_missing_fa('HexCer'))
+    
+    return {'score': score, 'fattya': fattya}
 
 def cer1p_pos_1(self):
     """
@@ -3708,6 +3759,7 @@ idmethods = {
         lipproc.Headgroup(main = 'VA'): VA_Positive,
         lipproc.Headgroup(main = 'Cer'): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('Hex',)): Cer_Positive,
     }
 }
 
