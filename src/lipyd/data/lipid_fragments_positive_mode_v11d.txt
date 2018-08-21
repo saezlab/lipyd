@@ -32,6 +32,11 @@
 198.073955	C6H14O7	NL [Hexose+H2O] (NL 198.07)	NL positive mode	Cer,Hex
 180.06339	C6H12O6	NL [Hexose] (NL 180.06)	NL positive mode	Cer,Hex
 162.052825	C6H10O5	NL [Hexose-H2O] (NL 162.05)	NL positive mode	Cer,Hex
+342.1162115319	C12H22O11	NL [2xHexose] (NL 342.1162)	NL positive mode	Hex2Cer
+360.1267762166	C12H24O12	NL [2xHexose+H2O] (NL 360.1268)	NL positive mode	Hex2Cer
+324.1056468472	C12H20O10	NL [2xHexose-H2O] (NL 324.1056)	NL positive mode	Hex2Cer
+358.1111261521	C12H22O12	NL [2xHexose+O] (NL 358.1111)	NL positive mode	Hex2Cer
+372.1267762166	C13H24O12	NL [2xHexose+C] (NL 372.1268)	NL positive mode	Hex2Cer
 369.351576	C27H45	[CE-OH] (369.3516)	[M+H]+	CE
 165.091006	C10O2H13	alpha-Vit.E (165.09)	[M+H]+	VE
 151.075356	C9O2H11	beta/gamma-Vit.E (151.08)	[M+H]+	VE

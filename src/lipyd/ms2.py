@@ -3471,7 +3471,40 @@ class Cer_Positive(AbstractMS2Identifier):
             )
         )) * 5
         
-        if self.scn.has_chain_combination(
+        if self.hexcer_chain_combination():
+            
+            score += 10
+        
+        return score
+    
+    def hex2cer(self):
+        
+        score = 0
+        
+        score += sum(map(bool,
+            (
+                self.scn.has_fragment('NL [2xHexose] (NL 342.1162)'),
+                self.scn.has_fragment('NL [2xHexose+H2O] (NL 360.1268)'),
+            )
+        )) * 10
+        
+        score += sum(map(bool,
+            (
+                self.scn.has_fragment('NL [2xHexose-H2O] (NL 324.1056)'),
+                self.scn.has_fragment('NL [2xHexose+O] (NL 358.1111)'),
+                self.scn.has_fragment('NL [2xHexose+C] (NL 372.1268)'),
+            )
+        )) * 3
+        
+        if self.hexcer_chain_combination():
+            
+            score += 10
+        
+        return score
+    
+    def hexcer_chain_combination(self):
+        
+        return self.scn.has_chain_combination(
             self.rec,
             chain_param = (
                 {'frag_type': {
@@ -3489,11 +3522,7 @@ class Cer_Positive(AbstractMS2Identifier):
                     }
                 },
             )
-        ):
-            
-            score += 10
-        
-        return score
+        )
     
     def sphingosine_base(self, sph):
         
@@ -3767,6 +3796,7 @@ idmethods = {
         lipproc.Headgroup(main = 'Cer'): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('Hex',)): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('Hex2',)): Cer_Positive,
     }
 }
 
