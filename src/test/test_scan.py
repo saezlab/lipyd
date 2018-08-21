@@ -1065,6 +1065,91 @@ specimens = [
                 details = None
             ),
         )}
+    ),
+    # Hex-tCer positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        3005,
+        {'Hex-Cer(t40:1)': (
+            MS2Identity(
+                score = 31,
+                hg = Headgroup(main='Cer', sub=('Hex',)),
+                chainsum = ChainSummary(
+                    c = 40,
+                    u = 1,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='t', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 22,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
+    # Hex-tCer positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        2981,
+        {'': (
+            MS2Identity(
+                score = 31,
+                hg = Headgroup(main='Cer', sub=('Hex',)),
+                chainsum = ChainSummary(
+                    c = 42,
+                    u = 2,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='t', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 24,
+                        u = 2,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
+    # Hex-dCer positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        3092,
+        {'': (
+
+        )}
     )
 ]
 

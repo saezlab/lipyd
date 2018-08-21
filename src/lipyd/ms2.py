@@ -258,17 +258,12 @@ class Scan(ScanBase):
             # this is not efficient but makes possible
             # to easily use standalone `Scan` instances
             # for testing and such
-            self.ms1_records = list(itertools.chain(
-                *(
-                    a[1] for a in
-                    moldb.adduct_lookup(precursor, ionmode).values()
-                )
-            ))
+            self.ms1_records = moldb.adduct_lookup(precursor, ionmode)
             
         else:
             
             # even if precursor is None, we end up with an empty list
-            self.ms1_records = ms1_records or []
+            self.ms1_records = ms1_records or {}
         
         self.scan_id = scan_id
         self.sample = sample
@@ -1831,7 +1826,19 @@ class Scan(ScanBase):
         
         return chainsum.c - c, chainsum.u - u
     
-    def records_by_type(self, headgroup, sub = ()):
+    def iterrecords(self, adducts = None):
+        """
+        Iterates MS1 records.
+        """
+        
+        return itertools.chain(*(
+            recs
+            for add, recs in
+            iteritems(self.ms1_records)
+            if adducts is None or add in adducts
+        ))
+    
+    def records_by_type(self, headgroup, sub = (), adducts = None):
         """
         Iterates MS1 database records with a certain headgroup and subtype.
         """
@@ -1844,18 +1851,20 @@ class Scan(ScanBase):
             set([sub])
         )
         
-        for rec in self.ms1_records:
+        for rec in iterrecords(adducts = adducts):
             
             if rec.hg and rec.hg.main == headgroup and set(rec.hg.sub) == sub:
                 
                 yield rec
     
-    def first_record(self, headgroup, sub = ()):
+    def first_record(self, headgroup, sub = (), adducts = None):
         """
         Returns the first MS1 database record matching headgroup and subtype.
         """
         
-        recbytyp = self.records_by_type(headgroup, sub = sub)
+        recbytyp = self.records_by_type(
+            headgroup, sub = sub, adducts = adducts
+        )
         
         try:
             
@@ -3338,6 +3347,7 @@ class Cer_Positive(AbstractMS2Identifier):
     **Specimen:**
     
     - in vivo GLTP + 826.67
+    - in vitro GLTP + 826.67, 800.66,
     
     **Principle:**
     
