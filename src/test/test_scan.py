@@ -845,7 +845,7 @@ specimens = [
         2070,
         {'Cer(t36:0)': (
             MS2Identity(
-                score = 24,
+                score = 27,
                 hg = Headgroup(main='Cer', sub=()),
                 chainsum = ChainSummary(
                     c = 36,
@@ -990,6 +990,53 @@ specimens = [
             ),
         )}
     ),
+    # Hex-tCer positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        3787,
+        {'Hex-Cer(t42:2)': (
+            MS2Identity(
+                score = 41,
+                hg = Headgroup(main='Cer', sub=('Hex',)),
+                chainsum = ChainSummary(
+                    c = 42,
+                    u = 2,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='t', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 24,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
+    # Hex2-dCer positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        
+        {'': (
+
+        )}
+    )
 ]
 
 

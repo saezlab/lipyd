@@ -1957,25 +1957,6 @@ class Scan(ScanBase):
         
         return self.hexcer_neg_1()
     
-
-    
-    def hexceroh_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a Hexosyl-Ceramide-OH
-        (`t`). This method is the same as `hexcer_pos_1`.
-
-        **Specimen:**
-        
-        - GLTP + 826.67
-        
-        **Principle:**
-        
-        - Hexose fragments 198.0740, 180.0634 and 162.0528 must present.
-        
-        """
-        
-        return self.hexcer_pos_1()
-    
     def sm_neg_1(self):
         """
         Examines if a negative mode MS2 spectrum is a Sphingomyeline.
@@ -3349,6 +3330,26 @@ class Cer_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - Hexose fragments 198.0740, 180.0634 and 162.0528 must present.
+      These are neutral losses of hexose, hexose-H2O and hexose+H2O
+    
+    Hex-tCer
+    ========
+    
+    **Specimen:**
+    
+    - in vivo GLTP + 826.67
+    
+    **Principle:**
+    
+    - Hexose fragments 198.0740, 180.0634 and 162.0528 must present.
+      These are neutral losses of hexose, hexose-H2O and hexose+H2O
+    
+    Hex2-dCer
+    =========
+    
+    **Specimen:**
+    
+    - in vivo GLTP + 988.73
     
     """
     
@@ -3475,13 +3476,16 @@ class Cer_Positive(AbstractMS2Identifier):
             chain_param = (
                 {'frag_type': {
                         'Sph-2xH2O+H',
+                        'Sph-2xH2O-H',
                         'Sph-H2O+H',
                         'Sph-H2O-H',
+                        'Sph-C-2xH2O',
                     }
                 },
                 {'frag_type': {
                         'FA-OH',
                         'NL FA',
+                        'FA+NH2-O',
                     }
                 },
             )
@@ -3573,17 +3577,17 @@ class Cer_Positive(AbstractMS2Identifier):
         score = 0
         
         if all((
-            self.scn.fragment_among_most_abundant(
-                '[C2+NH2+O] (60.0444)'
+            self.scn.chain_fragment_type_among_most_abundant(
+                5, frag_type = 'Sph-H2O-H',
             ),
             self.scn.chain_fragment_type_among_most_abundant(
-                5, frag_type = 'Sph-H', u = 0
+                5, frag_type = 'Sph-2xH2O-H',
             ),
-            self.scn.chain_fragment_type_among_most_abundant(
-                5, frag_type = 'Sph-H2O-H', u = 0
-            ),
-            self.scn.chain_fragment_type_among_most_abundant(
-                5, frag_type = 'Sph-2xH2O-H', u = 0
+            (
+                self.scn.fragment_among_most_abundant(
+                    '[C2+NH2+O] (60.0444)'
+                ) or
+                self.rec.hg.sub
             )
         )):
             
@@ -3599,10 +3603,13 @@ class Cer_Positive(AbstractMS2Identifier):
             score += sum(map(bool,
                 (
                     self.scn.has_chain_fragment_type(
-                        frag_type = 'Sph-C-2xH2O', u = 0
+                        frag_type = 'Sph-C-2xH2O',
                     ),
                     self.scn.has_chain_fragment_type(
-                        frag_type = 'Sph+H2O_mH', u = 0
+                        frag_type = 'Sph+H2O_mH',
+                    ),
+                    self.scn.chain_fragment_type_among_most_abundant(
+                        5, frag_type = 'Sph-H',
                     ),
                 )
             )) * 3
