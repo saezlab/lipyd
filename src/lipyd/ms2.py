@@ -2079,48 +2079,6 @@ class Scan(ScanBase):
         
         return {'score': score, 'fattya': fattya}
     
-    def sm_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a Sphingomyeline.
-        
-        **Specimen:**
-        
-        - GLTPD1 + 703.57
-        - GLTPD1 + 813.68 (Enric)
-        
-        **Principle:**
-        
-        - The following choline fragments must be present: 60.0808, 86.0964,
-          104.1069, 124.9998 and 184.0733. The last one is the most intensive.
-        - If 58.0651 can be found it adds to the score.
-        
-        """
-        
-        score = 0
-        fattya = set([])
-        
-        if all(
-            map(
-                lambda mz:
-                    self.has_mz(mz),
-                [
-                    60.080776,
-                    86.096425,  #
-                    104.106990, #
-                    124.999822, #
-                    184.073323  #
-                ]
-            )
-        ):
-            
-            score += 5
-            
-            if self.has_mz(58.0651):
-                
-                score += 1
-        
-        return {'score': score, 'fattya': fattya}
-    
     def cerp_pos_1(self):
         """
         Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.
@@ -2147,6 +2105,7 @@ class Scan(ScanBase):
 
 class AbstractMS2Identifier(object):
     
+    class_methods = {}
     subclass_methods = {}
     
     def __init__(
@@ -2220,17 +2179,23 @@ class AbstractMS2Identifier(object):
         """
         
         self.score = 5
+        
+        if self.rec.hg is not None and self.rec.hg.main in self.class_methods:
+            
+            self.score += getattr(self, self.class_methods[self.rec.hg.main])
     
     def confirm_subclass(self):
         
-        for sub in self.rec.hg.sub:
+        if self.rec.hg is not None:
             
-            if sub not in self.scores and sub in self.subclass_methods:
+            for sub in self.rec.hg.sub:
                 
-                score = getattr(self, self.subclass_methods[sub])()
-                
-                self.scores[sub] = score
-                self.score += score
+                if sub not in self.scores and sub in self.subclass_methods:
+                    
+                    score = getattr(self, self.subclass_methods[sub])()
+                    
+                    self.scores[sub] = score
+                    self.score += score
     
     def confirm_chains_explicit(self):
         
@@ -3363,7 +3328,25 @@ class Cer_Positive(AbstractMS2Identifier):
     
     - in vivo GLTP + 988.73
     
+    dSM
+    ===
+    
+    **Specimen:**
+    
+    - in vivo GLTPD1 + 703.57
+    - in vitro GLTPD1 + 813.68
+    
+    **Principle:**
+    
+    - The following choline fragments must be present: 60.0808, 86.0964,
+      104.1069, 124.9998 and 184.0733. The last one is the most intensive.
+    - If 58.0651 can be found it adds to the score.
+    
     """
+    
+    class_methods = {
+        'SM': 'sm',
+    }
     
     subclass_methods = {
         '1P': 'cer1p',
@@ -3657,6 +3640,39 @@ class Cer_Positive(AbstractMS2Identifier):
         
         return score
 
+    def sm_pos_1(self):
+        """
+        Examines if a positive mode MS2 spectrum is a Sphingomyeline.
+        
+        
+        """
+        
+        score = 0
+        fattya = set([])
+        
+        if all(
+            map(
+                lambda mz:
+                    self.has_mz(mz),
+                [
+                    60.080776,
+                    86.096425,  #
+                    104.106990, #
+                    124.999822, #
+                    184.073323  #
+                ]
+            )
+        ):
+            
+            score += 5
+            
+            if self.has_mz(58.0651):
+                
+                score += 1
+        
+        return {'score': score, 'fattya': fattya}
+    
+
 def hexcer_pos_1(self):
     """
     Examines if a positive mode MS2 spectrum is a Hexosyl-Ceramide.
@@ -3809,6 +3825,7 @@ idmethods = {
         lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('Hex',)): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('Hex2',)): Cer_Positive,
+        lipproc.Headgroup(main = 'SM'): Cer_Positive,
     }
 }
 

@@ -876,7 +876,7 @@ specimens = [
             ),
         )}
     ),
-    # 2OH-acyl-Cer positive
+    # 2OH-acyl-dCer positive
     (
         'pos_examples.mgf',
         'pos',
@@ -915,6 +915,8 @@ specimens = [
         )}
     ),
     # dCer-1-P positive
+    # we have tCer-1-P neither in standards nor in screens hence
+    # we can not have a test for that
     (
         'pos_examples.mgf',
         'pos',
@@ -1178,6 +1180,14 @@ specimens = [
                 ),
                 details = None
             ),
+        )}
+    ),
+    (
+        'pos_examples.mgf',
+        'pos',
+        2290,
+        {'': (
+
         )}
     )
 ]
