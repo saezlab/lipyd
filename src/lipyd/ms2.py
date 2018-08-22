@@ -2182,7 +2182,10 @@ class AbstractMS2Identifier(object):
         
         if self.rec.hg is not None and self.rec.hg.main in self.class_methods:
             
-            self.score += getattr(self, self.class_methods[self.rec.hg.main])
+            self.score += getattr(
+                self,
+                self.class_methods[self.rec.hg.main]
+            )()
     
     def confirm_subclass(self):
         
@@ -2710,7 +2713,7 @@ class PC_Positive(AbstractMS2Identifier):
             
             self.score += sum(map(bool, (
                 self.scn.has_fragment('PC/SM [Ch+H2O] (104.107)'),
-                self.scn.has_fragment('PC/SM [P+Et] (125.000)'),
+                self.scn.has_fragment('PC/SM [P+Et] (124.9998)'),
                 self.scn.has_fragment('PC/SM [Ch-Et] (60.0808)'),
                 self.scn.has_fragment('PC/SM [Ch-Et] (58.0651)'),
             )))
@@ -3342,6 +3345,15 @@ class Cer_Positive(AbstractMS2Identifier):
       104.1069, 124.9998 and 184.0733. The last one is the most intensive.
     - If 58.0651 can be found it adds to the score.
     
+    PE-Cer
+    ======
+    
+    We do not have this in standards or in screens so we can not test this.
+    
+    **Principle:**
+    
+    - 
+    
     """
     
     class_methods = {
@@ -3354,6 +3366,7 @@ class Cer_Positive(AbstractMS2Identifier):
         'Hex2': 'hex2cer',
         'SHex': 'shexcer',
         'SHex2': 'shex2cer',
+        'PE': 'pe_cer'
     }
     
     def __init__(self, record, scan):
@@ -3372,7 +3385,7 @@ class Cer_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.score += 5
+        AbstractMS2Identifier.confirm_class(self)
         
         self.score += sum(map(
             self.scn.has_fragment,
@@ -3421,6 +3434,37 @@ class Cer_Positive(AbstractMS2Identifier):
             pass
         
         return score
+    
+    def sm(self):
+        
+        score = 0
+        
+        if self.scn.most_abundant_fragment_is('PC/SM [P+Ch] (184.0733)'):
+            
+            score += 15
+            
+            score += sum(map(bool,
+                (
+                    self.scn.has_fragment('PC/SM [Ch-Et] (60.0808)'),
+                    self.scn.has_fragment('PC/SM [Ch] (86.096)'),
+                    self.scn.has_fragment('PC/SM [Ch+H2O] (104.107)'),
+                    self.scn.has_fragment('PC/SM [P+Et] (124.9998)'),
+                    self.scn.has_fragment('PC/SM [Ch-Et] (58.0651)'),
+                    self.scn.has_fragment('NL PC/SM [P+Ch] (NL 183.066)'),
+                    self.scn.has_fragment('NL SM [P+Ch] (NL 201.0766)'),
+                    self.scn.has_fragment('NL SM [N+3xCH3] (77.0841)'),
+                    self.scn.has_fragment('NL [H2O] (NL 18.0106)'),
+                )
+            )) * 3
+            
+            if self.scn.has_chain_fragment_type(frag_type = 'Sph-2xH2O+H'):
+                
+                score += 5
+        
+        return score
+    
+    def cerpe(self):
+        
     
     def cer1p(self):
         
