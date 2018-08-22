@@ -2178,7 +2178,7 @@ class AbstractMS2Identifier(object):
         Most of the subclasses should override this.
         """
         
-        self.score = 5
+        self.score = 0
         
         if self.rec.hg is not None and self.rec.hg.main in self.class_methods:
             
@@ -2559,13 +2559,13 @@ class PE_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        if self.scn.has_fragment('PE [P+E] (NL 141.0191)'):
+        if self.scn.has_fragment('NL PE [P+E] (NL 141.0191)'):
             
             if self.check_lyso():
                 
                 return
             
-            self.score += 5
+            self.score += 15
 
 
 class LysoPE_Positive(AbstractMS2Identifier):
@@ -3349,10 +3349,14 @@ class Cer_Positive(AbstractMS2Identifier):
     ======
     
     We do not have this in standards or in screens so we can not test this.
+    Based on Amiar 2016 and Narayanaswamy 2014.
     
     **Principle:**
     
-    - 
+    - Neutral loss of 141.0191 must be present.
+    - 142.0264 phospho-ethanolamine fragment and neutral loss of
+      phospho-ethanolamine+water might be present.
+    - Sph-2xH2O fragment increases the score.
     
     """
     
@@ -3463,8 +3467,23 @@ class Cer_Positive(AbstractMS2Identifier):
         
         return score
     
-    def cerpe(self):
+    def pe_cer(self):
         
+        score = 0
+        
+        if self.scn.has_fragment('NL PE [P+E] (NL 141.0191)'):
+            
+            score += 15
+            
+            score += score += sum(map(bool,
+                (
+                    self.scn.has_fragment('PE [P+E] (142.0264)'),
+                    self.scn.has_fragment('NL PE [P+E+H2O] (NL 159.0297)'),
+                    self.scn.has_fragment('NL PE [P+E-H2O] (NL 123.0085)'),
+                )
+            )) * 5
+        
+        return score
     
     def cer1p(self):
         
