@@ -1836,7 +1836,7 @@ class Scan(ScanBase):
             
             if adducts is None or add in adducts:
                 
-                for rec in recs:
+                for rec in recs[1]:
                     
                     yield add, rec
     
@@ -1853,7 +1853,7 @@ class Scan(ScanBase):
             set([sub])
         )
         
-        for add, rec in iterrecords(adducts = adducts):
+        for add, rec in self.iterrecords(adducts = adducts):
             
             if rec.hg and rec.hg.main == headgroup and set(rec.hg.sub) == sub:
                 
@@ -1876,7 +1876,7 @@ class Scan(ScanBase):
             
             return None
     
-    def identify(self):
+    def identify(self, adducts = None):
         
         result = {}
         

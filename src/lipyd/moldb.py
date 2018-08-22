@@ -832,7 +832,7 @@ class MoleculeDatabaseAggregator(object):
             adducts = list(settings.get('ex2ad')[abs(charge)][ionmode].keys())
         
         ad_default = settings.get('adducts_default')[ionmode][abs(charge)]
-        ad_constr  = settings.get('adduct_constraints')
+        ad_constr  = settings.get('adduct_constraints')[ionmode]
         
         exmethods = settings.get('ad2ex')[abs(charge)][ionmode]
         methods = dict((ad, exmethods[ad]) for ad in adducts)

@@ -351,7 +351,7 @@ _defaults = {
                 '[M+H]+': 'remove_h',
                 '[M+NH4]+': 'remove_nh4',
                 '[M+Na]+': 'remove_na',
-                '[M+H-H2O]+': 'add_oh',
+                '[M-H2O+H]+': 'add_oh',
             },
             'neg': {
                 '[M-H]-': 'add_h',
@@ -378,7 +378,7 @@ _defaults = {
                 '[M+H]+': 'add_h',
                 '[M+NH4]+': 'add_nh4',
                 '[M+Na]+': 'add_na',
-                '[M+H-H2O]+': 'remove_oh',
+                '[M-H2O+H]+': 'remove_oh',
             },
             'neg': {
                 '[M-H]-': 'remove_h',
@@ -429,12 +429,16 @@ _defaults = {
     # additional constraints for adduct lookups at various species
     # e.g. by default `[M-H2O+H]+` is not used but at Vitamin A we use it:
     'adduct_constraints': {
-        lipproc.Headgroup(main = 'VA'): {
-            '[M+H]+',
-            '[M+NH4]+',
-            '[M+Na]+',
-            '[M-H2O+H]+',
+        'pos': {
+            lipproc.Headgroup(main = 'VA'): {
+                '[M+H]+',
+                '[M+NH4]+',
+                '[M+Na]+',
+                '[M-H2O+H]+',
+            },
         },
+        'neg': {
+        }
     }
 }
 

@@ -1109,7 +1109,7 @@ specimens = [
         'pos_examples.mgf',
         'pos',
         2981,
-        {'': (
+        {'Hex-Cer(t42:2)': (
             MS2Identity(
                 score = 31,
                 hg = Headgroup(main='Cer', sub=('Hex',)),
@@ -1147,8 +1147,37 @@ specimens = [
         'pos_examples.mgf',
         'pos',
         3092,
-        {'': (
-
+        {'Hex-Cer(d42:2)': (
+            MS2Identity(
+                score = 30,
+                hg = Headgroup(main='Cer', sub=('Hex',)),
+                chainsum = ChainSummary(
+                    c = 42,
+                    u = 2,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='d', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='d', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 24,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
         )}
     )
 ]
