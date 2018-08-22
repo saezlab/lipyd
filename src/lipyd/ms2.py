@@ -3219,7 +3219,11 @@ class VA_Negative(AbstractMS2Identifier):
 
 class Cer_Positive(AbstractMS2Identifier):
     """
-    Examines if a positive mode MS2 spectrum is a Ceramide.
+    Examines if a positive mode MS2 spectrum is a ceramide.
+    Identifies ceramide varieties including sphingomyeline,
+    ceramide-1-phosphare, ceramide-phosphoethanolamine,
+    OH-acyl-ceramide, hexosyl and dihexosyl-ceramides,
+    and d, t and DH long chain base varieties.
     
     dCer
     ====
@@ -3330,6 +3334,20 @@ class Cer_Positive(AbstractMS2Identifier):
     **Specimen:**
     
     - in vivo GLTP + 988.73
+    
+    **Principle:**
+    
+    - Loss of double hexose with our without extra water or water loss
+      are the characteristic fragments of this class.
+    
+    SHex-dCer
+    =========
+    
+    **Specimen:**
+    
+    - in vitro 890.64
+    
+    
     
     dSM
     ===
@@ -3475,7 +3493,7 @@ class Cer_Positive(AbstractMS2Identifier):
             
             score += 15
             
-            score += score += sum(map(bool,
+            score += sum(map(bool,
                 (
                     self.scn.has_fragment('PE [P+E] (142.0264)'),
                     self.scn.has_fragment('NL PE [P+E+H2O] (NL 159.0297)'),
@@ -3581,6 +3599,12 @@ class Cer_Positive(AbstractMS2Identifier):
                 },
             )
         )
+    
+    def shexcer(self):
+        
+        score = 0
+        
+        return score
     
     def sphingosine_base(self, sph):
         
@@ -3704,6 +3728,12 @@ class Cer_Positive(AbstractMS2Identifier):
         return score
 
 
+class Sph_Positive(AbstractMS2Identifier):
+    
+    def __init__(self, record, scan):
+        
+        pass
+
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'):  FA_Negative,
@@ -3742,6 +3772,7 @@ idmethods = {
         lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('Hex',)): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('Hex2',)): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('SHex',)): Cer_Positive,
         lipproc.Headgroup(main = 'SM'): Cer_Positive,
     }
 }

@@ -1218,7 +1218,15 @@ specimens = [
                 details = None
             ),
         )}
-    )
+    ),
+    (
+        'pos_examples.mgf',
+        'pos',
+        2550,
+        {'SHex-Cer(d42:2)': (
+
+        )}
+    ),
 ]
 
 
