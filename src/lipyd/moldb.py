@@ -802,7 +802,8 @@ class MoleculeDatabaseAggregator(object):
             mz,
             adducts = None,
             ionmode = None,
-            charge = None
+            charge = None,
+            adduct_constraints = True,
         ):
         """
         Does a series of lookups in the database assuming various adducts.
@@ -827,7 +828,11 @@ class MoleculeDatabaseAggregator(object):
         
         if not adducts and ionmode in {'pos', 'neg'}:
             
+            # we look up all adducts we have a method for
             adducts = list(settings.get('ex2ad')[abs(charge)][ionmode].keys())
+        
+        ad_default = settings.get('adducts_default')[ionmode][abs(charge)]
+        ad_constr  = settings.get('adduct_constraints')
         
         exmethods = settings.get('ad2ex')[abs(charge)][ionmode]
         methods = dict((ad, exmethods[ad]) for ad in adducts)
@@ -836,7 +841,29 @@ class MoleculeDatabaseAggregator(object):
             
             exmz = getattr(mz, method)()
             
-            result[ad] = self.lookup_accuracy(exmz)
+            res  = self.lookup_accuracy(exmz)
+            
+            if adduct_constraints:
+                
+                ires = tuple(
+                    i for i in xrange(res[0].shape[0])
+                    if (
+                        (
+                            res[1][i].hg not in ad_constr and
+                            ad in ad_default
+                        ) or
+                        (
+                            res[1][i].hg in ad_constr and
+                            ad in ad_constr[res[1][i].hg]
+                        )
+                    )
+                )
+                
+                res = (res[0][ires,], res[1][ires,], res[2][ires,])
+            
+            if len(res[0]):
+                
+                result[ad] = res
         
         return result
     
@@ -895,7 +922,12 @@ def lookup(m):
     db = get_db()
     return db.lookup(m)
 
-def adduct_lookup(mz, ionmode):
+def adduct_lookup(mz, ionmode, adduct_constraints = True):
     
     db = get_db()
-    return db.adduct_lookup(mz, ionmode = ionmode)
+    
+    return db.adduct_lookup(
+        mz,
+        ionmode = ionmode,
+        adduct_constraints = adduct_constraints
+    )

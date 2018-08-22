@@ -1829,14 +1829,16 @@ class Scan(ScanBase):
     def iterrecords(self, adducts = None):
         """
         Iterates MS1 records.
+        Yields tuple of adduct type and record.
         """
         
-        return itertools.chain(*(
-            recs
-            for add, recs in
-            iteritems(self.ms1_records)
-            if adducts is None or add in adducts
-        ))
+        for add, recs in iteritems(self.ms1_records):
+            
+            if adducts is None or add in adducts:
+                
+                for rec in recs:
+                    
+                    yield add, rec
     
     def records_by_type(self, headgroup, sub = (), adducts = None):
         """
@@ -1851,7 +1853,7 @@ class Scan(ScanBase):
             set([sub])
         )
         
-        for rec in iterrecords(adducts = adducts):
+        for add, rec in iterrecords(adducts = adducts):
             
             if rec.hg and rec.hg.main == headgroup and set(rec.hg.sub) == sub:
                 
@@ -1878,7 +1880,7 @@ class Scan(ScanBase):
         
         result = {}
         
-        for rec in self.ms1_records:
+        for add, rec in self.iterrecords(adducts):
             
             if rec.hg is None:
                 
