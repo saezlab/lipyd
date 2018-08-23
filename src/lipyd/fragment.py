@@ -859,6 +859,37 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'FA'
             ), # 284.2721
+        # sphingosine fragments from sulfohexosyl ceramide
+        'Sph_pC6O5H8_pSO3_pH2O':
+            ChainFragParam(
+                plus = 'C6O11H10S',
+                minus = '',
+                charge = -1,
+                name = 'Sph%s+C6O5H8+SO3+H2O',
+                constraints = (
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('SHex',),
+                        chaintype = 'Sph',
+                    ),
+                ),
+                chaintype = 'Sph'
+            ),
+        'Sph_pC6O5H8_pSO3_pCO_pH2O':
+            ChainFragParam(
+                plus = 'C7O12H10S',
+                minus = '',
+                charge = -1,
+                name = 'Sph%s+C6O5H8+SO3+CO+H2O',
+                constraints = (
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('SHex',),
+                        chaintype = 'Sph',
+                    ),
+                ),
+                chaintype = 'Sph'
+            ),
     }
     
     param_pos = {
