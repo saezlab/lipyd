@@ -1350,7 +1350,26 @@ specimens = [
         'pos',
         48,
         {'Sph(k8:0)': (
-
+            MS2Identity(
+                score = 50,
+                hg = Headgroup(main='Sph', sub=()),
+                chainsum = ChainSummary(
+                    c = 8,
+                    u = 0,
+                    typ = ('Sph',),
+                    attr = (ChainAttr(sph='k', ether=False, oh=()),)
+                ),
+                chains = (
+                    Chain(
+                        c = 8,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='k', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
         )}
     ),
 ]

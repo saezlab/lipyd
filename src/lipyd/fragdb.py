@@ -105,7 +105,9 @@ class FragmentDatabaseAggregator(object):
         }
         self.fal_default = fal_default or self.fa_default
         self.sph_default = sph_default or {
-            'c': [14, 16, 17, 18, 19, 20, 21],
+            # added 8 here as for kSph we have C8 standard
+            # TODO: find a better solution for this
+            'c': [8, 14, 16, 17, 18, 19, 20, 21],
             'u': (0, 1)
         }
         

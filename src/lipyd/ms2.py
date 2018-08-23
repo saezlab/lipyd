@@ -3846,9 +3846,6 @@ class Cer_Positive(AbstractMS2Identifier):
                         frag_type = 'Sph-C-2xH2O',
                     ),
                     self.scn.has_chain_fragment_type(
-                        frag_type = 'Sph-C-H2O-H',
-                    ),
-                    self.scn.has_chain_fragment_type(
                         frag_type = 'Sph-H2O-H',
                     ),
                     self.scn.has_chain_fragment_type(

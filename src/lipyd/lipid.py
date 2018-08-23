@@ -813,10 +813,9 @@ class KetoSphingosine(AbstractSphingolipid):
         
         sph_args = sph_args or {}
         sph_args['keto'] = True
-        
-        if 'c' not in sph_args:
-            
-            sph_args['c'] = (6, 24)
+        # this is here because we have C8 kSph in tests and standards
+        # TODO: find a better solution for this
+        sph_args['c'] = (6, 24)
         
         AbstractSphingolipid.__init__(
             self,
