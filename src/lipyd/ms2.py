@@ -3832,7 +3832,10 @@ idmethods = {
         lipproc.Headgroup(main = 'Cer', sub = ('Hex',)): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('Hex2',)): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('SHex',)): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('SHex2',)): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('PE',)): Cer_Positive,
         lipproc.Headgroup(main = 'SM'): Cer_Positive,
+        lipproc.Headgroup(main = 'Sph'): Cer_Positive,
     }
 }
 
