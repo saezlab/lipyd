@@ -1143,6 +1143,11 @@ class FattyFragmentFactory(object):
                 name = 'Sph%s-H',
                 constraints = (
                     FragConstraint(
+                        hg = 'Sph',
+                        sph = 't',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
                         hg = 'Cer',
                         sph = 't',
                         chaintype = 'Sph',
@@ -1155,7 +1160,7 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'Sph'
             ), # 300.2897
-        # also from tCer
+        # also from tCer & tSph
         'Sph_pH2O_mH':
             ChainFragParam(
                 plus = 'NH4O3',
@@ -1163,6 +1168,11 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'Sph%s+H2O-H',
                 constraints = (
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 't',
+                        chaintype = 'Sph',
+                    ),
                     FragConstraint(
                         hg = 'Cer',
                         sub = ('Hex',),
@@ -1191,7 +1201,7 @@ class FattyFragmentFactory(object):
                     ),
                     FragConstraint(
                         hg = 'Sph',
-                        sph = 'DH',
+                        sph = 't',
                         chaintype = 'Sph',
                     ),
                 ),
@@ -1278,7 +1288,7 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'Sph'
             ), # 312.3261
-        # sphinosine fragments from keto-sphingosine
+        # sphinosine fragments from keto-sphingosine & tSph
         'Sph_mC_mH2O_mH':
             ChainFragParam(
                 plus = 'NO',
@@ -1289,6 +1299,11 @@ class FattyFragmentFactory(object):
                     FragConstraint(
                         hg = 'Sph',
                         sph = 'k',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 't',
                         chaintype = 'Sph',
                     ),
                 ),
@@ -1326,6 +1341,11 @@ class FattyFragmentFactory(object):
                         sph = 'DH',
                         chaintype = 'Sph',
                     ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 't',
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 254.2842
@@ -1346,9 +1366,29 @@ class FattyFragmentFactory(object):
                         sph = 'DH',
                         chaintype = 'Sph',
                     ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 't',
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 240.2812
+        'Sph_mC2H2_mO_mH2O_mNH':
+            ChainFragParam(
+                plus = '',
+                minus = 'C2H2',
+                charge = 1,
+                name = 'Sph%s-C2H2-O-H2O-NH',
+                constraints = (
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 't',
+                        chaintype = 'Sph',
+                    ),
+                ),
+                chaintype = 'Sph'
+            ), # 226.2655
         'Sph_mNH2_mH2O_m2H':
             ChainFragParam(
                 plus = 'O',
@@ -1378,6 +1418,11 @@ class FattyFragmentFactory(object):
                     ),
                     FragConstraint(
                         hg = 'Cer',
+                        sph = 't',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
                         sph = 't',
                         chaintype = 'Sph',
                     ),

@@ -1288,6 +1288,34 @@ specimens = [
             ),
         )}
     ),
+    # DHSph positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        453,
+        {'Sph(DH18:0)': (
+            MS2Identity(
+                score = 27,
+                hg = Headgroup(main='Sph', sub=()),
+                chainsum = ChainSummary(
+                    c = 18,
+                    u = 0,
+                    typ = ('Sph',),
+                    attr = (ChainAttr(sph='DH', ether=False, oh=()),)
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='DH', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
+        )}
+    )
 ]
 
 
