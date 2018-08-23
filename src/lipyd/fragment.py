@@ -1081,6 +1081,11 @@ class FattyFragmentFactory(object):
                         chaintype = 'Sph'
                     ),
                     FragConstraint(
+                        hg = 'Sph',
+                        sph = 't',
+                        chaintype = 'Sph'
+                    ),
+                    FragConstraint(
                         hg = 'Cer',
                         sub = ('1P',),
                         chaintype = 'Sph',

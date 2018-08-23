@@ -1315,6 +1315,15 @@ specimens = [
                 details = None
             ),
         )}
+    ),
+    # tSph positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        354,
+        {'': (
+
+        )}
     )
 ]
 
