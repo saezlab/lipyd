@@ -3413,6 +3413,7 @@ class Cer_Positive(AbstractMS2Identifier):
     
     class_methods = {
         'SM': 'sm',
+        'Sph': 'sph',
     }
     
     subclass_methods = {
@@ -3426,17 +3427,20 @@ class Cer_Positive(AbstractMS2Identifier):
     
     def __init__(self, record, scan):
         
+        self.nacyl = record.chainsum is not None and len(record.chainsum) > 1
+        self.oacyl = record.chainsum is not None and len(record.chainsum) > 2
+        
         AbstractMS2Identifier.__init__(
             self,
             record,
             scan,
-            missing_chains = (1,),
+            missing_chains = (1,) if self.nacyl else (),
             chain_comb_args = {},
             must_have_chains = True,
         )
         
-        self.sph   = {}
-        self.fa    = {}
+        self.sph_scores   = {}
+        self.fa_scores    = {}
     
     def confirm_class(self):
         
@@ -3470,15 +3474,25 @@ class Cer_Positive(AbstractMS2Identifier):
             
             if chains[0][0].attr.sph == self.rec.chainsum.attr[0].sph:
                 
+                # the sphingosin base and fatty acyl related part of the
+                # score is valid only for the current chain combination
+                # hence now we add these to the overall score, yield the
+                # identification and then subtract them from the score
                 sph_score = self.sphingosine_base(chains[0][0].attr.sph)
                 self.score += sph_score
-                fa_score  = self.fatty_acyl(chains[0][1])
-                self.score += fa_score
+                
+                if self.nacyl:
+                    
+                    fa_score  = self.fatty_acyl(chains[0][1])
+                    self.score += fa_score
                 
                 yield chains
                 
                 self.score -= sph_score
-                self.score -= fa_score
+                
+                if self.nacyl:
+                    
+                    self.score -= fa_score
     
     def fatty_acyl(self, fa):
         
@@ -3665,24 +3679,44 @@ class Cer_Positive(AbstractMS2Identifier):
         
         return score
     
+    def sph(self):
+        
+        score = 0
+        
+        score += sum(map(bool,
+            (
+                self.scn.has_fragment('[C3+NH2] (56.0495)'),
+                self.scn.has_fragment('[C2+NH2+O] (60.0444)'),
+                self.scn.has_fragment('[C4+NH2+OH] (86.0600)'),
+            )
+        )) * 3
+        
+        return score
+    
     def sphingosine_base(self, sph):
         
-        if sph not in self.sph:
+        if sph not in self.sph_scores:
             
             method = 'sphingosine_%s' % sph.lower()
             
-            self.sph[sph] = (
+            self.sph_scores[sph] = (
                 getattr(self, method)() if hasattr(self, method) else 0
             )
         
-        return self.sph[sph]
+        return self.sph_scores[sph]
     
     def sphingosine_d(self):
         
         score = 0
         
-        if self.scn.chain_fragment_type_is(
-            0, frag_type = 'Sph-2xH2O+H', u = (False, {0})
+        if (
+            self.nacyl and self.scn.chain_fragment_type_is(
+                0, frag_type = 'Sph-2xH2O+H', u = (False, {0})
+            )
+        ) or (
+            not self.nacyl and self.scn.chain_fragment_type_is(
+                0, frag_type = 'Sph-H2O+H', u = (False, {0})
+            )
         ):
             
             score += 5
@@ -3700,6 +3734,9 @@ class Cer_Positive(AbstractMS2Identifier):
                 ) and
                 self.scn.chain_fragment_type_among_most_abundant(
                     4, frag_type = 'Sph-C-O-H2O-H', u = (False, {0})
+                ) and
+                self.scn.chain_fragment_type_among_most_abundant(
+                    4, frag_type = 'Sph-2xH2O+H', u = (False, {0})
                 )
             ):
                 score += 10

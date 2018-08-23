@@ -1222,6 +1222,7 @@ specimens = [
             ),
         )}
     ),
+    # SHex-dCer
     (
         'pos_examples.mgf',
         'pos',
@@ -1254,6 +1255,34 @@ specimens = [
                         attr = ChainAttr(sph='', ether=False, oh=()),
                         iso = ()
                     )
+                ),
+                details = None
+            ),
+        )}
+    ),
+    # dSph positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        566,
+        {'Sph(d18:1)': (
+            MS2Identity(
+                score = 27,
+                hg = Headgroup(main='Sph', sub=()),
+                chainsum = ChainSummary(
+                    c = 18,
+                    u = 1,
+                    typ = ('Sph',),
+                    attr = (ChainAttr(sph='d', ether=False, oh=()),)
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='d', ether=False, oh=()),
+                        iso = ()
+                    ),
                 ),
                 details = None
             ),
