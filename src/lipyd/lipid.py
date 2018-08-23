@@ -858,7 +858,7 @@ class HydroxySphingosine(AbstractSphingolipid):
         AbstractSphingolipid.__init__(
             self,
             sph = sph,
-            name = 'tSph',
+            name = 'Sph',
             t = True,
             **kwargs
         )
