@@ -1344,7 +1344,15 @@ specimens = [
             ),
         )}
     ),
-    
+    # kSph positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        48,
+        {'Sph(k8:0)': (
+
+        )}
+    ),
 ]
 
 
