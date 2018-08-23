@@ -3813,7 +3813,46 @@ class Cer_Positive(AbstractMS2Identifier):
                         frag_type = 'Sph-C-2xH2O',
                     ),
                     self.scn.has_chain_fragment_type(
-                        frag_type = 'Sph+H2O_mH',
+                        frag_type = 'Sph+H2O-H',
+                    ),
+                    self.scn.chain_fragment_type_among_most_abundant(
+                        5, frag_type = 'Sph-H',
+                    ),
+                )
+            )) * 3
+        
+        return score
+    
+    def sphingosine_k(self):
+        
+        score = 0
+        
+        if self.scn.has_chain_fragment_type(frag_type = 'Sph-C-H2O-2H'):
+            
+            score += 15
+        
+        score += sum(map(bool,
+            (
+                self.scn.has_fragment('[C2+NH2+O] (60.0444)'),
+                self.scn.has_fragment('[C4+NH2+OH] (86.0600)'),
+                self.scn.has_fragment('[C6+OH] (99.0804)'),
+                self.scn.has_fragment('[C3+NH2] (56.0495)'),
+            )
+        )) * 3
+        
+        score += sum(map(bool,
+                (
+                    self.scn.has_chain_fragment_type(
+                        frag_type = 'Sph-C-2xH2O',
+                    ),
+                    self.scn.has_chain_fragment_type(
+                        frag_type = 'Sph-C-H2O-H',
+                    ),
+                    self.scn.has_chain_fragment_type(
+                        frag_type = 'Sph-H2O-H',
+                    ),
+                    self.scn.has_chain_fragment_type(
+                        frag_type = 'Sph-H',
                     ),
                     self.scn.chain_fragment_type_among_most_abundant(
                         5, frag_type = 'Sph-H',
