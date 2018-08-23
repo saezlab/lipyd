@@ -1022,6 +1022,11 @@ class FattyFragmentFactory(object):
                     ),
                     FragConstraint(
                         hg = 'Sph',
+                        sph = 'DH',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
                         sub = ('1P',),
                         chaintype = 'Sph',
                     ),
@@ -1221,6 +1226,12 @@ class FattyFragmentFactory(object):
                     ),
                     FragConstraint(
                         hg = 'Sph',
+                        sph = 'd',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 'DH',
                         chaintype = 'Sph',
                     ),
                     FragConstraint(
@@ -1310,6 +1321,11 @@ class FattyFragmentFactory(object):
                         sph = 'd',
                         chaintype = 'Sph',
                     ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sph = 'DH',
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 254.2842
@@ -1322,6 +1338,11 @@ class FattyFragmentFactory(object):
                 constraints = (
                     FragConstraint(
                         hg = 'Cer',
+                        sph = 'DH',
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
                         sph = 'DH',
                         chaintype = 'Sph',
                     ),
