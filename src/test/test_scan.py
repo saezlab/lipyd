@@ -848,7 +848,7 @@ specimens = [
         2070,
         {'Cer(t36:0)': (
             MS2Identity(
-                score = 22,
+                score = 25,
                 hg = Headgroup(main='Cer', sub=()),
                 chainsum = ChainSummary(
                     c = 36,
@@ -1323,7 +1323,7 @@ specimens = [
         354,
         {'Sph(t18:0)': (
             MS2Identity(
-                score = 30,
+                score = 33,
                 hg = Headgroup(main='Sph', sub=()),
                 chainsum = ChainSummary(
                     c = 18,
