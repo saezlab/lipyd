@@ -3649,6 +3649,22 @@ class Cer_Positive(AbstractMS2Identifier):
         
         return score
     
+    def shex2cer(self):
+        
+        score = 0
+        
+        score += sum(map(bool,
+            (
+                self.scn.has_fragment('NL [S] (NL 79.9568)'),
+                self.scn.has_fragment('NL [S+H2O] (97.9674)'),
+                self.scn.has_fragment('NL [2xHexose+SO3] (NL 404.0625)'),
+                self.scn.has_fragment('NL [2xHexose+SO3+H2O] (NL 422.0730)'),
+                self.scn.has_fragment('NL [2xHexose+SO3+2xH2O] (NL 440.0836)'),
+            )
+        )) * 5
+        
+        return score
+    
     def sphingosine_base(self, sph):
         
         if sph not in self.sph:
