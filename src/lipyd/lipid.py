@@ -814,10 +814,14 @@ class KetoSphingosine(AbstractSphingolipid):
         sph_args = sph_args or {}
         sph_args['keto'] = True
         
+        if 'c' not in sph_args:
+            
+            sph_args['c'] = (6, 24)
+        
         AbstractSphingolipid.__init__(
             self,
             sph_args = sph_args,
-            name = 'Keto-Sph',
+            name = 'Sph',
             **kwargs
         )
 
