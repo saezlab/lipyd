@@ -1321,8 +1321,27 @@ specimens = [
         'pos_examples.mgf',
         'pos',
         354,
-        {'': (
-
+        {'Sph(t18:0)': (
+            MS2Identity(
+                score = 30,
+                hg = Headgroup(main='Sph', sub=()),
+                chainsum = ChainSummary(
+                    c = 18,
+                    u = 0,
+                    typ = ('Sph',),
+                    attr = (ChainAttr(sph='t', ether=False, oh=()),)
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
         )}
     )
 ]
