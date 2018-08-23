@@ -42,7 +42,7 @@ specimens = [
         {
             'FA(18:1)': (
                 ms2.MS2Identity(
-                    score = 5,
+                    score = 10,
                     hg = lipproc.Headgroup(main = 'FA'),
                     chainsum = lipproc.ChainSummary(
                         c = 18,
@@ -234,6 +234,7 @@ specimens = [
             ),
         )}
     ),
+    # PE positive
     (
         'pos_examples.mgf',
         'pos',
@@ -271,6 +272,7 @@ specimens = [
             ),
         )}
     ),
+    # PC negative
     (
         'neg_examples.mgf',
         'neg',
@@ -649,7 +651,7 @@ specimens = [
             ),
         )}
     ),
-    # Lyso-PE
+    # Lyso-PE negative
     (
         'neg_examples.mgf',
         'neg',
@@ -677,13 +679,14 @@ specimens = [
             ),
         )}
     ),
+    # Lyso-PE positive
     (
         'pos_examples.mgf',
         'pos',
         619,
         {'Lyso-PE(16:0)': (
             MS2Identity(
-                score = 10,
+                score = 15,
                 hg = Headgroup(main='PE', sub=('Lyso',)),
                 chainsum = ChainSummary(
                     c = 16,
@@ -769,7 +772,7 @@ specimens = [
         3172,
         {'Cer(d36:1)': (
             MS2Identity(
-                score = 24,
+                score = 19,
                 hg = Headgroup(main='Cer', sub=()),
                 chainsum = ChainSummary(
                     c = 36,
@@ -807,7 +810,7 @@ specimens = [
         2367,
         {'Cer(DH36:0)': (
             MS2Identity(
-                score = 27,
+                score = 22,
                 hg = Headgroup(main='Cer', sub=()),
                 chainsum = ChainSummary(
                     c = 36,
@@ -845,7 +848,7 @@ specimens = [
         2070,
         {'Cer(t36:0)': (
             MS2Identity(
-                score = 27,
+                score = 22,
                 hg = Headgroup(main='Cer', sub=()),
                 chainsum = ChainSummary(
                     c = 36,
@@ -883,7 +886,7 @@ specimens = [
         2421,
         {'Cer(d36:1-2OH)': (
             MS2Identity(
-                score = 22,
+                score = 17,
                 hg = Headgroup(main='Cer', sub=()),
                 chainsum = ChainSummary(
                     c = 36,
@@ -923,7 +926,7 @@ specimens = [
         3208,
         {'Cer1P(d42:2)': (
             MS2Identity(
-                score = 27,
+                score = 22,
                 hg = Headgroup(main='Cer', sub=('1P',)),
                 chainsum = ChainSummary(
                     c = 42,
@@ -961,7 +964,7 @@ specimens = [
         3806,
         {'Hex-Cer(d42:2)': (
             MS2Identity(
-                score = 40,
+                score = 35,
                 hg = Headgroup(main='Cer', sub=('Hex',)),
                 chainsum = ChainSummary(
                     c = 42,
@@ -999,7 +1002,7 @@ specimens = [
         3787,
         {'Hex-Cer(t42:2)': (
             MS2Identity(
-                score = 41,
+                score = 36,
                 hg = Headgroup(main='Cer', sub=('Hex',)),
                 chainsum = ChainSummary(
                     c = 42,
@@ -1037,7 +1040,7 @@ specimens = [
         3626,
         {'Hex2-Cer(t42:2)': (
             MS2Identity(
-                score = 47,
+                score = 42,
                 hg = Headgroup(main='Cer', sub=('Hex2',)),
                 chainsum = ChainSummary(
                     c = 42,
@@ -1075,7 +1078,7 @@ specimens = [
         3005,
         {'Hex-Cer(t40:1)': (
             MS2Identity(
-                score = 31,
+                score = 26,
                 hg = Headgroup(main='Cer', sub=('Hex',)),
                 chainsum = ChainSummary(
                     c = 40,
@@ -1113,7 +1116,7 @@ specimens = [
         2981,
         {'Hex-Cer(t42:2)': (
             MS2Identity(
-                score = 31,
+                score = 26,
                 hg = Headgroup(main='Cer', sub=('Hex',)),
                 chainsum = ChainSummary(
                     c = 42,
@@ -1151,7 +1154,7 @@ specimens = [
         3092,
         {'Hex-Cer(d42:2)': (
             MS2Identity(
-                score = 30,
+                score = 25,
                 hg = Headgroup(main='Cer', sub=('Hex',)),
                 chainsum = ChainSummary(
                     c = 42,
@@ -1188,7 +1191,7 @@ specimens = [
         2290,
         {'SM(d34:1)': (
             MS2Identity(
-                score = 40,
+                score = 35,
                 hg = Headgroup(main='SM', sub=()),
                 chainsum = ChainSummary(
                     c = 34,

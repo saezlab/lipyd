@@ -559,6 +559,20 @@ class Scan(ScanBase):
             
             return self.mz_among_most_abundant(mz, n = n)
     
+    def fragment_percent_of_most_abundant(self, name, percent = 80.0):
+        """
+        Tells if a fragment has at least certain percent of intensity
+        compared to the highest peak.
+        """
+        
+        frag = fragdb.by_name(name, self.ionmode)
+        
+        if frag is not None:
+            
+            mz = self.nl(frag[0]) if frag[6] == 0 else frag[0]
+            
+            return self.mz_percent_of_most_abundant(mz, percent = percent)
+    
     def most_abundant_mz_is(self, mz):
         """
         Tells if the m/z with the highest intensity is `mz`.
@@ -2290,6 +2304,16 @@ class FA_Negative(AbstractMS2Identifier):
                 }
             }
         )
+    
+    def confirm_class(self):
+        
+        if self.scn.chain_among_most_abundant(
+            frag_type = 'FA-H',
+            c = self.rec.chainsum.c,
+            u = self.rec.chainsum.u,
+        ):
+            
+            self.score = 10
 
 
 class FA_Positive(AbstractMS2Identifier):
@@ -2565,6 +2589,10 @@ class PE_Positive(AbstractMS2Identifier):
                 
                 return
             
+            if self.scn.has_fragment('PE [P+E] (142.0264)'):
+                
+                self.score += 5
+            
             self.score += 15
 
 
@@ -2597,9 +2625,13 @@ class LysoPE_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        if self.scn.has_fragment('PE [P+E] (NL 141.0191)'):
+        if self.scn.has_fragment('NL PE [P+E] (NL 141.0191)'):
             
-            self.score += 5
+            self.score = 5
+            
+            if self.scn.has_fragment('PE [P+E] (142.0264)'):
+                
+                self.score += 5
             
             self.scn.build_chain_list()
             
@@ -2700,9 +2732,10 @@ class PC_Positive(AbstractMS2Identifier):
     def confirm_class(self):
         
         if (
-            self.scn.most_abundant_fragment_is('PC/SM [P+Ch] (184.0733)') and
+            self.scn.fragment_percent_of_most_abundant(
+                'PC/SM [P+Ch] (184.0733)', 10.0
+            ) and
             self.scn.has_fragment('PC/SM [Ch] (86.096)')
-            #TODO: distinguish LyspPC
         ):
             
             if self.check_lyso():
