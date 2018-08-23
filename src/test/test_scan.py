@@ -1372,6 +1372,15 @@ specimens = [
             ),
         )}
     ),
+    # DHSph-1P positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        465,
+        {'': (
+
+        )}
+    )
 ]
 
 

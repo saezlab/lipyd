@@ -706,6 +706,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             t = False,
             dihydro = False,
             name = 'Sphingolipid',
+            subtype = (),
             typ  = 'SL',
             hg = None,
             getname = None,
@@ -772,7 +773,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 )
             )
         
-        hg = hg or lipproc.Headgroup(main = name)
+        hg = hg or lipproc.Headgroup(main = name, sub = subtype)
         
         metabolite.AbstractMetabolite.__init__(
             self,
@@ -845,7 +846,8 @@ class SphingosinePhosphate(AbstractSphingolipid):
         AbstractSphingolipid.__init__(
             self,
             sph_args = sph_args,
-            name = 'SphP',
+            name = 'Sph',
+            subtype = ('1P',),
             o = 'PO3H2',
             **kwargs
         )
@@ -875,7 +877,8 @@ class MethylSphingosine(AbstractSphingolipid):
             self,
             n = 'CH3',
             sph_args = sph_args,
-            name = 'SphM',
+            name = 'Sph',
+            subtype = ('M',),
             **kwargs
         )
 
@@ -888,7 +891,8 @@ class DiMethylSphingosine(AbstractSphingolipid):
             self,
             n = 'C2H5',
             sph_args = sph_args,
-            name = 'SphM2',
+            name = 'Sph',
+            subtype = ('M2',),
             **kwargs
         )
 
@@ -901,7 +905,8 @@ class TriMethylSphingosine(AbstractSphingolipid):
             self,
             n = 'C3H8',
             sph_args = sph_args,
-            name = 'SphM3',
+            name = 'Sph',
+            subtype = ('M3',),
             **kwargs
         )
 
