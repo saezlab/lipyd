@@ -216,26 +216,24 @@ class MgfReader(object):
                     'No MS1 RT provided, could not check RT '
                     'difference of MS2 scans.'
                 )
-                
-            else:
-                
-                idx = idx[
-                    np.logical_or(
-                        np.isnan(rtdiff),
-                        np.abs(rtdiff) < self.rt_tolerance
-                    )
-                ]
-                
-                if self.log.verbosity > 4:
-                    
-                    self.log.msg(
-                    'RT range: %.03f--%.03f; '
-                    'Matching MS2 scans within this range: %u' % (
-                        rtlower,
-                        rtupper,
-                        len(idx),
-                    )
+            
+            idx = idx[
+                np.logical_or(
+                    np.isnan(rtdiff),
+                    np.abs(rtdiff) < self.rt_tolerance
                 )
+            ]
+            
+            if self.log.verbosity > 4:
+                
+                self.log.msg(
+                'RT range: %.03f--%.03f; '
+                'Matching MS2 scans within this range: %u' % (
+                    rtlower,
+                    rtupper,
+                    len(idx),
+                )
+            )
             
         elif self.log.verbosity > 4:
             

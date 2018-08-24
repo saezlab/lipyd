@@ -324,7 +324,11 @@ class GlycerolipidFactory(object):
             ((True, True), 'DAG', False),
             ((False, True), 'DAG', False),
             ((True, True, True), 'TAG', False),
-            ((False, True, True), 'TAG', False)
+            ((False, True, True), 'TAG', False),
+            ('C7H14NO2', 'DGTS', False),
+            ('C7H14NO3', 'DGCC', False),
+            ('C7H14NO2', 'DGTA', False),
+            ('C6O7SH11', 'SQDG', False),
         ]
         l_ether = [False, True]
         l_lyso  = [False, True]
@@ -589,14 +593,23 @@ class GlycerolipidFactory(object):
             
             if not phospho:
                 
-                faa = headgroup
-                sn1_ether = not faa[0]
-                sn2_ether = not faa[1] if len(faa) > 1 else False
-                sn3_ether = not faa[2] if len(faa) > 2 else False
-                lyso = len(faa) == 1
-                sn3_fa = len(faa) == 3
-                headgroup = 'H'
-                child = self.gl_class_name(faa)
+                if type(headgroup) is tuple:
+                    
+                    # neutral glycerolipids
+                    
+                    faa = headgroup
+                    sn1_ether = not faa[0]
+                    sn2_ether = not faa[1] if len(faa) > 1 else False
+                    sn3_ether = not faa[2] if len(faa) > 2 else False
+                    lyso = len(faa) == 1
+                    sn3_fa = len(faa) == 3
+                    headgroup = 'H'
+                    child = self.gl_class_name(faa)
+                    
+                else:
+                    
+                    sn1_ether = sn2_ether = sn3_ether = sn3_fa = False
+                    child = name
                 
             else:
                 sn1_ether = sn2_ether = sn3_ether = sn3_fa = False
@@ -766,7 +779,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                     ),
                     (
                         '%u:%u' % (
-                            sum(s.c for s in chains),
+                            sm(s.c for s in chains),
                             sum(s.u for s in chains)
                         ) if self.sum_only else ''
                     )
