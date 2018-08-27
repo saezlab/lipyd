@@ -329,11 +329,18 @@ class GlycerolipidFactory(object):
             ('C7H14NO3', 'DGCC', False),
             ('C7H14NO2', 'DGTA', False),
             ('C6O7SH11', 'SQDG', False),
+            ('C6O5H11', 'MGDG', False),
+            ('C12O10H21', 'DGDG', False),
         ]
         l_ether = [False, True]
         l_lyso  = [False, True]
         
         docs = {
+            'DGDG':
+                """
+                Example:
+                    https://pubchem.ncbi.nlm.nih.gov/compound/52922098
+                """,
             'PE':
                 """
                 Example:
@@ -779,7 +786,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                     ),
                     (
                         '%u:%u' % (
-                            sm(s.c for s in chains),
+                            sum(s.c for s in chains),
                             sum(s.u for s in chains)
                         ) if self.sum_only else ''
                     )

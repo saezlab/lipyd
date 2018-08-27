@@ -1373,6 +1373,7 @@ specimens = [
         )}
     ),
     # DHSph-1P positive
+    # +180 ppm off
     (
         'pos_examples.mgf',
         'pos',

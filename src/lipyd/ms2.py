@@ -2378,11 +2378,11 @@ class DAG_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        if list(self.scn.chain_combinations(self.rec, head = 10)):
+        if self.scn.has_chain_combinations(self.rec, head = 10):
             
             self.score += 4
         
-        if list(self.scn.chain_combinations(self.rec, head = 6)):
+        if self.scn.has_chain_combinations(self.rec, head = 6):
             
             self.score += 2
 
@@ -2417,11 +2417,11 @@ class DAG_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        if list(self.scn.chain_combinations(self.rec, head = 10)):
+        if self.scn.has_chain_combinations(self.rec, head = 10):
             
             self.score += 4
         
-        if list(self.scn.chain_combinations(self.rec, head = 6)):
+        if self.scn.has_chain_combinations(self.rec, head = 6):
             
             self.score += 2
 
@@ -2453,7 +2453,7 @@ class TAG_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        if list(self.scn.chain_combinations(self.rec)):
+        if self.scn.has_chain_combinations(self.rec):
             
             self.score += 5
 
@@ -2488,9 +2488,103 @@ class TAG_Negative(AbstractMS2Identifier):
         
         self.score = 0
         
-        if list(self.scn.chain_combinations(self.rec)):
+        if self.scn.has_chain_combinations(self.rec):
             
             self.score += 5
+
+
+class GL_Positive(AbstractMS2Identifier):
+    """
+    Generic class for identification of glycerolipids.
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    class_methods = {
+        'DGTS': 'dgts',
+        'DGCC': 'dgcc',
+        'DGTA': 'dgts',
+        'DGDG': 'dgdg',
+        'MGDG': 'mgdg',
+        'SQDG': 'sqdg',
+    }
+    
+    def confirm_class(self):
+        
+        if self.rec.hg.main in self.class_methods:
+            
+            getattr(self, self.class_methods[self.rec.hg.main])()
+    
+    def dgts(self):
+        
+        if self.scn.has_fragment('DGTS [G+TS] (236.1492)'):
+            
+            self.score += 10
+            
+            self.score += sum(map(bool,
+                (
+                    self.scn.has_fragment('DGTS [TS] (144.1019)'),
+                    self.scn.has_chain_fragment_type('NL FA-H2O'),
+                )
+            )) * 10
+    
+    def dgcc(self):
+        
+        if self.scn.has_fragment('PC/SM [Ch+H2O] (104.107)'):
+            
+            self.score += 10
+            
+            if self.scn.has_fragment('DGCC [C2+Ch] (132.1388)'):
+                
+                self.score += 10
+    
+    def sqdg(self):
+        
+        if self.scn.has_fragment('NL [Hexose+SO3+H2O+H] (NL 261.0280)'):
+            
+            self.score += 10
+    
+    def mgdg(self):
+        
+        if self.scn.has_fragment('[Hexose+H2O-H] (NL 197.07)'):
+            
+            self.score += 10
+    
+    def dgdg(self):
+        
+        if self.scn.has_fragment('NL [2xHexose+H2O-H] (NL 359.1190)'):
+            
+            self.score += 10
+
+
+class GL_Negative(AbstractMS2Identifier):
+    """
+    Generic class for identification of glycerolipids.
+    """
+    
+    def __init__(self, record, scan):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {}
+        )
+    
+    def confirm_class(self):
+        
+        if self.scn.has_chain_combinations(frag_type = {'FA-H', 'FA-'}):
+            
+            self.score += 10
 
 #
 # Glycerophospholipids
@@ -3871,6 +3965,12 @@ idmethods = {
         lipproc.Headgroup(main = 'FA'):  FA_Negative,
         lipproc.Headgroup(main = 'DAG'): DAG_Negative,
         lipproc.Headgroup(main = 'TAG'): TAG_Negative,
+        lipproc.Headgroup(main = 'DGTA'): GL_Negative,
+        lipproc.Headgroup(main = 'DGTS'): GL_Negative,
+        lipproc.Headgroup(main = 'DGCC'): GL_Negative,
+        lipproc.Headgroup(main = 'SQDG'): GL_Negative,
+        lipproc.Headgroup(main = 'MGDG'): GL_Negative,
+        lipproc.Headgroup(main = 'DGDG'): GL_Negative,
         lipproc.Headgroup(main = 'PE'):  PE_Negative,
         lipproc.Headgroup(main = 'PE', sub = ('Lyso',)): PE_Negative,
         lipproc.Headgroup(main = 'PC'):  PC_Negative,
@@ -3887,6 +3987,12 @@ idmethods = {
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FA_Positive,
         lipproc.Headgroup(main = 'DAG'): DAG_Positive,
+        lipproc.Headgroup(main = 'DGTA'): GL_Positive,
+        lipproc.Headgroup(main = 'DGTS'): GL_Positive,
+        lipproc.Headgroup(main = 'DGCC'): GL_Positive,
+        lipproc.Headgroup(main = 'SQDG'): GL_Positive,
+        lipproc.Headgroup(main = 'MGDG'): GL_Positive,
+        lipproc.Headgroup(main = 'DGDG'): GL_Positive,
         lipproc.Headgroup(main = 'TAG'): TAG_Positive,
         lipproc.Headgroup(main = 'PE'):  PE_Positive,
         lipproc.Headgroup(main = 'PE', sub = ('Lyso',)):  LysoPE_Positive,

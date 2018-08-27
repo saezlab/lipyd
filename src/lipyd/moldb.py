@@ -931,3 +931,29 @@ def adduct_lookup(mz, ionmode, adduct_constraints = True):
         ionmode = ionmode,
         adduct_constraints = adduct_constraints
     )
+
+def possible_classes(
+        mz,
+        ionmode,
+        adduct_constraints = True,
+        main_only = True
+    ):
+    """
+    For a m/z returns a set of possible classes.
+    
+    :param bool main_only:
+        Return only the set of main classes or subclasses.
+    """
+    
+    return set(
+        r.hg.main if main_only else r.hg
+        for rr in itertools.chain(
+            adduct_lookup(
+                mz,
+                ionmode,
+                adduct_constraints = adduct_constraints
+            ).values()
+        )
+        for r in rr[1]
+        if r.hg is not None
+    )
