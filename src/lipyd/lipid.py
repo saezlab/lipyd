@@ -38,10 +38,10 @@ sphingolipids = [
     'TriMethylSphingosine',
     'CeramideD',
     'CeramideT',
-    'DihydroCeramide',
+    'CeramideDihydro',
     'HydroxyacylCeramideD',
     'HydroxyacylCeramideT',
-    'HydroxyacylDihydroCeramide'
+    'HydroxyacylCeramideDihydro'
 ]
 
 fattyacids = [
@@ -1053,7 +1053,7 @@ class CeramideT(AbstractCeramide):
         )
 
 
-class DihydroCeramide(AbstractCeramide):
+class CeramideDihydro(AbstractCeramide):
     
     def __init__(
             self,
@@ -1122,7 +1122,7 @@ class HydroxyacylCeramideT(CeramideT):
         )
 
 
-class HydroxyacylDihydroCeramide(CeramideD):
+class HydroxyacylCeramideDihydro(CeramideD):
     
     def __init__(
             self,
@@ -1141,24 +1141,36 @@ class HydroxyacylDihydroCeramide(CeramideD):
 
 class CeramideFactory(object):
     
+    lcb_name = {
+        'd':  'D',
+        't':  'T',
+        'DH': 'Dihydro',
+        'k':  'Keto',
+    }
+    
     def __init__(self, fa_args_1o = None, **kwargs):
         
         fa_args_1o = fa_args_1o or {'c': (4, 24), 'u': (0, 9)}
         
-        l_t = [True, False]
+        l_lcb = ['d', 't', 'DH', 'k']
         l_fa_hydroxy = [True, False]
         l_classes = [
-            ('PO3H2', 'Cer', ('1P',)),
-            ('C12H21O10SO3', 'Cer', ('SHex2',)),
-            ('C6H11O5SO3', 'Cer', ('SHex',)),
-            ('C12H21O10', 'Cer', ('Hex2',)),
-            ('C6H11O5', 'Cer', ('Hex',)),
-            ('PO3C2H4NC3H9', 'SM', ()),
-            ('PO3C2H4NH3', 'Cer', ('PE',)),
-            (None, 'Cer', ('1OAcyl',))
-            
+            # 1-O substituent, headgroup main class,
+            # headgroup subclass, N-acyl
+            ('PO3H2', 'Cer', ('1P',), True),
+            ('C12H21O10SO3', 'Cer', ('SHex2',), True),
+            ('C6H11O5SO3', 'Cer', ('SHex',), True),
+            ('C12H21O10', 'Cer', ('Hex2',), True),
+            ('C6H11O5', 'Cer', ('Hex',), True),
+            ('PO3C2H4NC3H9', 'SM', (), True),
+            ('PO3C2H4NH3', 'Cer', ('PE',), True),
+            (None, 'Cer', ('1OAcyl',), True),
+            ('H', 'Sph', (), False),
+            ('PO3H2', 'Sph', ('1P',), False),
+            ('H', 'Sph', ('M1'), False),
+            ('H', 'Sph', ('M2'), False),
+            ('H', 'Sph', ('M3'), False),
         ]
-        l_dihydro = [True, False]
         
         docs = {
             'CeramideDPhosphoethanolamine':
@@ -1314,16 +1326,19 @@ class CeramideFactory(object):
         
         mod = sys.modules[__name__]
         
-        for t, fa_hydroxy, dihydro, (o, name, subtype) in itertools.product(
-                l_t, l_fa_hydroxy, l_dihydro, l_classes
-            ):
+        for lcb, fa_hydroxy, (o, name, subtype, nacyl) in (
+            itertools.product(l_lcb, l_fa_hydroxy, l_classes)
+        ):
             
-            if (t and dihydro):
+            if (
+                (lcb == 'k' and (nacyl or subtype)) or
+                (fa_hydroxy and not nacyl)
+            ):
                 
                 continue
             
             parent, child = self.class_name(
-                name, subtype, t, dihydro, fa_hydroxy, o
+                name, subtype, lcb, fa_hydroxy, o, nacyl
             )
             
             exec(
@@ -1382,26 +1397,29 @@ class CeramideFactory(object):
         
         delattr(mod, '__init__')
     
-    def class_name(self, name, subtype, t, dihydro, hydroxyacyl, o):
+    def class_name(self, name, subtype, lcb, hydroxyacyl, o, nacyl):
         
-        dt = 'T' if t else 'D' if not dihydro else ''
+        lcbtype = self.lcb_name[lcb] if lcb in self.lcb_name else ''
         
         maintype = '%s%s' % (
-            'Ceramide' if name == 'Cer' else 'Sphingomyelin',
-            dt
+            'Ceramide'
+                if name == 'Cer' else
+            'Sphingomyelin'
+                if nacyl else
+            'Sphingosine',
+            lcbtype
         )
         
-        parmaintype = 'Ceramide%s' % dt
-        
-        sub1 = '%s%s' % (
-            'Hydroxyacyl' if hydroxyacyl else '',
-            'Dihydro' if dihydro else ''
+        parmaintype = (
+            'Ceramide%s' % lcbtype
+                if nacyl else
+            'AbstractSphingolipid'
         )
         
-        parent = '%s%s' % (sub1, parmaintype)
+        parent = '%s%s' % ('Hydroxyacyl' if hydroxyacyl else '', parmaintype)
         
         child = '%s%s%s%s%s' % (
-                sub1,
+                'Hydroxyacyl' if hydroxyacyl else '',
                 'Sulfo' if any('SHex' in s for s in subtype) else '',
                 'DiHexosyl'
                     if any('Hex2' in s for s in subtype)
