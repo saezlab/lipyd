@@ -473,7 +473,7 @@ def get_db(ionmode, **kwargs):
     
     return getattr(mod, attr)
 
-def lookup(mz, ionmode, nl = False):
+def lookup(mz, ionmode, nl = False, tolerance = None):
     """
     Looks up an m/z in the fragment database, returns all fragment identities
     within range of tolerance.
@@ -489,27 +489,27 @@ def lookup(mz, ionmode, nl = False):
     """
     
     db = get_db(ionmode)
-    return db.lookup(mz, nl = nl)
+    return db.lookup(mz, nl = nl, tolerance = tolerance)
 
-def lookup_nl(mz, precursor, ionmode):
+def lookup_nl(mz, precursor, ionmode, tolerance = None):
     """
     Looks up an MS2 neutral loss in the fragment database.
     """
     
     db = get_db(ionmode)
-    return db.lookup_nl(mz, precursor)
+    return db.lookup_nl(mz, precursor, tolerance = tolerance)
 
-def lookup_pos(mz):
+def lookup_pos(mz, tolerance = None):
     
-    return lookup(mz, 'pos')
+    return lookup(mz, 'pos', tolerance = tolerance)
 
-def lookup_neg(mz):
+def lookup_neg(mz, tolerance = None):
     
-    return lookup(mz, 'neg')
+    return lookup(mz, 'neg', tolerance = tolerance)
 
-def lookup_pos_nl(mz, precursor):
+def lookup_pos_nl(mz, precursor, tolerance = None):
     
-    return lookup_nl(mz, precursor, 'pos')
+    return lookup_nl(mz, precursor, 'pos', tolerance = tolerance)
 
 def lookup_neg_nl(mz, precursor):
     
@@ -555,7 +555,8 @@ class FragmentAnnotator(object):
             self,
             mzs,
             ionmode,
-            precursor = None
+            precursor = None,
+            tolerance = None,
         ):
         """
         Annotates all fragmenta in MS2 scan with possible identites.
@@ -574,6 +575,7 @@ class FragmentAnnotator(object):
         self.mzs = mzs
         self.ionmode = ionmode
         self.precursor = precursor
+        self.tolerance = tolerance or settings.get('ms2_tolerance')
     
     def reload(self):
         
@@ -599,11 +601,13 @@ class FragmentAnnotator(object):
         
         if self.precursor:
             
-            nl_annot = lookup_nl(mz, self.precursor, self.ionmode)
+            nl_annot = lookup_nl(
+                mz, self.precursor, self.ionmode, tolerance = self.tolerance
+            )
             
             result.extend(FragmentAnnotation(*a) for a in nl_annot)
         
-        annot = lookup(mz, self.ionmode)
+        annot = lookup(mz, self.ionmode, tolerance = self.tolerance)
         
         result.extend(FragmentAnnotation(*a) for a in annot)
         

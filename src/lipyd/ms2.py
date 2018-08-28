@@ -96,9 +96,11 @@ class ScanBase(object):
             mzs,
             ionmode,
             precursor = None,
-            intensities = None
+            intensities = None,
+            tolerance = None,
         ):
         
+        self.tolerance = tolerance or settings.get('ms2_tolerance')
         self.sorted_by = None
         self.mzs = mzs
         self.ionmode = ionmode
@@ -203,7 +205,8 @@ class ScanBase(object):
         annotator = fragdb.FragmentAnnotator(
             self.mzs,
             self.ionmode,
-            self.precursor
+            self.precursor,
+            tolerance = self.tolerance,
         )
         
         self.annot = np.array(list(annotator)) # this is array
@@ -235,10 +238,18 @@ class Scan(ScanBase):
             scan_id = None,
             sample = None,
             logger = None,
-            verbose = False
+            verbose = False,
+            tolerance = None,
         ):
         
-        ScanBase.__init__(self, mzs, ionmode, precursor, intensities)
+        ScanBase.__init__(
+            self,
+            mzs,
+            ionmode,
+            precursor,
+            intensities,
+            tolerance = tolerance
+        )
         
         # get some settings
         self.check_ratio_g = settings.get(
@@ -269,7 +280,6 @@ class Scan(ScanBase):
         self.sample = sample
         self.log = logger
         self.verbose = verbose
-        self.tolerance = settings.get('ms2_tolerance')
     
     @classmethod
     def from_mgf(
@@ -3953,12 +3963,6 @@ class Cer_Positive(AbstractMS2Identifier):
         
         return score
 
-
-class Sph_Positive(AbstractMS2Identifier):
-    
-    def __init__(self, record, scan):
-        
-        pass
 
 idmethods = {
     'neg': {
