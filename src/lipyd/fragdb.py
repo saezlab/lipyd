@@ -405,14 +405,14 @@ class FragmentDatabaseAggregator(object):
         
         return self.fragments[idx,:]
     
-    def lookup_nl(self, mz, precursor):
+    def lookup_nl(self, mz, precursor, tolerance = None):
         """
         Searches for neutral loss fragments in the database matching the
         m/z within the actual range of tolerance.
         """
         
         nlmz = precursor - mz
-        nl_tolerance = mz / nlmz * self.tolerance
+        nl_tolerance = mz / nlmz * (tolerance or self.tolerance)
         
         return self.lookup(nlmz, nl = True, tolerance = nl_tolerance)
     

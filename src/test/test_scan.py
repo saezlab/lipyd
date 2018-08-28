@@ -33,6 +33,17 @@ from lipyd.ms2 import MS2Identity
 settings.setup(ms2_scan_chain_details = False)
 
 
+# certain cases for example when our standard suffers from a
+# mass error, this way we apply special settings, e.g. increasing
+# the tolerance at fragment mass lookups
+special_settings = {
+    # finally this was not necessary
+    #(465, 'pos'): {
+        #'scan_args': {'tolerance = 250'},
+    #},
+}
+
+
 specimens = [
     # FA negative mode
     (
@@ -1002,7 +1013,7 @@ specimens = [
         3787,
         {'Hex-Cer(t42:2)': (
             MS2Identity(
-                score = 36,
+                score = 39,
                 hg = Headgroup(main='Cer', sub=('Hex',)),
                 chainsum = ChainSummary(
                     c = 42,
@@ -1040,7 +1051,7 @@ specimens = [
         3626,
         {'Hex2-Cer(t42:2)': (
             MS2Identity(
-                score = 42,
+                score = 45,
                 hg = Headgroup(main='Cer', sub=('Hex2',)),
                 chainsum = ChainSummary(
                     c = 42,
@@ -1377,9 +1388,28 @@ specimens = [
     (
         'pos_examples.mgf',
         'pos',
-        465,
-        {'': (
-
+        568,
+        {'Sph1P(DH18:0)': (
+            MS2Identity(
+                score = 26,
+                hg = Headgroup(main='Sph', sub=('1P',)),
+                chainsum = ChainSummary(
+                    c = 18,
+                    u = 0,
+                    typ = ('Sph',),
+                    attr = (ChainAttr(sph='DH', ether=False, oh=()),)
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='DH', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
         )}
     )
 ]
@@ -1396,8 +1426,20 @@ class TestScan(object):
             identity
         ):
         
+        
+        std_key = (scan_id, ionmode)
+        
+        scan_args = (
+            special_settings[std_key]['scan_args']
+            if (
+                std_key in special_settings and
+                'scan_args' in special_settings[std_key]
+            )
+            else {}
+        )
+        
         mgfpath = os.path.join(common.ROOT, 'data', 'ms2_examples', mgfname)
-        scan = ms2.Scan.from_mgf(mgfpath, scan_id, ionmode)
+        scan = ms2.Scan.from_mgf(mgfpath, scan_id, ionmode, **scan_args)
         
         iscan = scan.identify()
         

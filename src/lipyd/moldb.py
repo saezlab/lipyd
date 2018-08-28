@@ -517,11 +517,11 @@ class MoleculeDatabaseAggregator(object):
     def __init__(
             self,
             resources = None,
-            tolerance = 20,
+            tolerance = None,
             fa_args = None,
             sph_args = None,
             build = True,
-            verbose = False
+            verbose = False,
         ):
         """
         Builds a database of molecules and provides methods for look up by
@@ -548,7 +548,7 @@ class MoleculeDatabaseAggregator(object):
             'SwissLipids': (SwissLipids, {}),
             'LipidMaps': (LipidMaps, {})
         }
-        self.tolerance = tolerance
+        self.tolerance = tolerance or settings.get('ms1_tolerance')
         
         self.fa_args  = fa_args or {'c': (4, 36), 'u': (0, 10)}
         self.sph_args = sph_args or {'c': (16, 22), 'u': (0, 1)}
@@ -771,25 +771,29 @@ class MoleculeDatabaseAggregator(object):
         self.data = self.data[self.masses.argsort()]
         self.masses.sort()
     
-    def ilookup(self, m):
+    def ilookup(self, m, tolerance = None):
         
-        return _lookup.findall(self.masses, m, t = self.tolerance)
+        return _lookup.findall(
+            self.masses,
+            m,
+            t = tolerance or self.tolerance,
+        )
     
-    def lookup(self, m):
+    def lookup(self, m, tolerance = None):
         
-        i = self.ilookup(m)
+        i = self.ilookup(m, tolerance = tolerance)
         
         return (
             self.masses[i],
-            self.data[i]
+            self.data[i],
         )
     
-    def lookup_accuracy(self, m):
+    def lookup_accuracy(self, m, tolerance = None):
         """
         Performs a lookup and adds accuracy information to the result.
         """
         
-        r = self.lookup(m)
+        r = self.lookup(m, tolerance = tolerance)
         
         a = np.array([
             (m - rm) / m * 10**6 for rm in r[0]
@@ -804,6 +808,7 @@ class MoleculeDatabaseAggregator(object):
             ionmode = None,
             charge = None,
             adduct_constraints = True,
+            tolerance = None,
         ):
         """
         Does a series of lookups in the database assuming various adducts.
@@ -841,7 +846,7 @@ class MoleculeDatabaseAggregator(object):
             
             exmz = getattr(mz, method)()
             
-            res  = self.lookup_accuracy(exmz)
+            res  = self.lookup_accuracy(exmz, tolerance = tolerance)
             
             if adduct_constraints:
                 
@@ -917,26 +922,33 @@ def get_db():
     
     return getattr(mod, 'db')
 
-def lookup(m):
+def lookup(m, tolerance = None):
     
     db = get_db()
     return db.lookup(m)
 
-def adduct_lookup(mz, ionmode, adduct_constraints = True):
+def adduct_lookup(
+        mz,
+        ionmode,
+        adduct_constraints = True,
+        tolerance = None,
+    ):
     
     db = get_db()
     
     return db.adduct_lookup(
         mz,
         ionmode = ionmode,
-        adduct_constraints = adduct_constraints
+        adduct_constraints = adduct_constraints,
+        tolerance = tolerance,
     )
 
 def possible_classes(
         mz,
         ionmode,
         adduct_constraints = True,
-        main_only = True
+        main_only = True,
+        tolerance = None,
     ):
     """
     For a m/z returns a set of possible classes.
@@ -951,7 +963,8 @@ def possible_classes(
             adduct_lookup(
                 mz,
                 ionmode,
-                adduct_constraints = adduct_constraints
+                adduct_constraints = adduct_constraints,
+                tolerance = tolerance,
             ).values()
         )
         for r in rr[1]

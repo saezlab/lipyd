@@ -240,6 +240,7 @@ class Scan(ScanBase):
             logger = None,
             verbose = False,
             tolerance = None,
+            ms1_tolerance = None,
         ):
         
         ScanBase.__init__(
@@ -248,10 +249,11 @@ class Scan(ScanBase):
             ionmode,
             precursor,
             intensities,
-            tolerance = tolerance
+            tolerance = tolerance,
         )
         
         # get some settings
+        self.ms1_tolerance = ms1_tolerance or settings.get('ms1_tolerance')
         self.check_ratio_g = settings.get(
             'even_chain_fragment_intensity_ratios_gl_gpl'
         )
@@ -269,7 +271,9 @@ class Scan(ScanBase):
             # this is not efficient but makes possible
             # to easily use standalone `Scan` instances
             # for testing and such
-            self.ms1_records = moldb.adduct_lookup(precursor, ionmode)
+            self.ms1_records = moldb.adduct_lookup(
+                precursor, ionmode, tolerance = self.ms1_tolerance
+            )
             
         else:
             
@@ -973,7 +977,7 @@ class Scan(ScanBase):
             intensity_threshold = None,
             expected_intensities = None,
             no_intensity_check = False,
-            chain_param = ()
+            chain_param = (),
         ):
         """
         Provides a way to see if specific chain combinations exist.
@@ -1017,6 +1021,10 @@ class Scan(ScanBase):
                     value in param[key]
                 )
             )
+        
+        if len(record.chainsum) > 1 and len(chain_param) == 1:
+            
+            chain_param = chain_param * len(record.chainsum)
         
         for chains, details in self.chain_combinations(
             record,
@@ -2592,7 +2600,12 @@ class GL_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        if self.scn.has_chain_combinations(frag_type = {'FA-H', 'FA-'}):
+        if self.scn.has_chain_combination(
+            record = self.rec,
+            chain_param = (
+                {'frag_type': {'FA-H', 'FA-'}},
+            )
+        ):
             
             self.score += 10
 
