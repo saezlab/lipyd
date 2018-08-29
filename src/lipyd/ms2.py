@@ -2178,7 +2178,9 @@ class AbstractMS2Identifier(object):
         for chains in self.confirm_chains_explicit():
             
             yield MS2Identity(
-                self.score, self.rec.hg, self.rec.chainsum,
+                self.score,
+                self.rec.hg,
+                self.rec.chainsum,
                 chains = chains[0],
                 details = chains[1]
             )
@@ -2199,9 +2201,11 @@ class AbstractMS2Identifier(object):
         if not chains_confirmed and not self.must_have_chains and self.score:
             
             yield MS2Identity(
-                self.score, self.rec.hg, self.rec.chainsum,
+                self.score,
+                self.rec.hg,
+                self.rec.chainsum,
                 chains = None,
-                details = None
+                details = None,
             )
     
     def confirm_class(self):

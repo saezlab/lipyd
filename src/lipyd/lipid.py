@@ -727,6 +727,16 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
         
         if not sph:
             
+            # this is necessary because we have only 8:0 standard for kSph
+            # TODO: find a better solution for this
+            if lcb_type == 'k':
+                
+                sph_args['c'] = (
+                    (8, sph_args['c'])
+                        if type(sph_args['c']) is int else
+                    (8, sph_args['c'][1])
+                )
+            
             sph = substituent.Sphingosine(lcb_type = lcb_type, **sph_args)
         
         def _getname(parent, subs):

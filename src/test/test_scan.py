@@ -935,7 +935,7 @@ specimens = [
         'pos_examples.mgf',
         'pos',
         3208,
-        {'Cer1P(d42:2)': (
+        {'Cer-1P(d42:2)': (
             MS2Identity(
                 score = 22,
                 hg = Headgroup(main='Cer', sub=('1P',)),
@@ -1389,7 +1389,7 @@ specimens = [
         'pos_examples.mgf',
         'pos',
         568,
-        {'Sph1P(DH18:0)': (
+        {'Sph-1P(DH18:0)': (
             MS2Identity(
                 score = 26,
                 hg = Headgroup(main='Sph', sub=('1P',)),

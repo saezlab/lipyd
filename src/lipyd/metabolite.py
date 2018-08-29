@@ -206,7 +206,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             rec = lipproc.LipidRecord(
                 lab = lab,
                 hg  = self.hg,
-                chainsum = chainsum,
+                chainsum = chainsum if chainsum.c else None,
                 chains = () if self.sum_only else chains
             )
             
@@ -453,6 +453,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     new.variable_aliphatic_chain = (
                         self.variable_aliphatic_chain
                     )
+                    new.name = self.name
                     # new.attrs.chain = self.get_chain()
                     
                     yield new
