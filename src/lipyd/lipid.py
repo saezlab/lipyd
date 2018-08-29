@@ -27,22 +27,6 @@ import lipyd.formula as formula
 import lipyd.common as common
 import lipyd.lipproc as lipproc
 
-# will be further populated
-sphingolipids = [
-    'Sphingosine',
-    'KetoSphingosine',
-    'SphingosinePhosphate',
-    'HydroxySphingosine',
-    'MethylSphingosine',
-    'DiMethylSphingosine',
-    'TriMethylSphingosine',
-    'CeramideD',
-    'CeramideT',
-    'CeramideDihydro',
-    'HydroxyacylCeramideD',
-    'HydroxyacylCeramideT',
-    'HydroxyacylCeramideDihydro'
-]
 
 fattyacids = [
     'FattyAcid'
@@ -55,6 +39,7 @@ misc = [
 # will be populated by the factory
 glycerolipids = []
 glycerophospholipids = []
+sphingolipids = []
 
 #
 # Glycerolipids
@@ -242,6 +227,8 @@ class AbstractGlycerolipid(AbstractGlycerol):
                     )
                 )
             )
+        
+        def _getname(parent)
         
         AbstractGlycerol.__init__(
             self,
@@ -747,44 +734,6 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
         if not sph:
             
             sph = substituent.Sphingosine(lcb_type = lcb_type, **sph_args)
-        
-        def _getname(parent, subs):
-            
-            sep = '-' if self.sum_only else '/'
-            chains = [
-                s for s in subs
-                if parent.has_variable_aliphatic_chain(s)
-            ]
-            
-            prfx = parent.lcb_type
-            prfx = '' if prfx in parent.name else prfx
-            name = parent.name.split('-')
-            name = '%s%s%s' % (
-                '%s-' % name[0] if len(name) > 1 else '',
-                prfx,
-                name[1] if len(name) > 1 else name[0]
-            )
-            
-            return (
-                '%s(%s%s)' % (
-                    name,
-                    sep.join(
-                        n for n in (
-                            '%s%s' % (
-                                s.get_prefix(),
-                                '' if self.sum_only else s.name
-                            )
-                            for s in chains
-                        ) if n
-                    ),
-                    (
-                        '%u:%u' % (
-                            sum(s.c for s in chains),
-                            sum(s.u for s in chains)
-                        ) if self.sum_only else ''
-                    )
-                )
-            )
         
         def _getname(parent, subs):
             
