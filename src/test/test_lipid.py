@@ -37,7 +37,7 @@ gpl = [
         'LysoPE',
         {'fa_args': {'c': 18, 'u': 1}},
         479.30118982806,
-        'LysoPE(18:1)'
+        'Lyso-PE(18:1)'
     ),
     (
         'PI',
@@ -140,7 +140,7 @@ gl = [
 ]
 
 
-sl = {
+sl = [
     (
         'CeramideDPE',
         {
@@ -151,7 +151,7 @@ sl = {
         'Cer-PE(DH16:0/30:6)',
     ),
     (
-        'SulfoDiHexosylCeramideD',
+        'SulfoDihexosylCeramideD',
         {
             'sph_args': {'c': 18, 'u': 1},
             'fa_args': {'c': 18, 'u': 1},
@@ -248,7 +248,7 @@ sl = {
         'Sph(k18:0)',
     ),
     (
-        'SphingosineKeto',
+        'SphingosineDPhosphate',
         {
             'sph_args': {'c': 18, 'u': 0},
         },
@@ -276,7 +276,7 @@ sl = {
         {
             'sph_args': {'c': 18, 'u': 0},
         },
-        329.32937963178006
+        329.32937963178006,
         'Sph-M2(DH18:0)',
     ),
     (
@@ -287,7 +287,7 @@ sl = {
         342.33720466404003,
         'Sph-M3(DH18:0)',
     ),
-}
+]
 
 
 class TestLipid(object):

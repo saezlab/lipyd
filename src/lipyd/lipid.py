@@ -634,7 +634,7 @@ class GlycerolipidFactory(object):
                     str(sn3_ether),
                     str(sn3_fa),
                     name,
-                    '\'Lyso\',' if lyso else ''
+                    '\'Lyso\',' if lyso and name != 'MAG' else ''
                 ),
                 mod.__dict__,
                 mod.__dict__
@@ -1068,7 +1068,10 @@ class SphingolipidFactory(object):
                     'fa1o' if o is None else '\'%s\'' % o,
                     name,
                     name,
-                    str(subtype),
+                    str(subtype)
+                        # MAG has only one chain but we don't name it Lyso
+                        if name != 'MAG' or str(subtype) is not 'Lyso' else
+                    '',
                     lcb,
                     'fa_hydroxy = True,\n' if fa_hydroxy else '',
                 ),
