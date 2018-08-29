@@ -140,6 +140,100 @@ gl = [
 ]
 
 
+sl = {
+    (
+        'CeramideDPE',
+        {
+            'sph_args': {'c': 16, 'u': 0},
+            'fa_args': {'c': 30, 'u': 6},
+        },
+        818.63017553472,
+        'Cer-PE(DH16:0/30:6)',
+    ),
+    (
+        'SulfoDiHexosylCeramideD',
+        {
+            'sph_args': {'c': 18, 'u': 1},
+            'fa_args': {'c': 18, 'u': 1},
+        },
+        967.59020697344,
+        'SHex2-Cer(d18:1/18:1)',
+    ),
+    (
+        'DihexosylCeramideD',
+        {
+            'sph_args': {'c': 18, 'u': 1},
+            'fa_args':  {'c': 26, 'u': 0},
+        },
+        1001.77424251862,
+        'Hex2-Cer(d18:1/26:0)',
+    ),
+    (
+        'SulfoHexosylCeramideD',
+        {
+            'sph_args': {'c': 18, 'u': 1},
+            'fa_args':  {'c': 18, 'u': 2},
+        },
+        803.5217334853199,
+        'SHex-Cer(d18:1/18:2)',
+    ),
+    (
+        'HexosylCeramideD',
+        {
+            'sph_args': {'c': 18, 'u': 1},
+            'fa_args':  {'c': 16, 'u': 0},
+        },
+        699.56491844982,
+        'Hex-Cer(d18:1/16:0)',
+    ),
+    (
+        'SphingomyelinT',
+        {
+            'sph_args': {'c': 17, 'u': 0},
+            'fa_args':  {'c': 32, 'u': 5},
+        },
+        920.73464060656,
+        'SM(t17:0/32:5)',
+    ),
+    (
+        'SphingomyelinD',
+        {
+            'sph_args': {'c': 16, 'u': 1},
+            'fa_args':  {'c': 18, 'u': 1},
+        },
+        700.5519252121201,
+        'SM(d16:1/18:1)',
+    ),
+    (
+        'HydroxyacylCeramideD',
+        {
+            'sph_args': {'c': 14, 'u': 1},
+            'fa_args':  {'c': 20, 'u': 1},
+        },
+        551.4913595819,
+        'Cer(d14:1/20:1-2OH)',
+    ),
+    (
+        'CeramideT',
+        {
+            'sph_args': {'c': 18, 'u': 0},
+            'fa_args':  {'c': 10, 'u': 0},
+        },
+        471.42875932382003,
+        'Cer(t18:0/10:0)',
+    ),
+    (
+        'CeramideD',
+        {
+            'sph_args': {'c': 14, 'u': 1},
+            'fa_args':  {'c': 20, 'u': 1},
+        },
+        535.4964449617,
+        'Cer(d14:1/20:1)',
+    ),
+}
+
+
 class TestLipid(object):
     
     @pytest.mark.parametrize('clsname, args, mass, name', gpl)
@@ -153,6 +247,15 @@ class TestLipid(object):
     
     @pytest.mark.parametrize('clsname, args, mass, name', gl)
     def test_glycerolipids(self, clsname, args, mass, name):
+        
+        cls = getattr(lipyd.lipid, clsname)
+        lip = list(cls(**args))[0]
+        
+        assert abs(lip.mass - mass) < 0.000001
+        assert lip.name == name
+    
+    @pytest.mark.parametrize('clsname, args, mass, name', sl)
+    def test_sphingolipids(self, clsname, args, mass, name):
         
         cls = getattr(lipyd.lipid, clsname)
         lip = list(cls(**args))[0]

@@ -756,7 +756,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 if parent.has_variable_aliphatic_chain(s)
             ]
             
-            prfx = parent.lvb_type
+            prfx = parent.lcb_type
             prfx = '' if prfx in parent.name else prfx
             name = parent.name.split('-')
             name = '%s%s%s' % (
@@ -971,7 +971,7 @@ class AbstractCeramide(AbstractSphingolipid):
             self,
             o = o,
             n = fa,
-            sph = sph,
+            sph_args = sph_args,
             name = name,
             getname = getname,
             lcb_type = lcb_type,
@@ -1174,13 +1174,13 @@ class CeramideFactory(object):
         ]
         
         docs = {
-            'CeramideDPhosphoethanolamine':
+            'CeramideDPE':
                 """
                 Example:
                     http://www.swisslipids.org/#/entity/SLM:000398516/
                     
                     [(m.name, m.mass) for m in
-                        lipid.CeramideDPhosphoethanolamine(
+                        lipid.CeramideDPE(
                             sph_args = {'c': (16, 16), 'u': (0, 0)},
                             fa_args = {'c': (30, 30), 'u': (6, 6)}
                         )
@@ -1188,13 +1188,13 @@ class CeramideFactory(object):
                     
                     exact mass = 818.63017553472
                 """,
-            'SulfoDiHexosylCeramideD':
+            'SulfoDihexosylCeramideD':
                 """
                 Example:
                     http://www.swisslipids.org/#/entity/SLM:000396884/
                     
                     [(m.name, m.mass) for m in
-                        lipid.SulfoDiHexosylCeramideD(
+                        lipid.SulfoDihexosylCeramideD(
                             sph_args = {'c': (18, 18), 'u': (1, 1)},
                             fa_args = {'c': (18, 18), 'u': (1, 1)}
                         )
@@ -1202,13 +1202,13 @@ class CeramideFactory(object):
                     
                     exact mass = 967.59020697344
                 """,
-            'DiHexosylCeramideD':
+            'DihexosylCeramideD':
                 """
                 Example:
                     http://www.swisslipids.org/#/entity/SLM:000395342/
                     
                     [(m.name, m.mass) for m in
-                        lipid.DiHexosylCeramideD(
+                        lipid.DihexosylCeramideD(
                             sph_args = {'c': (18, 18), 'u': (1, 1)},
                             fa_args = {'c': (26, 26), 'u': (0, 0)}
                         )

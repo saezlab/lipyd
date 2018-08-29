@@ -107,12 +107,14 @@ class Sphingosine(metabolite.AbstractSubstituent):
         u = u if u is not None else (1, 6)
         counts = counts or {}
         
+        print(lcb_type)
+        
         if lcb_type == 'k':
             counts['H'] = counts['H'] - 2 if 'H' in counts else -2
         if lcb_type == 't':
             counts['O'] = counts['O'] + 1 if 'O' in counts else 1
         
-        chain_attr = lipproc.ChainAttr(sph = prefix)
+        chain_attr = lipproc.ChainAttr(sph = lcb_type)
         
         metabolite.AbstractSubstituent.__init__(
             self,
