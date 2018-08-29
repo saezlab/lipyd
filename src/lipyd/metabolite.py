@@ -453,7 +453,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     new.variable_aliphatic_chain = (
                         self.variable_aliphatic_chain
                     )
-                    new.attrs.chain = self.get_chain()
+                    # new.attrs.chain = self.get_chain()
                     
                     yield new
                     

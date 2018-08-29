@@ -186,7 +186,7 @@ def sum_chains(chains):
     From a list of chains creates a summary Chain object.
     """
     
-    return None if not chains else (
+    return empty_chainsum() if not chains else (
         ChainSummary(
             c = sum(i.c for i in chains),
             u = sum(i.u for i in chains),
@@ -233,7 +233,9 @@ def summary_str(hg, chainsum):
         # subclass attributes like 1-O-phosphate group of Cer1P, Sph1P, etc
         subcls_post,
         # chains summary
-        '(%s)' % chainsum.__str__() if chainsum is not None else ''
+        ('(%s)' % chainsum.__str__())
+            if chainsum is not None and chainsum.c > 0 else
+        ''
     )
 
 
@@ -246,7 +248,7 @@ def full_str(hg, chains, iso = False):
         get_attributes(hg, sum_chains(chains))
     )
     
-    return '%s%s%s(%s)' % (
+    return '%s%s%s%s' % (
         # subclass attributes like *PE*-Cer, *Lyso*-PC
         subcls_pre,
         # main class of headgroup e.g. Cer, PS
@@ -254,7 +256,9 @@ def full_str(hg, chains, iso = False):
         # subclass attributes like 1-O-phosphate group of Cer1P, Sph1P, etc
         subcls_post,
         # chains
-        '/'.join(c.__str__(iso = iso) for c in chains)
+        ('(%s)' % '/'.join(c.__str__(iso = iso) for c in chains))
+            if chains else
+        ''
     )
 
 def subclass_str(hg, chainsum = None):
