@@ -723,8 +723,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             charge  = None,
             pcharge = None,
             ncharge = None,
-            t = False,
-            dihydro = False,
+            lcb_type = 'd',
             name = 'Sphingolipid',
             subtype = (),
             typ  = 'SL',
@@ -743,17 +742,11 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 self.pcharge - self.ncharge
         )
         
-        self.t = t
-        self.dihydro = dihydro
+        self.lcb_type = lcb_type
         
         if not sph:
             
-            if self.t:
-                sph = substituent.HydroxySphingosine(**sph_args)
-            elif self.dihydro:
-                sph = substituent.DihydroSphingosine(**sph_args)
-            else:
-                sph = substituent.Sphingosine(**sph_args)
+            sph = substituent.Sphingosine(lcb_type = lcb_type, **sph_args)
         
         def _getname(parent, subs):
             
@@ -763,7 +756,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 if parent.has_variable_aliphatic_chain(s)
             ]
             
-            prfx = 'DH' if parent.dihydro else 't' if parent.t else 'd'
+            prfx = parent.lvb_type
             prfx = '' if prfx in parent.name else prfx
             name = parent.name.split('-')
             name = '%s%s%s' % (
@@ -943,8 +936,7 @@ class AbstractCeramide(AbstractSphingolipid):
             fa_args = None,
             o = 'H',
             fa_hydroxy = False,
-            t = False,
-            dihydro = False,
+            lcb_type = 'd',
             name = 'Cer',
             hg = None,
             getname = None,
@@ -953,13 +945,6 @@ class AbstractCeramide(AbstractSphingolipid):
         
         sph_args = sph_args or {}
         fa_args  = fa_args  or {}
-        
-        if t:
-            sph = substituent.HydroxySphingosine(**sph_args)
-        elif dihydro:
-            sph = substituent.DihydroSphingosine(**sph_args)
-        else:
-            sph = substituent.Sphingosine(**sph_args)
         
         if fa_hydroxy:
             fa = substituent.HydroxyFattyAcyl(**fa_args)
@@ -989,8 +974,7 @@ class AbstractCeramide(AbstractSphingolipid):
             sph = sph,
             name = name,
             getname = getname,
-            t = t,
-            dihydro = dihydro,
+            lcb_type = lcb_type,
             hg = hg,
             **kwargs
         )
@@ -1048,7 +1032,7 @@ class CeramideT(AbstractCeramide):
         AbstractCeramide.__init__(
             self,
             o = o,
-            t = True,
+            lcb_type = 't',
             **kwargs
         )
 
@@ -1066,7 +1050,7 @@ class CeramideDihydro(AbstractCeramide):
         
         AbstractCeramide.__init__(
             self,
-            dihydro = True,
+            lcb_type = 'DH',
             o = o,
             **kwargs
         )
@@ -1132,7 +1116,7 @@ class HydroxyacylCeramideDihydro(CeramideD):
         
         CeramideD.__init__(
             self,
-            dihydro = True,
+            lcb_type = 'DH',
             fa_hydroxy = True,
             o = o,
             **kwargs
@@ -1148,6 +1132,22 @@ class CeramideFactory(object):
         'k':  'Keto',
     }
     
+    pre_subclass_name = {
+        'M1':    'Methyl',
+        'M2':    'Dimethyl',
+        'M3':    'Trimethyl',
+        'Hex':   'Hexosyl',
+        'Hex2':  'Dihexosyl',
+        'SHex':  'SulfoHexosyl',
+        'SHex2': 'SulfoDihexosyl',
+    }
+    
+    post_subclass_name = {
+        '1P': 'Phosphate',
+        'PE': 'PE',
+        'PI': 'PI',
+    }
+    
     def __init__(self, fa_args_1o = None, **kwargs):
         
         fa_args_1o = fa_args_1o or {'c': (4, 24), 'u': (0, 9)}
@@ -1157,6 +1157,7 @@ class CeramideFactory(object):
         l_classes = [
             # 1-O substituent, headgroup main class,
             # headgroup subclass, N-acyl
+            ('H', 'Cer', (), True),
             ('PO3H2', 'Cer', ('1P',), True),
             ('C12H21O10SO3', 'Cer', ('SHex2',), True),
             ('C6H11O5SO3', 'Cer', ('SHex',), True),
@@ -1167,9 +1168,9 @@ class CeramideFactory(object):
             (None, 'Cer', ('1OAcyl',), True),
             ('H', 'Sph', (), False),
             ('PO3H2', 'Sph', ('1P',), False),
-            ('H', 'Sph', ('M1'), False),
-            ('H', 'Sph', ('M2'), False),
-            ('H', 'Sph', ('M3'), False),
+            ('HCH3', 'Sph', ('M1',), False),
+            ('HC2H6', 'Sph', ('M2',), False),
+            ('HC3H9', 'Sph', ('M3',), False),
         ]
         
         docs = {
@@ -1351,10 +1352,13 @@ class CeramideFactory(object):
                     '        name = \'%s\',\n'
                     '        hg = lipproc.Headgroup(\n'
                     '            main = \'%s\',\n'
-                    '            sub = %s\n'
+                    '            sub = %s,\n'
                     '        ),\n'
+                    '        lcb_type = \'%s\',\n'
+                    '        %s'
                     '        **kwargs\n'
                     '        )\n'
+                    
                 ) % (
                     # `fa_args_1o` is an argument for
                     # 1-O-acyl ceramides
@@ -1376,6 +1380,8 @@ class CeramideFactory(object):
                     name,
                     name,
                     str(subtype),
+                    lcb,
+                    'fa_hydroxy = True,\n' if fa_hydroxy else '',
                 ),
                 mod.__dict__,
                 mod.__dict__
@@ -1391,6 +1397,8 @@ class CeramideFactory(object):
                 {'__init__': mod.__dict__['__init__']}
             )
             
+            print('generating %s with parent %s, lcb_type = %s' % (child, parent, lcb))
+            
             setattr(mod, child, cls)
             
             sphingolipids.append(child)
@@ -1401,7 +1409,7 @@ class CeramideFactory(object):
         
         lcbtype = self.lcb_name[lcb] if lcb in self.lcb_name else ''
         
-        maintype = '%s%s' % (
+        main = '%s%s' % (
             'Ceramide'
                 if name == 'Cer' else
             'Sphingomyelin'
@@ -1410,27 +1418,22 @@ class CeramideFactory(object):
             lcbtype
         )
         
-        parmaintype = (
-            'Ceramide%s' % lcbtype
-                if nacyl else
-            'AbstractSphingolipid'
-        )
-        
-        parent = '%s%s' % ('Hydroxyacyl' if hydroxyacyl else '', parmaintype)
+        parent = 'AbstractCeramide' if nacyl else 'AbstractSphingolipid'
         
         child = '%s%s%s%s%s' % (
                 'Hydroxyacyl' if hydroxyacyl else '',
-                'Sulfo' if any('SHex' in s for s in subtype) else '',
-                'DiHexosyl'
-                    if any('Hex2' in s for s in subtype)
-                    else 'Hexosyl' if any('Hex' in s for s in subtype)
-                    else '',
-                maintype,
-                'Phosphoethanolamine'
-                    if 'PE' in subtype
-                    else 'Phosphate' if '1P' in subtype
-                    else '1OAcyl' if o is None
-                    else ''
+                ''.join(
+                    self.pre_subclass_name[s]
+                    for s in subtype
+                    if s in self.pre_subclass_name
+                ),
+                main,
+                ''.join(
+                    self.post_subclass_name[s]
+                    for s in subtype
+                    if s in self.post_subclass_name
+                ),
+                '1OAcyl' if o is None else '',
             )
         
         return parent, child

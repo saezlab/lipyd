@@ -94,8 +94,7 @@ class Sphingosine(metabolite.AbstractSubstituent):
             c = None,
             u = None,
             counts = None,
-            prefix = 'd',
-            keto = False,
+            lcb_type = 'd',
             **kwargs
         ):
         """
@@ -108,9 +107,10 @@ class Sphingosine(metabolite.AbstractSubstituent):
         u = u if u is not None else (1, 6)
         counts = counts or {}
         
-        if keto:
+        if lcb_type == 'k':
             counts['H'] = counts['H'] - 2 if 'H' in counts else -2
-            prefix = 'k'
+        if lcb_type == 't':
+            counts['O'] = counts['O'] + 1 if 'O' in counts else 1
         
         chain_attr = lipproc.ChainAttr(sph = prefix)
         
@@ -122,7 +122,7 @@ class Sphingosine(metabolite.AbstractSubstituent):
             u = u,
             chain_attr = chain_attr,
             chain_type = 'Sph',
-            prefix = prefix,
+            prefix = lcb_type,
             **kwargs
         )
     
