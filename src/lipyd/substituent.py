@@ -130,6 +130,7 @@ class Sphingosine(metabolite.AbstractSubstituent):
         
         return 'DH' if self.u == 0 and self.prefix == 'd' else self.prefix
 
+
 class DihydroSphingosine(Sphingosine):
     
     def __init__(self, c = None, u = None, counts = None, **kwargs):

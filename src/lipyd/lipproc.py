@@ -36,6 +36,8 @@ FAMILIES = {
 }
 
 
+SUBCLS_PRE = {'Hex', 'Hex2', 'SHex', 'SHex2', 'Lyso'}
+
 ChainAttr = collections.namedtuple(
     'ChainAttr',
     ['sph', 'ether', 'oh']
@@ -219,17 +221,17 @@ def summary_str(hg, chainsum):
     a summary Chain object.
     """
     
-    subcls, sphingo_prefix, ether_prefix, p1, hydroxy = get_attributes(
-        hg, chainsum
+    subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
+        get_attributes(hg, chainsum)
     )
     
     return '%s%s%s%s' % (
         # subclass attributes like *PE*-Cer, *Lyso*-PC
-        subcls,
+        subcls_pre,
         # main class of headgroup e.g. Cer, PS
         hg.main,
-        # 1-O-phosphate group of Cer1P, Sph1P, etc
-        p1,
+        # subclass attributes like 1-O-phosphate group of Cer1P, Sph1P, etc
+        subcls_post,
         # chains summary
         '(%s)' % chainsum.__str__() if chainsum is not None else ''
     )
@@ -240,17 +242,17 @@ def full_str(hg, chains, iso = False):
     From a Headgroup and a tuple of Chain objects returns a 
     """
     
-    subcls, sphingo_prefix, ether_prefix, p1, hydroxy = get_attributes(
-        hg, sum_chains(chains)
+    subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
+        get_attributes(hg, sum_chains(chains))
     )
     
     return '%s%s%s(%s)' % (
         # subclass attributes like *PE*-Cer, *Lyso*-PC
-        subcls,
+        subcls_pre,
         # main class of headgroup e.g. Cer, PS
         hg.main,
-        # 1-O-phosphate group of Cer1P, Sph1P, etc
-        p1,
+        # subclass attributes like 1-O-phosphate group of Cer1P, Sph1P, etc
+        subcls_post,
         # chains
         '/'.join(c.__str__(iso = iso) for c in chains)
     )
@@ -261,21 +263,21 @@ def subclass_str(hg, chainsum = None):
     headgroup string.
     """
     
-    subcls, sphingo_prefix, ether_prefix, p1, hydroxy = get_attributes(
-        hg, chainsum
+    subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
+        get_attributes(hg, chainsum)
     )
     
     return '%s%s%s%s%s%s' % (
         # subclass attributes like *PE*-Cer, *Lyso*-PC
-        subcls,
+        subcls_pre,
         # prefix of shingoid base subclass: d, t, k, DH
         sphingo_prefix,
         # main class of headgroup e.g. Cer, PS
         hg.main,
         # postfix of ether lipids e.g. PC-O, PE-O
         '-O' if ether_prefix else '',
-        # 1-O-phosphate group of Cer1P, Sph1P, etc
-        p1,
+        # subclass attributes like 1-O-phosphate group of Cer1P, Sph1P, etc
+        subcls_post,
         # postfix of hydroxylated fatty acyl e.g. Cer-2OH
         hydroxy
     )
@@ -292,9 +294,10 @@ def get_attributes(hg, chainsum = None):
     hydroxy = '-'.join('-'.join(c.oh) for c in chainsum.attr)
     hydroxy = '-%s' % hydroxy if hydroxy else ''
     
-    subcls  = '-'.join(i for i in hg.sub if i != '1P')
-    subcls  = '%s-' % subcls if subcls else ''
-    p1 = '1P' if '1P' in hg.sub else ''
+    subcls_pre   = '-'.join(i for i in hg.sub if i in SUBCLS_PRE)
+    subcls_pre   = '%s-' % subcls_pre if subcls_pre else ''
+    subcls_post  = '-'.join(i for i in hg.sub if i not in SUBCLS_PRE)
+    subcls_post  = '-%s' % subcls_post if subcls_post else ''
     
     sphingo_prefix = ''.join(a.sph for a in chainsum.attr)
     ether_prefix = any(a.ether for a in chainsum.attr)
@@ -305,7 +308,7 @@ def get_attributes(hg, chainsum = None):
     # sphingo_prefix = sphingo_prefix.pop() if sphingo_prefix else ''
     # ether_prefix = 'O' in chainsum.p
     
-    return subcls, sphingo_prefix, ether_prefix, p1, hydroxy
+    return subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy
 
 
 def match_constraint(rec, constr):

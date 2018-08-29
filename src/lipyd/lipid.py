@@ -719,14 +719,13 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             o = 'H',
             n = 'H',
             sph = None,
-            sph_args = None,
-            charge  = None,
-            pcharge = None,
-            ncharge = None,
-            lcb_type = 'd',
+            sph_args  = None,
+            charge    = None,
+            pcharge   = None,
+            ncharge   = None,
+            lcb_type  = 'd',
             name = 'Sphingolipid',
             subtype = (),
-            typ  = 'SL',
             hg = None,
             getname = None,
             **kwargs
@@ -742,7 +741,8 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 self.pcharge - self.ncharge
         )
         
-        self.lcb_type = lcb_type
+        self.lcb_type     = lcb_type
+        self.hg = hg or lipproc.Headgroup(main = name, sub = subtype)
         
         if not sph:
             
@@ -786,7 +786,29 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
                 )
             )
         
-        hg = hg or lipproc.Headgroup(main = name, sub = subtype)
+        def _getname(parent, subs):
+            
+            return (
+                lipproc.summary_str(
+                    self.hg,
+                    lipproc.sum_chains(
+                        tuple(
+                            s.attrs.chain
+                            for s in subs
+                            if hasattr(s.attrs, 'chain')
+                        )
+                    )
+                )
+                if self.sum_only else
+                lipproc.full_str(
+                    self.hg,
+                    tuple(
+                        s.attrs.chain
+                        for s in subs
+                        if hasattr(s.attrs, 'chain')
+                    )
+                )
+            )
         
         metabolite.AbstractMetabolite.__init__(
             self,
@@ -832,18 +854,6 @@ class AbstractCeramide(AbstractSphingolipid):
             fa = substituent.FattyAcyl(**fa_args)
         
         self.fa_hydroxy = fa_hydroxy
-        
-        #def getname(parent, subs):
-            
-            #return (
-                #'%s(%s%s/%s%s)' % (
-                    #parent.name,
-                    #subs[0].get_prefix(),
-                    #subs[0].name,
-                    #subs[1].get_prefix(),
-                    #subs[1].name
-                #)
-            #)
         
         hg = hg or lipproc.Headgroup(main = 'Cer')
         

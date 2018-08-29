@@ -442,25 +442,18 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     
                     if self.chain_type and self.chain_attr and c > 0:
                         
-                        new_attrs.chain = lipproc.Chain(
-                            c = c,
-                            u = u,
-                            typ = self.chain_type,
-                            attr = self.chain_attr
-                        )
+                        new_attrs.chain = self.get_chain()
                     
                     new = self + formula.Formula(**new_counts)
                     
                     new.attrs = new_attrs
-                    new.name = self.getname(self)
                     new.c = c
                     new.u = u
                     new.get_prefix = lambda: p
                     new.variable_aliphatic_chain = (
                         self.variable_aliphatic_chain
                     )
-                    
-                    new.cc_unsat_str = new.name if self.total > 1 else None
+                    new.attrs.chain = self.get_chain()
                     
                     yield new
                     
@@ -553,3 +546,12 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
     def get_prefix(self):
         
         return self.prefix
+    
+    def get_chain(self):
+        
+        return lipproc.Chain(
+            c = self.c,
+            u = self.u,
+            typ = self.chain_type,
+            attr = self.chain_attr,
+        )
