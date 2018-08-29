@@ -1411,7 +1411,35 @@ specimens = [
                 details = None
             ),
         )}
-    )
+    ),
+    # tSph-1P positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        338,
+        {'Sph-1P(t18:0)': (
+            MS2Identity(
+                score = 38,
+                hg = Headgroup(main='Sph', sub=('1P',)),
+                chainsum = ChainSummary(
+                    c = 18,
+                    u = 0,
+                    typ = ('Sph',),
+                    attr = (ChainAttr(sph='t', ether=False, oh=()),)
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
+        )}
+    ),
 ]
 
 
@@ -1425,7 +1453,6 @@ class TestScan(object):
             scan_id,
             identity
         ):
-        
         
         std_key = (scan_id, ionmode)
         

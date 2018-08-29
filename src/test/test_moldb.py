@@ -30,7 +30,7 @@ class TestMoldb(object):
     
     def test_database_size(self):
         
-        assert self.mda.data.shape[0] > 120000
+        assert self.mda.data.shape[0] > 130000
     
     def test_chainlength_unsaturation(self):
         
