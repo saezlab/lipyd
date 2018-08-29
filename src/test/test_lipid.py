@@ -231,6 +231,62 @@ sl = {
         535.4964449617,
         'Cer(d14:1/20:1)',
     ),
+    (
+        'SphingosineD',
+        {
+            'sph_args': {'c': 18, 'u': 0},
+        },
+        301.29807950274,
+        'Sph(DH18:0)',
+    ),
+    (
+        'SphingosineKeto',
+        {
+            'sph_args': {'c': 18, 'u': 0},
+        },
+        299.28242943822,
+        'Sph(k18:0)',
+    ),
+    (
+        'SphingosineKeto',
+        {
+            'sph_args': {'c': 18, 'u': 0},
+        },
+        381.26441039409997,
+        'Sph-1P(DH18:0)',
+    ),
+    (
+        'SphingosineT',
+        {
+            'sph_args': {'c': 18, 'u': 0},
+        },
+        317.29299412294,
+        'Sph(t18:0)',
+    ),
+    (
+        'MethylSphingosineD',
+        {
+            'sph_args': {'c': 18, 'u': 0},
+        },
+        315.31372956726,
+        'Sph-M1(DH18:0)',
+    ),
+    (
+        'DimethylSphingosineD',
+        {
+            'sph_args': {'c': 18, 'u': 0},
+        },
+        329.32937963178006
+        'Sph-M2(DH18:0)',
+    ),
+    (
+        'TrimethylSphingosineD',
+        {
+            'sph_args': {'c': 18, 'u': 0},
+        },
+        342.33720466404003,
+        'Sph-M3(DH18:0)',
+    ),
 }
 
 

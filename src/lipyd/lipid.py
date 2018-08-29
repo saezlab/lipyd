@@ -1123,7 +1123,7 @@ class HydroxyacylCeramideDihydro(CeramideD):
         )
 
 
-class CeramideFactory(object):
+class SphingolipidFactory(object):
     
     lcb_name = {
         'd':  'D',
@@ -1168,9 +1168,9 @@ class CeramideFactory(object):
             (None, 'Cer', ('1OAcyl',), True),
             ('H', 'Sph', (), False),
             ('PO3H2', 'Sph', ('1P',), False),
-            ('HCH3', 'Sph', ('M1',), False),
-            ('HC2H6', 'Sph', ('M2',), False),
-            ('HC3H9', 'Sph', ('M3',), False),
+            ('HCH2', 'Sph', ('M1',), False),
+            ('HC2H4', 'Sph', ('M2',), False),
+            ('HC3H5', 'Sph', ('M3',), False),
         ]
         
         docs = {
@@ -1507,8 +1507,8 @@ class VitaminA(metabolite.AbstractMetabolite):
         )
 
 
-# creating further Ceramide derived classes:
-_factory = CeramideFactory()
+# creating further Sphingolipid derived classes:
+_factory = SphingolipidFactory()
 del _factory
 
 # creating further Glycerolipid derived classes:
