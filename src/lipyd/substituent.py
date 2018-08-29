@@ -107,8 +107,6 @@ class Sphingosine(metabolite.AbstractSubstituent):
         u = u if u is not None else (1, 6)
         counts = counts or {}
         
-        print(lcb_type)
-        
         if lcb_type == 'k':
             counts['H'] = counts['H'] - 2 if 'H' in counts else -2
         if lcb_type == 't':
