@@ -201,34 +201,27 @@ class AbstractGlycerolipid(AbstractGlycerol):
         
         def _getname(parent, subs):
             
-            sep = '-' if self.sum_only else '/'
-            chains = [
-                s for s in subs
-                if parent.has_variable_aliphatic_chain(s)
-            ]
-            
             return (
-                '%s(%s%s)' % (
-                    parent.name,
-                    sep.join(
-                        n for n in (
-                            '%s%s' % (
-                                s.get_prefix(),
-                                '' if self.sum_only else s.name
-                            )
-                            for s in chains
-                        ) if n
-                    ),
-                    (
-                        '%u:%u' % (
-                            sum(s.c for s in chains),
-                            sum(s.u for s in chains)
-                        ) if self.sum_only else ''
+                lipproc.summary_str(
+                    self.hg,
+                    lipproc.sum_chains(
+                        tuple(
+                            s.attrs.chain
+                            for s in subs
+                            if hasattr(s.attrs, 'chain')
+                        )
+                    )
+                )
+                if self.sum_only else
+                lipproc.full_str(
+                    self.hg,
+                    tuple(
+                        s.attrs.chain
+                        for s in subs
+                        if hasattr(s.attrs, 'chain')
                     )
                 )
             )
-        
-        def _getname(parent)
         
         AbstractGlycerol.__init__(
             self,
