@@ -1491,6 +1491,14 @@ specimens = [
             ),
         )},
     ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        3123,
+        {'': (
+
+        )}
+    )
 ]
 
 

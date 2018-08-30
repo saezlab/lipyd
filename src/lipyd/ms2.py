@@ -4083,6 +4083,69 @@ class Cer_Positive(AbstractMS2Identifier):
         return score
 
 
+class Cer_Negative(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a ceramide.
+    Identifies ceramide varieties including sphingomyeline,
+    ceramide-1-phosphare, ceramide-phosphoethanolamine,
+    OH-acyl-ceramide, hexosyl and dihexosyl-ceramides,
+    and d, t and DH long chain base varieties.
+    """
+    
+    class_methods = {
+        
+    }
+    
+    subclass_methods = {
+        
+    }
+    
+    def __init__(self, record, scan):
+        
+        self.nacyl = record.chainsum is not None and len(record.chainsum) > 1
+        self.oacyl = record.chainsum is not None and len(record.chainsum) > 2
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (1,) if self.nacyl else (),
+            chain_comb_args = {},
+            must_have_chains = True,
+        )
+        
+        self.sph_scores   = {}
+        self.fa_scores    = {}
+    
+    def confirm_class(self):
+        
+        AbstractMS2Identifier.confirm_class(self)
+        
+        self.score += sum(map(
+            self.scn.has_fragment,
+            (
+                
+            )
+        ))
+        
+        self.confirm_subclass()
+    
+    def sphingosine_base(self, sph):
+        
+        if sph not in self.sph_scores:
+            
+            method = 'sphingosine_%s' % sph.lower()
+            
+            self.sph_scores[sph] = (
+                getattr(self, method)() if hasattr(self, method) else 0
+            )
+        
+        return self.sph_scores[sph]
+
+#
+# Scan.identify() dispatches identification methods by this
+#
+
 idmethods = {
     'neg': {
         lipproc.Headgroup(main = 'FA'):  FA_Negative,
@@ -4112,6 +4175,7 @@ idmethods = {
         lipproc.Headgroup(main = 'PG', sub = ('Lyso',)):  PG_Negative,
         lipproc.Headgroup(main = 'BMP'): BMP_Negative,
         lipproc.Headgroup(main = 'VA'): VA_Negative,
+        lipproc.Headgroup(main = 'Cer'): Cer_Negative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FA_Positive,
