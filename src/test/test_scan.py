@@ -1470,7 +1470,7 @@ specimens = [
         # to see if this gets lower score
         'Sph-M1(d19:1)': (
             MS2Identity(
-                score = 22,
+                score = 32,
                 hg = Headgroup(main='Sph', sub=('M1',)),
                 chainsum = ChainSummary(
                     c = 19,
@@ -1489,7 +1489,7 @@ specimens = [
                 ),
                 details = None
             ),
-        )}
+        )},
     ),
 ]
 
