@@ -559,6 +559,13 @@ class GlycerolipidFactory(object):
                     
                     exact mass = 1346.6790633754044
                 """,
+            'LysoDGTS':
+                """
+                Example:
+                    http://sci-hub.tw/https://iubmb.onlinelibrary.wiley.com/
+                        doi/pdf/10.1002/biof.1427
+                    https://pubchem.ncbi.nlm.nih.gov/compound/133017251
+                """,
         }
         
         mod = sys.modules[__name__]
@@ -575,7 +582,13 @@ class GlycerolipidFactory(object):
                 continue
             if lyso and not ether and not lyso_ester:
                 continue
-            if not phospho and (ether or lyso):
+            if not phospho and ether:
+                continue
+            if (
+                not phospho and
+                lyso and
+                not isinstance(headgroup, common.basestring)
+            ):
                 continue
             
             if not phospho:
@@ -596,7 +609,7 @@ class GlycerolipidFactory(object):
                 else:
                     
                     sn1_ether = sn2_ether = sn3_ether = sn3_fa = False
-                    child = name
+                    child = '%s%s' % ('Lyso' if lyso else '', name)
                 
             else:
                 sn1_ether = sn2_ether = sn3_ether = sn3_fa = False
