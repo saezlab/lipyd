@@ -1447,7 +1447,7 @@ specimens = [
         473,
         {'Sph-M2(d18:1)': (
             MS2Identity(
-                score = 52,
+                score = 65,
                 hg = Headgroup(main='Sph', sub=('M2',)),
                 chainsum = ChainSummary(
                     c = 18,

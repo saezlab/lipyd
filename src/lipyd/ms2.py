@@ -3826,6 +3826,18 @@ class Cer_Positive(AbstractMS2Identifier):
             
             score += 10
         
+        if (
+            self.rec.chainsum.u > 0 and
+            self.scn.has_fragment('[C7+NH2] (110.0964)')
+        ):
+            
+            score += 10
+        
+        score += sum(map(bool, (
+            self.scn.has_fragment('[C5+NH2+2H] (84.0808)'),
+            self.scn.has_fragment('[C6+NH2] (96.0808)'),
+        ))) * 3
+        
         if self.scn.has_chain_combination(
                 self.rec,
                 chain_param = (
@@ -3876,6 +3888,10 @@ class Cer_Positive(AbstractMS2Identifier):
             score -= 20
         
         return score
+    
+    def m3(self):
+        
+        pass
     
     def sph(self):
         
