@@ -3543,7 +3543,8 @@ class Cer_Positive(AbstractMS2Identifier):
         'Hex2': 'hex2cer',
         'SHex': 'shexcer',
         'SHex2': 'shex2cer',
-        'PE': 'pe_cer'
+        'PE': 'pe_cer',
+        'M2': 'm2',
     }
     
     def __init__(self, record, scan):
@@ -3800,6 +3801,31 @@ class Cer_Positive(AbstractMS2Identifier):
         
         return score
     
+    def m2(self):
+        
+        score = 0
+        
+        if self.scn.has_fragment('PC/SM [Ch-Et] (58.0651)'):
+            
+            score += 10
+        
+        if self.scn.has_chain_combination(
+                self.rec,
+                chain_param = (
+                    {
+                        'frag_type': {
+                            'Sph-2xH2O+CH3',
+                            'Sph-O-H2O+CH3+H',
+                            'Sph-2xH2O+2xCh3+H',
+                        }
+                    },
+                )
+            ):
+            
+            score += 20
+        
+        return score
+    
     def sph(self):
         
         score = 0
@@ -4037,6 +4063,9 @@ idmethods = {
         lipproc.Headgroup(main = 'SM'): Cer_Positive,
         lipproc.Headgroup(main = 'Sph'): Cer_Positive,
         lipproc.Headgroup(main = 'Sph', sub = ('1P',)): Cer_Positive,
+        lipproc.Headgroup(main = 'Sph', sub = ('M1',)): Cer_Positive,
+        lipproc.Headgroup(main = 'Sph', sub = ('M2',)): Cer_Positive,
+        lipproc.Headgroup(main = 'Sph', sub = ('M3',)): Cer_Positive,
     }
 }
 

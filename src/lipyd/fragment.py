@@ -1274,7 +1274,7 @@ class FattyFragmentFactory(object):
         # sphingosine fragments from N-(n)methyl-safingols
         'Sph_mH2O_pCH3':
             ChainFragParam(
-                plus = 'NOCH4',
+                plus = 'H2NOCH2',
                 minus = '',
                 charge = 1,
                 name = 'Sph%s-H2O+CH3',
@@ -1292,12 +1292,13 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'Sph'
             ), # 298.3104
-        'Sph_mH2O_p2xCH3_mH':
+        # from N,N-dimetthyl-sphingosine
+        'Sph_mH2O_p2xCH3_pH':
             ChainFragParam(
-                plus = 'NOC2H6',
+                plus = 'H2NOC2H4',
                 minus = '',
                 charge = 1,
-                name = 'Sph%s-H2O+2xCH3-H',
+                name = 'Sph%s-H2O+2xCH3+H',
                 constraints = (
                     FragConstraint(
                         hg = 'Sph',
@@ -1307,6 +1308,61 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'Sph'
             ), # 312.3261
+        'Sph_m2xH2O_p2xCH3_pH':
+            ChainFragParam(
+                plus = 'NC2H4',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s-2xH2O+2xCH3+H',
+                constraints = (
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M2',),
+                        chaintype = 'Sph',
+                    ),
+                ),
+                chaintype = 'Sph'
+            ), # 294.3155
+        'Sph_mO_mH2O_pCH3_pH':
+            ChainFragParam(
+                plus = 'NCH4',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s-O-H2O+CH3+H',
+                constraints = (
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M2',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M1',),
+                        chaintype = 'Sph',
+                    ),
+                ),
+                chaintype = 'Sph'
+            ), # 282.3155
+        'Sph_m2xH2O_pCH3':
+            ChainFragParam(
+                plus = 'NCH2',
+                minus = '',
+                charge = 1,
+                name = 'Sph%s-2xH2O+CH3',
+                constraints = (
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M2',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Sph',
+                        sub = ('M1',),
+                        chaintype = 'Sph',
+                    ),
+                ),
+                chaintype = 'Sph'
+            ), # 280.2999
         # sphinosine fragments from keto-sphingosine & tSph
         'Sph_mC_mH2O_mH':
             ChainFragParam(

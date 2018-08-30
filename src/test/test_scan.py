@@ -1440,6 +1440,57 @@ specimens = [
             ),
         )}
     ),
+    # dSph-M2 positive
+    (
+        'pos_examples.mgf',
+        'pos',
+        473,
+        {'Sph-M2(d18:1)': (
+            MS2Identity(
+                score = 52,
+                hg = Headgroup(main='Sph', sub=('M2',)),
+                chainsum = ChainSummary(
+                    c = 18,
+                    u = 1,
+                    typ = ('Sph',),
+                    attr = (ChainAttr(sph='d', ether=False, oh=()),),
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='d', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
+        ),
+        # to see if this gets lower score
+        'Sph-M1(d19:1)': (
+            MS2Identity(
+                score = 22,
+                hg = Headgroup(main='Sph', sub=('M1',)),
+                chainsum = ChainSummary(
+                    c = 19,
+                    u = 1,
+                    typ = ('Sph',),
+                    attr = (ChainAttr(sph='d', ether=False, oh=()),),
+                ),
+                chains = (
+                    Chain(
+                        c = 19,
+                        u = 1,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='d', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
+        )}
+    ),
 ]
 
 
