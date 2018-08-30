@@ -31,9 +31,14 @@ ROOT = os.path.abspath(os.path.dirname(__file__))
 if 'unicode' not in __builtins__:
     unicode = str
 
-simpleTypes = [int, float, str, unicode]
+simpleTypes = {int, float, str, unicode}
 
-charTypes = [str, unicode]
+charTypes = {str, unicode}
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 def uniqList(seq):
     # Not order preserving

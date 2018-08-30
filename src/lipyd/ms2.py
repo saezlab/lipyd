@@ -716,8 +716,17 @@ class Scan(ScanBase):
         
         return result
     
+    @classmethod
+    def match_chtype(cls, value, accepted):
+        """
+        Matches strings or strings to set of strings, optionally negative.
+        Calls `match_chattr` with `typ = basestring`.
+        """
+        
+        return cls.match_chattr(value, accepted, typ = basestring)
+    
     @staticmethod
-    def match_count(value, accepted):
+    def match_chattr(value, accepted, typ = int):
         """
         Args
         ----
@@ -725,14 +734,21 @@ class Scan(ScanBase):
             The actual value.
         :param int,set accepted:
             A single value or a set of values to match against.
+            Negative match is possible by providing a tuple with `False`
+            as it's first element and the set of not acceptable values
+            as the second element.
         """
         
         return (
             accepted is None or
-            (type(accepted) is int and value == accepted) or
+            # simple match
+            (isinstance(accepted, typ) and value == accepted) or
             (
-                type(accepted) is not int and (
+                not isinstance(accepted, typ) and (
+                    # multiple values
                     value in accepted or (
+                        # negation
+                        hasattr(accepted, '__getitem__') and
                         accepted[0] == False and
                         value not in accepted[1]
                     )
@@ -755,10 +771,10 @@ class Scan(ScanBase):
         """
         
         return all((
-            frag_type is None or annot.fragtype == frag_type,
-            chain_type is None or annot.chaintype == chain_type,
-            cls.match_count(annot.c, c),
-            cls.match_count(annot.u, u),
+            cls.match_chattr(annot.fragtype, frag_type, typ = basestring),
+            cls.match_chattr(annot.chaintype, chain_type, typ = basestring),
+            cls.match_chattr(annot.c, c),
+            cls.match_chattr(annot.u, u),
         ))
     
     def highest_fragment_by_chain_type(
@@ -3545,6 +3561,7 @@ class Cer_Positive(AbstractMS2Identifier):
         'SHex2': 'shex2cer',
         'PE': 'pe_cer',
         'M2': 'm2',
+        'M1': 'm1',
     }
     
     def __init__(self, record, scan):
@@ -3817,12 +3834,46 @@ class Cer_Positive(AbstractMS2Identifier):
                             'Sph-2xH2O+CH3',
                             'Sph-O-H2O+CH3+H',
                             'Sph-2xH2O+2xCh3+H',
+                            'Sph-H2O+2xCH3+H',
                         }
                     },
                 )
             ):
             
             score += 20
+        
+        return score
+    
+    def m1(self):
+        
+        score = 0
+        
+        if self.scn.has_fragment('PC/SM [Ch-Et] (58.0651)'):
+            
+            score += 10
+        
+        if self.scn.has_chain_combination(
+                self.rec,
+                chain_param = (
+                    {
+                        'frag_type': {
+                            'Sph-2xH2O+CH3',
+                            'Sph-O-H2O+CH3+H',
+                            'Sph-H2O+CH3+H',
+                        }
+                    },
+                )
+            ):
+            
+            score += 20
+        
+        if self.scn.has_chain_fragment_type(
+                frag_type = {'Sph-2xH2O+2xCh3+H', 'Sph-H2O+2xCH3+H'},
+                c = self.rec.chainsum.c - 1,
+                u = self.rec.chainsum.u,
+            ):
+            
+            score -= 20
         
         return score
     
