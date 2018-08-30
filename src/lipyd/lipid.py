@@ -790,6 +790,7 @@ class AbstractCeramide(AbstractSphingolipid):
             sph_args = None,
             fa_args = None,
             o = 'H',
+            lyso = False,
             fa_hydroxy = False,
             lcb_type = 'd',
             name = 'Cer',
@@ -801,7 +802,9 @@ class AbstractCeramide(AbstractSphingolipid):
         sph_args = sph_args or {}
         fa_args  = fa_args  or {}
         
-        if fa_hydroxy:
+        if lyso:
+            fa = 'H'
+        elif fa_hydroxy:
             fa = substituent.HydroxyFattyAcyl(**fa_args)
         else:
             fa = substituent.FattyAcyl(**fa_args)
@@ -857,6 +860,8 @@ class SphingolipidFactory(object):
         l_classes = [
             # 1-O substituent, headgroup main class,
             # headgroup subclass, N-acyl
+            #
+            # ceramides with various 1-O groups
             ('H', 'Cer', (), True),
             ('PO3H2', 'Cer', ('1P',), True),
             ('C12H21O10SO3', 'Cer', ('SHex2',), True),
@@ -866,6 +871,14 @@ class SphingolipidFactory(object):
             ('PO3C2H4NC3H9', 'SM', (), True),
             ('PO3C2H4NH3', 'Cer', ('PE',), True),
             (None, 'Cer', ('1OAcyl',), True),
+            # lyso varieties
+            ('C12H21O10SO3', 'Cer', ('SHex2', 'Lyso'), True),
+            ('C6H11O5SO3', 'Cer', ('SHex', 'Lyso'), True),
+            ('C12H21O10', 'Cer', ('Hex2', 'Lyso'), True),
+            ('C6H11O5', 'Cer', ('Hex', 'Lyso'), True),
+            ('PO3C2H4NC3H9', 'SM', ('Lyso',), True),
+            ('PO3C2H4NH3', 'Cer', ('PE', 'Lyso'), True),
+            # sphingosines with various 1-O and N groups
             ('H', 'Sph', (), False),
             ('PO3H2', 'Sph', ('1P',), False),
             ('HCH2', 'Sph', ('M1',), False),
@@ -1022,7 +1035,18 @@ class SphingolipidFactory(object):
                     ]
                     
                     exact mass = 535.4964449617
+                """,
+            'LysoSphingomyelinD':
                 """
+                Example:
+                    https://www.caymanchem.com/product/10007947
+                """,
+            'LysoHexosylCeramideD':
+                """
+                Example:
+                    https://www.matreya.com/BVModules/ProductTemplates/
+                    Matreya/Product.aspx?productid=1305
+                """,
         }
         
         mod = sys.modules[__name__]
@@ -1055,6 +1079,7 @@ class SphingolipidFactory(object):
                     '            sub = %s,\n'
                     '        ),\n'
                     '        lcb_type = \'%s\',\n'
+                    '        lyso = %s,\n'
                     '        %s'
                     '        **kwargs\n'
                     '        )\n'
@@ -1081,6 +1106,7 @@ class SphingolipidFactory(object):
                     name,
                     str(subtype),
                     lcb,
+                    str('Lyso' in subtype),
                     'fa_hydroxy = True,\n' if fa_hydroxy else '',
                 ),
                 mod.__dict__,
@@ -1118,8 +1144,9 @@ class SphingolipidFactory(object):
         
         parent = 'AbstractCeramide' if nacyl else 'AbstractSphingolipid'
         
-        child = '%s%s%s%s%s' % (
+        child = '%s%s%s%s%s%s' % (
                 'Hydroxyacyl' if hydroxyacyl else '',
+                'Lyso' if 'Lyso' in subtype else '',
                 ''.join(
                     self.pre_subclass_name[s]
                     for s in subtype

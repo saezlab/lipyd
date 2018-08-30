@@ -2884,7 +2884,7 @@ class PC_Positive(AbstractMS2Identifier):
             self.score += sum(map(bool, (
                 self.scn.has_fragment('PC/SM [Ch+H2O] (104.107)'),
                 self.scn.has_fragment('PC/SM [P+Et] (124.9998)'),
-                self.scn.has_fragment('PC/SM [Ch-Et] (60.0808)'),
+                self.scn.has_fragment('PC/SM [N+3xCH3] (60.0808)'),
                 self.scn.has_fragment('PC/SM [Ch-Et] (58.0651)'),
             )))
 
@@ -3562,6 +3562,7 @@ class Cer_Positive(AbstractMS2Identifier):
         'PE': 'pe_cer',
         'M2': 'm2',
         'M1': 'm1',
+        'M3': 'm3',
     }
     
     def __init__(self, record, scan):
@@ -3653,7 +3654,7 @@ class Cer_Positive(AbstractMS2Identifier):
             
             score += sum(map(bool,
                 (
-                    self.scn.has_fragment('PC/SM [Ch-Et] (60.0808)'),
+                    self.scn.has_fragment('PC/SM [N+3xCH3] (60.0808)'),
                     self.scn.has_fragment('PC/SM [Ch] (86.096)'),
                     self.scn.has_fragment('PC/SM [Ch+H2O] (104.107)'),
                     self.scn.has_fragment('PC/SM [P+Et] (124.9998)'),
@@ -3891,7 +3892,15 @@ class Cer_Positive(AbstractMS2Identifier):
     
     def m3(self):
         
-        pass
+        score = 0
+        
+        if self.scn.fragment_among_most_abundant(
+            3, 'PC/SM [N+3xCH3] (60.0808)'
+        ):
+            
+            score += 20
+        
+        return score
     
     def sph(self):
         
@@ -4128,6 +4137,14 @@ idmethods = {
         lipproc.Headgroup(main = 'Cer', sub = ('SHex2',)): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('PE',)): Cer_Positive,
         lipproc.Headgroup(main = 'SM'): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('1P', 'Lyso')): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('Hex', 'Lyso')): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('Hex2', 'Lyso')): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('SHex', 'Lyso')): Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('SHex2', 'Lyso')):
+            Cer_Positive,
+        lipproc.Headgroup(main = 'Cer', sub = ('PE', 'Lyso')): Cer_Positive,
+        lipproc.Headgroup(main = 'SM',  sub = ('Lyso',)): Cer_Positive,
         lipproc.Headgroup(main = 'Sph'): Cer_Positive,
         lipproc.Headgroup(main = 'Sph', sub = ('1P',)): Cer_Positive,
         lipproc.Headgroup(main = 'Sph', sub = ('M1',)): Cer_Positive,

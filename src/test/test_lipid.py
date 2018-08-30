@@ -287,6 +287,22 @@ sl = [
         342.33720466404003,
         'Sph-M3(DH18:0)',
     ),
+    (
+        'LysoHexosylCeramideD',
+        {
+            'sph_args': {'c': 18, 'u': 1},
+        },
+        461.33525286182,
+        'Hex-Lyso-Cer(d18:1)',
+    ),
+    (
+        'LysoSphingomyelinD',
+        {
+            'sph_args': {'c': 18, 'u': 1},
+        },
+        464.3379096886399,
+        'Lyso-SM(d18:1)',
+    ),
 ]
 
 
