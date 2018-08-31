@@ -23,6 +23,7 @@ import sys
 import imp
 import re
 import math
+import copy
 import itertools
 import collections
 import decorator
@@ -202,15 +203,26 @@ class ScanBase(object):
         the fragment database.
         """
         
+        self.annot = self.get_annot()
+    
+    def get_annot(self, precursor = None, tolerance = None):
+        """
+        Returns array of annotations.
+        Makes it possible to use different precursor or tolerance.
+        """
+        
+        precursor = precursor or self.precursor
+        tolerance = tolerance or self.tolerance
+        
         annotator = fragdb.FragmentAnnotator(
             self.mzs,
             self.ionmode,
-            self.precursor,
-            tolerance = self.tolerance,
+            precursor,
+            tolerance = tolerance,
         )
         
-        self.annot = np.array(list(annotator)) # this is array
-                                               # only to be sortable
+        return np.array(list(annotator)) # this is array
+                                         # only to be sortable
     
     def normalize_intensities(self):
         """
@@ -284,6 +296,7 @@ class Scan(ScanBase):
         self.sample = sample
         self.log = logger
         self.verbose = verbose
+        self.adducts = {}
     
     @classmethod
     def from_mgf(
@@ -1279,11 +1292,24 @@ class Scan(ScanBase):
             )
         )
     
-    def build_chain_list(self, rebuild = False):
+    def _build_chain_list(self, annot = None):
         """
         Builds a list of chains which facilitates the anlysis of chain
         combinations.
         """
+        
+        annot = annot or self.annot
+        
+        return tuple(
+            ChainFragment(
+                a.c, a.u, a.fragtype, a.chaintype, i, self.intensities[i]
+            )
+            for i, aa in enumerate(annot)
+            for a in aa
+            if a.c and not np.isnan(a.c)
+        )
+    
+    def build_chain_list(self, rebuild = False):
         
         if (
             not rebuild and
@@ -1291,14 +1317,7 @@ class Scan(ScanBase):
         ):
             return
         
-        self.chain_list = tuple(
-            ChainFragment(
-                a.c, a.u, a.fragtype, a.chaintype, i, self.intensities[i]
-            )
-            for i, aa in enumerate(self.annot)
-            for a in aa
-            if a.c and not np.isnan(a.c)
-        )
+        self.chain_list = self._build_chain_list()
     
     def chain_among_most_abundant(
             self,
@@ -2149,6 +2168,42 @@ class Scan(ScanBase):
             score += 1
         
         return {'score': score, 'fattya': fattya}
+    
+    def adduct(self, adduct, reset = False):
+        """
+        Creates a copy of the current scan assuming that the precursor
+        is a certain adduct. The precursor will be converted to [M+H]+
+        or [M-H]- adduct and neutral losses will be calculated accordingly.
+        """
+        
+        if adduct in self.adducts and not reset:
+            
+            return
+        
+        ad2ex = settings.get('ad2ex')[1][self.ionmode][adduct]
+        ex2ad = 'remove_h' if self.ionmode == 'pos' else 'add_h'
+        
+        fake_precursor = (
+            getattr(
+                mz.Mz(
+                    getattr(
+                        mz.Mz(self.precursor),
+                        ad2ex
+                    )()
+                ),
+                ex2ad
+            )()
+        )
+        
+        annot = self.get_annot(fake_precursor)
+        
+        chain_list = self._build_chain_list(annot = annot, rebuild = True)
+        
+        self.adducts[adduct] = {
+            'fake_precursor': fake_precursor,
+            'annot': annot,
+            'chain_list': chain_list,
+        }
 
 
 class AbstractMS2Identifier(object):
@@ -4090,10 +4145,34 @@ class Cer_Negative(AbstractMS2Identifier):
     ceramide-1-phosphare, ceramide-phosphoethanolamine,
     OH-acyl-ceramide, hexosyl and dihexosyl-ceramides,
     and d, t and DH long chain base varieties.
+    
+    dCer
+    ====
+    
+    **Specimen:**
+    
+    - in vivo SEC14L1 583, 554, 580 (formiate adduct)
+    - in vivo STARD11 583, 554 (formiate adduct)
+    - standards
+    
+    DHCer
+    =====
+    
+    **Specimen:**
+    
+    - standards
+    
+    tCer
+    ====
+    
+    **Specimen:**
+    
+    - standards
+    
     """
     
     class_methods = {
-        
+        'Cer': 'cer',
     }
     
     subclass_methods = {
@@ -4130,6 +4209,26 @@ class Cer_Negative(AbstractMS2Identifier):
         
         self.confirm_subclass()
     
+    def cer(self):
+        
+        score = sum(map(
+            self.scn.has_fragment,
+            (
+                'NL H2O (NL 18.0106)', # Hsu c1
+                'NL 2xH2O (NL 36.0211)', # Hsu c4
+                'NL C+H2O (NL 30.0106)', # Hsu c2
+                'NL CH2+H2O (NL 32.0262)', # Hsu c3
+                'NL C+2xH2O (NL 48.0211)', # Hsu c5
+                'NL C+3xH2O (66.0455)', # Hsu c6
+            )
+        )) * 3
+        
+        if self.scn.has_chain_combinations(self.rec):
+            
+            score += 5
+        
+        return score
+    
     def sphingosine_base(self, sph):
         
         if sph not in self.sph_scores:
@@ -4141,6 +4240,37 @@ class Cer_Negative(AbstractMS2Identifier):
             )
         
         return self.sph_scores[sph]
+    
+    def sphingosine_d(self):
+        
+        score = 0
+        
+        if self.scn.has_chain_combination(
+            self.rec,
+            chain_param = (
+                {
+                    'frag_type': {
+                        'Sph-H', # b2
+                        'Sph-H2O-NH2-2H', # b4
+                    }
+                },
+                {}
+            )
+        ):
+            
+            score += 20
+        
+        if self.scn.has_fragment('NL C+H2O (NL 30.0106)'):
+            
+            score += 10
+        
+        return score
+    
+    def sphingosine_dh(self):
+        
+        score = 30 - self.sphingosine_d()
+        
+        return score
 
 #
 # Scan.identify() dispatches identification methods by this

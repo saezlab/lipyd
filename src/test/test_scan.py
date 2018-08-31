@@ -1495,10 +1495,68 @@ specimens = [
         'neg_examples.mgf',
         'neg',
         3123,
-        {'': (
+        {'Cer(d36:1)': (
 
         )}
-    )
+    ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        2160,
+        {'Cer(DH36:0)': (
+
+        )}
+    ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        2153,
+        {'Cer(DH36:0)': (
+
+        )}
+    ),
+    # STARD11 negative dCer / DHCer formiate adducts
+    (
+        'neg_examples.mgf',
+        'neg',
+        2369,
+        {'Cer(d32:1)': (
+
+        )}
+    ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        2723,
+        {'Cer(d34:1)': (
+
+        )}
+    ),
+    # SEC14L1 negative dCer / DHCer formiate adducts
+    (
+        'neg_examples.mgf',
+        'neg',
+        2776,
+        {'Cer(d34:1)': (
+
+        )}
+    ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        2449,
+        {'Cer(d32:1)': (
+
+        )}
+    ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        2486,
+        {'Cer(d34:2)': (
+
+        )}
+    ),
 ]
 
 
