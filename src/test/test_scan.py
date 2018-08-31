@@ -1491,6 +1491,7 @@ specimens = [
             ),
         )},
     ),
+    # dCer example from 2015, wrong collision energy
     (
         'neg_examples.mgf',
         'neg',
@@ -1499,6 +1500,7 @@ specimens = [
 
         )}
     ),
+    # [DHCer-H]-
     (
         'neg_examples.mgf',
         'neg',
@@ -1507,6 +1509,7 @@ specimens = [
 
         )}
     ),
+    # [DHCer+HCOO]-
     (
         'neg_examples.mgf',
         'neg',

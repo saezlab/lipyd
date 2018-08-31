@@ -2049,8 +2049,14 @@ class Scan(ScanBase):
                 
                 method = idmethods[self.ionmode][rec.hg]
                 
+                adduct = None if add in {'[M+H]+', '[M-H]-'} else add
+                
                 result[rec_str] = tuple(
-                    method(record = rec, scan = self, adduct = add).identify()
+                    method(
+                        record = rec,
+                        scan = self,
+                        adduct = adduct,
+                    ).identify()
                 )
         
         return result
@@ -2271,7 +2277,7 @@ class Scan(ScanBase):
             return
         
         ad2ex = settings.get('ad2ex')[1][self.ionmode][adduct]
-        ex2ad = 'remove_h' if self.ionmode == 'pos' else 'add_h'
+        ex2ad = 'remove_h' if self.ionmode == 'neg' else 'add_h'
         
         fake_precursor = (
             getattr(
@@ -3045,7 +3051,8 @@ class PC_Positive(AbstractMS2Identifier):
             scan,
             missing_chains = (),
             chain_comb_args = {},
-            must_have_chains = False
+            must_have_chains = False,
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3097,7 +3104,8 @@ class LysoPC_Positive(AbstractMS2Identifier):
             scan,
             missing_chains = (),
             chain_comb_args = {},
-            must_have_chains = False
+            must_have_chains = False,
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3206,6 +3214,7 @@ class PI_Positive(AbstractMS2Identifier):
             missing_chains = (),
             chain_comb_args = {},
             must_have_chains = True,
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3248,6 +3257,7 @@ class PS_Negative(AbstractMS2Identifier):
             missing_chains = (),
             chain_comb_args = {},
             must_have_chains = True,
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3297,6 +3307,7 @@ class PS_Positive(AbstractMS2Identifier):
             missing_chains = (),
             chain_comb_args = {},
             must_have_chains = True,
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3337,6 +3348,7 @@ class PG_Negative(AbstractMS2Identifier):
             missing_chains = (),
             chain_comb_args = {},
             must_have_chains = True,
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3452,6 +3464,7 @@ class BMP_Positive(AbstractMS2Identifier):
             missing_chains = (),
             chain_comb_args = {},
             must_have_chains = True,
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3507,6 +3520,7 @@ class VA_Positive(AbstractMS2Identifier):
             missing_chains = (),
             chain_comb_args = {},
             must_have_chains = False,
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3548,6 +3562,7 @@ class VA_Negative(AbstractMS2Identifier):
             missing_chains = (),
             chain_comb_args = {},
             must_have_chains = False,
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3761,6 +3776,7 @@ class Cer_Positive(AbstractMS2Identifier):
             missing_chains = (1,) if self.nacyl else (),
             chain_comb_args = {},
             must_have_chains = True,
+            **kwargs,
         )
         
         self.sph_scores   = {}
@@ -4324,6 +4340,7 @@ class Cer_Negative(AbstractMS2Identifier):
             missing_chains = (1,) if self.nacyl else (),
             chain_comb_args = {},
             must_have_chains = True,
+            **kwargs,
         )
         
         self.sph_scores   = {}
@@ -4333,30 +4350,25 @@ class Cer_Negative(AbstractMS2Identifier):
         
         AbstractMS2Identifier.confirm_class(self)
         
-        self.score += sum(map(
-            self.scn.has_fragment,
-            (
-                
-            )
-        ))
-        
         self.confirm_subclass()
     
     def cer(self):
         
-        score = sum(map(
-            self.scn.has_fragment,
-            (
-                'NL H2O (NL 18.0106)', # Hsu c1
-                'NL 2xH2O (NL 36.0211)', # Hsu c4
-                'NL C+H2O (NL 30.0106)', # Hsu c2
-                'NL CH2+H2O (NL 32.0262)', # Hsu c3
-                'NL C+2xH2O (NL 48.0211)', # Hsu c5
-                'NL C+3xH2O (66.0455)', # Hsu c6
-            )
-        )) * 3
+        cer_nl = (
+            'NL H2O (NL 18.0106)', # Hsu c1
+            'NL 2xH2O (NL 36.0211)', # Hsu c4
+            'NL C+H2O (NL 30.0106)', # Hsu c2
+            'NL CH2+H2O (NL 32.0262)', # Hsu c3
+            'NL C+2xH2O (NL 48.0211)', # Hsu c5
+            'NL C+3xH2O (66.0455)', # Hsu c6
+        )
         
-        if self.scn.has_chain_combinations(self.rec):
+        score = sum(
+            self.scn.has_fragment(frag_name, adduct = self.add)
+            for frag_name in cer_nl
+        ) * 3
+        
+        if self.scn.has_chain_combinations(self.rec, adduct = self.add):
             
             score += 5
         
