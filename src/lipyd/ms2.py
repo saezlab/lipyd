@@ -2300,13 +2300,24 @@ class Scan(ScanBase):
         Gets the annotations for a certain adduct.
         """
         
+        return self.adduct_data('annot', adduct = adduct)
+    
+    def aduct_chain_list(self, adduct = None):
+        """
+        Gets the chain list for a certain adduct.
+        """
+        
+        return self.adduct_data('chain_list', adduct = adduct)
+    
+    def adduct_data(self, name, adduct = None):
+        
         if adduct is None:
             
-            return self.annot
+            return getattr(self, name)
         
         self.adduct(adduct)
         
-        return self.adducts[adduct]['annot']
+        return self.adducts[adduct][name]
 
 
 class AbstractMS2Identifier(object):
