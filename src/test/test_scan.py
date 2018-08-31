@@ -937,7 +937,7 @@ specimens = [
         3208,
         {'Cer-1P(d42:2)': (
             MS2Identity(
-                score = 22,
+                score = 32,
                 hg = Headgroup(main='Cer', sub=('1P',)),
                 chainsum = ChainSummary(
                     c = 42,

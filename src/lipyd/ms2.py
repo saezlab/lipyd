@@ -578,11 +578,15 @@ class Scan(ScanBase):
         found in the database.
         """
         
-        frag = fragdb.by_name(name, self.ionmode, adduct = adduct)
+        frag = fragdb.by_name(name, self.ionmode)
         
         if frag is not None:
             
-            mz = self.nl(frag[0]) if frag[6] == 0 else frag[0]
+            mz = (
+                self.nl(frag[0], adduct = adduct)
+                    if frag[6] == 0 else
+                frag[0]
+            )
             
             return self.mz_match(self.mzs[0], mz)
     
@@ -968,7 +972,7 @@ class Scan(ScanBase):
             result = (
                 an
                 for an in annot[i]
-                if self.match_annot(an frag_type, chain_type, c, u)
+                if self.match_annot(an, frag_type, chain_type, c, u)
             )
         
         return result
@@ -1186,7 +1190,7 @@ class Scan(ScanBase):
             if frag_type not in type_pos:
                 
                 type_pos[frag_type] = self.positions_for_frag_type(
-                    record, frag_type, adduct = adduct
+                    record, frag_type
                 )
             
             return type_pos[frag_type]
@@ -1700,11 +1704,7 @@ class Scan(ScanBase):
                 
                 break
             
-            chpos = self.positions_for_frag_type(
-                rec,
-                frag.fragtype,
-                adduct = adduct,
-            )
+            chpos = self.positions_for_frag_type(rec, frag.fragtype)
             
             for ci in chpos:
                 
@@ -2050,7 +2050,7 @@ class Scan(ScanBase):
                 method = idmethods[self.ionmode][rec.hg]
                 
                 result[rec_str] = tuple(
-                    method(record = rec, scan = self).identify()
+                    method(record = rec, scan = self, adduct = add).identify()
                 )
         
         return result
@@ -2302,7 +2302,7 @@ class Scan(ScanBase):
         
         return self.adduct_data('annot', adduct = adduct)
     
-    def aduct_chain_list(self, adduct = None):
+    def adduct_chain_list(self, adduct = None):
         """
         Gets the chain list for a certain adduct.
         """
@@ -2329,16 +2329,18 @@ class AbstractMS2Identifier(object):
             self,
             record,
             scan,
+            adduct = None,
             missing_chains = None,
             explicit_and_implicit = False,
             must_have_chains = True,
             chain_comb_args = {},
-            missing_chain_args = {}
+            missing_chain_args = {},
         ):
         
         self.score = 0
         self.rec = record
         self.scn = scan
+        self.add = adduct
         self.missing_chains = (
             missing_chains if missing_chains is not None else
             tuple(range(len(record.chainsum))) # any chain can be missing
@@ -2367,7 +2369,7 @@ class AbstractMS2Identifier(object):
                 self.rec.hg,
                 self.rec.chainsum,
                 chains = chains[0],
-                details = chains[1]
+                details = chains[1],
             )
             chains_confirmed = True
         
@@ -2497,7 +2499,7 @@ class FA_Negative(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -2509,7 +2511,8 @@ class FA_Negative(AbstractMS2Identifier):
                 'frag_types': {
                     0: {'FA-H'}
                 }
-            }
+            },
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -2540,7 +2543,7 @@ class FA_Positive(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -2573,14 +2576,15 @@ class DAG_Positive(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -2612,14 +2616,15 @@ class DAG_Negative(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -2648,14 +2653,15 @@ class TAG_Positive(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -2681,14 +2687,15 @@ class TAG_Negative(AbstractMS2Identifier):
     (Same as in positive ionmode.)
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -2705,14 +2712,15 @@ class GL_Positive(AbstractMS2Identifier):
     Generic class for identification of glycerolipids.
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            **kwargs,
         )
     
     class_methods = {
@@ -2777,14 +2785,15 @@ class GL_Negative(AbstractMS2Identifier):
     Generic class for identification of glycerolipids.
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -2820,14 +2829,15 @@ class PE_Negative(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -2877,7 +2887,7 @@ class PE_Positive(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -2885,6 +2895,7 @@ class PE_Positive(AbstractMS2Identifier):
             scan,
             missing_chains = (),
             chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -2919,7 +2930,7 @@ class LysoPE_Positive(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -2927,6 +2938,7 @@ class LysoPE_Positive(AbstractMS2Identifier):
             scan,
             missing_chains = (),
             chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -2971,14 +2983,15 @@ class PC_Negative(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3024,7 +3037,7 @@ class PC_Positive(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -3076,7 +3089,7 @@ class LysoPC_Positive(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -3130,14 +3143,15 @@ class PI_Negative(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
             record,
             scan,
             missing_chains = (),
-            chain_comb_args = {}
+            chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3183,7 +3197,7 @@ class PI_Positive(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -3225,7 +3239,7 @@ class PS_Negative(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -3274,7 +3288,7 @@ class PS_Positive(AbstractMS2Identifier):
     - PS headgroup neutral loss 185.0089 must be the highest intensity.
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -3314,7 +3328,7 @@ class PG_Negative(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -3362,7 +3376,7 @@ class PG_Positive(AbstractMS2Identifier):
         with the highest intensity?
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -3370,6 +3384,7 @@ class PG_Positive(AbstractMS2Identifier):
             scan,
             missing_chains = (),
             chain_comb_args = {},
+            **kwargs,
         )
     
     def confirm_class(self):
@@ -3405,9 +3420,9 @@ class BMP_Negative(PG_Negative):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
-        PG_Negative.__init__(self, record, scan)
+        PG_Negative.__init__(self, record, scan, **kwargs)
 
 
 class BMP_Positive(AbstractMS2Identifier):
@@ -3428,7 +3443,7 @@ class BMP_Positive(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -3483,7 +3498,7 @@ class VA_Positive(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -3524,7 +3539,7 @@ class VA_Negative(AbstractMS2Identifier):
     
     """
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         AbstractMS2Identifier.__init__(
             self,
@@ -3734,7 +3749,7 @@ class Cer_Positive(AbstractMS2Identifier):
         'M3': 'm3',
     }
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         self.nacyl = record.chainsum is not None and len(record.chainsum) > 1
         self.oacyl = record.chainsum is not None and len(record.chainsum) > 2
@@ -4297,7 +4312,7 @@ class Cer_Negative(AbstractMS2Identifier):
         
     }
     
-    def __init__(self, record, scan):
+    def __init__(self, record, scan, **kwargs):
         
         self.nacyl = record.chainsum is not None and len(record.chainsum) > 1
         self.oacyl = record.chainsum is not None and len(record.chainsum) > 2
