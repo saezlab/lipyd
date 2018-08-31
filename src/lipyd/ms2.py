@@ -32,6 +32,7 @@ import numpy as np
 
 from lipyd.common import *
 import lipyd.mgf as mgf
+import lipyd.mz as mzmod
 import lipyd.session as session
 import lipyd.settings as settings
 import lipyd.lookup as lookup
@@ -105,6 +106,7 @@ class ScanBase(object):
         self.sorted_by = None
         self.mzs = mzs
         self.ionmode = ionmode
+        self.adducts = {}
         self.intensities = (
             np.array([1.0] * len(self.mzs))
                 if intensities is None else
@@ -196,6 +198,10 @@ class ScanBase(object):
             if hasattr(self, attr):
                 
                 setattr(self, attr, getattr(self, attr)[isort])
+        
+        for ad, data in iteritems(self.adducts):
+            
+            data['annot'] = data['annot'][isort]
     
     def annotate(self):
         """
@@ -296,7 +302,6 @@ class Scan(ScanBase):
         self.sample = sample
         self.log = logger
         self.verbose = verbose
-        self.adducts = {}
     
     @classmethod
     def from_mgf(
@@ -398,13 +403,21 @@ class Scan(ScanBase):
         # TODO
         pass
     
-    def nl(self, mz):
+    def nl(self, mz, adduct = None):
         """
         For m/z returns the corresponding neutral loss m/z.
         If precursor ion mass is unknown returns `numpy.nan`.
         """
         
-        return self.precursor - mz if self.precursor else np.nan
+        if adduct is None:
+            
+            return self.precursor - mz if self.precursor else np.nan
+            
+        else:
+            
+            self.adduct(adduct)
+            
+            return self.adducts[adduct]['fake_precursor'] - mz
     
     def full_list_str(self):
         """
@@ -436,7 +449,7 @@ class Scan(ScanBase):
         Returns the m/z of the fragment with highest intensity.
         """
         
-        result = self.mz[0]
+        result = self.mzs[0]
         
         if self.verbose:
             
@@ -484,12 +497,12 @@ class Scan(ScanBase):
         
         return result
     
-    def has_nl(self, nl):
+    def has_nl(self, nl, adduct = None):
         """
         Tells if a neutral loss exists in this scan.
         """
         
-        result = self.has_mz(self.nl(nl))
+        result = self.has_mz(self.nl(nl, adduct = adduct))
         
         if self.verbose:
             
@@ -499,14 +512,14 @@ class Scan(ScanBase):
                     nl,
                     self.precursor,
                     nl,
-                    self.nl(nl),
+                    self.nl(nl, adduct = adduct),
                     str(result)
                 )
             )
         
         return result
     
-    def fragment_by_name(self, name):
+    def fragment_by_name(self, name, adduct = None):
         """
         Returns the index of a fragment by its name.
         Returns `None` if the fragment does not exist in the scan.
@@ -531,7 +544,7 @@ class Scan(ScanBase):
             
             if frag[6] == 0:
                 
-                return self.nl_lookup(frag[0])
+                return self.nl_lookup(frag[0], adduct = adduct)
                 
             else:
                 
@@ -539,7 +552,7 @@ class Scan(ScanBase):
         
         return False
     
-    def has_fragment(self, name):
+    def has_fragment(self, name, adduct = None):
         """
         Tells if a fragment exists in this scan by its name.
         
@@ -547,25 +560,25 @@ class Scan(ScanBase):
         in the database.
         """
         
-        i = self.fragment_by_name(name)
+        i = self.fragment_by_name(name, adduct = adduct)
         
         return None if i is False else i is not None
     
-    def nl_lookup(self, nl):
+    def nl_lookup(self, nl, adduct = None):
         """
         Looks up if a neutral loss exists in this scan and returns its index.
         """
         
-        return self.mz_lookup(self.nl(nl))
+        return self.mz_lookup(self.nl(nl, adduct = adduct))
     
-    def most_abundant_fragment_is(self, name):
+    def most_abundant_fragment_is(self, name, adduct = None):
         """
         Tells if the fragment name is the highest abundant.
         Returns `None` if the fragment name could not be
         found in the database.
         """
         
-        frag = fragdb.by_name(name, self.ionmode)
+        frag = fragdb.by_name(name, self.ionmode, adduct = adduct)
         
         if frag is not None:
             
@@ -573,7 +586,7 @@ class Scan(ScanBase):
             
             return self.mz_match(self.mzs[0], mz)
     
-    def fragment_among_most_abundant(self, name, n = 2):
+    def fragment_among_most_abundant(self, name, n = 2, adduct = None):
         """
         Tells if the fragment is among the top `n`.
         """
@@ -582,11 +595,20 @@ class Scan(ScanBase):
         
         if frag is not None:
             
-            mz = self.nl(frag[0]) if frag[6] == 0 else frag[0]
+            mz = (
+                self.nl(frag[0], adduct = adduct)
+                    if frag[6] == 0 else
+                frag[0]
+            )
             
             return self.mz_among_most_abundant(mz, n = n)
     
-    def fragment_percent_of_most_abundant(self, name, percent = 80.0):
+    def fragment_percent_of_most_abundant(
+            self,
+            name,
+            percent = 80.0,
+            adduct = None,
+        ):
         """
         Tells if a fragment has at least certain percent of intensity
         compared to the highest peak.
@@ -596,7 +618,11 @@ class Scan(ScanBase):
         
         if frag is not None:
             
-            mz = self.nl(frag[0]) if frag[6] == 0 else frag[0]
+            mz = (
+                self.nl(frag[0], adduct = adduct)
+                    if frag[6] == 0 else
+                frag[0]
+            )
             
             return self.mz_percent_of_most_abundant(mz, percent = percent)
     
@@ -653,7 +679,7 @@ class Scan(ScanBase):
         
         return i is not None
     
-    def nl_among_most_abundant(self, nl, n = 2):
+    def nl_among_most_abundant(self, nl, n = 2, adduct = None):
         """
         Tells if a neutral loss corresponds to one of the
         most aboundant `n` fragments in a spectrum.
@@ -666,7 +692,10 @@ class Scan(ScanBase):
             The number of most abundant fragments considered.
         """
         
-        result = self.mz_among_most_abundant(self.nl(nl), n = n)
+        result = self.mz_among_most_abundant(
+            self.nl(nl, adduct = adduct),
+            n = n,
+        )
         
         if self.verbose:
             
@@ -693,13 +722,13 @@ class Scan(ScanBase):
         
         return None
     
-    def get_nl_intensity(self, nl):
+    def get_nl_intensity(self, nl, adduct = None):
         """
         Returns the relative intensity of a neutral loss fragment ion.
         Value is `None` if neutral loss does not present.
         """
         
-        return self.get_intensity(self.nl(nl))
+        return self.get_intensity(self.nl(nl, adduct = adduct))
     
     def mz_percent_of_most_abundant(self, mz, percent = 80.0):
         """
@@ -797,6 +826,7 @@ class Scan(ScanBase):
             chain_type = None,
             c = None,
             u = None,
+            adduct = None,
         ):
         """
         Returns the highest instensity fragment matching a particular
@@ -812,6 +842,7 @@ class Scan(ScanBase):
             chain_type = chain_type,
             c = c,
             u = u,
+            adduct = adduct,
         )
         
         try:
@@ -829,6 +860,7 @@ class Scan(ScanBase):
             chain_type = None,
             c = None,
             u = None,
+            adduct = None,
         ):
         """
         Collects fragments matching a particular chain type.
@@ -845,6 +877,7 @@ class Scan(ScanBase):
                 c = c,
                 u = u,
                 return_annot = False,
+                adduct = adduct,
             ):
                 
                 yield i
@@ -856,6 +889,7 @@ class Scan(ScanBase):
             chain_type = None,
             c = None,
             u = None,
+            adduct = None,
         ):
         """
         Tells if a particular type of aliphatic chain fragment can be
@@ -871,6 +905,7 @@ class Scan(ScanBase):
                 chain_type = chain_type,
                 c = c,
                 u = u,
+                adduct = adduct,
             )
         )))
     
@@ -881,7 +916,8 @@ class Scan(ScanBase):
             chain_type = None,
             c = None,
             u = None,
-            return_annot = False
+            return_annot = False,
+            adduct = None,
         ):
         """
         Tells if an aliphatic chain fragment is a specified type. The type
@@ -898,9 +934,11 @@ class Scan(ScanBase):
             Return iterator with the matching fragment annotations.
         """
         
+        annot = self.annot if adduct is None else self.adduct_annot(adduct)
+        
         result = any((
-            self.match_annot(annot, frag_type, chain_type, c, u)
-            for annot in self.annot[i]
+            self.match_annot(an, frag_type, chain_type, c, u)
+            for an in annot[i]
         ))
         
         if self.verbose:
@@ -928,9 +966,9 @@ class Scan(ScanBase):
         if return_annot:
             
             result = (
-                annot
-                for annot in self.annot[i]
-                if self.match_annot(annot, frag_type, chain_type, c, u)
+                an
+                for an in annot[i]
+                if self.match_annot(an frag_type, chain_type, c, u)
             )
         
         return result
@@ -941,7 +979,8 @@ class Scan(ScanBase):
             frag_type = None,
             c = None,
             u = None,
-            yield_annot = False
+            yield_annot = False,
+            adduct = None,
         ):
         """
         Iterates chain fragments matching certain criteria.
@@ -960,7 +999,8 @@ class Scan(ScanBase):
                 chain_type = chain_type,
                 frag_type = frag_type,
                 c = c,
-                u = u
+                u = u,
+                adduct = adduct,
             ):
                 
                 if yield_annot:
@@ -971,7 +1011,8 @@ class Scan(ScanBase):
                         frag_type = frag_type,
                         c = c,
                         u = u,
-                        return_annot = True
+                        return_annot = True,
+                        adduct = adduct,
                     ):
                         
                         yield i, annot
@@ -986,6 +1027,7 @@ class Scan(ScanBase):
             frag_type = None,
             c = None,
             u = None,
+            adduct = None,
         ):
         """
         Tells if at least one fragment matches certain criteria.
@@ -997,6 +1039,7 @@ class Scan(ScanBase):
             frag_type = frag_type,
             c = c,
             u = u,
+            adduct = adduct,
         ) is not None
     
     def matching_chain_combinations(
@@ -1007,6 +1050,7 @@ class Scan(ScanBase):
             expected_intensities = None,
             no_intensity_check = False,
             chain_param = (),
+            adduct = None,
         ):
         """
         Provides a way to see if specific chain combinations exist.
@@ -1062,7 +1106,8 @@ class Scan(ScanBase):
             expected_intensities = None,
             no_intensity_check = False,
             frag_types = None,
-            fragment_details = True
+            fragment_details = True,
+            adduct = adduct,
         ):
             
             if (
@@ -1092,6 +1137,7 @@ class Scan(ScanBase):
             expected_intensities = None,
             no_intensity_check = False,
             chain_param = (),
+            adduct = None,
         ):
         """
         Tells if a certain chain combination exists in the scan.
@@ -1106,6 +1152,7 @@ class Scan(ScanBase):
             expected_intensities = expected_intensities,
             no_intensity_check = no_intensity_check,
             chain_param = chain_param,
+            adduct = adduct,
         )
         
         try:
@@ -1127,7 +1174,8 @@ class Scan(ScanBase):
             u = None,
             partner_chain_types = None,
             partner_frag_types = None,
-            count_only = False
+            count_only = False,
+            adduct = None,
         ):
         
         # small caching of constraint matching
@@ -1138,7 +1186,7 @@ class Scan(ScanBase):
             if frag_type not in type_pos:
                 
                 type_pos[frag_type] = self.positions_for_frag_type(
-                    record, frag_type
+                    record, frag_type, adduct = adduct
                 )
             
             return type_pos[frag_type]
@@ -1149,7 +1197,8 @@ class Scan(ScanBase):
             frag_type = frag_type,
             c = c,
             u = u,
-            yield_annot = True
+            yield_annot = True,
+            adduct = adduct,
         ):
             
             partner_c = record.chainsum.c - annot.c
@@ -1164,7 +1213,8 @@ class Scan(ScanBase):
             for j, jannot in self.chains_of_type(
                 c = partner_c,
                 u = partner_u,
-                yield_annot = True
+                yield_annot = True,
+                adduct = adduct,
             ):
                 
                 if (
@@ -1205,12 +1255,14 @@ class Scan(ScanBase):
         # which this fragment originates from
         return lipproc.match_constraints(record, constr)[1]
     
-    def is_chain(self, i):
+    def is_chain(self, i, adduct = None):
         """
         Examines if a fragment has an aliphatic chain.
         """
         
-        result = any(not np.isnan(annot.c) for annot in self.annot[i])
+        annot = self.adduct_annot(adduct)
+        
+        result = any(not np.isnan(an.c) for an in annot[i])
         
         if self.verbose:
             
@@ -1218,65 +1270,83 @@ class Scan(ScanBase):
                 '\t\t -- Fragment #%u (%.03f)'
                 'has an aliphatic chain? -- %s' % (
                     i,
-                    self.mz[i],
+                    self.mzs[i],
                     str(result)
                 )
             )
         
         return result
     
-    def is_chain_type(self, i, typ = 'FA'):
+    def is_chain_type(self, i, typ = 'FA', adduct = None):
         """
         Checks if a fragment might origin from a certain aliphatic
         chain type (e.g. `FA` -- fatty acyl, `FAL` -- fatty alkyl,
         `Sph` -- sphingosin base).
         """
         
-        return self.chain_fragment_type_is(i, chain_type = typ)
+        return self.chain_fragment_type_is(
+            i, chain_type = typ, adduct = adduct
+        )
     
-    def is_fa(self, i):
+    def is_fa(self, i, adduct = None):
         """
         Tells if a fragment origins from a fatty acyl moiety.
         """
         
-        return self.is_chain_type(i)
+        return self.is_chain_type(i, adduct = adduct)
     
-    def is_fal(self, i):
+    def is_fal(self, i, adduct = None):
         """
         Tells if a fragment origins from a fatty alkyl moiety.
         """
         
-        return self.is_chain_type(i, 'FAL')
+        return self.is_chain_type(i, 'FAL', adduct = adduct)
     
-    def is_sph(self, i):
+    def is_sph(self, i, adduct = None):
         """
         Tells if a fragment origins from a shpingosin backbone.
         """
         
-        return self.is_chain_type(i, 'Sph')
+        return self.is_chain_type(i, 'Sph', adduct = adduct)
     
-    def is_type(self, i, typ):
+    def is_type(self, i, typ, adduct = None):
         """
         Tells if a fragment is a certain type.
         """
         
-        return self.chain_fragment_type_is(i, frag_type = typ)
+        return self.chain_fragment_type_is(
+            i, frag_type = typ, adduct = adduct
+        )
     
-    def annot_by_type(self, i, chain_type = None, frag_type = None):
+    def annot_by_type(
+            self,
+            i,
+            chain_type = None,
+            frag_type = None,
+            adduct = None,
+        ):
         """
         Returns the annotations matching certain types.
         """
         
+        annot = self.adduct_annot(adduct)
+        
         return tuple(
-            annot
-            for annot in self.annot[i]
+            an
+            for an in annot[i]
             if (
-                (not chain_type or annot.chaintype == chain_type) and
-                (not frag_type  or annot.fragtype  == frag_type)
+                self.match_chtype(an.chaintype, chain_type) and
+                self.match_chtype(an.fragtype,  frag_type)
             )
         )
     
-    def cu_by_type(self, i, chain_type = None, frag_type = None):
+    def cu_by_type(
+            self,
+            i,
+            chain_type = None,
+            frag_type = None,
+            adduct = None,
+        ):
         """
         Returns `(carbon count, unsaturation)` tuples for fragment `i`
         considering only the the requested chain types and fragment types.
@@ -1288,7 +1358,8 @@ class Scan(ScanBase):
             self.annot_by_type(
                 i,
                 chain_type = chain_type,
-                frag_type = frag_type
+                frag_type = frag_type,
+                adduct = adduct,
             )
         )
     
@@ -1298,7 +1369,7 @@ class Scan(ScanBase):
         combinations.
         """
         
-        annot = annot or self.annot
+        annot = annot if type(annot) is np.ndarray else self.annot
         
         return tuple(
             ChainFragment(
@@ -1327,7 +1398,8 @@ class Scan(ScanBase):
             c = None,
             u = None,
             min_mass = None,
-            skip_non_chains = False
+            skip_non_chains = False,
+            adduct = None,
         ):
         """
         Returns `True` if the defined type of chain fragment can be found
@@ -1347,7 +1419,8 @@ class Scan(ScanBase):
                 frag_type = frag_type,
                 chain_type = chain_type,
                 c = c,
-                u = u
+                u = u,
+                adduct = adduct,
             )
             for i in (
                 xrange(head)
@@ -1381,21 +1454,23 @@ class Scan(ScanBase):
             frag_type = None,
             chain_type = None,
             c = None,
-            u = None
+            u = None,
+            adduct = None,
         ):
         """
         Looks up the most abundant fatty acid fragment of the given type.
         Returns the fragment index.
         """
         
-        for i, annot in enumerate(self.annot):
+        for i in xrange(len(self)):
             
             if self.chain_fragment_type_is(
                 i,
                 frag_type = frag_type,
                 chain_type = chain_type,
                 c = c,
-                u = u
+                u = u,
+                adduct = adduct,
             ):
                 
                 return i
@@ -1406,7 +1481,8 @@ class Scan(ScanBase):
             frag_type = None,
             chain_type = None,
             c = None,
-            u = None
+            u = None,
+            adduct = None,
         ):
         """
         Tells if a certain chain present with an abundance at least the
@@ -1424,7 +1500,8 @@ class Scan(ScanBase):
                 frag_type = frag_type,
                 chain_type = chain_type,
                 c = c,
-                u = u
+                u = u,
+                adduct = adduct,
             )
             for i in
             itertools.takewhile(
@@ -1466,27 +1543,29 @@ class Scan(ScanBase):
         
         return result
     
-    def cer_fa_test(self, i_fa, i_sph):
+    def cer_fa_test(self, i_fa, i_sph, adduct = None):
         
         return (
             self.chain_fragment_type_is(
                 i_fa,
-                frag_type = 'FA-O+C2H2NH2'
+                frag_type = 'FA-O+C2H2NH2',
+                adduct = adduct,
             ) and
             self.chain_fragment_type_id(
                 i_sph,
-                frag_type = 'Sph-C2H4-NH2-H2O'
+                frag_type = 'Sph-C2H4-NH2-H2O',
+                adduct = adduct,
             ) and
             self.intensities[i_fa] > self.intensities[i_sph] * 2
         )
     
-    def has_chain_combinations(self, rec, **kwargs):
+    def has_chain_combinations(self, rec, adduct = None, **kwargs):
         """
         Calls `chain_combinations` only to check if at least one
         conbination explicitely confirmed.
         """
         
-        ccomb = self.chain_combinations(rec, **kwargs)
+        ccomb = self.chain_combinations(rec, adduct = adduct, **kwargs)
         
         try:
             
@@ -1506,7 +1585,8 @@ class Scan(ScanBase):
             expected_intensities = None,
             no_intensity_check = False,
             frag_types = None,
-            fragment_details = None
+            fragment_details = None,
+            adduct = None,
         ):
         """
         Finds all combinations of chain derived fragments matching the
@@ -1542,6 +1622,7 @@ class Scan(ScanBase):
             head = head,
             intensity_threshold = intensity_threshold,
             frag_types = frag_types,
+            adduct = adduct,
         )
         
         if len(frags_for_position) != len(rec.chainsum.typ):
@@ -1583,7 +1664,8 @@ class Scan(ScanBase):
             rec,
             head = None,
             intensity_threshold = 0,
-            frag_types = None
+            frag_types = None,
+            adduct = None,
         ):
         """
         Returns the possible fragments for each positions (sn1, sn2 in
@@ -1610,13 +1692,19 @@ class Scan(ScanBase):
         
         frags_for_position = collections.defaultdict(list)
         
-        for frag in self.chain_list:
+        chain_list = self.adduct_chain_list(adduct)
+        
+        for frag in chain_list:
             
             if self.inorm[frag.i] < intensity_threshold:
                 
                 break
             
-            chpos = self.positions_for_frag_type(rec, frag.fragtype)
+            chpos = self.positions_for_frag_type(
+                rec,
+                frag.fragtype,
+                adduct = adduct,
+            )
             
             for ci in chpos:
                 
@@ -1636,7 +1724,7 @@ class Scan(ScanBase):
             intensities,
             frag_indices = None,
             expected = None,
-            logbase = None
+            logbase = None,
         ):
         """
         Tells if the ratio of a list of intensities fits the one in
@@ -1790,6 +1878,7 @@ class Scan(ScanBase):
             expected_intensities = None,
             no_intensity_check = False,
             frag_types = None,
+            adduct = None,
         ):
         """
         Finds ''missing'' chains i.e. which could complement the chains
@@ -1809,7 +1898,7 @@ class Scan(ScanBase):
             By default is 1 (sn2 or N-acyl).
         """
         
-        self.build_chain_list()
+        chain_list = self.adduct_chain_list(adduct = adduct)
         
         chainsum = rec.chainsum or lipproc.sum_chains(rec.chains)
         
@@ -1817,7 +1906,8 @@ class Scan(ScanBase):
             rec,
             head = head,
             intensity_threshold = intensity_threshold,
-            frag_types = frag_types
+            frag_types = frag_types,
+            adduct = adduct,
         )
         
         if missing_position >= len(rec.chainsum.typ):
@@ -1840,7 +1930,7 @@ class Scan(ScanBase):
             *(
                 # making a sorted list of lists from the dict
                 i[1] for i in
-                sorted(frags_for_position.items(), key = lambda i: i[0])
+                sorted(iteritems(frags_for_position), key = lambda i: i[0])
             )
         ):
             
@@ -2185,9 +2275,9 @@ class Scan(ScanBase):
         
         fake_precursor = (
             getattr(
-                mz.Mz(
+                mzmod.Mz(
                     getattr(
-                        mz.Mz(self.precursor),
+                        mzmod.Mz(self.precursor),
                         ad2ex
                     )()
                 ),
@@ -2197,13 +2287,26 @@ class Scan(ScanBase):
         
         annot = self.get_annot(fake_precursor)
         
-        chain_list = self._build_chain_list(annot = annot, rebuild = True)
+        chain_list = self._build_chain_list(annot = annot)
         
         self.adducts[adduct] = {
             'fake_precursor': fake_precursor,
             'annot': annot,
             'chain_list': chain_list,
         }
+    
+    def adduct_annot(self, adduct = None):
+        """
+        Gets the annotations for a certain adduct.
+        """
+        
+        if adduct is None:
+            
+            return self.annot
+        
+        self.adduct(adduct)
+        
+        return self.adducts[adduct]['annot']
 
 
 class AbstractMS2Identifier(object):
@@ -3750,6 +3853,10 @@ class Cer_Positive(AbstractMS2Identifier):
         score = 0
         
         if self.scn.has_fragment('NL [P+H2O] (NL 115.9875)'):
+            
+            score += 10
+        
+        if self.scn.chain_among_most_abundant(3, frag_type = 'Sph-2xH2O-H'):
             
             score += 10
         
