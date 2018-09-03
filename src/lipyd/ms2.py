@@ -1552,7 +1552,7 @@ class Scan(ScanBase):
         return (
             self.chain_fragment_type_is(
                 i_fa,
-                frag_type = 'FA-O+C2H2NH2',
+                frag_type = 'FA+C2+NH2-O',
                 adduct = adduct,
             ) and
             self.chain_fragment_type_id(
@@ -4434,16 +4434,17 @@ class Cer_Negative(AbstractMS2Identifier):
             chain_param = (
                 {
                     'frag_type': {
-                        'Sph-H', # b2
+                        'Sph-H', # b1
+                        'Sph-C2H4-3H', # b2
+                        'Sph-CH2-H2O-H', # b3
                         'Sph-H2O-NH2-2H', # b4
                         'Sph-C2H4-NH2-H2O', # b5
                     }
                 },
                 {
                     'frag_type': {
-                        'FA-H', # a6
-                        'FA+C2H3+NH2', # a2
-                        'FA+C2H3+NH2-O', # a3
+                        'FA+C2+NH2', # a2
+                        'FA+C2+NH2-O', # a3
                     }
                 }
             )
@@ -4480,6 +4481,33 @@ class Cer_Negative(AbstractMS2Identifier):
     def sphingosine_t(self):
         
         score = 0
+        
+        if self.scn.has_fragment('NL C+3xH2O (66.0455)', adduct = self.add):
+            
+            score += 5
+        
+        if self.scn.has_fragment('HexCer identity II'):
+            
+            score += 3
+        
+        if self.scn.has_chain_combination(
+            self.rec,
+            chain_param = (
+                {
+                    'frag_type': {
+                        'Sph-CH2-NH2-4H', # b6
+                    }
+                },
+                {
+                    'frag_type': {
+                        'FA+C2H2+NH2', # a1
+                        'FA+C3H2+NH2', # a10
+                    }
+                }
+            )
+        ):
+            
+            score += 20
         
         return score
 

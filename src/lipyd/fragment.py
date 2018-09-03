@@ -472,18 +472,6 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'FA'
             ),
-        # former CerFA
-        'FA_mO_pC2H2NH2':
-            ChainFragParam(
-                plus = 'C2H2ON',
-                minus = '',
-                charge = -1,
-                name = 'FA%s-O+C2H2NH2',
-                constraints = (
-                    FragConstraint(hg = 'Cer', chaintype = 'FA'),
-                ),
-                chaintype = 'FA'
-            ), # 308.2959
         # former CerFAminusC2H5N
         'FA_mH2O_mH':
             ChainFragParam(
@@ -616,17 +604,17 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'FA'
             ), # 340.2857
-        'FA_pC2H3_pNH2':
+        'FA_pC2_pNH2':
             ChainFragParam(
                 plus = 'C2NH2O2',
                 minus = '',
                 charge = -1,
-                name = 'FA%s+C2H3+NH2',
+                name = 'FA%s+C2+NH2',
                 constraints = (
                     FragConstraint(family = 'SL', chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
-            ), # 324.2908
+            ), # 324.2908 Hsu 2016 a2
         'FA_pO':
             ChainFragParam(
                 plus = 'O3',
@@ -637,7 +625,7 @@ class FattyFragmentFactory(object):
                     FragConstraint(chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
-            ), # 299.2592 Hsu 2016 a2
+            ), # 299.2592
         'FA_pC2H3_pNH2_m2H':
             ChainFragParam(
                 plus = 'C2NO2',
@@ -694,25 +682,43 @@ class FattyFragmentFactory(object):
                 chaintype = 'FA'
             ), # 253.2537
         # fatty acyl fragments from ceramides
-        'FA_pC2H3_pNH2_p2H':
+        'FA_pC2H2_pNH2':
             ChainFragParam(
                 plus = 'C2NH4O2',
                 minus = '',
                 charge = -1,
-                name = 'FA%s+C2H3+NH2+2H',
+                name = 'FA%s+C2H2+NH2',
                 constraints = (
-                    FragConstraint(family = 'SL', chaintype = 'FA'),
+                    FragConstraint(
+                        family = 'SL',
+                        chaintype = 'FA',
+                    ),
                 ),
                 chaintype = 'FA'
-            ), # 326.3065
-        'FA_pC2H3_pNH2_mO':
+            ), # 326.3065 # Hsu 2016 a1
+        # at all ceramides, former CerFA:
+        'FA_pC2_pNH2_mO':
             ChainFragParam(
                 plus = 'C2NH2O',
                 minus = '',
                 charge = -1,
-                name = 'FA%s+C2H3+NH2-O',
+                name = 'FA%s+C2+NH2-O',
                 constraints = (
-                    FragConstraint(family = 'SL', chaintype = 'FA'),
+                    FragConstraint(
+                        family = 'SL',
+                        chaintype = 'FA',
+                        sph = 't',
+                    ),
+                    FragConstraint(
+                        family = 'SL',
+                        chaintype = 'FA',
+                        sph = 'DH',
+                    ),
+                    FragConstraint(
+                        family = 'SL',
+                        chaintype = 'FA',
+                        sph = 'd',
+                    ),
                 ),
                 chaintype = 'FA'
             ), # 308.2959 Hsu 2016 a3
@@ -727,17 +733,22 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'FA'
             ), # 282.2802
-        'FA_pC3H7_mNH2':
+        # tCer specific
+        'FA_pC3H2_pNH2':
             ChainFragParam(
                 plus = 'O2NC3H4',
                 minus = '',
                 charge = -1,
-                name = 'FA%s+C3H7+NH2',
+                name = 'FA%s+C3H2+NH2',
                 constraints = (
-                    FragConstraint(family = 'SL', chaintype = 'FA'),
+                    FragConstraint(
+                        family = 'SL',
+                        chaintype = 'FA',
+                        sph = 't',
+                    ),
                 ),
                 chaintype = 'FA'
-            ), # 338.3064
+            ), # 338.3064 Hsu 2016 a10
         # sphingosine long chain base fragments from t-ceramides
         'Sph_pO':
             ChainFragParam(
@@ -779,10 +790,14 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-C2H4-NH2-2H',
                 constraints = (
-                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
+                    FragConstraint(
+                        hg = 'Cer',
+                        chaintype = 'Sph',
+                        sph = 't',
+                    ),
                 ),
                 chaintype = 'Sph'
-            ), # 255.2330
+            ), # 255.2330 # Hsu 2016 b5
         'Sph_mCH2_mNH2_m4H':
             ChainFragParam(
                 plus = 'O2',
@@ -790,10 +805,14 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'Sph%s-CH2-NH2-4H',
                 constraints = (
-                    FragConstraint(hg = 'Cer', chaintype = 'Sph'),
+                    FragConstraint(
+                        hg = 'Cer',
+                        chaintype = 'Sph',
+                        sph = 't',
+                    ),
                 ),
                 chaintype = 'Sph'
-            ), # 267.2330
+            ), # 267.2330 # Hsu 2016 b6
         # sphingosine long chain base fragments from DH-ceramides
         'Sph_mH_N':
             ChainFragParam(
@@ -809,7 +828,7 @@ class FattyFragmentFactory(object):
                     ),
                 ),
                 chaintype = 'Sph'
-            ), # 300.2908 Hsu 2016 b1
+            ), # 300.2908 # Hsu 2016 b1
         'Sph_mCH2_mH2O_mH':
             ChainFragParam(
                 plus = 'NO',

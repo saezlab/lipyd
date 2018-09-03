@@ -1596,7 +1596,7 @@ specimens = [
                     )
                 ),
                 details = None
-            )
+            ),
         ),
         'Cer(d36:0)': (
             MS2Identity(
@@ -1879,6 +1879,80 @@ specimens = [
                     Chain(
                         c = 18,
                         u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        1886,
+        {'Cer(t36:0)': (
+            MS2Identity(
+                score = 51,
+                hg = Headgroup(main='Cer', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 0,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='t', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                ),
+                chains = (
+                    Chain(
+                        c = 21,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 15,
+                        u = 0,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        1841,
+        {'Cer(t36:0)': (
+            MS2Identity(
+                score = 48,
+                hg = Headgroup(main='Cer', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 0,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='t', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 21,
+                        u = 0,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 15,
+                        u = 0,
                         typ = 'FA',
                         attr = ChainAttr(sph='', ether=False, oh=()),
                         iso = ()
