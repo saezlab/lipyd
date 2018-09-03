@@ -4476,9 +4476,15 @@ class Cer_Negative(AbstractMS2Identifier):
             score -= 20
         
         return score
+    
+    def sphingosine_t(self):
+        
+        score = 0
+        
+        return score
 
 #
-# Scan.identify() dispatches identification methods by this
+# Scan.identify() dispatches identification methods as below
 #
 
 idmethods = {
