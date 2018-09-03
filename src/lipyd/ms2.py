@@ -4352,6 +4352,45 @@ class Cer_Negative(AbstractMS2Identifier):
         
         self.confirm_subclass()
     
+    def confirm_chains_explicit(self):
+        
+        for chains in itertools.chain(
+            AbstractMS2Identifier.confirm_chains_explicit(self),
+            AbstractMS2Identifier.confirm_chains_implicit(self),
+        ):
+            
+            if chains[0][0].attr.sph == self.rec.chainsum.attr[0].sph:
+                
+                # the sphingosin base and fatty acyl related part of the
+                # score is valid only for the current chain combination
+                # hence now we add these to the overall score, yield the
+                # identification and then subtract them from the score
+                sph_score = self.sphingosine_base(chains[0][0].attr.sph)
+                self.score += sph_score
+                
+                if self.nacyl:
+                    
+                    fa_score  = self.fatty_acyl(chains[0][1])
+                    self.score += fa_score
+                
+                yield chains
+                
+                self.score -= sph_score
+                
+                if self.nacyl:
+                    
+                    self.score -= fa_score
+    
+    def fatty_acyl(self, fa):
+        
+        score = 0
+        
+        if fa.attr.oh:
+            
+            pass
+        
+        return score
+    
     def cer(self):
         
         cer_nl = (
@@ -4386,7 +4425,7 @@ class Cer_Negative(AbstractMS2Identifier):
         
         return self.sph_scores[sph]
     
-    def sphingosine_d(self):
+    def sphingosine_d_dh(self):
         
         score = 0
         
@@ -4397,23 +4436,44 @@ class Cer_Negative(AbstractMS2Identifier):
                     'frag_type': {
                         'Sph-H', # b2
                         'Sph-H2O-NH2-2H', # b4
+                        'Sph-C2H4-NH2-H2O', # b5
                     }
                 },
-                {}
+                {
+                    'frag_type': {
+                        'FA-H', # a6
+                        'FA+C2H3+NH2', # a2
+                        'FA+C2H3+NH2-O', # a3
+                    }
+                }
             )
         ):
             
             score += 20
         
-        if self.scn.has_fragment('NL C+H2O (NL 30.0106)'):
+        return score
+    
+    def sphingosine_d(self):
+        
+        score = 0
+        
+        score += self.sphingosine_d_dh()
+        
+        if self.scn.has_fragment('NL C+H2O (NL 30.0106)', adduct = self.add):
             
-            score += 10
+            score += 20
         
         return score
     
     def sphingosine_dh(self):
         
-        score = 30 - self.sphingosine_d()
+        score = 0
+        
+        score += self.sphingosine_d_dh()
+        
+        if self.scn.has_fragment('NL C+H2O (NL 30.0106)', adduct = self.add):
+            
+            score -= 20
         
         return score
 

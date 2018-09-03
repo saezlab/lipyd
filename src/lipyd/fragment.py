@@ -637,7 +637,7 @@ class FattyFragmentFactory(object):
                     FragConstraint(chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
-            ), # 299.2592
+            ), # 299.2592 Hsu 2016 a2
         'FA_pC2H3_pNH2_m2H':
             ChainFragParam(
                 plus = 'C2NO2',
@@ -715,7 +715,7 @@ class FattyFragmentFactory(object):
                     FragConstraint(family = 'SL', chaintype = 'FA'),
                 ),
                 chaintype = 'FA'
-            ), # 308.2959
+            ), # 308.2959 Hsu 2016 a3
         'FA_pNH2_mH2O_mH':
             ChainFragParam(
                 plus = 'ONH',
