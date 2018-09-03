@@ -902,7 +902,7 @@ specimens = [
                 chainsum = ChainSummary(
                     c = 36,
                     u = 1,
-                    typ = ('Sph', 'FA'),
+                    typ = ('Sph', 'FAOH'),
                     attr = (
                         ChainAttr(sph='d', ether=False, oh=()),
                         ChainAttr(sph='', ether=False, oh=('2OH',))
@@ -919,7 +919,7 @@ specimens = [
                     Chain(
                         c = 18,
                         u = 0,
-                        typ = 'FA',
+                        typ = 'FAOH',
                         attr = ChainAttr(sph='', ether=False, oh=('2OH',)),
                         iso = ()
                     )
@@ -1966,7 +1966,7 @@ specimens = [
         'neg_examples.mgf',
         'neg',
         1573,
-        {'Cer(d36:0-2OH)': (
+        {'Cer(d36:1-2OH)': (
             MS2Identity(
                 score = 93,
                 hg = Headgroup(main='Cer', sub=()),
