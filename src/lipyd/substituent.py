@@ -63,7 +63,7 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
             u = u,
             prefix = '2OH',
             chain_attr = chain_attr,
-            chain_type = 'FA',
+            chain_type = 'FAOH',
             **kwargs
         )
 

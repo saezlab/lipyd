@@ -1962,6 +1962,14 @@ specimens = [
             ),
         )}
     ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        1573,
+        {'Cer(d36:0-2OH)': (
+
+        )}
+    ),
 ]
 
 

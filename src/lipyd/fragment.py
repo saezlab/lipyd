@@ -590,12 +590,12 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'FA'
             ), # 342.3014
-        'FA_pC2H3_pNH2_pO':
+        'FA_pC2_pNH2_pO':
             ChainFragParam(
                 plus = 'C2NH2O3',
                 minus = '',
                 charge = -1,
-                name = 'FA%s+C2H3+NH2+O',
+                name = 'FA%s+C2+NH2+O',
                 constraints = (
                     FragConstraint(
                         family = 'SL',
@@ -603,7 +603,7 @@ class FattyFragmentFactory(object):
                     ),
                 ),
                 chaintype = 'FA'
-            ), # 340.2857
+            ), # 340.2857 # Hsu 2016 a2 (for hydroxyacyl)
         'FA_pC2_pNH2':
             ChainFragParam(
                 plus = 'C2NH2O2',
@@ -611,9 +611,9 @@ class FattyFragmentFactory(object):
                 charge = -1,
                 name = 'FA%s+C2+NH2',
                 constraints = (
-                    FragConstraint(family = 'SL', chaintype = 'FA'),
+                    FragConstraint(family = 'SL', chaintype = 'FAOH'),
                 ),
-                chaintype = 'FA'
+                chaintype = 'FAOH'
             ), # 324.2908 Hsu 2016 a2
         'FA_pO':
             ChainFragParam(
