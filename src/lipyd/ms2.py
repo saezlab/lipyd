@@ -4385,9 +4385,28 @@ class Cer_Negative(AbstractMS2Identifier):
         
         score = 0
         
-        if fa.attr.oh:
+        if len(fa.attr.oh) == 1:
             
-            pass
+            if self.scn.has_chain_combination(
+                self.rec,
+                head = 20, # to exclude tCer
+                chain_param = (
+                    {
+                        'frag_type': {
+                            'Sph-H', # b1
+                            'Sph-C2H4-NH2-H2O', # b5
+                        }
+                    },
+                    {
+                        'frag_type': {
+                            'FA+C2+NH2+O',  # a5 @ hydroxyacyl
+                            'FA+CH2+NH2+O', # a1 @ hydroxyacyl
+                        }
+                    }
+                )
+            ):
+                
+                score += 30
         
         return score
     
@@ -4508,6 +4527,14 @@ class Cer_Negative(AbstractMS2Identifier):
         ):
             
             score += 20
+        
+        # differentiate from hydroxyacyl-dCer
+        if self.scn.chain_percent_of_most_abundant(
+            frag_type = {'FA+C2H2+NH2+O', 'FA+C2+NH2+O'},
+            percent = 5.0,
+        ):
+            
+            score -= 10
         
         return score
 

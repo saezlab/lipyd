@@ -369,7 +369,11 @@ def match_constraint(rec, constr):
                     constr.sph == attr.sph
                 ) and
                 # matching only the number of OH groups
-                len(attr.oh) == constr.oh
+                (
+                    len(attr.oh) == constr.oh
+                    if type(constr.oh) is int else
+                    set(attr.oh) == set(constr.oh)
+                )
             ):
                 
                 chains.add(i)
