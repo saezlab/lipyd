@@ -2122,6 +2122,29 @@ specimens = [
             ),
         )}
     ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        2265,
+        {'SM(d34:1)': (
+            MS2Identity(
+                score = 35,
+                hg = Headgroup(main='SM', sub=()),
+                chainsum = ChainSummary(
+                    c = 34,
+                    u = 1,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='d', ether=False, oh=()),
+                    ChainAttr(sph='', ether=False, oh=())
+                        ),
+                    iso = None
+                    ),
+                chains = None,
+                details = None
+            ),
+        )}
+    ),
 ]
 
 

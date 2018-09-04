@@ -4322,6 +4322,7 @@ class Cer_Negative(AbstractMS2Identifier):
     
     class_methods = {
         'Cer': 'cer',
+        'SM':  'sm',
     }
     
     subclass_methods = {
@@ -4542,22 +4543,55 @@ class Cer_Negative(AbstractMS2Identifier):
         
         score = 0
         
-        score += sum(map(bool, (
+        if any(map(bool, (
             self.scn.has_fragment('Cer1P/PIP/PL metaphosphate (78.9591)'),
             self.scn.has_fragment('Cer1P/PI phosphate (96.9696)'),
-        ))) * 10
-        
-        if self.has_nl('NL H2O (NL 18.0106)'):
+        ))):
             
-            score += 10
+            score += 20
+            
+            if self.scn.has_fragment(
+                'NL H2O (NL 18.0106)', adduct = self.add
+            ):
+                
+                score += 10
+            
+            if self.scn.has_chain_fragment_type(
+                frag_type = {'NLFA_pH2O', 'NLFA_p2xH2O'},
+                adduct = self.add
+            ):
+                
+                score += 10
+            
+            self.must_have_chains = False
         
-        if self.has_chain_fragment_type(
-            frag_type = {'NLFA_pH2O', 'NLFA_p2xH2O'}
+        return score
+    
+    def sm(self):
+        
+        score = 0
+        
+        if self.scn.fragment_among_most_abundant(
+            'NL CH2 (NL 14.0157)', 3, adduct = self.add
+        ) and self.scn.fragment_among_most_abundant(
+            'PC/SM PO4+choline-CH3 (168.0431)', 5
         ):
             
-            score += 10
-        
-        self.must_have_chains = False
+            score += 30
+            
+            score += sum(map(bool, (
+                self.scn.has_fragment(
+                    'Cer1P/PIP/PL metaphosphate (78.9591)'
+                ),
+                self.scn.has_fragment(
+                    'NL choline+H2O', adduct = self.add
+                ),
+                self.scn.has_fragment(
+                    'NL choline+H2O-CH3', adduct = self.add
+                ),
+            ))) * 5
+            
+            self.must_have_chains = False
         
         return score
 
@@ -4596,6 +4630,7 @@ idmethods = {
         lipproc.Headgroup(main = 'VA'): VA_Negative,
         lipproc.Headgroup(main = 'Cer'): Cer_Negative,
         lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Negative,
+        lipproc.Headgroup(main = 'SM'): Cer_Negative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FA_Positive,
