@@ -2034,10 +2034,10 @@ specimens = [
     (
         'neg_examples.mgf',
         'neg',
-        1573,
+        1596,
         {'Cer(d36:1-2OH)': (
             MS2Identity(
-                score = 93,
+                score = 90,
                 hg = Headgroup(main='Cer', sub=()),
                 chainsum = ChainSummary(
                     c = 36,
