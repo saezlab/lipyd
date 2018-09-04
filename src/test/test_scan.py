@@ -2100,6 +2100,14 @@ specimens = [
             ),
         )}
     ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        2174,
+        {'Cer-1P(d34:1)': (
+
+        )}
+    ),
 ]
 
 
