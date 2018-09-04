@@ -2031,6 +2031,75 @@ specimens = [
             ),
         )}
     ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        1573,
+        {'Cer(d36:1-2OH)': (
+            MS2Identity(
+                score = 93,
+                hg = Headgroup(main='Cer', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 1,
+                    typ = ('Sph', 'FAOH'),
+                    attr = (
+                        ChainAttr(sph='d', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=('2OH',))
+                    ),
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='d', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'FAOH',
+                        attr = ChainAttr(sph='', ether=False, oh=('2OH',)),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        ),
+        'Cer(t36:1)': (
+            MS2Identity(
+                score = 15,
+                hg = Headgroup(main='Cer', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 1,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='t', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    )
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'Sph',
+                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'FAOH',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
 ]
 
 
