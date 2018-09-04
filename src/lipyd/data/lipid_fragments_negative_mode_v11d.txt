@@ -55,4 +55,3 @@
 163.0764536	C10O2H11	alpha-Vit.E (163.08)	[M-H]-	VE
 149.0608036	C9O2H9	beta/gamma-Vit.E (149.06)	[M-H]-	VE
 135.0451536	C8O2H7	delta-Vit.E (135.05)	[M-H]-	VE
-

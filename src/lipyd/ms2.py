@@ -4327,6 +4327,7 @@ class Cer_Negative(AbstractMS2Identifier):
     
     subclass_methods = {
         '1P': 'cer1p',
+        'Hex': 'hexcer',
     }
     
     def __init__(self, record, scan, **kwargs):
@@ -4594,6 +4595,22 @@ class Cer_Negative(AbstractMS2Identifier):
             self.must_have_chains = False
         
         return score
+    
+    def hexcer(self):
+        
+        score = 0
+        
+        self.score += sum(map(bool, (
+            self.scn.fragment_among_most_abundant('HexCer identity I', 10),
+            self.scn.fragment_among_most_abundant('HexCer identity II', 10),
+            self.scn.fragment_among_most_abundant('HexCer identity III', 10),
+        ))) * 10
+        
+        if self.scn.has_chain_combinations(self.rec):
+            
+            score += 10
+        
+        return score
 
 #
 # Scan.identify() dispatches identification methods as below
@@ -4631,6 +4648,7 @@ idmethods = {
         lipproc.Headgroup(main = 'Cer'): Cer_Negative,
         lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Negative,
         lipproc.Headgroup(main = 'SM'): Cer_Negative,
+        lipproc.Headgroup(main = 'Cer', sub = ('Hex',)): Cer_Negative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FA_Positive,
