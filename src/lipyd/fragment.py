@@ -1032,7 +1032,26 @@ class FattyFragmentFactory(object):
                 charge = 0,
                 name = 'NL FA%s-H2O',
                 constraints = (
-                    FragConstraint(chaintype = 'FA'),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('1P',),
+                        chaintype = 'FA',
+                    ),
+                ),
+                chaintype = 'FA'
+            ),
+        'NLFA_m2xH2O':
+            ChainFragParam(
+                plus = '',
+                minus = 'H4',
+                charge = 0,
+                name = 'NL FA%s-2xH2O',
+                constraints = (
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('1P',),
+                        chaintype = 'FA',
+                    ),
                 ),
                 chaintype = 'FA'
             ),

@@ -4325,7 +4325,7 @@ class Cer_Negative(AbstractMS2Identifier):
     }
     
     subclass_methods = {
-        
+        '1P': 'cer1p',
     }
     
     def __init__(self, record, scan, **kwargs):
@@ -4537,6 +4537,29 @@ class Cer_Negative(AbstractMS2Identifier):
             score -= 10
         
         return score
+    
+    def cer1p(self):
+        
+        score = 0
+        
+        score += sum(map(bool, (
+            self.scn.has_fragment('Cer1P/PIP/PL metaphosphate (78.9591)'),
+            self.scn.has_fragment('Cer1P/PI phosphate (96.9696)'),
+        ))) * 10
+        
+        if self.has_nl('NL H2O (NL 18.0106)'):
+            
+            score += 10
+        
+        if self.has_chain_fragment_type(
+            frag_type = {'NLFA_pH2O', 'NLFA_p2xH2O'}
+        ):
+            
+            score += 10
+        
+        self.must_have_chains = False
+        
+        return score
 
 #
 # Scan.identify() dispatches identification methods as below
@@ -4572,6 +4595,7 @@ idmethods = {
         lipproc.Headgroup(main = 'BMP'): BMP_Negative,
         lipproc.Headgroup(main = 'VA'): VA_Negative,
         lipproc.Headgroup(main = 'Cer'): Cer_Negative,
+        lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Negative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FA_Positive,

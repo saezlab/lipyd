@@ -2105,7 +2105,21 @@ specimens = [
         'neg',
         2174,
         {'Cer-1P(d34:1)': (
-
+            MS2Identity(
+                score = 20,
+                hg = Headgroup(main='Cer', sub=('1P',)),
+                chainsum = ChainSummary(
+                    c = 34,
+                    u = 1,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='d', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                ),
+                chains = None,
+                details = None
+            ),
         )}
     ),
 ]
