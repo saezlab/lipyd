@@ -105,7 +105,7 @@ class MgfReader(object):
                         
                         try:
                             
-                            m = self.reln.match(l).groups()
+                            m = self.reln.match(l.strip()).groups()
                             
                         except:
                             

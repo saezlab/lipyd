@@ -995,7 +995,7 @@ CHARGE=1-
 581.5304431 43845.171875
 END IONS
 BEGIN IONS
-TITLE=150310_Popeye_MLH_AC_TLC_Std1_2_extracted_100pg_on_column_neg.2174.2174.1 File:"150310_Popeye_MLH_AC_TLC_Std1_2_extracted_100pg_on_column_neg.raw", NativeID:"controllerType=0 controllerNumber=1 scan=2174" 
+TITLE=150310_Popeye_MLH_AC_TLC_Std1_2_extracted_100pg_on_column_neg.2174.2174.1 File:"150310_Popeye_MLH_AC_TLC_Std1_2_extracted_100pg_on_column_neg.raw", NativeID:"controllerType=0 controllerNumber=1 scan=2174"
 RTINSECONDS=504.699084
 PEPMASS=616.466704639736 104245.5546875
 CHARGE=1-
