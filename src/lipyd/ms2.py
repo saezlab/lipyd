@@ -4710,7 +4710,50 @@ class Cer_Negative(AbstractMS2Identifier):
     
     def shexcer(self):
         
+        score = 0
         
+        self.missing_chains = (1,)
+        
+        if self.scn.has_fragment('Sulphate (96.9601)'):
+            
+            score += 20
+        
+        self.score += sum(map(bool, (
+            self.scn.has_fragment('[Sulfohexose] (259.0129)'),
+            self.scn.has_fragment('[Sulfohexose] (256.9972)'),
+            self.scn.has_fragment('[Sulfohexose-H2O] (241.0024)'),
+        ))) * 10
+        
+        if self.scn.has_chain_fragment_type(
+            frag_type = {
+                'Sph+C6O5H8+SO3+H2O',
+                'Sph+C6O5H8+SO3+CO+H2O',
+            }
+        )):
+            
+            score += 20
+            
+            if self.scn.has_chain_combination(
+                self.rec,
+                chain_param = (
+                    {
+                        'frag_type': {
+                            'Sph+C6O5H8+SO3+H2O',
+                            'Sph+C6O5H8+SO3+CO+H2O',
+                        }
+                    },
+                    {
+                        'frag_type': {
+                            'NLFA',
+                            'NLFA_mH2O',
+                        }
+                    }
+                )
+            ):
+                
+                score += 20
+        
+        return score
 
 #
 # Scan.identify() dispatches identification methods as below

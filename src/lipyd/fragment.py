@@ -1002,6 +1002,21 @@ class FattyFragmentFactory(object):
                 chaintype = 'FA'
             ), # 284.2721
         # sphingosine fragments from sulfohexosyl ceramide
+        'Sph_pC6O5H8_pSO3':
+            ChainFragParam(
+                plus = 'C6O10H8S',
+                minus = '',
+                charge = -1,
+                name = 'Sph%s+C6O5H8+SO3',
+                constraints = (
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('SHex',),
+                        chaintype = 'Sph',
+                    ),
+                ),
+                chaintype = 'Sph'
+            ), # 
         'Sph_pC6O5H8_pSO3_pH2O':
             ChainFragParam(
                 plus = 'C6O11H10S',
@@ -1016,7 +1031,7 @@ class FattyFragmentFactory(object):
                     ),
                 ),
                 chaintype = 'Sph'
-            ),
+            ), # 542.2766
         'Sph_pC6O5H8_pSO3_pCO_pH2O':
             ChainFragParam(
                 plus = 'C7O12H10S',
@@ -1031,7 +1046,7 @@ class FattyFragmentFactory(object):
                     ),
                 ),
                 chaintype = 'Sph'
-            ),
+            ), # 570.2715
     }
     
     param_pos = {
@@ -1163,6 +1178,21 @@ class FattyFragmentFactory(object):
                     FragConstraint(
                         hg = 'Cer',
                         sub = ('Hex',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('SHex',),
+                        chaintype = 'Sph',
+                    ), # Han 2016
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('Hex2',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('SHex2',),
                         chaintype = 'Sph',
                     ),
                 ),

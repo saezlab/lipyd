@@ -448,6 +448,18 @@ _defaults = {
                 '[M+Na]+',
                 '[M-H2O+H]+',
             },
+            lipproc.Headgroup(main = 'Cer', sub = ('SHex',)): {
+                '[M+H]+',
+                '[M+NH4]+',
+                '[M+Na]+',
+                '[M-H2O+H]+',
+            },
+            lipproc.Headgroup(main = 'Cer', sub = ('SHex2',)): {
+                '[M+H]+',
+                '[M+NH4]+',
+                '[M+Na]+',
+                '[M-H2O+H]+',
+            },
         },
         'neg': {
         }
