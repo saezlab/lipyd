@@ -4700,6 +4700,34 @@ class Cer_Negative(AbstractMS2Identifier):
             self.scn.has_fragment('[Hexose] (179.0561)'),
             self.scn.has_fragment('[Hexose-H2O] (161.0455)'),
             self.scn.has_fragment('[Hexose-HCHO] (149.0455)'),
+            self.scn.has_fragment('NL hexose (162.053)'),
+            self.scn.has_fragment('NL hexose+H2O (180.063)'),
+        ))) * 10
+        
+        if self.scn.has_chain_combinations(self.rec):
+            
+            score += 10
+        
+        return score
+    
+    def hex2cer(self):
+        
+        score = 0
+        
+        self.score += sum(map(bool, (
+            self.scn.has_fragment('HexCer identity I'),
+            self.scn.has_fragment('HexCer identity II'),
+            self.scn.has_fragment('HexCer identity III'),
+            self.scn.has_fragment('[Hexose] (179.0561)'),
+            self.scn.has_fragment('[Hexose-H2O] (161.0455)'),
+            self.scn.has_fragment('[Hexose-HCHO] (149.0455)'),
+            self.scn.has_fragment('NL hexose (162.053)'),
+            self.scn.has_fragment('NL hexose+H2O (180.063)'),
+            self.scn.has_fragment('[2xHexose-HCHO] (311.0984)'),
+            self.scn.has_fragment('[2xHexose-H2O] (323.0984)'),
+            self.scn.has_fragment('[2xHexose] (341.1089)'),
+            self.scn.has_fragment('NL 2xHexose (324.106)'),
+            self.scn.has_fragment('NL 2xHexose+H2O (342.1162)'),
         ))) * 10
         
         if self.scn.has_chain_combinations(self.rec):
@@ -4848,6 +4876,9 @@ idmethods = {
         lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Negative,
         lipproc.Headgroup(main = 'SM'): Cer_Negative,
         lipproc.Headgroup(main = 'Cer', sub = ('Hex',)): Cer_Negative,
+        lipproc.Headgroup(main = 'Cer', sub = ('Hex2',)): Cer_Negative,
+        lipproc.Headgroup(main = 'Cer', sub = ('SHex',)): Cer_Negative,
+        lipproc.Headgroup(main = 'Cer', sub = ('SHex2',)): Cer_Negative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FA_Positive,
