@@ -522,6 +522,21 @@ class FattyFragmentFactory(object):
                         sub = ('Hex',),
                         chaintype = 'Sph',
                     ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('Hex2',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('SHex',),
+                        chaintype = 'Sph',
+                    ),
+                    FragConstraint(
+                        hg = 'Cer',
+                        sub = ('SHex2',),
+                        chaintype = 'Sph',
+                    ),
                 ),
                 chaintype = 'Sph'
             ), # 239.2380, Hsu 2016 b5
@@ -946,11 +961,6 @@ class FattyFragmentFactory(object):
                 constraints = (
                     FragConstraint(
                         hg = 'Sph',
-                        chaintype = 'Sph',
-                    ),
-                    FragConstraint(
-                        hg = 'Cer',
-                        sub = ('Hex',),
                         chaintype = 'Sph',
                     ),
                 ),

@@ -1597,38 +1597,6 @@ specimens = [
                 ),
                 details = None
             ),
-        ),
-        'Cer(d36:0)': (
-            MS2Identity(
-                score = 17,
-                hg = Headgroup(main='Cer', sub=()),
-                chainsum = ChainSummary(
-                    c = 36,
-                    u = 0,
-                    typ = ('Sph', 'FA'),
-                    attr = (
-                        ChainAttr(sph='d', ether=False, oh=()),
-                        ChainAttr(sph='', ether=False, oh=())
-                    ),
-                ),
-                chains = (
-                    Chain(
-                        c = 18,
-                        u = 0,
-                        typ = 'Sph',
-                        attr = ChainAttr(sph='DH', ether=False, oh=()),
-                        iso = ()
-                    ),
-                    Chain(
-                        c = 18,
-                        u = 0,
-                        typ = 'FA',
-                        attr = ChainAttr(sph='', ether=False, oh=()),
-                        iso = ()
-                    )
-                ),
-                details = None
-            ),
         )}
     ),
     # [DHCer+HCOO]-
@@ -1667,38 +1635,6 @@ specimens = [
                 ),
                 details = None
             ),
-        ),
-        'Cer(d36:0)': (
-            MS2Identity(
-                score = 14,
-                hg = Headgroup(main='Cer', sub=()),
-                chainsum = ChainSummary(
-                    c = 36,
-                    u = 0,
-                    typ = ('Sph', 'FA'),
-                    attr = (
-                        ChainAttr(sph='d', ether=False, oh=()),
-                        ChainAttr(sph='', ether=False, oh=())
-                    ),
-                ),
-                chains = (
-                    Chain(
-                        c = 20,
-                        u = 0,
-                        typ = 'Sph',
-                        attr = ChainAttr(sph='DH', ether=False, oh=()),
-                        iso = ()
-                    ),
-                    Chain(
-                        c = 16,
-                        u = 0,
-                        typ = 'FA',
-                        attr = ChainAttr(sph='', ether=False, oh=()),
-                        iso = ()
-                    )
-                ),
-                details = None
-            ),
         )}
     ),
     # STARD11 negative dCer / DHCer formiate adducts
@@ -1721,14 +1657,14 @@ specimens = [
                 ),
                 chains = (
                     Chain(
-                        c = 17,
+                        c = 18,
                         u = 1,
                         typ = 'Sph',
                         attr = ChainAttr(sph='d', ether=False, oh=()),
                         iso = ()
                     ),
                     Chain(
-                        c = 15,
+                        c = 14,
                         u = 0,
                         typ = 'FA',
                         attr = ChainAttr(sph='', ether=False, oh=()),
@@ -1758,14 +1694,14 @@ specimens = [
                 ),
                 chains = (
                     Chain(
-                        c = 19,
+                        c = 18,
                         u = 1,
                         typ = 'Sph',
                         attr = ChainAttr(sph='d', ether=False, oh=()),
                         iso = ()
                     ),
                     Chain(
-                        c = 15,
+                        c = 16,
                         u = 0,
                         typ = 'FA',
                         attr = ChainAttr(sph='', ether=False, oh=()),
@@ -1796,14 +1732,14 @@ specimens = [
                 ),
                 chains = (
                     Chain(
-                        c = 19,
+                        c = 18,
                         u = 1,
                         typ = 'Sph',
                         attr = ChainAttr(sph='d', ether=False, oh=()),
                         iso = ()
                     ),
                     Chain(
-                        c = 15,
+                        c = 16,
                         u = 0,
                         typ = 'FA',
                         attr = ChainAttr(sph='', ether=False, oh=()),
@@ -2183,11 +2119,40 @@ specimens = [
         )}
     ),
     (
-        'neg_examples',
+        'neg_examples.mgf',
         'neg',
         2468,
-        {'': (
-
+        {'Hex-Cer(t34:1)': (
+            MS2Identity(
+            score = 78,
+            hg = Headgroup(main='Cer', sub=('Hex',)),
+            chainsum = ChainSummary(
+                c = 34,
+                u = 1,
+                typ = ('Sph', 'FA'),
+                attr = (
+                    ChainAttr(sph='t', ether=False, oh=()),
+                    ChainAttr(sph='', ether=False, oh=())
+                )
+            ),
+            chains = (
+                Chain(
+                    c = 18,
+                    u = 0,
+                    typ = 'Sph',
+                    attr = ChainAttr(sph='t', ether=False, oh=()),
+                    iso = ()
+                ),
+                Chain(
+                    c = 16,
+                    u = 1,
+                    typ = 'FA',
+                    attr = ChainAttr(sph='', ether=False, oh=()),
+                    iso = ()
+                )
+            ),
+            details = None
+            ),
         )}
     ),
 ]

@@ -4432,7 +4432,7 @@ class Cer_Negative(AbstractMS2Identifier):
             self,
             record,
             scan,
-            missing_chains = (1,) if self.nacyl else (),
+            missing_chains = (),
             chain_comb_args = {},
             must_have_chains = True,
             **kwargs,
@@ -4697,6 +4697,9 @@ class Cer_Negative(AbstractMS2Identifier):
             self.scn.fragment_among_most_abundant('HexCer identity I', 10),
             self.scn.fragment_among_most_abundant('HexCer identity II', 10),
             self.scn.fragment_among_most_abundant('HexCer identity III', 10),
+            self.scn.has_fragment('[Hexose] (179.0561)'),
+            self.scn.has_fragment('[Hexose-H2O] (161.0455)'),
+            self.scn.has_fragment('[Hexose-HCHO] (149.0455)'),
         ))) * 10
         
         if self.scn.has_chain_combinations(self.rec):
@@ -4704,6 +4707,10 @@ class Cer_Negative(AbstractMS2Identifier):
             score += 10
         
         return score
+    
+    def shexcer(self):
+        
+        
 
 #
 # Scan.identify() dispatches identification methods as below
