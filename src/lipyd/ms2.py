@@ -4722,6 +4722,59 @@ class Cer_Negative(AbstractMS2Identifier):
             self.scn.has_fragment('[Sulfohexose] (259.0129)'),
             self.scn.has_fragment('[Sulfohexose] (256.9972)'),
             self.scn.has_fragment('[Sulfohexose-H2O] (241.0024)'),
+            self.scn.has_fragment('[Sulfohexose+Et+N] (300.0395)'),
+        ))) * 10
+        
+        if self.scn.has_chain_fragment_type(
+            frag_type = {
+                'Sph+C6O5H8+SO3+H2O',
+                'Sph+C6O5H8+SO3+CO+H2O',
+            }
+        )):
+            
+            score += 20
+            
+            if self.scn.has_chain_combination(
+                self.rec,
+                chain_param = (
+                    {
+                        'frag_type': {
+                            'Sph+C6O5H8+SO3+H2O',
+                            'Sph+C6O5H8+SO3+CO+H2O',
+                        }
+                    },
+                    {
+                        'frag_type': {
+                            'NLFA',
+                            'NLFA_mH2O',
+                        }
+                    }
+                )
+            ):
+                
+                score += 20
+        
+        return score
+    
+    def shex2cer(self):
+        
+        score = 0
+        
+        self.missing_chains = (1,)
+        
+        if self.scn.has_fragment('Sulphate (96.9601)'):
+            
+            score += 20
+        
+        self.score += sum(map(bool, (
+            self.scn.has_fragment('[Sulfohexose] (259.0129)'),
+            self.scn.has_fragment('[Sulfohexose] (256.9972)'),
+            self.scn.has_fragment('[Sulfohexose-H2O] (241.0024)'),
+            self.scn.has_fragment('[Sulfohexose+Et+N] (300.0395)'),
+            self.scn.has_fragment('[2xHexose-H2O+SO3] (403.0552)'),
+            self.scn.has_fragment('[2xHexose+SO3] (419.0501)'),
+            self.scn.has_fragment('[2xHexose+SO3] (421.0658)'),
+            self.scn.has_fragment('[2xHexose+SO3+Et+N] (462.0923)'),
         ))) * 10
         
         if self.scn.has_chain_fragment_type(
