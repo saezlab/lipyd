@@ -3490,6 +3490,99 @@ class BMP_Positive(AbstractMS2Identifier):
                     
                     self.score = 0
 
+
+class PA_Negative(AbstractMS2Identifier):
+    """
+    Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
+    The result will be the same as `bmp_neg_1`, as in negative
+    mode we do not know a way to distinguish these species.
+    
+
+    **Specimen:**
+    
+    - GM2A - 799.54
+    - BPIFB2 - 773.5258 (might be BMP)
+    
+    **Principle:**
+    
+    - The most abundant fragment is a fatty acid [M-H]- ion.
+    - The 152.9958 glycerophosphate fragment must be present.
+    - If Lyso-PG fragment present with carbon count complementing
+        the [M-H]- fatty acid score is higher.
+    - Presence of 171.0064 headgroup fragment adds to the score.
+    
+    """
+    
+    def __init__(self, record, scan, **kwargs):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+            must_have_chains = True,
+            **kwargs,
+        )
+    
+    def confirm_class(self):
+        
+        if (
+            self.scn.has_chain_combinations(self.rec) and
+            self.scn.chain_fragment_type_is(
+                0, chain_type = 'FA', frag_type = 'FA-H'
+            ) and
+            self.scn.has_fragment('PA/PG/PI/PS [G+P] (152.9958)')
+        ):
+            
+            self.score += 5
+            
+            if self.scn.has_fragment('PG headgroup (171.0064)'):
+                
+                self.score += 1
+            
+            self.matching_chain_combinations(
+                {'frag_type': 'FA-H'},
+                {'frag_type': {
+                        'LysoPG',
+                        'LysoPG-H2O',
+                    }
+                }
+            )
+
+
+class PA_Positive(AbstractMS2Identifier):
+    """
+    Examines if a positive mode MS2 spectrum is a Phosphatidylglycerol.
+    At Antonella observed only in standard.
+    
+    **Principle:**
+    
+    - The PG headgroup neutral loss (189.0402) is the fragment ion
+        with the highest intensity?
+    """
+    
+    def __init__(self, record, scan, **kwargs):
+        
+        AbstractMS2Identifier.__init__(
+            self,
+            record,
+            scan,
+            missing_chains = (),
+            chain_comb_args = {},
+            **kwargs,
+        )
+    
+    def confirm_class(self):
+        
+        if (
+            self.scn.most_abundant_fragment_is(
+                'NL PG [G+P+NH3] (NL 189.0402)'
+            )
+        ):
+            
+            self.score += 5
+
 #
 # Vitamins
 #
