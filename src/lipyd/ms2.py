@@ -4758,7 +4758,7 @@ class Cer_Negative(AbstractMS2Identifier):
                 'Sph+C6O5H8+SO3+H2O',
                 'Sph+C6O5H8+SO3+CO+H2O',
             }
-        )):
+        ):
             
             score += 20
             
@@ -4812,7 +4812,7 @@ class Cer_Negative(AbstractMS2Identifier):
                 'Sph+C12O10H18+SO3+H2O',
                 'Sph+C12O10H18+SO3+CO+H2O',
             }
-        )):
+        ):
             
             score += 20
             
@@ -4836,6 +4836,12 @@ class Cer_Negative(AbstractMS2Identifier):
             ):
                 
                 score += 20
+        
+        return score
+    
+    def pe_cer(self):
+        
+        score = 0
         
         return score
 
@@ -4879,6 +4885,7 @@ idmethods = {
         lipproc.Headgroup(main = 'Cer', sub = ('Hex2',)): Cer_Negative,
         lipproc.Headgroup(main = 'Cer', sub = ('SHex',)): Cer_Negative,
         lipproc.Headgroup(main = 'Cer', sub = ('SHex2',)): Cer_Negative,
+        lipproc.Headgroup(main = 'Cer', sub = ('PE',)): Cer_Negative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FA_Positive,
