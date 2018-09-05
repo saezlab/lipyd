@@ -4739,6 +4739,7 @@ class Cer_Negative(AbstractMS2Identifier):
                 chain_param = (
                     {
                         'frag_type': {
+                            'Sph+C6O5H8+SO3',
                             'Sph+C6O5H8+SO3+H2O',
                             'Sph+C6O5H8+SO3+CO+H2O',
                         }
@@ -4779,8 +4780,9 @@ class Cer_Negative(AbstractMS2Identifier):
         
         if self.scn.has_chain_fragment_type(
             frag_type = {
-                'Sph+C6O5H8+SO3+H2O',
-                'Sph+C6O5H8+SO3+CO+H2O',
+                'Sph+C12O10H18+SO3',
+                'Sph+C12O10H18+SO3+H2O',
+                'Sph+C12O10H18+SO3+CO+H2O',
             }
         )):
             
@@ -4791,8 +4793,9 @@ class Cer_Negative(AbstractMS2Identifier):
                 chain_param = (
                     {
                         'frag_type': {
-                            'Sph+C6O5H8+SO3+H2O',
-                            'Sph+C6O5H8+SO3+CO+H2O',
+                            'Sph+C12O10H18+SO3',
+                            'Sph+C12O10H18+SO3+H2O',
+                            'Sph+C12O10H18+SO3+CO+H2O',
                         }
                     },
                     {
