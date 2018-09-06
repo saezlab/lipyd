@@ -3532,23 +3532,19 @@ class PA_Negative(AbstractMS2Identifier):
             self.scn.chain_fragment_type_is(
                 0, chain_type = 'FA', frag_type = 'FA-H'
             ) and
-            self.scn.has_fragment('PA/PG/PI/PS [G+P] (152.9958)')
+            self.scn.fragment_among_most_abundant(
+                'PA/PG/PI/PS [G+P] (152.9958)', 10
+            ) and
+            self.scn.fragment_among_most_abundant(
+                'Cer1P/PIP/PL metaphosphate (78.9591)', 10
+            )
         ):
             
-            self.score += 5
+            self.score += 20
             
-            if self.scn.has_fragment('PG headgroup (171.0064)'):
+            if self.scn.has_fragment('Cer1P/PI phosphate (96.9696)'):
                 
-                self.score += 1
-            
-            self.matching_chain_combinations(
-                {'frag_type': 'FA-H'},
-                {'frag_type': {
-                        'LysoPG',
-                        'LysoPG-H2O',
-                    }
-                }
-            )
+                self.score += 5
 
 
 class PA_Positive(AbstractMS2Identifier):
@@ -4896,6 +4892,8 @@ idmethods = {
         lipproc.Headgroup(main = 'PG'):  PG_Negative,
         lipproc.Headgroup(main = 'PG', sub = ('Lyso',)):  PG_Negative,
         lipproc.Headgroup(main = 'BMP'): BMP_Negative,
+        lipproc.Headgroup(main = 'PA'):  PA_Negative,
+        lipproc.Headgroup(main = 'PA', sub = ('Lyso',)):  PA_Negative,
         lipproc.Headgroup(main = 'VA'): VA_Negative,
         lipproc.Headgroup(main = 'Cer'): Cer_Negative,
         lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Negative,
