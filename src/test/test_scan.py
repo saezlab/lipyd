@@ -2155,6 +2155,44 @@ specimens = [
             ),
         )}
     ),
+    # PA positive mode
+    (
+        'pos_examples.mgf',
+        'pos',
+        2670,
+        {'': (
+            MS2Identity(
+                score = 20,
+                hg = Headgroup(main='PA', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 2,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
 ]
 
 

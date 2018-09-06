@@ -3576,12 +3576,25 @@ class PA_Positive(AbstractMS2Identifier):
     def confirm_class(self):
         
         if (
-            self.scn.most_abundant_fragment_is(
-                'NL PG [G+P+NH3] (NL 189.0402)'
+            self.scn.fragment_among_most_abundant(
+                'NL [P] (NL 97.9769)', 3, adduct = self.add
             )
         ):
             
-            self.score += 5
+            self.score += 10
+            
+            if self.scn.has_chain_combination(
+                self.rec,
+                chain_param = ({
+                    'frag_type': {
+                        'FA+Glycerol-OH',
+                        'FA-OH',
+                        'FA-H2O-OH',
+                    }
+                },)
+            ):
+                
+                self.score += 10
 
 #
 # Vitamins
@@ -4920,6 +4933,8 @@ idmethods = {
         lipproc.Headgroup(main = 'PG'):  PG_Positive,
         lipproc.Headgroup(main = 'PG', sub = ('Lyso',)):  PG_Positive,
         lipproc.Headgroup(main = 'BMP'): BMP_Positive,
+        lipproc.Headgroup(main = 'PA'):  PA_Positive,
+        lipproc.Headgroup(main = 'PA', sub = ('Lyso',)):  PA_Positive,
         lipproc.Headgroup(main = 'VA'): VA_Positive,
         lipproc.Headgroup(main = 'Cer'): Cer_Positive,
         lipproc.Headgroup(main = 'Cer', sub = ('1P',)): Cer_Positive,

@@ -1176,6 +1176,17 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'FA'
             ), # 267.2682
+         'FA_mH2O_mOH':
+            ChainFragParam(
+                plus = '',
+                minus = 'H3',
+                charge = 1,
+                name = 'FA%s-H2O-OH',
+                constraints = (
+                    FragConstraint(chaintype = 'FA'),
+                ),
+                chaintype = 'FA'
+            ), # 247.2420
         # FAplusGlycerol
         'FA_pGlycerol_mOH':
             ChainFragParam(
@@ -1184,6 +1195,7 @@ class FattyFragmentFactory(object):
                 charge = 1,
                 name = 'FA%s+Glycerol-OH',
                 constraints = (
+                    FragConstraint(hg = 'PA', chaintype = 'FA'),
                     FragConstraint(hg = 'PI', chaintype = 'FA'),
                     FragConstraint(hg = 'PG', chaintype = 'FA'),
                     FragConstraint(hg = 'BMP', chaintype = 'FA'),
@@ -1200,7 +1212,7 @@ class FattyFragmentFactory(object):
                     ),
                 ),
                 chaintype = 'FA'
-            ),
+            ), # 341.3050
         # SphingosineBase
         'Sph_pH':
             ChainFragParam(
