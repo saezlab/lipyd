@@ -4795,7 +4795,7 @@ class Cer_Negative(AbstractMS2Identifier):
             
             score += 20
         
-        self.score += sum(map(bool, (
+        score += sum(map(bool, (
             self.scn.has_fragment('[Sulfohexose] (259.0129)'),
             self.scn.has_fragment('[Sulfohexose] (256.9972)'),
             self.scn.has_fragment('[Sulfohexose-H2O] (241.0024)'),
@@ -4842,6 +4842,12 @@ class Cer_Negative(AbstractMS2Identifier):
     def pe_cer(self):
         
         score = 0
+        
+        score += sum(map(bool, (
+            self.scn.has_fragment('PE [P+E] (140.0118)'),
+            self.scn.has_fragment('NL PE [P+E] (141.0191)'),
+            self.scn.has_fragment('PE [P+E-H2O] (122.0013)'),
+        ))) * 10
         
         return score
 
