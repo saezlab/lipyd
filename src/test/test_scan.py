@@ -2230,6 +2230,47 @@ specimens = [
             ),
         )}
     ),
+    # tSph negative [M+HCOO]-
+    (
+        'neg_examples.mgf',
+        'neg',
+        506,
+        {'Sph-1P(d18:1)': (
+            MS2Identity(
+                score = 50,
+                hg = Headgroup(main='Sph', sub=('1P',)),
+                chainsum = ChainSummary(
+                    c = 18,
+                    u = 1,
+                    typ = ('Sph',),
+                    attr = (ChainAttr(sph='d', ether=False, oh=()),),
+                    iso = None
+                    ),
+                chains = None,
+                details = None
+            ),
+        )}
+    ),
+    (
+        'neg_examples.mgf',
+        'neg',
+        327,
+        {'Sph-1P(DH18:0)': (
+            MS2Identity(
+                score = 40,
+                hg = Headgroup(main='Sph', sub=('1P',)),
+                chainsum = ChainSummary(
+                    c = 18,
+                    u = 0,
+                    typ = ('Sph',),
+                    attr = (ChainAttr(sph='DH', ether=False, oh=()),),
+                    iso = None
+                    ),
+                chains = None,
+                details = None
+            ),
+        )}
+    ),
 ]
 
 

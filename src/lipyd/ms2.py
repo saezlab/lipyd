@@ -4668,6 +4668,20 @@ class Cer_Negative(AbstractMS2Identifier):
             
             self.must_have_chains = False
         
+        if (
+            self.rec.hg.main == 'Sph' and
+            self.scn.fragment_among_most_abundant(
+                'Cer1P/PIP/PL metaphosphate (78.9591)', 3
+            )
+        ):
+            
+            score += 20
+            self.must_have_chains = False
+            
+            if self.scn.has_fragment('Cer1P/PI phosphate (96.9696)'):
+                
+                score += 10
+        
         return score
     
     def sm(self):
@@ -4903,6 +4917,8 @@ idmethods = {
         lipproc.Headgroup(main = 'Cer', sub = ('SHex',)): Cer_Negative,
         lipproc.Headgroup(main = 'Cer', sub = ('SHex2',)): Cer_Negative,
         lipproc.Headgroup(main = 'Cer', sub = ('PE',)): Cer_Negative,
+        lipproc.Headgroup(main = 'Sph'): Cer_Negative,
+        lipproc.Headgroup(main = 'Sph', sub = ('1P',)): Cer_Negative,
     },
     'pos': {
         lipproc.Headgroup(main = 'FA'):  FA_Positive,

@@ -15,3 +15,13 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+import os
+
+from ltp import table
+
+class ReadResults(object):
+    
+    def __init__(self, result_dir, mgfdir):
+        
+        self.result_dir = result_dir
+        self.mgfdir = mgfdir
