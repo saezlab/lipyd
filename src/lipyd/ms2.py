@@ -47,11 +47,35 @@ ChainFragment = collections.namedtuple(
 )
 
 
-MS2Identity = collections.namedtuple(
-    'MS2Identity',
-    ['score', 'hg', 'chainsum', 'chains', 'details']
-)
-MS2Identity.__new__.__defaults__ = (None, None, None)
+class MS2Identity(collections.namedtuple(
+        'MS2IdentityBase',
+        ['score', 'hg', 'chainsum', 'chains', 'details']
+    )):
+    
+    def __new__(
+            cls, score, hg, chainsum = None, chains = None, details = None
+        ):
+        
+        return super(MS2Identity, cls).__new__(
+            cls,
+            score,
+            hg,
+            chainsum = chainsum,
+            chains = chains,
+            details = details,
+        )
+    
+    def __str__(self):
+        
+        return (
+            lipproc.full_str(self.hg, self.chains)
+                if self.chains else
+            lipproc.summary_str(self.hg, self.chainsum)
+        )
+    
+    def summary(self):
+        
+        return self.__str__(), self.score
 
 
 ChainIdentificationDetails = collections.namedtuple(
@@ -259,6 +283,7 @@ class Scan(ScanBase):
             verbose = False,
             tolerance = None,
             ms1_tolerance = None,
+            rt = None,
         ):
         
         ScanBase.__init__(
@@ -300,6 +325,7 @@ class Scan(ScanBase):
         
         self.scan_id = scan_id
         self.sample = sample
+        self.rt = rt
         self.log = logger
         self.verbose = verbose
     
@@ -4974,10 +5000,103 @@ idmethods = {
     }
 }
 
+
+class MS2Feature(object):
+    
+    def __init__(self, mz, ionmode, mgf, rt, ms1_records = None):
+        
+        self.mz = mz
+        self.ionmode = ionmode
+        self.ms1_records = ms1_records or moldb.adduct_lookup(mz, ionmode)
+        self.mgf = mgf
+        self.rt = rt
+        self.rtmean = sum(rt) / 2.0
+    
+    def iterscans(self):
+        
+        for mgf in self.mgf:
+            
+            if type(mgf) is basestring:
+                
+                mgf = mgf.MgfReader(mgf, charge = None)
+            
+            idx, rtdiff = mgf.lookup(self.mz, rt = self.rtmean)
+            
+            for i, rtd in zip(idx, rtdiff):
+                
+                scan_rt = self.rtmean + rtd
+                
+                if scan_rt < self.rt[0] or scan_rt > self.rt[1]:
+                    
+                    continue
+                
+                sc = mgf.get_scan(i)
+                
+                yield Scan(
+                    mzs = sc[:,0],
+                    intensities = sc[:,1],
+                    ionmode = self.ionmode,
+                    precursor = self.mz,
+                    ms1_records = self.ms1_records,
+                    scan_id = mgf.mgfindex[i,3],
+                    rt = mgf.mgfindex[i,2],
+                )
+    
+    def build_scans(self):
+        
+        self.scans = np.array(list(self.iterscans()))
+        self.deltart = np.array([sc.rt - self.rt for sc in self.scans])
+        
+        rtsort = sorted(
+            i for i, drt in enumerate(self.deltart),
+            key = lambda i, drt: abs(drt)
+        )
+        
+        self.scans = self.scans[rtsort]
+        self.deltart = self.scans[rtsort]
+    
+    def identify(self):
+        
+        self.identities = [scan.identify() for scan in self.scans]
+    
+    def identity_summary(self, scores = True, drt = True, sample_ids = False):
+        
+        identites = {}
+        
+        for i, scan_ids in enumerate(self.identities):
+            
+            for sum_str, varieties in iteritems(scan_ids):
+                
+                for var in varieties:
+                    
+                    summary = [var.__str__()]
+                    
+                    if scores:
+                        
+                        summary.append(var.score)
+                        
+                    else:
+                        
+                        if var.score == 0:
+                            
+                            continue
+                    
+                    if drt:
+                        
+                        summary.append(self.deltart[i])
+                    
+                    if sample_ids:
+                        
+                        summary.append(self.scans[i].sample)
+                    
+                    identities.add(tuple(summary))
+        
+        return identities
+
 ##############################################################################
 
 
-class MS2Feature(object):
+class MS2FeatureOld(object):
     """
     Provides additional, more sophisticated methods
     for identification of a single feature.
