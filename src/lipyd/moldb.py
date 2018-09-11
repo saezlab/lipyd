@@ -891,6 +891,42 @@ class MoleculeDatabaseAggregator(object):
                     mass,
                     '\t'.join(str(f) for f in data)
                 ))
+    
+    @staticmethod
+    def records_string(
+            records,
+            adducts = None,
+            databases = None,
+            ppm = False,
+        ):
+        
+        result = []
+        
+        for add, data in iteritems(records):
+            
+            if adducts is not None and add not in adducts:
+                
+                continue
+            
+            for rec_mz, rec, rec_ppm in zip(*data):
+                
+                if databases is not None and rec.db not in databases:
+                    
+                    continue
+                
+                name = (
+                    lipproc.summary_str(rec.hg, rec.chainsum)
+                        if rec.hg else
+                    rec.lab.names[0]
+                        if rec.lab.names else
+                    'Unknown'
+                )
+                result.append('%s%s' % (
+                    name,
+                    '[%.01fppm]' % rec_ppm if ppm else ''
+                ))
+        
+        return ';'.join(result)
 
 
 def init_db(**kwargs):
@@ -969,4 +1005,15 @@ def possible_classes(
         )
         for r in rr[1]
         if r.hg is not None
+    )
+
+def records_string(
+        records,
+        adducts = None,
+        databases = None,
+        ppm = False,
+    ):
+    
+    return MoleculeDatabaseAggregator.records_string(
+        records, adducts, databases, ppm
     )
