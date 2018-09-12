@@ -86,7 +86,7 @@ class TableBase(object):
         
         self.sheet = self.xls_original[name]
     
-    def insert_col(self, idx, values, title = None):
+    def insert_col(self, idx, values, title = None, width = 10.7):
         
         idx = self.numof_cols() + 1 if idx == 'END' else idx
         
@@ -102,6 +102,10 @@ class TableBase(object):
         for i, val in enumerate(values):
             
             self.sheet[i + ii][idx].value = val
+        
+        if width:
+            
+            self.sheet.column_dimensions[self.col_letter(idx)].width = width
     
     def write(self):
         
@@ -115,6 +119,7 @@ class TableBase(object):
         
         except StopIteration:
             
+            # this means empty sheet
             return 0
     
     @staticmethod
@@ -131,6 +136,13 @@ class LtpTable(TableBase):
         
         self.prot_frac = prot_frac
         self.mgfdir = mgfdir
+    
+    def process_sheets(self):
+        
+        self.get_mgf()
+        self.open_mgf()
+        
+        TableBase.process_sheets(self)
     
     def process_sheet(self):
         
@@ -182,7 +194,7 @@ class LtpTable(TableBase):
                     (not self.prot_frac or frac in self.prot_frac)
                 ):
                     
-                    self.mgf_files[frac] = os.path.join(self.mgfdir, mgfname))
+                    self.mgf_files[frac] = os.path.join(self.mgfdir, mgfname)
         
         if not self.mgf_files:
             
@@ -248,7 +260,7 @@ class MS2Identifier(LtpTable):
         titles = [
             'ms2_new_top',
             'ms2_new_all',
-            'databases_all',
+            'database_all',
             'database_swisslipids',
             'database_lipidmaps',
             'database_lipyd',
@@ -293,7 +305,63 @@ class MS2Identifier(LtpTable):
                 float(i.strip())
                 for i in row[self.col_letter('G') - 1].split('-')
             )
+            
+            # database lookups:
+            for db in databases:
+                
+                _db = None if db == 'all' else {db}
+                
+                data['database_%s' % db].append(
+                    moldb.records_string(
+                        self.ms1_records,
+                        databases = _db,
+                        ppm = True,
+                    )
+                )
+                
+                for add in adducts:
+                    
+                    data['%s_database_%s' % (add, db)].append(
+                        moldb.records_string(
+                            self.ms1_records,
+                            adducts = {add},
+                            databases = _db,
+                            ppm = True,
+                        )
+                    )
+            
+            # MS2 identifications:
+            ms2_fe = ms2.MS2Feature(
+                mz,
+                self.ionmode,
+                self.mgf,
+                rt = rt,
+                ms1_records = ms1_records,
+            )
+            ms2_id = ms2_fe.identity_summary(sample_ids = True)
+            ms2_max_score = max(i[1] for i in ms2_id)
+            ms2_best = self.identities_str(
+                i for i in ms2_id if ms2_id[1] == ms2_max_score
+            )
+            ms2_all = self.identities_str(ms2_id)
+            
+            data['ms2_new_top'].append(ms2_best)
+            data['ms2_new_all'].append(ms2_all)
         
         for title in titles:
             
             yield idx[title], title, data[title]
+    
+    @staticmethod
+    def identities_str(ids):
+        
+        return (
+            ';'.join(
+                sorted(
+                    '%s[score=%.01f,deltart=%.02f,fraction=%s%u]' % (
+                        i[0], i[1], i[2], i[3][0], i[3][1]
+                    )
+                    for i in ids
+                )
+            )
+        )

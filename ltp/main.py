@@ -16,12 +16,32 @@
 #
 
 import os
+import time
 
 from ltp import table
 
-class ReadResults(object):
+
+class ResultsReprocessor(object):
+    """
+    Reprocesses a directory with top features xlsx tables.
+    Finds mgf files for each protein for all protein containing fractions.
+    Opens the xlsx files, does custom operations, writes data in new columns
+    and saves xlsx files in a new directory with preserving formatting.
+    """
     
-    def __init__(self, result_dir, mgfdir):
+    def __init__(self, source_dir, mgfdir, target_dir = None):
         
-        self.result_dir = result_dir
+        self.source_dir = source_dir
         self.mgfdir = mgfdir
+        self.target_dir = target_dir or '%s__%s' % (
+            target_dir,
+            time.strftime('%Y.%m.%d_%H.%M')
+        )
+        
+        if not os.path.exists(self.target_dir):
+            
+            os.mkdir(self.target_dir)
+    
+    def read_protein_containing_fractions(self):
+        
+        pass
