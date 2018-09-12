@@ -35,13 +35,14 @@ class TableBase(object):
     with preserving formatting.
     """
     
-    def __init__(self, infile, outfile = None):
+    def __init__(self, infile, outfile = None, mgf_files = None):
         
         self.infile  = infile
         self.outfile = outfile or '%s__%s__.xlsx' % (
             infile,
             time.strftime('%Y.%m.%d_%H.%M'),
         )
+        self.mgf_files = mgf_files or {}
     
     def reload(self):
         
@@ -130,16 +131,25 @@ class TableBase(object):
 
 class LtpTable(TableBase):
     
-    def __init__(self, infile, outfile = None, mgfdir = None):
+    def __init__(
+            self,
+            infile,
+            outfile = None,
+            mgfdir = None,
+            mgf_files = None
+        ):
         
-        TableBase.__init__(self, infile, outfile)
+        TableBase.__init__(self, infile, outfile, mgf_files = mgf_files)
         
         self.prot_frac = prot_frac
         self.mgfdir = mgfdir
     
     def process_sheets(self):
         
-        self.get_mgf()
+        if not self.mgf_files:
+            
+            self.collect_mgf()
+        
         self.open_mgf()
         
         TableBase.process_sheets(self)
@@ -156,7 +166,7 @@ class LtpTable(TableBase):
         self.protein = annot[1]
         self.best    = annot[2] is not None
         
-        self.get_mgf()
+        self.collect_mgf()
         
         for idx, title, value in self.new_columns():
             
@@ -171,7 +181,10 @@ class LtpTable(TableBase):
         
         yield None
     
-    def get_mgf(self):
+    def collect_mgf(self):
+        """
+        If no mgf files provided from outside we collect them here.
+        """
         
         self.mgf_files = {}
         
@@ -194,7 +207,9 @@ class LtpTable(TableBase):
                     (not self.prot_frac or frac in self.prot_frac)
                 ):
                     
-                    self.mgf_files[frac] = os.path.join(self.mgfdir, mgfname)
+                    self.mgf_files[(self.ionmode, frac)] = os.path.join(
+                        self.mgfdir, mgfname
+                    )
         
         if not self.mgf_files:
             
@@ -208,10 +223,10 @@ class LtpTable(TableBase):
         
         self.mgf = {}
         
-        for frac, mgfpath in iteritems(self.mgf_files):
+        for ionm_frac, mgfpath in iteritems(self.mgf_files):
             
-            self.mgf[frac] = mgf.MgfReader(
-                mgfpath, label = '%s%u' % frac, charge = None
+            self.mgf[ionm_frac] = mgf.MgfReader(
+                mgfpath, label = '%s%u' % ionm_frac[1], charge = None
             )
 
 
@@ -224,6 +239,7 @@ class MS2Identifier(LtpTable):
             ms1_tolerance = None,
             prot_frac = None,
             mgfdir = None,
+            mgf_files = None,
         ):
         
         self.ms1_tolerance = ms1_tolerance
@@ -251,6 +267,7 @@ class MS2Identifier(LtpTable):
             outfile = outfile,
             prot_frac = prot_frac,
             mgfdir = mgfdir,
+            mgf_files = mgf_files,
         )
     
     def new_columns(self):

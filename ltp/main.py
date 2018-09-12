@@ -154,6 +154,22 @@ class ResultsReprocessor(object):
             result[(protein, ionmode, (fracrow, fraccol))] = mgf
         
         self.mgfs = result
+    
+    def iter_tables(self):
+        
+        for protein, xlsx in iteritems(self.xlsx):
+            
+            xlsxpath = os.path.join(self.source_dir, xlsx)
+            
+            for ionmode in ('neg', 'pos'):
+                
+                mgfpaths = [
+                    self.mgfs[(protein, ionmode, fr)]
+                    for fr, pcont in iteritems(self.fractions[protein])
+                    if pcont
+                ]
+                
+                yield xlsxpath, ionmode, mgfpaths
 
 
 #TODO: make sure all code below works and remove it from lipyd.main.Screening
