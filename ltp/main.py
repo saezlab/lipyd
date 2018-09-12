@@ -52,6 +52,7 @@ class ResultsReprocessor(object):
             target_dir = None,
             screen = 'invitro',
             reprocessor = 'MS2Reprocessor',
+            overwrite = False,
         ):
         
         self.screen = screen
@@ -61,6 +62,7 @@ class ResultsReprocessor(object):
             source_dir,
             time.strftime('%Y.%m.%d_%H.%M')
         )
+        self.overwrite = overwrite
         
         if not os.path.exists(self.target_dir):
             
@@ -173,6 +175,10 @@ class ResultsReprocessor(object):
             
             xlsxpath = os.path.join(self.source_dir, xlsx)
             
+            if hasattr(self, 'proteins') and protein not in self.proteins:
+                
+                continue
+            
             for ionmode in ('neg', 'pos'):
                 
                 mgfpaths = dict(
@@ -197,6 +203,7 @@ class ResultsReprocessor(object):
                 infile = xlsxpath,
                 outdir = self.target_dir,
                 mgf_files = mgfpaths,
+                overwrite = self.overwrite,
             )
             
             reproc.main()

@@ -900,7 +900,7 @@ class MoleculeDatabaseAggregator(object):
             ppm = False,
         ):
         
-        result = []
+        result = set()
         
         for add, data in iteritems(records):
             
@@ -921,7 +921,7 @@ class MoleculeDatabaseAggregator(object):
                         if rec.lab.names else
                     'Unknown'
                 )
-                result.append('%s%s' % (
+                result.add('%s%s' % (
                     name,
                     '[%.01fppm]' % rec_ppm if ppm else ''
                 ))

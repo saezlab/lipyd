@@ -269,10 +269,18 @@ class MgfReader(object):
             else:
                 # reading fragment masses
                 mi = l.strip().split()
-                scan.append([
-                    float(mi[0]), # mass
-                    float(mi[1]) if len(mi) > 1 else np.nan # intensity
-                ])
+                
+                if len(mi) == 1:
+                    continue
+                
+                intensity = float(mi[1])
+                
+                if intensity > 0.0:
+                    
+                    scan.append([
+                        float(mi[0]), # mass
+                        intensity     # intensity
+                    ])
         
         if self.log.verbosity > 4:
             

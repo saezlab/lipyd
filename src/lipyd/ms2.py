@@ -898,7 +898,9 @@ class Scan(ScanBase):
         Arguments passed to `chain_fragment_type_is`.
         """
         
-        for i in xrange(head if head is not None else len(self.mzs)):
+        head = len(self.mzs) if head is None else min(head, len(self.mzs))
+        
+        for i in xrange(head):
             
             if self.chain_fragment_type_is(
                 i,
@@ -963,6 +965,10 @@ class Scan(ScanBase):
         :param bool return_annot:
             Return iterator with the matching fragment annotations.
         """
+        
+        if i >= len(self.mzs):
+            
+            return False
         
         annot = self.annot if adduct is None else self.adduct_annot(adduct)
         
@@ -1749,8 +1755,8 @@ class Scan(ScanBase):
         
         return dict(frags_for_position)
     
-    @staticmethod
     def intensity_ratios(
+            self,
             intensities,
             frag_indices = None,
             expected = None,
@@ -1779,7 +1785,12 @@ class Scan(ScanBase):
         
         if any(i <= 0.0 for i in intensities):
             
-            raise ValueError('Negative intensity value encountered')
+            raise ValueError(
+                'Negative intensity value encountered'
+                '(sample=%s, ion mode=%s, scan=%u)' % (
+                    str(self.sample), self.ionmode, self.scan_id
+                )
+            )
         
         frag_indices = frag_indices or list(range(len(intensities)))
         # to know if one fragment contributes more than one times;
@@ -2553,10 +2564,13 @@ class FA_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        if self.scn.chain_among_most_abundant(
-            frag_type = 'FA-H',
-            c = self.rec.chainsum.c,
-            u = self.rec.chainsum.u,
+        if (
+            self.rec.chainsum and
+            self.scn.chain_among_most_abundant(
+                frag_type = 'FA-H',
+                c = self.rec.chainsum.c,
+                u = self.rec.chainsum.u,
+            )
         ):
             
             self.score = 10
@@ -5072,7 +5086,13 @@ class MS2Feature(object):
         
         self.identities = [scan.identify() for scan in self.scans]
     
-    def identity_summary(self, scores = True, drt = True, sample_ids = False):
+    def identity_summary(
+            self,
+            scores = True,
+            drt = True,
+            sample_ids = False,
+            scan_ids = False,
+        ):
         
         identities = set()
         
@@ -5101,6 +5121,10 @@ class MS2Feature(object):
                     if sample_ids:
                         
                         summary.append(self.scans[i].sample)
+                    
+                    if scan_ids:
+                        
+                        summary.append(self.scans[i].scan_id)
                     
                     identities.add(tuple(summary))
         

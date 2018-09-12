@@ -40,7 +40,13 @@ class TableBase(object):
     with preserving formatting.
     """
     
-    def __init__(self, infile, outfile = None, mgf_files = None):
+    def __init__(
+            self,
+            infile,
+            outfile = None,
+            mgf_files = None,
+            overwrite = False,
+        ):
         
         self.infile  = infile
         self.outfile = outfile or '%s__%s__.xlsx' % (
@@ -48,6 +54,7 @@ class TableBase(object):
             time.strftime('%Y.%m.%d_%H.%M'),
         )
         self.mgf_files = mgf_files or {}
+        self.overwrite = overwrite
     
     def reload(self):
         
@@ -58,6 +65,10 @@ class TableBase(object):
         setattr(self, '__class__', new)
     
     def main(self):
+        
+        if os.path.exists(self.outfile) and not self.overwrite:
+            
+            return
         
         self.open()
         self.process_sheets()
@@ -104,6 +115,7 @@ class TableBase(object):
             
             ii = 2
             self.sheet.cell(1, idx, value = title)
+            self.sheet.cell(1, idx).font += openpyxl.styles.Font(bold = True)
         
         for i, val in enumerate(values):
             
@@ -141,9 +153,16 @@ class LtpTable(TableBase):
             mgfdir = None,
             mgf_files = None,
             prot_frac = None,
+            overwrite = False,
         ):
         
-        TableBase.__init__(self, infile, outfile, mgf_files = mgf_files)
+        TableBase.__init__(
+            self,
+            infile,
+            outfile,
+            mgf_files = mgf_files,
+            overwrite = False,
+        )
         
         self.prot_frac = prot_frac
         self.mgfdir = mgfdir
@@ -177,7 +196,7 @@ class LtpTable(TableBase):
             
             self.insert_col(idx, values, title)
         
-        self.sheet.freeze_panes = 'B1'
+        self.sheet.freeze_panes = 'A2'
     
     def new_columns(self):
         """
@@ -246,6 +265,7 @@ class MS2Reprocessor(LtpTable):
             prot_frac = None,
             mgfdir = None,
             mgf_files = None,
+            overwrite = False,
         ):
         
         self.ms1_tolerance = ms1_tolerance
@@ -274,11 +294,17 @@ class MS2Reprocessor(LtpTable):
             prot_frac = prot_frac,
             mgfdir = mgfdir,
             mgf_files = mgf_files,
+            overwrite = overwrite,
         )
     
     def new_columns(self):
         
-        databases = ['all databases', 'SwissLipids', 'LipidMaps', 'lipyd']
+        databases = [
+            'all databases',
+            'SwissLipids',
+            'LipidMaps',
+            'lipyd.lipid'
+        ]
         
         titles = [
             'ms2_new_top',
@@ -286,7 +312,7 @@ class MS2Reprocessor(LtpTable):
             'all databases',
             'SwissLipids',
             'LipidMaps',
-            'lipyd',
+            'lipyd.lipid',
         ]
         
         idx = {
@@ -295,7 +321,7 @@ class MS2Reprocessor(LtpTable):
             'all databases': 'END',
             'SwissLipids': 'END',
             'LipidMaps': 'END',
-            'lipyd': 'END',
+            'lipyd.lipid': 'END',
         }
         
         adducts = list(settings.get('ad2ex')[1][self.ionmode].keys())
@@ -363,10 +389,13 @@ class MS2Reprocessor(LtpTable):
                 ms1_records = ms1_records,
             )
             ms2_fe.main()
-            ms2_id = ms2_fe.identity_summary(sample_ids = True)
+            ms2_id = ms2_fe.identity_summary(
+                sample_ids = True,
+                scan_ids = True,
+            )
             ms2_max_score = max(i[1] for i in ms2_id) if ms2_id else 0
             ms2_best = self.identities_str(
-                i for i in ms2_id if i[1] == ms2_max_score
+                i for i in ms2_id if i[1] > 0 and i[1] == ms2_max_score
             )
             ms2_all = self.identities_str(ms2_id)
             
@@ -383,8 +412,8 @@ class MS2Reprocessor(LtpTable):
         return (
             ';'.join(
                 sorted(
-                    '%s[score=%.01f,deltart=%.02f,fraction=%s%u]' % (
-                        i[0], i[1], i[2], i[3][0], i[3][1]
+                    '%s[score=%.01f,deltart=%.02f,fraction=%s%u,scan=%u]' % (
+                        i[0], i[1], i[2], i[3][0], i[3][1], i[4]
                     )
                     for i in ids
                 )
