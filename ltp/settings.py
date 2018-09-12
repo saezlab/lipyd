@@ -33,7 +33,8 @@ _defaults = {
     # the overview table of Enric's screening
     # we read the protein containing and the
     # highest fractions from here
-    'fractionsf': 'LTPsceenprogres_v07d.xlsx',
+    'invitro_fractionsf': 'LTPsceenprogres_v07d.xlsx',
+    'invivo_fractionsf': 'control_sample.csv',
     # list of potentially problematic fractions
     'wrongfracsf': 'wrong_fractions.csv',
     # File with offsets of fractions from SEC in ml.
@@ -67,9 +68,45 @@ _defaults = {
     # not used at Enric, is kind of "deprecated"
     # uppercase version with leading zeros
     'fracsU': ['A09', 'A10', 'A11', 'A12', 'B01'],
+    'fr_offsets': {
+        'invitro': [0.0],          # at Enric this is [0.0],
+        'invivo':  [0.010, 0.045], # at Antonella [0.010, 0.045]
+    }, 
+    'abs_cols': [1], # this can be [1, 3, 5] if we want to read
+                        # also the 260 and 215 nm UV profiles...
+    'fraclims_from_sec': True, # read the fraction limits from
+                                # the same files as SEC profiles
+                                # or simply from `fractions.csv`
+    'pp_do_correction': False, # bypass corrections
+    # determine protein containing fractions from the absorbances
+    # or read from separate file
+    'pcont_fracs_from_abs': {
+        'invivo': False,
+        'invitro': True,
+    },
+    # table with manually set protein ratios among
+    # many other columns
+    'manual_ppratios_xls': 'Proteins_Overview_05.xlsx',
+    # Columns to read from the manual ppratios XLS file.
+    # These were different at Antonella and Enric, so we
+    # need to set them here.
+    #'manual_ppratios_xls_cols': [2, 4, 8, 9], # 03b
+    'manual_ppratios_xls_cols': [3, 6, 10, 11], # 05
+    # Read externally determined protein peak ratios from file
+    # these were provided by Marco and used for Antonella`s
+    # data analysis
+    'use_manual_ppratios': {
+        'invitro': False,
+        'invivo': True,
+    },
+    'protein_containing_fractions_invivo':
+        'protein_containing_fractions_invivo.tsv',
+    'protein_containing_fractions_invivo':
+        'protein_containing_fractions_invitro.tsv',
 }
 
-in_basedir = ['fractionsf', 'ppfracf', 'seqfile',
+in_basedir = [
+    'invivo_fractionsf', 'invitro_fractionsf', 'ppfracf', 'seqfile',
     'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
     'featurescache',
     'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
@@ -77,7 +114,8 @@ in_basedir = ['fractionsf', 'ppfracf', 'seqfile',
     'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir']
 
 in_datadir = {
-    'pfragmentsfile', 'nfragmentsfile', 'lipnamesf', 'mgf_example'
+    'pfragmentsfile', 'nfragmentsfile', 'lipnamesf', 'mgf_example',
+    
 }
 
 def reset_all():
@@ -90,6 +128,9 @@ def reset_all():
         
         if k in in_basedir:
             val = os.path.join(_defaults['basedir'], val)
+        
+        if k in in_datadir:
+            val = os.path.join(_defaults['datadir'], val)
         
         setattr(settings, k, val)
     
