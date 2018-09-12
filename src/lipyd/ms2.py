@@ -1125,7 +1125,11 @@ class Scan(ScanBase):
                 )
             )
         
-        if len(record.chainsum) > 1 and len(chain_param) == 1:
+        if (
+            record.chainsum and
+            len(record.chainsum) > 1 and
+            len(chain_param) == 1
+        ):
             
             chain_param = chain_param * len(record.chainsum)
         
@@ -5012,6 +5016,11 @@ class MS2Feature(object):
         self.rt = rt
         self.rtmean = sum(rt) / 2.0
     
+    def main(self):
+        
+        self.build_scans()
+        self.identify()
+    
     def iterscans(self):
         
         for sample, mgf in iteritems(self.mgf):
@@ -5040,21 +5049,24 @@ class MS2Feature(object):
                     ms1_records = self.ms1_records,
                     scan_id = mgf.mgfindex[i,3],
                     rt = mgf.mgfindex[i,2],
-                    sample = sample,
+                    sample = sample[1],
                 )
     
     def build_scans(self):
         
         self.scans = np.array(list(self.iterscans()))
-        self.deltart = np.array([sc.rt - self.rt for sc in self.scans])
+        self.deltart = np.array([sc.rt - self.rtmean for sc in self.scans])
         
-        rtsort = sorted(
-            (i for i, drt in enumerate(self.deltart)),
-            key = lambda i, drt: abs(drt)
-        )
+        rtsort = [
+            it[0]
+            for it in sorted(
+                (it for it in enumerate(self.deltart)),
+                key = lambda it: abs(it[1])
+            )
+        ]
         
         self.scans = self.scans[rtsort]
-        self.deltart = self.scans[rtsort]
+        self.deltart = self.deltart[rtsort]
     
     def identify(self):
         
@@ -5062,7 +5074,7 @@ class MS2Feature(object):
     
     def identity_summary(self, scores = True, drt = True, sample_ids = False):
         
-        identites = {}
+        identities = set()
         
         for i, scan_ids in enumerate(self.identities):
             

@@ -910,7 +910,7 @@ class MoleculeDatabaseAggregator(object):
             
             for rec_mz, rec, rec_ppm in zip(*data):
                 
-                if databases is not None and rec.db not in databases:
+                if databases is not None and rec.lab.db not in databases:
                     
                     continue
                 

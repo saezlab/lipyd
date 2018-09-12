@@ -15,11 +15,16 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+from __future__ import print_function
+from future.utils import iteritems
+from past.builtins import xrange, range, reduce
 
 import time
 import imp
 import openpyxl
 import re
+import os
+import sys
 
 from lipyd import moldb
 from lipyd import ms2
@@ -77,7 +82,7 @@ class TableBase(object):
     
     def itersheets(self):
         
-        for sheet in self.xls_original.sheetnames:
+        for name in self.xls_original.sheetnames:
             
             self.set_sheet(name)
             
@@ -98,15 +103,15 @@ class TableBase(object):
         if title is not None:
             
             ii = 2
-            self.sheet[1][idx].value = title
+            self.sheet.cell(1, idx, value = title)
         
         for i, val in enumerate(values):
             
-            self.sheet[i + ii][idx].value = val
+            self.sheet.cell(i + ii, idx, value = val)
         
         if width:
             
-            self.sheet.column_dimensions[self.col_letter(idx)].width = width
+            self.sheet.column_dimensions[self.col_idx(idx)].width = width
     
     def write(self):
         
@@ -114,19 +119,17 @@ class TableBase(object):
     
     def numof_cols(self):
         
-        try:
-            
-            return len(next(self.sheet.rows))
-        
-        except StopIteration:
-            
-            # this means empty sheet
-            return 0
+        return self.sheet.max_column
     
     @staticmethod
     def col_letter(letter):
         
         return openpyxl.utils.column_index_from_string(letter)
+    
+    @staticmethod
+    def col_idx(idx):
+        
+        return openpyxl.utils.get_column_letter(idx)
 
 
 class LtpTable(TableBase):
@@ -136,13 +139,17 @@ class LtpTable(TableBase):
             infile,
             outfile = None,
             mgfdir = None,
-            mgf_files = None
+            mgf_files = None,
+            prot_frac = None,
         ):
         
         TableBase.__init__(self, infile, outfile, mgf_files = mgf_files)
         
         self.prot_frac = prot_frac
         self.mgfdir = mgfdir
+        
+        self.mzcol = 'N'
+        self.rtcol = 'E'
     
     def process_sheets(self):
         
@@ -156,21 +163,21 @@ class LtpTable(TableBase):
     
     def process_sheet(self):
         
-        annot = self.resheet.search(self.sheet.title)
+        annot = resheet.search(self.sheet.title)
         
         if not annot:
             
             return
         
-        self.ionmode = annot[0]
-        self.protein = annot[1]
-        self.best    = annot[2] is not None
+        self.protein = annot.groups()[0]
+        self.ionmode = annot.groups()[1][:3]
+        self.best    = annot.groups()[2] is not None
         
-        self.collect_mgf()
-        
-        for idx, title, value in self.new_columns():
+        for idx, title, values in self.new_columns():
             
             self.insert_col(idx, values, title)
+        
+        self.sheet.freeze_panes = 'B1'
     
     def new_columns(self):
         """
@@ -202,7 +209,6 @@ class LtpTable(TableBase):
                 frac = (fracrow, int(fraccol))
                 
                 if (
-                    ionmode == self.ionmode and
                     protein == self.protein and
                     (not self.prot_frac or frac in self.prot_frac)
                 ):
@@ -253,13 +259,13 @@ class MS2Reprocessor(LtpTable):
                 os.path.split(infile)[-2],
                 time.strftime('%Y.%m.%d_%H.%M'),
             )
-            outdir = os.path.join(basedir + [outdir])
+            outdir = os.path.join(*(basedir + [outdir]))
         
         if not os.path.exists(outdir):
             
             os.mkdir(outdir)
         
-        outfile = os.path.join([outdir, infile_path[-1]])
+        outfile = os.path.join(outdir, infile_path[-1])
         
         LtpTable.__init__(
             self,
@@ -272,36 +278,37 @@ class MS2Reprocessor(LtpTable):
     
     def new_columns(self):
         
-        databases = ['all', 'swisslipids', 'lipidmaps', 'lipyd']
+        databases = ['all databases', 'SwissLipids', 'LipidMaps', 'lipyd']
         
         titles = [
             'ms2_new_top',
             'ms2_new_all',
-            'database_all',
-            'database_swisslipids',
-            'database_lipidmaps',
-            'database_lipyd',
+            'all databases',
+            'SwissLipids',
+            'LipidMaps',
+            'lipyd',
         ]
         
         idx = {
-            'ms2_new_top': self.col_letter('U'),
+            'ms2_new_top': self.col_letter('S'),
             'ms2_new_all': 'END',
-            'database_all': 'END',
-            'database_swisslipids': 'END',
-            'database_lipidmaps': 'END',
-            'database_lipyd': 'END',
+            'all databases': 'END',
+            'SwissLipids': 'END',
+            'LipidMaps': 'END',
+            'lipyd': 'END',
         }
         
-        data = dict((title, []) for title in titles)
         adducts = list(settings.get('ad2ex')[1][self.ionmode].keys())
         
         for add in adducts:
             
             for db in databases:
                 
-                title = '%s_database_%s' % (adduct, db)
+                title = '%s %s' % (add, db)
                 titles.append(title)
                 idx[title] = 'END'
+        
+        data = dict((title, []) for title in titles)
         
         if self.numof_cols() == 0:
             
@@ -314,23 +321,23 @@ class MS2Reprocessor(LtpTable):
                 # header row
                 continue
             
-            mz = row[self.col_letter('P') - 1]
+            mz = row[self.col_letter(self.mzcol) - 1].value
             ms1_records = moldb.adduct_lookup(
                 mz, self.ionmode, tolerance = self.ms1_tolerance
             )
             rt = tuple(
                 float(i.strip())
-                for i in row[self.col_letter('G') - 1].split('-')
+                for i in row[self.col_letter(self.rtcol) - 1].value.split('-')
             )
             
             # database lookups:
             for db in databases:
                 
-                _db = None if db == 'all' else {db}
+                _db = None if db == 'all databases' else {db}
                 
-                data['database_%s' % db].append(
+                data['%s' % db].append(
                     moldb.records_string(
-                        self.ms1_records,
+                        ms1_records,
                         databases = _db,
                         ppm = True,
                     )
@@ -338,9 +345,9 @@ class MS2Reprocessor(LtpTable):
                 
                 for add in adducts:
                     
-                    data['%s_database_%s' % (add, db)].append(
+                    data['%s %s' % (add, db)].append(
                         moldb.records_string(
-                            self.ms1_records,
+                            ms1_records,
                             adducts = {add},
                             databases = _db,
                             ppm = True,
@@ -355,10 +362,11 @@ class MS2Reprocessor(LtpTable):
                 rt = rt,
                 ms1_records = ms1_records,
             )
+            ms2_fe.main()
             ms2_id = ms2_fe.identity_summary(sample_ids = True)
-            ms2_max_score = max(i[1] for i in ms2_id)
+            ms2_max_score = max(i[1] for i in ms2_id) if ms2_id else 0
             ms2_best = self.identities_str(
-                i for i in ms2_id if ms2_id[1] == ms2_max_score
+                i for i in ms2_id if i[1] == ms2_max_score
             )
             ms2_all = self.identities_str(ms2_id)
             

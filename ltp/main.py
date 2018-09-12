@@ -58,7 +58,7 @@ class ResultsReprocessor(object):
         self.source_dir = source_dir
         self.mgfdir = mgfdir
         self.target_dir = target_dir or '%s__%s' % (
-            target_dir,
+            source_dir,
             time.strftime('%Y.%m.%d_%H.%M')
         )
         
@@ -85,6 +85,11 @@ class ResultsReprocessor(object):
         setattr(self, '__class__', new)
     
     def main(self):
+        
+        self.load()
+        self.reprocess()
+    
+    def load(self):
         
         self.read_protein_containing_fractions()
         self.collect_files()
@@ -158,13 +163,13 @@ class ResultsReprocessor(object):
             
             protein, ionmode, fracrow, fraccol = match.groups()
             
-            result[(protein, ionmode, (fracrow, fraccol))] = mgf
+            result[(protein, ionmode, (fracrow, int(fraccol)))] = mgf
         
         self.mgfs = result
     
     def iter_tables(self):
         
-        for protein, xlsx in iteritems(self.xlsx):
+        for protein, xlsx in iteritems(self.sources):
             
             xlsxpath = os.path.join(self.source_dir, xlsx)
             
