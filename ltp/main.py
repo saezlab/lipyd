@@ -51,6 +51,7 @@ class ResultsReprocessor(object):
             mgfdir,
             target_dir = None,
             screen = 'invitro',
+            reprocessor = 'MS2Reprocessor',
         ):
         
         self.screen = screen
@@ -67,6 +68,12 @@ class ResultsReprocessor(object):
         
         self.fractionsf = (
             ltpsettings.get('protein_containing_fractions_%s' % self.screen)
+        )
+        
+        self.reprocessor = (
+            getattr(table, reprocessor)
+                if type(reprocessor) is common.basestring else
+            reprocessor
         )
     
     def reload(self):
@@ -163,13 +170,31 @@ class ResultsReprocessor(object):
             
             for ionmode in ('neg', 'pos'):
                 
-                mgfpaths = [
-                    self.mgfs[(protein, ionmode, fr)]
+                mgfpaths = dict(
+                    (
+                        (ionmode, fr),
+                        os.path.join(
+                            self.mgfdir,
+                            self.mgfs[(protein, ionmode, fr)],
+                        )
+                    )
                     for fr, pcont in iteritems(self.fractions[protein])
                     if pcont
-                ]
+                )
                 
-                yield xlsxpath, ionmode, mgfpaths
+                yield xlsxpath, mgfpaths
+    
+    def reprocess(self):
+        
+        for xlsxpath, mgfpaths in self.iter_tables():
+            
+            reproc = self.reprocessor(
+                infile = xlsxpath,
+                outdir = self.target_dir,
+                mgf_files = mgfpaths,
+            )
+            
+            reproc.main()
 
 
 #TODO: make sure all code below works and remove it from lipyd.main.Screening

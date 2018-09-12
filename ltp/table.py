@@ -230,7 +230,7 @@ class LtpTable(TableBase):
             )
 
 
-class MS2Identifier(LtpTable):
+class MS2Reprocessor(LtpTable):
     
     def __init__(
             self,
