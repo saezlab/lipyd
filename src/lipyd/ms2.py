@@ -5014,7 +5014,7 @@ class MS2Feature(object):
     
     def iterscans(self):
         
-        for mgf in self.mgf:
+        for sample, mgf in iteritems(self.mgf):
             
             if type(mgf) is basestring:
                 
@@ -5040,6 +5040,7 @@ class MS2Feature(object):
                     ms1_records = self.ms1_records,
                     scan_id = mgf.mgfindex[i,3],
                     rt = mgf.mgfindex[i,2],
+                    sample = sample,
                 )
     
     def build_scans(self):
@@ -5048,7 +5049,7 @@ class MS2Feature(object):
         self.deltart = np.array([sc.rt - self.rt for sc in self.scans])
         
         rtsort = sorted(
-            i for i, drt in enumerate(self.deltart),
+            (i for i, drt in enumerate(self.deltart)),
             key = lambda i, drt: abs(drt)
         )
         

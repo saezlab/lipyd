@@ -26,6 +26,7 @@ import imp
 import sys
 import copy
 import itertools
+import collections
 
 import ltp.table as table
 import ltp.settings as ltpsettings
@@ -39,6 +40,10 @@ class ResultsReprocessor(object):
     Opens the xlsx files, does custom operations, writes data in new columns
     and saves xlsx files in a new directory with preserving formatting.
     """
+    
+    rexlsx = re.compile(r'([A-Z0-9]+)_top_features_.*xlsx')
+    remgf  = re.compile(r'([A-Z0-9]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
+    refr   = re.compile(r'([A-Z])([0-9]{1,2})')
     
     def __init__(
             self,
@@ -59,6 +64,10 @@ class ResultsReprocessor(object):
         if not os.path.exists(self.target_dir):
             
             os.mkdir(self.target_dir)
+        
+        self.fractionsf = (
+            ltpsettings.get('protein_containing_fractions_%s' % self.screen)
+        )
     
     def reload(self):
         
@@ -71,12 +80,80 @@ class ResultsReprocessor(object):
     def main(self):
         
         self.read_protein_containing_fractions()
+        self.collect_files()
+        self.collect_mgfs()
     
     def read_protein_containing_fractions(self):
         
-        if self.screen == 'invitro':
+        result = collections.defaultdict(dict)
+        
+        def fraction_tuple(fr_str):
             
-            with open()
+            fr = self.refr.match(fr_str).groups()
+            
+            return fr[0], int(fr[1])
+        
+        with open(self.fractionsf, 'r') as fp:
+            
+            hdr = fp.readline().split('\t')
+            
+            for l in fp:
+                
+                l = l.split('\t')
+                
+                if self.screen == 'invitro':
+                    
+                    fr = fraction_tuple(l[1])
+                    
+                    result[l[0]][fr] = int(l[2])
+                
+                if self.screen == 'invivo':
+                    
+                    for i, val in enumerate(l[1:]):
+                        
+                        if val != 'None':
+                            
+                            fr = fraction_tuple(hdr[i + 1].upper())
+                            
+                            result[l[0]][fr] = int(val)
+        
+        self.fractions = result
+    
+    def collect_files(self):
+        
+        result = {}
+        
+        for fname in os.listdir(self.source_dir):
+            
+            protein = self.rexlsx.match(fname)
+            
+            if not protein:
+                
+                continue
+            
+            protein = protein.groups()[0]
+            
+            result[protein] = fname
+        
+        self.sources = result
+    
+    def collect_mgfs(self):
+        
+        result = {}
+        
+        for mgf in os.listdir(self.mgfdir):
+            
+            match = self.remgf.search(mgf)
+            
+            if not match:
+                
+                continue
+            
+            protein, ionmode, fracrow, fraccol = match.groups()
+            
+            result[(protein, ionmode, (fracrow, fraccol))] = mgf
+        
+        self.mgfs = result
 
 
 #TODO: make sure all code below works and remove it from lipyd.main.Screening

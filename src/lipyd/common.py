@@ -20,11 +20,13 @@ from past.builtins import xrange, range, reduce
 
 import sys
 import os
+import re
 import warnings
 import traceback
 import itertools
 import xlrd
 import openpyxl
+import numpy as np
 
 ROOT = os.path.abspath(os.path.dirname(__file__))
 
@@ -347,3 +349,64 @@ def iterator_insert(full_length, insert):
             yield i, j
             
             j += 1
+
+
+refloat = re.compile(r'([-]?[0-9]*[\.]?[0-9]+[eE]?[-\+]?[0-9]*)')
+reint   = re.compile(r'([-]?[0-9]+[\.]?[0-9]*)')
+
+
+def to_float(num):
+    """
+    Extracts float from string, or returns None.
+    """
+    
+    if type(num) is float or type(num) is np.float64:
+        
+        return num
+    
+    num = num.strip()
+    fnum = refloat.match(num)
+    
+    if fnum:
+        
+        return float(fnum.groups(0)[0])
+    
+    else:
+        
+        if type(num) is str:
+            
+            if num.lower() == 'inf':
+                
+                return np.inf
+            
+            if num.lower() == '-inf':
+                
+                return -np.inf
+            
+        else:
+            
+            return None
+
+
+def to_int(num):
+    """
+    Extracts int from string or returns None.
+    """
+    
+    num = reint.match(num.strip())
+    
+    if num:
+        
+        return int(num.groups(0)[0])
+        
+    else:
+        
+        return num
+
+
+def float_lst(lst):
+    """
+    Converts elements of a list to floats.
+    """
+    
+    return [to_float(x) for x in lst]

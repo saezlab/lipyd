@@ -22,6 +22,8 @@ import collections
 
 from lipyd import common
 
+ROOT = os.path.abspath(os.path.dirname(__file__))
+
 _defaults = {
     # The absolute root directory.
     # This should not be necessary, why is it here?
@@ -30,6 +32,7 @@ _defaults = {
     'basedir': os.getcwd(),
     # If None will be the same as ``basedir``.
     'data_basedir': None,
+    'datadir': 'data',
     # the overview table of Enric's screening
     # we read the protein containing and the
     # highest fractions from here
@@ -101,7 +104,7 @@ _defaults = {
     },
     'protein_containing_fractions_invivo':
         'protein_containing_fractions_invivo.tsv',
-    'protein_containing_fractions_invivo':
+    'protein_containing_fractions_invitro':
         'protein_containing_fractions_invitro.tsv',
 }
 
@@ -115,7 +118,8 @@ in_basedir = [
 
 in_datadir = {
     'pfragmentsfile', 'nfragmentsfile', 'lipnamesf', 'mgf_example',
-    
+    'protein_containing_fractions_invivo',
+    'protein_containing_fractions_invitro',
 }
 
 def reset_all():
@@ -130,7 +134,7 @@ def reset_all():
             val = os.path.join(_defaults['basedir'], val)
         
         if k in in_datadir:
-            val = os.path.join(_defaults['datadir'], val)
+            val = os.path.join(ROOT, _defaults['datadir'], val)
         
         setattr(settings, k, val)
     

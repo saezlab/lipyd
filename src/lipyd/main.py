@@ -2207,6 +2207,24 @@ class Screening(object):
                             xrange(5))))
                 )
     
+    def protein_containing_fractions_table_invivo(
+            self,
+            fname = 'proteins_in_fractions.csv'
+        ):
+        
+        with open(fname, 'w') as fp:
+            
+            fp.write('%s\n' % (
+                    '\t'.join(['protein', 'fraction', 'protein_containing'])
+                )
+            )
+            
+            fp.write('\n'.join(
+                '\t'.join((protein, fr, '%u' % pcont))
+                for protein, fracs in iteritems(self.fractions)
+                for fr, pcont in iteritems(fracs)
+            ))
+    
     def protein_containing_fractions(self, protein, except_wrong = False):
         """
         Returns a list of those fractions containing the protein,
@@ -6758,11 +6776,15 @@ class Screening(object):
                                                         [
                                                             (
                                                                 n, # protein name
-                                                                get_fractions(l[15])
+                                                                get_fractions(
+                                                                    l[15]
+                                                                )
                                                             ),
                                                             (
                                                                 n, # protein name
-                                                                get_hpeak(l[18])
+                                                                get_hpeak(
+                                                                    l[18]
+                                                                )
                                                             )
                                                         ],
                                                     get_names(l[0])
