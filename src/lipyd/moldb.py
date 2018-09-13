@@ -35,6 +35,18 @@ import pandas as pd
 
 try:
     import pybel
+    try:
+        import tkinter
+        import PIL
+        import PIL.ImageTk
+        pybel.tk = tkinter
+        pybel.PIL = PIL.Image
+        pybel.piltk = PIL.ImageTk
+    except:
+        sys.stdout.write(
+            '\t:: `PIL` or `tkinter` not available. '
+            '`pybel` won\'t be able to draw molecules.\n'
+        )
 except:
     sys.stdout.write('\t:: No module `pybel` available.\n')
 
@@ -206,7 +218,11 @@ class SwissLipids(Reader):
             A set of one or more of the levels above.
         """
         
-        self.levels = levels
+        if isinstance(levels, common.basestring):
+            
+            levels = [levels]
+        
+        self.levels = set(l.capitalize() for l in levels)
         self.init_name_processor()
     
     def init_name_processor(self):
@@ -329,13 +345,13 @@ class SwissLipids(Reader):
         self.index = dict(self.index)
         self._plainfile = open(self._plainfilename, 'r')
     
-    def get_hg(self, hg):
+    def get_hg(self, hg, sub = ()):
+        
+        if isinstance(hg, common.basestring):
+            
+            hg = lipproc.Headgroup(hg, sub = sub)
         
         return self.get_record(hg, index = 'hg')
-    
-    def get_hg_obmol(self, hg):
-        
-        return self.get_obmol(hg, index = 'hg')
     
     def get_species(self, name):
         
@@ -349,7 +365,11 @@ class SwissLipids(Reader):
         
         return self.get_record(name, index = 'isomer')
     
-    def get_hg_obmol(self, hg):
+    def get_hg_obmol(self, hg, sub = ()):
+        
+        if isinstance(hg, common.basestring):
+            
+            hg = lipproc.Headgroup(hg, sub = sub)
         
         return self.get_obmol(hg, index = 'hg')
     
@@ -379,18 +399,23 @@ class SwissLipids(Reader):
     
     def get_obmol(self, name, index = ''):
         
-        return [
-            self.to_obmol(rec)
-            for rec in self.get_record(name, index = index)
-        ]
+        for rec in self.get_record(name, index = index):
+            
+            yield self.to_obmol(rec)
     
     @staticmethod
     def to_obmol(record):
         
-        if not record[8]:
+        if not record[9] or record[9] == 'InChI=none':
+            
+            if record[8]:
+                
+                # processing from SMILES
+                return pybel.readstring('smi', record[8])
             
             return None
         
+        # processing from InChI
         return pybel.readstring('inchi', record[9])
     
     @staticmethod

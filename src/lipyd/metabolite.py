@@ -70,8 +70,9 @@ class AbstractMetaboliteComponent(formula.Formula):
                 
             else:
                 
-                raise ValueError('Please provide either formula or '
-                                'atom counts or mass.')
+                raise ValueError(
+                    'Please provide either formula or atom counts or mass.'
+                )
         
         self.name = name
         self.getname = getname
