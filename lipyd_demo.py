@@ -35,5 +35,7 @@ from lipyd import ms2
 from lipyd import lipproc
 from lipyd import settings
 from lipyd import mgf
+from lipyd import pprint_namedtuple
 
+pprint.PrettyPrinter = pprint_namedtuple.PrettyPrinter
 

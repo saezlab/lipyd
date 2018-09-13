@@ -4400,7 +4400,7 @@ class Cer_Positive(AbstractMS2Identifier):
         
         score = 0
         
-        if self.scn.has_chain_fragment_type(frag_type = 'Sph-C-H2O-2H'):
+        if self.scn.has_chain_fragment_type(frag_type = 'Sph-NH2-H2O-2H'):
             
             score += 15
         

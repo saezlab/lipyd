@@ -33,7 +33,7 @@ standards = {
     'FA_mO_pNH2': 282.2802383656693,
     'FA_mO_pC2H2NH2': 308.2958884301893,
     'Sph_mC2H4_mNH2_mH2O': 239.23803920016925,
-    'Sph_mNH2_mH2O_m2H': 265.2536892646893,
+    'Sph_mNH2_mH2O_m2H': 265.25259210487076,
     'Sph_mC2H4_m3H': 270.2438528568293,
     'NLFA': 284.27153040176,
     'NLFA_mH2O': 266.26096571704,
@@ -90,14 +90,14 @@ class TestFragment(object):
     
     def test_fragment_names(self):
         
-        fr = list(lipyd.fragment.Sph_mNH2_mH2O_m2H(c = (18), u = (1)))[0]
+        fr = list(lipyd.fragment.Sph_mNH2_mH2O_m2H(c = 18, u = 1))[0]
         
-        assert fr.name == '[Sph(18:1)-NH2-H2O-2H]-'
+        assert fr.name == '[Sph(18:1)-NH2-H2O-2H]+'
     
     def test_fatty_fraglines(self):
         
         sample_line = [
-            '[Sph(18:1)-NH2-H2O-2H]-', '', '',
+            '[Sph(18:1)-NH2-H2O-2H]+', '', '',
             18, 1, -1, 'Sph-NH2-H2O-2H'
         ]
         

@@ -94,11 +94,12 @@ class FattyFragment(metabolite.AbstractSubstituent):
         def getname(parent):
             
             return '[%s]%s' % (
-                parent.name % ('(C%u:%u)' % (parent.c, parent.u)),
-                'NL' if parent.name[:2] == 'NL' else
-                '+'  if parent.charge == 1 else
-                '-'  if parent.charge == -1 else
-                ''
+                parent.name % (
+                    '({})'.format(
+                        lipproc.cu_str(parent.c, parent.u)
+                    )
+                ),
+                lipproc.charge_str(parent.charge)
             )
         
         cminus = dict(
@@ -1736,7 +1737,7 @@ class FattyFragmentFactory(object):
                 plus = 'O',
                 minus = 'H3',
                 charge = 1,
-                name = 'Sph%s-C-H2O-2H',
+                name = 'Sph%s-NH2-H2O-2H',
                 constraints = (
                     FragConstraint(
                         hg = 'Sph',

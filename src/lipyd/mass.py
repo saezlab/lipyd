@@ -36,7 +36,13 @@ proton = 1.00727646677
 electron = 0.00054857990924
 neutron = 1.00866491588
 
-reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
+p = proton
+e = electron
+n = neutron
+
+reform  = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
+replmi  = re.compile(r'([-+])')
+refloat = re.compile(r'[0-9\.]+')
 
 # ##
 def getMasses(url):
@@ -153,6 +159,7 @@ def getFreqIso():
         except (ValueError, IndexError, KeyError):
             continue
     globals()['freqIso'] = freqIso
+
 
 weight_builtin = {
     "proton": 1.00727646677,
@@ -335,10 +342,27 @@ class MassBase(object):
         self.isotope = isotope
         
         if formula_mass is None:
+            
             self.formula_from_dict(kwargs)
+            
         elif hasattr(formula_mass, 'lower'):
+            
             self.formula = formula_mass
+            
+        elif isinstance(formula_mass, MassBase):
+            
+            if hasattr(formula_mass, 'mass'):
+                
+                self.mass = formula_mass.mass
+                
+            if hasattr(formula_mass, 'formula'):
+                
+                self.formula = formula_mass.formula
+            
+            self.mass_calculated = formula_mass.mass_calculated
+            
         else:
+            
             self.formula = None
         
         if type(formula_mass) is float:
@@ -454,3 +478,68 @@ parts = {
 for name, form in parts.items():
     
     setattr(sys.modules[__name__], name, MassBase(form))
+
+
+def first_isotope_mass(elem):
+    
+    return massFirstIso[elem] if elem in massFirstIso else None
+
+
+def get_mass(elem):
+    
+    return first_isotope_mass(elem)
+
+
+def isotope_mass(elem, iso):
+    
+    return (
+        massMonoIso[elem][iso]
+            if elem in massMonoIso and iso in massMonoIso[elem] else
+        None
+    )
+
+
+def get_weight(elem):
+    
+    return weight_builtin[elem] if elem in weight_builtin else None
+
+
+def calculate(formula):
+    
+    result = None
+    op = '__add__'
+    
+    for step in replmi.split(formula):
+        
+        if step == '-':
+            
+            op = '__sub__'
+            continue
+        
+        if step == '+':
+            
+            op = '__add__'
+            continue
+        
+        step = step.strip()
+        
+        if refloat.match(step):
+            step = float(step)
+        
+        if (
+            step in globals() and
+            isinstance(globals()[step], (float, int, MassBase))
+        ):
+            step = globals()[step]
+        
+        if op is not None:
+            
+            result = getattr(MassBase(result), op)(MassBase(step))
+        
+        op = None
+    
+    return result
+
+
+# a synonym
+expr = calculate

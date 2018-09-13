@@ -89,9 +89,9 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
                 '%s(%s)' % (
                     parent.name,
                     '/'.join(
-                        s.cc_unsat_str
+                        lipproc.cu_str(s.c, s.u)
                         for s in subs
-                        if hasattr(s, 'cc_unsat_str') and s.cc_unsat_str
+                        if hasattr(s, 'c') and hasattr(s, 'u')
                     )
                 ),
             subs = None,
@@ -308,7 +308,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
             chain_attr = None,
             chain_type = None,
             getname = lambda parent: '%u:%u' % (parent.c, parent.u),
-            c_u_diff = lambda c, u: c > u + 1 or (c == 0 and u == 0),
+            c_u_diff = lambda c, u: c > u + 1 or (c <= 1 and u == 0),
             prefix = '',
             even = False,
             valence = 1,
@@ -453,7 +453,7 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     new.variable_aliphatic_chain = (
                         self.variable_aliphatic_chain
                     )
-                    new.name = self.name
+                    new.name = self.getname(self)
                     # new.attrs.chain = self.get_chain()
                     
                     yield new

@@ -58,6 +58,8 @@ class Formula(mass.MassBase, mz.Mz):
             **kwargs
         ):
         
+        attrs = attrs or {}
+        attrs.update(kwargs)
         self._set_attrs(attrs)
         
         if isinstance(formula, Formula):
@@ -88,7 +90,7 @@ class Formula(mass.MassBase, mz.Mz):
             mz = self.mass / z,
             z = z,
             sign = sign,
-            tolerance = tolerance
+            tolerance = tolerance,
         )
     
     def __add__(self, other):
@@ -217,13 +219,45 @@ class Formula(mass.MassBase, mz.Mz):
         
         return self
     
+    def __imul__(self, other):
+        
+        if not type(other) is int:
+            
+            return self
+        
+        for elem, cnt in iteritems(self.atoms):
+            
+            self.counts[elem] = cnt * other
+        
+        self.calc_mass()
+        self.formula_from_dict(self.atoms)
+        self.isotope = self.isotope * other
+    
+    def __mul__(self, other):
+        
+        if not type(other) is int:
+            
+            return copy.deepcopy(self)
+        
+        new_atoms = defaultdict(int)
+        
+        for elem, cnt in iteritems(self.atoms):
+            
+            new_atoms[elem] = cnt * other
+        
+        return Formula(
+            **new_atoms,
+            isotope = self.isotope * other,
+            charge = self.charge
+        )
+    
     def __iter__(self, **kwargs):
         
         yield self
     
     def reset_atoms(self):
         
-        self.atoms = defaultdict(lambda: 0)
+        self.atoms = defaultdict(int)
     
     def as_mass(self):
         
