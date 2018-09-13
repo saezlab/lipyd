@@ -343,7 +343,7 @@ class FragmentDatabaseAggregator(object):
     
     def generate_series(self):
         """
-        Generates homolog series fragments.
+        Generates homologous series fragments.
         """
         
         result = []

@@ -409,6 +409,17 @@ def match_constraints(rec, constraints):
     
     return match, chains
 
+def cu_str(c, u):
+    
+    return '%u:%u' % (c, u)
+
+def charge_str(charge):
+    
+    return (
+        '' if charge == 0 else
+        '-' if charge < 0 else
+        '+'
+    )
 
 # regex captures the summary carbon count
 rechainsum = re.compile(

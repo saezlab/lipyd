@@ -30,6 +30,7 @@ import imp
 import collections
 
 import lipyd.mass as mass
+import lipyd.lipproc as lipproc
 import lipyd.metabolite as metabolite
 
 
@@ -131,13 +132,30 @@ class FattyFragment(metabolite.AbstractSubstituent):
             **kwargs
         )
     
+    def cu_str(self):
+        
+        return '({})'.format(lipproc.cu_str(self.c, self.u))
+    
+    def charge_str(self):
+        
+        return lipproc.charge_str(self.charge)
+    
+    def get_name(self):
+        
+        return '[%s]%s' % (self.name % self.cu_str(), self.charge_str())
+    
     def iterfraglines(self):
         
         for fr in self:
             
             yield [
-                fr.mass, fr.name, fr.attrs.fragtype, fr.attrs.chaintype,
-                self.c, self.u, self.charge
+                fr.mass,
+                self.get_name(),
+                fr.attrs.fragtype,
+                fr.attrs.chaintype,
+                self.c,
+                self.u,
+                self.charge,
             ]
 
 class FattyFragmentOld(mass.MassBase, AdductCalculator):
@@ -191,9 +209,13 @@ class FattyFragmentOld(mass.MassBase, AdductCalculator):
             )
     
     def get_fragline(self):
-        return [self.mass, self.name,
+        
+        return [
+            self.mass,
+            self.name,
             '[M%s]%s' % (self.adduct_str(), self.charge_str()),
-            ';'.join(self.hg)]
+            ';'.join(self.hg)
+        ]
 
 
 class FattyFragmentFactory(object):

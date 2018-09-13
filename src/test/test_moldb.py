@@ -42,7 +42,7 @@ class TestMoldb(object):
         
         actually_got = set(
             (r.chainsum.c, r.chainsum.u)
-            for r in mda.data
+            for r in self.mda.data
             if (
                 r.lab.db == 'lipyd.lipid' and
                 r.hg.main == 'PC' and

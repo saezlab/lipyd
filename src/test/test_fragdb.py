@@ -58,6 +58,6 @@ class TestFragdb(object):
         
         fragnames = set(aa.name for a in annot for aa in a)
         
-        assert '[FA(C14:0)+NH+C2H2-OH]+' in fragnames
-        assert '[Sph(C18:1)-2xH2O]+' in fragnames
+        assert '[FA(14:0)+NH+C2H2-OH]+' in fragnames
+        assert '[Sph(18:1)-2xH2O+H]+' in fragnames
         assert len(list(annot)) == len(annot.mzs)
