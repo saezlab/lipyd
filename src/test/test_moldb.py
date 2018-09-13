@@ -101,7 +101,7 @@ class TestMoldb(object):
             lab = lipproc.LipidLabel(
                 db_id = None,
                 db = 'lipyd.lipid',
-                names = ('Cer1P(DH42:2)',)
+                names = ('Cer-1P(DH42:2)',)
             ),
             hg = lipproc.Headgroup(
                 main = 'Cer',

@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# hello world II ...
-
-
-
 #
 #  This file is part of the `lipyd` python module
 #
