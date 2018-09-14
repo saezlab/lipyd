@@ -1,3 +1,3 @@
-!#/usr/bin/env bash
+#!/usr/bin/env bash
 
-sed -ire 's/\(<div id="header"\)/<!-- \1/;s/\(<div id="site" style=".*">\)/\1 -->/' lipyd_demo.html
+sed -iE 's/<!--\|-->//g;s/\(<div id="header"\)/<!-- \1/;s/\(<div id="site" style=".*">\)/\1 -->/' lipyd_demo.html
