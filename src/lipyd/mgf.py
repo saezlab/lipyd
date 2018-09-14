@@ -241,6 +241,17 @@ class MgfReader(object):
         
         return idx, rtdiff
     
+    def lookup_scan_ids(self, mz, rt = None, tolerance = None):
+        """
+        Same as `lookup` but returns scan ids instead of indices.
+        """
+        
+        idx, rtdiff = self.lookup(mz, rt, tolerance)
+        
+        ids = np.array([self.mgfindex[i, 3] for i in idx], dtype = int)
+        
+        return ids, rtdiff
+    
     def get_scan(self, i):
         """
         Reads MS2 fragment peaks from one scan.
