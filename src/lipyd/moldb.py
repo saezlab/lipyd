@@ -35,18 +35,19 @@ import pandas as pd
 
 try:
     import pybel
-    try:
-        import tkinter
-        import PIL
-        import PIL.ImageTk
-        pybel.tk = tkinter
-        pybel.PIL = PIL.Image
-        pybel.piltk = PIL.ImageTk
-    except:
-        sys.stdout.write(
-            '\t:: `PIL` or `tkinter` not available. '
-            '`pybel` won\'t be able to draw molecules.\n'
-        )
+    if 'ipykernel' not in sys.modules and pybel.tk is None:
+        try:
+            import tkinter
+            import PIL
+            import PIL.ImageTk
+            pybel.tk = tkinter
+            pybel.PIL = PIL.Image
+            pybel.piltk = PIL.ImageTk
+        except:
+            sys.stdout.write(
+                '\t:: `PIL` or `tkinter` not available. '
+                '`pybel` won\'t be able to draw molecules.\n'
+            )
 except:
     sys.stdout.write('\t:: No module `pybel` available.\n')
 
@@ -401,7 +402,9 @@ class SwissLipids(Reader):
         
         for rec in self.get_record(name, index = index):
             
-            yield self.to_obmol(rec)
+            obmol = self.to_obmol(rec)
+            self.add_annotations(obmol, rec)
+            yield obmol
     
     @staticmethod
     def to_obmol(record):
@@ -423,7 +426,10 @@ class SwissLipids(Reader):
         
         mol.db_id = record[0]
         mol.name  = record[3]
-        mol.title = tuple(n.strip() for n in record[2:5] if n.strip())
+        if hasattr(mol, 'OBMol'):
+            mol.OBMol.SetTitle(record[2])
+        else:
+            mol.title = tuple(n.strip() for n in record[2:5] if n.strip())
         mol.chebi = record[24] if len(record) > 24 else ''
         mol.lipidmaps = record[25] if len(record) > 25 else ''
         mol.hmdb = record[26] if len(record) > 26 else ''
