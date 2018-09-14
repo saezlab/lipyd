@@ -477,6 +477,9 @@ in_basedir = ['fractionsf', 'ppfracf', 'seqfile',
 
 in_datadir = {
     'pfragmentsfile', 'nfragmentsfile', 'lipnamesf', 'mgf_example',
+}
+
+in_mgfdir = {
     'mgf_neg_examples', 'mgf_pos_examples',
 }
 
@@ -490,6 +493,9 @@ def reset_all():
         
         if k in in_datadir:
             val = os.path.join(common.ROOT, 'data', val)
+        
+        if k in in_mgfdir:
+            val = os.path.join(common.ROOT, 'data', 'ms2_examples', val)
         
         setattr(settings, k, val)
     
