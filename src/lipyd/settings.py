@@ -331,6 +331,8 @@ _defaults = {
     # Don't know what it is for
     'uniprots': None,
     'mgf_example': 'example_mgf__2015-06-28_GLTPD1_pos_A12.mgf',
+    'mgf_neg_examples': 'neg_examples.mgf',
+    'mgf_pos_examples': 'pos_examples.mgf',
     # logarithm base for matching chain fragment intensities
     # this determines the tolerance and represents fold difference
     'chain_fragment_instensity_ratios_logbase': 1.5,
@@ -474,7 +476,8 @@ in_basedir = ['fractionsf', 'ppfracf', 'seqfile',
     'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir']
 
 in_datadir = {
-    'pfragmentsfile', 'nfragmentsfile', 'lipnamesf', 'mgf_example'
+    'pfragmentsfile', 'nfragmentsfile', 'lipnamesf', 'mgf_example',
+    'mgf_neg_examples', 'mgf_pos_examples',
 }
 
 def reset_all():
