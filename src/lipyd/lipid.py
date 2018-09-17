@@ -870,6 +870,7 @@ class SphingolipidFactory(object):
         '1P': 'Phosphate',
         'PE': 'PE',
         'PI': 'PI',
+        'PC': 'PC',
     }
     
     def __init__(self, fa_args_1o = None, **kwargs):
@@ -905,6 +906,7 @@ class SphingolipidFactory(object):
             ('HCH2', 'Sph', ('M1',), False),
             ('HC2H4', 'Sph', ('M2',), False),
             ('HC3H5', 'Sph', ('M3',), False),
+            ('PO3C2H4NC3H9', 'Sph', ('PC',), False),
         ]
         
         docs = {
