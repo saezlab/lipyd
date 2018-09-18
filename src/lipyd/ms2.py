@@ -2478,7 +2478,7 @@ class AbstractMS2Identifier(object):
         
         if self.rec.hg is not None and self.rec.hg.main in self.class_methods:
             
-            self.score += getattr(
+            self.score, self.max_score += getattr(
                 self,
                 self.class_methods[self.rec.hg.main]
             )()
@@ -2491,10 +2491,14 @@ class AbstractMS2Identifier(object):
                 
                 if sub not in self.scores and sub in self.subclass_methods:
                     
-                    score = getattr(self, self.subclass_methods[sub])()
+                    score, max_score = getattr(
+                        self,
+                        self.subclass_methods[sub]
+                    )()
                     
                     self.scores[sub] = score
                     self.score += score
+                    self.max_score += max_score
     
     def confirm_chains_explicit(self):
         
@@ -2512,14 +2516,21 @@ class AbstractMS2Identifier(object):
                 
                 yield chain_comb
     
-    def matching_chain_combinations(self, chain_param1, chain_param2):
+    def matching_chain_combinations(
+            self,
+            chain_param1,
+            chain_param2,
+            score_method = lambda ccomb: (min(ccomb, 3) * 2, 6),
+        ):
         
-        self.score += len(list(
+        ccomb = len(list(
             self.scn.matching_chain_combinations(
                 self.rec,
                 chain_param = (chain_param1, chain_param2),
             )
-        )) / 2
+        ))
+        
+        self.score, self.max_score += score_method(ccomb)
     
     def check_lyso(self, score_threshold = 5):
         """
@@ -2590,6 +2601,8 @@ class FA_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 10
+        
         if (
             self.rec.chainsum and
             self.scn.chain_among_most_abundant(
@@ -2630,6 +2643,21 @@ class FA_Positive(AbstractMS2Identifier):
                 'head': 1
             }
         )
+    
+    def confirm_class(self):
+        
+        self.max_score = 10
+        
+        if (
+            self.rec.chainsum and
+            self.scn.chain_among_most_abundant(
+                frag_type = 'FA+H',
+                c = self.rec.chainsum.c,
+                u = self.rec.chainsum.u,
+            )
+        ):
+            
+            self.score = 10
 
 #
 # Glycerolipids
@@ -2664,6 +2692,8 @@ class DAG_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        
+        self.max_score = 6
         
         if self.scn.has_chain_combinations(self.rec, head = 10):
             
@@ -2705,6 +2735,8 @@ class DAG_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 6
+        
         if self.scn.has_chain_combinations(self.rec, head = 10):
             
             self.score += 4
@@ -2742,6 +2774,8 @@ class TAG_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 5
+        
         if self.scn.has_chain_combinations(self.rec):
             
             self.score += 5
@@ -2777,6 +2811,7 @@ class TAG_Negative(AbstractMS2Identifier):
     def confirm_class(self):
         
         self.score = 0
+        self.max_score = 5
         
         if self.scn.has_chain_combinations(self.rec):
             
@@ -2816,6 +2851,8 @@ class GL_Positive(AbstractMS2Identifier):
     
     def dgts(self):
         
+        self.max_score += 30
+        
         if self.scn.has_fragment('DGTS [G+TS] (236.1492)'):
             
             self.score += 10
@@ -2829,6 +2866,8 @@ class GL_Positive(AbstractMS2Identifier):
     
     def dgcc(self):
         
+        self.max_score += 20
+        
         if self.scn.has_fragment('PC/SM [Ch+H2O] (104.107)'):
             
             self.score += 10
@@ -2839,17 +2878,23 @@ class GL_Positive(AbstractMS2Identifier):
     
     def sqdg(self):
         
+        self.max_score += 10
+        
         if self.scn.has_fragment('NL [Hexose+SO3+H2O+H] (NL 261.0280)'):
             
             self.score += 10
     
     def mgdg(self):
         
+        self.max_score += 10
+        
         if self.scn.has_fragment('[Hexose+H2O-H] (NL 197.07)'):
             
             self.score += 10
     
     def dgdg(self):
+        
+        self.max_score += 10
         
         if self.scn.has_fragment('NL [2xHexose+H2O-H] (NL 359.1190)'):
             
@@ -2873,6 +2918,8 @@ class GL_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        
+        self.max_score += 10
         
         if self.scn.has_chain_combination(
             record = self.rec,
@@ -2918,11 +2965,13 @@ class PE_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score += 11
+        
         if (
             self.scn.chain_fragment_type_is(
                 i = 0,
                 chain_type = 'FA',
-                frag_type = 'FA-H'
+                frag_type  = 'FA-H'
             ) and
             self.scn.has_fragment('PE [P+E] (140.0118)')
         ):
@@ -2932,8 +2981,9 @@ class PE_Negative(AbstractMS2Identifier):
             self.score += sum(map(bool, (
                 self.scn.has_fragment('PE [G+P+E-H2O] (196.0380)'),
                 self.scn.has_fragment('PE [G+P+E] (178.0275)'),
-            )))
+            ))) * 3
             
+            # by default this returns max 6
             self.matching_chain_combinations(
                 {'frag_type': 'FA-H'},
                 {'frag_type': {
@@ -2975,6 +3025,8 @@ class PE_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        
+        self.max_score = 20
         
         if self.scn.has_fragment('NL PE [P+E] (NL 141.0191)'):
             
@@ -3018,6 +3070,8 @@ class LysoPE_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        
+        self.max_score = 15
         
         if self.scn.has_fragment('NL PE [P+E] (NL 141.0191)'):
             
@@ -3072,6 +3126,8 @@ class PC_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 17
+        
         if (
             self.scn.chain_fragment_type_is(
                 i = 0,
@@ -3086,11 +3142,12 @@ class PC_Negative(AbstractMS2Identifier):
             self.score += sum(map(bool, (
                 self.scn.has_fragment('PE [G+P+E-H2O] (196.0380)'),
                 self.scn.has_fragment('PE [G+P+E] (178.0275)'),
-            )))
+            ))) * 3
             
             self.matching_chain_combinations(
                 {'frag_type': 'FA-H'},
-                {'frag_type': 'LysoPC'}
+                {'frag_type': 'LysoPC'},
+                score_method = lambda ccomb: ((ccomb > 1) * 6, 6),
             )
 
 
@@ -3127,6 +3184,8 @@ class PC_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 13
+        
         if (
             self.scn.fragment_percent_of_most_abundant(
                 'PC/SM [P+Ch] (184.0733)', 10.0
@@ -3145,7 +3204,7 @@ class PC_Positive(AbstractMS2Identifier):
                 self.scn.has_fragment('PC/SM [P+Et] (124.9998)'),
                 self.scn.has_fragment('PC/SM [N+3xCH3] (60.0808)'),
                 self.scn.has_fragment('PC/SM [Ch-Et] (58.0651)'),
-            )))
+            ))) * 2
 
 
 class LysoPC_Positive(AbstractMS2Identifier):
@@ -3180,6 +3239,8 @@ class LysoPC_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 10
+        
         if (
             self.scn.most_abundant_fragment_is('PC/SM [P+Ch] (184.0733)') and
             self.scn.has_fragment('PC/SM [Ch] (86.096)') and
@@ -3200,6 +3261,7 @@ class LysoPC_Positive(AbstractMS2Identifier):
                 if self.scn.mz_match(frag.mz, self.scn.mzs[hg_i]):
                     
                     self.score += 5
+                    break
 
 
 class PI_Negative(AbstractMS2Identifier):
@@ -3234,6 +3296,8 @@ class PI_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 19
+        
         if (
             self.scn.has_fragment('PI [InsP-H2O]- (241.01)') and
             self.scn.has_fragment('PA/PG/PI/PS [G+P] (152.9958)') and
@@ -3247,7 +3311,7 @@ class PI_Negative(AbstractMS2Identifier):
                 self.scn.has_fragment('PI [InsP-H]- (259.02)'),
                 self.scn.has_fragment('PI [G+P+I] (297.04)'),
                 self.scn.has_fragment('PI [InsP-2H2O]- (223.00)'),
-            )))
+            ))) * 2
             
             self.matching_chain_combinations(
                 {'frag_type': 'FA-H'},
@@ -3255,7 +3319,8 @@ class PI_Negative(AbstractMS2Identifier):
                         'LysoPI',
                         'LysoPI-H2O',
                     }
-                }
+                },
+                score_method = lambda ccomb: (min(ccomb, 2) * 3, 6),
             )
 
 
@@ -3288,6 +3353,8 @@ class PI_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        
+        self.max_score = 9
         
         if self.scn.has_chain_combinations(self.rec):
             
@@ -3332,6 +3399,8 @@ class PS_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 17
+        
         if (
             self.scn.has_chain_combinations(self.rec) and
             self.scn.chain_fragment_type_is(
@@ -3347,11 +3416,12 @@ class PS_Negative(AbstractMS2Identifier):
             self.score += sum(map(bool, (
                 self.scn.has_fragment('Cer1P/PIP/PL metaphosphate (78.9591)'),
                 self.scn.has_fragment('PS [Ser-H2O] (87.0320)'),
-            )))
+            ))) * 3
             
             self.matching_chain_combinations(
                 {'frag_type': 'FA-H'},
-                {'frag_type': {'LysoPS', 'LysoPA'}}
+                {'frag_type': {'LysoPS', 'LysoPA'}},
+                score_method = lambda ccomb: (min(ccomb, 2) * 3, 6),
             )
 
 
@@ -3381,6 +3451,8 @@ class PS_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        
+        self.max_score = 5
         
         if self.scn.fragment_among_most_abundant('PS [P+S] (NL 185.0089)', 1):
             
@@ -3423,6 +3495,8 @@ class PG_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 14
+        
         if (
             self.scn.has_chain_combinations(self.rec) and
             self.scn.chain_fragment_type_is(
@@ -3435,7 +3509,7 @@ class PG_Negative(AbstractMS2Identifier):
             
             if self.scn.has_fragment('PG headgroup (171.0064)'):
                 
-                self.score += 1
+                self.score += 3
             
             self.matching_chain_combinations(
                 {'frag_type': 'FA-H'},
@@ -3443,7 +3517,8 @@ class PG_Negative(AbstractMS2Identifier):
                         'LysoPG',
                         'LysoPG-H2O',
                     }
-                }
+                },
+                score_method = lambda ccomb: (min(ccomb, 2) * 3, 6),
             )
 
 
@@ -3470,6 +3545,8 @@ class PG_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        
+        self.max_score = 5
         
         if (
             self.scn.most_abundant_fragment_is(
@@ -3539,6 +3616,8 @@ class BMP_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 5
+        
         if (
             self.scn.has_chain_combinations(self.rec) and
             self.scn.chain_fragment_type_among_most_abundant(
@@ -3597,6 +3676,8 @@ class PA_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 25
+        
         if (
             self.scn.has_chain_combinations(self.rec) and
             self.scn.chain_fragment_type_is(
@@ -3640,6 +3721,8 @@ class PA_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        
+        self.max_score = 20
         
         if (
             self.scn.fragment_among_most_abundant(
@@ -3697,6 +3780,8 @@ class VA_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
+        self.max_score = 8
+        
         if self.scn.fragment_among_most_abundant('Retinol I (269.2264)', 3):
             
             self.score += 5
@@ -3737,6 +3822,8 @@ class VA_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        
+        self.max_score = 8
         
         if all((
             self.scn.fragment_among_most_abundant(fragname, 7)
@@ -3886,8 +3973,6 @@ class Cer_Positive(AbstractMS2Identifier):
     **Specimen:**
     
     - in vitro 890.64
-    
-    
     
     dSM
     ===
@@ -7286,7 +7371,7 @@ class MS2Scan(object):
                 score += 1
             
             fa_h_ccs = self.matching_fa_frags_of_type('PE', '-H]-')
-        
+            
             for fa_h_cc in fa_h_ccs:
                 
                 for fa_other in [
