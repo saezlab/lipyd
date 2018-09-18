@@ -48,16 +48,28 @@ ChainFragment = collections.namedtuple(
 
 class MS2Identity(collections.namedtuple(
         'MS2IdentityBase',
-        ['score', 'hg', 'chainsum', 'chains', 'details']
+        [
+            'score', 'max_score', 'score_pct',
+            'hg', 'chainsum', 'chains', 'details',
+        ]
     )):
     
     def __new__(
-            cls, score, hg, chainsum = None, chains = None, details = None
+            cls,
+            score,
+            max_score,
+            score_pct,
+            hg,
+            chainsum = None,
+            chains = None,
+            details = None,
         ):
         
         return super(MS2Identity, cls).__new__(
             cls,
             score,
+            max_score,
+            score_pct,
             hg,
             chainsum = chainsum,
             chains = chains,
@@ -74,7 +86,7 @@ class MS2Identity(collections.namedtuple(
     
     def summary(self):
         
-        return self.__str__(), self.score
+        return self.__str__(), self.score_pct
 
 
 ChainIdentificationDetails = collections.namedtuple(
@@ -2387,6 +2399,7 @@ class AbstractMS2Identifier(object):
         ):
         
         self.score = 0
+        self.max_score = 0
         self.rec = record
         self.scn = scan
         self.add = adduct
@@ -2415,6 +2428,8 @@ class AbstractMS2Identifier(object):
             
             yield MS2Identity(
                 self.score,
+                self.max_score,
+                self.percent_score(),
                 self.rec.hg,
                 self.rec.chainsum,
                 chains = chains[0],
@@ -2438,11 +2453,20 @@ class AbstractMS2Identifier(object):
             
             yield MS2Identity(
                 self.score,
+                self.max_score,
+                self.percent_score(),
                 self.rec.hg,
                 self.rec.chainsum,
                 chains = None,
                 details = None,
             )
+    
+    def percent_score(self):
+        """
+        Returns the score as a percentage of the maximum possible score.
+        """
+        
+        return np.round(self.score / max(self.max_score, 1.) * 100.)
     
     def confirm_class(self):
         """
@@ -2503,8 +2527,8 @@ class AbstractMS2Identifier(object):
         as a lyso species and calls the corresponding lyso identification
         method.
         
-        Returns `True` if the score from the lyso is larger than
-        `score_threshold`.
+        Returns ``True`` if the score from the lyso is larger than
+        ``score_threshold``.
         """
         
         rec_lyso = self.scn.first_record(self.rec.hg.main, sub = ('Lyso',))
