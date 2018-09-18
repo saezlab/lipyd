@@ -1202,7 +1202,7 @@ specimens = [
         2290,
         {'SM(d34:1)': (
             MS2Identity(
-                score = 35,
+                score = 41,
                 hg = Headgroup(main='SM', sub=()),
                 chainsum = ChainSummary(
                     c = 34,
