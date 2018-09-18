@@ -26,7 +26,7 @@ __version__ = _version.__version__
 
 metainfo = {
     'authors': {
-        'Türei':('Dénes Türei','turei.denes@gmail.com'),
+        'Türei': ('Dénes Türei','turei.denes@gmail.com'),
     },
     'version': __version__,
     'license': 'GPLv3',
@@ -37,7 +37,7 @@ metainfo = {
         'Linux',
         'Unix',
         'MacOSX',
-        'Windows'
+        'Windows',
     ],
     'keywords': [
         'lipidomics',
@@ -45,6 +45,7 @@ metainfo = {
         'mass spectrometry',
         'MS',
         'MS2',
+        'LC MS/MS',
         'lipid-protein interactions',
         'lipid transfer proteins',
         'glycerophospholipids',
@@ -54,10 +55,11 @@ metainfo = {
         'SwissLipids',
         'LipidMaps',
         'molecular weight',
-        'chemical formula'
+        'chemical formula',
+        'chemistry',
     ],
     'classifiers': [
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
@@ -85,13 +87,14 @@ deps = [
     'xlrd',
     'httplib2',
     'seaborn',
-    'rpy2',
     'sklearn',
     'xlrd',
     'openpyxl',
     'xlsxwriter',
     'future',
-    'tqdm'
+    'tqdm',
+    'xmltodict',
+    'bs4',
 ]
 
 setup(
@@ -111,7 +114,7 @@ setup(
     classifiers = metainfo['classifiers'],
     # package installation
     package_dir = {'':'src'},
-    packages = list(set(find_packages() + ['lipyd'])),
+    packages = ['lipyd', 'lipyd.data', 'lipyd.data.ms2_examples'],
     include_package_data = True,
     install_requires = deps
     # dependency_links = deplinks

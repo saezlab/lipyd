@@ -69,11 +69,11 @@ if not hasattr(urllib, 'quote'):
 try:
     import pysftp
 except:
-    sys.stdout.write('''\n\t:: Module `pyfstp` not available. 
-        Only downloading of a small number of resources 
-        relies on this module.
-        Please install by PIP if it is necessary for you.
-    ''')
+    sys.stdout.write(
+        ':: Module `pyfstp` not available.\n'
+        '   Only downloading of a small number of resources\n'
+        '   might rely on this module.\n'
+        '   Please install by PIP if it is necessary for you.\n')
 import codecs
 import gzip
 import zipfile
@@ -83,7 +83,7 @@ import hashlib
 try:
     import fabric.connection
 except:
-    sys.stdout.write('No `fabric` available.\n')
+    sys.stdout.write(':: Module `fabric` not available.\n')
     sys.stdout.flush()
 
 from contextlib import closing

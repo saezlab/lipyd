@@ -476,10 +476,10 @@ class SpectrumPlot(object):
         ax.set_ylim(0, 100)
         start, end = ax.get_ylim()
         ax.yaxis.set_ticks(np.arange(start, end + 1, 10))
-
+        
         # set grid
         plt.grid(True, axis="y", color='black', linestyle=':', linewidth=0.1)
-
+        
         plt.savefig(output_filename + "." + filetype, dpi=fig.dpi, format=filetype)
         plt.close()
     

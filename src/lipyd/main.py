@@ -61,18 +61,23 @@ import matplotlib as mpl
 import matplotlib.backends.backend_pdf
 import matplotlib.pyplot as plt
 import seaborn as sns
-import plotly.offline as pl
-import plotly.graph_objs as go
-import plotly.tools
+
+try:
+    import plotly.offline as pl
+    import plotly.graph_objs as go
+    import plotly.tools
+except:
+    sys.stdout.write(':: Module `plotly` not available.\n')
+
 try:
     import altair
 except:
-    sys.stdout.write('No module `altair` available.\n')
+    sys.stdout.write(':: Module `altair` not available.\n')
 
 try:
     import matplotlib_venn
 except:
-    sys.stdout.write('No module `matplotlib_venn` available.\n')
+    sys.stdout.write(':: Module `matplotlib_venn` not available.\n')
 
 try:
     import rpy2.robjects.packages as rpackages
@@ -82,7 +87,9 @@ try:
     rstats = rpackages.importr('stats')
     rococo = rpackages.importr('rococo')
 except:
-    sys.stdout.write('Could not import rpy2 or some of the R packages.\n')
+    sys.stdout.write(
+        ':: Could not import `rpy2` or some of the R packages.\n'
+    )
 
 # from this module:
 import lipyd.mass as mass
@@ -93,8 +100,12 @@ import lipyd.progress as progress
 import lipyd._curl as _curl
 from lipyd.common import *
 
-import rlcompleter, readline
-readline.parse_and_bind('tab:complete')
+try:
+    import rlcompleter, readline
+    readline.parse_and_bind('tab:complete')
+    # this works in Unix, we can't help on Windows users
+except ModuleNotFoundError: # pragma: no cover
+    pass
 
 warnings.filterwarnings('error')
 warnings.filterwarnings('default')

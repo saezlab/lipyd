@@ -45,11 +45,11 @@ try:
             pybel.piltk = PIL.ImageTk
         except:
             sys.stdout.write(
-                '\t:: `PIL` or `tkinter` not available. '
-                '`pybel` won\'t be able to draw molecules.\n'
+                '\t:: `PIL` or `tkinter` not available.\n'
+                '     `pybel` won\'t be able to draw molecules.\n'
             )
 except:
-    sys.stdout.write('\t:: No module `pybel` available.\n')
+    sys.stdout.write(':: Module `pybel` not available.\n')
 
 import lipyd._curl as _curl
 import lipyd.common as common

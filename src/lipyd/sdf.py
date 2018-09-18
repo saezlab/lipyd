@@ -18,7 +18,24 @@
 import imp
 import sys
 import re
-import pybel
+
+try:
+    import pybel
+    if 'ipykernel' not in sys.modules and pybel.tk is None:
+        try:
+            import tkinter
+            import PIL
+            import PIL.ImageTk
+            pybel.tk = tkinter
+            pybel.PIL = PIL.Image
+            pybel.piltk = PIL.ImageTk
+        except:
+            sys.stdout.write(
+                ':: `PIL` or `tkinter` not available.\n'
+                '   `pybel` won\'t be able to draw molecules.\n'
+            )
+except:
+    sys.stdout.write(':: Module `pybel` not available.\n')
 
 resyn = re.compile(
     r'(^[A-Z]{2,})\(([0-9]+:[0-9]+)\(.*\)/([0-9]+:[0-9]+)\(.*\)\)'
