@@ -1,0 +1,23 @@
+lipyd – A Python module for lipidomics LC MS/MS data analysis
+
+The combinatorial and hierarchic diversity of lipid classes makes lipidomics
+data processing challenging. Software tools have been developed recently to
+address this challenge. However a library which could serve as a basis for
+development of data processing and analysis workflows is still missing.
+
+Here we present lipyd, a Python module for lipidomics data analysis. lipyd
+consists of a number of submodules for various tasks. It comes with ~170 lipid
+varieties predefined, and users can add more, in order to build custom mass
+databases, in addition it incorporates SwissLipids and LipidMaps data. lipyd
+is able to search various adduct ion masses against all these data sets. The
+MS2 module comes with ~90 types of aliphatic chain derived and ~150 headgroup
+derived fragments predefined. lipyd annotates MS2 scans and applies rule based
+ethods to identify lipids. The MS2 spectrum identification is based on our own
+standards and literature. It covers more than 150 lipid varieties, most of
+them both in positive and negative ion modes. Beside the LC MS/MS analysis
+lipyd offers higher level methods to analyse features across multiple samples.
+
+Python today is one of the most popular programming languages in
+bioinformatics and this ensures colleagues will find convenient to use lipyd
+and integrate it in their workflows. lipyd is a free, open source software
+available at github.com/saezlab/lipyd.
