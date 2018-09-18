@@ -161,13 +161,18 @@ class LipidNameProcessor(object):
         
         return match[0] in {'O', 'P'}
     
-    def attr_proc(self, match):
+    @classmethod
+    def attr_proc(cls, match, u = None):
         
-        sph = match[0] if self.has_sph_prefix(match) else ''
+        sph = match[0] if cls.has_sph_prefix(match) else ''
+        
+        if u == 0 and sph == 'd':
+            
+            sph = 'DH'
         
         return lipproc.ChainAttr(
             sph = sph,
-            ether = self.is_ether(match),
+            ether = cls.is_ether(match),
             oh = (match[-1],) if match[-1] else ()
         )
     
@@ -282,12 +287,14 @@ class LipidNameProcessor(object):
                 
                 if cc2[i * _g + 1] and cc2[i * _g + 2]:
                     
-                    attr = self.attr_proc(cc2[i * _g:i * _g + _g])
+                    c = int(cc2[i * _g + 1])
+                    u = int(cc2[i * _g + 2])
+                    attr = self.attr_proc(cc2[i * _g:i * _g + _g], u)
                     sphingo = sphingo or bool(attr.sph)
                     
                     chains.append(lipproc.Chain(
-                        c = int(cc2[i * _g + 1]),
-                        u = int(cc2[i * _g + 2]),
+                        c = c,
+                        u = u,
                         attr = attr,
                         typ = self.get_type(
                             i, sphingo, attr.ether, types, chainsexp
@@ -311,17 +318,20 @@ class LipidNameProcessor(object):
             
         elif cc1:
             
+            c = int(cc1[1])
+            u = int(cc1[2])
+            
             if not chainsexp:
                 
-                attrs = (self.attr_proc(cc1),)
+                attrs = (self.attr_proc(cc1, u),)
                 types = ()
                 
             else:
                 attrs, types = self.attrs_types(cc1, chainsexp)
             
             chainsum = lipproc.ChainSummary(
-                c = int(cc1[1]),
-                u = int(cc1[2]),
+                c = c,
+                u = u,
                 attr = attrs,
                 typ  = types,
             )

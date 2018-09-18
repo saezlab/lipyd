@@ -92,6 +92,21 @@ class ChainSummary(Chain):
     
     def __new__(cls, c, u, typ = (), attr = (), iso = None):
         
+        if u == 0 and attr and attr[0].sph == 'd':
+            
+            attr = (
+                (
+                    # fisrt chain, sphingosine base
+                    ChainAttr(
+                        sph = 'DH',
+                        ether = attr[0].ether,
+                        oh = attr[0].oh
+                    ),
+                ) +
+                # all other chains
+                attr[1:]
+            )
+        
         return super(ChainSummary, cls).__new__(
             cls, c, u, typ = typ, attr = attr, iso = None
         )
