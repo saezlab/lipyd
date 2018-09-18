@@ -2271,6 +2271,76 @@ specimens = [
             ),
         )}
     ),
+    # DHSM from GLTPD1 + in vitro
+    (
+        'pos_examples.mgf',
+        'pos',
+        2006,
+        {'SM(DH34:0)': (
+            MS2Identity(
+                score = 30,
+                hg = Headgroup(main='SM', sub=()),
+                chainsum = ChainSummary(
+                    c = 34,
+                    u = 0,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='DH', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                    iso = None
+                ),
+                chains = None,
+                details = None
+            ),
+        )}
+    ),
+    (
+        'pos_examples.mgf',
+        'pos',
+        2032,
+        {'SM(DH34:0)': (
+            MS2Identity(
+                score = 27,
+                hg = Headgroup(main='SM', sub=()),
+                chainsum = ChainSummary(
+                    c = 34,
+                    u = 0,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='DH', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                    iso = None
+                ),
+                chains = None,
+                details = None
+            ),
+        )}
+    ),
+    (
+        'pos_examples.mgf',
+        'pos',
+        1981,
+        {'SM(DH34:0)': (
+            MS2Identity(
+                score = 30,
+                hg = Headgroup(main='SM', sub=()),
+                chainsum = ChainSummary(
+                    c = 34,
+                    u = 0,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='DH', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                    iso = None
+                ),
+                chains = None,
+                details = None
+            ),
+        )}
+    ),
 ]
 
 
