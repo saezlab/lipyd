@@ -26,7 +26,6 @@ import math
 import copy
 import itertools
 import collections
-import decorator
 from argparse import Namespace
 import numpy as np
 
@@ -124,6 +123,7 @@ class ScanBase(object):
             precursor = None,
             intensities = None,
             tolerance = None,
+            scan_id = None,
         ):
         
         self.tolerance = tolerance or settings.get('ms2_tolerance')
@@ -137,6 +137,7 @@ class ScanBase(object):
             intensities
         )
         self.precursor = precursor
+        self.scan_id = scan_id
         
         if self.mzs is not np.ndarray:
             
@@ -352,6 +353,7 @@ class Scan(ScanBase):
                 intensities = sc[:,1],
                 ionmode = ionmode,
                 precursor = precursor,
+                scan_id = scan_id,
                 **kwargs
             )
     
@@ -3908,6 +3910,7 @@ class Cer_Positive(AbstractMS2Identifier):
         'M2': 'm2',
         'M1': 'm1',
         'M3': 'm3',
+        'PC': 'pc',
     }
     
     def __init__(self, record, scan, **kwargs):
@@ -4015,6 +4018,21 @@ class Cer_Positive(AbstractMS2Identifier):
             if self.scn.has_chain_fragment_type(frag_type = 'Sph-2xH2O+H'):
                 
                 score += 5
+            
+            self.must_have_chains = False
+        
+        return score
+    
+    def pc(self):
+        """
+        Scherer 2010, Table 1.
+        """
+        
+        score = 0
+        
+        if self.scn.most_abundant_fragment_is('PC/SM [P+Ch] (184.0733)'):
+            
+            score += 15
         
         return score
     
@@ -4282,13 +4300,28 @@ class Cer_Positive(AbstractMS2Identifier):
         
         score = 0
         
+        if self.rec.chainsum and self.rec.chainsum.u == 0:
+            
+            return score
+        
         if (
             self.nacyl and self.scn.chain_fragment_type_is(
-                0, frag_type = 'Sph-2xH2O+H', u = (False, {0})
+                0,
+                frag_type = 'Sph-2xH2O+H',
+                u = (False, {0}),
             )
         ) or (
             not self.nacyl and self.scn.chain_fragment_type_is(
-                0, frag_type = 'Sph-H2O+H', u = (False, {0})
+                0,
+                frag_type = 'Sph-H2O+H',
+                u = (False, {0}),
+            )
+        ) or (
+            self.rec.hg.main == 'SM' and self.scn.chain_among_most_abundant(
+                5,
+                frag_type = 'Sph-2xH2O+H',
+                u = (False, {0}),
+                skip_non_chains = True,
             )
         ):
             
@@ -5021,14 +5054,14 @@ idmethods = {
 
 class MS2Feature(object):
     
-    def __init__(self, mz, ionmode, mgf, rt, ms1_records = None):
+    def __init__(self, mz, ionmode, mgfs, rt, ms1_records = None):
         
         self.mz = mz
         self.ionmode = ionmode
         self.ms1_records = ms1_records or moldb.adduct_lookup(mz, ionmode)
-        self.mgf = mgf
-        self.rt = rt
-        self.rtmean = sum(rt) / 2.0
+        self.mgfs = mgfs
+        self.rt = (rt, rt) if type(rt) is float else rt
+        self.rtmean = sum(self.rt) / 2.0
     
     def main(self):
         
@@ -5037,13 +5070,24 @@ class MS2Feature(object):
     
     def iterscans(self):
         
-        for sample, mgf in iteritems(self.mgf):
+        for sample, mgfname in iteritems(self.mgfs):
             
-            if type(mgf) is basestring:
+            if type(mgfname) is basestring:
                 
-                mgf = mgf.MgfReader(mgf, charge = None)
+                mgffile = mgf.MgfReader(mgfname, charge = None)
+                
+            elif isinstance(mgfname, mgf.MgfReader):
+                
+                mgffile = mgfname
+                
+            else:
+                
+                raise ValueError(
+                    'Mgf files should be lipyd.mgf.MgfReader '
+                    'instances of file names.'
+                )
             
-            idx, rtdiff = mgf.lookup(self.mz, rt = self.rtmean)
+            idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
             
             for i, rtd in zip(idx, rtdiff):
                 
@@ -5053,7 +5097,7 @@ class MS2Feature(object):
                     
                     continue
                 
-                sc = mgf.get_scan(i)
+                sc = mgffile.get_scan(i)
                 
                 yield Scan(
                     mzs = sc[:,0],
@@ -5061,9 +5105,9 @@ class MS2Feature(object):
                     ionmode = self.ionmode,
                     precursor = self.mz,
                     ms1_records = self.ms1_records,
-                    scan_id = mgf.mgfindex[i,3],
-                    rt = mgf.mgfindex[i,2],
-                    sample = sample[1],
+                    scan_id = mgffile.mgfindex[i,3],
+                    rt = mgffile.mgfindex[i,2],
+                    sample = sample,
                 )
     
     def build_scans(self):
