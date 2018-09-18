@@ -3695,10 +3695,9 @@ class VA_Negative(AbstractMS2Identifier):
     **Principle:**
     
     - 3 fragments seems to always present and be among the most abundant:
-    79.055, 119.087 and 255.212; presence of these is the main condition.
+      79.055, 119.087 and 255.212; presence of these is the main condition.
     - We also detected 125.061 in our standards which is special because
-    contains 2 oxygens; presence of this increase the score.
-    
+      contains 2 oxygens; presence of this increase the score.
     """
     
     def __init__(self, record, scan, **kwargs):

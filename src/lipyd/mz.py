@@ -15,6 +15,10 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+"""
+Module for arithmetics with m/z values and adduct ions.
+"""
+
 from __future__ import print_function
 from future.utils import iteritems
 from past.builtins import xrange, range, reduce
@@ -24,6 +28,12 @@ import imp
 import lipyd.mass as mass
 
 class Mz():
+    """
+    Represents one m/z value.
+    Provides methods for conversion to exact mass or various adducts.
+    Other classes representing molecular entities and masses inherit
+    these methods from here.
+    """
     
     def __init__(self, mz, z = 1, sign = None, tolerance = 0.01):
         self.mz = mz

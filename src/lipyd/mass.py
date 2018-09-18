@@ -27,24 +27,33 @@ from collections import defaultdict
 
 import lipyd._curl as _curl
 
+#: URL for atomic masses
 urlMasses = 'http://www.ciaaw.org/atomic-masses.htm'
+#: URL for atomic weights
 urlWeights = 'http://www.ciaaw.org/atomic-weights.htm'
+#: URL for isotopic abundances
 urlAbundances = 'http://www.ciaaw.org/isotopic-abundances.htm'
-reNonDigit = re.compile(r'[^\d.]+')
 
+#: Mass of a proton
 proton = 1.00727646677
+#: Mass of an electron
 electron = 0.00054857990924
+#: Mass of a neutron
 neutron = 1.00866491588
 
+#: Mass of a proton
 p = proton
+#: Mass of an electron
 e = electron
+#: Mass of a neutron
 n = neutron
 
+reNonDigit = re.compile(r'[^\d.]+')
 reform  = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
 replmi  = re.compile(r'([-+])')
 refloat = re.compile(r'[0-9\.]+')
 
-# ##
+
 def getMasses(url):
     
     """
@@ -88,9 +97,11 @@ def getMassMonoIso():
     """
     globals()['massMonoIso'] = getMasses(urlMasses)
 
+
 def getMassFirstIso():
     """
-    Obtains the
+    Obtains the masses of the most abundant isotope for each element.
+    The result stored in the :py:attr:`.massFirstIso` module attribute.
     """
     
     if 'massMonoIso' not in globals():
@@ -112,17 +123,19 @@ def getMassFirstIso():
     globals()['massFirstIso'] = firstIso
     globals()['massdb'] = firstIso
 
+
 def getWeightStd():
     """
     Obtains atomic waights from CIAAW webpage.
-    Stores the result in `weightStd` module level variable.
+    Stores the result in :py:attr:`.weightStd` attribute of the module.
     """
     globals()['weightStd'] = getMasses(urlWeights)
+
 
 def getFreqIso():
     """
     Obtains isotope abundances from CIAAW webpage.
-    Stores the result in `freqIso` module level variable.
+    Stores the result in :py:attr:`.freqIso` attribute of the module.
     """
     c = _curl.Curl(urlAbundances, silent = False)
     reqAbundances = c.result.split('\n')
@@ -334,6 +347,7 @@ class MassBase(object):
         Thanks for
         https://github.com/bsimas/molecular-weight/blob/master/chemweight.py
         """
+        
         if 'massFirstIso' not in globals():
             getMassFirstIso()
         
@@ -471,7 +485,7 @@ parts = {
     'water': 'H2O',
     'twowater': 'H4O2',
     'carboxyl': 'COOH',
-    'aldehyde': 'CHO'
+    'aldehyde': 'CHO',
 }
 
 
@@ -486,6 +500,9 @@ def first_isotope_mass(elem):
 
 
 def get_mass(elem):
+    """
+    Returns exact mass of the highest abundant isotope of an element.
+    """
     
     return first_isotope_mass(elem)
 
@@ -505,6 +522,18 @@ def get_weight(elem):
 
 
 def calculate(formula):
+    """
+    Evaluates a string as formula.
+    
+    Args
+    ----
+    :param str formula:
+        Expression as a string e.g. ``HCH3CHOHCOOH - water + electron``.
+        
+    Returns
+    -------
+        Mass as float.
+    """
     
     result = None
     op = '__add__'
@@ -541,5 +570,5 @@ def calculate(formula):
     return result
 
 
-# a synonym
+#: Synonym of :py:func:`calculate`.
 expr = calculate

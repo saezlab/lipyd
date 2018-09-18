@@ -137,11 +137,15 @@ class SpectrumPlot(object):
 
         Args:
         -----
-        x1 (float): m/z value (x-coordinate) of the point, to be annotated
-        y_pos (Optional[float]): Position of the label beginning (y-coordinate).
+        x1 (float):
+            m/z value (x-coordinate) of the point, to be annotated
+        y_pos (Optional[float]):
+            Position of the label beginning (y-coordinate).
             The value uses the scale of the datapoints.
-        text (str): Label text
-        raw_values (Pandas.DataFrame): Data values, which should be annotated
+        text (str):
+            Label text
+        raw_values (Pandas.DataFrame):
+            Data values, which should be annotated
         """
 
         delta_point_annotate_line_pixel = 1
@@ -160,21 +164,27 @@ class SpectrumPlot(object):
                 arrowprops=dict(arrowstyle='-', color="#808080", linewidth=0.4, shrinkA=0.05, shrinkB=1))
     
     def annotate_distance(x1=0, x2=0, y_pos=0, text='', raw_values=None, rotate_text=0):
-        """Annotage the distance between two peaks
+        """
+        Annotage the distance between two peaks
         
         Annotate the distance between two given peaks. The text can be placed with a
         given angle.
         
-        
-        Args:
-            x1 (float): m/z value (x-coordinate) of the left point
-            x2 (float): m/z value (x-coordinate) of the right point
-            y_pos (Optional[float]): Position of the label beginning (y-coordinate).
-                The value uses the scale of the datapoints.
-            text (str): Label text
-            raw_values (Pandas.DataFrame): Data values, which should be annotated
-            rotate_text (Optional[int]): Rotation of the label, should be 0 or 90
-        
+        Args
+        ----
+        x1 (float):
+            m/z value (x-coordinate) of the left point
+        x2 (float):
+            m/z value (x-coordinate) of the right point
+        y_pos (Optional[float]):
+            Position of the label beginning (y-coordinate).
+            The value uses the scale of the datapoints.
+        text (str):
+            Label text
+        raw_values (Pandas.DataFrame):
+            Data values, which should be annotated
+        rotate_text (Optional[int]):
+            Rotation of the label, should be 0 or 90
         """
         
         delta_point_annotate_line_pixel = 1
@@ -493,7 +503,7 @@ class SpectrumPlot(object):
         
         for i, annot in enumerate(self.annotations):
             
-            
+            pass
         
         self.annotate_point(403, 83, r'Peak II', raw_values)
         self.annotate_point(253, 83, r'Peak I', raw_values)

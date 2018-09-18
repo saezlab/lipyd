@@ -17,7 +17,10 @@
 
 # from pyteomics import mzml
 
-import pyopenms
+try:
+    import pyopenms
+except:
+    pass
 
 class Reader(object):
     

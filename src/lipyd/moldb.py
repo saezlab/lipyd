@@ -734,7 +734,7 @@ class MoleculeDatabaseAggregator(object):
         
         Args
         ----
-        :param **kwargs:
+        :param \**kwargs:
             Arguments for fatty acid classes: `c`, `u`, `fa_counts`, etc.
         """
         
@@ -746,7 +746,7 @@ class MoleculeDatabaseAggregator(object):
         
         Args
         ----
-        :param **kwargs:
+        :param \**kwargs:
             Arguments for misc classes.
         """
         
@@ -759,7 +759,7 @@ class MoleculeDatabaseAggregator(object):
         
         Args
         ----
-        :param **kwargs:
+        :param \**kwargs:
             Arguments for sphingolipid classes (`fa_args`, `sph_args`, etc).
         """
         
@@ -772,7 +772,7 @@ class MoleculeDatabaseAggregator(object):
         
         Args
         ----
-        :param **kwargs:
+        :param \**kwargs:
             Arguments for glycerolipid classes
             (`fa_args`, `sn2_fa_args`, etc).
         """
@@ -786,7 +786,7 @@ class MoleculeDatabaseAggregator(object):
         
         Args
         ----
-        :param **kwargs:
+        :param \**kwargs:
             Arguments for glycerophospholipid classes
             (`fa_args`, `sn2_fa_args`, etc).
         """
@@ -966,8 +966,8 @@ def init_db(**kwargs):
     
     Args
     ----
-    :param **kwargs:
-        Arguments for `MoleculeDatabaseAggregator` class.
+    :param \**kwargs:
+        Arguments for ``:py:class:.MoleculeDatabaseAggregator`` class.
     """
     
     mod = sys.modules[__name__]

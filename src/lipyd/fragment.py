@@ -18,7 +18,6 @@
 """
 Classes representing fragment ions in MS2 spectra.
 """
-#
 
 from __future__ import print_function
 from future.utils import iteritems
@@ -51,6 +50,9 @@ FragConstraint.__new__.__defaults__ = (None, None, None, None, 0, None)
 
 
 class AdductCalculator(object):
+    """
+    Deprecated. To be removed soon.
+    """
     
     def __init__(self):
         self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
@@ -77,6 +79,10 @@ class AdductCalculator(object):
 
 
 class FattyFragment(metabolite.AbstractSubstituent):
+    """
+    Represents a fragment ion derived from a moiety with variable length
+    aliphatic chain.
+    """
     
     def __init__(
             self,
