@@ -1,0 +1,1258 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.moldb &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.moldb</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.moldb</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">past.builtins</span> <span class="k">import</span> <span class="n">xrange</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="n">reduce</span>
+
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">iteritems</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">imp</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="k">import</span> <span class="n">Namespace</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">pybel</span>
+    <span class="k">if</span> <span class="s1">&#39;ipykernel&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span> <span class="ow">and</span> <span class="n">pybel</span><span class="o">.</span><span class="n">tk</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">tkinter</span>
+            <span class="kn">import</span> <span class="nn">PIL</span>
+            <span class="kn">import</span> <span class="nn">PIL.ImageTk</span>
+            <span class="n">pybel</span><span class="o">.</span><span class="n">tk</span> <span class="o">=</span> <span class="n">tkinter</span>
+            <span class="n">pybel</span><span class="o">.</span><span class="n">PIL</span> <span class="o">=</span> <span class="n">PIL</span><span class="o">.</span><span class="n">Image</span>
+            <span class="n">pybel</span><span class="o">.</span><span class="n">piltk</span> <span class="o">=</span> <span class="n">PIL</span><span class="o">.</span><span class="n">ImageTk</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">:: `PIL` or `tkinter` not available.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="s1">&#39;     `pybel` won</span><span class="se">\&#39;</span><span class="s1">t be able to draw molecules.</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;:: Module `pybel` not available.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">lipyd._curl</span> <span class="k">as</span> <span class="nn">_curl</span>
+<span class="kn">import</span> <span class="nn">lipyd.common</span> <span class="k">as</span> <span class="nn">common</span>
+<span class="kn">import</span> <span class="nn">lipyd.settings</span> <span class="k">as</span> <span class="nn">settings</span>
+<span class="kn">import</span> <span class="nn">lipyd.mz</span> <span class="k">as</span> <span class="nn">mzmod</span>
+<span class="kn">import</span> <span class="nn">lipyd.progress</span> <span class="k">as</span> <span class="nn">progress</span>
+<span class="kn">import</span> <span class="nn">lipyd.sdf</span> <span class="k">as</span> <span class="nn">sdf</span>
+<span class="kn">import</span> <span class="nn">lipyd.lipid</span> <span class="k">as</span> <span class="nn">lipid</span>
+<span class="kn">import</span> <span class="nn">lipyd.lookup</span> <span class="k">as</span> <span class="nn">_lookup</span>
+<span class="kn">import</span> <span class="nn">lipyd.name</span> <span class="k">as</span> <span class="nn">lipidname</span>
+<span class="kn">import</span> <span class="nn">lipyd.formula</span> <span class="k">as</span> <span class="nn">formula</span>
+<span class="kn">import</span> <span class="nn">lipyd.lipproc</span> <span class="k">as</span> <span class="nn">lipproc</span>
+
+
+<div class="viewcode-block" id="Reader"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.Reader">[docs]</a><span class="k">class</span> <span class="nc">Reader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="Reader.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.Reader.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">children</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Reader.iterrows"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.Reader.iterrows">[docs]</a>    <span class="k">def</span> <span class="nf">iterrows</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            
+            <span class="k">yield</span> <span class="p">[</span>
+                <span class="n">mol</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;LM_ID&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;Species&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">(</span><span class="n">mol</span><span class="p">[</span><span class="mi">2</span><span class="p">])),</span>
+                <span class="n">mol</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;INCHI_KEY&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="n">mol</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">mol</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;PUBCHEM_CID&#39;</span><span class="p">]</span>
+            <span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="LipidMaps"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.LipidMaps">[docs]</a><span class="k">class</span> <span class="nc">LipidMaps</span><span class="p">(</span><span class="n">sdf</span><span class="o">.</span><span class="n">SdfReader</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extract_file</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span>   <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lipidmaps_url&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lipidmaps_fname&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curl</span>  <span class="o">=</span> <span class="n">_curl</span><span class="o">.</span><span class="n">Curl</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">large</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">silent</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">extract_file</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">efname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;cache&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">efname</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">efp</span><span class="p">:</span>
+                
+                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">curl</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">]:</span>
+                    
+                    <span class="n">efp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+            
+            <span class="n">efp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;cache&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span>
+            <span class="n">sdf</span><span class="o">.</span><span class="n">SdfReader</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">efp</span><span class="p">)</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sdf</span><span class="o">.</span><span class="n">SdfReader</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">curl</span><span class="o">.</span><span class="n">result</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">])</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">nameproc</span> <span class="o">=</span> <span class="n">lipidname</span><span class="o">.</span><span class="n">LipidNameProcessor</span><span class="p">(</span>
+            <span class="n">database</span> <span class="o">=</span> <span class="s1">&#39;lipidmaps&#39;</span><span class="p">,</span>
+            <span class="n">iso</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">sdf</span><span class="o">.</span><span class="n">SdfReader</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="s1">&#39;EXACT_MASS&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;annot&#39;</span><span class="p">]</span> <span class="ow">or</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="s1">&#39;annot&#39;</span><span class="p">][</span><span class="s1">&#39;EXACT_MASS&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">exmass</span> <span class="o">=</span> <span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="s1">&#39;annot&#39;</span><span class="p">][</span><span class="s1">&#39;FORMULA&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">mass</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="c1"># if no exact mass it means</span>
+                    <span class="c1"># this is a higher level category</span>
+                    <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">exmass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="s1">&#39;annot&#39;</span><span class="p">][</span><span class="s1">&#39;EXACT_MASS&#39;</span><span class="p">])</span>
+            
+            <span class="n">names</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="n">nametype</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">nametype</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;COMMON_NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;SYSTEMATIC_NAME&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">nametype</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;SYNONYMS&#39;</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+                <span class="n">names</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="n">n</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;SYNONYMS&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+            
+            <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+            
+            <span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nameproc</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+            
+            <span class="n">liprec</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">LipidRecord</span><span class="p">(</span>
+                <span class="n">lab</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">LipidLabel</span><span class="p">(</span>
+                    <span class="n">db_id</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span>
+                    <span class="n">db</span>    <span class="o">=</span> <span class="s1">&#39;LipidMaps&#39;</span><span class="p">,</span>
+                    <span class="n">names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">names</span><span class="p">),</span>
+                <span class="p">),</span>
+                <span class="n">hg</span>  <span class="o">=</span> <span class="n">hg</span><span class="p">,</span>
+                <span class="n">chainsum</span> <span class="o">=</span> <span class="n">chainsum</span><span class="p">,</span>
+                <span class="n">chains</span> <span class="o">=</span> <span class="n">chains</span><span class="p">,</span>
+            <span class="p">)</span>
+            
+            <span class="k">yield</span> <span class="n">exmass</span><span class="p">,</span> <span class="n">liprec</span></div>
+
+
+<div class="viewcode-block" id="SwissLipids"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids">[docs]</a><span class="k">class</span> <span class="nc">SwissLipids</span><span class="p">(</span><span class="n">Reader</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">levels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;Species&#39;</span><span class="p">]),</span> <span class="n">silent</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">nameproc_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">branched</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">exact_mass_formula_fallback</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Downloads and serves the SwissLipids database.</span>
+<span class="sd">        </span>
+<span class="sd">        Automatically downloads the data at the first time and stores it in a</span>
+<span class="sd">        cache file to be read from there at next usage. Scans the entire file</span>
+<span class="sd">        and builds multiple indices in order to quickly access records upon</span>
+<span class="sd">        request. Provides a number of methods to retrieve records either as</span>
+<span class="sd">        lines or openbabel OBMol instances.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param set levels:</span>
+<span class="sd">            Levels in SwissLipids hierarchy. By default only &quot;species&quot;.</span>
+<span class="sd">        :param bool branched:</span>
+<span class="sd">            Include lipids with branched alkyl chain (iso).</span>
+<span class="sd">        :param dict nameproc_args:</span>
+<span class="sd">            Arguments passed to the name processor.</span>
+<span class="sd">        :param bool exact_mass_formula_fallback:</span>
+<span class="sd">            If exact mass not available form SwissLipids calculate it from</span>
+<span class="sd">            the formula. This is dangerous because the formula is sometimes</span>
+<span class="sd">            dehydrogenated and charged state while exact mass should be</span>
+<span class="sd">            uncharged with all hydrogenes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">silent</span> <span class="o">=</span> <span class="n">silent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exact_mass_formula_fallback</span> <span class="o">=</span> <span class="n">exact_mass_formula_fallback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nameproc_args</span> <span class="o">=</span> <span class="n">nameproc_args</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_levels</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;swisslipids_url&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_index</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="SwissLipids.set_levels"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.set_levels">[docs]</a>    <span class="k">def</span> <span class="nf">set_levels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">levels</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the levels to be processed. Levels in SwissLipids are `Species`,</span>
+<span class="sd">        `Molecular subspecies`, `Structural subspecies` and</span>
+<span class="sd">        `Isomeric subspecies`.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param set levels:</span>
+<span class="sd">            A set of one or more of the levels above.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="n">common</span><span class="o">.</span><span class="n">basestring</span><span class="p">):</span>
+            
+            <span class="n">levels</span> <span class="o">=</span> <span class="p">[</span><span class="n">levels</span><span class="p">]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">levels</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_name_processor</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.init_name_processor"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.init_name_processor">[docs]</a>    <span class="k">def</span> <span class="nf">init_name_processor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a `LipidNameProcessor` instance to process lipid names</span>
+<span class="sd">        at indexing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">nameproc</span> <span class="o">=</span> <span class="n">lipidname</span><span class="o">.</span><span class="n">LipidNameProcessor</span><span class="p">(</span>
+            <span class="n">iso</span> <span class="o">=</span> <span class="s1">&#39;Isomeric subspecies&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="p">,</span>
+            <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">nameproc_args</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.load"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">close_gzfile</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_curl</span> <span class="o">=</span> <span class="n">_curl</span><span class="o">.</span><span class="n">Curl</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">silent</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                <span class="n">compr</span> <span class="o">=</span> <span class="s1">&#39;gz&#39;</span><span class="p">,</span> <span class="n">large</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gzfile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_curl</span><span class="o">.</span><span class="n">result</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.iterfile"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.iterfile">[docs]</a>    <span class="k">def</span> <span class="nf">iterfile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plainfile</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plainfile</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plainfile</span><span class="p">:</span>
+            
+            <span class="k">yield</span> <span class="n">line</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.names"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.names">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">names</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">5</span><span class="p">])</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.make_index"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.make_index">[docs]</a>    <span class="k">def</span> <span class="nf">make_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">def</span> <span class="nf">cc2str</span><span class="p">(</span><span class="n">cc</span><span class="p">):</span>
+            
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">%s%s%u</span><span class="s1">:</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="s1">&#39;-&#39;</span> <span class="k">if</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">}</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                    <span class="n">cc</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">cc</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">close_plainfile</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">set</span><span class="p">([]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hg_index</span>      <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">set</span><span class="p">([]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">species_index</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">set</span><span class="p">([]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subspec_index</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">set</span><span class="p">([]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isomer_index</span>  <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">set</span><span class="p">([]))</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">silent</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">_gzfile</span><span class="o">.</span><span class="n">fileobj</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">ucsize</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gzfile</span><span class="o">.</span><span class="n">fileobj</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prg</span> <span class="o">=</span> <span class="n">progress</span><span class="o">.</span><span class="n">Progress</span><span class="p">(</span><span class="n">ucsize</span><span class="p">,</span> <span class="s1">&#39;Indexing SwissLipids&#39;</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_gzfile</span><span class="o">.</span><span class="n">fileobj</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plainfilename</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.extracted&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gzfile</span><span class="o">.</span><span class="n">name</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plainfilename</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fpp</span><span class="p">:</span>
+            
+            <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gzfile</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gzfile</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">silent</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">prg</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+                
+                <span class="n">ll</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">ll</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="p">:</span>
+                    
+                    <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span> <span class="c1"># SwissLipids ID</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">ll</span><span class="p">[</span><span class="mi">8</span><span class="p">]]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span> <span class="c1"># SMILES</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">ll</span><span class="p">[</span><span class="mi">10</span><span class="p">]]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span> <span class="c1"># InChI key</span>
+                    
+                    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">):</span>
+                        
+                        <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                    
+                    <span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nameproc</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+                    
+                    <span class="k">if</span> <span class="n">hg</span><span class="p">:</span>
+                        
+                        <span class="bp">self</span><span class="o">.</span><span class="n">hg_index</span><span class="p">[</span><span class="n">hg</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                    
+                    <span class="k">if</span> <span class="n">hg</span> <span class="ow">and</span> <span class="n">chainsum</span><span class="p">:</span>
+                        
+                        <span class="bp">self</span><span class="o">.</span><span class="n">species_index</span><span class="p">[</span>
+                            <span class="n">lipproc</span><span class="o">.</span><span class="n">summary_str</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">)</span>
+                        <span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                    
+                    <span class="k">if</span> <span class="n">hg</span> <span class="ow">and</span> <span class="n">chains</span><span class="p">:</span>
+                        
+                        <span class="bp">self</span><span class="o">.</span><span class="n">subspec_index</span><span class="p">[</span>
+                            <span class="n">lipproc</span><span class="o">.</span><span class="n">full_str</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">chains</span><span class="p">)</span>
+                        <span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                    
+                    <span class="k">if</span> <span class="n">hg</span> <span class="ow">and</span> <span class="n">chains</span><span class="p">:</span>
+                        
+                        <span class="bp">self</span><span class="o">.</span><span class="n">isomer_index</span><span class="p">[</span>
+                            <span class="n">lipproc</span><span class="o">.</span><span class="n">full_str</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">chains</span><span class="p">,</span> <span class="n">iso</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+                        <span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                
+                <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gzfile</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+                <span class="n">fpp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">silent</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prg</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plainfile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_plainfilename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.get_hg"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.get_hg">[docs]</a>    <span class="k">def</span> <span class="nf">get_hg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hg</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">()):</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">common</span><span class="o">.</span><span class="n">basestring</span><span class="p">):</span>
+            
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="n">sub</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_record</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="s1">&#39;hg&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.get_species"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.get_species">[docs]</a>    <span class="k">def</span> <span class="nf">get_species</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_record</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="s1">&#39;species&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.get_subspec"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.get_subspec">[docs]</a>    <span class="k">def</span> <span class="nf">get_subspec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_record</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="s1">&#39;subspec&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.get_isomer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.get_isomer">[docs]</a>    <span class="k">def</span> <span class="nf">get_isomer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_record</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="s1">&#39;isomer&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.get_hg_obmol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.get_hg_obmol">[docs]</a>    <span class="k">def</span> <span class="nf">get_hg_obmol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hg</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">()):</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">common</span><span class="o">.</span><span class="n">basestring</span><span class="p">):</span>
+            
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="n">sub</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_obmol</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="s1">&#39;hg&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.get_species_obmol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.get_species_obmol">[docs]</a>    <span class="k">def</span> <span class="nf">get_species_obmol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_obmol</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="s1">&#39;species&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.get_subspec_obmol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.get_subspec_obmol">[docs]</a>    <span class="k">def</span> <span class="nf">get_subspec_obmol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_obmol</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="s1">&#39;subspec&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.get_isomer_obmol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.get_isomer_obmol">[docs]</a>    <span class="k">def</span> <span class="nf">get_isomer_obmol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_obmol</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="s1">&#39;isomer&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.get_record"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.get_record">[docs]</a>    <span class="k">def</span> <span class="nf">get_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+        
+        <span class="n">indexname</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">index&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span> <span class="k">if</span> <span class="n">index</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indexname</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+            
+            <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="n">index</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">_plainfile</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plainfile</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.get_obmol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.get_obmol">[docs]</a>    <span class="k">def</span> <span class="nf">get_obmol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+        
+        <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_record</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="n">index</span><span class="p">):</span>
+            
+            <span class="n">obmol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_obmol</span><span class="p">(</span><span class="n">rec</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_annotations</span><span class="p">(</span><span class="n">obmol</span><span class="p">,</span> <span class="n">rec</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">obmol</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.to_obmol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.to_obmol">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">to_obmol</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">record</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="ow">or</span> <span class="n">record</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;InChI=none&#39;</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="n">record</span><span class="p">[</span><span class="mi">8</span><span class="p">]:</span>
+                
+                <span class="c1"># processing from SMILES</span>
+                <span class="k">return</span> <span class="n">pybel</span><span class="o">.</span><span class="n">readstring</span><span class="p">(</span><span class="s1">&#39;smi&#39;</span><span class="p">,</span> <span class="n">record</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+            
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="c1"># processing from InChI</span>
+        <span class="k">return</span> <span class="n">pybel</span><span class="o">.</span><span class="n">readstring</span><span class="p">(</span><span class="s1">&#39;inchi&#39;</span><span class="p">,</span> <span class="n">record</span><span class="p">[</span><span class="mi">9</span><span class="p">])</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.add_annotations"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.add_annotations">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">add_annotations</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">exact_mass_formula_fallback</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        
+        <span class="n">mol</span><span class="o">.</span><span class="n">db_id</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">name</span>  <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="s1">&#39;OBMol&#39;</span><span class="p">):</span>
+            <span class="n">mol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">SetTitle</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mol</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">record</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span> <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">chebi</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">24</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">24</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">lipidmaps</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">25</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">25</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">hmdb</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">26</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">26</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">smiles</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">swl_exact_mass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="mi">14</span><span class="p">])</span> <span class="k">if</span> <span class="n">record</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mol</span><span class="o">.</span><span class="n">swl_exact_mass</span> <span class="ow">and</span> <span class="n">exact_mass_formula_fallback</span><span class="p">:</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># note: this is dangerous because the formula is sometimes</span>
+                <span class="c1"># dehydrogenated and charged state while exact mass</span>
+                <span class="c1"># should be uncharged with all hydrogenes</span>
+                <span class="n">mol</span><span class="o">.</span><span class="n">swl_exact_mass</span> <span class="o">=</span> <span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="mi">11</span><span class="p">])</span><span class="o">.</span><span class="n">mass</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        
+        <span class="n">mol</span><span class="o">.</span><span class="n">swl_formula</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">inchi</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">inchikey</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">level</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">mol</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.itermol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.itermol">[docs]</a>    <span class="k">def</span> <span class="nf">itermol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obmol</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterates the database either by yielding `pybel.Molecule` objects</span>
+<span class="sd">        with extra attributes or dummy objects with the same attributes</span>
+<span class="sd">        containing the various IDs and structure representations</span>
+<span class="sd">        (see code of `add_annotation`) for details.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param bool obmol:</span>
+<span class="sd">            Yield `pybel.Molecule` objects. By default simple dummy objects</span>
+<span class="sd">            produced.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">nosmiles</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterfile</span><span class="p">():</span>
+            
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">22</span> <span class="ow">and</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">levels</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">[</span><span class="mi">8</span><span class="p">]:</span>
+                    <span class="n">nosmiles</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">continue</span>
+                
+                <span class="k">if</span> <span class="n">obmol</span><span class="p">:</span>
+                    
+                    <span class="n">mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_obmol</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                    
+                <span class="k">else</span><span class="p">:</span>
+                    
+                    <span class="n">mol</span> <span class="o">=</span> <span class="n">Namespace</span><span class="p">()</span>
+                
+                <span class="n">mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_annotations</span><span class="p">(</span>
+                    <span class="n">mol</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">exact_mass_formula_fallback</span>
+                <span class="p">)</span>
+                
+                <span class="k">yield</span> <span class="n">mol</span></div>
+    
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">itermol</span><span class="p">(</span><span class="n">obmol</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">mol</span><span class="o">.</span><span class="n">swl_exact_mass</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nameproc</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+            
+            <span class="n">rec</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">LipidRecord</span><span class="p">(</span>
+                <span class="n">lab</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">LipidLabel</span><span class="p">(</span>
+                    <span class="n">db_id</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">db_id</span><span class="p">,</span>
+                    <span class="n">db</span>    <span class="o">=</span> <span class="s1">&#39;SwissLipids&#39;</span><span class="p">,</span>
+                    <span class="n">names</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">hg</span> <span class="o">=</span> <span class="n">hg</span><span class="p">,</span>
+                <span class="n">chainsum</span> <span class="o">=</span> <span class="n">chainsum</span><span class="p">,</span>
+                <span class="n">chains</span> <span class="o">=</span> <span class="n">chains</span>
+            <span class="p">)</span>
+            
+            <span class="c1"># yielding mass and record</span>
+            <span class="k">yield</span> <span class="n">mol</span><span class="o">.</span><span class="n">swl_exact_mass</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">rec</span>
+    
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">close_gzfile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close_plainfile</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="SwissLipids.close_gzfile"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.close_gzfile">[docs]</a>    <span class="k">def</span> <span class="nf">close_gzfile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_gzfile&#39;</span><span class="p">):</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">_gzfile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.close_plainfile"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.close_plainfile">[docs]</a>    <span class="k">def</span> <span class="nf">close_plainfile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_plainfile&#39;</span><span class="p">):</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">_plainfile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="SwissLipids.export_names"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.SwissLipids.export_names">[docs]</a>    <span class="k">def</span> <span class="nf">export_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proc</span><span class="p">):</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;names.tmp&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">():</span>
+                
+                <span class="n">n</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">title</span><span class="p">)</span>
+                
+                <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)))</span></div></div>
+
+
+<div class="viewcode-block" id="MoleculeDatabaseAggregator"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator">[docs]</a><span class="k">class</span> <span class="nc">MoleculeDatabaseAggregator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">resources</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">fa_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sph_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">build</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Builds a database of molecules and provides methods for look up by</span>
+<span class="sd">        masses and names. Metabolites are processed from databases like</span>
+<span class="sd">        SwissLipids and LipidMaps and also autogenerated using classes</span>
+<span class="sd">        defined in the `lipid` module.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param dict resources:</span>
+<span class="sd">            Databases to use with arguments. Keys are database names, values</span>
+<span class="sd">            are tuples of classes and arguments. Default SwissLipids and</span>
+<span class="sd">            LipidMaps.</span>
+<span class="sd">        :param int tolerance:</span>
+<span class="sd">            Mass lookup tolerance in ppm.</span>
+<span class="sd">        :param dict fa_args:</span>
+<span class="sd">            Fatty acyl arguments for autogenerated metabolites.</span>
+<span class="sd">        :param dict sph_args:</span>
+<span class="sd">            Sphingosine base arguments for autogenerated metabolites.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span> <span class="o">=</span> <span class="n">resources</span> <span class="ow">or</span> <span class="p">{</span>
+            <span class="s1">&#39;SwissLipids&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">SwissLipids</span><span class="p">,</span> <span class="p">{}),</span>
+            <span class="s1">&#39;LipidMaps&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">LipidMaps</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span> <span class="ow">or</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ms1_tolerance&#39;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fa_args</span>  <span class="o">=</span> <span class="n">fa_args</span> <span class="ow">or</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">36</span><span class="p">),</span> <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sph_args</span> <span class="o">=</span> <span class="n">sph_args</span> <span class="ow">or</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">22</span><span class="p">),</span> <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span>
+        
+        <span class="k">if</span> <span class="n">build</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">children</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.init_rebuild"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.init_rebuild">[docs]</a>    <span class="k">def</span> <span class="nf">init_rebuild</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an empty list where this object collects the masses and</span>
+<span class="sd">        molecule annotations. This needs to be done before (re)building the</span>
+<span class="sd">        database in order to start from an empty array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mass_data</span> <span class="o">=</span> <span class="p">[]</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.build"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Executes the workflow of the entire database building process.</span>
+<span class="sd">        </span>
+<span class="sd">        First loads the third party databases (SwissLipids and LipidMaps),</span>
+<span class="sd">        then autogenerates glycerophospholipid, glycerolipid and sphingolipid</span>
+<span class="sd">        series. At the end all data merged into common `masses` and `data`</span>
+<span class="sd">        arrays and sorted by increasing mass. At this point the instance</span>
+<span class="sd">        is able to do lookups.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_rebuild</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_databases</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_glycerophospholipids</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_glycerolipids</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_sphingolipids</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_fattyacids</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_misc</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass_data_arrays</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.load_databases"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.load_databases">[docs]</a>    <span class="k">def</span> <span class="nf">load_databases</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads all databases and generates main array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">resargs</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            
+            <span class="n">resource</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">resargs</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mass_data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.mass_data_arrays"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.mass_data_arrays">[docs]</a>    <span class="k">def</span> <span class="nf">mass_data_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_mass_data&#39;</span><span class="p">):</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">masses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mass_data</span><span class="p">],</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mass_data</span><span class="p">),</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">object</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mass_data</span><span class="p">]</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        
+        <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_mass_data&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.auto_metabolites"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.auto_metabolites">[docs]</a>    <span class="k">def</span> <span class="nf">auto_metabolites</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">fa_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sph_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sum_only</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">classes</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        
+        <span class="n">fa_args</span>  <span class="o">=</span> <span class="n">fa_args</span>  <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fa_args</span>
+        <span class="n">sph_args</span> <span class="o">=</span> <span class="n">sph_args</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">sph_args</span>
+        
+        <span class="n">masses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">data</span>   <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">prg</span> <span class="o">=</span> <span class="n">progress</span><span class="o">.</span><span class="n">Progress</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">),</span> <span class="s1">&#39;Generating metabolites&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">clsname</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
+            
+            <span class="n">prg</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+            
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                
+                <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">:: Generating `</span><span class="si">%s</span><span class="s1">`</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">clsname</span><span class="p">)</span>
+            
+            <span class="bp">cls</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">lipid</span><span class="p">,</span> <span class="n">clsname</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_metabolite_series</span><span class="p">(</span>
+                <span class="bp">cls</span><span class="p">,</span>
+                <span class="n">fa_args</span> <span class="o">=</span> <span class="n">fa_args</span><span class="p">,</span>
+                <span class="n">sph_args</span> <span class="o">=</span> <span class="n">sph_args</span><span class="p">,</span>
+                <span class="n">sum_only</span> <span class="o">=</span> <span class="n">sum_only</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+        
+        <span class="n">prg</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.add_metabolite_series"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.add_metabolite_series">[docs]</a>    <span class="k">def</span> <span class="nf">add_metabolite_series</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="n">fa_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sph_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sum_only</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds metabolites of a single class generated along a defined</span>
+<span class="sd">        range of homolog series.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;__call__&#39;</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;lower&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lipid</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+                
+                <span class="bp">cls</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">lipid</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;Don</span><span class="se">\&#39;</span><span class="s1">t know how to &#39;</span>
+                    <span class="s1">&#39;generate lipids from this: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+                <span class="p">)</span>
+        
+        <span class="n">fa_args</span>  <span class="o">=</span> <span class="n">fa_args</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fa_args</span>
+        <span class="n">sph_args</span> <span class="o">=</span> <span class="n">sph_args</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">sph_args</span>
+        
+        <span class="n">gen</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">fa_args</span>  <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">fa_args</span><span class="p">),</span>
+            <span class="n">sph_args</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">sph_args</span><span class="p">),</span>
+            <span class="n">sum_only</span> <span class="o">=</span> <span class="n">sum_only</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mass_data</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">gen</span><span class="o">.</span><span class="n">iterlines</span><span class="p">())</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.auto_fattyacids"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.auto_fattyacids">[docs]</a>    <span class="k">def</span> <span class="nf">auto_fattyacids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Autogenerates all fatty acids from classes listed in</span>
+<span class="sd">        `lipid.fattyacids`.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param \**kwargs:</span>
+<span class="sd">            Arguments for fatty acid classes: `c`, `u`, `fa_counts`, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_metabolites</span><span class="p">(</span><span class="n">classes</span> <span class="o">=</span> <span class="n">lipid</span><span class="o">.</span><span class="n">fattyacids</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.auto_misc"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.auto_misc">[docs]</a>    <span class="k">def</span> <span class="nf">auto_misc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Autogenerates all miscellanous classes listed in `lipid.misc`.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param \**kwargs:</span>
+<span class="sd">            Arguments for misc classes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_metabolites</span><span class="p">(</span><span class="n">classes</span> <span class="o">=</span> <span class="n">lipid</span><span class="o">.</span><span class="n">misc</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.auto_sphingolipids"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.auto_sphingolipids">[docs]</a>    <span class="k">def</span> <span class="nf">auto_sphingolipids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Autogenerates all sphingolipids from classes listed in</span>
+<span class="sd">        `lipid.sphingolipids`.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param \**kwargs:</span>
+<span class="sd">            Arguments for sphingolipid classes (`fa_args`, `sph_args`, etc).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_metabolites</span><span class="p">(</span><span class="n">classes</span> <span class="o">=</span> <span class="n">lipid</span><span class="o">.</span><span class="n">sphingolipids</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.auto_glycerolipids"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.auto_glycerolipids">[docs]</a>    <span class="k">def</span> <span class="nf">auto_glycerolipids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Autogenerates all glycerolipids from classes listed in</span>
+<span class="sd">        `lipid.glycerolipids`.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param \**kwargs:</span>
+<span class="sd">            Arguments for glycerolipid classes</span>
+<span class="sd">            (`fa_args`, `sn2_fa_args`, etc).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_metabolites</span><span class="p">(</span><span class="n">classes</span> <span class="o">=</span> <span class="n">lipid</span><span class="o">.</span><span class="n">glycerolipids</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.auto_glycerophospholipids"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.auto_glycerophospholipids">[docs]</a>    <span class="k">def</span> <span class="nf">auto_glycerophospholipids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Autogenerates all glycerophospholipids from classes listed in</span>
+<span class="sd">        `lipid.glycerophospholipids`.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param \**kwargs:</span>
+<span class="sd">            Arguments for glycerophospholipid classes</span>
+<span class="sd">            (`fa_args`, `sn2_fa_args`, etc).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_metabolites</span><span class="p">(</span><span class="n">classes</span> <span class="o">=</span> <span class="n">lipid</span><span class="o">.</span><span class="n">glycerophospholipids</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.sort"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.sort">[docs]</a>    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sorts the `masses` and `data` arrays by increasing mass in order to</span>
+<span class="sd">        make fast lookups possible.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">masses</span><span class="o">.</span><span class="n">argsort</span><span class="p">()]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masses</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.ilookup"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.ilookup">[docs]</a>    <span class="k">def</span> <span class="nf">ilookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">_lookup</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">masses</span><span class="p">,</span>
+            <span class="n">m</span><span class="p">,</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">tolerance</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span><span class="p">,</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.lookup"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.lookup">[docs]</a>    <span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ilookup</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">masses</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.lookup_accuracy"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.lookup_accuracy">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs a lookup and adds accuracy information to the result.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">)</span>
+        
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="n">rm</span><span class="p">)</span> <span class="o">/</span> <span class="n">m</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="mi">6</span> <span class="k">for</span> <span class="n">rm</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">a</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.adduct_lookup"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.adduct_lookup">[docs]</a>    <span class="k">def</span> <span class="nf">adduct_lookup</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">mz</span><span class="p">,</span>
+            <span class="n">adducts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">ionmode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">adduct_constraints</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Does a series of lookups in the database assuming various adducts.</span>
+<span class="sd">        Calculates the exact mass for the m/z for each possible adduct</span>
+<span class="sd">        and searches these exact masses in the database.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns a dict of tuples with 3-3 numpy arrays.</span>
+<span class="sd">        Keys of the dict are adduct types. The arrays are exact masses,</span>
+<span class="sd">        database record details and accuracies (ppm).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="n">mz</span> <span class="o">=</span> <span class="n">mzmod</span><span class="o">.</span><span class="n">Mz</span><span class="p">(</span><span class="n">mz</span><span class="p">)</span>
+        <span class="n">charge</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">charge</span>
+                <span class="k">if</span> <span class="n">charge</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span>
+            <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">ionmode</span> <span class="o">==</span> <span class="s1">&#39;pos&#39;</span> <span class="k">else</span>
+            <span class="o">-</span><span class="mi">1</span>
+        <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">adducts</span> <span class="ow">and</span> <span class="n">ionmode</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="s1">&#39;neg&#39;</span><span class="p">}:</span>
+            
+            <span class="c1"># we look up all adducts we have a method for</span>
+            <span class="n">adducts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ex2ad&#39;</span><span class="p">)[</span><span class="nb">abs</span><span class="p">(</span><span class="n">charge</span><span class="p">)][</span><span class="n">ionmode</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        
+        <span class="n">ad_default</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;adducts_default&#39;</span><span class="p">)[</span><span class="n">ionmode</span><span class="p">][</span><span class="nb">abs</span><span class="p">(</span><span class="n">charge</span><span class="p">)]</span>
+        <span class="n">ad_constr</span>  <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;adduct_constraints&#39;</span><span class="p">)[</span><span class="n">ionmode</span><span class="p">]</span>
+        
+        <span class="n">exmethods</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ad2ex&#39;</span><span class="p">)[</span><span class="nb">abs</span><span class="p">(</span><span class="n">charge</span><span class="p">)][</span><span class="n">ionmode</span><span class="p">]</span>
+        <span class="n">methods</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">ad</span><span class="p">,</span> <span class="n">exmethods</span><span class="p">[</span><span class="n">ad</span><span class="p">])</span> <span class="k">for</span> <span class="n">ad</span> <span class="ow">in</span> <span class="n">adducts</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">ad</span><span class="p">,</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">methods</span><span class="p">):</span>
+            
+            <span class="n">exmz</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">method</span><span class="p">)()</span>
+            
+            <span class="n">res</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup_accuracy</span><span class="p">(</span><span class="n">exmz</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">adduct_constraints</span><span class="p">:</span>
+                
+                <span class="n">ires</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                    <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="p">(</span>
+                            <span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">hg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ad_constr</span> <span class="ow">and</span>
+                            <span class="n">ad</span> <span class="ow">in</span> <span class="n">ad_default</span>
+                        <span class="p">)</span> <span class="ow">or</span>
+                        <span class="p">(</span>
+                            <span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">hg</span> <span class="ow">in</span> <span class="n">ad_constr</span> <span class="ow">and</span>
+                            <span class="n">ad</span> <span class="ow">in</span> <span class="n">ad_constr</span><span class="p">[</span><span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">hg</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                
+                <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">ires</span><span class="p">,],</span> <span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">ires</span><span class="p">,],</span> <span class="n">res</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="n">ires</span><span class="p">,])</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                
+                <span class="n">result</span><span class="p">[</span><span class="n">ad</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>
+        
+        <span class="k">return</span> <span class="n">result</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.export_db"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.export_db">[docs]</a>    <span class="k">def</span> <span class="nf">export_db</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span> <span class="o">=</span> <span class="s1">&#39;molecule_database.tsv&#39;</span><span class="p">):</span>
+        
+        <span class="n">hdr</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;exact_mass&#39;</span><span class="p">,</span> <span class="s1">&#39;category&#39;</span><span class="p">,</span> <span class="s1">&#39;std_name&#39;</span><span class="p">,</span> <span class="s1">&#39;database_names&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;database_id&#39;</span><span class="p">,</span> <span class="s1">&#39;database&#39;</span><span class="p">,</span> <span class="s1">&#39;prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;sum_cc&#39;</span><span class="p">,</span> <span class="s1">&#39;sum_unsat&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;fa1_cc&#39;</span><span class="p">,</span> <span class="s1">&#39;fa1_unsat&#39;</span><span class="p">,</span> <span class="s1">&#39;fa2_cc&#39;</span><span class="p">,</span> <span class="s1">&#39;fa2_unsat&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;fa3_cc&#39;</span><span class="p">,</span> <span class="s1">&#39;fa3_unsat&#39;</span>
+        <span class="p">]</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            
+            <span class="n">_</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hdr</span><span class="p">))</span>
+            
+            <span class="k">for</span> <span class="n">mass</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masses</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">):</span>
+                
+                <span class="n">_</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.12f</span><span class="se">\t</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">mass</span><span class="p">,</span>
+                    <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data</span><span class="p">)</span>
+                <span class="p">))</span></div>
+    
+<div class="viewcode-block" id="MoleculeDatabaseAggregator.records_string"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.MoleculeDatabaseAggregator.records_string">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">records_string</span><span class="p">(</span>
+            <span class="n">records</span><span class="p">,</span>
+            <span class="n">adducts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">databases</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">ppm</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">):</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">add</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">records</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="n">adducts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">add</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">adducts</span><span class="p">:</span>
+                
+                <span class="k">continue</span>
+            
+            <span class="k">for</span> <span class="n">rec_mz</span><span class="p">,</span> <span class="n">rec</span><span class="p">,</span> <span class="n">rec_ppm</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">data</span><span class="p">):</span>
+                
+                <span class="k">if</span> <span class="n">databases</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">rec</span><span class="o">.</span><span class="n">lab</span><span class="o">.</span><span class="n">db</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">databases</span><span class="p">:</span>
+                    
+                    <span class="k">continue</span>
+                
+                <span class="n">name</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">lipproc</span><span class="o">.</span><span class="n">summary_str</span><span class="p">(</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span> <span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">rec</span><span class="o">.</span><span class="n">hg</span> <span class="k">else</span>
+                    <span class="n">rec</span><span class="o">.</span><span class="n">lab</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">rec</span><span class="o">.</span><span class="n">lab</span><span class="o">.</span><span class="n">names</span> <span class="k">else</span>
+                    <span class="s1">&#39;Unknown&#39;</span>
+                <span class="p">)</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="s1">&#39;[</span><span class="si">%.01f</span><span class="s1">ppm]&#39;</span> <span class="o">%</span> <span class="n">rec_ppm</span> <span class="k">if</span> <span class="n">ppm</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+                <span class="p">))</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="init_db"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.init_db">[docs]</a><span class="k">def</span> <span class="nf">init_db</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initializes a database.</span>
+<span class="sd">    </span>
+<span class="sd">    Args</span>
+<span class="sd">    ----</span>
+<span class="sd">    :param \**kwargs:</span>
+<span class="sd">        Arguments for ``:py:class:.MoleculeDatabaseAggregator`` class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">mod</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">]</span>
+    
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">,</span> <span class="n">MoleculeDatabaseAggregator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="get_db"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.get_db">[docs]</a><span class="k">def</span> <span class="nf">get_db</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the module&#39;s default database.</span>
+<span class="sd">    Initializes the database with default paremeters if no database</span>
+<span class="sd">    yet available.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">mod</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">]</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">):</span>
+        
+        <span class="n">init_db</span><span class="p">()</span>
+    
+    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="lookup"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.lookup">[docs]</a><span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">m</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="adduct_lookup"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.adduct_lookup">[docs]</a><span class="k">def</span> <span class="nf">adduct_lookup</span><span class="p">(</span>
+        <span class="n">mz</span><span class="p">,</span>
+        <span class="n">ionmode</span><span class="p">,</span>
+        <span class="n">adduct_constraints</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+    
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">()</span>
+    
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">adduct_lookup</span><span class="p">(</span>
+        <span class="n">mz</span><span class="p">,</span>
+        <span class="n">ionmode</span> <span class="o">=</span> <span class="n">ionmode</span><span class="p">,</span>
+        <span class="n">adduct_constraints</span> <span class="o">=</span> <span class="n">adduct_constraints</span><span class="p">,</span>
+        <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="possible_classes"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.possible_classes">[docs]</a><span class="k">def</span> <span class="nf">possible_classes</span><span class="p">(</span>
+        <span class="n">mz</span><span class="p">,</span>
+        <span class="n">ionmode</span><span class="p">,</span>
+        <span class="n">adduct_constraints</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">main_only</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For a m/z returns a set of possible classes.</span>
+<span class="sd">    </span>
+<span class="sd">    :param bool main_only:</span>
+<span class="sd">        Return only the set of main classes or subclasses.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="nb">set</span><span class="p">(</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">hg</span><span class="o">.</span><span class="n">main</span> <span class="k">if</span> <span class="n">main_only</span> <span class="k">else</span> <span class="n">r</span><span class="o">.</span><span class="n">hg</span>
+        <span class="k">for</span> <span class="n">rr</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span>
+            <span class="n">adduct_lookup</span><span class="p">(</span>
+                <span class="n">mz</span><span class="p">,</span>
+                <span class="n">ionmode</span><span class="p">,</span>
+                <span class="n">adduct_constraints</span> <span class="o">=</span> <span class="n">adduct_constraints</span><span class="p">,</span>
+                <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">hg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="records_string"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.moldb.records_string">[docs]</a><span class="k">def</span> <span class="nf">records_string</span><span class="p">(</span>
+        <span class="n">records</span><span class="p">,</span>
+        <span class="n">adducts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">databases</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ppm</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+    
+    <span class="k">return</span> <span class="n">MoleculeDatabaseAggregator</span><span class="o">.</span><span class="n">records_string</span><span class="p">(</span>
+        <span class="n">records</span><span class="p">,</span> <span class="n">adducts</span><span class="p">,</span> <span class="n">databases</span><span class="p">,</span> <span class="n">ppm</span>
+    <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

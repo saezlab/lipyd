@@ -1,0 +1,323 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.mz &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.mz</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.mz</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module for arithmetics with m/z values and adduct ions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">iteritems</span>
+<span class="kn">from</span> <span class="nn">past.builtins</span> <span class="k">import</span> <span class="n">xrange</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="n">reduce</span>
+
+<span class="kn">import</span> <span class="nn">imp</span>
+
+<span class="kn">import</span> <span class="nn">lipyd.mass</span> <span class="k">as</span> <span class="nn">mass</span>
+
+<div class="viewcode-block" id="Mz"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz">[docs]</a><span class="k">class</span> <span class="nc">Mz</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents one m/z value.</span>
+<span class="sd">    Provides methods for conversion to exact mass or various adducts.</span>
+<span class="sd">    Other classes representing molecular entities and masses inherit</span>
+<span class="sd">    these methods from here.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mz</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">sign</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mz</span> <span class="o">=</span> <span class="n">mz</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">z</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sign</span> <span class="o">=</span> <span class="n">sign</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="o">=</span> <span class="n">tolerance</span>
+    
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">z</span> <span class="ow">and</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">mz</span> <span class="o">&gt;</span> <span class="n">other</span><span class="o">.</span><span class="n">mz</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span> <span class="ow">and</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">mz</span> <span class="o">&lt;</span> <span class="n">other</span><span class="o">.</span><span class="n">mz</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol</span>
+    
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;m/z = </span><span class="si">%f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">mz</span>
+    
+<div class="viewcode-block" id="Mz.adduct"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.adduct">[docs]</a>    <span class="k">def</span> <span class="nf">adduct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mz</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">m</span><span class="p">))</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.weight"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.weight">[docs]</a>    <span class="k">def</span> <span class="nf">weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mz</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span></div>
+    
+<div class="viewcode-block" id="Mz.remove_h"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.remove_h">[docs]</a>    <span class="k">def</span> <span class="nf">remove_h</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="o">-</span><span class="n">mass</span><span class="o">.</span><span class="n">proton</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.remove_ac"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.remove_ac">[docs]</a>    <span class="k">def</span> <span class="nf">remove_ac</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;H3C2O2&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="o">-</span><span class="n">m</span> <span class="o">-</span> <span class="n">mass</span><span class="o">.</span><span class="n">electron</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.remove_fo"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.remove_fo">[docs]</a>    <span class="k">def</span> <span class="nf">remove_fo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;HCO2&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="o">-</span><span class="n">m</span> <span class="o">-</span> <span class="n">mass</span><span class="o">.</span><span class="n">electron</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.remove_nh4"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.remove_nh4">[docs]</a>    <span class="k">def</span> <span class="nf">remove_nh4</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;NH4&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="o">-</span><span class="n">m</span> <span class="o">+</span> <span class="n">mass</span><span class="o">.</span><span class="n">electron</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.remove_oh"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.remove_oh">[docs]</a>    <span class="k">def</span> <span class="nf">remove_oh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;OH&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="o">-</span><span class="n">m</span> <span class="o">-</span> <span class="n">mass</span><span class="o">.</span><span class="n">electron</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.add_h"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.add_h">[docs]</a>    <span class="k">def</span> <span class="nf">add_h</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="n">mass</span><span class="o">.</span><span class="n">proton</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.add_2h"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.add_2h">[docs]</a>    <span class="k">def</span> <span class="nf">add_2h</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">mass</span><span class="o">.</span><span class="n">proton</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.add_3h"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.add_3h">[docs]</a>    <span class="k">def</span> <span class="nf">add_3h</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">mass</span><span class="o">.</span><span class="n">proton</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.add_oh"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.add_oh">[docs]</a>    <span class="k">def</span> <span class="nf">add_oh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;OH&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">mass</span><span class="o">.</span><span class="n">electron</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.add_fo"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.add_fo">[docs]</a>    <span class="k">def</span> <span class="nf">add_fo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;HCO2&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">mass</span><span class="o">.</span><span class="n">electron</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.add_ac"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.add_ac">[docs]</a>    <span class="k">def</span> <span class="nf">add_ac</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;H3C2O2&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">mass</span><span class="o">.</span><span class="n">electron</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.add_nh4"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.add_nh4">[docs]</a>    <span class="k">def</span> <span class="nf">add_nh4</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;NH4&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="n">mass</span><span class="o">.</span><span class="n">electron</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.add_na"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.add_na">[docs]</a>    <span class="k">def</span> <span class="nf">add_na</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;Na&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="n">mass</span><span class="o">.</span><span class="n">electron</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.remove_na"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.remove_na">[docs]</a>    <span class="k">def</span> <span class="nf">remove_na</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;Na&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="o">-</span><span class="n">m</span> <span class="o">+</span> <span class="n">mass</span><span class="o">.</span><span class="n">electron</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Mz.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mz.Mz.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

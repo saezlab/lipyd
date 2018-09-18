@@ -1,0 +1,822 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.fragdb &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.fragdb</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.fragdb</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">iteritems</span>
+<span class="kn">from</span> <span class="nn">past.builtins</span> <span class="k">import</span> <span class="n">xrange</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="n">reduce</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">imp</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">lipyd.fragment</span> <span class="k">as</span> <span class="nn">fragment</span>
+<span class="kn">import</span> <span class="nn">lipyd.formula</span> <span class="k">as</span> <span class="nn">formula</span>
+<span class="kn">import</span> <span class="nn">lipyd.settings</span> <span class="k">as</span> <span class="nn">settings</span>
+<span class="kn">import</span> <span class="nn">lipyd.lookup</span> <span class="k">as</span> <span class="nn">lookup_</span>
+<span class="kn">import</span> <span class="nn">lipyd.session</span> <span class="k">as</span> <span class="nn">session</span>
+
+
+<div class="viewcode-block" id="FragmentDatabaseAggregator"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator">[docs]</a><span class="k">class</span> <span class="nc">FragmentDatabaseAggregator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="n">default_args</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;Sph&#39;</span><span class="p">:</span> <span class="s1">&#39;sph_default&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;FA&#39;</span><span class="p">:</span> <span class="s1">&#39;fa_default&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;FAL&#39;</span><span class="p">:</span> <span class="s1">&#39;fal_default&#39;</span>
+    <span class="p">}</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">ionmode</span> <span class="o">=</span> <span class="s1">&#39;pos&#39;</span><span class="p">,</span>
+            <span class="n">tolerance</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">include</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">exclude</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">fa_default</span>  <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sph_default</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">fal_default</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">build</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Builds and serves a database of MS2 fragment ions according to</span>
+<span class="sd">        certain criteria.</span>
+<span class="sd">        </span>
+<span class="sd">        Fragments data can be either read from built in or user provided</span>
+<span class="sd">        files, or homolog series of alkyl chain containing fragments</span>
+<span class="sd">        can be generated by classes provided in the `fragment` module.</span>
+<span class="sd">        You can select which of these homolog series should be generated</span>
+<span class="sd">        and by which parameters. By default fragments from the built in</span>
+<span class="sd">        list are read to avoid this provide a value for `files` argument.</span>
+<span class="sd">        This might be an empty list or a list of files with your custom</span>
+<span class="sd">        fragments, or a single filename string.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param str ionmode:</span>
+<span class="sd">            Ion mode, either `pos` or `neg`.</span>
+<span class="sd">        :param int tolerance:</span>
+<span class="sd">            Tolerance at lookup in ppm.</span>
+<span class="sd">        :param str,list files:</span>
+<span class="sd">            Fragment list filenames. List of filenames or a single</span>
+<span class="sd">            filename. If `None` the built in fragment list file used.</span>
+<span class="sd">        :param list include:</span>
+<span class="sd">            List of homolog series classes. Names of class defined in</span>
+<span class="sd">            the `fragment` module, optionally tuples of class names</span>
+<span class="sd">            and dict of arguments.</span>
+<span class="sd">        :param list exclude:</span>
+<span class="sd">            List of class names not to be used to generate fragment</span>
+<span class="sd">            series.</span>
+<span class="sd">        :param dict fa_default:</span>
+<span class="sd">            Default arguments for fatty acyl derived fragment series.</span>
+<span class="sd">        :param dict fa_default:</span>
+<span class="sd">            Default arguments for fatty alkyl derived fragment series.</span>
+<span class="sd">        :param dict sph_default:</span>
+<span class="sd">            Default arguements for sphingoid long chain base derived</span>
+<span class="sd">            fragment series.</span>
+<span class="sd">        :param bool build:</span>
+<span class="sd">            Build the fragment database at initialization.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span>  <span class="o">=</span> <span class="n">ionmode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">files</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include</span> <span class="o">=</span> <span class="n">include</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span> <span class="o">=</span> <span class="n">exclude</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fa_default</span>  <span class="o">=</span> <span class="n">fa_default</span>  <span class="ow">or</span> <span class="p">{</span>
+            <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">37</span><span class="p">),</span>
+            <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fal_default</span> <span class="o">=</span> <span class="n">fal_default</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fa_default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sph_default</span> <span class="o">=</span> <span class="n">sph_default</span> <span class="ow">or</span> <span class="p">{</span>
+            <span class="c1"># added 8 here as for kSph we have C8 standard</span>
+            <span class="c1"># TODO: find a better solution for this</span>
+            <span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">21</span><span class="p">],</span>
+            <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">if</span> <span class="n">build</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.build"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Builds the fragment list.</span>
+<span class="sd">        </span>
+<span class="sd">        Reads files and auto-generates programmatically calculated</span>
+<span class="sd">        homolog series.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_filenames</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_files</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_series</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="nb">sorted</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">,</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">object</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frags_by_name</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">frag</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">frag</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">)</span>
+        <span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.set_filenames"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.set_filenames">[docs]</a>    <span class="k">def</span> <span class="nf">set_filenames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the `files` attribute to be a list of filenames.</span>
+<span class="sd">        If no `files` argument provided the built in default</span>
+<span class="sd">        fragment list files will be used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">,</span> <span class="s1">&#39;lower&#39;</span><span class="p">)</span> <span class="k">else</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_default_file</span><span class="p">()]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">files</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.get_default_file"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.get_default_file">[docs]</a>    <span class="k">def</span> <span class="nf">get_default_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the file name of the default fragment lists.</span>
+<span class="sd">        </span>
+<span class="sd">        These are stored in the `pfragmentsfile` and `nfragmentsfile`</span>
+<span class="sd">        settings for positive and negative ion modes, respectively.</span>
+<span class="sd">        The fragment list files should have at least 4 columns:</span>
+<span class="sd">        * m/z as float</span>
+<span class="sd">        * formula -- either formula or m/z should be provided,</span>
+<span class="sd">          mass calculation from formula has priority over the</span>
+<span class="sd">          mass in first column</span>
+<span class="sd">        * human readable name</span>
+<span class="sd">        * type: e.g. `[M+H]+`; importantly, for neutral losses</span>
+<span class="sd">          this value must start with `NL`</span>
+<span class="sd">        * headgroups (lipid classes), e.g.`PC;SM`</span>
+<span class="sd">        </span>
+<span class="sd">        See the built in fragment lists for examples.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">fragmentsfile&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="s1">&#39;p&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span> <span class="o">==</span> <span class="s1">&#39;pos&#39;</span> <span class="k">else</span> <span class="s1">&#39;n&#39;</span>
+        <span class="p">))</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.read_files"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.read_files">[docs]</a>    <span class="k">def</span> <span class="nf">read_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the list of fragments read from all files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span>
+                <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span>
+                    <span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span> <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.read_file"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.read_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads a list of MS2 fragments from a file.</span>
+<span class="sd">        Returns list of fragments.</span>
+<span class="sd">        </span>
+<span class="sd">        If no filename provided the default fragment lists will be read.</span>
+<span class="sd">        The fragment list files should have at least 4 columns:</span>
+<span class="sd">        * m/z as float</span>
+<span class="sd">        * formula -- either formula or m/z should be provided,</span>
+<span class="sd">          mass calculation from formula has priority over the</span>
+<span class="sd">          mass in first column</span>
+<span class="sd">        * human readable name</span>
+<span class="sd">        * type: e.g. `[M+H]+`; importantly, for neutral losses</span>
+<span class="sd">          this value must start with `NL`</span>
+<span class="sd">        * headgroups (lipid classes), e.g.`PC;SM`</span>
+<span class="sd">        </span>
+<span class="sd">        See the built in fragment lists for examples.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">def</span> <span class="nf">get_charge</span><span class="p">(</span><span class="n">typ</span><span class="p">):</span>
+            
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="mi">0</span>  <span class="k">if</span> <span class="n">typ</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;NL&#39;</span><span class="p">)</span> <span class="k">else</span>
+                <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span> <span class="o">==</span> <span class="s1">&#39;neg&#39;</span> <span class="k">else</span>
+                <span class="mi">1</span>
+            <span class="p">)</span>
+        
+        <span class="k">def</span> <span class="nf">process_line</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+            
+            <span class="n">l</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+            
+            <span class="n">mass</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">mass</span>
+                <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">else</span>
+                    <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">else</span>
+                    <span class="kc">None</span>
+            <span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span><span class="p">[</span><span class="n">l</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">tuple</span><span class="p">(</span>
+                    <span class="n">fragment</span><span class="o">.</span><span class="n">FragConstraint</span><span class="p">(</span>
+                        <span class="n">hg</span> <span class="o">=</span> <span class="n">constr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="n">sub</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">tuple</span><span class="p">(</span><span class="n">constr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:])</span>
+                                <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">constr</span> <span class="k">else</span>
+                            <span class="p">()</span>
+                        <span class="p">),</span>
+                        <span class="n">sph</span> <span class="o">=</span> <span class="n">constr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;|&#39;</span> <span class="ow">in</span> <span class="n">constr</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="c1"># no way at the moment to define chain</span>
+                        <span class="c1"># type in file but later can be added easily</span>
+                        <span class="n">chaintype</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">constr</span> <span class="ow">in</span> <span class="n">l</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">else</span>
+                <span class="p">(</span>
+                    <span class="c1"># an empty constraint to make sure anything matches</span>
+                    <span class="n">fragment</span><span class="o">.</span><span class="n">FragConstraint</span><span class="p">(),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">mass</span><span class="p">,</span> <span class="n">l</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">l</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">get_charge</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="p">]</span>
+        
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">fname</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_default_file</span><span class="p">()</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            
+            <span class="k">return</span> <span class="p">[</span>
+                <span class="n">ll</span> <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span>
+                    <span class="p">(</span>
+                        <span class="n">process_line</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span>
+                        <span class="nb">filter</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">))</span>
+                    <span class="p">)</span>
+                <span class="k">if</span> <span class="n">ll</span> <span class="ow">and</span> <span class="n">ll</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">]</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.set_series"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.set_series">[docs]</a>    <span class="k">def</span> <span class="nf">set_series</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Selects the homolog series to be generated and their parameters.</span>
+<span class="sd">        See details in docs of `exclude` and `include` arguments for</span>
+<span class="sd">        `__init__()`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">def</span> <span class="nf">get_class</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+            
+            <span class="c1"># TODO be able to use classes defined elsewhere</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fragment</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">specific_args</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">include</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="c1"># a set of fragment class names</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">series</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span> <span class="k">else</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">include</span>
+            <span class="p">)</span>
+            <span class="c1"># a dict with class specific arguments</span>
+            <span class="c1"># whereever it&#39;s provided</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">specific_args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="nb">dict</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">include</span><span class="p">))</span>
+            <span class="p">)</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="c1"># all fragment classes by default except those in `exclude`</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">series</span> <span class="o">=</span> <span class="n">fragment</span><span class="o">.</span><span class="n">fattyfragments</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exclude</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">series</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">get_class</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">series</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">series</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">cls</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">series</span> <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ionmode</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span>
+        <span class="p">]</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.get_series_args"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.get_series_args">[docs]</a>    <span class="k">def</span> <span class="nf">get_series_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provides a dict of arguments for fragment homolog series.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param class cls:</span>
+<span class="sd">            Fragment homolog series class</span>
+<span class="sd">            e.g. `fragment.FA_mH` -- fatty acid minus hydrogen.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">args</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_args</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">chaintype</span><span class="p">]))</span>
+                <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">chaintype</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_args</span> <span class="k">else</span>
+            <span class="p">{}</span>
+        <span class="p">)</span>
+        
+        <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">specific_args</span><span class="p">[</span><span class="bp">cls</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">args</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.generate_series"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.generate_series">[docs]</a>    <span class="k">def</span> <span class="nf">generate_series</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates homologous series fragments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_series</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">series</span><span class="p">:</span>
+            
+            <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_series_args</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+            
+            <span class="n">result</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">iterfraglines</span><span class="p">()))</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_constraints</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">result</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.add_constraints"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.add_constraints">[docs]</a>    <span class="k">def</span> <span class="nf">add_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">constraints</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.get_constraints"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.get_constraints">[docs]</a>    <span class="k">def</span> <span class="nf">get_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fragtype</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraints</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fragtype</span><span class="p">,</span> <span class="p">())</span></div>
+    
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span>
+    
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.lookup"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.lookup">[docs]</a>    <span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mz</span><span class="p">,</span> <span class="n">nl</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Searches for fragments in the database matching the `mz` within the</span>
+<span class="sd">        actual range of tolerance. To change the tolerance set the</span>
+<span class="sd">        `tolerance` attribute to the desired ppm value.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param bool nl:</span>
+<span class="sd">            The m/z is a neutral loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">lookup_</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">mz</span><span class="p">,</span>
+            <span class="n">tolerance</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span>
+        <span class="p">)</span>
+        <span class="c1"># filtering for NL or not NL</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">nl</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">6</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="n">nl</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">6</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">[</span><span class="n">idx</span><span class="p">,:]</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.lookup_nl"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.lookup_nl">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_nl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mz</span><span class="p">,</span> <span class="n">precursor</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Searches for neutral loss fragments in the database matching the</span>
+<span class="sd">        m/z within the actual range of tolerance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">nlmz</span> <span class="o">=</span> <span class="n">precursor</span> <span class="o">-</span> <span class="n">mz</span>
+        <span class="n">nl_tolerance</span> <span class="o">=</span> <span class="n">mz</span> <span class="o">/</span> <span class="n">nlmz</span> <span class="o">*</span> <span class="p">(</span><span class="n">tolerance</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">nlmz</span><span class="p">,</span> <span class="n">nl</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="n">nl_tolerance</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.by_name"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.by_name">[docs]</a>    <span class="k">def</span> <span class="nf">by_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns fragment data by its name.</span>
+<span class="sd">        `None` if the name not in the database.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param str name:</span>
+<span class="sd">            The full name of a fragment, e.g. `PE [P+E] (140.0118)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frags_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span></div>
+    
+<div class="viewcode-block" id="FragmentDatabaseAggregator.mz_by_name"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentDatabaseAggregator.mz_by_name">[docs]</a>    <span class="k">def</span> <span class="nf">mz_by_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the m/z of a fragment by its name.</span>
+<span class="sd">        `None` if the name not in the database.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param str name:</span>
+<span class="sd">            The full name of a fragment, e.g. `PE [P+E] (140.0118)`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frags_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragments</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="init_db"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.init_db">[docs]</a><span class="k">def</span> <span class="nf">init_db</span><span class="p">(</span><span class="n">ionmode</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a fragment database.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">mod</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">]</span>
+    <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;db_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ionmode</span>
+    
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">FragmentDatabaseAggregator</span><span class="p">(</span><span class="n">ionmode</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="get_db"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.get_db">[docs]</a><span class="k">def</span> <span class="nf">get_db</span><span class="p">(</span><span class="n">ionmode</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns fragment database for the ion mode requested.</span>
+<span class="sd">    Creates a database with the keyword arguments provided if no database</span>
+<span class="sd">    has been initialized yet.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">mod</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">]</span>
+    <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;db_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ionmode</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        
+        <span class="n">init_db</span><span class="p">(</span><span class="n">ionmode</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="lookup"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.lookup">[docs]</a><span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">ionmode</span><span class="p">,</span> <span class="n">nl</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Looks up an m/z in the fragment database, returns all fragment identities</span>
+<span class="sd">    within range of tolerance.</span>
+<span class="sd">    </span>
+<span class="sd">    Args</span>
+<span class="sd">    ----</span>
+<span class="sd">    :param float mz:</span>
+<span class="sd">        Measured MS2 fragment m/z value.</span>
+<span class="sd">    :param str ionmode:</span>
+<span class="sd">        MS ion mode; `pos` or `neg`.</span>
+<span class="sd">    :param bool nl:</span>
+<span class="sd">        Look up charged ion or neutral loss m/z.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">(</span><span class="n">ionmode</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">nl</span> <span class="o">=</span> <span class="n">nl</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="lookup_nl"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.lookup_nl">[docs]</a><span class="k">def</span> <span class="nf">lookup_nl</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">precursor</span><span class="p">,</span> <span class="n">ionmode</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Looks up an MS2 neutral loss in the fragment database.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">(</span><span class="n">ionmode</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">lookup_nl</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">precursor</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="lookup_pos"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.lookup_pos">[docs]</a><span class="k">def</span> <span class="nf">lookup_pos</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="n">lookup</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="lookup_neg"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.lookup_neg">[docs]</a><span class="k">def</span> <span class="nf">lookup_neg</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="n">lookup</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="s1">&#39;neg&#39;</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="lookup_pos_nl"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.lookup_pos_nl">[docs]</a><span class="k">def</span> <span class="nf">lookup_pos_nl</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">precursor</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="n">lookup_nl</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">precursor</span><span class="p">,</span> <span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="lookup_neg_nl"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.lookup_neg_nl">[docs]</a><span class="k">def</span> <span class="nf">lookup_neg_nl</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">precursor</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="n">lookup_nl</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">precursor</span><span class="p">,</span> <span class="s1">&#39;neg&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="constraints"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.constraints">[docs]</a><span class="k">def</span> <span class="nf">constraints</span><span class="p">(</span><span class="n">fragtype</span><span class="p">,</span> <span class="n">ionmode</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the constraints for a given fragment type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">(</span><span class="n">ionmode</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">get_constraints</span><span class="p">(</span><span class="n">fragtype</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="mz_by_name"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.mz_by_name">[docs]</a><span class="k">def</span> <span class="nf">mz_by_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ionmode</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the m/z of a fragment by its name.</span>
+<span class="sd">    `None` if name not in the database.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">(</span><span class="n">ionmode</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">mz_by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="by_name"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.by_name">[docs]</a><span class="k">def</span> <span class="nf">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ionmode</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns fragment data by its name.</span>
+<span class="sd">    `None` if name not in the database.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">db</span> <span class="o">=</span> <span class="n">get_db</span><span class="p">(</span><span class="n">ionmode</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+
+<span class="n">FragmentAnnotation</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;FragmentAnnotation&#39;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s1">&#39;mz&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;fragtype&#39;</span><span class="p">,</span> <span class="s1">&#39;chaintype&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="s1">&#39;charge&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="FragmentAnnotator"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentAnnotator">[docs]</a><span class="k">class</span> <span class="nc">FragmentAnnotator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">mzs</span><span class="p">,</span>
+            <span class="n">ionmode</span><span class="p">,</span>
+            <span class="n">precursor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Annotates all fragmenta in MS2 scan with possible identites.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param np.ndarray mzs:</span>
+<span class="sd">            MS2 scan fragment m/z&#39;s.</span>
+<span class="sd">        :param str ionmode:</span>
+<span class="sd">            MS ion mode; `pos` or `neg`.</span>
+<span class="sd">        :param float precursor:</span>
+<span class="sd">            Precursor ion m/z.</span>
+<span class="sd">        :param tuple of arrays</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">mzs</span> <span class="o">=</span> <span class="n">mzs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span> <span class="o">=</span> <span class="n">ionmode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">precursor</span> <span class="o">=</span> <span class="n">precursor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span> <span class="ow">or</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ms2_tolerance&#39;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="FragmentAnnotator.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentAnnotator.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">for</span> <span class="n">mz</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mzs</span><span class="p">:</span>
+            
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">mz</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="FragmentAnnotator.annotate"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.fragdb.FragmentAnnotator.annotate">[docs]</a>    <span class="k">def</span> <span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mz</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Annotates the fragments in MS2 scan with possible identities taken</span>
+<span class="sd">        from the fragment database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">precursor</span><span class="p">:</span>
+            
+            <span class="n">nl_annot</span> <span class="o">=</span> <span class="n">lookup_nl</span><span class="p">(</span>
+                <span class="n">mz</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">precursor</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span>
+            <span class="p">)</span>
+            
+            <span class="n">result</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">FragmentAnnotation</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">nl_annot</span><span class="p">)</span>
+        
+        <span class="n">annot</span> <span class="o">=</span> <span class="n">lookup</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span><span class="p">)</span>
+        
+        <span class="n">result</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">FragmentAnnotation</span><span class="p">(</span><span class="o">*</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">annot</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

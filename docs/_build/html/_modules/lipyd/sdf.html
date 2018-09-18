@@ -1,0 +1,767 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.sdf &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.sdf</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.sdf</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2014-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (denes@ebi.ac.uk)</span>
+<span class="c1">#</span>
+<span class="c1">#  Distributed under the GNU GPLv3 License.</span>
+<span class="c1">#  See accompanying file LICENSE.txt or copy at</span>
+<span class="c1">#      http://www.gnu.org/licenses/gpl-3.0.html</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">imp</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">pybel</span>
+    <span class="k">if</span> <span class="s1">&#39;ipykernel&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span> <span class="ow">and</span> <span class="n">pybel</span><span class="o">.</span><span class="n">tk</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">tkinter</span>
+            <span class="kn">import</span> <span class="nn">PIL</span>
+            <span class="kn">import</span> <span class="nn">PIL.ImageTk</span>
+            <span class="n">pybel</span><span class="o">.</span><span class="n">tk</span> <span class="o">=</span> <span class="n">tkinter</span>
+            <span class="n">pybel</span><span class="o">.</span><span class="n">PIL</span> <span class="o">=</span> <span class="n">PIL</span><span class="o">.</span><span class="n">Image</span>
+            <span class="n">pybel</span><span class="o">.</span><span class="n">piltk</span> <span class="o">=</span> <span class="n">PIL</span><span class="o">.</span><span class="n">ImageTk</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s1">&#39;:: `PIL` or `tkinter` not available.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="s1">&#39;   `pybel` won</span><span class="se">\&#39;</span><span class="s1">t be able to draw molecules.</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;:: Module `pybel` not available.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+<span class="n">resyn</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s1">&#39;(^[A-Z]{2,})\(([0-9]+:[0-9]+)\(.*\)/([0-9]+:[0-9]+)\(.*\)\)&#39;</span>
+<span class="p">)</span>
+<span class="n">rehg</span>  <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^([A-Z]{2,4})(\(.*\))&#39;</span><span class="p">)</span>
+<span class="n">refa</span>  <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;C([0-9]+:[0-9]+)n?-?[-0-9]*$&#39;</span><span class="p">)</span>
+<span class="n">refa2</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([0-9]{1,2}:[0-9])\(?[0-9EZ]*\)?$&#39;</span><span class="p">)</span>
+<span class="n">hgsyn</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;TG&#39;</span><span class="p">:</span> <span class="s1">&#39;TAG&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;DG&#39;</span><span class="p">:</span> <span class="s1">&#39;DAG&#39;</span>
+<span class="p">}</span>
+
+<div class="viewcode-block" id="SdfReader"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader">[docs]</a><span class="k">class</span> <span class="nc">SdfReader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="n">names_default</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;PUBCHEM_CID&#39;</span><span class="p">:</span> <span class="s1">&#39;pubchem&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;CHEBI_ID&#39;</span><span class="p">:</span> <span class="s1">&#39;chebi&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;SYNONYMS&#39;</span><span class="p">:</span> <span class="s1">&#39;synonym&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;INCHI&#39;</span><span class="p">:</span> <span class="s1">&#39;inchi&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;INCHIKEY&#39;</span><span class="p">:</span> <span class="s1">&#39;inchikey&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;COMMON_NAME&#39;</span><span class="p">:</span> <span class="s1">&#39;commname&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;SYSTEMATIC_NAME&#39;</span><span class="p">:</span> <span class="s1">&#39;sysname&#39;</span>
+    <span class="p">}</span>
+    
+    <span class="n">annots_default</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;EXACT_MASS&#39;</span><span class="p">,</span> <span class="s1">&#39;FORMULA&#39;</span><span class="p">}</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">annots</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">silent</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Processes and serves data from an sdf file.</span>
+<span class="sd">        </span>
+<span class="sd">        Builds an index of the file and retrieve the records on demand.</span>
+<span class="sd">        Note, sdf is not a well defined or well kept standard, this reader</span>
+<span class="sd">        has been developed to process the LipidMaps database. Once there</span>
+<span class="sd">        is a need to use with other databases we are happy to adapt to</span>
+<span class="sd">        their formats.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param file fp:</span>
+<span class="sd">            An open file pointer to the SDF file.</span>
+<span class="sd">        :param dict names:</span>
+<span class="sd">            These are the names to build indexes for. Once indexing is done</span>
+<span class="sd">            it&#39;s possible to search and retrieve records by these IDs and</span>
+<span class="sd">            names. By deafult the names in `names_default` are used. Names</span>
+<span class="sd">            provided here are added to the defaults. Keys of the dict are</span>
+<span class="sd">            labels as used in the sdf, values of the dict are the attribute</span>
+<span class="sd">            names of the indexes.</span>
+<span class="sd">        :param set annots:</span>
+<span class="sd">            Additional annotations to be read. These are the data to be</span>
+<span class="sd">            retrieved with each record. Works the same way as `names`.</span>
+<span class="sd">        :param bool silent:</span>
+<span class="sd">            Print number of records at the end of indexing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fp</span> <span class="o">=</span> <span class="n">fp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mainkey</span>  <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indexed</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">silent</span> <span class="o">=</span> <span class="n">silent</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">names</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names_default</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annots</span> <span class="o">=</span> <span class="n">annots</span> <span class="ow">or</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annots</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">annots_default</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="p">{})</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_byte_mode</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_file_size</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="SdfReader.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">_byte_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">,</span> <span class="s1">&#39;mode&#39;</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="s1">&#39;b&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">mode</span><span class="p">:</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_file_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eof</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="SdfReader.read"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">index_only</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">one_record</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">go_to</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs all reading operations on the sdf file.</span>
+<span class="sd">        </span>
+<span class="sd">        This method is able to read the entire file, scan the file and build</span>
+<span class="sd">        an index of records, and retrieve one record.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param bool index_only:</span>
+<span class="sd">            Do not read the file but only build an index.</span>
+<span class="sd">        :param bool one_record:</span>
+<span class="sd">            Read only one record.</span>
+<span class="sd">        :param int go_to:</span>
+<span class="sd">            Go to this byte offset in the file and start reading there.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">go_to</span><span class="p">)</span>
+        
+        <span class="n">expect_new</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">molpart</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">namepart</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">name_or_id</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">this_offset</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">name</span>  <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">annot</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">namekey</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">:</span>
+            
+            <span class="n">llen</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="n">sl</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">molpart</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="n">name_or_id</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">sl</span><span class="p">)</span> <span class="ow">and</span> <span class="n">sl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;&gt;&#39;</span> <span class="ow">and</span> <span class="n">sl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;$&#39;</span><span class="p">:</span>
+                    <span class="n">expect_new</span> <span class="o">=</span> <span class="kc">True</span>
+                
+                <span class="k">if</span> <span class="n">namekey</span> <span class="ow">and</span> <span class="n">namekey</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                    <span class="n">name</span><span class="p">[</span><span class="n">namekey</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span>
+                    <span class="n">namekey</span> <span class="o">=</span> <span class="kc">None</span>
+                
+                <span class="k">if</span> <span class="n">namekey</span> <span class="ow">and</span> <span class="n">namekey</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">annots</span><span class="p">:</span>
+                    <span class="n">annot</span><span class="p">[</span><span class="n">namekey</span><span class="p">]</span> <span class="o">=</span> <span class="n">sl</span>
+                    <span class="n">namekey</span> <span class="o">=</span> <span class="kc">None</span>
+                
+                <span class="k">if</span> <span class="n">sl</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&gt; &lt;&#39;</span><span class="p">:</span>
+                    <span class="n">name_or_id</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">namepart</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">namekey</span>  <span class="o">=</span> <span class="n">sl</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                
+                <span class="k">if</span> <span class="n">namepart</span> <span class="ow">and</span> <span class="n">sl</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                    <span class="n">name_or_id</span> <span class="o">=</span> <span class="kc">True</span>
+                
+                <span class="k">if</span> <span class="n">expect_new</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+                    
+                    <span class="n">_id</span> <span class="o">=</span> <span class="n">sl</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="n">annot</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="n">this_offset</span> <span class="o">=</span> <span class="n">offset</span>
+                    <span class="n">expect_new</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">molpart</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">comment</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            
+            <span class="k">elif</span> <span class="n">molpart</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                
+                <span class="n">source</span> <span class="o">=</span> <span class="n">sl</span>
+                <span class="n">molpart</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+            <span class="k">elif</span> <span class="n">molpart</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">sl</span><span class="p">):</span>
+                
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">sl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+                    
+                    <span class="n">comment</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">comment</span><span class="p">,</span> <span class="n">sl</span><span class="p">)</span>
+                    
+                <span class="k">else</span><span class="p">:</span>
+                    
+                    <span class="n">molpart</span> <span class="o">=</span> <span class="mi">3</span>
+            
+            <span class="k">if</span> <span class="n">sl</span> <span class="o">==</span> <span class="s1">&#39;$$$$&#39;</span><span class="p">:</span>
+                <span class="n">expect_new</span> <span class="o">=</span> <span class="kc">True</span>
+            
+            <span class="k">if</span> <span class="n">molpart</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">index_only</span><span class="p">:</span>
+                    
+                    <span class="n">mol</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">sl</span> <span class="o">==</span> <span class="s1">&#39;M  END&#39;</span><span class="p">:</span>
+                    <span class="n">molpart</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">namepart</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">name_or_id</span> <span class="o">=</span> <span class="kc">True</span>
+            
+            <span class="k">if</span> <span class="n">expect_new</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">eof</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="n">one_record</span><span class="p">:</span>
+                    
+                    <span class="k">return</span> <span class="p">{</span>
+                        <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">_id</span><span class="p">,</span>
+                        <span class="s1">&#39;source&#39;</span><span class="p">:</span> <span class="n">source</span><span class="p">,</span>
+                        <span class="s1">&#39;comment&#39;</span><span class="p">:</span> <span class="n">comment</span><span class="p">,</span>
+                        <span class="s1">&#39;mol&#39;</span><span class="p">:</span> <span class="n">mol</span><span class="p">,</span>
+                        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                        <span class="s1">&#39;annot&#39;</span><span class="p">:</span> <span class="n">annot</span>
+                    <span class="p">}</span>
+                
+                <span class="c1"># this is indexing: we build dicts of names</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mainkey</span><span class="p">[</span><span class="n">_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">this_offset</span>
+                
+                <span class="k">if</span> <span class="s1">&#39;COMMON_NAME&#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+                    
+                    <span class="n">m</span> <span class="o">=</span> <span class="n">refa2</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="s1">&#39;COMMON_NAME&#39;</span><span class="p">])</span>
+                    
+                    <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+                        
+                        <span class="k">if</span> <span class="s1">&#39;SYNONYMS&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+                            
+                            <span class="n">name</span><span class="p">[</span><span class="s1">&#39;SYNONYMS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;FA(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                            
+                        <span class="k">else</span><span class="p">:</span>
+                            
+                            <span class="n">name</span><span class="p">[</span><span class="s1">&#39;SYNONYMS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">;FA(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                                <span class="n">name</span><span class="p">[</span><span class="s1">&#39;SYNONYMS&#39;</span><span class="p">],</span>
+                                <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                            <span class="p">)</span>
+                
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    
+                    <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+                        
+                        <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;SYNONYMS&#39;</span><span class="p">:</span>
+                            
+                            <span class="n">syns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                                <span class="n">syn</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">syn</span> <span class="ow">in</span> <span class="n">name</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+                            <span class="p">)</span>
+                            
+                            <span class="n">syns2</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([])</span>
+                            
+                            <span class="k">for</span> <span class="n">syn</span> <span class="ow">in</span> <span class="n">syns</span><span class="p">:</span>
+                                
+                                <span class="n">m</span> <span class="o">=</span> <span class="n">rehg</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">syn</span><span class="p">)</span>
+                                
+                                <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+                                    
+                                    <span class="n">m</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+                                    
+                                    <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">hgsyn</span><span class="p">:</span>
+                                        
+                                        <span class="n">syns2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+                                            <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">hgsyn</span><span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                                        <span class="p">)</span>
+                            
+                            <span class="n">syns</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">syns2</span><span class="p">)</span>
+                            <span class="n">syn2</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([])</span>
+                            
+                            <span class="k">for</span> <span class="n">syn</span> <span class="ow">in</span> <span class="n">syns</span><span class="p">:</span>
+                                
+                                <span class="n">m</span> <span class="o">=</span> <span class="n">resyn</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">syn</span><span class="p">)</span>
+                                
+                                <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+                                    
+                                    <span class="n">syns2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">())</span>
+                                
+                                <span class="n">m</span> <span class="o">=</span> <span class="n">refa</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">syn</span><span class="p">)</span>
+                                
+                                <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+                                    
+                                    <span class="n">syns2</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;FA(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+                            
+                            <span class="n">syns</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">syns2</span><span class="p">)</span>
+                            
+                            <span class="k">for</span> <span class="n">syn</span> <span class="ow">in</span> <span class="n">syns</span><span class="p">:</span>
+                                
+                                <span class="k">if</span> <span class="n">syn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">synonym</span><span class="p">:</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">synonym</span><span class="p">[</span><span class="n">syn</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([])</span>
+                                
+                                <span class="bp">self</span><span class="o">.</span><span class="n">synonym</span><span class="p">[</span><span class="n">syn</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">this_offset</span><span class="p">)</span>
+                            
+                        <span class="k">else</span><span class="p">:</span>
+                            
+                            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">)[</span><span class="n">name</span><span class="p">[</span><span class="n">k</span><span class="p">]]</span> <span class="o">=</span> <span class="n">this_offset</span>
+                
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">index_only</span><span class="p">:</span>
+                    
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">this_offset</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">_id</span><span class="p">,</span>
+                        <span class="s1">&#39;source&#39;</span><span class="p">:</span> <span class="n">source</span><span class="p">,</span>
+                        <span class="s1">&#39;comment&#39;</span><span class="p">:</span> <span class="n">comment</span><span class="p">,</span>
+                        <span class="s1">&#39;mol&#39;</span><span class="p">:</span> <span class="n">mol</span><span class="p">,</span>
+                        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+                        <span class="s1">&#39;annot&#39;</span><span class="p">:</span> <span class="n">annot</span>
+                    <span class="p">}</span>
+            
+            <span class="n">offset</span> <span class="o">+=</span> <span class="n">llen</span>
+        
+        <span class="k">if</span> <span class="n">index_only</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">indexed</span> <span class="o">=</span> <span class="kc">True</span></div>
+    
+<div class="viewcode-block" id="SdfReader.index"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.index">[docs]</a>    <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">index_only</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index_info</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="SdfReader.get_record"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.get_record">[docs]</a>    <span class="k">def</span> <span class="nf">get_record</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">typ</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves all records matching `name`.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns list of records or empty list if none found.</span>
+<span class="sd">        Each record is a dict of processed values from the sdf file.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param str name:</span>
+<span class="sd">            Molecule name or identifier.</span>
+<span class="sd">        :param str typ:</span>
+<span class="sd">            Type of name or identifier. These are the attribute names of the</span>
+<span class="sd">            index dicts which are taken from the values in the `names`</span>
+<span class="sd">            dict.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">typ</span><span class="p">):</span>
+            
+            <span class="n">index</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">typ</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="n">typ</span> <span class="o">==</span> <span class="s1">&#39;synonym&#39;</span><span class="p">:</span>
+                    
+                    <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="n">index</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+                        
+                        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                                <span class="n">index_only</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                <span class="n">one_record</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                                <span class="n">go_to</span> <span class="o">=</span> <span class="n">offset</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                    
+                <span class="k">else</span><span class="p">:</span>
+                    
+                    <span class="n">offset</span> <span class="o">=</span> <span class="n">index</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                            <span class="n">index_only</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                            <span class="n">one_record</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                            <span class="n">go_to</span> <span class="o">=</span> <span class="n">offset</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">result</span></div>
+    
+<div class="viewcode-block" id="SdfReader.get_obmol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.get_obmol">[docs]</a>    <span class="k">def</span> <span class="nf">get_obmol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">typ</span><span class="p">,</span> <span class="n">use_mol</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns generator yielding `pybel.Molecule` instances for `name`.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param str name:</span>
+<span class="sd">            Molecule name or ID.</span>
+<span class="sd">        :param str typ:</span>
+<span class="sd">            Type of the name or identifier.</span>
+<span class="sd">        :param bool use_mol:</span>
+<span class="sd">            Process structures from mol format.</span>
+<span class="sd">            By default structures are processed from InChI.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">records</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_record</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">typ</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="n">use_mol</span><span class="p">:</span>
+                
+                <span class="n">mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_to_obmol_mol</span><span class="p">(</span><span class="n">rec</span><span class="p">)</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                
+                <span class="n">mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_to_obmol</span><span class="p">(</span><span class="n">rec</span><span class="p">)</span>
+            
+            <span class="n">mol</span><span class="o">.</span><span class="n">db_id</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="s1">&#39;COMMON_NAME&#39;</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+                <span class="n">title</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;COMMON_NAME&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s1">&#39;SYNONYMS&#39;</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+                <span class="n">title</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;SYNONYMS&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="s1">&#39;SYSTEMATIC_NAME&#39;</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+                <span class="n">title</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;SYSTEMATIC_NAME&#39;</span><span class="p">])</span>
+            <span class="n">mol</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">title</span><span class="p">)</span>
+            <span class="n">mol</span><span class="o">.</span><span class="n">lipidmaps</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;INCHI&#39;</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+                <span class="n">mol</span><span class="o">.</span><span class="n">inchi</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;INCHI&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;PUBCHEM_CID&#39;</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+                <span class="n">mol</span><span class="o">.</span><span class="n">pubchem</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;PUBCHEM_CID&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;CHEBI_ID&#39;</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+                <span class="n">mol</span><span class="o">.</span><span class="n">chebi</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;CHEBI_ID&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;COMMON_NAME&#39;</span> <span class="ow">in</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+                <span class="n">mol</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">rec</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;COMMON_NAME&#39;</span><span class="p">]</span>
+            
+            <span class="k">yield</span> <span class="n">mol</span></div>
+    
+<div class="viewcode-block" id="SdfReader.record_to_obmol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.record_to_obmol">[docs]</a>    <span class="k">def</span> <span class="nf">record_to_obmol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Processes a record to `pybel.Molecule` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="s1">&#39;INCHI&#39;</span> <span class="ow">in</span> <span class="n">record</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span>
+            
+            <span class="k">return</span> <span class="n">pybel</span><span class="o">.</span><span class="n">readstring</span><span class="p">(</span><span class="s1">&#39;inchi&#39;</span><span class="p">,</span> <span class="n">record</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;INCHI&#39;</span><span class="p">])</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s1">&#39;No InChI for `</span><span class="si">%s</span><span class="s1">`!</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">record</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;COMMON_NAME&#39;</span><span class="p">]</span>
+            <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SdfReader.record_to_obmol_mol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.record_to_obmol_mol">[docs]</a>    <span class="k">def</span> <span class="nf">record_to_obmol_mol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">pybel</span><span class="o">.</span><span class="n">readstring</span><span class="p">(</span><span class="s1">&#39;mol&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_mol</span><span class="p">(</span><span class="n">record</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="SdfReader.get_mol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.get_mol">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_mol</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns structure as a string in mol format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s1">  </span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span>
+            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">],</span>
+            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;comment&#39;</span><span class="p">],</span>
+            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;mol&#39;</span><span class="p">]</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SdfReader.write_mol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.write_mol">[docs]</a>    <span class="k">def</span> <span class="nf">write_mol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">typ</span><span class="p">,</span> <span class="n">outf</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">return_data</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes a record into file in mol format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">outf</span> <span class="o">=</span> <span class="n">outf</span> <span class="ow">or</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">.mol&#39;</span>
+        
+        <span class="n">rr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_record</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">typ</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">rr</span><span class="p">:</span>
+            
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">rr</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+            
+            <span class="n">rr</span> <span class="o">=</span> <span class="p">[</span><span class="n">rr</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rr</span><span class="p">:</span>
+            
+            <span class="n">_outf</span> <span class="o">=</span> <span class="n">outf</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">),</span>
+                <span class="n">r</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;COMMON_NAME&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;..&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="s1">&#39;COMMON_NAME&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+                    <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="n">r</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+            
+            <span class="n">r</span><span class="p">[</span><span class="s1">&#39;molfile&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_outf</span>
+            
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">_outf</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                
+                <span class="n">_</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">get_mol</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+                <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">return_data</span><span class="p">:</span>
+            
+            <span class="k">return</span> <span class="n">rr</span></div>
+    
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_records</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="SdfReader.iter_records"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.iter_records">[docs]</a>    <span class="k">def</span> <span class="nf">iter_records</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterates over all records in the sdf file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainkey</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                <span class="n">index_only</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="n">one_record</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="n">go_to</span> <span class="o">=</span> <span class="n">offset</span>
+            <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SdfReader.iter_obmol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.iter_obmol">[docs]</a>    <span class="k">def</span> <span class="nf">iter_obmol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterates all structures in the file and yields `pybel.Molecule`</span>
+<span class="sd">        objects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="n">_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mainkey</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            
+            <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_obmol</span><span class="p">(</span><span class="n">_id</span><span class="p">,</span> <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;mainkey&#39;</span><span class="p">):</span>
+                
+                <span class="k">yield</span> <span class="n">mol</span></div>
+    
+<div class="viewcode-block" id="SdfReader.index_info"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sdf.SdfReader.index_info">[docs]</a>    <span class="k">def</span> <span class="nf">index_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prints number of records indexed and name of the source file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">silent</span><span class="p">:</span>
+            
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">:: Indexed </span><span class="si">%u</span><span class="s1"> records from `</span><span class="si">%s</span><span class="s1">`.</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mainkey</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">))</span></div>
+    
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

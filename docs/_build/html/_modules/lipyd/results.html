@@ -1,0 +1,1198 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.results &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.results</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.results</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2017 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+
+<div class="viewcode-block" id="Results"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.results.Results">[docs]</a><span class="k">class</span> <span class="nc">Results</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="Results.read_manual"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.results.Results.read_manual">[docs]</a>    <span class="k">def</span> <span class="nf">read_manual</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads adequate columns from manually annotated tables.</span>
+<span class="sd">        Provides data in `Screening().manual` attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">reclass</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(^[IV]*\.?[0-9]?).*&#39;</span><span class="p">)</span>
+        
+        <span class="k">def</span> <span class="nf">read_line</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">17</span><span class="p">])</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">12</span><span class="p">])</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">13</span><span class="p">]):</span>
+                <span class="k">return</span> \
+                    <span class="p">[</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">13</span><span class="p">]),</span> <span class="c1"># m/z corrected</span>
+                        <span class="n">reclass</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">17</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="c1"># result class</span>
+                        <span class="n">l</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span> <span class="c1"># SwissLipids name</span>
+                        <span class="n">l</span><span class="p">[</span><span class="mi">15</span><span class="p">],</span> <span class="c1"># main headgroup class</span>
+                        <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">12</span><span class="p">])),</span> <span class="c1"># intensity</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="c1"># m/z original</span>
+                        <span class="n">protein</span><span class="p">,</span> <span class="c1"># protein name</span>
+                        <span class="n">mode</span><span class="p">,</span> <span class="c1"># ion mode</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">5</span><span class="p">]),</span> <span class="c1"># RT mean</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span> <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;NA&#39;</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="c1"># RT MS2 closest</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()),</span> <span class="c1"># RT lower</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>  <span class="c1"># RT greater</span>
+                    <span class="p">]</span>
+        
+        <span class="k">def</span> <span class="nf">read_table</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+            <span class="k">return</span> \
+                <span class="nb">list</span><span class="p">(</span>
+                    <span class="nb">filter</span><span class="p">(</span>
+                        <span class="k">lambda</span> <span class="n">l</span><span class="p">:</span>
+                            <span class="n">l</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="nb">map</span><span class="p">(</span>
+                            <span class="k">lambda</span> <span class="n">l</span><span class="p">:</span>
+                                <span class="n">read_line</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">),</span>
+                            <span class="n">tbl</span>
+                        <span class="p">),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+        
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="n">fnames</span> <span class="o">=</span> \
+            <span class="nb">list</span><span class="p">(</span>
+                <span class="nb">filter</span><span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manualend</span><span class="p">),</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manualdir</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fnames</span><span class="p">:</span>
+            <span class="n">protein</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">xlsname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manualdir</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="n">tblneg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_xls</span><span class="p">(</span><span class="n">xlsname</span><span class="p">,</span>
+                                   <span class="n">sheet</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_negative_best&#39;</span> <span class="o">%</span> <span class="n">protein</span><span class="p">)</span>
+            <span class="n">tblpos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_xls</span><span class="p">(</span><span class="n">xlsname</span><span class="p">,</span>
+                                   <span class="n">sheet</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_positive_best&#39;</span> <span class="o">%</span> <span class="n">protein</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">protein</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">protein</span><span class="p">][</span><span class="s1">&#39;neg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="n">tblneg</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">protein</span><span class="p">,</span> <span class="s1">&#39;neg&#39;</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">protein</span><span class="p">][</span><span class="s1">&#39;pos&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="n">tblpos</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">protein</span><span class="p">,</span> <span class="s1">&#39;pos&#39;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">manual</span> <span class="o">=</span> <span class="n">data</span></div>
+    
+<div class="viewcode-block" id="Results.read_manual2"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.results.Results.read_manual2">[docs]</a>    <span class="k">def</span> <span class="nf">read_manual2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span> <span class="o">=</span> <span class="s1">&#39;All_results_v04.xlsx&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads manually annotated results from Marco&#39;s final table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">reclass</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(^[IV]*\.?[0-9]?).*&#39;</span><span class="p">)</span>
+        
+        <span class="n">tbl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_xls</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">sheet</span> <span class="o">=</span> <span class="s1">&#39;final data&#39;</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">tbl</span><span class="p">:</span>
+            
+            <span class="n">protein</span><span class="p">,</span> <span class="n">mode</span> <span class="o">=</span> <span class="n">l</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+            
+            <span class="k">if</span> <span class="n">protein</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">protein</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            
+            <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="n">protein</span><span class="p">]:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">protein</span><span class="p">][</span><span class="n">mode</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()[:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Qual&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="n">result</span><span class="p">[</span><span class="n">protein</span><span class="p">][</span><span class="n">mode</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">([</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">15</span><span class="p">]),</span> <span class="c1"># m/z corrected</span>
+                <span class="n">reclass</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">19</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="c1"># result class</span>
+                <span class="n">l</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;−&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">),</span> <span class="c1"># SwissLipids name</span>
+                <span class="n">l</span><span class="p">[</span><span class="mi">17</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;−&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">),</span> <span class="c1"># main headgroup class</span>
+                <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">14</span><span class="p">])),</span> <span class="c1"># intensity</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span> <span class="c1"># m/z original</span>
+                <span class="n">protein</span><span class="p">,</span> <span class="c1"># protein name</span>
+                <span class="n">mode</span><span class="p">,</span> <span class="c1"># ion mode</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">7</span><span class="p">]),</span> <span class="c1"># RT mean</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span> <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;NA&#39;</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="c1"># RT MS2 closest</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()),</span> <span class="c1"># RT lower</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>  <span class="c1"># RT greater</span>
+            <span class="p">])</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">manual</span> <span class="o">=</span> <span class="n">result</span></div>
+    
+<div class="viewcode-block" id="Results.manual_df"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.results.Results.manual_df">[docs]</a>    <span class="k">def</span> <span class="nf">manual_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">screen</span> <span class="o">=</span> <span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="n">only_swl_col</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a pandas dataframe from manual results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">shgs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;Monoalkylmonoacylglycerol-O&#39;</span><span class="p">:</span> <span class="s1">&#39;DAG-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;hydroquinone?&#39;</span><span class="p">:</span> <span class="s1">&#39;HQ&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Ganglioside GM1&#39;</span><span class="p">:</span> <span class="s1">&#39;GM1&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Ganglioside GM2&#39;</span><span class="p">:</span> <span class="s1">&#39;GM2&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Ganglioside GM3&#39;</span><span class="p">:</span> <span class="s1">&#39;GM3&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Ganglioside GM4&#39;</span><span class="p">:</span> <span class="s1">&#39;GM4&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Ganglioside GA1&#39;</span><span class="p">:</span> <span class="s1">&#39;GA1&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Lysophosphatidylethanolamine&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPE&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;alpha-tocopherol metabolite&#39;</span><span class="p">:</span> <span class="s1">&#39;VE&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;alpha-tocopherol&#39;</span><span class="p">:</span> <span class="s1">&#39;VE&#39;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s1">&#39;Retinol {calculated as -H2O adduct &#39;</span>\
+                <span class="sa">r</span><span class="s1">&#39;is not in applied database}&#39;</span><span class="p">:</span> <span class="s1">&#39;VA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;docosapentaenoate&#39;</span><span class="p">:</span> <span class="s1">&#39;PUFA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;octacosatetraenoate&#39;</span><span class="p">:</span> <span class="s1">&#39;PUFA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;octacosapentaenoate&#39;</span><span class="p">:</span> <span class="s1">&#39;PUFA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;octadecatetraenoate&#39;</span><span class="p">:</span> <span class="s1">&#39;PUFA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;octatriacontatetraenoate&#39;</span><span class="p">:</span> <span class="s1">&#39;PUFA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;tetracosapentaenoate&#39;</span><span class="p">:</span> <span class="s1">&#39;PUFA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;hexacosatetraenoate&#39;</span><span class="p">:</span> <span class="s1">&#39;PUFA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;hexacosanoate&#39;</span><span class="p">:</span> <span class="s1">&#39;PUFA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;dotriacontapentaenoate&#39;</span><span class="p">:</span> <span class="s1">&#39;PUFA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Sterol ester&#39;</span><span class="p">:</span> <span class="s1">&#39;SE&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;nothing&#39;</span><span class="p">:</span> <span class="s1">&#39;NA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;unknown&#39;</span><span class="p">:</span> <span class="s1">&#39;NA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Monoalkylglycerol-O&#39;</span><span class="p">:</span> <span class="s1">&#39;MAG-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Monoalkyldiacylglycerol-O&#39;</span><span class="p">:</span> <span class="s1">&#39;TAG-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Dihexosyldiacylglycerol&#39;</span><span class="p">:</span> <span class="s1">&#39;HexDAG&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Monohexosyldiacylglycerol&#39;</span><span class="p">:</span> <span class="s1">&#39;HexDAG&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Monoalkylmonoacylglycerol-O&#39;</span><span class="p">:</span> <span class="s1">&#39;DAG-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Monoalkyldiacylglycerol-O&#39;</span><span class="p">:</span> <span class="s1">&#39;TAG-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Monoalkylmonoacylglycerol&#39;</span><span class="p">:</span> <span class="s1">&#39;DAG-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;24-Hydroxy-19-norgeminivitamin D3&#39;</span><span class="p">:</span> <span class="s1">&#39;VD&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;NP40&#39;</span><span class="p">:</span> <span class="s1">&#39;P40&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Cer1P&#39;</span><span class="p">:</span> <span class="s1">&#39;CerP&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Phosphatidylcholine&#39;</span><span class="p">:</span> <span class="s1">&#39;PC&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Phosphatidylethanolamine&#39;</span><span class="p">:</span> <span class="s1">&#39;PE&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Phosphatidylcholine-O&#39;</span><span class="p">:</span> <span class="s1">&#39;PC-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Phosphatidylethanolamine-O&#39;</span><span class="p">:</span> <span class="s1">&#39;PE-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Dihexosyl ceramide&#39;</span><span class="p">:</span> <span class="s1">&#39;Hex2Cer&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Sulfodihexosyl ceramide&#39;</span><span class="p">:</span> <span class="s1">&#39;SHex2Cer&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;BMP / PG&#39;</span><span class="p">:</span> <span class="s1">&#39;PG/BMP&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;BMP/PG&#39;</span><span class="p">:</span> <span class="s1">&#39;PG/BMP&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Lyso-O-PE&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPE-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Lyso-O-PC&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPC-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Lyso-O-PG&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPG-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Lyso-O-PS&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPS-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;LysoO-PE&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPE-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;LysoO-PG&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPG-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;LysoO-PC&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPC-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;LysoO-PS&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPS-O&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;lysoPG&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPG&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Hex-Cer&#39;</span><span class="p">:</span> <span class="s1">&#39;HexCer&#39;</span>
+        <span class="p">}</span>
+        
+        <span class="n">shgs2</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;Ganglioside&#39;</span><span class="p">:</span> <span class="s1">&#39;GM&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Vit.A1&#39;</span><span class="p">:</span> <span class="s1">&#39;VA&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Vit. E metabolite&#39;</span><span class="p">:</span> <span class="s1">&#39;VE&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;SulfohexCer&#39;</span><span class="p">:</span> <span class="s1">&#39;SHexCer&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;SulfoHexCer&#39;</span><span class="p">:</span> <span class="s1">&#39;SHexCer&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Sulfo HexCer&#39;</span><span class="p">:</span> <span class="s1">&#39;SHexCer&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;SulfodihexCer&#39;</span><span class="p">:</span> <span class="s1">&#39;SHex2Cer&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;DiHexCer-OH&#39;</span><span class="p">:</span> <span class="s1">&#39;Hex2CerOH&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;DiHexCer&#39;</span><span class="p">:</span> <span class="s1">&#39;Hex2Cer&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;PI2xP&#39;</span><span class="p">:</span> <span class="s1">&#39;PIP2&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;MAMAG&#39;</span><span class="p">:</span> <span class="s1">&#39;DAG-O&#39;</span>
+        <span class="p">}</span>
+        
+        <span class="n">uhgs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;Hex2Cer&#39;</span><span class="p">:</span> <span class="s1">&#39;Hex2Cer&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Hex2Cer-OH&#39;</span><span class="p">:</span> <span class="s1">&#39;Hex2CerOH&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;HexCer-OH&#39;</span><span class="p">:</span> <span class="s1">&#39;HexCerOH&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;GM3&#39;</span><span class="p">:</span> <span class="s1">&#39;GM&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Detergent&#39;</span><span class="p">:</span> <span class="s1">&#39;P40&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Hex-Cer&#39;</span><span class="p">:</span> <span class="s1">&#39;HexCer&#39;</span>
+        <span class="p">}</span>
+        
+        <span class="k">def</span> <span class="nf">get_names</span><span class="p">(</span><span class="n">swl_names</span><span class="p">,</span> <span class="n">manual_names</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Extracts the lipid names and carbon counts</span>
+<span class="sd">            from the SwissLipids IDs field.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            
+            <span class="n">something</span>   <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">nothing</span>     <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="c1"># fixing typos and inconsequent naming:</span>
+            <span class="n">manual_name_1</span> <span class="o">=</span> <span class="n">manual_names</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">manual_name_1_l</span> <span class="o">=</span> <span class="n">manual_name_1</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            
+            <span class="k">if</span> <span class="p">(</span><span class="n">manual_name_1_l</span> <span class="o">==</span> <span class="s1">&#39;ambiguous&#39;</span> <span class="ow">or</span>
+                <span class="n">manual_name_1_l</span> <span class="o">==</span> <span class="s1">&#39;ambigous&#39;</span><span class="p">):</span>
+                
+                <span class="n">manual_name_1</span> <span class="o">=</span> <span class="s1">&#39;ambiguous&#39;</span>
+            
+            <span class="k">if</span> <span class="n">manual_name_1_l</span> <span class="o">==</span> <span class="s1">&#39;unknown&#39;</span> <span class="ow">or</span> <span class="n">manual_name_1_l</span> <span class="o">==</span> <span class="s1">&#39;unkown&#39;</span><span class="p">:</span>
+                <span class="n">manual_name_1</span> <span class="o">=</span> <span class="s1">&#39;NA&#39;</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">manual_name_1_l</span><span class="p">):</span>
+                <span class="n">manual_name_1</span> <span class="o">=</span> <span class="s1">&#39;NA&#39;</span>
+            
+            <span class="c1"># :done</span>
+            
+            <span class="c1"># testing if there is PG/BMP ambiguity</span>
+            <span class="n">pg_bmp</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="s1">&#39;BMP&#39;</span><span class="p">,</span> <span class="s1">&#39;PG&#39;</span><span class="p">])</span> <span class="o">-</span>
+                              <span class="nb">set</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                                  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">manual_names</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)))</span> <span class="ow">or</span> <span class="p">(</span>
+                    <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="s1">&#39;BMP&#39;</span><span class="p">,</span> <span class="s1">&#39;PG&#39;</span><span class="p">])</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span>
+                        <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="p">[[</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">headgroup_from_lipid_name</span><span class="p">([</span><span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">xx</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+                                <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+                            <span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">swl_names</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;///&#39;</span><span class="p">)])</span>
+                        <span class="p">)))</span>
+            
+            <span class="n">only_pg_bmp</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                                       <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">manual_names</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">))</span> <span class="o">-</span>
+                                   <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;BMP&#39;</span><span class="p">,</span> <span class="s1">&#39;PG&#39;</span><span class="p">]))</span> <span class="ow">or</span> <span class="p">(</span>
+                    <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span>
+                        <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="p">[[</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">headgroup_from_lipid_name</span><span class="p">([</span><span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">xx</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+                                <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+                            <span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">swl_names</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;///&#39;</span><span class="p">)])</span>
+                        <span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;BMP&#39;</span><span class="p">,</span> <span class="s1">&#39;PG&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">])))</span>
+            
+            <span class="k">for</span> <span class="n">lips</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="n">swl_names</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;///&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">only_swl_col</span> <span class="ow">or</span>
+                    <span class="n">manual_name_1</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span> <span class="ow">or</span>
+                    <span class="n">manual_name_1</span> <span class="o">==</span> <span class="s1">&#39;ambiguous&#39;</span> <span class="ow">or</span>
+                    <span class="n">manual_name_1</span> <span class="o">==</span> <span class="s1">&#39;adduct&#39;</span>
+                <span class="p">)</span> <span class="k">else</span> <span class="c1"># at Enric we use the manual names column:</span>
+                <span class="n">manual_names</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)):</span>
+                
+                <span class="n">lips</span> <span class="o">=</span> <span class="n">lips</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                
+                <span class="c1"># matching the adduct type</span>
+                <span class="n">add</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readd</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">lips</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">add</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">add</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">add</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                
+                <span class="k">for</span> <span class="n">lip</span> <span class="ow">in</span> <span class="n">lips</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">):</span>
+                    
+                    <span class="n">lip</span> <span class="o">=</span> <span class="n">lip</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    
+                    <span class="k">if</span> <span class="n">lip</span> <span class="ow">and</span> <span class="n">lip</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;(&#39;</span><span class="p">:</span>
+                        <span class="n">lip</span> <span class="o">=</span> <span class="n">lip</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                    
+                    <span class="k">if</span> <span class="s1">&#39;lyso&#39;</span> <span class="ow">in</span> <span class="n">lip</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                        <span class="n">lyso</span> <span class="o">=</span> <span class="s1">&#39;Lyso&#39;</span>
+                        <span class="n">manual_name_1</span> <span class="o">=</span> <span class="n">manual_name_1</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;yso-&#39;</span><span class="p">,</span> <span class="s1">&#39;yso&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">lyso</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                    
+                    <span class="n">swl_parsed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headgroup_from_lipid_name</span><span class="p">([</span><span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">lip</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+                    
+                    <span class="k">if</span> <span class="n">pg_bmp</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">lips</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;PG&#39;</span> <span class="ow">or</span> <span class="n">swl_parsed</span> <span class="o">==</span> <span class="s1">&#39;PG&#39;</span><span class="p">:</span>
+                            <span class="c1"># at PG we replace with PG/BMP</span>
+                            <span class="n">lips</span> <span class="o">=</span> <span class="n">lips</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;PG&#39;</span><span class="p">,</span> <span class="s1">&#39;PG/BMP&#39;</span><span class="p">)</span>
+                            <span class="n">fullhg</span> <span class="o">=</span> <span class="s1">&#39;PG/BMP&#39;</span>
+                            <span class="n">swl_parsed</span> <span class="o">=</span> <span class="s1">&#39;PG/BMP&#39;</span>
+                            <span class="k">if</span> <span class="n">only_pg_bmp</span><span class="p">:</span>
+                                <span class="n">manual_name_1</span> <span class="o">=</span> <span class="s1">&#39;PG/BMP&#39;</span>
+                        <span class="k">elif</span> <span class="n">lips</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;BMP&#39;</span> <span class="ow">or</span> <span class="n">swl_parsed</span> <span class="o">==</span> <span class="s1">&#39;BMP&#39;</span><span class="p">:</span>
+                            <span class="c1"># at BMP we skip</span>
+                            <span class="k">continue</span>
+                    
+                    <span class="k">if</span> <span class="n">swl_parsed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">swl_parsed</span> <span class="o">=</span> <span class="n">lip</span>
+                        <span class="k">if</span> <span class="s1">&#39;]&#39;</span> <span class="ow">in</span> <span class="n">swl_parsed</span><span class="p">:</span>
+                            <span class="n">swl_parsed</span> <span class="o">=</span> <span class="n">swl_parsed</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="n">swl_parsed</span> <span class="o">=</span> <span class="n">swl_parsed</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="s1">&#39;:&#39;</span> <span class="ow">in</span> <span class="n">swl_parsed</span><span class="p">:</span>
+                            <span class="n">swl_parsed</span> <span class="o">=</span> <span class="n">swl_parsed</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    
+                    <span class="k">if</span> <span class="s1">&#39;nothing&#39;</span> <span class="ow">in</span> <span class="n">swl_parsed</span><span class="p">:</span>
+                        <span class="n">swl_parsed</span> <span class="o">=</span> <span class="s1">&#39;NA&#39;</span>
+                    
+                    <span class="c1"># regex finds the total carbon count</span>
+                    <span class="n">cc1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recount1</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">lip</span><span class="p">)</span>
+                    
+                    <span class="c1"># special case if the fatty acid</span>
+                    <span class="c1"># name is greek name</span>
+                    <span class="k">if</span> <span class="n">swl_parsed</span> <span class="ow">in</span> <span class="n">fa_greek</span><span class="p">:</span>
+                        <span class="n">cc1</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">fa_greek</span><span class="p">[</span><span class="n">swl_parsed</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                                    <span class="n">fa_greek</span><span class="p">[</span><span class="n">swl_parsed</span><span class="p">][</span><span class="mi">1</span><span class="p">])]</span>
+                        <span class="n">swl_parsed</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span>
+                    
+                    <span class="c1"># a full headgroup name:</span>
+                    <span class="n">fullhg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="n">lyso</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">swl_parsed</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;Lyso&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                        <span class="n">swl_parsed</span><span class="p">,</span>
+                        <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;-O&#39;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cc1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">cc1</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;O&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    
+                    <span class="c1"># regex finds 2-3 fatty acids</span>
+                    <span class="n">cc2s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recount3</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">lip</span><span class="p">)</span>
+                    
+                    <span class="c1"># the total carbon count</span>
+                    <span class="n">ccpart</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="p">[</span><span class="n">cc1</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">cc1</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">cc1</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">])]</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cc1</span><span class="p">)</span> <span class="k">else</span>
+                        <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    
+                    <span class="c1"># carbon counts of fatty acids</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cc2s</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+                        <span class="nb">any</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">cc2</span><span class="p">:</span> <span class="n">cc2</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">cc2s</span><span class="p">))</span> <span class="ow">or</span>
+                        <span class="n">swl_parsed</span> <span class="o">==</span> <span class="s1">&#39;FA&#39;</span> <span class="ow">or</span>
+                        <span class="n">lyso</span>
+                    <span class="p">):</span>
+                        
+                        <span class="n">faccparts</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">list</span><span class="p">(</span>
+                                <span class="nb">map</span><span class="p">(</span>
+                                    <span class="k">lambda</span> <span class="n">cc2</span><span class="p">:</span>
+                                        <span class="p">[</span>
+                                            <span class="c1"># FA1</span>
+                                            <span class="n">cc2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                            <span class="nb">int</span><span class="p">(</span><span class="n">cc2</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                                            <span class="nb">int</span><span class="p">(</span><span class="n">cc2</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                                            <span class="c1"># FA2</span>
+                                            <span class="n">cc2</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                                            <span class="nb">int</span><span class="p">(</span><span class="n">cc2</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span> <span class="k">if</span> <span class="n">cc2</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                            <span class="nb">int</span><span class="p">(</span><span class="n">cc2</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="k">if</span> <span class="n">cc2</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                            <span class="c1"># FA3</span>
+                                            <span class="n">cc2</span><span class="p">[</span><span class="mi">6</span><span class="p">],</span>
+                                            <span class="nb">int</span><span class="p">(</span><span class="n">cc2</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span> <span class="k">if</span> <span class="n">cc2</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                            <span class="nb">int</span><span class="p">(</span><span class="n">cc2</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span> <span class="k">if</span> <span class="n">cc2</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                                        <span class="p">],</span>
+                                    <span class="nb">filter</span><span class="p">(</span>
+                                        <span class="k">lambda</span> <span class="n">cc2</span><span class="p">:</span>
+                                            <span class="c1"># if this is a Lyso species</span>
+                                            <span class="c1"># or single fatty acid</span>
+                                            <span class="c1"># we have only one cc:unsat</span>
+                                            <span class="c1"># otherwise we must have at least 2</span>
+                                            <span class="n">cc2</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="ow">or</span> <span class="n">swl_parsed</span> <span class="o">==</span> <span class="s1">&#39;FA&#39;</span> <span class="ow">or</span> <span class="n">lyso</span><span class="p">,</span>
+                                        <span class="n">cc2s</span>
+                                    <span class="p">)</span>
+                                <span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                        
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">faccparts</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="p">[</span>
+                                <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                            <span class="p">]</span>
+                        <span class="p">]</span>
+                    
+                    <span class="k">for</span> <span class="n">faccpart</span> <span class="ow">in</span> <span class="n">faccparts</span><span class="p">:</span>
+                        
+                        <span class="k">if</span> <span class="n">cc2s</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cc1</span><span class="p">:</span>
+                            <span class="n">ccpart</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="n">faccpart</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">([</span><span class="n">faccpart</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">faccpart</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">faccpart</span><span class="p">[</span><span class="mi">7</span><span class="p">]]),</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">([</span><span class="n">faccpart</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">faccpart</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">faccpart</span><span class="p">[</span><span class="mi">8</span><span class="p">]])</span>
+                            <span class="p">]</span>
+                        
+                        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">swl_parsed</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lyso</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">ccpart</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">faccpart</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fullhg</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">manual_name_1</span><span class="p">)</span>
+                        
+                        <span class="k">if</span> <span class="n">res</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span><span class="p">:</span>
+                            <span class="n">nothing</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">something</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">something</span> <span class="ow">or</span> <span class="n">nothing</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;manual&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">manual</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_manual2</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;lipnames&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">lipnames</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_lipid_names</span><span class="p">()</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">def</span> <span class="nf">get_uhg</span><span class="p">(</span><span class="n">cnt</span><span class="p">,</span> <span class="n">counts</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">cnt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ambiguous&#39;</span><span class="p">,</span> <span class="s1">&#39;adduct&#39;</span><span class="p">]:</span>
+                <span class="n">uhg</span> <span class="o">=</span> <span class="n">cnt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">uhg</span> <span class="o">=</span> <span class="n">cnt</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+            
+            <span class="k">if</span> <span class="n">uhg</span> <span class="ow">in</span> <span class="n">uhgs</span><span class="p">:</span>
+                <span class="n">uhg</span> <span class="o">=</span> <span class="n">uhgs</span><span class="p">[</span><span class="n">uhg</span><span class="p">]</span>
+            
+            <span class="n">uhg</span> <span class="o">=</span> <span class="n">uhg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-O-&#39;</span><span class="p">,</span> <span class="s1">&#39;-O&#39;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="p">(</span><span class="n">uhg</span> <span class="o">==</span> <span class="s1">&#39;NA&#39;</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span>
+                                 <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">counts</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)):</span>
+                <span class="n">uhg</span> <span class="o">=</span> <span class="n">cnt</span><span class="p">[</span><span class="mi">14</span><span class="p">]</span>
+            
+            <span class="k">return</span> <span class="n">uhg</span>
+        
+        <span class="k">for</span> <span class="n">protein</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manual</span><span class="p">):</span>
+            
+            <span class="k">for</span> <span class="n">mode</span><span class="p">,</span> <span class="n">tbl</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+                
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tbl</span><span class="p">):</span>
+                    
+                    <span class="n">counts</span> <span class="o">=</span> <span class="n">get_names</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">l</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                    
+                    <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">in</span> <span class="n">shgs2</span><span class="p">:</span>
+                        <span class="n">l</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">shgs2</span><span class="p">[</span><span class="n">l</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+                    
+                    <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">l</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">l</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">l</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">l</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span> <span class="o">+</span> \
+                        <span class="n">l</span><span class="p">[</span><span class="mi">8</span><span class="p">:</span><span class="mi">12</span><span class="p">]</span> <span class="c1"># 12 cols: protein -- rtup</span>
+                    
+                    <span class="c1">#this_feature_hgs = set([get_uhg(cnt, counts) for cnt in counts])</span>
+                    <span class="c1">#if not (set([&#39;PG&#39;, &#39;BMP&#39;]) - this_feature_hgs):</span>
+                    <span class="c1">#    pass</span>
+                    
+                    <span class="k">for</span> <span class="n">cnt</span> <span class="ow">in</span> <span class="n">counts</span><span class="p">:</span>
+                        <span class="n">res1</span> <span class="o">=</span> <span class="n">res</span><span class="p">[:]</span>
+                        
+                        <span class="k">if</span> <span class="n">cnt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;O&#39;</span><span class="p">:</span>
+                            <span class="n">cnt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-O&#39;</span> <span class="o">%</span> <span class="n">cnt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        
+                        <span class="k">if</span> <span class="n">cnt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">in</span> <span class="n">shgs</span><span class="p">:</span>
+                            <span class="n">cnt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">shgs</span><span class="p">[</span><span class="n">cnt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+                        
+                        <span class="n">cnt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cnt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                        
+                        <span class="k">for</span> <span class="n">hgi</span> <span class="ow">in</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">]:</span>
+                            
+                            <span class="k">if</span> <span class="n">cnt</span><span class="p">[</span><span class="n">hgi</span><span class="p">]</span> <span class="ow">in</span> <span class="n">shgs</span><span class="p">:</span>
+                                <span class="n">cnt</span><span class="p">[</span><span class="n">hgi</span><span class="p">]</span> <span class="o">=</span> <span class="n">shgs</span><span class="p">[</span><span class="n">cnt</span><span class="p">[</span><span class="n">hgi</span><span class="p">]]</span>
+                            <span class="k">if</span> <span class="n">cnt</span><span class="p">[</span><span class="n">hgi</span><span class="p">]</span> <span class="ow">in</span> <span class="n">shgs2</span><span class="p">:</span>
+                                <span class="n">cnt</span><span class="p">[</span><span class="n">hgi</span><span class="p">]</span> <span class="o">=</span> <span class="n">shgs2</span><span class="p">[</span><span class="n">cnt</span><span class="p">[</span><span class="n">hgi</span><span class="p">]]</span>
+                        
+                        <span class="n">uhg</span> <span class="o">=</span> <span class="n">get_uhg</span><span class="p">(</span><span class="n">cnt</span><span class="p">,</span> <span class="n">counts</span><span class="p">)</span>
+                        
+                        <span class="n">cnt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uhg</span><span class="p">)</span>
+                        
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cnt</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cnt</span><span class="p">[</span><span class="mi">4</span><span class="p">]):</span>
+                            <span class="n">cnt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%u</span><span class="s1">:</span><span class="si">%u</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                                <span class="n">cnt</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="k">if</span> <span class="n">cnt</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;NA&#39;</span> <span class="k">else</span> <span class="n">cnt</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span>
+                                <span class="n">cnt</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                                <span class="n">cnt</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+                            <span class="p">))</span>
+                            <span class="n">cnt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%u</span><span class="s1">:</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cnt</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">cnt</span><span class="p">[</span><span class="mi">4</span><span class="p">]))</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">cnt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;NA&#39;</span><span class="p">)</span>
+                            <span class="n">cnt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;NA&#39;</span><span class="p">)</span>
+                        
+                        <span class="n">facc</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">12</span><span class="p">]:</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cnt</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cnt</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]):</span>
+                                <span class="n">facc</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">cnt</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">cnt</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]))</span>
+                        
+                        <span class="n">facc</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">cc</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">%u</span><span class="s1">:</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cc</span><span class="p">,</span>
+                                            <span class="nb">sorted</span><span class="p">(</span><span class="n">facc</span><span class="p">)))</span>
+                        
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">facc</span><span class="p">):</span>
+                            <span class="n">cnt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                                <span class="n">cnt</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="k">if</span> <span class="n">cnt</span><span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;NA&#39;</span> <span class="k">else</span> <span class="n">cnt</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span>
+                                <span class="n">facc</span><span class="p">)</span>
+                            <span class="p">)</span>
+                            <span class="n">cnt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">facc</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">cnt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;NA&#39;</span><span class="p">)</span>
+                            <span class="n">cnt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;NA&#39;</span><span class="p">)</span>
+                        
+                        
+                        <span class="n">res1</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">cnt</span><span class="p">)</span>
+                        <span class="n">res1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">screen</span><span class="p">)</span>
+                        
+                        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res1</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df_header</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Results.auto_df"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.results.Results.auto_df">[docs]</a>    <span class="k">def</span> <span class="nf">auto_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">screen_name</span> <span class="o">=</span> <span class="s1">&#39;E&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compiles a data frame in the same format as `manual_df`</span>
+<span class="sd">        just from the programmatic results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">protein</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valids</span><span class="p">):</span>
+            
+            <span class="k">for</span> <span class="n">mode</span><span class="p">,</span> <span class="n">tbl</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+                
+                <span class="n">ii</span> <span class="o">=</span> <span class="mi">0</span>
+                
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">incl</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;good&#39;</span><span class="p">]):</span>
+                    
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">incl</span><span class="p">:</span>
+                        
+                        <span class="k">continue</span>
+                    
+                    <span class="n">mz</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;mz&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">oi</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">idlevel</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;idlevel&#39;</span><span class="p">][</span><span class="n">oi</span><span class="p">]</span>
+                    <span class="n">intensity</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;aaa&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+                    <span class="n">rt</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;rt&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">,:]</span>
+                    <span class="n">rtmean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;rt&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">,:])</span>
+                    <span class="n">rtms2</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;ms2rt&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    
+                    <span class="n">cids</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;cid&#39;</span><span class="p">][</span><span class="n">oi</span><span class="p">]</span>
+                    
+                    <span class="n">clm</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">cids</span><span class="p">:</span>
+                        <span class="n">clm</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span>
+                        <span class="n">cids</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;unknown&#39;</span><span class="p">]</span>
+                    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">cids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">clm</span> <span class="o">=</span> <span class="s1">&#39;ambiguous&#39;</span>
+                    
+                    <span class="k">for</span> <span class="n">lip</span> <span class="ow">in</span> <span class="n">cids</span><span class="p">:</span>
+                        
+                        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+                        
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">protein</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mz</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mz</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">intensity</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idlevel</span><span class="p">)</span>
+                        
+                        <span class="n">cl</span> <span class="o">=</span> <span class="n">lip</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">clm</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">clm</span>
+                        <span class="n">hg</span> <span class="o">=</span> <span class="s1">&#39;NA&#39;</span> <span class="k">if</span> <span class="n">clm</span> <span class="o">==</span> <span class="s1">&#39;unknown&#39;</span> <span class="k">else</span> <span class="n">lip</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="n">lyso</span> <span class="o">=</span> <span class="s1">&#39;Lyso&#39;</span> <span class="k">if</span> <span class="s1">&#39;lyso&#39;</span> <span class="ow">in</span> <span class="n">lip</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+                        <span class="n">hg</span> <span class="o">=</span> <span class="s1">&#39;NA&#39;</span> <span class="k">if</span> <span class="n">clm</span> <span class="o">==</span> <span class="s1">&#39;unknown&#39;</span> <span class="k">else</span> <span class="n">lip</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="n">pref</span> <span class="o">=</span> <span class="s1">&#39;O&#39;</span> <span class="k">if</span> <span class="s1">&#39;-O&#39;</span> <span class="ow">in</span> <span class="n">hg</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+                        <span class="k">if</span> <span class="s1">&#39;Cer&#39;</span> <span class="ow">in</span> <span class="n">hg</span><span class="p">:</span>
+                            <span class="n">pref</span> <span class="o">=</span> <span class="s1">&#39;d&#39;</span> <span class="k">if</span> <span class="s1">&#39;CerOH&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">hg</span> <span class="k">else</span> <span class="s1">&#39;t&#39;</span>
+                        
+                        <span class="k">if</span> <span class="n">pref</span> <span class="o">==</span><span class="s1">&#39;O&#39;</span><span class="p">:</span>
+                            <span class="n">hg</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-O&#39;</span> <span class="o">%</span> <span class="n">hg</span>
+                        
+                        <span class="n">hg0</span> <span class="o">=</span> <span class="n">hg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                            <span class="s1">&#39;-O&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                            <span class="s1">&#39;CerOH&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                            <span class="s1">&#39;Cer1P&#39;</span><span class="p">,</span> <span class="s1">&#39;CerP&#39;</span><span class="p">)</span>
+                        
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hg</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rtmean</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rtms2</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rt</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hg0</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lyso</span><span class="p">)</span>
+                        <span class="c1"># res.append(pref)</span>
+                        
+                        <span class="n">cc</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recount3</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">lip</span><span class="p">)</span>
+                        
+                        <span class="k">if</span> <span class="n">cc</span><span class="p">:</span>
+                            
+                            <span class="n">sumcc</span>  <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">cci</span><span class="p">:</span>
+                                            <span class="nb">int</span><span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cci</span><span class="p">])</span> <span class="k">if</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cci</span><span class="p">]</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+                                        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">7</span><span class="p">]))</span>
+                            <span class="n">sumuns</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">uni</span><span class="p">:</span>
+                                            <span class="nb">int</span><span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">uni</span><span class="p">])</span> <span class="k">if</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">uni</span><span class="p">]</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+                                        <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">]))</span>
+                            
+                            <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">pref</span><span class="p">,</span> <span class="n">sumcc</span><span class="p">,</span> <span class="n">sumuns</span><span class="p">])</span>
+                            
+                            <span class="n">hgcc</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%u</span><span class="s1">:</span><span class="si">%u</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">sumcc</span><span class="p">,</span> <span class="n">sumuns</span><span class="p">)</span>
+                            <span class="n">sumccuns</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%u</span><span class="s1">:</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sumcc</span><span class="p">,</span> <span class="n">sumuns</span><span class="p">)</span>
+                            <span class="n">fa</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span>
+                            <span class="k">if</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">4</span><span class="p">]:</span>
+                                <span class="n">fa</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fa</span><span class="p">,</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">4</span><span class="p">],</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">5</span><span class="p">])</span>
+                            <span class="k">if</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">7</span><span class="p">]:</span>
+                                <span class="n">fa</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fa</span><span class="p">,</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">7</span><span class="p">],</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">8</span><span class="p">])</span>
+                            
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">])</span>
+                            
+                            <span class="n">hgcc</span> <span class="o">=</span> <span class="s1">&#39;NA&#39;</span>
+                            <span class="n">sumccuns</span> <span class="o">=</span> <span class="s1">&#39;NA&#39;</span>
+                            <span class="n">fa</span> <span class="o">=</span> <span class="s1">&#39;NA&#39;</span>
+                        
+                        <span class="n">cc2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recount2</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">lip</span><span class="p">)</span>
+                        
+                        <span class="k">if</span> <span class="p">(</span>
+                            <span class="n">cc</span> <span class="ow">and</span>
+                            <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span>
+                            <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span>
+                                <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">4</span><span class="p">]</span> <span class="ow">or</span> <span class="n">hg</span> <span class="o">==</span> <span class="s1">&#39;FA&#39;</span> <span class="ow">or</span> <span class="n">lyso</span>
+                            <span class="p">)):</span>
+                            
+                            <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                                <span class="nb">int</span><span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span>
+                                <span class="nb">int</span><span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]),</span>
+                                <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">],</span>
+                                <span class="nb">int</span><span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">4</span><span class="p">])</span> <span class="k">if</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">4</span><span class="p">]</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                <span class="nb">int</span><span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">5</span><span class="p">])</span> <span class="k">if</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">5</span><span class="p">]</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">6</span><span class="p">],</span>
+                                <span class="nb">int</span><span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">7</span><span class="p">])</span> <span class="k">if</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">7</span><span class="p">]</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                <span class="nb">int</span><span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">8</span><span class="p">])</span> <span class="k">if</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">8</span><span class="p">]</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                            <span class="p">])</span>
+                            
+                        <span class="k">else</span><span class="p">:</span>
+                            
+                            <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                        <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                        <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">])</span>
+                        
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hg</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hg</span> <span class="k">if</span> <span class="n">clm</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">clm</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;NA&#39;</span> <span class="k">if</span> <span class="n">clm</span> <span class="o">==</span> <span class="s1">&#39;unknown&#39;</span> <span class="k">else</span> <span class="n">hg</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hgcc</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sumccuns</span><span class="p">)</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">fa</span><span class="p">))</span>
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fa</span><span class="p">)</span>
+                        
+                        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">screen_name</span><span class="p">)</span>
+                        
+                        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+                        
+                        <span class="n">ii</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">pauto</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df_header</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Results.headgroups_cross_screening"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.results.Results.headgroups_cross_screening">[docs]</a>    <span class="k">def</span> <span class="nf">headgroups_cross_screening</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label1</span> <span class="o">=</span> <span class="s1">&#39;Screen1&#39;</span><span class="p">,</span>
+                                   <span class="n">label2</span> <span class="o">=</span> <span class="s1">&#39;Screen2&#39;</span><span class="p">,</span>
+                                   <span class="n">idlevels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;I&#39;</span><span class="p">]),</span>
+                                   <span class="n">outfile</span> <span class="o">=</span> <span class="s1">&#39;headgroups_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">.tab&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Does a quick comparison at headgroup/protein level</span>
+<span class="sd">        between 2 screenings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">manual_df</span><span class="p">()</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">protein</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valids</span><span class="p">):</span>
+            
+            <span class="k">for</span> <span class="n">mode</span><span class="p">,</span> <span class="n">tbl</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+                
+                <span class="n">s1_hg</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                    <span class="nb">map</span><span class="p">(</span>
+                        <span class="k">lambda</span> <span class="n">hg</span><span class="p">:</span>
+                            <span class="n">hg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-O&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="p">[</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="o">.</span><span class="n">protein</span> <span class="o">==</span> <span class="n">protein</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="o">.</span><span class="n">ionm</span>    <span class="o">==</span> <span class="n">mode</span>
+                                <span class="p">),</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">idlevels</span><span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">][</span><span class="s1">&#39;uhgroup&#39;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                
+                <span class="n">s2_hg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="nb">set</span><span class="p">(</span>
+                        <span class="n">reduce</span><span class="p">(</span>
+                            <span class="k">lambda</span> <span class="n">h1</span><span class="p">,</span> <span class="n">h2</span><span class="p">:</span>
+                                <span class="n">h1</span> <span class="o">|</span> <span class="n">h2</span><span class="p">,</span>
+                            <span class="nb">map</span><span class="p">(</span>
+                                <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span>
+                                    <span class="nb">set</span><span class="p">(</span>
+                                        <span class="nb">map</span><span class="p">(</span>
+                                            <span class="k">lambda</span> <span class="n">hgfa</span><span class="p">:</span>
+                                                <span class="n">hgfa</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+                                            <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;cid&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                                        <span class="p">)</span>
+                                    <span class="p">),</span>
+                                <span class="nb">filter</span><span class="p">(</span>
+                                    <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span>
+                                        <span class="p">(</span>
+                                            <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;slobb&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="ow">and</span>
+                                            <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;idlevel&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="ow">in</span> <span class="n">idlevels</span>
+                                        <span class="p">),</span>
+                                    <span class="nb">enumerate</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">])</span>
+                                <span class="p">)</span>
+                            <span class="p">),</span>
+                            <span class="nb">set</span><span class="p">([])</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                
+                <span class="k">for</span> <span class="n">hg12</span> <span class="ow">in</span> <span class="p">(</span><span class="n">s2_hg</span> <span class="o">&amp;</span> <span class="n">s1_hg</span><span class="p">):</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">),</span> <span class="n">hg12</span><span class="p">,</span>
+                                   <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label1</span><span class="p">,</span> <span class="n">label2</span><span class="p">)])</span>
+                
+                <span class="k">for</span> <span class="n">hg1</span> <span class="ow">in</span> <span class="p">(</span><span class="n">s1_hg</span> <span class="o">-</span> <span class="n">s2_hg</span><span class="p">):</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">),</span> <span class="n">hg1</span><span class="p">,</span> <span class="n">label1</span><span class="p">])</span>
+                
+                <span class="k">for</span> <span class="n">hg2</span> <span class="ow">in</span> <span class="p">(</span><span class="n">s2_hg</span> <span class="o">-</span> <span class="n">s1_hg</span><span class="p">):</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">),</span> <span class="n">hg2</span><span class="p">,</span> <span class="n">label2</span><span class="p">])</span>
+        
+        <span class="n">outfile</span> <span class="o">=</span> <span class="n">outfile</span> <span class="o">%</span> <span class="p">(</span><span class="n">label1</span><span class="p">,</span> <span class="n">label2</span><span class="p">)</span>
+        
+        <span class="n">hdr</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;protein_mode&#39;</span><span class="p">,</span> <span class="s1">&#39;hg&#39;</span><span class="p">,</span> <span class="s1">&#39;found_in&#39;</span><span class="p">]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">cross_screen_hg</span> <span class="o">=</span> <span class="n">result</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hdr</span><span class="p">))</span>
+            
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">row</span><span class="p">),</span> <span class="n">result</span><span class="p">)))</span></div>
+    
+<div class="viewcode-block" id="Results.bubble_altair"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.results.Results.bubble_altair">[docs]</a>    <span class="k">def</span> <span class="nf">bubble_altair</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;II&#39;</span><span class="p">],</span>
+                      <span class="n">subtitle</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                      <span class="n">main_title</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+        
+        <span class="n">smodes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="s1">&#39;-&#39;</span><span class="p">}</span>
+        <span class="c1"># select the classes</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">classes</span><span class="p">)]</span>
+        
+        <span class="n">nrows</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ncols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">ionm</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+        <span class="n">subplot_titles</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">allhgs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">headgroup</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+        <span class="n">unsat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">unsat</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">unsat</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">carb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">carb</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">carb</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">inte</span> <span class="o">=</span> <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">intensity</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">intensity</span><span class="p">))</span>
+        <span class="n">traces</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">xlim</span> <span class="o">=</span> <span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">unsat</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">unsat</span><span class="p">)]</span>
+        <span class="n">ylim</span> <span class="o">=</span> <span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">carb</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">carb</span><span class="p">)]</span>
+        
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;protein&#39;</span><span class="p">,</span> <span class="s1">&#39;ionm&#39;</span><span class="p">])</span>
+        
+        <span class="n">a</span> <span class="o">=</span> <span class="n">altair</span><span class="o">.</span><span class="n">Chart</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">mark_point</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="s1">&#39;protein&#39;</span><span class="p">,</span>
+            <span class="n">column</span> <span class="o">=</span> <span class="s1">&#39;ionm&#39;</span><span class="p">,</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="s1">&#39;Intensity:average(intensity)&#39;</span><span class="p">,</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">altair</span><span class="o">.</span><span class="n">X</span><span class="p">(</span><span class="s1">&#39;unsat&#39;</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="n">altair</span><span class="o">.</span><span class="n">Axis</span><span class="p">(</span><span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;Unsaturated count&#39;</span><span class="p">)),</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">altair</span><span class="o">.</span><span class="n">Y</span><span class="p">(</span><span class="s1">&#39;carb&#39;</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="n">altair</span><span class="o">.</span><span class="n">Axis</span><span class="p">(</span><span class="n">title</span> <span class="o">=</span> <span class="s1">&#39;Carbon count&#39;</span><span class="p">))</span>
+        <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">a</span></div>
+    
+<div class="viewcode-block" id="Results.export_df"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.results.Results.export_df">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">export_df</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Exports the results from a `pandas.DataFrame` to csv.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="s1">&#39;sep&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;sep&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span>
+        <span class="k">if</span> <span class="s1">&#39;na_rep&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;na_rep&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;NaN&#39;</span>
+        <span class="k">if</span> <span class="s1">&#39;index&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Results.bubble_plotly"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.results.Results.bubble_plotly">[docs]</a>    <span class="k">def</span> <span class="nf">bubble_plotly</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                     <span class="n">classes</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;II&#39;</span><span class="p">],</span>
+                     <span class="n">subtitle</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                     <span class="n">main_title</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+        
+        <span class="n">smodes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="s1">&#39;-&#39;</span><span class="p">}</span>
+        <span class="c1"># select the classes</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pmanual</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">classes</span><span class="p">)]</span>
+        
+        <span class="n">nrows</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ncols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">ionm</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+        <span class="n">subplot_titles</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">allhgs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">headgroup</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+        <span class="n">unsat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">unsat</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">unsat</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">carb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">carb</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">carb</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">inte</span> <span class="o">=</span> <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">intensity</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">intensity</span><span class="p">))</span>
+        <span class="n">traces</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">xlim</span> <span class="o">=</span> <span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">unsat</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">unsat</span><span class="p">)]</span>
+        <span class="n">ylim</span> <span class="o">=</span> <span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">carb</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">carb</span><span class="p">)]</span>
+        
+        <span class="k">for</span> <span class="n">protein</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">protein</span><span class="o">.</span><span class="n">unique</span><span class="p">()):</span>
+            <span class="n">nrows</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+            <span class="k">for</span> <span class="n">mode</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">ionm</span><span class="o">.</span><span class="n">unique</span><span class="p">()):</span>
+                
+                <span class="n">subplot_titles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">protein</span><span class="p">,</span>
+                     <span class="n">smodes</span><span class="p">[</span><span class="n">mode</span><span class="p">],</span>
+                     <span class="s1">&#39;, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">subtitle</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subtitle</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+                
+                <span class="n">this_data</span> <span class="o">=</span> \
+                    <span class="n">data</span><span class="p">[(</span><span class="n">data</span><span class="o">.</span><span class="n">protein</span> <span class="o">==</span> <span class="n">protein</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">ionm</span> <span class="o">==</span> <span class="n">mode</span><span class="p">)]</span>
+                
+                <span class="n">vals</span> <span class="o">=</span> <span class="n">this_data</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;carb&#39;</span><span class="p">,</span> <span class="s1">&#39;unsat&#39;</span><span class="p">])[</span><span class="s1">&#39;intensity&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="c1">#print(list(iteritems(vals)))</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">inte</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+                
+                <span class="c1">#print(protein, x, y, s)</span>
+                
+                <span class="n">traces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">,</span>
+                                         <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;markers&#39;</span><span class="p">,</span>
+                                         <span class="n">marker</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">size</span> <span class="o">=</span> <span class="n">s</span><span class="p">,</span> <span class="n">sizemode</span> <span class="o">=</span> <span class="s1">&#39;area&#39;</span><span class="p">,</span> <span class="n">sizeref</span> <span class="o">=</span> <span class="mf">0.0001</span><span class="p">),</span>
+                                         <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">smodes</span><span class="p">[</span><span class="n">mode</span><span class="p">]),</span> <span class="n">fill</span> <span class="o">=</span> <span class="s1">&#39;#333333&#39;</span><span class="p">,</span> <span class="n">showlegend</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                         <span class="n">xaxis</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">range</span> <span class="o">=</span> <span class="n">xlim</span><span class="p">),</span>
+                                         <span class="n">yaxis</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">range</span> <span class="o">=</span> <span class="n">ylim</span><span class="p">))</span>
+                                    <span class="p">)</span>
+        
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plotly</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">make_subplots</span><span class="p">(</span><span class="n">rows</span><span class="o">=</span><span class="n">nrows</span><span class="p">,</span>
+                                         <span class="n">cols</span><span class="o">=</span><span class="n">ncols</span><span class="p">,</span>
+                                         <span class="n">print_grid</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                         <span class="n">subplot_titles</span><span class="o">=</span><span class="n">subplot_titles</span>
+                                        <span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">trace</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">traces</span><span class="p">):</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">append_trace</span><span class="p">(</span><span class="n">trace</span><span class="p">,</span> <span class="n">row</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="n">ncols</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">col</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">%</span> <span class="n">ncols</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">height</span> <span class="o">=</span> <span class="n">nrows</span> <span class="o">*</span> <span class="mi">500</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mi">600</span><span class="p">,</span> <span class="n">title</span> <span class="o">=</span> <span class="n">main_title</span><span class="p">,</span>
+                             <span class="n">xaxis</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">range</span> <span class="o">=</span> <span class="n">xlim</span><span class="p">),</span> <span class="n">yaxis</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">range</span> <span class="o">=</span> <span class="n">ylim</span><span class="p">))</span>
+        
+        <span class="n">pl</span><span class="o">.</span><span class="n">iplot</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">show_link</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Results.piecharts_plotly"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.results.Results.piecharts_plotly">[docs]</a>    <span class="k">def</span> <span class="nf">piecharts_plotly</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by_class</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">main_title</span> <span class="o">=</span> <span class="s1">&#39;Lipid classes by protein&#39;</span><span class="p">,</span> <span class="n">result_classes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;I&#39;</span><span class="p">}):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plots piecharts of detected lipids for each protein based on manually</span>
+<span class="sd">        annotated results.</span>
+<span class="sd">        Uses plotly, output accessible in Jupyter notebook.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">def</span> <span class="nf">get_names</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">by_class</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+            
+            <span class="n">counts</span> <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="k">for</span> <span class="n">lips</span> <span class="ow">in</span> <span class="n">r</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;///&#39;</span><span class="p">):</span>
+                
+                <span class="k">for</span> <span class="n">lip</span> <span class="ow">in</span> <span class="n">lips</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">):</span>
+                    
+                    <span class="k">if</span> <span class="s1">&#39;nothing&#39;</span> <span class="ow">in</span> <span class="n">lip</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">lip</span><span class="o">.</span><span class="n">strip</span><span class="p">()):</span>
+                        <span class="k">continue</span>
+                    
+                    <span class="n">cl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headgroup_from_lipid_name</span><span class="p">([</span><span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">lip</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+                    
+                    <span class="k">if</span> <span class="n">cl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">cl</span> <span class="o">=</span> <span class="n">lip</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="s1">&#39;:&#39;</span> <span class="ow">in</span> <span class="n">cl</span><span class="p">:</span>
+                            <span class="n">cl</span> <span class="o">=</span> <span class="n">cl</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    
+                    <span class="k">if</span> <span class="n">by_class</span><span class="p">:</span>
+                        <span class="n">cc</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">cc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recount2</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">lip</span><span class="p">)</span>
+                        
+                        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">cc</span><span class="p">):</span>
+                            <span class="n">cc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recount1</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">lip</span><span class="p">)</span>
+                        
+                        <span class="n">cc</span> <span class="o">=</span> <span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;?&#39;</span>
+                    
+                    <span class="n">counts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cl</span><span class="p">,</span> <span class="n">cc</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span> <span class="k">else</span> <span class="n">cl</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">counts</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;manual&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">manual</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_manual</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;lipnames&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">lipnames</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_lipid_names</span><span class="p">()</span>
+        
+        <span class="n">main_title</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> (class </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">main_title</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">result_classes</span><span class="p">))))</span>
+        
+        <span class="n">modes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="s1">&#39;positive&#39;</span><span class="p">,</span> <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="s1">&#39;negative&#39;</span><span class="p">}</span>
+        <span class="n">smodes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="s1">&#39;-&#39;</span><span class="p">}</span>
+        <span class="n">nrows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manual</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">))</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="mi">500</span> <span class="o">*</span> <span class="n">nrows</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="n">main_title</span><span class="p">,</span>
+                <span class="s1">&#39;annotations&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s1">&#39;autosize&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mi">600</span><span class="p">,</span>
+                <span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="n">height</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        
+        <span class="n">traces</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1">#fig = plotly.tools.make_subplots(rows=nrows, cols=2, print_grid = False)</span>
+                          <span class="c1">#subplot_titles=(&#39;First Subplot&#39;,&#39;Second Subplot&#39;, &#39;Third Subplot&#39;))</span>
+        
+        <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">protein</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">manual</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            
+            <span class="k">for</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;neg&#39;</span><span class="p">,</span> <span class="s1">&#39;pos&#39;</span><span class="p">]:</span>
+                
+                
+                <span class="n">this_data</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">this_anno</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;font&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span> <span class="s1">&#39;showarrow&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+                <span class="n">lab_val</span> <span class="o">=</span> <span class="p">{}</span>
+                
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">manual</span><span class="p">[</span><span class="n">protein</span><span class="p">][</span><span class="n">mode</span><span class="p">]:</span>
+                    
+                    <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">in</span> <span class="n">result_classes</span><span class="p">:</span>
+                        
+                        <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">get_names</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">by_class</span> <span class="o">=</span> <span class="n">by_class</span><span class="p">))</span>
+                        
+                        <span class="k">if</span> <span class="n">label</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lab_val</span><span class="p">:</span>
+                            <span class="n">lab_val</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+                        
+                        <span class="n">lab_val</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">+=</span> <span class="n">r</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+                    
+                <span class="n">this_data</span><span class="p">[</span><span class="s1">&#39;labels&#39;</span><span class="p">],</span> <span class="n">this_data</span><span class="p">[</span><span class="s1">&#39;values&#39;</span><span class="p">]</span> <span class="o">=</span> \
+                    <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">(</span><span class="n">lab_val</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> \
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lab_val</span><span class="p">)</span> <span class="k">else</span> <span class="p">([</span><span class="s1">&#39;None&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">this_data</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">, </span><span class="se">\n</span><span class="s1">sum of intensities&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">modes</span><span class="p">[</span><span class="n">mode</span><span class="p">])</span>
+                <span class="n">this_data</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pie&#39;</span>
+                <span class="n">this_data</span><span class="p">[</span><span class="s1">&#39;hole&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.4</span>
+                <span class="n">this_data</span><span class="p">[</span><span class="s1">&#39;hoverinfo&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;label+percent+name&#39;</span>
+                <span class="n">this_data</span><span class="p">[</span><span class="s1">&#39;domain&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="n">n</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span>
+                        <span class="n">n</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="mf">0.5</span>
+                    <span class="p">],</span>
+                    <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">0.48</span> <span class="o">/</span> <span class="n">nrows</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">n</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.003</span><span class="p">),</span>
+                        <span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">0.48</span> <span class="o">/</span> <span class="n">nrows</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">n</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.003</span><span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">}</span>
+                <span class="n">this_pie</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Pie</span><span class="p">(</span><span class="o">**</span><span class="n">this_data</span><span class="p">)</span>
+                <span class="n">traces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_pie</span><span class="p">)</span>
+                
+                <span class="c1"># print(&#39;%s: n = %u,   %s&#39; % (protein, n, str(this_data[&#39;domain&#39;])))</span>
+                
+                <span class="c1"># fig.append_trace(this_pie, int(n % 2 + 1), int(np.floor(n / 2.0) + 1))</span>
+                <span class="n">this_anno</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> [</span><span class="si">%s</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">smodes</span><span class="p">[</span><span class="n">mode</span><span class="p">])</span>
+                <span class="n">this_anno</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="mf">0.25</span>
+                <span class="n">this_anno</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">0.48</span> <span class="o">/</span> <span class="n">nrows</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">n</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.48</span> <span class="o">/</span> <span class="n">nrows</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
+                <span class="n">this_anno</span><span class="p">[</span><span class="s1">&#39;xanchor&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;center&#39;</span>
+                <span class="n">this_anno</span><span class="p">[</span><span class="s1">&#39;yanchor&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;middle&#39;</span>
+                
+                <span class="n">param</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_data</span><span class="p">)</span>
+                <span class="n">param</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">][</span><span class="s1">&#39;annotations&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_anno</span><span class="p">)</span>
+                
+                <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="n">layout</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Layout</span><span class="p">(</span><span class="n">annotations</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">][</span><span class="s1">&#39;annotations&#39;</span><span class="p">],</span>
+                        <span class="n">height</span> <span class="o">=</span> <span class="n">height</span><span class="p">,</span> <span class="n">title</span> <span class="o">=</span> <span class="n">main_title</span><span class="p">,</span>
+                        <span class="c1">#width = 600, autosize = False</span>
+                        <span class="p">)</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">traces</span><span class="p">,</span> <span class="n">layout</span> <span class="o">=</span> <span class="n">layout</span><span class="p">)</span>
+        <span class="c1"># print(param)</span>
+        <span class="c1">#fig[&#39;layout&#39;].update(showlegend = True, title = &#39;Lipid classes by protein&#39;)</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">iplot</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">show_link</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

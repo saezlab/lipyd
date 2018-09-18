@@ -1,0 +1,1472 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.lipid &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.lipid</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.lipid</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">iteritems</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+
+<span class="kn">import</span> <span class="nn">lipyd.metabolite</span> <span class="k">as</span> <span class="nn">metabolite</span>
+<span class="kn">import</span> <span class="nn">lipyd.substituent</span> <span class="k">as</span> <span class="nn">substituent</span>
+<span class="kn">import</span> <span class="nn">lipyd.formula</span> <span class="k">as</span> <span class="nn">formula</span>
+<span class="kn">import</span> <span class="nn">lipyd.common</span> <span class="k">as</span> <span class="nn">common</span>
+<span class="kn">import</span> <span class="nn">lipyd.lipproc</span> <span class="k">as</span> <span class="nn">lipproc</span>
+
+
+<span class="n">fattyacids</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;FattyAcid&#39;</span>
+<span class="p">]</span>
+
+<span class="n">misc</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;VitaminA&#39;</span>
+<span class="p">]</span>
+
+<span class="c1"># will be populated by the factory</span>
+<span class="n">glycerolipids</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">glycerophospholipids</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">sphingolipids</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="c1">#</span>
+<span class="c1"># Glycerolipids</span>
+<span class="c1">#</span>
+
+<div class="viewcode-block" id="AbstractGlycerol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.AbstractGlycerol">[docs]</a><span class="k">class</span> <span class="nc">AbstractGlycerol</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">sn1</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span>
+            <span class="n">sn2</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span>
+            <span class="n">sn3</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">pcharge</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">ncharge</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Glycerol&#39;</span><span class="p">,</span>
+            <span class="n">typ</span>  <span class="o">=</span> <span class="s1">&#39;G&#39;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">pcharge</span> <span class="o">=</span> <span class="n">pcharge</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncharge</span> <span class="o">=</span> <span class="n">ncharge</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">netcharge</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">charge</span>
+                <span class="k">if</span> <span class="n">charge</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pcharge</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncharge</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">typ</span> <span class="o">=</span> <span class="n">typ</span>
+        <span class="n">hg</span> <span class="o">=</span> <span class="n">hg</span> <span class="ow">or</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="n">name</span><span class="p">)</span>
+        
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">core</span> <span class="o">=</span> <span class="s1">&#39;C3H5O3&#39;</span><span class="p">,</span>
+            <span class="n">subs</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_substituent</span><span class="p">(</span><span class="n">sn1</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_substituent</span><span class="p">(</span><span class="n">sn2</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_substituent</span><span class="p">(</span><span class="n">sn3</span><span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">netcharge</span><span class="p">,</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">hg</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<span class="c1">#</span>
+<span class="c1"># Glycerophospholipids</span>
+<span class="c1">#</span>
+
+<div class="viewcode-block" id="AbstractGlycerolipid"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.AbstractGlycerolipid">[docs]</a><span class="k">class</span> <span class="nc">AbstractGlycerolipid</span><span class="p">(</span><span class="n">AbstractGlycerol</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">headgroup</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span>
+            <span class="n">phospho</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">lyso</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">ether</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">fa_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;GL&#39;</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">typ</span>  <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sn3_fa</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">lyso_sn1_fa</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">sn2_fa_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sn3_fa_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sn1_ether</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">sn2_ether</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">sn3_ether</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Represents a generic glycerolipid.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param str headgroup:</span>
+<span class="sd">            Formula of the moiety attached to the phosphate.</span>
+<span class="sd">        :param bool phospho:</span>
+<span class="sd">            Is this a glycerophospholipid? If `True` implicitely</span>
+<span class="sd">            adds `PO3H` to sn3 position hence only the remaining</span>
+<span class="sd">            part of the headgroup needs to be defined, e.g. choline.</span>
+<span class="sd">        :param bool lyso:</span>
+<span class="sd">            Whether it is a lyso form or not.</span>
+<span class="sd">        :param bool ether:</span>
+<span class="sd">            Whether it is an ether i.e. having fatty alcohol</span>
+<span class="sd">            ether on one or both of the sn1 and sn2 positions.</span>
+<span class="sd">        :param dict fa_args:</span>
+<span class="sd">            Arguments for the `substituent.FattyAcyl()`.</span>
+<span class="sd">        :param str name:</span>
+<span class="sd">            Name stem of the lipid class.</span>
+<span class="sd">        :param str typ:</span>
+<span class="sd">            Name of the lipid family, here should be GL or GPL,</span>
+<span class="sd">            which is set automatically depending on `phospho`.</span>
+<span class="sd">        :param bool sn3_fa:</span>
+<span class="sd">            Is there a 3rd fatty acyl or alkyl moiety at the sn3 position?</span>
+<span class="sd">        :param bool lyso_sn1_fa:</span>
+<span class="sd">            In case of lyso form is the alkyl ester/ether</span>
+<span class="sd">            in sn1 position?</span>
+<span class="sd">        :param dict sn2_fa_args:</span>
+<span class="sd">            If the sn2 fatty acyl or alkyl has</span>
+<span class="sd">            different parameters; if `None` it defaults to `fa_args`.</span>
+<span class="sd">        :param dict sn3_fa_args:</span>
+<span class="sd">            If the sn3 fatty acyl or alkyl has</span>
+<span class="sd">            different parameters; if `None` it defaults to `fa_args`.</span>
+<span class="sd">        :param bool sn1_ether:</span>
+<span class="sd">            If `ether` is `True`, is there ether in sn1</span>
+<span class="sd">            position? If `ether` is `True` but both this and `sn2_ether`</span>
+<span class="sd">            are `False`, sn1 ether position assumed.</span>
+<span class="sd">        :param bool sn2_ether:</span>
+<span class="sd">            If `ether` is `True`, is there ether in sn2</span>
+<span class="sd">            position?</span>
+<span class="sd">        :param bool sn3_ether:</span>
+<span class="sd">            If `ether` is `True`, is there ether in sn3</span>
+<span class="sd">            position? For example to hace trialkyl-glycerol</span>
+<span class="sd">            set `sn1_ether`, `sn2_ether` and `sn3_ether` all</span>
+<span class="sd">            to `True`.</span>
+<span class="sd">        :param **kwargs:</span>
+<span class="sd">            Passed to `AbstractGlycerol` and finally to</span>
+<span class="sd">            `metabolite.AbstractMetabolite`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">def</span> <span class="nf">get_cls</span><span class="p">(</span><span class="n">fa</span><span class="p">,</span> <span class="n">ether</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Returns `substituent.FattyAcyl` or `substituent.FattyAlkoxy`</span>
+<span class="sd">            class for sn1 and sn2 positions and or `None` if the hydroxyl</span>
+<span class="sd">            group is free.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="kc">None</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lyso</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">fa</span> <span class="k">else</span>
+                <span class="n">substituent</span><span class="o">.</span><span class="n">FattyAlkoxy</span>
+                <span class="k">if</span> <span class="n">ether</span> <span class="k">else</span>
+                <span class="n">substituent</span><span class="o">.</span><span class="n">FattyAcyl</span>
+            <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fa_args</span> <span class="o">=</span> <span class="n">fa_args</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lyso</span> <span class="o">=</span> <span class="n">lyso</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ether</span> <span class="o">=</span> <span class="n">ether</span>
+        <span class="c1"># ether is default on sn1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sn2_ether</span> <span class="o">=</span> <span class="n">sn2_ether</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sn3_ether</span> <span class="o">=</span> <span class="n">sn3_ether</span>
+        <span class="c1"># both sn1 and sn2 can be ether if set explicitely</span>
+        <span class="c1"># otherwise sn1 is ether sn2 is ester</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sn1_ether</span> <span class="o">=</span> <span class="n">sn1_ether</span> <span class="ow">or</span> <span class="p">(</span><span class="n">ether</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">sn2_ether</span><span class="p">)</span>
+        <span class="c1"># in lyso forms the alkyl ester/ether is on the sn1 by default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lyso_sn1_fa</span> <span class="o">=</span> <span class="n">lyso_sn1_fa</span>
+        
+        <span class="c1"># by default all fatty acyls have the same parameters</span>
+        <span class="c1"># except if arguments given explicitely</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sn1_fa_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fa_args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sn2_fa_args</span> <span class="o">=</span> <span class="n">sn2_fa_args</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fa_args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sn3_fa_args</span> <span class="o">=</span> <span class="n">sn3_fa_args</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fa_args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sn1_cls</span> <span class="o">=</span> <span class="n">get_cls</span><span class="p">(</span><span class="n">lyso_sn1_fa</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sn1_ether</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sn2_cls</span> <span class="o">=</span> <span class="n">get_cls</span><span class="p">(</span><span class="ow">not</span> <span class="n">lyso_sn1_fa</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sn2_ether</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sn3_cls</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">sn3_fa</span> <span class="k">else</span> <span class="n">get_cls</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sn3_ether</span><span class="p">)</span>
+        
+        <span class="k">def</span> <span class="nf">_getname</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">subs</span><span class="p">):</span>
+            
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">lipproc</span><span class="o">.</span><span class="n">summary_str</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span>
+                    <span class="n">lipproc</span><span class="o">.</span><span class="n">sum_chains</span><span class="p">(</span>
+                        <span class="nb">tuple</span><span class="p">(</span>
+                            <span class="n">s</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">chain</span>
+                            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">subs</span>
+                            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span> <span class="s1">&#39;chain&#39;</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum_only</span> <span class="k">else</span>
+                <span class="n">lipproc</span><span class="o">.</span><span class="n">full_str</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span>
+                    <span class="nb">tuple</span><span class="p">(</span>
+                        <span class="n">s</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">chain</span>
+                        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">subs</span>
+                        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span> <span class="s1">&#39;chain&#39;</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        
+        <span class="n">AbstractGlycerol</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">sn1</span>  <span class="o">=</span> <span class="p">(</span>
+                <span class="s1">&#39;H&#39;</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sn1_cls</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sn1_cls</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">sn1_fa_args</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">sn2</span>  <span class="o">=</span> <span class="p">(</span>
+                <span class="s1">&#39;H&#39;</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sn2_cls</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sn2_cls</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">sn2_fa_args</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">sn3</span>  <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="s1">&#39;PO3H</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">headgroup</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">phospho</span> <span class="k">else</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sn3_cls</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">sn3_fa_args</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sn3_cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span>
+                <span class="n">headgroup</span>
+            <span class="p">),</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">,</span>
+            <span class="n">typ</span>  <span class="o">=</span> <span class="n">typ</span> <span class="ow">or</span> <span class="p">(</span><span class="s1">&#39;GPL&#39;</span> <span class="k">if</span> <span class="n">phospho</span> <span class="k">else</span> <span class="s1">&#39;GL&#39;</span><span class="p">),</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="n">getname</span> <span class="ow">or</span> <span class="n">_getname</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">hg</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<span class="c1"># just an exemple (or reference) how to create a specific</span>
+<span class="c1"># glycerolipid on top of the abstract one</span>
+<div class="viewcode-block" id="Phosphatidylethanolamine"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.Phosphatidylethanolamine">[docs]</a><span class="k">class</span> <span class="nc">Phosphatidylethanolamine</span><span class="p">(</span><span class="n">AbstractGlycerolipid</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="n">AbstractGPL</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">headgroup</span> <span class="o">=</span> <span class="s1">&#39;C2H4NH2&#39;</span><span class="p">,</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;PE&#39;</span><span class="p">,</span>
+            <span class="n">typ</span>  <span class="o">=</span> <span class="s1">&#39;PE&#39;</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="s1">&#39;PE&#39;</span><span class="p">),</span>
+            <span class="n">pcharge</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">ncharge</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GlycerolipidFactory"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.GlycerolipidFactory">[docs]</a><span class="k">class</span> <span class="nc">GlycerolipidFactory</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">fa1_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">fa2_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">double_ester</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">ether_ester</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">lyso_ester</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">lyso_ether</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Populates glycerolipid classes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">fa1_args</span> <span class="o">=</span> <span class="n">fa1_args</span> <span class="ow">or</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">)}</span>
+        <span class="n">fa2_args</span> <span class="o">=</span> <span class="n">fa2_args</span> <span class="ow">or</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">)}</span>
+        
+        <span class="n">l_classes</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s1">&#39;C2H3NH3&#39;</span><span class="p">,</span> <span class="s1">&#39;PE&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C2H3NC3H9&#39;</span><span class="p">,</span> <span class="s1">&#39;PC&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C2H3NH2COOH&#39;</span><span class="p">,</span> <span class="s1">&#39;PS&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C3H5O2H2&#39;</span><span class="p">,</span> <span class="s1">&#39;PG&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C3H5O2H2&#39;</span><span class="p">,</span> <span class="s1">&#39;BMP&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;PA&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C3O2H8PO3&#39;</span><span class="p">,</span> <span class="s1">&#39;PGP&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C6O5H11&#39;</span><span class="p">,</span> <span class="s1">&#39;PI&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C6O5H12PO3&#39;</span><span class="p">,</span> <span class="s1">&#39;PIP&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C6O5H13P2O6&#39;</span><span class="p">,</span> <span class="s1">&#39;PIP2&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C6O5H14P3O9&#39;</span><span class="p">,</span> <span class="s1">&#39;PIP3&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">((</span><span class="kc">True</span><span class="p">,),</span> <span class="s1">&#39;MAG&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">((</span><span class="kc">False</span><span class="p">,),</span> <span class="s1">&#39;MAG&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">((</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span> <span class="s1">&#39;DAG&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">((</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span> <span class="s1">&#39;DAG&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">((</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span> <span class="s1">&#39;TAG&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">((</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span> <span class="s1">&#39;TAG&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C7H14NO2&#39;</span><span class="p">,</span> <span class="s1">&#39;DGTS&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C7H14NO3&#39;</span><span class="p">,</span> <span class="s1">&#39;DGCC&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C7H14NO2&#39;</span><span class="p">,</span> <span class="s1">&#39;DGTA&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C6O7SH11&#39;</span><span class="p">,</span> <span class="s1">&#39;SQDG&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C6O5H11&#39;</span><span class="p">,</span> <span class="s1">&#39;MGDG&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C12O10H21&#39;</span><span class="p">,</span> <span class="s1">&#39;DGDG&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="n">l_ether</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
+        <span class="n">l_lyso</span>  <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
+        
+        <span class="n">docs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;DGDG&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    https://pubchem.ncbi.nlm.nih.gov/compound/52922098</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;PE&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000096355/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.PE(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 26, &#39;u&#39;: 0},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 22, &#39;u&#39;: 6}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 903.6717059967399</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;EtherPE&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000029613/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.EtherPE(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 16, &#39;u&#39;: 0},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 28, &#39;u&#39;: 0}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 845.7237415701001</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;LysoPE&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000055415/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.EtherPE(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 18, &#39;u&#39;: 1}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 479.30118982806</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;MonoalkylGlycerol&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000308014/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.MonoalkylGlycerol(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 18, &#39;u&#39;: 2}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 340.297745151</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;MonoalkylMonoacylGlycerol&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000321943/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.MonoalkylMonoacylGlycerol(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 20, &#39;u&#39;: 1},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 24, &#39;u&#39;: 6}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 708.6056610616</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;MonoalkylDiacylGlycerol&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000198889/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.MonoalkylDiacylGlycerol(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 18, &#39;u&#39;: 0},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 17, &#39;u&#39;: 0},</span>
+<span class="sd">                            sn3_fa_args = {&#39;c&#39;: 22, &#39;u&#39;: 0}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 918.89792690768</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;TriacylGlycerol&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000237541/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.TriacylGlycerol(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 18, &#39;u&#39;: 1},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 26, &#39;u&#39;: 0},</span>
+<span class="sd">                            sn3_fa_args = {&#39;c&#39;: 16, &#39;u&#39;: 1}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 970.89284152788</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;DiacylGlycerol&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000124274/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.DiacylGlycerol(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 18, &#39;u&#39;: 4},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 24, &#39;u&#39;: 5}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 690.5223253592001</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;PI&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000016800/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.PI(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 38, &#39;u&#39;: 5},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 18, &#39;u&#39;: 3}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 1130.7762306419602</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;PGP&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000412170/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.PGP(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 16, &#39;u&#39;: 2},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 26, &#39;u&#39;: 5}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 928.5230667049199</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;PC&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000011977/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.PC(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 18, &#39;u&#39;: 3},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 34, &#39;u&#39;: 4}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 999.76560638386</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;EtherPA&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000085779/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.EtherPA(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 15, &#39;u&#39;: 0},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 30, &#39;u&#39;: 4}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 808.6345922110401</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;PS&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000002856/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.PS(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 34, &#39;u&#39;: 6},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 28, &#39;u&#39;: 5}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 1133.80238581782</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;PG&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000072349/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.PG(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 20, &#39;u&#39;: 4},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 34, &#39;u&#39;: 5}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 1012.71323645876</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;PIP&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000495110/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.PIP(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 32, &#39;u&#39;: 5},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 13, &#39;u&#39;: 0}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 1062.61736101716</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;PIP2&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000491707/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.PIP2(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 16, &#39;u&#39;: 1},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 38, &#39;u&#39;: 5}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 1266.70889242468</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;PIP3&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000492994/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.PIP3(</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: 18, &#39;u&#39;: 1},</span>
+<span class="sd">                            sn2_fa_args = {&#39;c&#39;: 36, &#39;u&#39;: 5}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 1346.6790633754044</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;LysoDGTS&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://sci-hub.tw/https://iubmb.onlinelibrary.wiley.com/</span>
+<span class="sd">                        doi/pdf/10.1002/biof.1427</span>
+<span class="sd">                    https://pubchem.ncbi.nlm.nih.gov/compound/133017251</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        
+        <span class="n">mod</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="p">(</span><span class="n">headgroup</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">phospho</span><span class="p">),</span> <span class="n">ether</span><span class="p">,</span> <span class="n">lyso</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span>
+                <span class="n">l_classes</span><span class="p">,</span> <span class="n">l_ether</span><span class="p">,</span> <span class="n">l_lyso</span>
+            <span class="p">):</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">lyso</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ether</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">double_ester</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">ether</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">lyso</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ether_ester</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">lyso</span> <span class="ow">and</span> <span class="n">ether</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">lyso_ether</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">lyso</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ether</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">lyso_ester</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">phospho</span> <span class="ow">and</span> <span class="n">ether</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="n">phospho</span> <span class="ow">and</span>
+                <span class="n">lyso</span> <span class="ow">and</span>
+                <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">headgroup</span><span class="p">,</span> <span class="n">common</span><span class="o">.</span><span class="n">basestring</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">continue</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">phospho</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">headgroup</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span><span class="p">:</span>
+                    
+                    <span class="c1"># neutral glycerolipids</span>
+                    
+                    <span class="n">faa</span> <span class="o">=</span> <span class="n">headgroup</span>
+                    <span class="n">sn1_ether</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">faa</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">sn2_ether</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">faa</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">faa</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">False</span>
+                    <span class="n">sn3_ether</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">faa</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">faa</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="kc">False</span>
+                    <span class="n">lyso</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">faa</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+                    <span class="n">sn3_fa</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">faa</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+                    <span class="n">headgroup</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span>
+                    <span class="n">child</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gl_class_name</span><span class="p">(</span><span class="n">faa</span><span class="p">)</span>
+                    
+                <span class="k">else</span><span class="p">:</span>
+                    
+                    <span class="n">sn1_ether</span> <span class="o">=</span> <span class="n">sn2_ether</span> <span class="o">=</span> <span class="n">sn3_ether</span> <span class="o">=</span> <span class="n">sn3_fa</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">child</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;Lyso&#39;</span> <span class="k">if</span> <span class="n">lyso</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sn1_ether</span> <span class="o">=</span> <span class="n">sn2_ether</span> <span class="o">=</span> <span class="n">sn3_ether</span> <span class="o">=</span> <span class="n">sn3_fa</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">child</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpl_class_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">lyso</span><span class="p">,</span> <span class="n">ether</span><span class="p">)</span>
+            
+            <span class="n">exec</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;def __init__(self, **kwargs):</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;    </span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;    AbstractGlycerolipid.__init__(</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        self,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        headgroup = </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        name = </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        phospho = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        lyso = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        ether = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        sn1_ether = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        sn2_ether = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        sn3_ether = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        sn3_fa = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        hg = lipproc.Headgroup(</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;            main = </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;            sub = (</span><span class="si">%s</span><span class="s1">)</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        ),</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        **kwargs</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        )</span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="p">)</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">headgroup</span><span class="p">,</span>
+                    <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;Lyso&#39;</span> <span class="k">if</span> <span class="n">phospho</span> <span class="ow">and</span> <span class="n">lyso</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">phospho</span><span class="p">),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">lyso</span><span class="p">),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">ether</span><span class="p">),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">sn1_ether</span><span class="p">),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">sn2_ether</span><span class="p">),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">sn3_ether</span><span class="p">),</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">sn3_fa</span><span class="p">),</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="c1"># MAG has only one chain but we don&#39;t name it Lyso</span>
+                    <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">Lyso</span><span class="se">\&#39;</span><span class="s1">,&#39;</span> <span class="k">if</span> <span class="n">lyso</span> <span class="ow">and</span> <span class="n">name</span> <span class="o">!=</span> <span class="s1">&#39;MAG&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+                <span class="p">),</span>
+                <span class="n">mod</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span>
+                <span class="n">mod</span><span class="o">.</span><span class="vm">__dict__</span>
+            <span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">docs</span><span class="p">:</span>
+                
+                <span class="n">mod</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;__init__&#39;</span><span class="p">]</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">docs</span><span class="p">[</span><span class="n">child</span><span class="p">]</span>
+            
+            <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span>
+                <span class="n">child</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">AbstractGlycerolipid</span><span class="p">,</span> <span class="p">),</span>
+                <span class="p">{</span><span class="s1">&#39;__init__&#39;</span><span class="p">:</span> <span class="n">mod</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;__init__&#39;</span><span class="p">]}</span>
+            <span class="p">)</span>
+            
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">phospho</span><span class="p">:</span>
+                
+                <span class="n">glycerophospholipids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                
+                <span class="n">glycerolipids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+        
+        <span class="nb">delattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s1">&#39;__init__&#39;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="GlycerolipidFactory.gpl_class_name"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.GlycerolipidFactory.gpl_class_name">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">gpl_class_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">lyso</span><span class="p">,</span> <span class="n">ether</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="s1">&#39;Lyso&#39;</span> <span class="k">if</span> <span class="n">lyso</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Ether&#39;</span> <span class="k">if</span> <span class="n">ether</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">name</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="GlycerolipidFactory.gl_class_name"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.GlycerolipidFactory.gl_class_name">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">gl_class_name</span><span class="p">(</span><span class="n">faa</span><span class="p">):</span>
+        
+        <span class="n">cnt</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">faa</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">Glycerol&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">alkyl&#39;</span> <span class="o">%</span> <span class="n">common</span><span class="o">.</span><span class="n">count_prefix</span><span class="p">[</span><span class="n">cnt</span><span class="p">[</span><span class="kc">False</span><span class="p">]]</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="kc">False</span> <span class="ow">in</span> <span class="n">cnt</span> <span class="k">else</span>
+                <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">acyl&#39;</span> <span class="o">%</span> <span class="n">common</span><span class="o">.</span><span class="n">count_prefix</span><span class="p">[</span><span class="n">cnt</span><span class="p">[</span><span class="kc">True</span><span class="p">]]</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="kc">True</span> <span class="ow">in</span> <span class="n">cnt</span> <span class="k">else</span>
+                <span class="s1">&#39;&#39;</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div></div>
+
+<span class="c1">#</span>
+<span class="c1"># Shpingolipids</span>
+<span class="c1">#</span>
+
+<div class="viewcode-block" id="AbstractSphingolipid"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.AbstractSphingolipid">[docs]</a><span class="k">class</span> <span class="nc">AbstractSphingolipid</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">core</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span>
+            <span class="n">sph</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sph_args</span>  <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">charge</span>    <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">pcharge</span>   <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">ncharge</span>   <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">lcb_type</span>  <span class="o">=</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Sphingolipid&#39;</span><span class="p">,</span>
+            <span class="n">subtype</span> <span class="o">=</span> <span class="p">(),</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        
+        <span class="n">sph_args</span> <span class="o">=</span> <span class="n">sph_args</span> <span class="ow">or</span> <span class="p">{}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">pcharge</span> <span class="o">=</span> <span class="n">pcharge</span> <span class="ow">or</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ncharge</span> <span class="o">=</span> <span class="n">ncharge</span> <span class="ow">or</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charge</span>  <span class="o">=</span> <span class="p">(</span>
+                <span class="n">charge</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span> <span class="k">else</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pcharge</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncharge</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">lcb_type</span>     <span class="o">=</span> <span class="n">lcb_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hg</span> <span class="o">=</span> <span class="n">hg</span> <span class="ow">or</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="n">subtype</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">sph</span><span class="p">:</span>
+            
+            <span class="c1"># this is necessary because we have only 8:0 standard for kSph</span>
+            <span class="c1"># TODO: find a better solution for this</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">lcb_type</span> <span class="o">==</span> <span class="s1">&#39;k&#39;</span> <span class="ow">and</span> <span class="p">(</span>
+                    <span class="s1">&#39;keto8&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sph_args</span> <span class="ow">or</span>
+                    <span class="n">sph_args</span><span class="p">[</span><span class="s1">&#39;keto8&#39;</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">):</span>
+                
+                <span class="k">if</span> <span class="s1">&#39;c&#39;</span> <span class="ow">in</span> <span class="n">sph_args</span><span class="p">:</span>
+                    <span class="n">sph_args</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">sph_args</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">])</span>
+                            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">sph_args</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">int</span> <span class="k">else</span>
+                        <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">sph_args</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sph_args</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+            
+            <span class="n">sph</span> <span class="o">=</span> <span class="n">substituent</span><span class="o">.</span><span class="n">Sphingosine</span><span class="p">(</span><span class="n">lcb_type</span> <span class="o">=</span> <span class="n">lcb_type</span><span class="p">,</span> <span class="o">**</span><span class="n">sph_args</span><span class="p">)</span>
+        
+        <span class="k">def</span> <span class="nf">_getname</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">subs</span><span class="p">):</span>
+            
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">lipproc</span><span class="o">.</span><span class="n">summary_str</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span>
+                    <span class="n">lipproc</span><span class="o">.</span><span class="n">sum_chains</span><span class="p">(</span>
+                        <span class="nb">tuple</span><span class="p">(</span>
+                            <span class="n">s</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">chain</span>
+                            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">subs</span>
+                            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span> <span class="s1">&#39;chain&#39;</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum_only</span> <span class="k">else</span>
+                <span class="n">lipproc</span><span class="o">.</span><span class="n">full_str</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span>
+                    <span class="nb">tuple</span><span class="p">(</span>
+                        <span class="n">s</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">chain</span>
+                        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">subs</span>
+                        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span> <span class="s1">&#39;chain&#39;</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">core</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">subs</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">sph</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_substituent</span><span class="p">(</span><span class="n">n</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_substituent</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">hg</span><span class="p">,</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="n">getname</span> <span class="ow">or</span> <span class="n">_getname</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+<span class="c1">#</span>
+<span class="c1"># Ceramides and Sphingomyelins</span>
+<span class="c1">#</span>
+
+<div class="viewcode-block" id="AbstractCeramide"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.AbstractCeramide">[docs]</a><span class="k">class</span> <span class="nc">AbstractCeramide</span><span class="p">(</span><span class="n">AbstractSphingolipid</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">core</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">sph_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">fa_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span>
+            <span class="n">lyso</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">fa_hydroxy</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">lcb_type</span> <span class="o">=</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        
+        <span class="n">sph_args</span> <span class="o">=</span> <span class="n">sph_args</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">fa_args</span>  <span class="o">=</span> <span class="n">fa_args</span>  <span class="ow">or</span> <span class="p">{}</span>
+        
+        <span class="k">if</span> <span class="n">lyso</span><span class="p">:</span>
+            <span class="n">fa</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span>
+        <span class="k">elif</span> <span class="n">fa_hydroxy</span><span class="p">:</span>
+            <span class="n">fa</span> <span class="o">=</span> <span class="n">substituent</span><span class="o">.</span><span class="n">HydroxyFattyAcyl</span><span class="p">(</span><span class="o">**</span><span class="n">fa_args</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fa</span> <span class="o">=</span> <span class="n">substituent</span><span class="o">.</span><span class="n">FattyAcyl</span><span class="p">(</span><span class="o">**</span><span class="n">fa_args</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fa_hydroxy</span> <span class="o">=</span> <span class="n">fa_hydroxy</span>
+        
+        <span class="n">hg</span> <span class="o">=</span> <span class="n">hg</span> <span class="ow">or</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;Cer&#39;</span><span class="p">)</span>
+        
+        <span class="n">AbstractSphingolipid</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">o</span><span class="p">,</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">fa</span><span class="p">,</span>
+            <span class="n">sph_args</span> <span class="o">=</span> <span class="n">sph_args</span><span class="p">,</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="n">getname</span><span class="p">,</span>
+            <span class="n">lcb_type</span> <span class="o">=</span> <span class="n">lcb_type</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">hg</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SphingolipidFactory"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.SphingolipidFactory">[docs]</a><span class="k">class</span> <span class="nc">SphingolipidFactory</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="n">lcb_name</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;d&#39;</span><span class="p">:</span>  <span class="s1">&#39;D&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;t&#39;</span><span class="p">:</span>  <span class="s1">&#39;T&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;DH&#39;</span><span class="p">:</span> <span class="s1">&#39;Dihydro&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;k&#39;</span><span class="p">:</span>  <span class="s1">&#39;Keto&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="n">pre_subclass_name</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;M1&#39;</span><span class="p">:</span>    <span class="s1">&#39;Methyl&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;M2&#39;</span><span class="p">:</span>    <span class="s1">&#39;Dimethyl&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;M3&#39;</span><span class="p">:</span>    <span class="s1">&#39;Trimethyl&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Hex&#39;</span><span class="p">:</span>   <span class="s1">&#39;Hexosyl&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Hex2&#39;</span><span class="p">:</span>  <span class="s1">&#39;Dihexosyl&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;SHex&#39;</span><span class="p">:</span>  <span class="s1">&#39;SulfoHexosyl&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;SHex2&#39;</span><span class="p">:</span> <span class="s1">&#39;SulfoDihexosyl&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="n">post_subclass_name</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;1P&#39;</span><span class="p">:</span> <span class="s1">&#39;Phosphate&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PE&#39;</span><span class="p">:</span> <span class="s1">&#39;PE&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PI&#39;</span><span class="p">:</span> <span class="s1">&#39;PI&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PC&#39;</span><span class="p">:</span> <span class="s1">&#39;PC&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fa_args_1o</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="n">fa_args_1o</span> <span class="o">=</span> <span class="n">fa_args_1o</span> <span class="ow">or</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">)}</span>
+        
+        <span class="n">l_lcb</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="s1">&#39;DH&#39;</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">]</span>
+        <span class="n">l_fa_hydroxy</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+        <span class="n">l_classes</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="c1"># 1-O substituent, headgroup main class,</span>
+            <span class="c1"># headgroup subclass, N-acyl</span>
+            <span class="c1">#</span>
+            <span class="c1"># ceramides with various 1-O groups</span>
+            <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;PO3H2&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;1P&#39;</span><span class="p">,),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C12H21O10SO3&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;SHex2&#39;</span><span class="p">,),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C6H11O5SO3&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;SHex&#39;</span><span class="p">,),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C12H21O10&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Hex2&#39;</span><span class="p">,),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C6H11O5&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Hex&#39;</span><span class="p">,),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;PO3C2H4NC3H9&#39;</span><span class="p">,</span> <span class="s1">&#39;SM&#39;</span><span class="p">,</span> <span class="p">(),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;PO3C2H4NH3&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;PE&#39;</span><span class="p">,),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;1OAcyl&#39;</span><span class="p">,),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="c1"># lyso varieties</span>
+            <span class="p">(</span><span class="s1">&#39;C12H21O10SO3&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;SHex2&#39;</span><span class="p">,</span> <span class="s1">&#39;Lyso&#39;</span><span class="p">),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C6H11O5SO3&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;SHex&#39;</span><span class="p">,</span> <span class="s1">&#39;Lyso&#39;</span><span class="p">),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C12H21O10&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Hex2&#39;</span><span class="p">,</span> <span class="s1">&#39;Lyso&#39;</span><span class="p">),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;C6H11O5&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Hex&#39;</span><span class="p">,</span> <span class="s1">&#39;Lyso&#39;</span><span class="p">),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;PO3C2H4NC3H9&#39;</span><span class="p">,</span> <span class="s1">&#39;SM&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Lyso&#39;</span><span class="p">,),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;PO3C2H4NH3&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;PE&#39;</span><span class="p">,</span> <span class="s1">&#39;Lyso&#39;</span><span class="p">),</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="c1"># sphingosines with various 1-O and N groups</span>
+            <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="p">(),</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;PO3H2&#39;</span><span class="p">,</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;1P&#39;</span><span class="p">,),</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;HCH2&#39;</span><span class="p">,</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;M1&#39;</span><span class="p">,),</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;HC2H4&#39;</span><span class="p">,</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;M2&#39;</span><span class="p">,),</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;HC3H5&#39;</span><span class="p">,</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;M3&#39;</span><span class="p">,),</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;PO3C2H4NC3H9&#39;</span><span class="p">,</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;PC&#39;</span><span class="p">,),</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">]</span>
+        
+        <span class="n">docs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;CeramideDPE&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000398516/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.CeramideDPE(</span>
+<span class="sd">                            sph_args = {&#39;c&#39;: (16, 16), &#39;u&#39;: (0, 0)},</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: (30, 30), &#39;u&#39;: (6, 6)}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 818.63017553472</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;SulfoDihexosylCeramideD&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000396884/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.SulfoDihexosylCeramideD(</span>
+<span class="sd">                            sph_args = {&#39;c&#39;: (18, 18), &#39;u&#39;: (1, 1)},</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: (18, 18), &#39;u&#39;: (1, 1)}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 967.59020697344</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;DihexosylCeramideD&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000395342/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.DihexosylCeramideD(</span>
+<span class="sd">                            sph_args = {&#39;c&#39;: (18, 18), &#39;u&#39;: (1, 1)},</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: (26, 26), &#39;u&#39;: (0, 0)}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 1001.77424251862</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;SulfoHexosylCeramideD&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000396804/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.SulfoHexosylCeramideD(</span>
+<span class="sd">                            sph_args = {&#39;c&#39;: (18, 18), &#39;u&#39;: (1, 1)},</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: (18, 18), &#39;u&#39;: (2, 2)}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 803.5217334853199</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;HexosylCeramideD&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000395423/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.HexosylCeramideD(</span>
+<span class="sd">                            sph_args = {&#39;c&#39;: (18, 18), &#39;u&#39;: (1, 1)},</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: (16, 16), &#39;u&#39;: (0, 0)}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 699.56491844982</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;SphingomyelinT&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000485623/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.SphingomyelinT(</span>
+<span class="sd">                            sph_args = {&#39;c&#39;: (17, 17), &#39;u&#39;: (0, 0)},</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: (32, 32), &#39;u&#39;: (5, 5)}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 920.73464060656</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;SphingomyelinD&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000397988/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.SphingomyelinD(</span>
+<span class="sd">                            sph_args = {&#39;c&#39;: (16, 16), &#39;u&#39;: (1, 1)},</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: (18, 18), &#39;u&#39;: (1, 1)}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 700.5519252121201</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;HydroxyacylCeramideD&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000397236/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.HydroxyacylCeramideD(</span>
+<span class="sd">                            sph_args = {&#39;c&#39;: (14, 14), &#39;u&#39;: (1, 1)},</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: (20, 20), &#39;u&#39;: (1, 1)}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 551.4913595819</span>
+<span class="sd">                    </span>
+<span class="sd">                    551.4913595819 - formula.Formula(&#39;O&#39;).mass = 535.4964449617</span>
+<span class="sd">                    </span>
+<span class="sd">                    I.e. this species is always one oxygen heavier than the</span>
+<span class="sd">                    corresponding dCer.</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;DihydroCeramide&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                This is isobaric with dCer.</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;CeramideT&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000395636/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.CeramideT(</span>
+<span class="sd">                            sph_args = {&#39;c&#39;: (18, 18), &#39;u&#39;: (0, 0)},</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: (10, 10), &#39;u&#39;: (0, 0)}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 471.42875932382003</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;CeramideD&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    http://www.swisslipids.org/#/entity/SLM:000397236/</span>
+<span class="sd">                    </span>
+<span class="sd">                    [(m.name, m.mass) for m in</span>
+<span class="sd">                        lipid.CeramideD(</span>
+<span class="sd">                            sph_args = {&#39;c&#39;: (14, 14), &#39;u&#39;: (1, 1)},</span>
+<span class="sd">                            fa_args = {&#39;c&#39;: (20, 20), &#39;u&#39;: (1, 1)}</span>
+<span class="sd">                        )</span>
+<span class="sd">                    ]</span>
+<span class="sd">                    </span>
+<span class="sd">                    exact mass = 535.4964449617</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;LysoSphingomyelinD&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    https://www.caymanchem.com/product/10007947</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;LysoHexosylCeramideD&#39;</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Example:</span>
+<span class="sd">                    https://www.matreya.com/BVModules/ProductTemplates/</span>
+<span class="sd">                    Matreya/Product.aspx?productid=1305</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        
+        <span class="n">mod</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">lcb</span><span class="p">,</span> <span class="n">fa_hydroxy</span><span class="p">,</span> <span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">subtype</span><span class="p">,</span> <span class="n">nacyl</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">l_lcb</span><span class="p">,</span> <span class="n">l_fa_hydroxy</span><span class="p">,</span> <span class="n">l_classes</span><span class="p">)</span>
+        <span class="p">):</span>
+            
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">lcb</span> <span class="o">==</span> <span class="s1">&#39;k&#39;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">nacyl</span> <span class="ow">or</span> <span class="n">subtype</span><span class="p">))</span> <span class="ow">or</span>
+                <span class="p">(</span><span class="n">fa_hydroxy</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">nacyl</span><span class="p">)</span>
+            <span class="p">):</span>
+                
+                <span class="k">continue</span>
+            
+            <span class="n">parent</span><span class="p">,</span> <span class="n">child</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_name</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">subtype</span><span class="p">,</span> <span class="n">lcb</span><span class="p">,</span> <span class="n">fa_hydroxy</span><span class="p">,</span> <span class="n">o</span><span class="p">,</span> <span class="n">nacyl</span>
+            <span class="p">)</span>
+            
+            <span class="n">exec</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;def __init__(self, </span><span class="si">%s</span><span class="s1">**kwargs):</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;    </span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;    </span><span class="si">%s</span><span class="s1">.__init__(</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        self,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        o = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        name = </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        hg = lipproc.Headgroup(</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;            main = </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;            sub = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        ),</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        lcb_type = </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        lyso = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        </span><span class="si">%s</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        **kwargs</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;        )</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    
+                <span class="p">)</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="c1"># `fa_args_1o` is an argument for</span>
+                    <span class="c1"># 1-O-acyl ceramides</span>
+                    <span class="p">(</span>
+                        <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">fa_args_1o = </span><span class="si">%s</span><span class="s1">,</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">fa_args_1o</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">o</span> <span class="ow">is</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                    <span class="c1"># the 1O substituent is a fatty acyl</span>
+                    <span class="c1"># if o is None</span>
+                    <span class="p">(</span>
+                        <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">    fa1o = substituent.FattyAcyl(&#39;</span>
+                        <span class="s1">&#39;**fa_args_1o)</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">o</span> <span class="ow">is</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                    <span class="n">parent</span><span class="p">,</span>
+                    <span class="s1">&#39;fa1o&#39;</span> <span class="k">if</span> <span class="n">o</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">o</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">subtype</span><span class="p">),</span>
+                    <span class="n">lcb</span><span class="p">,</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;Lyso&#39;</span> <span class="ow">in</span> <span class="n">subtype</span><span class="p">),</span>
+                    <span class="s1">&#39;fa_hydroxy = True,</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="k">if</span> <span class="n">fa_hydroxy</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">mod</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span>
+                <span class="n">mod</span><span class="o">.</span><span class="vm">__dict__</span>
+            <span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">docs</span><span class="p">:</span>
+                
+                <span class="n">mod</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;__init__&#39;</span><span class="p">]</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">docs</span><span class="p">[</span><span class="n">child</span><span class="p">]</span>
+            
+            <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span>
+                <span class="n">child</span><span class="p">,</span>
+                <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">parent</span><span class="p">),</span> <span class="p">),</span>
+                <span class="p">{</span><span class="s1">&#39;__init__&#39;</span><span class="p">:</span> <span class="n">mod</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;__init__&#39;</span><span class="p">]}</span>
+            <span class="p">)</span>
+            
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">child</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+            
+            <span class="n">sphingolipids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+        
+        <span class="nb">delattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="s1">&#39;__init__&#39;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="SphingolipidFactory.class_name"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.SphingolipidFactory.class_name">[docs]</a>    <span class="k">def</span> <span class="nf">class_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">subtype</span><span class="p">,</span> <span class="n">lcb</span><span class="p">,</span> <span class="n">hydroxyacyl</span><span class="p">,</span> <span class="n">o</span><span class="p">,</span> <span class="n">nacyl</span><span class="p">):</span>
+        
+        <span class="n">lcbtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lcb_name</span><span class="p">[</span><span class="n">lcb</span><span class="p">]</span> <span class="k">if</span> <span class="n">lcb</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lcb_name</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        
+        <span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="s1">&#39;Ceramide&#39;</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;Cer&#39;</span> <span class="k">else</span>
+            <span class="s1">&#39;Sphingomyelin&#39;</span>
+                <span class="k">if</span> <span class="n">nacyl</span> <span class="k">else</span>
+            <span class="s1">&#39;Sphingosine&#39;</span><span class="p">,</span>
+            <span class="n">lcbtype</span>
+        <span class="p">)</span>
+        
+        <span class="n">parent</span> <span class="o">=</span> <span class="s1">&#39;AbstractCeramide&#39;</span> <span class="k">if</span> <span class="n">nacyl</span> <span class="k">else</span> <span class="s1">&#39;AbstractSphingolipid&#39;</span>
+        
+        <span class="n">child</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s%s%s%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="s1">&#39;Hydroxyacyl&#39;</span> <span class="k">if</span> <span class="n">hydroxyacyl</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Lyso&#39;</span> <span class="k">if</span> <span class="s1">&#39;Lyso&#39;</span> <span class="ow">in</span> <span class="n">subtype</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pre_subclass_name</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">subtype</span>
+                    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_subclass_name</span>
+                <span class="p">),</span>
+                <span class="n">main</span><span class="p">,</span>
+                <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">post_subclass_name</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">subtype</span>
+                    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_subclass_name</span>
+                <span class="p">),</span>
+                <span class="s1">&#39;1OAcyl&#39;</span> <span class="k">if</span> <span class="n">o</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">parent</span><span class="p">,</span> <span class="n">child</span></div></div>
+
+<span class="c1">#</span>
+<span class="c1"># Fatty acids</span>
+<span class="c1">#</span>
+
+<div class="viewcode-block" id="FattyAcid"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.FattyAcid">[docs]</a><span class="k">class</span> <span class="nc">FattyAcid</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">fa_counts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sub</span> <span class="o">=</span> <span class="p">(),</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        
+        <span class="k">def</span> <span class="nf">_getname</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">subs</span><span class="p">):</span>
+            
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%u</span><span class="s1">:</span><span class="si">%u</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">subs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">subs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">u</span><span class="p">)</span>
+        
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">core</span> <span class="o">=</span> <span class="s1">&#39;OH&#39;</span><span class="p">,</span>
+            <span class="n">subs</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">substituent</span><span class="o">.</span><span class="n">FattyAcyl</span><span class="p">(</span><span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">fa_counts</span><span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">()),</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="n">getname</span> <span class="ow">or</span> <span class="n">_getname</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+<span class="c1">#</span>
+<span class="c1"># Vitamins</span>
+<span class="c1">#</span>
+
+<div class="viewcode-block" id="VitaminA"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.VitaminA">[docs]</a><span class="k">class</span> <span class="nc">VitaminA</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">fa_counts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sub</span> <span class="o">=</span> <span class="p">(),</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        
+        <span class="k">def</span> <span class="nf">_getname</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">subs</span><span class="p">):</span>
+            
+            <span class="k">return</span> <span class="s1">&#39;VA&#39;</span>
+        
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">core</span> <span class="o">=</span> <span class="s1">&#39;C19H26&#39;</span><span class="p">,</span>
+            <span class="n">subs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="p">(</span>
+                    <span class="n">cores</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;COOH&#39;</span><span class="p">,</span> <span class="s1">&#39;CH2OH&#39;</span><span class="p">),</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,),</span>
+                    <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,),</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;VA&#39;</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;VA&#39;</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">()),</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="n">getname</span> <span class="ow">or</span> <span class="n">_getname</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<span class="c1"># creating further Sphingolipid derived classes:</span>
+<span class="n">_factory</span> <span class="o">=</span> <span class="n">SphingolipidFactory</span><span class="p">()</span>
+<span class="k">del</span> <span class="n">_factory</span>
+
+<span class="c1"># creating further Glycerolipid derived classes:</span>
+<span class="n">_factory</span> <span class="o">=</span> <span class="n">GlycerolipidFactory</span><span class="p">()</span>
+<span class="k">del</span> <span class="n">_factory</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

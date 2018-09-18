@@ -1,0 +1,726 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.lipproc &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.lipproc</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.lipproc</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+
+
+<span class="n">FAMILIES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;SL&#39;</span><span class="p">:</span>  <span class="p">{</span><span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="s1">&#39;SM&#39;</span><span class="p">},</span>
+    <span class="s1">&#39;GL&#39;</span><span class="p">:</span>  <span class="p">{</span><span class="s1">&#39;MAG&#39;</span><span class="p">,</span> <span class="s1">&#39;DAG&#39;</span><span class="p">,</span> <span class="s1">&#39;TAG&#39;</span><span class="p">},</span>
+    <span class="s1">&#39;GPL&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;PC&#39;</span><span class="p">,</span> <span class="s1">&#39;PE&#39;</span><span class="p">,</span> <span class="s1">&#39;PE&#39;</span><span class="p">,</span> <span class="s1">&#39;PG&#39;</span><span class="p">,</span> <span class="s1">&#39;BMP&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PA&#39;</span><span class="p">,</span> <span class="s1">&#39;PI&#39;</span><span class="p">,</span> <span class="s1">&#39;PIP&#39;</span><span class="p">,</span> <span class="s1">&#39;PIP2&#39;</span><span class="p">,</span> <span class="s1">&#39;PIP3&#39;</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;GLGPL&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;MAG&#39;</span><span class="p">,</span> <span class="s1">&#39;DAG&#39;</span><span class="p">,</span> <span class="s1">&#39;TAG&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PC&#39;</span><span class="p">,</span> <span class="s1">&#39;PE&#39;</span><span class="p">,</span> <span class="s1">&#39;PE&#39;</span><span class="p">,</span> <span class="s1">&#39;PG&#39;</span><span class="p">,</span> <span class="s1">&#39;BMP&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PA&#39;</span><span class="p">,</span> <span class="s1">&#39;PI&#39;</span><span class="p">,</span> <span class="s1">&#39;PIP&#39;</span><span class="p">,</span> <span class="s1">&#39;PIP2&#39;</span><span class="p">,</span> <span class="s1">&#39;PIP3&#39;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+
+<span class="n">SUBCLS_PRE</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Hex&#39;</span><span class="p">,</span> <span class="s1">&#39;Hex2&#39;</span><span class="p">,</span> <span class="s1">&#39;SHex&#39;</span><span class="p">,</span> <span class="s1">&#39;SHex2&#39;</span><span class="p">,</span> <span class="s1">&#39;Lyso&#39;</span><span class="p">}</span>
+
+<span class="n">ChainAttr</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;ChainAttr&#39;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s1">&#39;sph&#39;</span><span class="p">,</span> <span class="s1">&#39;ether&#39;</span><span class="p">,</span> <span class="s1">&#39;oh&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="c1"># attributes of a chain e.g. d or t Ceramide, 2OH fatty acyl, etc</span>
+<span class="c1"># defaults:</span>
+<span class="n">ChainAttr</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="p">())</span>
+
+
+<div class="viewcode-block" id="Chain"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.Chain">[docs]</a><span class="k">class</span> <span class="nc">Chain</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+        <span class="s1">&#39;ChainBase&#39;</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="s1">&#39;typ&#39;</span><span class="p">,</span> <span class="s1">&#39;attr&#39;</span><span class="p">,</span> <span class="s1">&#39;iso&#39;</span><span class="p">]</span>
+    <span class="p">)):</span>
+    
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">(),</span> <span class="n">iso</span> <span class="o">=</span> <span class="p">()):</span>
+        
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="s1">&#39;sph&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">attr</span><span class="o">.</span><span class="n">sph</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span> <span class="ow">and</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            
+            <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span> <span class="o">=</span> <span class="s1">&#39;DH&#39;</span><span class="p">,</span> <span class="n">ether</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ether</span><span class="p">,</span> <span class="n">oh</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">oh</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Chain</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">typ</span> <span class="o">=</span> <span class="n">typ</span><span class="p">,</span> <span class="n">attr</span> <span class="o">=</span> <span class="n">attr</span><span class="p">,</span> <span class="n">iso</span> <span class="o">=</span> <span class="n">iso</span>
+        <span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iso</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s%s%u</span><span class="s1">:</span><span class="si">%u%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="c1"># ether prefix</span>
+            <span class="s1">&#39;O-&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="o">.</span><span class="n">ether</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="c1"># sphingoid base prefix e.g. dCer(d38:1)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="o">.</span><span class="n">sph</span><span class="p">,</span>
+            <span class="c1"># the carbon count</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span>
+            <span class="c1"># the unsaturation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">,</span>
+            <span class="c1"># isomer information</span>
+            <span class="s1">&#39;(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iso</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iso</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="c1"># postfix for hydroxylated fatty acyls e.g. PC(32:1-2OH)</span>
+            <span class="s1">&#39;-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="o">.</span><span class="n">oh</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="o">.</span><span class="n">oh</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="p">)</span>
+    
+<div class="viewcode-block" id="Chain.isomer_str"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.Chain.isomer_str">[docs]</a>    <span class="k">def</span> <span class="nf">isomer_str</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">(</span><span class="n">iso</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">sum_chains</span><span class="p">((</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="ChainSummary"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.ChainSummary">[docs]</a><span class="k">class</span> <span class="nc">ChainSummary</span><span class="p">(</span><span class="n">Chain</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">typ</span> <span class="o">=</span> <span class="p">(),</span> <span class="n">attr</span> <span class="o">=</span> <span class="p">(),</span> <span class="n">iso</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">attr</span> <span class="ow">and</span> <span class="n">attr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sph</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span><span class="p">:</span>
+            
+            <span class="n">attr</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="c1"># fisrt chain, sphingosine base</span>
+                    <span class="n">ChainAttr</span><span class="p">(</span>
+                        <span class="n">sph</span> <span class="o">=</span> <span class="s1">&#39;DH&#39;</span><span class="p">,</span>
+                        <span class="n">ether</span> <span class="o">=</span> <span class="n">attr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ether</span><span class="p">,</span>
+                        <span class="n">oh</span> <span class="o">=</span> <span class="n">attr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">oh</span>
+                    <span class="p">),</span>
+                <span class="p">)</span> <span class="o">+</span>
+                <span class="c1"># all other chains</span>
+                <span class="n">attr</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">ChainSummary</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">typ</span> <span class="o">=</span> <span class="n">typ</span><span class="p">,</span> <span class="n">attr</span> <span class="o">=</span> <span class="n">attr</span><span class="p">,</span> <span class="n">iso</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s%s%u</span><span class="s1">:</span><span class="si">%u%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="c1"># ether prefix</span>
+            <span class="s1">&#39;O-&#39;</span> <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">ether</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="c1"># sphingoid base prefix e.g. dCer(d38:1)</span>
+            <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sph</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">),</span> <span class="c1"># of course max one of these</span>
+                                               <span class="c1"># is not empty string</span>
+            <span class="c1"># the carbon count</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span>
+            <span class="c1"># the unsaturation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">,</span>
+            <span class="c1"># postfix for hydroxylated fatty acyls e.g. PC(32:1-2OH)</span>
+            <span class="s1">&#39;-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">oh</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">oh</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">oh</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">typ</span><span class="p">)</span></div>
+
+
+<span class="n">Headgroup</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;Headgroup&#39;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s1">&#39;main&#39;</span><span class="p">,</span> <span class="s1">&#39;sub&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="n">Headgroup</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> <span class="p">((),)</span>
+
+
+<span class="n">LipidLabel</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;LipidLabel&#39;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s1">&#39;db_id&#39;</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="c1"># names are empty tuple by default</span>
+<span class="n">LipidLabel</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="n">defaults__</span> <span class="o">=</span> <span class="p">((),)</span>
+
+
+<div class="viewcode-block" id="LipidRecord"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.LipidRecord">[docs]</a><span class="k">class</span> <span class="nc">LipidRecord</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+        <span class="s1">&#39;LipidRecordBase&#39;</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;lab&#39;</span><span class="p">,</span> <span class="s1">&#39;hg&#39;</span><span class="p">,</span> <span class="s1">&#39;chainsum&#39;</span><span class="p">,</span> <span class="s1">&#39;chains&#39;</span><span class="p">]</span>
+    <span class="p">)):</span>
+    
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">lab</span><span class="p">,</span> <span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">LipidRecord</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">lab</span><span class="p">,</span> <span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="LipidRecord.full_str"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.LipidRecord.full_str">[docs]</a>    <span class="k">def</span> <span class="nf">full_str</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">full_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chains</span><span class="p">,</span> <span class="n">iso</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="LipidRecord.summary_str"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.LipidRecord.summary_str">[docs]</a>    <span class="k">def</span> <span class="nf">summary_str</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">summary_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chainsum</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="LipidRecord.subclass_str"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.LipidRecord.subclass_str">[docs]</a>    <span class="k">def</span> <span class="nf">subclass_str</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">subclass_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chainsum</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="empty_chain"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.empty_chain">[docs]</a><span class="k">def</span> <span class="nf">empty_chain</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns an empty Chain object which might serve as a dummy object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="n">Chain</span><span class="p">(</span><span class="n">c</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="empty_chainsum"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.empty_chainsum">[docs]</a><span class="k">def</span> <span class="nf">empty_chainsum</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns an empty ChainSummary object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="n">ChainSummary</span><span class="p">(</span><span class="n">c</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">attr</span> <span class="o">=</span> <span class="p">(),</span> <span class="n">typ</span> <span class="o">=</span> <span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="str2hg"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.str2hg">[docs]</a><span class="k">def</span> <span class="nf">str2hg</span><span class="p">(</span><span class="n">hgstr</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    From a headgroup string representation creates a Headgroup object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">pieces</span> <span class="o">=</span> <span class="n">hgstr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="n">pieces</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">sub</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">pieces</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="sum_chains"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.sum_chains">[docs]</a><span class="k">def</span> <span class="nf">sum_chains</span><span class="p">(</span><span class="n">chains</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    From a list of chains creates a summary Chain object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="n">empty_chainsum</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">chains</span> <span class="k">else</span> <span class="p">(</span>
+        <span class="n">ChainSummary</span><span class="p">(</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">c</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">),</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">u</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">),</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">attr</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">),</span>
+            <span class="n">typ</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">typ</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="collapse_attrs"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.collapse_attrs">[docs]</a><span class="k">def</span> <span class="nf">collapse_attrs</span><span class="p">(</span><span class="n">chains</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Combine the attributes of arbitrary number of chains.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">combine_attrs</span><span class="p">,</span> <span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">attr</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="combine_attrs"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.combine_attrs">[docs]</a><span class="k">def</span> <span class="nf">combine_attrs</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Combines the attributes of 2 chains.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="n">ChainAttr</span><span class="p">(</span>
+        <span class="n">sph</span> <span class="o">=</span> <span class="n">a1</span><span class="o">.</span><span class="n">sph</span> <span class="ow">or</span> <span class="n">a2</span><span class="o">.</span><span class="n">sph</span><span class="p">,</span>
+        <span class="n">ether</span> <span class="o">=</span> <span class="n">a1</span><span class="o">.</span><span class="n">ether</span> <span class="ow">or</span> <span class="n">a2</span><span class="o">.</span><span class="n">ether</span><span class="p">,</span>
+        <span class="n">oh</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="n">a1</span><span class="o">.</span><span class="n">oh</span><span class="p">,</span> <span class="n">a2</span><span class="o">.</span><span class="n">oh</span><span class="p">))</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="summary_str"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.summary_str">[docs]</a><span class="k">def</span> <span class="nf">summary_str</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a summary string representation from the headgroup name and</span>
+<span class="sd">    a summary Chain object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">subcls_pre</span><span class="p">,</span> <span class="n">sphingo_prefix</span><span class="p">,</span> <span class="n">ether_prefix</span><span class="p">,</span> <span class="n">subcls_post</span><span class="p">,</span> <span class="n">hydroxy</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">get_attributes</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">)</span>
+    <span class="p">)</span>
+    
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+        <span class="c1"># subclass attributes like *PE*-Cer, *Lyso*-PC</span>
+        <span class="n">subcls_pre</span><span class="p">,</span>
+        <span class="c1"># main class of headgroup e.g. Cer, PS</span>
+        <span class="n">hg</span><span class="o">.</span><span class="n">main</span><span class="p">,</span>
+        <span class="c1"># subclass attributes like 1-O-phosphate group of Cer1P, Sph1P, etc</span>
+        <span class="n">subcls_post</span><span class="p">,</span>
+        <span class="c1"># chains summary</span>
+        <span class="p">(</span><span class="s1">&#39;(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="n">chainsum</span><span class="o">.</span><span class="fm">__str__</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">chainsum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">chainsum</span><span class="o">.</span><span class="n">c</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span>
+        <span class="s1">&#39;&#39;</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="full_str"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.full_str">[docs]</a><span class="k">def</span> <span class="nf">full_str</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">chains</span><span class="p">,</span> <span class="n">iso</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    From a Headgroup and a tuple of Chain objects returns a </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">subcls_pre</span><span class="p">,</span> <span class="n">sphingo_prefix</span><span class="p">,</span> <span class="n">ether_prefix</span><span class="p">,</span> <span class="n">subcls_post</span><span class="p">,</span> <span class="n">hydroxy</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">get_attributes</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">sum_chains</span><span class="p">(</span><span class="n">chains</span><span class="p">))</span>
+    <span class="p">)</span>
+    
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+        <span class="c1"># subclass attributes like *PE*-Cer, *Lyso*-PC</span>
+        <span class="n">subcls_pre</span><span class="p">,</span>
+        <span class="c1"># main class of headgroup e.g. Cer, PS</span>
+        <span class="n">hg</span><span class="o">.</span><span class="n">main</span><span class="p">,</span>
+        <span class="c1"># subclass attributes like 1-O-phosphate group of Cer1P, Sph1P, etc</span>
+        <span class="n">subcls_post</span><span class="p">,</span>
+        <span class="c1"># chains</span>
+        <span class="p">(</span><span class="s1">&#39;(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="fm">__str__</span><span class="p">(</span><span class="n">iso</span> <span class="o">=</span> <span class="n">iso</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">chains</span> <span class="k">else</span>
+        <span class="s1">&#39;&#39;</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="subclass_str"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.subclass_str">[docs]</a><span class="k">def</span> <span class="nf">subclass_str</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    From Headgroup and summary Chain object creates a subclass level</span>
+<span class="sd">    headgroup string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">subcls_pre</span><span class="p">,</span> <span class="n">sphingo_prefix</span><span class="p">,</span> <span class="n">ether_prefix</span><span class="p">,</span> <span class="n">subcls_post</span><span class="p">,</span> <span class="n">hydroxy</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">get_attributes</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">)</span>
+    <span class="p">)</span>
+    
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s%s%s%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+        <span class="c1"># subclass attributes like *PE*-Cer, *Lyso*-PC</span>
+        <span class="n">subcls_pre</span><span class="p">,</span>
+        <span class="c1"># prefix of shingoid base subclass: d, t, k, DH</span>
+        <span class="n">sphingo_prefix</span><span class="p">,</span>
+        <span class="c1"># main class of headgroup e.g. Cer, PS</span>
+        <span class="n">hg</span><span class="o">.</span><span class="n">main</span><span class="p">,</span>
+        <span class="c1"># postfix of ether lipids e.g. PC-O, PE-O</span>
+        <span class="s1">&#39;-O&#39;</span> <span class="k">if</span> <span class="n">ether_prefix</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="c1"># subclass attributes like 1-O-phosphate group of Cer1P, Sph1P, etc</span>
+        <span class="n">subcls_post</span><span class="p">,</span>
+        <span class="c1"># postfix of hydroxylated fatty acyl e.g. Cer-2OH</span>
+        <span class="n">hydroxy</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_attributes"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.get_attributes">[docs]</a><span class="k">def</span> <span class="nf">get_attributes</span><span class="p">(</span><span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Processes a Headgroup and a summary Chain object and returns the</span>
+<span class="sd">    name pre- and postfix string elements.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">chainsum</span> <span class="o">=</span> <span class="n">chainsum</span> <span class="ow">or</span> <span class="n">empty_chainsum</span><span class="p">()</span>
+    
+    <span class="n">hydroxy</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">oh</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chainsum</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span>
+    <span class="n">hydroxy</span> <span class="o">=</span> <span class="s1">&#39;-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">hydroxy</span> <span class="k">if</span> <span class="n">hydroxy</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+    
+    <span class="n">subcls_pre</span>   <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">hg</span><span class="o">.</span><span class="n">sub</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">SUBCLS_PRE</span><span class="p">)</span>
+    <span class="n">subcls_pre</span>   <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-&#39;</span> <span class="o">%</span> <span class="n">subcls_pre</span> <span class="k">if</span> <span class="n">subcls_pre</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">subcls_post</span>  <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">hg</span><span class="o">.</span><span class="n">sub</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SUBCLS_PRE</span><span class="p">)</span>
+    <span class="n">subcls_post</span>  <span class="o">=</span> <span class="s1">&#39;-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">subcls_post</span> <span class="k">if</span> <span class="n">subcls_post</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+    
+    <span class="n">sphingo_prefix</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sph</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">chainsum</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span>
+    <span class="n">ether_prefix</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">ether</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">chainsum</span><span class="o">.</span><span class="n">attr</span><span class="p">)</span>
+    <span class="c1"># this I leave here if maybe later I decide to have</span>
+    <span class="c1"># plain tuples...</span>
+    <span class="c1">#</span>
+    <span class="c1"># sphingo_prefix = set(chainsum.p) &amp; {&#39;d&#39;, &#39;t&#39;, &#39;k&#39;, &#39;DH&#39;}</span>
+    <span class="c1"># sphingo_prefix = sphingo_prefix.pop() if sphingo_prefix else &#39;&#39;</span>
+    <span class="c1"># ether_prefix = &#39;O&#39; in chainsum.p</span>
+    
+    <span class="k">return</span> <span class="n">subcls_pre</span><span class="p">,</span> <span class="n">sphingo_prefix</span><span class="p">,</span> <span class="n">ether_prefix</span><span class="p">,</span> <span class="n">subcls_post</span><span class="p">,</span> <span class="n">hydroxy</span></div>
+
+
+<div class="viewcode-block" id="match_constraint"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.match_constraint">[docs]</a><span class="k">def</span> <span class="nf">match_constraint</span><span class="p">(</span><span class="n">rec</span><span class="p">,</span> <span class="n">constr</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Matches an MS2 fragment constraint (fragment.FragConstraint)</span>
+<span class="sd">    against a lipid record lipproc.LipidRecord.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns the indices of the chains as integers in a set.</span>
+<span class="sd">    </span>
+<span class="sd">    The default attribute values of the `FragConstraint` object always</span>
+<span class="sd">    correspond to bypass all filters here. Defining a specific value</span>
+<span class="sd">    may limit the records complying with the constraint.</span>
+<span class="sd">    </span>
+<span class="sd">    Args</span>
+<span class="sd">    ----</span>
+<span class="sd">    :param LipidRecord rec:</span>
+<span class="sd">        A lipid database record object.</span>
+<span class="sd">    :param fragment.FragConstraint constr:</span>
+<span class="sd">        An MS2 fragment constraint object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">match</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">chains</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">constr</span><span class="o">.</span><span class="n">hg</span> <span class="o">==</span> <span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="o">.</span><span class="n">main</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="n">constr</span><span class="o">.</span><span class="n">hg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span>
+                <span class="n">constr</span><span class="o">.</span><span class="n">family</span> <span class="ow">in</span> <span class="n">FAMILIES</span> <span class="ow">and</span>
+                <span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="o">.</span><span class="n">main</span> <span class="ow">in</span> <span class="n">FAMILIES</span><span class="p">[</span><span class="n">constr</span><span class="o">.</span><span class="n">family</span><span class="p">]</span>
+            <span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="n">constr</span><span class="o">.</span><span class="n">hg</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span>
+                <span class="n">constr</span><span class="o">.</span><span class="n">family</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="p">)</span>
+        <span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">constr</span><span class="o">.</span><span class="n">sub</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+            <span class="nb">set</span><span class="p">(</span><span class="n">constr</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="p">):</span>
+        
+        <span class="n">match</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">chainsum</span> <span class="o">=</span> <span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span> <span class="k">if</span> <span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span> <span class="k">else</span> <span class="n">sum_chains</span><span class="p">(</span><span class="n">rec</span><span class="o">.</span><span class="n">chains</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">attr</span><span class="p">),</span> <span class="n">rec_chaintype</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="nb">enumerate</span><span class="p">(</span><span class="n">chainsum</span><span class="o">.</span><span class="n">attr</span><span class="p">),</span> <span class="n">chainsum</span><span class="o">.</span><span class="n">typ</span>
+        <span class="p">):</span>
+            
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">constr</span><span class="o">.</span><span class="n">chaintype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+                    <span class="n">constr</span><span class="o">.</span><span class="n">chaintype</span> <span class="o">==</span> <span class="n">rec_chaintype</span>
+                <span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+                    <span class="n">constr</span><span class="o">.</span><span class="n">sph</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+                    <span class="n">constr</span><span class="o">.</span><span class="n">sph</span> <span class="o">==</span> <span class="n">attr</span><span class="o">.</span><span class="n">sph</span>
+                <span class="p">)</span> <span class="ow">and</span>
+                <span class="c1"># matching only the number of OH groups</span>
+                <span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">attr</span><span class="o">.</span><span class="n">oh</span><span class="p">)</span> <span class="o">==</span> <span class="n">constr</span><span class="o">.</span><span class="n">oh</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">constr</span><span class="o">.</span><span class="n">oh</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span> <span class="k">else</span>
+                    <span class="nb">set</span><span class="p">(</span><span class="n">attr</span><span class="o">.</span><span class="n">oh</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">constr</span><span class="o">.</span><span class="n">oh</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">):</span>
+                
+                <span class="n">chains</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">match</span><span class="p">,</span> <span class="n">chains</span></div>
+
+
+<div class="viewcode-block" id="match_constraints"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.match_constraints">[docs]</a><span class="k">def</span> <span class="nf">match_constraints</span><span class="p">(</span><span class="n">rec</span><span class="p">,</span> <span class="n">constraints</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Matches all fragment constraints in the iterable `constraints`</span>
+<span class="sd">    against all chains in MS1 record `rec`.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns a boolean (wether the fragment can possibly origin from the</span>
+<span class="sd">    molecular species in the record) and a tuple of chain positions which</span>
+<span class="sd">    can be the source of the fragment if the fragment is from an aliphatic</span>
+<span class="sd">    chain moiety.</span>
+<span class="sd">    </span>
+<span class="sd">    Args</span>
+<span class="sd">    ----</span>
+<span class="sd">    :param LipidRecord rec:</span>
+<span class="sd">        An MS1 database record object.</span>
+<span class="sd">    :param iterable constraints:</span>
+<span class="sd">        A number of `fragment.FragConstraint` objects.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">match</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">chains</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    
+    <span class="k">for</span> <span class="n">constr</span> <span class="ow">in</span> <span class="n">constraints</span><span class="p">:</span>
+        
+        <span class="n">match</span><span class="p">,</span> <span class="n">chains_</span> <span class="o">=</span> <span class="n">match_constraint</span><span class="p">(</span><span class="n">rec</span><span class="p">,</span> <span class="n">constr</span><span class="p">)</span>
+        <span class="n">chains</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chains_</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">match</span><span class="p">,</span> <span class="n">chains</span></div>
+
+<div class="viewcode-block" id="cu_str"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.cu_str">[docs]</a><span class="k">def</span> <span class="nf">cu_str</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%u</span><span class="s1">:</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="charge_str"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.charge_str">[docs]</a><span class="k">def</span> <span class="nf">charge_str</span><span class="p">(</span><span class="n">charge</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">charge</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span>
+        <span class="s1">&#39;-&#39;</span> <span class="k">if</span> <span class="n">charge</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span>
+        <span class="s1">&#39;+&#39;</span>
+    <span class="p">)</span></div>
+
+<span class="c1"># regex captures the summary carbon count</span>
+<span class="n">rechainsum</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s1">&#39;\(&#39;</span>
+    <span class="c1"># prefix (d, t , DH, O-, P-)</span>
+    <span class="sa">r</span><span class="s1">&#39;([POdtDH]{0,2})-?&#39;</span>
+    <span class="c1"># cc and unsat</span>
+    <span class="sa">r</span><span class="s1">&#39;([0-9]{1,2}):([0-9]{1,2})&#39;</span>
+    <span class="c1"># optional OH</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:[-\(]([0-9]{0,2}OH)\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;\)&#39;</span>
+<span class="p">)</span>
+
+<span class="c1"># captures 1-4 aliphatic chains data</span>
+<span class="n">rechain</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s1">&#39;\(&#39;</span>
+    <span class="c1"># 1</span>
+    <span class="sa">r</span><span class="s1">&#39;([POdtDH]{0,2})-?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;([0-9]{1,2}):([0-9]{1,2})&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:[-\(]([0-9]{0,2}OH)\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;[/_]?&#39;</span>
+    <span class="c1"># 2</span>
+    <span class="sa">r</span><span class="s1">&#39;([POdtDH]{0,2})-?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;([0-9]{0,2}):?([0-9]{0,2})&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:[-\(]([0-9]{0,2}OH)\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;[/_]?&#39;</span>
+    <span class="c1"># 3</span>
+    <span class="sa">r</span><span class="s1">&#39;([POdtDH]{0,2})-?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;([0-9]{0,2}):?([0-9]{0,2})&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:[-\(]([0-9]{0,2}OH)\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;[/_]?&#39;</span>
+    <span class="c1"># 4</span>
+    <span class="sa">r</span><span class="s1">&#39;([POdtDH]{0,2})-?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;([0-9]{0,2}):?([0-9]{0,2})&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:[-\(]([0-9]{0,2}OH)\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;\)&#39;</span>
+<span class="p">)</span>
+
+<span class="c1"># captures 1-4 aliphatic chains with</span>
+<span class="c1"># conformational isomeric information</span>
+<span class="n">rechainiso</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s1">&#39;\(?&#39;</span>
+    <span class="c1"># 1</span>
+    <span class="sa">r</span><span class="s1">&#39;((?:[0-9]+-)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;[POdtDH]{0,2})-?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;([0-9]{1,2}):([0-9]{1,2})&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:\(?([0-9EZ,]{2,})\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:[-\(]([0-9]{0,2}OH)\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;[/_]?&#39;</span>
+    <span class="c1"># 2</span>
+    <span class="sa">r</span><span class="s1">&#39;((?:[0-9]+-)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;[POdtDH]{0,2})-?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;([0-9]{0,2}):?([0-9]{0,2})&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:\(?([0-9EZ,]{2,})\))?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:[-\(]([0-9]{0,2}OH)\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;[/_]?&#39;</span>
+    <span class="c1"># 3</span>
+    <span class="sa">r</span><span class="s1">&#39;((?:[0-9]+-)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;[POdtDH]{0,2})-?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;([0-9]{0,2}):?([0-9]{0,2})&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:\(?([0-9EZ,]{2,})\))?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:[-\(]([0-9]{0,2}OH)\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;[/_]?&#39;</span>
+    <span class="c1"># 4</span>
+    <span class="sa">r</span><span class="s1">&#39;((?:[0-9]+-)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;[POdtDH]{0,2})-?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;([0-9]{0,2}):?([0-9]{0,2})&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:\(?([0-9EZ,]*)\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;(?:[-\(]([0-9]{0,2}OH)\)?)?&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;\)?&#39;</span>
+<span class="p">)</span>
+
+<span class="c1"># methyl or ethyl</span>
+<span class="n">reme</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;methyl|ethyl&#39;</span><span class="p">)</span>
+
+<span class="c1"># ?</span>
+<span class="n">rebr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s1">&#39;(1(?:,2-di)?)-\(((?:[0-9]{0,2}[-]?methyl|ethyl)?)[A-z0-9-]+\)&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;-([2,3]{1,3}(?:-di)?)-&#39;</span>
+    <span class="sa">r</span><span class="s1">&#39;\(((?:[0-9]{0,2}[-]?methyl|ethyl)?)[A-z0-9-]+\)&#39;</span>
+<span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,863 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.name &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.name</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.name</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">past.builtins</span> <span class="k">import</span> <span class="n">xrange</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="n">reduce</span>
+
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">iteritems</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">imp</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+
+<span class="kn">import</span> <span class="nn">lipyd.settings</span> <span class="k">as</span> <span class="nn">settings</span>
+<span class="kn">import</span> <span class="nn">lipyd.lipproc</span> <span class="k">as</span> <span class="nn">lipproc</span>
+
+
+<div class="viewcode-block" id="LipidNameProcessor"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor">[docs]</a><span class="k">class</span> <span class="nc">LipidNameProcessor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">database</span> <span class="o">=</span> <span class="s1">&#39;swisslipids&#39;</span><span class="p">,</span>
+            <span class="n">with_alcohols</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">with_coa</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">iso</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Processes lipid names used in databases. Converts names to the</span>
+<span class="sd">        standard used in this module and extracts carbon count and</span>
+<span class="sd">        unsaturation information and other features.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_alcohols</span> <span class="o">=</span> <span class="n">with_alcohols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_coa</span> <span class="o">=</span> <span class="n">with_coa</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iso</span> <span class="o">=</span> <span class="n">iso</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lipnamesf</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lipnamesf&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adducts_constraints</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;adducts_constraints&#39;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">gen_fa_greek</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_lipid_names</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="LipidNameProcessor.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">children</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.read_lipid_names"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.read_lipid_names">[docs]</a>    <span class="k">def</span> <span class="nf">read_lipid_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">add_fa</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads annotations for lipid classes:</span>
+<span class="sd">        - full names</span>
+<span class="sd">        - short notations</span>
+<span class="sd">        - database keywords</span>
+<span class="sd">        (to process long names from SwissLipids and LipidMaps)</span>
+<span class="sd">        - most abundant adducts</span>
+<span class="sd">        </span>
+<span class="sd">        The input file is given by the ``lipnamesf`` attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lipnamesf</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            
+            <span class="n">hdr</span> <span class="o">=</span> <span class="kc">True</span>
+            
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">fp</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;#&#39;</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                
+                <span class="k">if</span> <span class="n">hdr</span><span class="p">:</span>
+                    <span class="n">hdr</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">continue</span>
+                
+                <span class="n">l</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+                
+                <span class="n">lip</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="nb">tuple</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">))</span> <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">else</span> <span class="p">(),</span>
+                    <span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="nb">tuple</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">))</span> <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">else</span> <span class="p">()</span>
+                <span class="p">)</span>
+                
+                <span class="n">result</span><span class="p">[</span><span class="n">lip</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;full_name&#39;</span><span class="p">:</span> <span class="n">l</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                    <span class="s1">&#39;swl&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_db_keywords</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">5</span><span class="p">]),</span>
+                    <span class="s1">&#39;lmp&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_db_keywords</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+                    <span class="s1">&#39;pos_adduct&#39;</span><span class="p">:</span> <span class="p">(</span>
+                            <span class="n">l</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;ND&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">adducts_constraints</span> <span class="k">else</span>
+                            <span class="kc">None</span>
+                        <span class="p">),</span>
+                    <span class="s1">&#39;neg_adduct&#39;</span><span class="p">:</span> <span class="p">(</span>
+                            <span class="n">l</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;ND&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">adducts_constraints</span> <span class="k">else</span>
+                            <span class="kc">None</span>
+                        <span class="p">),</span>
+                    <span class="s1">&#39;chains&#39;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">))</span> <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="k">else</span> <span class="p">()</span>
+                <span class="p">}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">lipnames</span> <span class="o">=</span> <span class="n">result</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.process_db_keywords"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.process_db_keywords">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">process_db_keywords</span><span class="p">(</span><span class="n">kwdstr</span><span class="p">):</span>
+        
+        <span class="k">return</span> \
+            <span class="nb">list</span><span class="p">(</span>
+                <span class="nb">map</span><span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">kwdset</span><span class="p">:</span>
+                        <span class="p">{</span>
+                            <span class="s1">&#39;neg&#39;</span><span class="p">:</span>
+                                <span class="nb">list</span><span class="p">(</span>
+                                    <span class="nb">map</span><span class="p">(</span>
+                                        <span class="k">lambda</span> <span class="n">kwd</span><span class="p">:</span>
+                                            <span class="n">kwd</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+                                        <span class="nb">list</span><span class="p">(</span>
+                                            <span class="nb">filter</span><span class="p">(</span>
+                                                <span class="k">lambda</span> <span class="n">kwd</span><span class="p">:</span>
+                                                    <span class="nb">len</span><span class="p">(</span><span class="n">kwd</span><span class="p">)</span> <span class="ow">and</span> \
+                                                    <span class="n">kwd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;!&#39;</span><span class="p">,</span>
+                                                <span class="n">kwdset</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+                                            <span class="p">)</span>
+                                        <span class="p">)</span>
+                                    <span class="p">)</span>
+                                <span class="p">),</span>
+                            <span class="s1">&#39;pos&#39;</span><span class="p">:</span>
+                                <span class="nb">list</span><span class="p">(</span>
+                                    <span class="nb">filter</span><span class="p">(</span>
+                                        <span class="k">lambda</span> <span class="n">kwd</span><span class="p">:</span>
+                                            <span class="nb">len</span><span class="p">(</span><span class="n">kwd</span><span class="p">)</span> <span class="ow">and</span> <span class="n">kwd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;!&#39;</span><span class="p">,</span>
+                                        <span class="n">kwdset</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+                                    <span class="p">)</span>
+                                <span class="p">)</span>
+                        <span class="p">},</span>
+                    <span class="n">kwdstr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.has_sph_prefix"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.has_sph_prefix">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">has_sph_prefix</span><span class="p">(</span><span class="n">match</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="s1">&#39;DH&#39;</span><span class="p">}</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.is_ether"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.is_ether">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_ether</span><span class="p">(</span><span class="n">match</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">}</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.attr_proc"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.attr_proc">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">attr_proc</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">match</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        
+        <span class="n">sph</span> <span class="o">=</span> <span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">has_sph_prefix</span><span class="p">(</span><span class="n">match</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        
+        <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">sph</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span><span class="p">:</span>
+            
+            <span class="n">sph</span> <span class="o">=</span> <span class="s1">&#39;DH&#39;</span>
+        
+        <span class="k">return</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">ChainAttr</span><span class="p">(</span>
+            <span class="n">sph</span> <span class="o">=</span> <span class="n">sph</span><span class="p">,</span>
+            <span class="n">ether</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">is_ether</span><span class="p">(</span><span class="n">match</span><span class="p">),</span>
+            <span class="n">oh</span> <span class="o">=</span> <span class="p">(</span><span class="n">match</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],)</span> <span class="k">if</span> <span class="n">match</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">else</span> <span class="p">()</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.get_type"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.get_type">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_type</span><span class="p">(</span>
+            <span class="n">i</span><span class="p">,</span>
+            <span class="n">sphingo</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">ether</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">chainsexp</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="p">):</span>
+        
+        <span class="c1"># TODO: this does not feel perfect</span>
+        <span class="c1"># some better heuristic should replace</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">types</span> <span class="k">else</span>
+            <span class="s1">&#39;Sph&#39;</span>
+                <span class="k">if</span> <span class="n">sphingo</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span>
+            <span class="s1">&#39;FAL&#39;</span>
+                <span class="k">if</span> <span class="n">ether</span> <span class="k">else</span>
+            <span class="n">chainsexp</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">chainsexp</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">chainsexp</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">i</span> <span class="k">else</span>
+            <span class="s1">&#39;FA&#39;</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.attrs_types"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.attrs_types">[docs]</a>    <span class="k">def</span> <span class="nf">attrs_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cc1</span><span class="p">,</span> <span class="n">chainsexp</span><span class="p">):</span>
+        
+        <span class="n">sph</span>    <span class="o">=</span> <span class="n">cc1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_sph_prefix</span><span class="p">(</span><span class="n">cc1</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">ether</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ether</span><span class="p">(</span><span class="n">cc1</span><span class="p">)</span>
+        <span class="n">fa1</span>    <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chainsexp</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="s1">&#39;FAL&#39;</span><span class="p">}),</span>
+            <span class="n">default</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">hasfal</span> <span class="o">=</span> <span class="s1">&#39;FAL&#39;</span> <span class="ow">in</span> <span class="n">chainsexp</span>
+        <span class="n">oh</span>     <span class="o">=</span> <span class="p">(</span><span class="n">cc1</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],)</span> <span class="k">if</span> <span class="n">cc1</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">else</span> <span class="p">()</span>
+        
+        <span class="n">chainsexp</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="s1">&#39;FAL&#39;</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">hasfal</span> <span class="ow">and</span> <span class="n">ether</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="n">fa1</span> <span class="k">else</span>
+            <span class="n">c</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chainsexp</span><span class="p">)</span>
+        <span class="p">)</span>
+        
+        <span class="n">attrs</span>  <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">lipproc</span><span class="o">.</span><span class="n">ChainAttr</span><span class="p">(</span>
+                <span class="n">sph</span> <span class="o">=</span> <span class="n">sph</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39;Sph&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="n">ether</span> <span class="o">=</span> <span class="n">ether</span> <span class="ow">and</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39;FAL&#39;</span><span class="p">,</span>
+                <span class="c1"># here have no idea which chain carries OHs</span>
+                <span class="c1"># hence we add them to the last chain</span>
+                <span class="n">oh</span> <span class="o">=</span> <span class="n">oh</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">chainsexp</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chainsexp</span><span class="p">)</span>
+        <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">attrs</span><span class="p">,</span> <span class="n">chainsexp</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.carbon_counts"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.carbon_counts">[docs]</a>    <span class="k">def</span> <span class="nf">carbon_counts</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">ccexp</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">chainsexp</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sphingo</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">iso</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Processes carbon and unsaturation counts from name.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param str name:</span>
+<span class="sd">            Lipid name.</span>
+<span class="sd">        :param int ccexp:</span>
+<span class="sd">            Expected number of fatty acyl or other residues constaining</span>
+<span class="sd">            aliphatic chain. E.g. for DAG this should be 2 and for TAG 3</span>
+<span class="sd">            as the latter has 3 fatty acyls.</span>
+<span class="sd">        :param tuple chainsexp:</span>
+<span class="sd">            The type of the expected chains, e.g. `(&#39;Sph&#39;, &#39;FA&#39;)` for one</span>
+<span class="sd">            sphingosine and a fatty acyl. This matters only if the chain</span>
+<span class="sd">            types can not be inferred from the processed names.</span>
+<span class="sd">        :param bool sphingo:</span>
+<span class="sd">            Is this a sphingolipid, is the first chain a sphingosine base?</span>
+<span class="sd">        :param bool iso:</span>
+<span class="sd">            Process conformation isomer details for example 18:2(9E,11Z).</span>
+<span class="sd">        :param tuple types:</span>
+<span class="sd">            Explicit types for each chains.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># number of groups in one regex match unit</span>
+        <span class="n">_g</span> <span class="o">=</span> <span class="mi">5</span> <span class="k">if</span> <span class="n">iso</span> <span class="k">else</span> <span class="mi">4</span>
+        <span class="n">_i</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">rechain</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">rechainiso</span> <span class="k">if</span> <span class="n">iso</span> <span class="k">else</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">rechain</span>
+        
+        <span class="c1"># regex finds the total carbon count</span>
+        <span class="n">cc1</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">rechainsum</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">cc1</span> <span class="o">=</span> <span class="n">cc1</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span> <span class="k">if</span> <span class="n">cc1</span> <span class="k">else</span> <span class="n">cc1</span>
+        <span class="c1"># regex finds 1-4 fatty acids</span>
+        <span class="n">cc2</span> <span class="o">=</span> <span class="n">rechain</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">cc2</span> <span class="o">=</span> <span class="n">cc2</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span> <span class="k">if</span> <span class="n">cc2</span> <span class="k">else</span> <span class="n">cc2</span>
+        
+        <span class="n">chains</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">ccexp</span> <span class="ow">and</span>
+            <span class="n">cc2</span> <span class="c1">#and</span>
+            <span class="c1">#cc2[(ccexp - 1) * _g + 1] and</span>
+            <span class="c1">#cc2[(ccexp - 1) * _g + 2]</span>
+        <span class="p">):</span>
+            
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cc2</span><span class="p">)</span> <span class="o">//</span> <span class="n">_g</span><span class="p">):</span>
+                
+                <span class="k">if</span> <span class="n">cc2</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">_g</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="n">cc2</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">_g</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]:</span>
+                    
+                    <span class="n">c</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cc2</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">_g</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                    <span class="n">u</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cc2</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">_g</span> <span class="o">+</span> <span class="mi">2</span><span class="p">])</span>
+                    <span class="n">attr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attr_proc</span><span class="p">(</span><span class="n">cc2</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">_g</span><span class="p">:</span><span class="n">i</span> <span class="o">*</span> <span class="n">_g</span> <span class="o">+</span> <span class="n">_g</span><span class="p">],</span> <span class="n">u</span><span class="p">)</span>
+                    <span class="n">sphingo</span> <span class="o">=</span> <span class="n">sphingo</span> <span class="ow">or</span> <span class="nb">bool</span><span class="p">(</span><span class="n">attr</span><span class="o">.</span><span class="n">sph</span><span class="p">)</span>
+                    
+                    <span class="n">chains</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lipproc</span><span class="o">.</span><span class="n">Chain</span><span class="p">(</span>
+                        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="p">,</span>
+                        <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="p">,</span>
+                        <span class="n">attr</span> <span class="o">=</span> <span class="n">attr</span><span class="p">,</span>
+                        <span class="n">typ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_type</span><span class="p">(</span>
+                            <span class="n">i</span><span class="p">,</span> <span class="n">sphingo</span><span class="p">,</span> <span class="n">attr</span><span class="o">.</span><span class="n">ether</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">chainsexp</span>
+                        <span class="p">),</span>
+                        <span class="n">iso</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">tuple</span><span class="p">(</span><span class="n">cc2</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">_g</span> <span class="o">+</span> <span class="n">_i</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">))</span>
+                                <span class="k">if</span> <span class="n">iso</span> <span class="ow">and</span> <span class="n">cc2</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">_g</span> <span class="o">+</span> <span class="n">_i</span><span class="p">]</span> <span class="k">else</span>
+                            <span class="p">()</span>
+                        <span class="p">)</span>
+                    <span class="p">))</span>
+            
+            <span class="n">zerochains</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="ow">not</span> <span class="n">c</span><span class="o">.</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">)</span>
+            <span class="c1"># ccexp = ccexp - zerochains</span>
+            <span class="n">chains</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+            <span class="n">chains</span> <span class="o">=</span> <span class="p">[]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chains</span><span class="p">)</span> <span class="o">!=</span> <span class="n">ccexp</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">chains</span><span class="p">)</span>
+        
+        <span class="c1"># the total carbon count</span>
+        <span class="k">if</span> <span class="n">chains</span><span class="p">:</span>
+            
+            <span class="n">chainsum</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">sum_chains</span><span class="p">(</span><span class="n">chains</span><span class="p">)</span>
+            
+        <span class="k">elif</span> <span class="n">cc1</span><span class="p">:</span>
+            
+            <span class="n">c</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cc1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cc1</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">chainsexp</span><span class="p">:</span>
+                
+                <span class="n">attrs</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attr_proc</span><span class="p">(</span><span class="n">cc1</span><span class="p">,</span> <span class="n">u</span><span class="p">),)</span>
+                <span class="n">types</span> <span class="o">=</span> <span class="p">()</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">attrs</span><span class="p">,</span> <span class="n">types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attrs_types</span><span class="p">(</span><span class="n">cc1</span><span class="p">,</span> <span class="n">chainsexp</span><span class="p">)</span>
+            
+            <span class="n">chainsum</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">ChainSummary</span><span class="p">(</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="p">,</span>
+                <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="p">,</span>
+                <span class="n">attr</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">,</span>
+                <span class="n">typ</span>  <span class="o">=</span> <span class="n">types</span><span class="p">,</span>
+            <span class="p">)</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">chainsum</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="k">return</span> <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.isomeric_carbon_counts"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.isomeric_carbon_counts">[docs]</a>    <span class="k">def</span> <span class="nf">isomeric_carbon_counts</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">ccexp</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">sphingo</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calls `carbon_counts` with `iso=True`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">carbon_counts</span><span class="p">(</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">ccexp</span> <span class="o">=</span> <span class="n">ccexp</span><span class="p">,</span>
+            <span class="n">phingo</span> <span class="o">=</span> <span class="n">sphingo</span><span class="p">,</span>
+            <span class="n">iso</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="n">types</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.headgroup_from_lipid_name"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.headgroup_from_lipid_name">[docs]</a>    <span class="k">def</span> <span class="nf">headgroup_from_lipid_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">database</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For one database record attempts to identify the lipid class</span>
+<span class="sd">        by looking up keywords.</span>
+<span class="sd">        Calls greek name identification, greek fatty acid names are</span>
+<span class="sd">        identified as &#39;FA&#39;.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns tuple of `lipproc.Headgroup` object and expected chain types.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">database</span> <span class="o">=</span> <span class="n">database</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span>
+        
+        <span class="n">names</span> <span class="o">=</span> <span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+        
+        <span class="n">db</span> <span class="o">=</span> <span class="s1">&#39;lmp&#39;</span> <span class="k">if</span> <span class="n">database</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;lipidmaps&#39;</span> <span class="k">else</span> <span class="s1">&#39;swl&#39;</span>
+        <span class="k">for</span> <span class="n">lipclass</span><span class="p">,</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lipnames</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">kwset</span> <span class="ow">in</span> <span class="n">spec</span><span class="p">[</span><span class="n">db</span><span class="p">]:</span>
+                <span class="n">matched</span> <span class="o">=</span> <span class="p">[</span><span class="n">kw</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">for</span> <span class="n">kw</span> <span class="ow">in</span> <span class="n">kwset</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">]]</span>
+                <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwset</span><span class="p">[</span><span class="s1">&#39;pos&#39;</span><span class="p">])</span> <span class="ow">and</span> \
+                    <span class="nb">sum</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">matched</span> <span class="o">=</span> <span class="p">[</span><span class="n">kw</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">for</span> <span class="n">kw</span> <span class="ow">in</span> <span class="n">kwset</span><span class="p">[</span><span class="s1">&#39;neg&#39;</span><span class="p">]]</span>
+                    <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="p">(</span>
+                            <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span>
+                                <span class="n">main</span> <span class="o">=</span> <span class="n">lipclass</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="c1"># main class, e.g. Cer</span>
+                                <span class="n">sub</span>  <span class="o">=</span> <span class="n">lipclass</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># subclass, e.g. Hex</span>
+                            <span class="p">),</span>
+                            <span class="n">spec</span><span class="p">[</span><span class="s1">&#39;chains&#39;</span><span class="p">]</span>
+                        <span class="p">)</span>
+        
+        <span class="n">fa_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_fa_name</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">fa_name</span><span class="p">:</span>
+            
+            <span class="k">return</span> <span class="p">(</span><span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="n">fa_name</span><span class="p">),</span> <span class="p">(</span><span class="n">fa_name</span><span class="p">,))</span>
+        
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.process_fa_name"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.process_fa_name">[docs]</a>    <span class="k">def</span> <span class="nf">process_fa_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Identifies fatty acids based on their greek name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s1">&#39;FA&#39;</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fa_greek</span>
+                <span class="ow">or</span> <span class="s1">&#39;FA&#39;</span> <span class="ow">in</span> <span class="n">name</span>
+                <span class="ow">or</span> <span class="s1">&#39;atty acid&#39;</span> <span class="ow">in</span> <span class="n">name</span>
+            <span class="k">else</span> <span class="s1">&#39;FAL&#39;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_alcohols</span> <span class="ow">and</span> <span class="p">(</span>
+                    <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fal_greek</span> <span class="ow">or</span>
+                    <span class="s1">&#39;atty alcohol&#39;</span> <span class="ow">in</span> <span class="n">name</span>
+                <span class="p">)</span>
+            <span class="k">else</span> <span class="s1">&#39;FACoA&#39;</span>
+                <span class="c1"># TODO: capture carbon counts of acyl-CoAs</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_coa</span> <span class="ow">and</span> <span class="p">(</span>
+                    <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">facoa_greek</span> <span class="ow">or</span>
+                    <span class="s1">&#39;oyl-CoA&#39;</span> <span class="ow">in</span> <span class="n">name</span>
+                <span class="p">)</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.fa_greek_cc"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.fa_greek_cc">[docs]</a>    <span class="k">def</span> <span class="nf">fa_greek_cc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        
+        <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            
+            <span class="n">name1</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;-&#39;</span> <span class="ow">in</span> <span class="n">name</span> <span class="k">else</span> <span class="n">name</span>
+            
+            <span class="k">for</span> <span class="n">typ</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="s1">&#39;FAL&#39;</span><span class="p">,</span> <span class="s1">&#39;FACoA&#39;</span><span class="p">}:</span>
+                
+                <span class="k">if</span> <span class="n">name1</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_greek&#39;</span> <span class="o">%</span> <span class="n">typ</span><span class="o">.</span><span class="n">lower</span><span class="p">()):</span>
+                    
+                    <span class="n">cc1</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_greek&#39;</span> <span class="o">%</span> <span class="n">typ</span><span class="o">.</span><span class="n">lower</span><span class="p">())[</span><span class="n">name1</span><span class="p">]</span>
+                    <span class="n">iso</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="nb">tuple</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">))</span>
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iso</span> <span class="ow">and</span> <span class="s1">&#39;(&#39;</span> <span class="ow">in</span> <span class="n">name</span> <span class="k">else</span>
+                        <span class="p">()</span>
+                    <span class="p">)</span>
+                    <span class="n">chains</span>   <span class="o">=</span> <span class="p">[</span><span class="n">lipproc</span><span class="o">.</span><span class="n">Chain</span><span class="p">(</span>
+                        <span class="n">c</span> <span class="o">=</span> <span class="n">cc1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="n">u</span> <span class="o">=</span> <span class="n">cc1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="n">typ</span> <span class="o">=</span> <span class="n">typ</span><span class="p">,</span>
+                        <span class="n">iso</span> <span class="o">=</span> <span class="n">iso</span>
+                    <span class="p">)]</span>
+                    <span class="n">chainsum</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">sum_chains</span><span class="p">(</span><span class="n">chains</span><span class="p">)</span>
+        
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+        
+        <span class="k">return</span> <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.test_branched"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.test_branched">[docs]</a>    <span class="k">def</span> <span class="nf">test_branched</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tells if a lipid might contain branched aliphatic chains.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reme</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.process"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.process">[docs]</a>    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">database</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The main method of this class. Processes a lipid name string</span>
+<span class="sd">        and returns a standard name, prefix, carbon counts and</span>
+<span class="sd">        unsaturations.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param list names:</span>
+<span class="sd">            One or more names to process. Single result will be returned</span>
+<span class="sd">            and names will be attempted to be processed one after the other</span>
+<span class="sd">            until processing is successful.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="s1">&#39;lower&#39;</span><span class="p">):</span>
+            <span class="c1"># ok, if one passes a string let us still process it</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="p">(</span><span class="n">names</span><span class="p">,)</span>
+        
+        <span class="n">database</span> <span class="o">=</span> <span class="n">database</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span>
+        
+        <span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span><span class="p">,</span> <span class="n">chainsiso</span><span class="p">,</span> <span class="n">chainsexp</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        
+        <span class="n">hg</span><span class="p">,</span> <span class="n">chainsexp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">headgroup_from_lipid_name</span><span class="p">(</span>
+            <span class="n">names</span><span class="p">,</span> <span class="n">database</span> <span class="o">=</span> <span class="n">database</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># try greek fatty acyl carbon counts:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">hg</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">iso</span> <span class="ow">and</span> <span class="n">database</span> <span class="o">==</span> <span class="s1">&#39;swisslipids&#39;</span><span class="p">:</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                
+                <span class="k">for</span> <span class="n">name0</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+                    
+                    <span class="n">fa_greek</span> <span class="o">=</span> <span class="n">name0</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+                    
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fa_greek</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        
+                        <span class="n">hg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_fa_name</span><span class="p">(</span><span class="n">fa_greek</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        
+                        <span class="k">if</span> <span class="n">hg</span><span class="p">:</span>
+                            
+                            <span class="n">hg</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="n">fa_name</span><span class="p">)</span>
+                            <span class="n">chainsexp</span> <span class="o">=</span> <span class="p">(</span><span class="n">fa_name</span><span class="p">,)</span>
+                            <span class="k">break</span>
+                
+            <span class="k">except</span><span class="p">:</span>
+                
+                <span class="k">pass</span>
+        
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            
+            <span class="n">lyso</span> <span class="o">=</span>  <span class="n">hg</span> <span class="ow">and</span> <span class="s1">&#39;Lyso&#39;</span> <span class="ow">in</span> <span class="n">hg</span><span class="o">.</span><span class="n">sub</span>
+            
+            <span class="c1"># how many aliphatic chains this molecule has</span>
+            <span class="n">ccexp</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="mi">2</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">hg</span> <span class="k">else</span>
+                    <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">hg</span><span class="o">.</span><span class="n">main</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="s1">&#39;MAG&#39;</span><span class="p">}</span> <span class="ow">or</span> <span class="n">lyso</span> <span class="k">else</span>
+                    <span class="mi">3</span>
+                <span class="k">if</span> <span class="n">hg</span><span class="o">.</span><span class="n">main</span> <span class="o">==</span> <span class="s1">&#39;TAG&#39;</span> <span class="k">else</span>
+                    <span class="mi">2</span>
+            <span class="p">)</span>
+            
+            <span class="n">_chainsum</span><span class="p">,</span> <span class="n">_chains</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">carbon_counts</span><span class="p">(</span>
+                <span class="n">n</span><span class="p">,</span> <span class="n">ccexp</span> <span class="o">=</span> <span class="n">ccexp</span><span class="p">,</span> <span class="n">chainsexp</span> <span class="o">=</span> <span class="n">chainsexp</span><span class="p">,</span> <span class="n">iso</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iso</span>
+            <span class="p">)</span>
+            
+            <span class="n">chains</span> <span class="o">=</span> <span class="n">chains</span> <span class="ow">or</span> <span class="n">_chains</span>
+            <span class="n">chainsum</span> <span class="o">=</span> <span class="n">chainsum</span> <span class="ow">or</span> <span class="n">_chainsum</span>
+            
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iso</span> <span class="ow">and</span> <span class="n">_chains</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">iso</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">_chains</span><span class="p">):</span>
+                
+                <span class="n">chains</span> <span class="o">=</span> <span class="n">_chains</span>
+            
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">chainsum</span> <span class="ow">and</span> <span class="n">chains</span> <span class="ow">and</span> <span class="p">(</span>
+                    <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">iso</span> <span class="ow">or</span>
+                    <span class="nb">any</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">iso</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">):</span>
+                
+                <span class="k">break</span>
+        
+        <span class="k">if</span> <span class="n">hg</span> <span class="ow">and</span> <span class="n">hg</span><span class="o">.</span><span class="n">main</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="s1">&#39;FAL&#39;</span><span class="p">,</span> <span class="s1">&#39;FACoA&#39;</span><span class="p">}</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">chainsum</span><span class="p">:</span>
+            
+            <span class="k">for</span> <span class="n">name0</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+                
+                <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fa_greek_cc</span><span class="p">(</span><span class="n">name0</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">chainsum</span><span class="p">:</span>
+                    
+                    <span class="k">break</span>
+        
+        <span class="k">return</span> <span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">,</span> <span class="n">chains</span></div>
+    
+<div class="viewcode-block" id="LipidNameProcessor.gen_fa_greek"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.name.LipidNameProcessor.gen_fa_greek">[docs]</a>    <span class="k">def</span> <span class="nf">gen_fa_greek</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates a list of greek fatty acid names with their</span>
+<span class="sd">        carbon counts and unsaturations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">fa_greek_parts</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;cc&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;hex&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+                <span class="s1">&#39;hept&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+                <span class="s1">&#39;oct&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+                <span class="s1">&#39;non&#39;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+                <span class="s1">&#39;dec&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+                <span class="s1">&#39;undec&#39;</span><span class="p">:</span> <span class="mi">11</span><span class="p">,</span>
+                <span class="s1">&#39;dodec&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span>
+                <span class="s1">&#39;tridec&#39;</span><span class="p">:</span> <span class="mi">13</span><span class="p">,</span>
+                <span class="s1">&#39;tetradec&#39;</span><span class="p">:</span> <span class="mi">14</span><span class="p">,</span>
+                <span class="s1">&#39;pentadec&#39;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+                <span class="s1">&#39;hexadec&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+                <span class="s1">&#39;heptadec&#39;</span><span class="p">:</span> <span class="mi">17</span><span class="p">,</span>
+                <span class="s1">&#39;octadec&#39;</span><span class="p">:</span> <span class="mi">18</span><span class="p">,</span>
+                <span class="s1">&#39;nonadec&#39;</span><span class="p">:</span> <span class="mi">19</span><span class="p">,</span>
+                <span class="s1">&#39;eicos&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+                <span class="s1">&#39;icos&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+                <span class="s1">&#39;heneicos&#39;</span><span class="p">:</span> <span class="mi">21</span><span class="p">,</span>
+                <span class="s1">&#39;docos&#39;</span><span class="p">:</span> <span class="mi">22</span><span class="p">,</span>
+                <span class="s1">&#39;tricos&#39;</span><span class="p">:</span> <span class="mi">23</span><span class="p">,</span>
+                <span class="s1">&#39;tetracos&#39;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+                <span class="s1">&#39;pentacos&#39;</span><span class="p">:</span> <span class="mi">25</span><span class="p">,</span>
+                <span class="s1">&#39;hexacos&#39;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span>
+                <span class="s1">&#39;heptacos&#39;</span><span class="p">:</span> <span class="mi">27</span><span class="p">,</span>
+                <span class="s1">&#39;octacos&#39;</span><span class="p">:</span> <span class="mi">28</span><span class="p">,</span>
+                <span class="s1">&#39;nonacos&#39;</span><span class="p">:</span> <span class="mi">29</span><span class="p">,</span>
+                <span class="s1">&#39;triacont&#39;</span><span class="p">:</span> <span class="mi">30</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;uns&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">&#39;adi&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="s1">&#39;atri&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+                <span class="s1">&#39;atetra&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+                <span class="s1">&#39;apenta&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+                <span class="s1">&#39;ahexa&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+                <span class="s1">&#39;ahepta&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+                <span class="s1">&#39;aocta&#39;</span><span class="p">:</span> <span class="mi">8</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;end&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;enoate&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">&#39;anoate&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;enoic acid&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">&#39;anoic acid&#39;</span><span class="p">:</span> <span class="mi">0</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        
+        <span class="n">fal_greek_end</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">fal_greek_end</span><span class="p">[</span><span class="s1">&#39;anol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">fal_greek_end</span><span class="p">[</span><span class="s1">&#39;enol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        
+        <span class="n">facoa_greek_end</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">facoa_greek_end</span><span class="p">[</span><span class="s1">&#39;anoyl-CoA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">facoa_greek_end</span><span class="p">[</span><span class="s1">&#39;enoyl-CoA&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fa_greek</span>  <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fal_greek</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">facoa_greek</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">cc</span><span class="p">,</span> <span class="n">uns</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span>
+            <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;cc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+            <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;uns&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+            <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">uns</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">fa_greek</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">uns</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="o">=</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">uns</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        
+        <span class="k">for</span> <span class="n">cc</span><span class="p">,</span> <span class="n">uns</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span>
+            <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;cc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+            <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;uns&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+            <span class="n">fal_greek_end</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">uns</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">fal_greek</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">uns</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="o">=</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">uns</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        
+        <span class="k">for</span> <span class="n">cc</span><span class="p">,</span> <span class="n">uns</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span>
+            <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;cc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+            <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;uns&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+            <span class="n">facoa_greek_end</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">uns</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">facoa_greek</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">uns</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="o">=</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">uns</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
