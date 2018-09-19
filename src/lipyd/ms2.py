@@ -4036,12 +4036,16 @@ class Cer_Positive(AbstractMS2Identifier):
             **kwargs,
         )
         
-        self.sph_scores   = {}
-        self.fa_scores    = {}
+        self.sph_scores     = {}
+        self.sph_max_scores = {}
+        self.fa_scores      = {}
+        self.fa_max_scores  = {}
     
     def confirm_class(self):
         
         AbstractMS2Identifier.confirm_class(self)
+        
+        self.max_score += 2
         
         self.score += sum(map(
             self.scn.has_fragment,
@@ -4075,35 +4079,43 @@ class Cer_Positive(AbstractMS2Identifier):
                 # score is valid only for the current chain combination
                 # hence now we add these to the overall score, yield the
                 # identification and then subtract them from the score
-                sph_score = self.sphingosine_base(chains[0][0].attr.sph)
+                sph_score, sph_max_score = self.sphingosine_base(
+                    chains[0][0].attr.sph
+                )
                 self.score += sph_score
+                self.max_score += sph_max_score
                 
                 if self.nacyl:
                     
-                    fa_score  = self.fatty_acyl(chains[0][1])
+                    fa_score, fa_max_score = self.fatty_acyl(chains[0][1])
                     self.score += fa_score
+                    self.max_score += fa_max_score
                 
                 yield chains
                 
                 self.score -= sph_score
+                self.max_score -= sph_max_score
                 
                 if self.nacyl:
                     
                     self.score -= fa_score
+                    self.max_score -= fa_max_score
     
     def fatty_acyl(self, fa):
         
         score = 0
+        max_score = 0
         
         if fa.attr.oh:
             
             pass
         
-        return score
+        return score, max_score
     
     def sm(self):
         
         score = 0
+        max_score = 47
         
         if self.scn.most_abundant_fragment_is('PC/SM [P+Ch] (184.0733)'):
             
@@ -4129,7 +4141,7 @@ class Cer_Positive(AbstractMS2Identifier):
             
             self.must_have_chains = False
         
-        return score
+        return score, max_score
     
     def pc(self):
         """
@@ -4137,16 +4149,18 @@ class Cer_Positive(AbstractMS2Identifier):
         """
         
         score = 0
+        max_score = 15
         
         if self.scn.most_abundant_fragment_is('PC/SM [P+Ch] (184.0733)'):
             
             score += 15
         
-        return score
+        return score, max_score
     
     def pe_cer(self):
         
         score = 0
+        max_score = 30
         
         if self.scn.has_fragment('NL PE [P+E] (NL 141.0191)'):
             
@@ -4160,11 +4174,12 @@ class Cer_Positive(AbstractMS2Identifier):
                 )
             )) * 5
         
-        return score
+        return score, max_score
     
     def cer1p(self):
         
         score = 0
+        max_score = 31
         
         if self.scn.has_fragment('NL [P+H2O] (NL 115.9875)'):
             
@@ -4196,11 +4211,12 @@ class Cer_Positive(AbstractMS2Identifier):
             )
         )) * 3
         
-        return score
+        return score, max_score
     
     def hexcer(self):
         
         score = 0
+        max_score = 25
         
         score += sum(map(bool,
             (
@@ -4214,11 +4230,12 @@ class Cer_Positive(AbstractMS2Identifier):
             
             score += 10
         
-        return score
+        return score, max_score
     
     def hex2cer(self):
         
         score = 0
+        max_score = 39
         
         score += sum(map(bool,
             (
@@ -4239,7 +4256,7 @@ class Cer_Positive(AbstractMS2Identifier):
             
             score += 10
         
-        return score
+        return score, max_score
     
     def hexcer_chain_combination(self):
         
@@ -4266,6 +4283,7 @@ class Cer_Positive(AbstractMS2Identifier):
     def shexcer(self):
         
         score = 0
+        max_score = 25
         
         score += sum(map(bool,
             (
@@ -4277,11 +4295,12 @@ class Cer_Positive(AbstractMS2Identifier):
             )
         )) * 5
         
-        return score
+        return score, max_score
     
     def shex2cer(self):
         
         score = 0
+        max_score = 25
         
         score += sum(map(bool,
             (
@@ -4293,11 +4312,12 @@ class Cer_Positive(AbstractMS2Identifier):
             )
         )) * 5
         
-        return score
+        return score, max_score
     
     def m2(self):
         
         score = 0
+        max_score = 46
         
         if self.scn.has_fragment('PC/SM [Ch-Et] (58.0651)'):
             
@@ -4331,11 +4351,12 @@ class Cer_Positive(AbstractMS2Identifier):
             
             score += 20
         
-        return score
+        return score, max_score
     
     def m1(self):
         
         score = 0
+        max_score = 30
         
         if self.scn.has_fragment('PC/SM [Ch-Et] (58.0651)'):
             
@@ -4364,11 +4385,12 @@ class Cer_Positive(AbstractMS2Identifier):
             
             score -= 20
         
-        return score
+        return score, max_score
     
     def m3(self):
         
         score = 0
+        max_score = 20
         
         if self.scn.fragment_among_most_abundant(
             3, 'PC/SM [N+3xCH3] (60.0808)'
@@ -4376,11 +4398,12 @@ class Cer_Positive(AbstractMS2Identifier):
             
             score += 20
         
-        return score
+        return score, max_score
     
     def sph(self):
         
         score = 0
+        max_score = 9
         
         score += sum(map(bool,
             (
@@ -4390,7 +4413,7 @@ class Cer_Positive(AbstractMS2Identifier):
             )
         )) * 3
         
-        return score
+        return score, max_score
     
     def sphingosine_base(self, sph):
         
@@ -4398,19 +4421,20 @@ class Cer_Positive(AbstractMS2Identifier):
             
             method = 'sphingosine_%s' % sph.lower()
             
-            self.sph_scores[sph] = (
-                getattr(self, method)() if hasattr(self, method) else 0
+            self.sph_scores[sph], self.sph_max_scores[sph] = (
+                getattr(self, method)() if hasattr(self, method) else (0, 0)
             )
         
-        return self.sph_scores[sph]
+        return self.sph_scores[sph], self.sph_max_scores[sph]
     
     def sphingosine_d(self):
         
         score = 0
+        max_score = 15
         
         if self.rec.chainsum and self.rec.chainsum.u == 0:
             
-            return score
+            return score, max_score
         
         if (
             self.nacyl and self.scn.chain_fragment_type_is(
@@ -4455,11 +4479,12 @@ class Cer_Positive(AbstractMS2Identifier):
             ):
                 score += 10
         
-        return score
+        return score, max_score
     
     def sphingosine_dh(self):
         
         score = 0
+        max_score = 20
         
         score += sum(map(bool,
             (
@@ -4491,11 +4516,12 @@ class Cer_Positive(AbstractMS2Identifier):
             )
         )) * 3
         
-        return score
+        return score, max_score
     
     def sphingosine_t(self):
         
         score = 0
+        max_score = 23
         
         if all((
             self.scn.chain_fragment_type_among_most_abundant(
@@ -4535,11 +4561,12 @@ class Cer_Positive(AbstractMS2Identifier):
                 )
             )) * 3
         
-        return score
+        return score, max_score
     
     def sphingosine_k(self):
         
         score = 0
+        max_score = 39
         
         if self.scn.has_chain_fragment_type(frag_type = 'Sph-NH2-H2O-2H'):
             
@@ -4555,23 +4582,23 @@ class Cer_Positive(AbstractMS2Identifier):
         )) * 3
         
         score += sum(map(bool,
-                (
-                    self.scn.has_chain_fragment_type(
-                        frag_type = 'Sph-C-2xH2O',
-                    ),
-                    self.scn.has_chain_fragment_type(
-                        frag_type = 'Sph-H2O-H',
-                    ),
-                    self.scn.has_chain_fragment_type(
-                        frag_type = 'Sph-H',
-                    ),
-                    self.scn.chain_fragment_type_among_most_abundant(
-                        5, frag_type = 'Sph-H',
-                    ),
-                )
-            )) * 3
+            (
+                self.scn.has_chain_fragment_type(
+                    frag_type = 'Sph-C-2xH2O',
+                ),
+                self.scn.has_chain_fragment_type(
+                    frag_type = 'Sph-H2O-H',
+                ),
+                self.scn.has_chain_fragment_type(
+                    frag_type = 'Sph-H',
+                ),
+                self.scn.chain_fragment_type_among_most_abundant(
+                    5, frag_type = 'Sph-H',
+                ),
+            )
+        )) * 3
         
-        return score
+        return score, max_score
 
 
 class Cer_Negative(AbstractMS2Identifier):
@@ -4632,8 +4659,10 @@ class Cer_Negative(AbstractMS2Identifier):
             **kwargs,
         )
         
-        self.sph_scores   = {}
-        self.fa_scores    = {}
+        self.sph_scores     = {}
+        self.fa_scores      = {}
+        self.sph_max_scores = {}
+        self.fa_max_scores  = {}
     
     def confirm_class(self):
         
@@ -4654,27 +4683,36 @@ class Cer_Negative(AbstractMS2Identifier):
                 # score is valid only for the current chain combination
                 # hence now we add these to the overall score, yield the
                 # identification and then subtract them from the score
-                sph_score = self.sphingosine_base(chains[0][0].attr.sph)
+                sph_score, sph_max_score = self.sphingosine_base(
+                    chains[0][0].attr.sph
+                )
                 self.score += sph_score
+                self.max_score += sph_max_score
                 
                 if self.nacyl:
                     
-                    fa_score  = self.fatty_acyl(chains[0][1])
+                    fa_score, fa_max_score = self.fatty_acyl(chains[0][1])
                     self.score += fa_score
+                    self.max_score += fa_max_score
                 
                 yield chains
                 
                 self.score -= sph_score
+                self.max_score -= sph_max_score
                 
                 if self.nacyl:
                     
                     self.score -= fa_score
+                    self.max_score -= fa_max_score
     
     def fatty_acyl(self, fa):
         
         score = 0
+        max_score = 0
         
         if len(fa.attr.oh) == 1:
+            
+            max_score = 30
             
             if self.scn.has_chain_combination(
                 self.rec,
@@ -4697,9 +4735,11 @@ class Cer_Negative(AbstractMS2Identifier):
                 
                 score += 30
         
-        return score
+        return score, max_score
     
     def cer(self):
+        
+        max_score = 23
         
         cer_nl = (
             'NL H2O (NL 18.0106)', # Hsu c1
@@ -4719,7 +4759,7 @@ class Cer_Negative(AbstractMS2Identifier):
             
             score += 5
         
-        return score
+        return score, max_score
     
     def sphingosine_base(self, sph):
         
@@ -4727,15 +4767,16 @@ class Cer_Negative(AbstractMS2Identifier):
             
             method = 'sphingosine_%s' % sph.lower()
             
-            self.sph_scores[sph] = (
-                getattr(self, method)() if hasattr(self, method) else 0
+            self.sph_scores[sph], self.sph_max_scores[sph] = (
+                getattr(self, method)() if hasattr(self, method) else (0, 0)
             )
         
-        return self.sph_scores[sph]
+        return self.sph_scores[sph], self.sph_max_scores[sph]
     
     def sphingosine_d_dh(self):
         
         score = 0
+        max_score = 20
         
         if self.scn.has_chain_combination(
             self.rec,
@@ -4760,35 +4801,38 @@ class Cer_Negative(AbstractMS2Identifier):
             
             score += 20
         
-        return score
+        return score, max_score
     
     def sphingosine_d(self):
         
         score = 0
+        max_score = 20
         
-        score += self.sphingosine_d_dh()
+        score, max_score += self.sphingosine_d_dh()
         
         if self.scn.has_fragment('NL C+H2O (NL 30.0106)', adduct = self.add):
             
             score += 20
         
-        return score
+        return score, max_score
     
     def sphingosine_dh(self):
         
         score = 0
+        max_score = 0
         
-        score += self.sphingosine_d_dh()
+        score, max_score += self.sphingosine_d_dh()
         
         if self.scn.has_fragment('NL C+H2O (NL 30.0106)', adduct = self.add):
             
             score -= 20
         
-        return score
+        return score, max_score
     
     def sphingosine_t(self):
         
         score = 0
+        max_score = 28
         
         if self.scn.has_fragment('NL C+3xH2O (66.0455)', adduct = self.add):
             
@@ -4825,11 +4869,12 @@ class Cer_Negative(AbstractMS2Identifier):
             
             score -= 10
         
-        return score
+        return score, max_score
     
     def cer1p(self):
         
         score = 0
+        max_score = 70
         
         if any(map(bool, (
             self.scn.has_fragment('Cer1P/PIP/PL metaphosphate (78.9591)'),
@@ -4867,11 +4912,12 @@ class Cer_Negative(AbstractMS2Identifier):
                 
                 score += 10
         
-        return score
+        return score, max_score
     
     def sm(self):
         
         score = 0
+        max_score = 45
         
         if self.scn.fragment_among_most_abundant(
             'NL CH2 (NL 14.0157)', 3, adduct = self.add
@@ -4895,11 +4941,12 @@ class Cer_Negative(AbstractMS2Identifier):
             
             self.must_have_chains = False
         
-        return score
+        return score, max_score
     
     def hexcer(self):
         
         score = 0
+        max_score = 90
         
         self.score += sum(map(bool, (
             self.scn.fragment_among_most_abundant('HexCer identity I', 10),
@@ -4916,11 +4963,12 @@ class Cer_Negative(AbstractMS2Identifier):
             
             score += 10
         
-        return score
+        return score, max_score
     
     def hex2cer(self):
         
         score = 0
+        max_score = 140
         
         self.score += sum(map(bool, (
             self.scn.has_fragment('HexCer identity I'),
@@ -4942,11 +4990,12 @@ class Cer_Negative(AbstractMS2Identifier):
             
             score += 10
         
-        return score
+        return score, max_score
     
     def shexcer(self):
         
         score = 0
+        max_score = 100
         
         self.missing_chains = (1,)
         
@@ -4991,11 +5040,12 @@ class Cer_Negative(AbstractMS2Identifier):
                 
                 score += 20
         
-        return score
+        return score, max_score
     
     def shex2cer(self):
         
         score = 0
+        max_score = 140
         
         self.missing_chains = (1,)
         
@@ -5045,11 +5095,12 @@ class Cer_Negative(AbstractMS2Identifier):
                 
                 score += 20
         
-        return score
+        return score, max_score
     
     def pe_cer(self):
         
         score = 0
+        max_score = 30
         
         score += sum(map(bool, (
             self.scn.has_fragment('PE [P+E] (140.0118)'),
@@ -5057,7 +5108,7 @@ class Cer_Negative(AbstractMS2Identifier):
             self.scn.has_fragment('PE [P+E-H2O] (122.0013)'),
         ))) * 10
         
-        return score
+        return score, max_score
 
 #
 # Scan.identify() dispatches identification methods as below
