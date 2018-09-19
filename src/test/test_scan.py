@@ -2371,6 +2371,12 @@ class TestScan(object):
         
         iscan = scan.identify()
         
+        highest_score = max(
+            i.score_pct
+            for ids identity.values()
+            for i in ids
+        )
+        
         for name, ids in identity.items():
             
             assert name in iscan
@@ -2378,3 +2384,7 @@ class TestScan(object):
             for i in ids:
                 
                 assert i in iscan[name]
+            
+            highest_for_name = max(i.score_pct for i in ids)
+            
+            assert highest_for_name == highest_score

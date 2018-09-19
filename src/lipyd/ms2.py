@@ -87,6 +87,14 @@ class MS2Identity(collections.namedtuple(
     def summary(self):
         
         return self.__str__(), self.score_pct
+    
+    def __eq__(self, other):
+        
+        return (
+            self.hg == other.hg and
+            self.chainsum == other.chainsum and
+            self.chains == other.chains
+        )
 
 
 ChainIdentificationDetails = collections.namedtuple(
@@ -2478,10 +2486,13 @@ class AbstractMS2Identifier(object):
         
         if self.rec.hg is not None and self.rec.hg.main in self.class_methods:
             
-            self.score, self.max_score += getattr(
+            score, max_score = getattr(
                 self,
                 self.class_methods[self.rec.hg.main]
             )()
+            
+            self.score += score
+            self.max_score += max_score
     
     def confirm_subclass(self):
         
@@ -2530,7 +2541,10 @@ class AbstractMS2Identifier(object):
             )
         ))
         
-        self.score, self.max_score += score_method(ccomb)
+        score, max_score = score_method(ccomb)
+        
+        self.score += score
+        self.max_score += score
     
     def check_lyso(self, score_threshold = 5):
         """
@@ -4808,7 +4822,10 @@ class Cer_Negative(AbstractMS2Identifier):
         score = 0
         max_score = 20
         
-        score, max_score += self.sphingosine_d_dh()
+        d_dh_score, d_dh_max_score = self.sphingosine_d_dh()
+        
+        score += d_dh_score
+        max_score += d_dh_max_score
         
         if self.scn.has_fragment('NL C+H2O (NL 30.0106)', adduct = self.add):
             
@@ -4821,7 +4838,10 @@ class Cer_Negative(AbstractMS2Identifier):
         score = 0
         max_score = 0
         
-        score, max_score += self.sphingosine_d_dh()
+        d_dh_score, d_dh_max_score = self.sphingosine_d_dh()
+        
+        score += d_dh_score
+        max_score += d_dh_max_score
         
         if self.scn.has_fragment('NL C+H2O (NL 30.0106)', adduct = self.add):
             
