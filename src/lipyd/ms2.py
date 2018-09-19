@@ -5325,8 +5325,6 @@ class MS2Feature(object):
         self.mgfs = mgfs
         self.rt = (rt, rt) if type(rt) is float else rt
         self.rtmean = sum(self.rt) / 2.0
-        
-        print(mgfs)
     
     def main(self):
         
@@ -5354,12 +5352,9 @@ class MS2Feature(object):
             
             idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
             
-            print(mgffile.fname)
-            
             for i, rtd in zip(idx, rtdiff):
                 
                 scan_rt = self.rtmean + rtd
-                print(scan_rt, mgffile.mgfindex[i,0], self.rt)
                 
                 if scan_rt < self.rt[0] or scan_rt > self.rt[1]:
                     
@@ -5413,8 +5408,6 @@ class MS2Feature(object):
             for sum_str, varieties in iteritems(scan_i):
                 
                 for var in varieties:
-                    
-                    print(var)
                     
                     summary = [var.__str__()]
                     

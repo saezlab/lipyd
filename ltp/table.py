@@ -352,9 +352,6 @@ class MS2Reprocessor(LtpTable):
                 continue
             
             mz = row[self.col_letter(self.mzcol) - 1].value
-            print(i)
-            print(self.ionmode)
-            print(mz)
             
             if mz is None:
                 
