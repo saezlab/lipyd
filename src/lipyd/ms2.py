@@ -2477,7 +2477,7 @@ class AbstractMS2Identifier(object):
         return (
             int(np.round(self.score / self.max_score * 100.))
             if self.max_score else
-            0
+            200
         )
     
     def confirm_class(self):
