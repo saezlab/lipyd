@@ -1633,7 +1633,6 @@ class Scan(ScanBase):
         try:
             
             _ = next(ccomb)
-            print(_)
             
             return True
             
@@ -2456,6 +2455,8 @@ class AbstractMS2Identifier(object):
                 
                 yield MS2Identity(
                     max(self.score, 0),
+                    self.max_score,
+                    self.percent_score(),
                     self.rec.hg,
                     self.rec.chainsum,
                     chains = chains[0],
@@ -3660,10 +3661,10 @@ class BMP_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.max_score = 5
+        self.max_score = 10
         
         if (
-            self.scn.has_chain_combinations(self.rec) and
+            self.scn.has_chain_combinations(self.rec, head = 15) and
             self.scn.chain_fragment_type_among_most_abundant(
                 chain_type = 'FA', frag_type = 'FA+Glycerol-OH', n = 3
             )
@@ -3682,6 +3683,10 @@ class BMP_Positive(AbstractMS2Identifier):
                 if self.scn.intensities[i_gfa] < self.scn.intensities[i_hg]:
                     
                     self.score = 0
+                
+                else:
+                    
+                    self.score += 5
 
 
 class PA_Negative(AbstractMS2Identifier):
@@ -5320,6 +5325,8 @@ class MS2Feature(object):
         self.mgfs = mgfs
         self.rt = (rt, rt) if type(rt) is float else rt
         self.rtmean = sum(self.rt) / 2.0
+        
+        print(mgfs)
     
     def main(self):
         
@@ -5347,9 +5354,12 @@ class MS2Feature(object):
             
             idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
             
+            print(mgffile.fname)
+            
             for i, rtd in zip(idx, rtdiff):
                 
                 scan_rt = self.rtmean + rtd
+                print(scan_rt, mgffile.mgfindex[i,0], self.rt)
                 
                 if scan_rt < self.rt[0] or scan_rt > self.rt[1]:
                     
@@ -5398,11 +5408,13 @@ class MS2Feature(object):
         
         identities = set()
         
-        for i, scan_ids in enumerate(self.identities):
+        for i, scan_i in enumerate(self.identities):
             
-            for sum_str, varieties in iteritems(scan_ids):
+            for sum_str, varieties in iteritems(scan_i):
                 
                 for var in varieties:
+                    
+                    print(var)
                     
                     summary = [var.__str__()]
                     
