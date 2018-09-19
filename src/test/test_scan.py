@@ -2348,6 +2348,87 @@ specimens = [
             ),
         )}
     ),
+    # PG + in vitro FABP1
+    (
+        'pos_examples.mgf',
+        'pos',
+        2040,
+        {'PG(36:2)': (
+            MS2Identity(
+                score = 5,
+                max_score = 5,
+                score_pct = 100,
+                hg = Headgroup(main='PG', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 2,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                    iso = None
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
+        (
+        'pos_examples.mgf',
+        'pos',
+        1980,
+        {'PG(36:2)': (
+            MS2Identity(
+                score = 5,
+                max_score = 5,
+                score_pct = 100,
+                hg = Headgroup(main='PG', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 2,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                    iso = None
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
 ]
 
 
