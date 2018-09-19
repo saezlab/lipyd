@@ -25,6 +25,7 @@ import openpyxl
 import re
 import os
 import sys
+import collections
 
 from lipyd import moldb
 from lipyd import ms2
@@ -32,7 +33,7 @@ from lipyd import mgf
 from lipyd import settings
 
 resheet = re.compile(r'([A-z0-9]+)_(positive|negative)_?(best)?')
-remgf   = re.compile(r'([A-Z0-9]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
+remgf   = re.compile(r'([^\W_]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
 
 class TableBase(object):
     """
@@ -226,13 +227,14 @@ class LtpTable(TableBase):
                 
                 protein, ionmode, fracrow, fraccol = mgfdata.groups()
                 frac = (fracrow, int(fraccol))
+                protein = protein.upper()
                 
                 if (
                     protein == self.protein and
                     (not self.prot_frac or frac in self.prot_frac)
                 ):
                     
-                    self.mgf_files[(self.ionmode, frac)] = os.path.join(
+                    self.mgf_files[ionmode][frac] = os.path.join(
                         self.mgfdir, mgfname
                     )
         
@@ -246,13 +248,15 @@ class LtpTable(TableBase):
     
     def open_mgf(self):
         
-        self.mgf = {}
+        self.mgf_readers = collections.defaultdict(dict)
         
-        for ionm_frac, mgfpath in iteritems(self.mgf_files):
+        for ionmode, mgfs in iteritems(self.mgf_files):
             
-            self.mgf[ionm_frac] = mgf.MgfReader(
-                mgfpath, label = '%s%u' % ionm_frac[1], charge = None
-            )
+            for frac, mgf_path in iteritems(mgfs):
+                
+                self.mgf_readers[ionmode][frac] = mgf.MgfReader(
+                    mgf_path, label = '%s%u' % frac, charge = None
+                )
 
 
 class MS2Reprocessor(LtpTable):
@@ -348,6 +352,14 @@ class MS2Reprocessor(LtpTable):
                 continue
             
             mz = row[self.col_letter(self.mzcol) - 1].value
+            print(i)
+            print(self.ionmode)
+            print(mz)
+            
+            if mz is None:
+                
+                continue
+            
             ms1_records = moldb.adduct_lookup(
                 mz, self.ionmode, tolerance = self.ms1_tolerance
             )
@@ -384,7 +396,7 @@ class MS2Reprocessor(LtpTable):
             ms2_fe = ms2.MS2Feature(
                 mz,
                 self.ionmode,
-                self.mgf,
+                self.mgf_readers[self.ionmode],
                 rt = rt,
                 ms1_records = ms1_records,
             )

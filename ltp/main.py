@@ -42,7 +42,7 @@ class ResultsReprocessor(object):
     """
     
     rexlsx = re.compile(r'([A-Z0-9]+)_top_features_.*xlsx')
-    remgf  = re.compile(r'([A-Z0-9]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
+    remgf  = re.compile(r'([^\W_]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
     refr   = re.compile(r'([A-Z])([0-9]{1,2})')
     
     def __init__(
@@ -53,6 +53,7 @@ class ResultsReprocessor(object):
             screen = 'invitro',
             reprocessor = 'MS2Reprocessor',
             overwrite = False,
+            ms2_non_protein_containing_fractions = False,
         ):
         
         self.screen = screen
@@ -72,11 +73,11 @@ class ResultsReprocessor(object):
             ltpsettings.get('protein_containing_fractions_%s' % self.screen)
         )
         
-        self.reprocessor = (
-            getattr(table, reprocessor)
-                if type(reprocessor) is common.basestring else
-            reprocessor
-        )
+        self.reprocessor_class = reprocessor
+        
+        self.set_reprocessor()
+        
+        self.ms2_nonpcont =  ms2_non_protein_containing_fractions
     
     def reload(self):
         
@@ -85,6 +86,8 @@ class ResultsReprocessor(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+        imp.reload(table)
+        self.set_reprocessor()
     
     def main(self):
         
@@ -96,6 +99,14 @@ class ResultsReprocessor(object):
         self.read_protein_containing_fractions()
         self.collect_files()
         self.collect_mgfs()
+    
+    def set_reprocessor(self):
+        
+        self.reprocessor = (
+            getattr(table, self.reprocessor_class)
+                if type(self.reprocessor_class) is common.basestring else
+            self.reprocessor_class
+        )
     
     def read_protein_containing_fractions(self):
         
@@ -113,7 +124,7 @@ class ResultsReprocessor(object):
             
             for l in fp:
                 
-                l = l.split('\t')
+                l = l.strip().split('\t')
                 
                 if self.screen == 'invitro':
                     
@@ -125,11 +136,9 @@ class ResultsReprocessor(object):
                     
                     for i, val in enumerate(l[1:]):
                         
-                        if val != 'None':
-                            
-                            fr = fraction_tuple(hdr[i + 1].upper())
-                            
-                            result[l[0]][fr] = int(val)
+                        fr = fraction_tuple(hdr[i + 1].upper())
+                        
+                        result[l[0]][fr] = 0 if val == 'None' else int(val)
         
         self.fractions = result
     
@@ -153,7 +162,9 @@ class ResultsReprocessor(object):
     
     def collect_mgfs(self):
         
-        result = {}
+        result = collections.defaultdict(
+            lambda: collections.defaultdict(dict)
+        )
         
         for mgf in os.listdir(self.mgfdir):
             
@@ -164,8 +175,18 @@ class ResultsReprocessor(object):
                 continue
             
             protein, ionmode, fracrow, fraccol = match.groups()
+            frac = (fracrow, int(fraccol))
+            protein = protein.upper()
             
-            result[(protein, ionmode, (fracrow, int(fraccol)))] = mgf
+            if protein == 'ORP9STARD15':
+                
+                protein = 'STARD15'
+            
+            if self.ms2_nonpcont or self.fractions[protein][frac]:
+                
+                result[protein][ionmode][frac] = (
+                    os.path.join(self.mgfdir, mgf)
+                )
         
         self.mgfs = result
     
@@ -179,21 +200,9 @@ class ResultsReprocessor(object):
                 
                 continue
             
-            for ionmode in ('neg', 'pos'):
-                
-                mgfpaths = dict(
-                    (
-                        (ionmode, fr),
-                        os.path.join(
-                            self.mgfdir,
-                            self.mgfs[(protein, ionmode, fr)],
-                        )
-                    )
-                    for fr, pcont in iteritems(self.fractions[protein])
-                    if pcont
-                )
-                
-                yield xlsxpath, mgfpaths
+            mgfpaths = self.mgfs[protein]
+            
+            yield xlsxpath, mgfpaths
     
     def reprocess(self):
         
