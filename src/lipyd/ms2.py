@@ -2474,7 +2474,11 @@ class AbstractMS2Identifier(object):
         Returns the score as a percentage of the maximum possible score.
         """
         
-        return np.round(self.score / max(self.max_score, 1.) * 100.)
+        return (
+            int(np.round(self.score / self.max_score * 100.))
+            if self.max_score else
+            0
+        )
     
     def confirm_class(self):
         """
