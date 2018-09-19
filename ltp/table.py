@@ -34,6 +34,7 @@ from lipyd import settings
 
 resheet = re.compile(r'([A-z0-9]+)_(positive|negative)_?(best)?')
 remgf   = re.compile(r'([^\W_]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
+remgf_typo   = re.compile(r'([^\W_]+)_([A-Z])([0-9]{1,2})_(pos|neg)\.mgf')
 
 class TableBase(object):
     """
@@ -171,16 +172,6 @@ class LtpTable(TableBase):
         self.mzcol = 'N'
         self.rtcol = 'E'
     
-    def process_sheets(self):
-        
-        if not self.mgf_files:
-            
-            self.collect_mgf()
-        
-        self.open_mgf()
-        
-        TableBase.process_sheets(self)
-    
     def process_sheet(self):
         
         annot = resheet.search(self.sheet.title)
@@ -192,6 +183,12 @@ class LtpTable(TableBase):
         self.protein = annot.groups()[0]
         self.ionmode = annot.groups()[1][:3]
         self.best    = annot.groups()[2] is not None
+        
+        if not self.mgf_files:
+            
+            self.collect_mgf()
+        
+        self.open_mgf()
         
         for idx, title, values in self.new_columns():
             

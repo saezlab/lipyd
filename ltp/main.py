@@ -41,9 +41,10 @@ class ResultsReprocessor(object):
     and saves xlsx files in a new directory with preserving formatting.
     """
     
-    rexlsx = re.compile(r'([A-Z0-9]+)_top_features_.*xlsx')
-    remgf  = re.compile(r'([^\W_]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
-    refr   = re.compile(r'([A-Z])([0-9]{1,2})')
+    rexlsx     = re.compile(r'([A-Z0-9]+)_top_features_.*xlsx')
+    remgf      = re.compile(r'([^\W_]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
+    remgf_typo = re.compile(r'([^\W_]+)_([A-Z])([0-9]{1,2})_(pos|neg)\.mgf')
+    refr       = re.compile(r'([A-Z])([0-9]{1,2})')
     
     def __init__(
             self,
@@ -172,9 +173,20 @@ class ResultsReprocessor(object):
             
             if not match:
                 
-                continue
+                match = self.remgf_typo.search(mgf)
+                
+                if match:
+                    
+                    protein, fracrow, fraccol, ionmode = match.groups()
+                
+                else:
+                    
+                    continue
+                
+            else:
+                
+                protein, ionmode, fracrow, fraccol = match.groups()
             
-            protein, ionmode, fracrow, fraccol = match.groups()
             frac = (fracrow, int(fraccol))
             protein = protein.upper()
             
