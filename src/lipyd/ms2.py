@@ -56,10 +56,10 @@ class MS2Identity(collections.namedtuple(
     
     def __new__(
             cls,
-            score,
-            max_score,
-            score_pct,
-            hg,
+            score = 0,
+            max_score = 0,
+            score_pct = 0,
+            hg = None,
             chainsum = None,
             chains = None,
             details = None,
