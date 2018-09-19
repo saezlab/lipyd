@@ -91,6 +91,7 @@ class MS2Identity(collections.namedtuple(
     def __eq__(self, other):
         
         return (
+            isinstance(other, MS2Identity) and
             self.hg == other.hg and
             self.chainsum == other.chainsum and
             self.chains == other.chains
@@ -1632,6 +1633,7 @@ class Scan(ScanBase):
         try:
             
             _ = next(ccomb)
+            print(_)
             
             return True
             
@@ -1758,7 +1760,10 @@ class Scan(ScanBase):
         
         for frag in chain_list:
             
-            if self.inorm[frag.i] < intensity_threshold:
+            if (
+                (head and frag.i >= head) or
+                self.inorm[frag.i] < intensity_threshold
+            ):
                 
                 break
             
@@ -2435,7 +2440,7 @@ class AbstractMS2Identifier(object):
         for chains in self.confirm_chains_explicit():
             
             yield MS2Identity(
-                self.score,
+                max(self.score, 0),
                 self.max_score,
                 self.percent_score(),
                 self.rec.hg,
@@ -2450,9 +2455,11 @@ class AbstractMS2Identifier(object):
             for chains in self.confirm_chains_implicit():
                 
                 yield MS2Identity(
-                    self.score, self.rec.hg, self.rec.chainsum,
+                    max(self.score, 0),
+                    self.rec.hg,
+                    self.rec.chainsum,
                     chains = chains[0],
-                    details = chains[1]
+                    details = chains[1],
                 )
                 
                 chains_confirmed = True
@@ -2460,7 +2467,7 @@ class AbstractMS2Identifier(object):
         if not chains_confirmed and not self.must_have_chains and self.score:
             
             yield MS2Identity(
-                self.score,
+                max(self.score, 0),
                 self.max_score,
                 self.percent_score(),
                 self.rec.hg,
@@ -2472,10 +2479,12 @@ class AbstractMS2Identifier(object):
     def percent_score(self):
         """
         Returns the score as a percentage of the maximum possible score.
+        
+        Zero maximum score means something is wrong, then it returns 200.
         """
         
         return (
-            int(np.round(self.score / self.max_score * 100.))
+            max(int(np.round(self.score / self.max_score * 100.)), 0)
             if self.max_score else
             200
         )
@@ -2500,9 +2509,11 @@ class AbstractMS2Identifier(object):
     
     def confirm_subclass(self):
         
+        subclasses = self.rec.hg.sub or ('empty',)
+        
         if self.rec.hg is not None:
             
-            for sub in self.rec.hg.sub:
+            for sub in subclasses:
                 
                 if sub not in self.scores and sub in self.subclass_methods:
                     
@@ -2792,9 +2803,13 @@ class TAG_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.max_score = 5
+        self.max_score = 10
         
-        if self.scn.has_chain_combinations(self.rec):
+        if self.scn.has_chain_combinations(self.rec, head = 15):
+            
+            self.score += 5
+        
+        if self.scn.has_chain_combinations(self.rec, head = 7):
             
             self.score += 5
 
@@ -4037,6 +4052,7 @@ class Cer_Positive(AbstractMS2Identifier):
         'M1': 'm1',
         'M3': 'm3',
         'PC': 'pc',
+        'empty': 'cer',
     }
     
     def __init__(self, record, scan, **kwargs):
@@ -4126,7 +4142,50 @@ class Cer_Positive(AbstractMS2Identifier):
         
         if fa.attr.oh:
             
-            pass
+            if self.add == '[M-H2O+H]+':
+                
+                score -= 20
+        
+        return score, max_score
+    
+    def cer(self):
+        
+        
+        score = 0
+        max_score = 0
+        
+        non_hex_score, non_hex_max_score = self.non_hex()
+        
+        score += non_hex_score
+        max_score += non_hex_max_score
+        
+        return score, max_score
+    
+    def non_hex(self):
+        
+        score = 0
+        max_score = 0
+        
+        score -= sum(map(bool,
+            (
+                self.scn.has_fragment('NL [Hexose-H2O] (NL 162.05)'),
+                self.scn.has_fragment('NL [Hexose] (NL 180.06)'),
+                self.scn.has_fragment('NL [Hexose+H2O] (NL 198.07)'),
+                self.scn.has_fragment('NL [2xHexose] (NL 342.1162)'),
+                self.scn.has_fragment('NL [2xHexose+H2O] (NL 360.1268)'),
+                self.scn.has_fragment('NL [2xHexose-H2O] (NL 324.1056)'),
+                self.scn.has_fragment('NL [2xHexose+O] (NL 358.1111)'),
+                self.scn.has_fragment('NL [2xHexose+C] (NL 372.1268)'),
+                self.scn.has_fragment('NL [S] (NL 79.9568)'),
+                self.scn.has_fragment('NL [S+H2O] (97.9674)'),
+                self.scn.has_fragment('NL [Hexose+SO3] (NL 242.100)'),
+                self.scn.has_fragment('NL [Hexose+SO3+H2O] (NL 260.0202)'),
+                self.scn.has_fragment('NL [Hexose+SO3+2xH2O] (NL 278.0308)'),
+                self.scn.has_fragment('NL [2xHexose+SO3] (NL 404.0625)'),
+                self.scn.has_fragment('NL [2xHexose+SO3+H2O] (NL 422.0730)'),
+                self.scn.has_fragment('NL [2xHexose+SO3+2xH2O] (NL 440.0836)'),
+            )
+        )) * 5
         
         return score, max_score
     
@@ -4229,12 +4288,16 @@ class Cer_Positive(AbstractMS2Identifier):
             )
         )) * 3
         
+        non_hex_score, non_hex_max_score = self.non_hex()
+        
+        score += non_hex_score
+        
         return score, max_score
     
     def hexcer(self):
         
         score = 0
-        max_score = 25
+        max_score = 14
         
         score += sum(map(bool,
             (
@@ -4242,11 +4305,11 @@ class Cer_Positive(AbstractMS2Identifier):
                 self.scn.has_fragment('NL [Hexose] (NL 180.06)'),
                 self.scn.has_fragment('NL [Hexose+H2O] (NL 198.07)'),
             )
-        )) * 5
+        )) * 3
         
         if self.hexcer_chain_combination():
             
-            score += 10
+            score += 5
         
         return score, max_score
     
@@ -4382,6 +4445,7 @@ class Cer_Positive(AbstractMS2Identifier):
         
         if self.scn.has_chain_combination(
                 self.rec,
+                head = 10,
                 chain_param = (
                     {
                         'frag_type': {
@@ -4396,7 +4460,7 @@ class Cer_Positive(AbstractMS2Identifier):
             score += 20
         
         if self.scn.has_chain_fragment_type(
-                frag_type = {'Sph-2xH2O+2xCh3+H', 'Sph-H2O+2xCH3+H'},
+                frag_type = {'Sph-2xH2O+2xCH3+H', 'Sph-H2O+2xCH3+H'},
                 c = self.rec.chainsum.c - 1,
                 u = self.rec.chainsum.u,
             ):
@@ -4840,7 +4904,7 @@ class Cer_Negative(AbstractMS2Identifier):
     def sphingosine_dh(self):
         
         score = 0
-        max_score = 0
+        max_score = -20
         
         d_dh_score, d_dh_max_score = self.sphingosine_d_dh()
         

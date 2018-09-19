@@ -208,6 +208,7 @@ specimens = [
             )
         )}
     ),
+    # PE negative, standards
     (
         'neg_examples.mgf',
         'neg',
@@ -245,7 +246,7 @@ specimens = [
             ),
         )}
     ),
-    # PE positive
+    # PE positive, standards
     (
         'pos_examples.mgf',
         'pos',
@@ -322,6 +323,7 @@ specimens = [
         ),
         # this to see if score is 0
         'PE(34:1)': (
+            False,
             MS2Identity(
                 score = 0,
                 hg = Headgroup(main='PE', sub=()),
@@ -630,6 +632,7 @@ specimens = [
             ),
         ),
         'PG(36:2)': (
+            False,
             MS2Identity(
                 score = 0,
                 hg = Headgroup(main='PG', sub=()),
@@ -1087,32 +1090,32 @@ specimens = [
         'pos_examples.mgf',
         'pos',
         3005,
-        {'Hex-Cer(t40:1)': (
+        {'Hex-Cer(d40:1-2OH)': (
             MS2Identity(
                 score = 26,
                 hg = Headgroup(main='Cer', sub=('Hex',)),
                 chainsum = ChainSummary(
                     c = 40,
                     u = 1,
-                    typ = ('Sph', 'FA'),
+                    typ = ('Sph', 'FAOH'),
                     attr = (
-                        ChainAttr(sph='t', ether=False, oh=()),
-                        ChainAttr(sph='', ether=False, oh=())
+                        ChainAttr(sph='d', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=('2OH',))
                     )
                 ),
                 chains = (
                     Chain(
                         c = 18,
-                        u = 0,
+                        u = 1,
                         typ = 'Sph',
-                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        attr = ChainAttr(sph='d', ether=False, oh=()),
                         iso = ()
                     ),
                     Chain(
                         c = 22,
-                        u = 1,
-                        typ = 'FA',
-                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        u = 0,
+                        typ = 'FAOH',
+                        attr = ChainAttr(sph='', ether=False, oh=('2OH',)),
                         iso = ()
                     )
                 ),
@@ -1125,32 +1128,32 @@ specimens = [
         'pos_examples.mgf',
         'pos',
         2981,
-        {'Hex-Cer(t42:2)': (
+        {'Hex-Cer(d42:2-2OH)': (
             MS2Identity(
                 score = 26,
                 hg = Headgroup(main='Cer', sub=('Hex',)),
                 chainsum = ChainSummary(
                     c = 42,
                     u = 2,
-                    typ = ('Sph', 'FA'),
+                    typ = ('Sph', 'FAOH'),
                     attr = (
-                        ChainAttr(sph='t', ether=False, oh=()),
-                        ChainAttr(sph='', ether=False, oh=())
+                        ChainAttr(sph='d', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=('2OH',))
                     )
                 ),
                 chains = (
                     Chain(
                         c = 18,
-                        u = 0,
+                        u = 1,
                         typ = 'Sph',
-                        attr = ChainAttr(sph='t', ether=False, oh=()),
+                        attr = ChainAttr(sph='d', ether=False, oh=()),
                         iso = ()
                     ),
                     Chain(
                         c = 24,
-                        u = 2,
-                        typ = 'FA',
-                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        u = 1,
+                        typ = 'FAOH',
+                        attr = ChainAttr(sph='', ether=False, oh=('2OH',)),
                         iso = ()
                     )
                 ),
@@ -1469,6 +1472,7 @@ specimens = [
         ),
         # to see if this gets lower score
         'Sph-M1(d19:1)': (
+            False,
             MS2Identity(
                 score = 32,
                 hg = Headgroup(main='Sph', sub=('M1',)),
@@ -1529,6 +1533,7 @@ specimens = [
             ),
         ),
         'Cer(DH36:1)': (
+            False,
             MS2Identity(
                 score = 11,
                 hg = Headgroup(main='Cer', sub=()),
@@ -1935,6 +1940,7 @@ specimens = [
             ),
         ),
         'Cer(t36:1)': (
+            False,
             MS2Identity(
                 score = 38,
                 hg = Headgroup(main='Cer', sub=()),
@@ -2004,6 +2010,7 @@ specimens = [
             ),
         ),
         'Cer(t36:1)': (
+            False,
             MS2Identity(
                 score = 15,
                 hg = Headgroup(main='Cer', sub=()),
@@ -2085,7 +2092,7 @@ specimens = [
         'neg_examples.mgf',
         'neg',
         3695,
-        {'Hex-Cer(d42:2)': (
+        {'Hex-Cer(DH42:2)': (
             MS2Identity(
                 score = 45,
                 hg = Headgroup(main='Cer', sub=('Hex',)),
@@ -2094,7 +2101,7 @@ specimens = [
                     u = 2,
                     typ = ('Sph', 'FA'),
                     attr = (
-                        ChainAttr(sph='d', ether=False, oh=()),
+                        ChainAttr(sph='DH', ether=False, oh=()),
                         ChainAttr(sph='', ether=False, oh=())
                     ),
                 ),
@@ -2103,7 +2110,7 @@ specimens = [
                         c = 18,
                         u = 1,
                         typ = 'Sph',
-                        attr = ChainAttr(sph='d', ether=False, oh=()),
+                        attr = ChainAttr(sph='DH', ether=False, oh=()),
                         iso = ()
                     ),
                     Chain(
@@ -2374,7 +2381,7 @@ class TestScan(object):
         highest_score = max(
             (
                 i.score_pct
-                for ids in identity.values()
+                for ids in iscan.values()
                 for i in ids
             ),
             default = 0,
@@ -2384,13 +2391,24 @@ class TestScan(object):
             
             assert name in iscan
             
+            false_identity = ids[0] == False
+            
+            if false_identity:
+                
+                ids = ids[1:]
+            
             for i in ids:
                 
                 assert i in iscan[name]
             
             highest_for_name = max(
-                (i.score_pct for i in ids),
+                (i.score_pct for i in iscan[name]),
                 default = 0,
             )
             
-            assert highest_for_name == highest_score
+            assert (
+                highest_for_name == highest_score or (
+                    false_identity and
+                    highest_for_name < highest_score
+                )
+            )
