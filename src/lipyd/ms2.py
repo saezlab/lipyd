@@ -3272,29 +3272,26 @@ class LysoPC_Positive(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.max_score = 10
+        self.max_score = 15
         
         if (
             self.scn.most_abundant_fragment_is('PC/SM [P+Ch] (184.0733)') and
-            self.scn.has_fragment('PC/SM [Ch] (86.096)') and
-            self.scn.has_fragment('NL PC/SM [P+Ch] (NL 183.066)')
+            self.scn.has_fragment('PC/SM [Ch] (86.096)')
         ):
             
             self.score += 5
             
-            hg_i = self.scn.fragment_by_name('NL PC/SM [P+Ch] (NL 183.066)')
+            if self.scn.has_fragment('NL PC/SM [P+Ch] (NL 183.066)'):
+                
+                self.score += 5
             
-            for i, frag in self.scn.chains_of_type(
-                frag_type = 'FA+Glycerol-OH',
+            if self.scn.has_chain_fragment_type(
+                frag_type = {'FA+Glycerol-OH', 'NL FA-H2O'},
                 c = self.rec.chainsum.c,
                 u = self.rec.chainsum.u,
-                yield_annot = True,
             ):
                 
-                if self.scn.mz_match(frag.mz, self.scn.mzs[hg_i]):
-                    
-                    self.score += 5
-                    break
+                self.score += 5
 
 
 class PI_Negative(AbstractMS2Identifier):
@@ -3588,6 +3585,20 @@ class PG_Positive(AbstractMS2Identifier):
         ):
             
             self.score += 5
+        
+        # alternative for lyso
+        if (
+            self.rec.hg.sub == ('Lyso',) and
+            self.scn.chain_fragment_type_among_most_abundant(
+                n = 1,
+                frag_type = {'FA+Glycerol-OH'},
+                c = self.rec.chainsum.c,
+                u = self.rec.chainsum.u,
+            )
+        ):
+            
+            self.score += 5
+            self.max_score += 5
 
 
 class BMP_Negative(PG_Negative):
@@ -5397,7 +5408,7 @@ class MS2Feature(object):
                     
                     if scores:
                         
-                        summary.append(var.score)
+                        summary.append(var.score_pct)
                         
                     else:
                         

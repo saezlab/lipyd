@@ -412,7 +412,7 @@ class MS2Reprocessor(LtpTable):
         return (
             ';'.join(
                 sorted(
-                    '%s[score=%.01f,deltart=%.02f,fraction=%s%u,scan=%u]' % (
+                    '%s[score=%u,deltart=%.02f,fraction=%s%u,scan=%u]' % (
                         i[0], i[1], i[2], i[3][0], i[3][1], i[4]
                     )
                     for i in ids

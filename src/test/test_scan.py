@@ -2429,6 +2429,189 @@ specimens = [
             ),
         )}
     ),
+    # SM + from in vitro GLTPD1
+    (
+        'pos_examples.mgf',
+        'pos',
+        1940,
+        {'SM(d35:1)': (
+            MS2Identity(
+                score = 27,
+                max_score = 49,
+                score_pct = 55,
+                hg = Headgroup(main='SM', sub=()),
+                chainsum = ChainSummary(
+                    c = 35,
+                    u = 1,
+                    typ = ('Sph', 'FA'),
+                    attr = (
+                        ChainAttr(sph='d', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                    iso = None
+                ),
+                chains = None,
+                details = None
+            ),
+        )}
+    ),
+    # LysoPG + from in vitro SCP2D1
+    (
+        'pos_examples.mgf',
+        'pos',
+        553,
+        {'Lyso-PG(18:1)': (
+            MS2Identity(
+                score = 5,
+                max_score = 10,
+                score_pct = 50,
+                hg = Headgroup(main='PG', sub=('Lyso',)),
+                chainsum = ChainSummary(
+                    c = 18,
+                    u = 1,
+                    typ = ('FA',),
+                    attr = (ChainAttr(sph='', ether=False, oh=()),),
+                    iso = None
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
+        )}
+    ),
+    # LysoPC + from in vitro SCP2D1
+    (
+        'pos_examples.mgf',
+        'pos',
+        436,
+        {'Lyso-PC(20:4)': (
+            MS2Identity(
+                score = 10,
+                max_score = 15,
+                score_pct = 67,
+                hg = Headgroup(main='PC', sub=('Lyso',)),
+                chainsum = ChainSummary(
+                    c = 20,
+                    u = 4,
+                    typ = ('FA',),
+                    attr = (ChainAttr(sph='', ether=False, oh=()),),
+                    iso = None
+                ),
+                chains = None,
+                details = None
+            ),
+        )}
+    ),
+    # FA(18:1) negative from SCP2D1 in vitro
+    (
+        'neg_examples.mgf',
+        'neg',
+        826,
+        {'FA(18:1)': (
+            MS2Identity(
+                score = 10,
+                max_score = 10,
+                score_pct = 100,
+                hg = Headgroup(main='FA', sub=()),
+                chainsum = ChainSummary(
+                    c = 18,
+                    u = 1,
+                    typ = ('FA',),
+                    attr = (ChainAttr(sph='', ether=False, oh=()),),
+                    iso = None
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
+        )}
+    ),
+    # LysoPE negative from SCP2D1 in vitro
+    (
+        'neg_examples.mgf',
+        'neg',
+        343,
+        {'Lyso-PE(16:1)': (
+            MS2Identity(
+                score = 8,
+                max_score = 11,
+                score_pct = 73,
+                hg = Headgroup(main='PE', sub=('Lyso',)),
+                chainsum = ChainSummary(
+                    c = 16,
+                    u = 1,
+                    typ = ('FA',),
+                    attr = (ChainAttr(sph='', ether=False, oh=()),),
+                    iso = None
+                ),
+                chains = (
+                    Chain(
+                        c = 16,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                ),
+                details = None
+            ),
+        )}
+    ),
+    # PS negative from ORP9 in vitro
+    (
+        'neg_examples.mgf',
+        'neg',
+        1710,
+        {'PS(36:1)': (
+            MS2Identity(
+                score = 11,
+                max_score = 20,
+                score_pct = 55,
+                hg = Headgroup(main='PS', sub=()),
+                chainsum = ChainSummary(
+                    c = 36,
+                    u = 1,
+                    typ = ('FA', 'FA'),
+                    attr = (
+                        ChainAttr(sph='', ether=False, oh=()),
+                        ChainAttr(sph='', ether=False, oh=())
+                    ),
+                    iso = None
+                ),
+                chains = (
+                    Chain(
+                        c = 18,
+                        u = 1,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    ),
+                    Chain(
+                        c = 18,
+                        u = 0,
+                        typ = 'FA',
+                        attr = ChainAttr(sph='', ether=False, oh=()),
+                        iso = ()
+                    )
+                ),
+                details = None
+            ),
+        )}
+    ),
 ]
 
 

@@ -1150,6 +1150,11 @@ class FattyFragmentFactory(object):
                         sub = ('1P',),
                         chaintype = 'FA',
                     ),
+                    FragConstraint(
+                        hg = 'PC',
+                        sub = ('Lyso'),
+                        chaintype = 'FA',
+                    ),
                 ),
                 chaintype = 'FA'
             ),
