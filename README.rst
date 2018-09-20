@@ -1,9 +1,9 @@
-Python module `lipyd`
-=====================
+``lipyd`` – A Python module for lipidomics LC MS/MS data analysis
+=================================================================
 
 This module implements methods and workflows for MS/MS lipidomics data analysis.
-Runs in both Python 2 and 3.
-Current development aims to reorganize the methods into more classes in a modular
-way in order to make it possible to apply the module more generally.
-In the current workflows there are many elements specific for our screenings
-which have been first analysed using this module.
+Runs primarily in Python 3 but also in Python 2.7.x.
+At the moment the MS/MS identification methods are tested and work well.
+
+.. include:: installation.rst
+.. include:: tutorial.rst
