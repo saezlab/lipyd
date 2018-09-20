@@ -2391,6 +2391,47 @@ class Scan(ScanBase):
         self.adduct(adduct)
         
         return self.adducts[adduct][name]
+    
+    def get_ms1_records(
+            self,
+            hg,
+            subtype = None,
+            sph = None,
+            ether = None,
+            oh = None,
+            databases = None,
+        ):
+        """
+        Iterates MS1 records for a given type.
+        
+        Yields tuples of record, adduct type and error in ppm
+        """
+        
+        subtype = subtype or ()
+        
+        hg = (
+            hg
+            if isinstance(hg, lipproc.Headgroup) else
+            lipproc.Headgroup(main = hg, sub = subtype)
+        )
+        
+        for add, recs in iteritems(self.ms1_records):
+            
+            for rec_mz, rec, err_ppm in zip(*recs):
+                
+                if (
+                    rec.hg == hg and (
+                        databases is None or rec.lab.db in databases
+                    ) and (
+                        sph is None or rec.chainsum.attr.sph == sph
+                    ) and (
+                        ether is None or rec.chainsum.attr.ether == ether
+                    ) and (
+                        oh is None or rec.chainsum.attr.oh == oh
+                    )
+                ):
+                    
+                    yield rec, add, err_ppm
 
 
 class AbstractMS2Identifier(object):
@@ -4023,8 +4064,8 @@ class Cer_Positive(AbstractMS2Identifier):
     
     - in vitro 890.64
     
-    dSM
-    ===
+    dSM & DHSM
+    ==========
     
     **Specimen:**
     
@@ -4036,6 +4077,9 @@ class Cer_Positive(AbstractMS2Identifier):
     - The following choline fragments must be present: 60.0808, 86.0964,
       104.1069, 124.9998 and 184.0733. The last one is the most intensive.
     - If 58.0651 can be found it adds to the score.
+    - dSM and DHSM are not distinguishable in our settings. Maybe the
+      [Sph-2xH2O+H]+ ion (264 @ 18:1) presents more often at d and only
+      eventually at DH.
     
     PE-Cer
     ======
@@ -4238,6 +4282,8 @@ class Cer_Positive(AbstractMS2Identifier):
     
     def pc(self):
         """
+        Lyso-SM aka Sph-PC.
+        
         Scherer 2010, Table 1.
         """
         
