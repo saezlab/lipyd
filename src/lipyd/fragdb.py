@@ -178,11 +178,11 @@ class FragmentDatabaseAggregator(object):
         The fragment list files should have at least 4 columns:
         * m/z as float
         * formula -- either formula or m/z should be provided,
-          mass calculation from formula has priority over the
-          mass in first column
+        mass calculation from formula has priority over the
+        mass in first column
         * human readable name
         * type: e.g. `[M+H]+`; importantly, for neutral losses
-          this value must start with `NL`
+        this value must start with `NL`
         * headgroups (lipid classes), e.g.`PC;SM`
         
         See the built in fragment lists for examples.
@@ -214,11 +214,11 @@ class FragmentDatabaseAggregator(object):
         The fragment list files should have at least 4 columns:
         * m/z as float
         * formula -- either formula or m/z should be provided,
-          mass calculation from formula has priority over the
-          mass in first column
+        mass calculation from formula has priority over the
+        mass in first column
         * human readable name
         * type: e.g. `[M+H]+`; importantly, for neutral losses
-          this value must start with `NL`
+        this value must start with `NL`
         * headgroups (lipid classes), e.g.`PC;SM`
         
         See the built in fragment lists for examples.

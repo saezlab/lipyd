@@ -2139,11 +2139,11 @@ class Scan(ScanBase):
         **Specimen:**
         
         - GLTPD1 - 616.47
-        
+      
         **Principle:**
         
         - The most abundant fragment is 78.9591 metaphosphate.
-        - If 96.9696 phosphate present adds to the score.
+      - If 96.9696 phosphate present adds to the score.
         
         """
         
@@ -2163,11 +2163,11 @@ class Scan(ScanBase):
         **Specimen:**
         
         - GLTP - 744.5627
-        
+      
         **Principle:**
         
         - Hexose fragments 71.0115, 89.0220 and 101.0219 must present.
-        
+      
         """
         
         score = 0
@@ -2189,11 +2189,11 @@ class Scan(ScanBase):
         **Specimen:**
         
         - GLTP - 760.557
-        
+      
         **Principle:**
         
         - Hexose fragments 71.0115, 89.0220 and 101.0219 must present.
-        
+      
         """
         
         return self.hexcer_neg_1()
@@ -2205,11 +2205,11 @@ class Scan(ScanBase):
         **Specimen:**
         
         - GLTPD1 - 745.55
-        
+      
         **Principle:**
         
         - Must have a neutral loss of CH3+COOH (60.0211).
-        - Phosphate+choline-CH3 fragment 168.0431 must be present.
+      - Phosphate+choline-CH3 fragment 168.0431 must be present.
         
         """
         
@@ -2228,11 +2228,11 @@ class Scan(ScanBase):
         **Specimen:**
         
         - Only observed in standard.
-        
+      
         **Principle:**
         
         - Phosphate 78.9590 must be present.
-        
+      
         """
         
         score = 0
@@ -2250,11 +2250,11 @@ class Scan(ScanBase):
         **Specimen:**
         
         - SEC14L1 - 582.509
-        
+      
         **Principle:**
         
         - A Ceramide backbone fragment must be among the 2 most abundant.
-        - Ceramide backbone fragments lighter by N or C2N but same carbon
+      - Ceramide backbone fragments lighter by N or C2N but same carbon
           count and unsaturation add to the score.
         
         """
@@ -2288,11 +2288,11 @@ class Scan(ScanBase):
         **Specimen:**
         
         - GLTPD1 - 616.47
-        
+      
         **Principle:**
         
         - The most abundant fragment must be 78.9591 metaphosphate.
-        - Presence of 96.9696 phosphate increase the score.
+      - Presence of 96.9696 phosphate increase the score.
         
         """
         
@@ -2316,11 +2316,11 @@ class Scan(ScanBase):
         **Specimen:**
         
         - GLTPD1 + 728.59, 590.45, 702.58, 618.430, 616.415, 640.409
-        
+      
         **Principle:**
         
         - A sphingosine fragment with double H2O loss must be among the three
-          highest abundant fragments.
+        highest abundant fragments.
         
         """
         
@@ -2609,7 +2609,7 @@ class FA_Negative(AbstractMS2Identifier):
     **Principle:**
     
     - The most abundant fragment must be a fatty acid which matches
-        the carbon count and the unsaturation of the whole molecule.
+      the carbon count and the unsaturation of the whole molecule.
     
     """
     
@@ -2658,7 +2658,7 @@ class FA_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - The most abundant fragment must be a fatty acid which matches
-        the carbon count and the unsaturation of the whole molecule.
+      the carbon count and the unsaturation of the whole molecule.
     
     """
     
@@ -2705,7 +2705,7 @@ class DAG_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - Combination of fatty acid fragments among the 10 most abundant
-        fragments must match the expected carbon count and unsaturation.
+      fragments must match the expected carbon count and unsaturation.
     - If these are among the 5 highest fragments the score is higher.
     
     """
@@ -2745,7 +2745,7 @@ class DAG_Negative(AbstractMS2Identifier):
     **Principle:**
     
     - Combination of fatty acid fragments among the 10 most abundant
-        fragments must match the expected carbon count and unsaturation.
+      fragments must match the expected carbon count and unsaturation.
     - If these are among the 5 highest fragments the score is higher.
     
     (Same as in positive ionmode.)
@@ -2787,7 +2787,7 @@ class TAG_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - Combination of fatty acid fragments must match the expected
-        carbon count and unsaturation.
+      carbon count and unsaturation.
     
     """
     
@@ -2826,7 +2826,7 @@ class TAG_Negative(AbstractMS2Identifier):
     **Principle:**
     
     - Combination of fatty acid fragments must match the
-        expected carbon count and unsaturation.
+      expected carbon count and unsaturation.
     
     (Same as in positive ionmode.)
     """
@@ -2982,7 +2982,7 @@ class PE_Negative(AbstractMS2Identifier):
     - 140.0118 PE headgroup must be present.
     - Other headgroup ions 196.0380 and 178.0275 add to the score.
     - Lyso-PE and [M-H-CO2]- fatty acid fragments complementing the
-        highest [M-H]- fatty acid increase the score.
+      highest [M-H]- fatty acid increase the score.
     
     """
     
@@ -3088,7 +3088,7 @@ class LysoPE_Positive(AbstractMS2Identifier):
     
     - The PE headgroup neutral loss 141.0191 has the highest intensity.
     - A fatty acid-glycerol fragment should match the carbon count and
-        unsaturation of the whole molecule.
+      unsaturation of the whole molecule.
     
     """
     
@@ -3143,7 +3143,7 @@ class PC_Negative(AbstractMS2Identifier):
     - 168.0431 phosphate+choline-CH3 fragment must be present.
     - The highest abundant fragment must be a fatty acid [M-H]- fragment.
     - Lyso-PC fragments complementing the highest [M-H]- fatty acid
-        increase the score.
+      increase the score.
     
     """
     
@@ -3198,9 +3198,9 @@ class PC_Positive(AbstractMS2Identifier):
     - The most abundant fragment must be choline+phosphate 184.0733.
     - The 86.0964 ethyl-trimetylammonium must be present.
     - The most abundant fatty acid can not have the same carbon count
-        and unsaturation as the whole molecule (then it is Lyso-PC).
+      and unsaturation as the whole molecule (then it is Lyso-PC).
     - Fragments 104.1069, 124.9998, 60.0808 and 58.0651 increase the
-        score.
+      score.
     
     """
     
@@ -3252,10 +3252,10 @@ class LysoPC_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - Choline-phosphate 184.0733, ethyl-trimethylammonium 86.0964 and
-        neutral loss 183.0660 must be present.
+      neutral loss 183.0660 must be present.
     - The latter neutral loss corresponds to a fatty acid+glycerol ion.
     - The carbon count and unsaturation of this fragment should match
-        that of the whole molecule.
+      that of the whole molecule.
     
     """
     
@@ -3306,11 +3306,11 @@ class PI_Negative(AbstractMS2Identifier):
     **Principle:**
     
     - Inositolphosphate-H2O fragment 241.0119, metaphosphate 78.9591 and
-        headgroup fragment 152.9958 must be present.
+      headgroup fragment 152.9958 must be present.
     - Additional headgroup fragments 96.9696, 259.0224 and 297.0381
-        increase the score.
+      increase the score.
     - Presence of Lyso-PI fragments complementing other [M-H]- fatty
-        acid fragments increase the score.
+      acid fragments increase the score.
     
     """
     
@@ -3366,7 +3366,7 @@ class PI_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - Combinations of fatty acid fragments must match the expected
-        carbon count and unsaturation for PI.
+      carbon count and unsaturation for PI.
     - Presence of neutral losses 259.0219 and 277.0563 adds to the score.
     
     """
@@ -3412,7 +3412,7 @@ class PS_Negative(AbstractMS2Identifier):
     - Metaphosphate 78.9591 increases the score.
     - Serine-H2O neutral loss 87.0320 adds to the score.
     - Presence of Lyso-PS and Lyso-PA fragments complementing
-        the highest [M-H]- fatty acid fragment increase the score.
+      the highest [M-H]- fatty acid fragment increase the score.
     
     """
     
@@ -3507,7 +3507,7 @@ class PG_Negative(AbstractMS2Identifier):
     - The most abundant fragment is a fatty acid [M-H]- ion.
     - The 152.9958 glycerophosphate fragment must be present.
     - If Lyso-PG fragment present with carbon count complementing
-        the [M-H]- fatty acid score is higher.
+      the [M-H]- fatty acid score is higher.
     - Presence of 171.0064 headgroup fragment adds to the score.
     
     """
@@ -3556,12 +3556,12 @@ class PG_Negative(AbstractMS2Identifier):
 class PG_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum is a Phosphatidylglycerol.
-    At Antonella observed only in standard.
+    At in vivo observed only in standard.
     
     **Principle:**
     
     - The PG headgroup neutral loss (189.0402) is the fragment ion
-        with the highest intensity?
+      with the highest intensity?
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3619,7 +3619,7 @@ class BMP_Negative(PG_Negative):
     - The most abundant fragment is a fatty acid [M-H]- ion.
     - The 152.9958 glycerophosphate fragment must be present.
     - If Lyso-PG fragment present with carbon count complementing
-        the [M-H]- fatty acid score is higher.
+      the [M-H]- fatty acid score is higher.
     - Presence of 171.0064 headgroup fragment adds to the score.
     
     """
@@ -3643,7 +3643,7 @@ class BMP_Positive(AbstractMS2Identifier):
     - A glycerol+fatty acid fragment can be found among the 3 highest?
     - The PG headgroup neutral loss (189.0402) is among the fragments?
     - If so, does it have a lower intensity than half of the fatty
-        acid+glycerol fragment?
+      acid+glycerol fragment?
     
     """
     
@@ -3706,7 +3706,7 @@ class PA_Negative(AbstractMS2Identifier):
     - The most abundant fragment is a fatty acid [M-H]- ion.
     - The 152.9958 glycerophosphate fragment must be present.
     - If Lyso-PG fragment present with carbon count complementing
-        the [M-H]- fatty acid score is higher.
+      the [M-H]- fatty acid score is higher.
     - Presence of 171.0064 headgroup fragment adds to the score.
     
     """
@@ -3750,12 +3750,12 @@ class PA_Negative(AbstractMS2Identifier):
 class PA_Positive(AbstractMS2Identifier):
     """
     Examines if a positive mode MS2 spectrum is a Phosphatidylglycerol.
-    At Antonella observed only in standard.
+    At in vivo observed only in standard.
     
     **Principle:**
     
     - The PG headgroup neutral loss (189.0402) is the fragment ion
-        with the highest intensity?
+      with the highest intensity?
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3811,7 +3811,7 @@ class VA_Positive(AbstractMS2Identifier):
     
     - The most abundant ion is the whole molecule m/z = 269.224.
     - Presence off 3 other ions adds to the score but not
-        mandatory: 213.165, 145.1027, 157.1028.
+      mandatory: 213.165, 145.1027, 157.1028.
     
     """
     
@@ -3913,17 +3913,17 @@ class Cer_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - A sphingosine backbone with two H2O loss must be among the
-        10 most abundant fragments.
+      10 most abundant fragments.
     - Fatty acid [M+H]+ or [M-O]+ fragments or neutral losses
-        complementing the one above increase the score.
+      complementing the one above increase the score.
     - Sphingosine backbone fragments with same carbon count and
-        unsaturation with the one with 2 water loss but [Sph-C-2(H2O)]+
-        or [Sph-H2O]+ add to the score.
+      unsaturation with the one with 2 water loss but [Sph-C-2(H2O)]+
+      or [Sph-H2O]+ add to the score.
     - The score increases if the following choline fragments
-        can not be found: 58.0651, 104.1070, 124.9998 and 184.0733.
+      can not be found: 58.0651, 104.1070, 124.9998 and 184.0733.
     - The presence of the following fragments increase the score:
-        60.0444, 70.0651, 82.0651, 96.0808, 107.0730, 121.0886,
-        135.1042 and 149.1199.
+      60.0444, 70.0651, 82.0651, 96.0808, 107.0730, 121.0886,
+      135.1042 and 149.1199.
     
     DHCer
     =====
@@ -3935,7 +3935,7 @@ class Cer_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - Same pattern as at dCer but from the sphingosine derived fragments
-        it becomes clear if it has no unsaturation.
+      it becomes clear if it has no unsaturation.
     
     tCer
     ====
@@ -3961,8 +3961,8 @@ class Cer_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - Same as other ceramides. It's d and DH forms are isobaric with tCer
-        but d and t are clearly distinguishable so this does not cause
-        confusion.
+      but d and t are clearly distinguishable so this does not cause
+      confusion.
     
     dCer-1-P
     ========
@@ -3974,10 +3974,10 @@ class Cer_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - A shpingosine backbone with 2 H2O loss must be among the 3 highest
-        intensity fragments.
+      intensity fragments.
     - Presence of any of the following fragments increases the score:
-        82.0651, 115.9875.
-        107.0729, 135.1043, 149.1199.
+      82.0651, 115.9875.
+      107.0729, 135.1043, 149.1199.
     
     Hex-dCer
     ========
@@ -5586,10 +5586,10 @@ class MS2FeatureOld(object):
             (' ' * 24, '          '.join(['A09', 'A10', 'A11', 'A12', 'B01'])))
         self.msg('%s%s' % (' ' * 16, '=' * 63))
         self.msg('\n    - absolute:  %s' % '   '.join(
-            map(lambda x: '%10.01f' % x, self.tbl['fe'][self.i,:]))
+          map(lambda x: '%10.01f' % x, self.tbl['fe'][self.i,:]))
         )
         self.msg('\n    - relative: %s\n' % \
-            '  '.join(
+          '  '.join(
                 map(
                     lambda xx:
                         '%10.02f%%' % (xx * 100.0),
@@ -7068,11 +7068,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTPD1 - 616.47
-        
+      
         **Principle:**
         
         - The most abundant fragment is 78.9591 metaphosphate.
-        - If 96.9696 phosphate present adds to the score.
+      - If 96.9696 phosphate present adds to the score.
         
         """
         
@@ -7092,11 +7092,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTP - 744.5627
-        
+      
         **Principle:**
         
         - Hexose fragments 71.0115, 89.0220 and 101.0219 must present.
-        
+      
         """
         
         score = 0
@@ -7118,11 +7118,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTP - 760.557
-        
+      
         **Principle:**
         
         - Hexose fragments 71.0115, 89.0220 and 101.0219 must present.
-        
+      
         """
         
         return self.hexcer_neg_1()
@@ -7134,11 +7134,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTP + 810.68
-        
+      
         **Principle:**
         
         - Hexose fragments 198.0740, 180.0634 and 162.0528 must present.
-        
+      
         """
         
         score = 0
@@ -7164,11 +7164,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTP + 826.67
-        
+      
         **Principle:**
         
         - Hexose fragments 198.0740, 180.0634 and 162.0528 must present.
-        
+      
         """
         
         return self.hexcer_pos_1()
@@ -7180,13 +7180,13 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTPD1 + 728.59
-        
+      
         **Principle:**
         
         - A shpingosine backbone with 2 H2O loss must be among the 3 highest
-          intensity fragments.
+        intensity fragments.
         - Presence of any of the following fragments increases the score:
-          82.0651, 107.0729, 135.1043, 149.1199.
+        82.0651, 107.0729, 135.1043, 149.1199.
         
         """
         
@@ -7213,14 +7213,14 @@ class MS2Scan(object):
         **Specimen:**
         
         - SEC14L2 + 584.52
-        - Enric: BNIP2 + 770.67
+      - in vitro: BNIP2 + 770.67
         
         **Principle:**
         
         - Combination of fatty acid fragments among the 10 most abundant
-          fragments must match the expected carbon count and unsaturation.
+        fragments must match the expected carbon count and unsaturation.
         - If these are among the 5 highest fragments the score is higher.
-        
+      
         """
         
         score = 0
@@ -7244,13 +7244,13 @@ class MS2Scan(object):
         **Specimen:**
         
         - We don't have yet.
-        
+      
         **Principle:**
         
         - Combination of fatty acid fragments among the 10 most abundant
-          fragments must match the expected carbon count and unsaturation.
+        fragments must match the expected carbon count and unsaturation.
         - If these are among the 5 highest fragments the score is higher.
-        
+      
         """
         
         score = 0
@@ -7274,11 +7274,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - We don't have yet.
-        
+      
         **Principle:**
         
         - Combination of fatty acid fragments must match the
-          expected carbon count and unsaturation.
+        expected carbon count and unsaturation.
         
         """
         
@@ -7299,11 +7299,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - STARD11 + 818.7187
-        
+      
         **Principle:**
         
         - Combination of fatty acid fragments must match the expected
-          carbon count and unsaturation.
+        carbon count and unsaturation.
         
         """
         
@@ -7324,13 +7324,13 @@ class MS2Scan(object):
         **Specimen:**
         
         - SEC14L2 + 906.60 and 882.6
-        
+      
         **Principle:**
         
         - Combinations of fatty acid fragments must match the expected
-          carbon count and unsaturation for PI.
+        carbon count and unsaturation for PI.
         - Presence of neutral losses 259.0219 and 277.0563 adds to the score.
-        
+      
         """
         
         score = 0
@@ -7353,11 +7353,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - BPI + 790.56
-        
+      
         **Principle:**
         
         - PS headgroup neutral loss 185.0089 must be the highest intensity.
-        
+      
         """
         
         score = 0
@@ -7379,13 +7379,13 @@ class MS2Scan(object):
         **Specimen:**
         
         - BPIFB2 + 792.57
-        
+      
         **Principle:**
         
         - A glycerol+fatty acid fragment can be found among the 3 highest?
-        - The PG headgroup neutral loss (189.0402) is among the fragments?
+      - The PG headgroup neutral loss (189.0402) is among the fragments?
         - If so, does it have a lower intensity than half of the fatty
-          acid+glycerol fragment?
+        acid+glycerol fragment?
         
         """
         
@@ -7414,12 +7414,12 @@ class MS2Scan(object):
         """
         Examines if a positive mode MS2 spectrum
         is a Phosphatidylglycerol.
-        At Antonella observed only in standard.
+        At in vivo observed only in standard.
         
         **Principle:**
         
         - The PG headgroup neutral loss (189.0402) is the fragment ion
-          with the highest intensity?
+        with the highest intensity?
         
         """
         
@@ -7443,12 +7443,12 @@ class MS2Scan(object):
         **Specimen:**
         
         - RBP1 + 269.2245
-        - RBP4 + 269.2245
+      - RBP4 + 269.2245
         
         **Principle:**
         
         - The most abundant ion is the whole molecule m/z = 269.224.
-        - Presence off 3 other ions adds to the score but not
+      - Presence off 3 other ions adds to the score but not
           mandatory: 213.165, 145.1027, 157.1028.
         
         """
@@ -7472,16 +7472,16 @@ class MS2Scan(object):
         **Specimen:**
         
         - GM2A - 799.54
-        - BPIFB2 - 773.5258 (might be BMP)
+      - BPIFB2 - 773.5258 (might be BMP)
         
         **Principle:**
         
         - The most abundant fragment is a fatty acid [M-H]- ion.
-        - The 152.9958 glycerophosphate fragment must be present.
+      - The 152.9958 glycerophosphate fragment must be present.
         - If Lyso-PG fragment present with carbon count complementing
-          the [M-H]- fatty acid score is higher.
+        the [M-H]- fatty acid score is higher.
         - Presence of 171.0064 headgroup fragment adds to the score.
-        
+      
         """
         
         return self.pg_neg_1()
@@ -7495,13 +7495,13 @@ class MS2Scan(object):
         **Specimen:**
         
         - GM2A - 714.507
-        
+      
         **Principle:**
         
         - The most abundant fragment is a fatty acid [M-H]- ion.
-        - 140.0118 PE headgroup must be present.
+      - 140.0118 PE headgroup must be present.
         - Other headgroup ions 196.0380 and 178.0275 add to the score.
-        - Lyso-PE and [M-H-CO2]- fatty acid fragments complementing the
+      - Lyso-PE and [M-H-CO2]- fatty acid fragments complementing the
           highest [M-H]- fatty acid increase the score.
         
         """
@@ -7548,16 +7548,16 @@ class MS2Scan(object):
 
         **Specimen:** 
         
-        - Enric FABP1 - 464.27
-        
+        - in vitro FABP1 - 464.27
+      
         **Principle:**
         
         - The most abundant fragment is a fatty acid [M-H]- ion.
-        - 140.0118 PE headgroup must be present.
+      - 140.0118 PE headgroup must be present.
         - The carbon count and unsaturation of the highest fatty acid
-          fragment must be the same as it is expected for the whole PE molecule.
+        fragment must be the same as it is expected for the whole PE molecule.
         - Other headgroup ions 196.0380 and 178.0275 add to the score.
-        
+      
         """
         
         score = 0
@@ -7597,13 +7597,13 @@ class MS2Scan(object):
         **Specimen:**
         
         - BPI - 804.57
-        
+      
         **Principle:**
         
         - 168.0431 phosphate+choline-CH3 fragment must be present.
-        - The highest abundant fragment must be a fatty acid [M-H]- fragment.
+      - The highest abundant fragment must be a fatty acid [M-H]- fragment.
         - Lyso-PC fragments complementing the highest [M-H]- fatty acid
-          increase the score.
+        increase the score.
         
         """
         
@@ -7630,15 +7630,15 @@ class MS2Scan(object):
         **Specimen:**
         
         - GM2A - 835.52
-        
+      
         **Principle:**
         
         - Inositolphosphate-H2O fragment 241.0119, metaphosphate 78.9591 and
-          headgroup fragment 152.9958 must be present.
+        headgroup fragment 152.9958 must be present.
         - Additional headgroup fragments 96.9696, 259.0224 and 297.0381
-          increase the score.
+        increase the score.
         - Presence of Lyso-PI fragments complementing other [M-H]- fatty
-          acid fragments increase the score.
+        acid fragments increase the score.
         
         """
         
@@ -7670,15 +7670,15 @@ class MS2Scan(object):
         **Specimen:**
         
         - ORP9 - 788.54
-        
+      
         **Principle:**
         
         - The most abundant fragment is an [M-H]- fatty acid fragment.
-        - Glycerophosphate fragment 152.9958 must be present.
+      - Glycerophosphate fragment 152.9958 must be present.
         - Metaphosphate 78.9591 increases the score.
-        - Serine-H2O neutral loss 87.0320 adds to the score.
+      - Serine-H2O neutral loss 87.0320 adds to the score.
         - Presence of Lyso-PS and Lyso-PA fragments complementing
-          the highest [M-H]- fatty acid fragment increase the score.
+        the highest [M-H]- fatty acid fragment increase the score.
         
         """
         
@@ -7724,16 +7724,16 @@ class MS2Scan(object):
         **Specimen:**
         
         - GM2A - 799.54
-        - BPIFB2 - 773.5258 (might be BMP)
+      - BPIFB2 - 773.5258 (might be BMP)
         
         **Principle:**
         
         - The most abundant fragment is a fatty acid [M-H]- ion.
-        - The 152.9958 glycerophosphate fragment must be present.
+      - The 152.9958 glycerophosphate fragment must be present.
         - If Lyso-PG fragment present with carbon count complementing
-          the [M-H]- fatty acid score is higher.
+        the [M-H]- fatty acid score is higher.
         - Presence of 171.0064 headgroup fragment adds to the score.
-        
+      
         """
         
         score = 0
@@ -7772,11 +7772,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTPD1 - 745.55
-        
+      
         **Principle:**
         
         - Must have a neutral loss of CH3+COOH (60.0211).
-        - Phosphate+choline-CH3 fragment 168.0431 must be present.
+      - Phosphate+choline-CH3 fragment 168.0431 must be present.
         
         """
         
@@ -7795,11 +7795,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - Only observed in standard.
-        
+      
         **Principle:**
         
         - Phosphate 78.9590 must be present.
-        
+      
         """
         
         score = 0
@@ -7817,11 +7817,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - SEC14L1 - 582.509
-        
+      
         **Principle:**
         
         - A Ceramide backbone fragment must be among the 2 most abundant.
-        - Ceramide backbone fragments lighter by N or C2N but same carbon
+      - Ceramide backbone fragments lighter by N or C2N but same carbon
           count and unsaturation add to the score.
         
         """
@@ -7855,11 +7855,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTPD1 - 616.47
-        
+      
         **Principle:**
         
         - The most abundant fragment must be 78.9591 metaphosphate.
-        - Presence of 96.9696 phosphate increase the score.
+      - Presence of 96.9696 phosphate increase the score.
         
         """
         
@@ -7883,15 +7883,15 @@ class MS2Scan(object):
         **Specimen:**
         
         - BPI + 786.607
-        
+      
         **Principle:**
         
         - The most abundant fragment must be choline+phosphate 184.0733.
-        - The 86.0964 ethyl-triethylammonium must be present.
+      - The 86.0964 ethyl-triethylammonium must be present.
         - The most abundant fatty acid can not have the same carbon count
-          and unsaturation as the whole molecule (then it is Lyso-PC).
+        and unsaturation as the whole molecule (then it is Lyso-PC).
         - Fragments 104.1069, 124.9998, 60.0808 and 58.0651 increase the
-          score.
+        score.
         
         """
         
@@ -7924,14 +7924,14 @@ class MS2Scan(object):
         
         **Specimen:**
         
-        - Enric FABP1 + 522.36
-        
+        - in vitro FABP1 + 522.36
+      
         **Principle:**
         
         - Choline-phosphate 184.0733, ethyl-triethylammonium 86.0964 and
-          neutral loss 183.0660 must be present.
+        neutral loss 183.0660 must be present.
         - The latter neutral loss corresponds to a fatty acid+glycerol ion.
-        - The carbon count and unsaturation of this fragment should match
+      - The carbon count and unsaturation of this fragment should match
           that of the whole molecule.
         
         """
@@ -7977,14 +7977,14 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTPD1 + 703.57
-        - GLTPD1 + 813.68 (Enric)
+      - GLTPD1 + 813.68 (in vitro)
         
         **Principle:**
         
         - The following choline fragments must be present: 60.0808, 86.0964,
-          104.1069, 124.9998 and 184.0733. The last one is the most intensive.
+        104.1069, 124.9998 and 184.0733. The last one is the most intensive.
         - If 58.0651 can be found it adds to the score.
-        
+      
         """
         
         score = 0
@@ -8020,12 +8020,12 @@ class MS2Scan(object):
 
         **Specimen:**
         
-        - Enric FABP1 +
-        
+        - in vitro FABP1 +
+      
         **Principle:**
         
         - The most abundant fragment must be a fatty acid which matches
-          the carbon count and the unsaturation of the whole molecule.
+        the carbon count and the unsaturation of the whole molecule.
         
         """
         score = 0
@@ -8054,12 +8054,12 @@ class MS2Scan(object):
 
         **Specimen:**
         
-        - Enric FABP1 -
-        
+        - in vitro FABP1 -
+      
         **Principle:**
         
         - The most abundant fragment must be a fatty acid which matches
-          the carbon count and the unsaturation of the whole molecule.
+        the carbon count and the unsaturation of the whole molecule.
         
         """
         
@@ -8073,11 +8073,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - GLTPD1 + 728.59, 590.45, 702.58, 618.430, 616.415, 640.409
-        
+      
         **Principle:**
         
         - A sphingosine fragment with double H2O loss must be among the three
-          highest abundant fragments.
+        highest abundant fragments.
         
         """
         
@@ -8097,11 +8097,11 @@ class MS2Scan(object):
         **Specimen:**
         
         - BPI + 718.536
-        
+      
         **Principle:**
         
         - The PE headgroup neutral loss 141.0191 has the highest intensity.
-        - If it is a Lyso-PE score will be zero.
+      - If it is a Lyso-PE score will be zero.
         
         """
         
@@ -8122,12 +8122,12 @@ class MS2Scan(object):
 
         **Specimen:**
         
-        - Enric FABP1 + 454.29
-        
+        - in vitro FABP1 + 454.29
+      
         **Principle:**
         
         - The PE headgroup neutral loss 141.0191 has the highest intensity.
-        - A fatty acid-glycerol fragment should match the carbon count and
+      - A fatty acid-glycerol fragment should match the carbon count and
           unsaturation of the whole molecule.
         
         """
@@ -8169,21 +8169,21 @@ class MS2Scan(object):
         **Specimen:**
         
         - SEC14L1 + 538.52
-        - STARD11 + 538.526
+      - STARD11 + 538.526
         
         **Principle:**
         
         - A sphingosine backbone with two H2O loss must be among the
-          10 most abundant fragments.
+        10 most abundant fragments.
         - Fatty acid [M+H]+ or [M-O]+ fragments or neutral losses
-          complementing the one above increase the score.
+        complementing the one above increase the score.
         - Sphingosine backbone fragments with same carbon count and
-          unsaturation with the one with 2 water loss but [Sph-C-2(H2O)]+
+        unsaturation with the one with 2 water loss but [Sph-C-2(H2O)]+
           or [Sph-H2O]+ add to the score.
         - The score increases if the following choline fragments
-          can not be found: 58.0651, 104.1070, 124.9998 and 184.0733.
+        can not be found: 58.0651, 104.1070, 124.9998 and 184.0733.
         - The presence of the following fragments increase the score:
-          60.0444, 70.0651, 82.0651, 96.0808, 107.0730, 121.0886,
+        60.0444, 70.0651, 82.0651, 96.0808, 107.0730, 121.0886,
           135.1042 and 149.1199.
         
         """
