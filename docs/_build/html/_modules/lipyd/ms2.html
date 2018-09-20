@@ -197,16 +197,28 @@
 
 <div class="viewcode-block" id="MS2Identity"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.MS2Identity">[docs]</a><span class="k">class</span> <span class="nc">MS2Identity</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
         <span class="s1">&#39;MS2IdentityBase&#39;</span><span class="p">,</span>
-        <span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="s1">&#39;hg&#39;</span><span class="p">,</span> <span class="s1">&#39;chainsum&#39;</span><span class="p">,</span> <span class="s1">&#39;chains&#39;</span><span class="p">,</span> <span class="s1">&#39;details&#39;</span><span class="p">]</span>
+        <span class="p">[</span>
+            <span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="s1">&#39;max_score&#39;</span><span class="p">,</span> <span class="s1">&#39;score_pct&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;hg&#39;</span><span class="p">,</span> <span class="s1">&#39;chainsum&#39;</span><span class="p">,</span> <span class="s1">&#39;chains&#39;</span><span class="p">,</span> <span class="s1">&#39;details&#39;</span><span class="p">,</span>
+        <span class="p">]</span>
     <span class="p">)):</span>
     
     <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span>
-            <span class="bp">cls</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chains</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">details</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">max_score</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">score_pct</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">chainsum</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">chains</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">details</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">):</span>
         
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">MS2Identity</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
             <span class="bp">cls</span><span class="p">,</span>
             <span class="n">score</span><span class="p">,</span>
+            <span class="n">max_score</span><span class="p">,</span>
+            <span class="n">score_pct</span><span class="p">,</span>
             <span class="n">hg</span><span class="p">,</span>
             <span class="n">chainsum</span> <span class="o">=</span> <span class="n">chainsum</span><span class="p">,</span>
             <span class="n">chains</span> <span class="o">=</span> <span class="n">chains</span><span class="p">,</span>
@@ -223,7 +235,16 @@
     
 <div class="viewcode-block" id="MS2Identity.summary"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.MS2Identity.summary">[docs]</a>    <span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_pct</span></div>
+    
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">MS2Identity</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hg</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">hg</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chainsum</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">chainsum</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chains</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">chains</span>
+        <span class="p">)</span></div>
 
 
 <span class="n">ChainIdentificationDetails</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
@@ -1887,7 +1908,10 @@
         
         <span class="k">for</span> <span class="n">frag</span> <span class="ow">in</span> <span class="n">chain_list</span><span class="p">:</span>
             
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inorm</span><span class="p">[</span><span class="n">frag</span><span class="o">.</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">intensity_threshold</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">head</span> <span class="ow">and</span> <span class="n">frag</span><span class="o">.</span><span class="n">i</span> <span class="o">&gt;=</span> <span class="n">head</span><span class="p">)</span> <span class="ow">or</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">inorm</span><span class="p">[</span><span class="n">frag</span><span class="o">.</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">intensity_threshold</span>
+            <span class="p">):</span>
                 
                 <span class="k">break</span>
             
@@ -2536,6 +2560,7 @@
         <span class="p">):</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rec</span> <span class="o">=</span> <span class="n">record</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">scn</span> <span class="o">=</span> <span class="n">scan</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add</span> <span class="o">=</span> <span class="n">adduct</span>
@@ -2563,7 +2588,9 @@
         <span class="k">for</span> <span class="n">chains</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">confirm_chains_explicit</span><span class="p">():</span>
             
             <span class="k">yield</span> <span class="n">MS2Identity</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">,</span>
+                <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">percent_score</span><span class="p">(),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="p">,</span>
                 <span class="n">chains</span> <span class="o">=</span> <span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
@@ -2576,9 +2603,13 @@
             <span class="k">for</span> <span class="n">chains</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">confirm_chains_implicit</span><span class="p">():</span>
                 
                 <span class="k">yield</span> <span class="n">MS2Identity</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="p">,</span>
+                    <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">percent_score</span><span class="p">(),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="p">,</span>
                     <span class="n">chains</span> <span class="o">=</span> <span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                    <span class="n">details</span> <span class="o">=</span> <span class="n">chains</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">details</span> <span class="o">=</span> <span class="n">chains</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                 <span class="p">)</span>
                 
                 <span class="n">chains_confirmed</span> <span class="o">=</span> <span class="kc">True</span>
@@ -2586,12 +2617,27 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">chains_confirmed</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">must_have_chains</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">:</span>
             
             <span class="k">yield</span> <span class="n">MS2Identity</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">,</span>
+                <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">percent_score</span><span class="p">(),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="p">,</span>
                 <span class="n">chains</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="n">details</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="AbstractMS2Identifier.percent_score"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.AbstractMS2Identifier.percent_score">[docs]</a>    <span class="k">def</span> <span class="nf">percent_score</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the score as a percentage of the maximum possible score.</span>
+<span class="sd">        </span>
+<span class="sd">        Zero maximum score means something is wrong, then it returns 200.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">*</span> <span class="mf">100.</span><span class="p">)),</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="k">else</span>
+            <span class="mi">200</span>
+        <span class="p">)</span></div>
     
 <div class="viewcode-block" id="AbstractMS2Identifier.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.AbstractMS2Identifier.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -2603,23 +2649,32 @@
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="o">.</span><span class="n">main</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_methods</span><span class="p">:</span>
             
-            <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
                 <span class="bp">self</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">class_methods</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="o">.</span><span class="n">main</span><span class="p">]</span>
-            <span class="p">)()</span></div>
+            <span class="p">)()</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="n">score</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="AbstractMS2Identifier.confirm_subclass"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.AbstractMS2Identifier.confirm_subclass">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_subclass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="n">subclasses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="o">.</span><span class="n">sub</span> <span class="ow">or</span> <span class="p">(</span><span class="s1">&#39;empty&#39;</span><span class="p">,)</span>
+        
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             
-            <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">subclasses</span><span class="p">:</span>
                 
                 <span class="k">if</span> <span class="n">sub</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scores</span> <span class="ow">and</span> <span class="n">sub</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subclass_methods</span><span class="p">:</span>
                     
-                    <span class="n">score</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subclass_methods</span><span class="p">[</span><span class="n">sub</span><span class="p">])()</span>
+                    <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">subclass_methods</span><span class="p">[</span><span class="n">sub</span><span class="p">]</span>
+                    <span class="p">)()</span>
                     
                     <span class="bp">self</span><span class="o">.</span><span class="n">scores</span><span class="p">[</span><span class="n">sub</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="n">score</span></div>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="n">score</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="AbstractMS2Identifier.confirm_chains_explicit"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.AbstractMS2Identifier.confirm_chains_explicit">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_chains_explicit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
@@ -2637,14 +2692,24 @@
                 
                 <span class="k">yield</span> <span class="n">chain_comb</span></div>
     
-<div class="viewcode-block" id="AbstractMS2Identifier.matching_chain_combinations"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.AbstractMS2Identifier.matching_chain_combinations">[docs]</a>    <span class="k">def</span> <span class="nf">matching_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chain_param1</span><span class="p">,</span> <span class="n">chain_param2</span><span class="p">):</span>
+<div class="viewcode-block" id="AbstractMS2Identifier.matching_chain_combinations"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.AbstractMS2Identifier.matching_chain_combinations">[docs]</a>    <span class="k">def</span> <span class="nf">matching_chain_combinations</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">chain_param1</span><span class="p">,</span>
+            <span class="n">chain_param2</span><span class="p">,</span>
+            <span class="n">score_method</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">ccomb</span><span class="p">:</span> <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">ccomb</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+        <span class="p">):</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span>
+        <span class="n">ccomb</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">matching_chain_combinations</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">,</span>
                 <span class="n">chain_param</span> <span class="o">=</span> <span class="p">(</span><span class="n">chain_param1</span><span class="p">,</span> <span class="n">chain_param2</span><span class="p">),</span>
             <span class="p">)</span>
-        <span class="p">))</span> <span class="o">/</span> <span class="mi">2</span></div>
+        <span class="p">))</span>
+        
+        <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span> <span class="o">=</span> <span class="n">score_method</span><span class="p">(</span><span class="n">ccomb</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="n">score</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="n">score</span></div>
     
 <div class="viewcode-block" id="AbstractMS2Identifier.check_lyso"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.AbstractMS2Identifier.check_lyso">[docs]</a>    <span class="k">def</span> <span class="nf">check_lyso</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">score_threshold</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -2652,8 +2717,8 @@
 <span class="sd">        as a lyso species and calls the corresponding lyso identification</span>
 <span class="sd">        method.</span>
 <span class="sd">        </span>
-<span class="sd">        Returns `True` if the score from the lyso is larger than</span>
-<span class="sd">        `score_threshold`.</span>
+<span class="sd">        Returns ``True`` if the score from the lyso is larger than</span>
+<span class="sd">        ``score_threshold``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         
         <span class="n">rec_lyso</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">first_record</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="o">.</span><span class="n">main</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Lyso&#39;</span><span class="p">,))</span>
@@ -2715,6 +2780,8 @@
     
 <div class="viewcode-block" id="FA_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.FA_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">10</span>
+        
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span> <span class="ow">and</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_among_most_abundant</span><span class="p">(</span>
@@ -2754,7 +2821,22 @@
             <span class="n">chain_comb_args</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="s1">&#39;head&#39;</span><span class="p">:</span> <span class="mi">1</span>
             <span class="p">}</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
+    
+<div class="viewcode-block" id="FA_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.FA_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">10</span>
+        
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_among_most_abundant</span><span class="p">(</span>
+                <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;FA+H&#39;</span><span class="p">,</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="o">.</span><span class="n">c</span><span class="p">,</span>
+                <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="o">.</span><span class="n">u</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">):</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="mi">10</span></div></div>
 
 <span class="c1">#</span>
 <span class="c1"># Glycerolipids</span>
@@ -2789,6 +2871,8 @@
         <span class="p">)</span>
     
 <div class="viewcode-block" id="DAG_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.DAG_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">6</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">,</span> <span class="n">head</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
             
@@ -2830,6 +2914,8 @@
     
 <div class="viewcode-block" id="DAG_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.DAG_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">6</span>
+        
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">,</span> <span class="n">head</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">4</span>
@@ -2867,7 +2953,13 @@
     
 <div class="viewcode-block" id="TAG_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.TAG_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">10</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">,</span> <span class="n">head</span> <span class="o">=</span> <span class="mi">15</span><span class="p">):</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">,</span> <span class="n">head</span> <span class="o">=</span> <span class="mi">7</span><span class="p">):</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span></div></div>
 
@@ -2902,6 +2994,7 @@
 <div class="viewcode-block" id="TAG_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.TAG_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">5</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">):</span>
             
@@ -2941,6 +3034,8 @@
     
 <div class="viewcode-block" id="GL_Positive.dgts"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.GL_Positive.dgts">[docs]</a>    <span class="k">def</span> <span class="nf">dgts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="mi">30</span>
+        
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;DGTS [G+TS] (236.1492)&#39;</span><span class="p">):</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span>
@@ -2954,6 +3049,8 @@
     
 <div class="viewcode-block" id="GL_Positive.dgcc"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.GL_Positive.dgcc">[docs]</a>    <span class="k">def</span> <span class="nf">dgcc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="mi">20</span>
+        
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PC/SM [Ch+H2O] (104.107)&#39;</span><span class="p">):</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span>
@@ -2964,17 +3061,23 @@
     
 <div class="viewcode-block" id="GL_Positive.sqdg"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.GL_Positive.sqdg">[docs]</a>    <span class="k">def</span> <span class="nf">sqdg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="mi">10</span>
+        
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [Hexose+SO3+H2O+H] (NL 261.0280)&#39;</span><span class="p">):</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span></div>
     
 <div class="viewcode-block" id="GL_Positive.mgdg"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.GL_Positive.mgdg">[docs]</a>    <span class="k">def</span> <span class="nf">mgdg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="mi">10</span>
+        
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;[Hexose+H2O-H] (NL 197.07)&#39;</span><span class="p">):</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span></div>
     
 <div class="viewcode-block" id="GL_Positive.dgdg"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.GL_Positive.dgdg">[docs]</a>    <span class="k">def</span> <span class="nf">dgdg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="mi">10</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [2xHexose+H2O-H] (NL 359.1190)&#39;</span><span class="p">):</span>
             
@@ -2998,6 +3101,8 @@
         <span class="p">)</span>
     
 <div class="viewcode-block" id="GL_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.GL_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="mi">10</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combination</span><span class="p">(</span>
             <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">,</span>
@@ -3043,11 +3148,13 @@
     
 <div class="viewcode-block" id="PE_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PE_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="mi">11</span>
+        
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_fragment_type_is</span><span class="p">(</span>
                 <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
                 <span class="n">chain_type</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span>
-                <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;FA-H&#39;</span>
+                <span class="n">frag_type</span>  <span class="o">=</span> <span class="s1">&#39;FA-H&#39;</span>
             <span class="p">)</span> <span class="ow">and</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PE [P+E] (140.0118)&#39;</span><span class="p">)</span>
         <span class="p">):</span>
@@ -3057,8 +3164,9 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PE [G+P+E-H2O] (196.0380)&#39;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PE [G+P+E] (178.0275)&#39;</span><span class="p">),</span>
-            <span class="p">)))</span>
+            <span class="p">)))</span> <span class="o">*</span> <span class="mi">3</span>
             
+            <span class="c1"># by default this returns max 6</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">matching_chain_combinations</span><span class="p">(</span>
                 <span class="p">{</span><span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="s1">&#39;FA-H&#39;</span><span class="p">},</span>
                 <span class="p">{</span><span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="p">{</span>
@@ -3100,6 +3208,8 @@
         <span class="p">)</span>
     
 <div class="viewcode-block" id="PE_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PE_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">20</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL PE [P+E] (NL 141.0191)&#39;</span><span class="p">):</span>
             
@@ -3143,6 +3253,8 @@
         <span class="p">)</span>
     
 <div class="viewcode-block" id="LysoPE_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.LysoPE_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">15</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL PE [P+E] (NL 141.0191)&#39;</span><span class="p">):</span>
             
@@ -3197,6 +3309,8 @@
     
 <div class="viewcode-block" id="PC_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PC_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">17</span>
+        
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_fragment_type_is</span><span class="p">(</span>
                 <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
@@ -3211,11 +3325,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PE [G+P+E-H2O] (196.0380)&#39;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PE [G+P+E] (178.0275)&#39;</span><span class="p">),</span>
-            <span class="p">)))</span>
+            <span class="p">)))</span> <span class="o">*</span> <span class="mi">3</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">matching_chain_combinations</span><span class="p">(</span>
                 <span class="p">{</span><span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="s1">&#39;FA-H&#39;</span><span class="p">},</span>
-                <span class="p">{</span><span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPC&#39;</span><span class="p">}</span>
+                <span class="p">{</span><span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="s1">&#39;LysoPC&#39;</span><span class="p">},</span>
+                <span class="n">score_method</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">ccomb</span><span class="p">:</span> <span class="p">((</span><span class="n">ccomb</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
             <span class="p">)</span></div></div>
 
 
@@ -3252,6 +3367,8 @@
     
 <div class="viewcode-block" id="PC_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PC_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">13</span>
+        
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">fragment_percent_of_most_abundant</span><span class="p">(</span>
                 <span class="s1">&#39;PC/SM [P+Ch] (184.0733)&#39;</span><span class="p">,</span> <span class="mf">10.0</span>
@@ -3270,7 +3387,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PC/SM [P+Et] (124.9998)&#39;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PC/SM [N+3xCH3] (60.0808)&#39;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PC/SM [Ch-Et] (58.0651)&#39;</span><span class="p">),</span>
-            <span class="p">)))</span></div></div>
+            <span class="p">)))</span> <span class="o">*</span> <span class="mi">2</span></div></div>
 
 
 <div class="viewcode-block" id="LysoPC_Positive"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.LysoPC_Positive">[docs]</a><span class="k">class</span> <span class="nc">LysoPC_Positive</span><span class="p">(</span><span class="n">AbstractMS2Identifier</span><span class="p">):</span>
@@ -3305,26 +3422,26 @@
     
 <div class="viewcode-block" id="LysoPC_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.LysoPC_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">15</span>
+        
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">most_abundant_fragment_is</span><span class="p">(</span><span class="s1">&#39;PC/SM [P+Ch] (184.0733)&#39;</span><span class="p">)</span> <span class="ow">and</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PC/SM [Ch] (86.096)&#39;</span><span class="p">)</span> <span class="ow">and</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL PC/SM [P+Ch] (NL 183.066)&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PC/SM [Ch] (86.096)&#39;</span><span class="p">)</span>
         <span class="p">):</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span>
             
-            <span class="n">hg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">fragment_by_name</span><span class="p">(</span><span class="s1">&#39;NL PC/SM [P+Ch] (NL 183.066)&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL PC/SM [P+Ch] (NL 183.066)&#39;</span><span class="p">):</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span>
             
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">frag</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chains_of_type</span><span class="p">(</span>
-                <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;FA+Glycerol-OH&#39;</span><span class="p">,</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_fragment_type</span><span class="p">(</span>
+                <span class="n">frag_type</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;FA+Glycerol-OH&#39;</span><span class="p">,</span> <span class="s1">&#39;NL FA-H2O&#39;</span><span class="p">},</span>
                 <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="o">.</span><span class="n">c</span><span class="p">,</span>
                 <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="o">.</span><span class="n">u</span><span class="p">,</span>
-                <span class="n">yield_annot</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
             <span class="p">):</span>
                 
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">mz_match</span><span class="p">(</span><span class="n">frag</span><span class="o">.</span><span class="n">mz</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">mzs</span><span class="p">[</span><span class="n">hg_i</span><span class="p">]):</span>
-                    
-                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span></div></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span></div></div>
 
 
 <div class="viewcode-block" id="PI_Negative"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PI_Negative">[docs]</a><span class="k">class</span> <span class="nc">PI_Negative</span><span class="p">(</span><span class="n">AbstractMS2Identifier</span><span class="p">):</span>
@@ -3359,6 +3476,8 @@
     
 <div class="viewcode-block" id="PI_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PI_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">19</span>
+        
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PI [InsP-H2O]- (241.01)&#39;</span><span class="p">)</span> <span class="ow">and</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PA/PG/PI/PS [G+P] (152.9958)&#39;</span><span class="p">)</span> <span class="ow">and</span>
@@ -3372,7 +3491,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PI [InsP-H]- (259.02)&#39;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PI [G+P+I] (297.04)&#39;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PI [InsP-2H2O]- (223.00)&#39;</span><span class="p">),</span>
-            <span class="p">)))</span>
+            <span class="p">)))</span> <span class="o">*</span> <span class="mi">2</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">matching_chain_combinations</span><span class="p">(</span>
                 <span class="p">{</span><span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="s1">&#39;FA-H&#39;</span><span class="p">},</span>
@@ -3380,7 +3499,8 @@
                         <span class="s1">&#39;LysoPI&#39;</span><span class="p">,</span>
                         <span class="s1">&#39;LysoPI-H2O&#39;</span><span class="p">,</span>
                     <span class="p">}</span>
-                <span class="p">}</span>
+                <span class="p">},</span>
+                <span class="n">score_method</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">ccomb</span><span class="p">:</span> <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">ccomb</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
             <span class="p">)</span></div></div>
 
 
@@ -3413,6 +3533,8 @@
         <span class="p">)</span>
     
 <div class="viewcode-block" id="PI_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PI_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">9</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">):</span>
             
@@ -3457,6 +3579,8 @@
     
 <div class="viewcode-block" id="PS_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PS_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">17</span>
+        
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">)</span> <span class="ow">and</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_fragment_type_is</span><span class="p">(</span>
@@ -3472,11 +3596,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;Cer1P/PIP/PL metaphosphate (78.9591)&#39;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PS [Ser-H2O] (87.0320)&#39;</span><span class="p">),</span>
-            <span class="p">)))</span>
+            <span class="p">)))</span> <span class="o">*</span> <span class="mi">3</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">matching_chain_combinations</span><span class="p">(</span>
                 <span class="p">{</span><span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="s1">&#39;FA-H&#39;</span><span class="p">},</span>
-                <span class="p">{</span><span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;LysoPS&#39;</span><span class="p">,</span> <span class="s1">&#39;LysoPA&#39;</span><span class="p">}}</span>
+                <span class="p">{</span><span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;LysoPS&#39;</span><span class="p">,</span> <span class="s1">&#39;LysoPA&#39;</span><span class="p">}},</span>
+                <span class="n">score_method</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">ccomb</span><span class="p">:</span> <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">ccomb</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
             <span class="p">)</span></div></div>
 
 
@@ -3506,6 +3631,8 @@
         <span class="p">)</span>
     
 <div class="viewcode-block" id="PS_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PS_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">5</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">fragment_among_most_abundant</span><span class="p">(</span><span class="s1">&#39;PS [P+S] (NL 185.0089)&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
             
@@ -3548,6 +3675,8 @@
     
 <div class="viewcode-block" id="PG_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PG_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">14</span>
+        
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">)</span> <span class="ow">and</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_fragment_type_is</span><span class="p">(</span>
@@ -3560,7 +3689,7 @@
             
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PG headgroup (171.0064)&#39;</span><span class="p">):</span>
                 
-                <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">3</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">matching_chain_combinations</span><span class="p">(</span>
                 <span class="p">{</span><span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="s1">&#39;FA-H&#39;</span><span class="p">},</span>
@@ -3568,7 +3697,8 @@
                         <span class="s1">&#39;LysoPG&#39;</span><span class="p">,</span>
                         <span class="s1">&#39;LysoPG-H2O&#39;</span><span class="p">,</span>
                     <span class="p">}</span>
-                <span class="p">}</span>
+                <span class="p">},</span>
+                <span class="n">score_method</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">ccomb</span><span class="p">:</span> <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">ccomb</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
             <span class="p">)</span></div></div>
 
 
@@ -3596,13 +3726,29 @@
     
 <div class="viewcode-block" id="PG_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PG_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">5</span>
+        
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">most_abundant_fragment_is</span><span class="p">(</span>
                 <span class="s1">&#39;NL PG [G+P+NH3] (NL 189.0402)&#39;</span>
             <span class="p">)</span>
         <span class="p">):</span>
             
-            <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span></div></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span>
+        
+        <span class="c1"># alternative for lyso</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">hg</span><span class="o">.</span><span class="n">sub</span> <span class="o">==</span> <span class="p">(</span><span class="s1">&#39;Lyso&#39;</span><span class="p">,)</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_fragment_type_among_most_abundant</span><span class="p">(</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">frag_type</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;FA+Glycerol-OH&#39;</span><span class="p">},</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="o">.</span><span class="n">c</span><span class="p">,</span>
+                <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="o">.</span><span class="n">u</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">):</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="mi">5</span></div></div>
 
 
 <div class="viewcode-block" id="BMP_Negative"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.BMP_Negative">[docs]</a><span class="k">class</span> <span class="nc">BMP_Negative</span><span class="p">(</span><span class="n">PG_Negative</span><span class="p">):</span>
@@ -3664,8 +3810,10 @@
     
 <div class="viewcode-block" id="BMP_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.BMP_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">10</span>
+        
         <span class="k">if</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">,</span> <span class="n">head</span> <span class="o">=</span> <span class="mi">15</span><span class="p">)</span> <span class="ow">and</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_fragment_type_among_most_abundant</span><span class="p">(</span>
                 <span class="n">chain_type</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;FA+Glycerol-OH&#39;</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">3</span>
             <span class="p">)</span>
@@ -3683,7 +3831,11 @@
                 
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">intensities</span><span class="p">[</span><span class="n">i_gfa</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">intensities</span><span class="p">[</span><span class="n">i_hg</span><span class="p">]:</span>
                     
-                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="mi">0</span></div></div>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+                
+                <span class="k">else</span><span class="p">:</span>
+                    
+                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span></div></div>
 
 
 <div class="viewcode-block" id="PA_Negative"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PA_Negative">[docs]</a><span class="k">class</span> <span class="nc">PA_Negative</span><span class="p">(</span><span class="n">AbstractMS2Identifier</span><span class="p">):</span>
@@ -3721,6 +3873,8 @@
         <span class="p">)</span>
     
 <div class="viewcode-block" id="PA_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PA_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">25</span>
         
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">)</span> <span class="ow">and</span>
@@ -3765,6 +3919,8 @@
         <span class="p">)</span>
     
 <div class="viewcode-block" id="PA_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.PA_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">20</span>
         
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">fragment_among_most_abundant</span><span class="p">(</span>
@@ -3822,6 +3978,8 @@
     
 <div class="viewcode-block" id="VA_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.VA_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">8</span>
+        
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">fragment_among_most_abundant</span><span class="p">(</span><span class="s1">&#39;Retinol I (269.2264)&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span>
@@ -3862,6 +4020,8 @@
         <span class="p">)</span>
     
 <div class="viewcode-block" id="VA_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.VA_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">=</span> <span class="mi">8</span>
         
         <span class="k">if</span> <span class="nb">all</span><span class="p">((</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">fragment_among_most_abundant</span><span class="p">(</span><span class="n">fragname</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
@@ -4012,8 +4172,6 @@
 <span class="sd">    </span>
 <span class="sd">    - in vitro 890.64</span>
 <span class="sd">    </span>
-<span class="sd">    </span>
-<span class="sd">    </span>
 <span class="sd">    dSM</span>
 <span class="sd">    ===</span>
 <span class="sd">    </span>
@@ -4059,6 +4217,7 @@
         <span class="s1">&#39;M1&#39;</span><span class="p">:</span> <span class="s1">&#39;m1&#39;</span><span class="p">,</span>
         <span class="s1">&#39;M3&#39;</span><span class="p">:</span> <span class="s1">&#39;m3&#39;</span><span class="p">,</span>
         <span class="s1">&#39;PC&#39;</span><span class="p">:</span> <span class="s1">&#39;pc&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;empty&#39;</span><span class="p">:</span> <span class="s1">&#39;cer&#39;</span><span class="p">,</span>
     <span class="p">}</span>
     
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -4076,12 +4235,16 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span>   <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fa_scores</span>    <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span>     <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sph_max_scores</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fa_scores</span>      <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fa_max_scores</span>  <span class="o">=</span> <span class="p">{}</span>
     
 <div class="viewcode-block" id="Cer_Positive.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">AbstractMS2Identifier</span><span class="o">.</span><span class="n">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="mi">2</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">,</span>
@@ -4115,35 +4278,86 @@
                 <span class="c1"># score is valid only for the current chain combination</span>
                 <span class="c1"># hence now we add these to the overall score, yield the</span>
                 <span class="c1"># identification and then subtract them from the score</span>
-                <span class="n">sph_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sphingosine_base</span><span class="p">(</span><span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attr</span><span class="o">.</span><span class="n">sph</span><span class="p">)</span>
+                <span class="n">sph_score</span><span class="p">,</span> <span class="n">sph_max_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sphingosine_base</span><span class="p">(</span>
+                    <span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attr</span><span class="o">.</span><span class="n">sph</span>
+                <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="n">sph_score</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="n">sph_max_score</span>
                 
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nacyl</span><span class="p">:</span>
                     
-                    <span class="n">fa_score</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fatty_acyl</span><span class="p">(</span><span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">fa_score</span><span class="p">,</span> <span class="n">fa_max_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fatty_acyl</span><span class="p">(</span><span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="n">fa_score</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="n">fa_max_score</span>
                 
                 <span class="k">yield</span> <span class="n">chains</span>
                 
                 <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">-=</span> <span class="n">sph_score</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">-=</span> <span class="n">sph_max_score</span>
                 
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nacyl</span><span class="p">:</span>
                     
-                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">-=</span> <span class="n">fa_score</span></div>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">-=</span> <span class="n">fa_score</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">-=</span> <span class="n">fa_max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.fatty_acyl"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.fatty_acyl">[docs]</a>    <span class="k">def</span> <span class="nf">fatty_acyl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fa</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">0</span>
         
         <span class="k">if</span> <span class="n">fa</span><span class="o">.</span><span class="n">attr</span><span class="o">.</span><span class="n">oh</span><span class="p">:</span>
             
-            <span class="k">pass</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">add</span> <span class="o">==</span> <span class="s1">&#39;[M-H2O+H]+&#39;</span><span class="p">:</span>
+                
+                <span class="n">score</span> <span class="o">-=</span> <span class="mi">20</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
+    
+<div class="viewcode-block" id="Cer_Positive.cer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.cer">[docs]</a>    <span class="k">def</span> <span class="nf">cer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        
+        <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="n">non_hex_score</span><span class="p">,</span> <span class="n">non_hex_max_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">non_hex</span><span class="p">()</span>
+        
+        <span class="n">score</span> <span class="o">+=</span> <span class="n">non_hex_score</span>
+        <span class="n">max_score</span> <span class="o">+=</span> <span class="n">non_hex_max_score</span>
+        
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
+    
+<div class="viewcode-block" id="Cer_Positive.non_hex"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.non_hex">[docs]</a>    <span class="k">def</span> <span class="nf">non_hex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="n">score</span> <span class="o">-=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [Hexose-H2O] (NL 162.05)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [Hexose] (NL 180.06)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [Hexose+H2O] (NL 198.07)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [2xHexose] (NL 342.1162)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [2xHexose+H2O] (NL 360.1268)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [2xHexose-H2O] (NL 324.1056)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [2xHexose+O] (NL 358.1111)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [2xHexose+C] (NL 372.1268)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [S] (NL 79.9568)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [S+H2O] (97.9674)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [Hexose+SO3] (NL 242.100)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [Hexose+SO3+H2O] (NL 260.0202)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [Hexose+SO3+2xH2O] (NL 278.0308)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [2xHexose+SO3] (NL 404.0625)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [2xHexose+SO3+H2O] (NL 422.0730)&#39;</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [2xHexose+SO3+2xH2O] (NL 440.0836)&#39;</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">))</span> <span class="o">*</span> <span class="mi">5</span>
+        
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.sm"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.sm">[docs]</a>    <span class="k">def</span> <span class="nf">sm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">47</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">most_abundant_fragment_is</span><span class="p">(</span><span class="s1">&#39;PC/SM [P+Ch] (184.0733)&#39;</span><span class="p">):</span>
             
@@ -4169,7 +4383,7 @@
             
             <span class="bp">self</span><span class="o">.</span><span class="n">must_have_chains</span> <span class="o">=</span> <span class="kc">False</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.pc"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.pc">[docs]</a>    <span class="k">def</span> <span class="nf">pc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -4177,16 +4391,18 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">15</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">most_abundant_fragment_is</span><span class="p">(</span><span class="s1">&#39;PC/SM [P+Ch] (184.0733)&#39;</span><span class="p">):</span>
             
             <span class="n">score</span> <span class="o">+=</span> <span class="mi">15</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.pe_cer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.pe_cer">[docs]</a>    <span class="k">def</span> <span class="nf">pe_cer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">30</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL PE [P+E] (NL 141.0191)&#39;</span><span class="p">):</span>
             
@@ -4200,11 +4416,12 @@
                 <span class="p">)</span>
             <span class="p">))</span> <span class="o">*</span> <span class="mi">5</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.cer1p"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.cer1p">[docs]</a>    <span class="k">def</span> <span class="nf">cer1p</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">31</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [P+H2O] (NL 115.9875)&#39;</span><span class="p">):</span>
             
@@ -4236,11 +4453,16 @@
             <span class="p">)</span>
         <span class="p">))</span> <span class="o">*</span> <span class="mi">3</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="n">non_hex_score</span><span class="p">,</span> <span class="n">non_hex_max_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">non_hex</span><span class="p">()</span>
+        
+        <span class="n">score</span> <span class="o">+=</span> <span class="n">non_hex_score</span>
+        
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.hexcer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.hexcer">[docs]</a>    <span class="k">def</span> <span class="nf">hexcer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">14</span>
         
         <span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span>
             <span class="p">(</span>
@@ -4248,17 +4470,18 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [Hexose] (NL 180.06)&#39;</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL [Hexose+H2O] (NL 198.07)&#39;</span><span class="p">),</span>
             <span class="p">)</span>
-        <span class="p">))</span> <span class="o">*</span> <span class="mi">5</span>
+        <span class="p">))</span> <span class="o">*</span> <span class="mi">3</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hexcer_chain_combination</span><span class="p">():</span>
             
-            <span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span>
+            <span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.hex2cer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.hex2cer">[docs]</a>    <span class="k">def</span> <span class="nf">hex2cer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">39</span>
         
         <span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span>
             <span class="p">(</span>
@@ -4279,7 +4502,7 @@
             
             <span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.hexcer_chain_combination"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.hexcer_chain_combination">[docs]</a>    <span class="k">def</span> <span class="nf">hexcer_chain_combination</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
@@ -4306,6 +4529,7 @@
 <div class="viewcode-block" id="Cer_Positive.shexcer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.shexcer">[docs]</a>    <span class="k">def</span> <span class="nf">shexcer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">25</span>
         
         <span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span>
             <span class="p">(</span>
@@ -4317,11 +4541,12 @@
             <span class="p">)</span>
         <span class="p">))</span> <span class="o">*</span> <span class="mi">5</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.shex2cer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.shex2cer">[docs]</a>    <span class="k">def</span> <span class="nf">shex2cer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">25</span>
         
         <span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span>
             <span class="p">(</span>
@@ -4333,11 +4558,12 @@
             <span class="p">)</span>
         <span class="p">))</span> <span class="o">*</span> <span class="mi">5</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.m2"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.m2">[docs]</a>    <span class="k">def</span> <span class="nf">m2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">46</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PC/SM [Ch-Et] (58.0651)&#39;</span><span class="p">):</span>
             
@@ -4371,11 +4597,12 @@
             
             <span class="n">score</span> <span class="o">+=</span> <span class="mi">20</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.m1"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.m1">[docs]</a>    <span class="k">def</span> <span class="nf">m1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">30</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PC/SM [Ch-Et] (58.0651)&#39;</span><span class="p">):</span>
             
@@ -4383,6 +4610,7 @@
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combination</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">,</span>
+                <span class="n">head</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
                 <span class="n">chain_param</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="p">{</span>
                         <span class="s1">&#39;frag_type&#39;</span><span class="p">:</span> <span class="p">{</span>
@@ -4397,18 +4625,19 @@
             <span class="n">score</span> <span class="o">+=</span> <span class="mi">20</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_fragment_type</span><span class="p">(</span>
-                <span class="n">frag_type</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Sph-2xH2O+2xCh3+H&#39;</span><span class="p">,</span> <span class="s1">&#39;Sph-H2O+2xCH3+H&#39;</span><span class="p">},</span>
+                <span class="n">frag_type</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Sph-2xH2O+2xCH3+H&#39;</span><span class="p">,</span> <span class="s1">&#39;Sph-H2O+2xCH3+H&#39;</span><span class="p">},</span>
                 <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="o">.</span><span class="n">c</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
                 <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="o">.</span><span class="n">u</span><span class="p">,</span>
             <span class="p">):</span>
             
             <span class="n">score</span> <span class="o">-=</span> <span class="mi">20</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.m3"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.m3">[docs]</a>    <span class="k">def</span> <span class="nf">m3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">20</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">fragment_among_most_abundant</span><span class="p">(</span>
             <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;PC/SM [N+3xCH3] (60.0808)&#39;</span>
@@ -4416,11 +4645,12 @@
             
             <span class="n">score</span> <span class="o">+=</span> <span class="mi">20</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.sph"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.sph">[docs]</a>    <span class="k">def</span> <span class="nf">sph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">9</span>
         
         <span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span>
             <span class="p">(</span>
@@ -4430,7 +4660,7 @@
             <span class="p">)</span>
         <span class="p">))</span> <span class="o">*</span> <span class="mi">3</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.sphingosine_base"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.sphingosine_base">[docs]</a>    <span class="k">def</span> <span class="nf">sphingosine_base</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sph</span><span class="p">):</span>
         
@@ -4438,19 +4668,20 @@
             
             <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;sphingosine_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sph</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
             
-            <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">)()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">sph_max_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">)()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="p">)</span>
         
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">sph_max_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">]</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.sphingosine_d"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.sphingosine_d">[docs]</a>    <span class="k">def</span> <span class="nf">sphingosine_d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">15</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="o">.</span><span class="n">chainsum</span><span class="o">.</span><span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             
-            <span class="k">return</span> <span class="n">score</span>
+            <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span>
         
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">nacyl</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_fragment_type_is</span><span class="p">(</span>
@@ -4495,11 +4726,12 @@
             <span class="p">):</span>
                 <span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.sphingosine_dh"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.sphingosine_dh">[docs]</a>    <span class="k">def</span> <span class="nf">sphingosine_dh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">20</span>
         
         <span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span>
             <span class="p">(</span>
@@ -4531,11 +4763,12 @@
             <span class="p">)</span>
         <span class="p">))</span> <span class="o">*</span> <span class="mi">3</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.sphingosine_t"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.sphingosine_t">[docs]</a>    <span class="k">def</span> <span class="nf">sphingosine_t</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">23</span>
         
         <span class="k">if</span> <span class="nb">all</span><span class="p">((</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_fragment_type_among_most_abundant</span><span class="p">(</span>
@@ -4575,11 +4808,12 @@
                 <span class="p">)</span>
             <span class="p">))</span> <span class="o">*</span> <span class="mi">3</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Positive.sphingosine_k"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Positive.sphingosine_k">[docs]</a>    <span class="k">def</span> <span class="nf">sphingosine_k</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">39</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_fragment_type</span><span class="p">(</span><span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;Sph-NH2-H2O-2H&#39;</span><span class="p">):</span>
             
@@ -4595,23 +4829,23 @@
         <span class="p">))</span> <span class="o">*</span> <span class="mi">3</span>
         
         <span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span>
-                <span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_fragment_type</span><span class="p">(</span>
-                        <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;Sph-C-2xH2O&#39;</span><span class="p">,</span>
-                    <span class="p">),</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_fragment_type</span><span class="p">(</span>
-                        <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;Sph-H2O-H&#39;</span><span class="p">,</span>
-                    <span class="p">),</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_fragment_type</span><span class="p">(</span>
-                        <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;Sph-H&#39;</span><span class="p">,</span>
-                    <span class="p">),</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_fragment_type_among_most_abundant</span><span class="p">(</span>
-                        <span class="mi">5</span><span class="p">,</span> <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;Sph-H&#39;</span><span class="p">,</span>
-                    <span class="p">),</span>
-                <span class="p">)</span>
-            <span class="p">))</span> <span class="o">*</span> <span class="mi">3</span>
+            <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_fragment_type</span><span class="p">(</span>
+                    <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;Sph-C-2xH2O&#39;</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_fragment_type</span><span class="p">(</span>
+                    <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;Sph-H2O-H&#39;</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_fragment_type</span><span class="p">(</span>
+                    <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;Sph-H&#39;</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">chain_fragment_type_among_most_abundant</span><span class="p">(</span>
+                    <span class="mi">5</span><span class="p">,</span> <span class="n">frag_type</span> <span class="o">=</span> <span class="s1">&#39;Sph-H&#39;</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">))</span> <span class="o">*</span> <span class="mi">3</span>
         
-        <span class="k">return</span> <span class="n">score</span></div></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div></div>
 
 
 <div class="viewcode-block" id="Cer_Negative"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative">[docs]</a><span class="k">class</span> <span class="nc">Cer_Negative</span><span class="p">(</span><span class="n">AbstractMS2Identifier</span><span class="p">):</span>
@@ -4672,8 +4906,10 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span>   <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fa_scores</span>    <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span>     <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fa_scores</span>      <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sph_max_scores</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fa_max_scores</span>  <span class="o">=</span> <span class="p">{}</span>
     
 <div class="viewcode-block" id="Cer_Negative.confirm_class"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.confirm_class">[docs]</a>    <span class="k">def</span> <span class="nf">confirm_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
@@ -4694,27 +4930,36 @@
                 <span class="c1"># score is valid only for the current chain combination</span>
                 <span class="c1"># hence now we add these to the overall score, yield the</span>
                 <span class="c1"># identification and then subtract them from the score</span>
-                <span class="n">sph_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sphingosine_base</span><span class="p">(</span><span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attr</span><span class="o">.</span><span class="n">sph</span><span class="p">)</span>
+                <span class="n">sph_score</span><span class="p">,</span> <span class="n">sph_max_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sphingosine_base</span><span class="p">(</span>
+                    <span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attr</span><span class="o">.</span><span class="n">sph</span>
+                <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="n">sph_score</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="n">sph_max_score</span>
                 
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nacyl</span><span class="p">:</span>
                     
-                    <span class="n">fa_score</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fatty_acyl</span><span class="p">(</span><span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">fa_score</span><span class="p">,</span> <span class="n">fa_max_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fatty_acyl</span><span class="p">(</span><span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="n">fa_score</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">+=</span> <span class="n">fa_max_score</span>
                 
                 <span class="k">yield</span> <span class="n">chains</span>
                 
                 <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">-=</span> <span class="n">sph_score</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">-=</span> <span class="n">sph_max_score</span>
                 
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nacyl</span><span class="p">:</span>
                     
-                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">-=</span> <span class="n">fa_score</span></div>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">-=</span> <span class="n">fa_score</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">max_score</span> <span class="o">-=</span> <span class="n">fa_max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.fatty_acyl"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.fatty_acyl">[docs]</a>    <span class="k">def</span> <span class="nf">fatty_acyl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fa</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">0</span>
         
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fa</span><span class="o">.</span><span class="n">attr</span><span class="o">.</span><span class="n">oh</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            
+            <span class="n">max_score</span> <span class="o">=</span> <span class="mi">30</span>
             
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combination</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">,</span>
@@ -4737,9 +4982,11 @@
                 
                 <span class="n">score</span> <span class="o">+=</span> <span class="mi">30</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.cer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.cer">[docs]</a>    <span class="k">def</span> <span class="nf">cer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">23</span>
         
         <span class="n">cer_nl</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s1">&#39;NL H2O (NL 18.0106)&#39;</span><span class="p">,</span> <span class="c1"># Hsu c1</span>
@@ -4759,7 +5006,7 @@
             
             <span class="n">score</span> <span class="o">+=</span> <span class="mi">5</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.sphingosine_base"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.sphingosine_base">[docs]</a>    <span class="k">def</span> <span class="nf">sphingosine_base</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sph</span><span class="p">):</span>
         
@@ -4767,15 +5014,16 @@
             
             <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;sphingosine_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">sph</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
             
-            <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">)()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">sph_max_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">)()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
             <span class="p">)</span>
         
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sph_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">sph_max_scores</span><span class="p">[</span><span class="n">sph</span><span class="p">]</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.sphingosine_d_dh"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.sphingosine_d_dh">[docs]</a>    <span class="k">def</span> <span class="nf">sphingosine_d_dh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">20</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_chain_combination</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">rec</span><span class="p">,</span>
@@ -4800,35 +5048,44 @@
             
             <span class="n">score</span> <span class="o">+=</span> <span class="mi">20</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.sphingosine_d"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.sphingosine_d">[docs]</a>    <span class="k">def</span> <span class="nf">sphingosine_d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">20</span>
         
-        <span class="n">score</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sphingosine_d_dh</span><span class="p">()</span>
+        <span class="n">d_dh_score</span><span class="p">,</span> <span class="n">d_dh_max_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sphingosine_d_dh</span><span class="p">()</span>
+        
+        <span class="n">score</span> <span class="o">+=</span> <span class="n">d_dh_score</span>
+        <span class="n">max_score</span> <span class="o">+=</span> <span class="n">d_dh_max_score</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL C+H2O (NL 30.0106)&#39;</span><span class="p">,</span> <span class="n">adduct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">):</span>
             
             <span class="n">score</span> <span class="o">+=</span> <span class="mi">20</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.sphingosine_dh"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.sphingosine_dh">[docs]</a>    <span class="k">def</span> <span class="nf">sphingosine_dh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="o">-</span><span class="mi">20</span>
         
-        <span class="n">score</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sphingosine_d_dh</span><span class="p">()</span>
+        <span class="n">d_dh_score</span><span class="p">,</span> <span class="n">d_dh_max_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sphingosine_d_dh</span><span class="p">()</span>
+        
+        <span class="n">score</span> <span class="o">+=</span> <span class="n">d_dh_score</span>
+        <span class="n">max_score</span> <span class="o">+=</span> <span class="n">d_dh_max_score</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL C+H2O (NL 30.0106)&#39;</span><span class="p">,</span> <span class="n">adduct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">):</span>
             
             <span class="n">score</span> <span class="o">-=</span> <span class="mi">20</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.sphingosine_t"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.sphingosine_t">[docs]</a>    <span class="k">def</span> <span class="nf">sphingosine_t</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">28</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;NL C+3xH2O (66.0455)&#39;</span><span class="p">,</span> <span class="n">adduct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">):</span>
             
@@ -4865,11 +5122,12 @@
             
             <span class="n">score</span> <span class="o">-=</span> <span class="mi">10</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.cer1p"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.cer1p">[docs]</a>    <span class="k">def</span> <span class="nf">cer1p</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">70</span>
         
         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;Cer1P/PIP/PL metaphosphate (78.9591)&#39;</span><span class="p">),</span>
@@ -4907,11 +5165,12 @@
                 
                 <span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.sm"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.sm">[docs]</a>    <span class="k">def</span> <span class="nf">sm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">45</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">fragment_among_most_abundant</span><span class="p">(</span>
             <span class="s1">&#39;NL CH2 (NL 14.0157)&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">adduct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add</span>
@@ -4935,11 +5194,12 @@
             
             <span class="bp">self</span><span class="o">.</span><span class="n">must_have_chains</span> <span class="o">=</span> <span class="kc">False</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.hexcer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.hexcer">[docs]</a>    <span class="k">def</span> <span class="nf">hexcer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">90</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">fragment_among_most_abundant</span><span class="p">(</span><span class="s1">&#39;HexCer identity I&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
@@ -4956,11 +5216,12 @@
             
             <span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.hex2cer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.hex2cer">[docs]</a>    <span class="k">def</span> <span class="nf">hex2cer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">140</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;HexCer identity I&#39;</span><span class="p">),</span>
@@ -4982,11 +5243,12 @@
             
             <span class="n">score</span> <span class="o">+=</span> <span class="mi">10</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.shexcer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.shexcer">[docs]</a>    <span class="k">def</span> <span class="nf">shexcer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">100</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">missing_chains</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span>
         
@@ -5031,11 +5293,12 @@
                 
                 <span class="n">score</span> <span class="o">+=</span> <span class="mi">20</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.shex2cer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.shex2cer">[docs]</a>    <span class="k">def</span> <span class="nf">shex2cer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">140</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">missing_chains</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span>
         
@@ -5085,11 +5348,12 @@
                 
                 <span class="n">score</span> <span class="o">+=</span> <span class="mi">20</span>
         
-        <span class="k">return</span> <span class="n">score</span></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div>
     
 <div class="viewcode-block" id="Cer_Negative.pe_cer"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.Cer_Negative.pe_cer">[docs]</a>    <span class="k">def</span> <span class="nf">pe_cer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_score</span> <span class="o">=</span> <span class="mi">30</span>
         
         <span class="n">score</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PE [P+E] (140.0118)&#39;</span><span class="p">),</span>
@@ -5097,7 +5361,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">scn</span><span class="o">.</span><span class="n">has_fragment</span><span class="p">(</span><span class="s1">&#39;PE [P+E-H2O] (122.0013)&#39;</span><span class="p">),</span>
         <span class="p">)))</span> <span class="o">*</span> <span class="mi">10</span>
         
-        <span class="k">return</span> <span class="n">score</span></div></div>
+        <span class="k">return</span> <span class="n">score</span><span class="p">,</span> <span class="n">max_score</span></div></div>
 
 <span class="c1">#</span>
 <span class="c1"># Scan.identify() dispatches identification methods as below</span>
@@ -5288,9 +5552,9 @@
         
         <span class="n">identities</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">scan_ids</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">identities</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">scan_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">identities</span><span class="p">):</span>
             
-            <span class="k">for</span> <span class="n">sum_str</span><span class="p">,</span> <span class="n">varieties</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">scan_ids</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">sum_str</span><span class="p">,</span> <span class="n">varieties</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">scan_i</span><span class="p">):</span>
                 
                 <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">varieties</span><span class="p">:</span>
                     
@@ -5298,7 +5562,7 @@
                     
                     <span class="k">if</span> <span class="n">scores</span><span class="p">:</span>
                         
-                        <span class="n">summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
+                        <span class="n">summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">score_pct</span><span class="p">)</span>
                         
                     <span class="k">else</span><span class="p">:</span>
                         
@@ -7411,7 +7675,7 @@
                 <span class="n">score</span> <span class="o">+=</span> <span class="mi">1</span>
             
             <span class="n">fa_h_ccs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matching_fa_frags_of_type</span><span class="p">(</span><span class="s1">&#39;PE&#39;</span><span class="p">,</span> <span class="s1">&#39;-H]-&#39;</span><span class="p">)</span>
-        
+            
             <span class="k">for</span> <span class="n">fa_h_cc</span> <span class="ow">in</span> <span class="n">fa_h_ccs</span><span class="p">:</span>
                 
                 <span class="k">for</span> <span class="n">fa_other</span> <span class="ow">in</span> <span class="p">[</span>
