@@ -7,7 +7,7 @@
 # disabled.
 # These issues can be resolved the way below.
 
-sed -iE 's/<!--\|-->//g;'\
+sed -iE ':a;s/<!--.*-->//g;/<!--/{N;ba};'\
 's/\(<div id="header"\)/<!-- \1/;'\
 's/\(<div id="site" style=".*">\)/\1 -->/;'\
 's/\(id="notebook_panel"\) style="overflow:auto!important;"/\1/;'\

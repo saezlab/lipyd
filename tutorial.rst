@@ -14,17 +14,6 @@ Tutorial
     pprint.PrettyPrinter = pprint_namedtuple.PrettyPrinter
     from lipyd import mass
     from lipyd import formula
-    imp.reload(mass)
-    imp.reload(formula)
-
-
-
-
-.. parsed-literal::
-
-    <module 'lipyd.formula' from '/home/denes/Dokumentumok/lipyd/src/lipyd/formula.py'>
-
-
 
 The ``mass`` module knows exact masses of isotopes, isotopic abundances,
 weights, etc. The ``MassBase`` class is able to process chemical
@@ -209,17 +198,6 @@ might be formulas or moieties with aliphatic chains.
 
     from lipyd import metabolite
     from lipyd import substituent
-    imp.reload(metabolite)
-    imp.reload(substituent)
-
-
-
-
-.. parsed-literal::
-
-    <module 'lipyd.substituent' from '/home/denes/Dokumentumok/lipyd/src/lipyd/substituent.py'>
-
-
 
 Make all combinations of halogenated methanes:
 
