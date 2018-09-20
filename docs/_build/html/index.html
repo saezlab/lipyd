@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Tutorial" href="tutorial.html" /> 
+    <link rel="next" title="Reference manual" href="source/modules.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -83,7 +83,6 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="source/modules.html">Reference manual</a></li>
 </ul>
 
@@ -154,23 +153,6 @@
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#chemical-calculator">1: Chemical calculator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#calculations-with-adducts">2: Calculations with adducts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#metabolite-model">3: Metabolite model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#lipid-definitions">4: Lipid definitions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#external-databases">5: External databases</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="tutorial.html#swisslipids">5.1: SwissLipids</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tutorial.html#lipidmaps">5.2: LipidMaps</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#lipid-name-parser">6: Lipid name parser</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#combined-molecule-database">7: Combined molecule database</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#ms2-fragment-definitions">8: MS2 fragment definitions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#ms2-fragment-database">9: MS2 fragment database</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#ms2-spectrum-analysis">10: MS2 spectrum analysis</a></li>
-</ul>
-</li>
 <li class="toctree-l1"><a class="reference internal" href="source/modules.html">Reference manual</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="source/lipyd.html">lipyd package</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="source/lipyd.html#subpackages">Subpackages</a><ul>
@@ -231,6 +213,43 @@
 <li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
 <li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
 </ul>
+</div>
+<div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">note:</th><td class="field-body"><code class="docutils literal notranslate"><span class="pre">lipyd</span></code> is developed and tested in Python 3.7. Although it is written
+a Python 2.7 compatible way, no thorough testing has been done.
+We recommend to use Python 3.7+ whenever it’s possible. Please file
+issues if you are experiencing problems in Python 2.7.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">note:</th><td class="field-body">As of September 2018 the actively developed branch is <code class="docutils literal notranslate"><span class="pre">dev3</span></code>.
+It will be merged to <code class="docutils literal notranslate"><span class="pre">master</span></code> upon release for public testing near
+end of October. Until that time you should use <code class="docutils literal notranslate"><span class="pre">dev3</span></code>.</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="linux">
+<h2>Linux<a class="headerlink" href="#linux" title="Permalink to this headline">¶</a></h2>
+<p>In any modern Linux distribution installation by <code class="docutils literal notranslate"><span class="pre">pip</span></code> should be
+straightforward.</p>
+<p>Or download the tarball:</p>
+</div>
+<div class="section" id="mac-os-x">
+<h2>Mac OS X<a class="headerlink" href="#mac-os-x" title="Permalink to this headline">¶</a></h2>
+<p>Should simply work by <code class="docutils literal notranslate"><span class="pre">pip</span></code>. You might need to install <code class="docutils literal notranslate"><span class="pre">pycurl</span></code>. Always be
+aware which distributions do you have on your computer and which one are you
+installing to.</p>
+</div>
+<div class="section" id="windows">
+<h2>Windows<a class="headerlink" href="#windows" title="Permalink to this headline">¶</a></h2>
+<p>You need to install <code class="docutils literal notranslate"><span class="pre">pycurl</span></code> from this unofficial repository:
+<a class="reference external" href="https://www.lfd.uci.edu/~gohlke/pythonlibs/#pycurl">https://www.lfd.uci.edu/~gohlke/pythonlibs/#pycurl</a></p>
+<p>For example, for x86_64 architecture and Python 3.7 do this:</p>
+<p>Then install by <code class="docutils literal notranslate"><span class="pre">pip</span></code> as usual.</p>
+</div>
 </div>
 <div class="section" id="tutorial">
 <h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
@@ -906,7 +925,7 @@ fragments are confirmed by [FA-H]- ions (see the
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tutorial.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="source/modules.html" class="btn btn-neutral float-right" title="Reference manual" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>

@@ -10,7 +10,8 @@ Welcome to lipyd's documentation!
    :maxdepth: 5
    :caption: Contents:
    
-   tutorial
+   ../installation
+   ../tutorial
    source/modules
    
 .. autosummary::
@@ -24,5 +25,6 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-.. include:: tutorial.rst
+.. include:: ../installation.rst
+.. include:: ../tutorial.rst
 
