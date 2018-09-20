@@ -1,6 +1,7 @@
 
 import os
 from lipyd import ms2
+from lipyd import lipproc
 
 sm_frags = (
     'PC/SM [N+3xCH3] (60.0808)',
@@ -12,6 +13,8 @@ sm_frags = (
     'NL SM [P+Ch] (NL 201.0766)',
     'NL SM [N+3xCH3] (77.0841)',
     'NL [H2O] (NL 18.0106)',
+    'SM [Ch+P+C2NH] (225.0999)',
+    'SM [Ch+P+C2NH+CO] (253.0948)',
 )
 
 def check_sm_frags(scan):
@@ -21,13 +24,25 @@ def check_sm_frags(scan):
         print(frag, scan.has_fragment(frag))
 
 
-mgfdir = '/home/denes/archive/ltp/mgf_invitro'
-mgfname = '161203_MLH_EMV_GLTPD1_pos_%s.mgf'
-fractions = ('E07', 'E08', 'E09', 'E10')
+mgfdir_invitro = '/home/denes/archive/ltp/mgf_invitro'
+mgfname_invitro = '161203_MLH_EMV_GLTPD1_pos_%s.mgf'
+fractions_invitro = ('E07', 'E08', 'E09', 'E10')
 
-mgfs = dict((fr, os.path.join(mgfdir, mgfname % fr)) for fr in fractions)
+mgfdir_invivo = '/home/denes/archive/ltp/mgf_invivo'
+mgfname_invivo = '150628_Popeye_MLH_AC_GLTPD1_pos_%s.mgf'
+fractions_invivo = ('A11', 'A12')
 
-mzs = (
+mgfs_invitro = dict(
+    (fr, os.path.join(mgfdir_invitro, mgfname_invitro % fr))
+    for fr in fractions_invitro
+)
+
+mgfs_invivo = dict(
+    (fr, os.path.join(mgfdir_invivo, mgfname_invivo % fr))
+    for fr in fractions_invivo
+)
+
+mzs_invitro = (
     813.6844,
     787.6689,
     705.5904,
@@ -39,7 +54,7 @@ mzs = (
     787.6691,
 )
 
-rts = (
+rts_invitro = (
     (11.11, 12.03),
     (11.10, 11.88),
     (7.29, 7.95),
@@ -51,47 +66,136 @@ rts = (
     (10.22, 12.10),
 )
 
+mzs_invivo = (
+    703.575398430908,
+    813.682274069939,
+    787.666910609034,
+    785.652436668606,
+    701.560224499535,
+    731.606735812837,
+    811.669100112695,
+    675.543961050273,
+    759.637273205114,
+    799.667855362805,
+    815.700047967678,
+    689.55967974059,
+    705.590672360987,
+    729.591161886638,
+    717.554817590802,
+)
+
+rts_invivo = (
+    (8.36, 9.02),
+    (12.58, 13.34),
+    (12.62, 13.18),
+    (11.22, 12.36),
+    (7.48, 8.29),
+    (9.78, 10.37),
+    (11.49, 12.12),
+    (7.26, 7.81),
+    (11.18, 11.78),
+    (11.87, 12.77),
+    (14.02, 14.62),
+    (7.83, 8.37),
+    (8.43, 9.54),
+    (8.70, 9.54),
+    (7.13, 7.72),
+)
+
 
 hdr = [
-    'mz', 'rt', 'scan_id', 'deltaRT', 'frac', 'MS1', '[Sph-2xH2O+H]+'
+    'mz', 'rt', 'scan_id',
+    'deltaRT', 'frac',
+    'MS1',
+    'score',
+    '[Sph-2xH2O+H]+',
 ] + list(sm_frags)
+hdr.append('chain_frags')
 
 result = []
 
-for mz, rt in zip(mzs, rts):
+def collect_scan_lines(mzs, rts, mgfs):
     
-    fe = ms2.MS2Feature(mz, ionmode = 'pos', mgfs = mgfs, rt = rt)
-    fe.build_scans()
+    result = []
     
-    for sc, drt in zip(fe.scans, fe.deltart):
+    for mz, rt in zip(mzs, rts):
         
-        ids = sc.identify()
+        fe = ms2.MS2Feature(mz, ionmode = 'pos', mgfs = mgfs, rt = rt)
+        fe.build_scans()
         
-        for ms1id, ms2ids in ids.items():
+        for sc, drt in zip(fe.scans, fe.deltart):
             
-            if ms2ids and ms2ids[0].hg.main == 'SM':
+            ids = sc.identify()
+            
+            smrec = list(
+                sc.get_ms1_records(hg = 'SM', databases = {'lipyd.lipid'})
+            )
+            
+            chainid = set()
+            
+            for sm in smrec:
                 
-                this_line = [
-                    '%.07f' % mz,
-                    '%.02f - %.02f' % rt,
-                    '%u' % sc.scan_id,
-                    '%.02f' % drt,
-                    sc.sample,
-                    ms1id,
-                ]
-                this_line.append(
-                    sc.has_chain_fragment_type(
-                        frag_type = 'Sph-2xH2O+H'
-                    ).__str__()
-                )
+                ccomb = sc.chain_combinations(sm[0])
                 
-                for frag in sm_frags:
+                for cc in ccomb:
                     
-                    this_line.append(sc.has_fragment(frag).__str__())
+                    chainid.add('%s[full=%s,frags=[%s,%s],i=[%.03f,%.03f]]' % (
+                        sm[0].summary_str(),
+                        lipproc.full_str(sm[0].hg, cc[0]),
+                        cc[1].fragtype[0],
+                        cc[1].fragtype[1],
+                        cc[1].i[0] * 100,
+                        cc[1].i[1] * 100,
+                    ))
+            
+            for ms1id, ms2ids in ids.items():
                 
-                result.append(this_line)
+                if ms2ids and ms2ids[0].hg.main == 'SM':
+                    
+                    this_line = [
+                        '%.07f' % mz,
+                        '%.02f - %.02f' % rt,
+                        '%u' % sc.scan_id,
+                        '%.02f' % drt,
+                        sc.sample,
+                        ms1id,
+                        '%u' % ms2ids[0].score_pct,
+                    ]
+                    
+                    isph = min(
+                        sc.fragments_by_chain_type(frag_type = 'Sph-2xH2O+H'),
+                        default = None
+                    )
+                    
+                    irel_sph = (
+                        '%.03f' % (sc.inorm[isph] * 100)
+                        if isph is not None
+                        else ''
+                    )
+                    
+                    this_line.append(irel_sph)
+                    
+                    for frag in sm_frags:
+                        
+                        i = sc.fragment_by_name(frag)
+                        reli = (
+                            '%.03f' % (sc.inorm[i] * 100)
+                            if i is not None
+                            else ''
+                        )
+                        
+                        this_line.append(reli)
+                    
+                    this_line.append(';'.join(chainid))
+                    
+                    result.append(this_line)
+    
+    return result
 
-with open('GLTPD1_pos_invitro_SM.csv', 'w') as fp:
+result.extend(collect_scan_lines(mzs_invitro, rts_invitro, mgfs_invitro))
+result.extend(collect_scan_lines(mzs_invivo,  rts_invivo,  mgfs_invivo))
+
+with open('GLTPD1_pos_SM.csv', 'w') as fp:
     
     _ = fp.write('\t'.join(hdr))
     _ = fp.write('\n')
