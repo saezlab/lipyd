@@ -114,7 +114,12 @@ setup(
     classifiers = metainfo['classifiers'],
     # package installation
     package_dir = {'':'src'},
-    packages = ['lipyd', 'lipyd.data', 'lipyd.data.ms2_examples'],
+    packages = [
+        'lipyd',
+        'lipyd.reader',
+        'lipyd.data',
+        'lipyd.data.ms2_examples'
+    ],
     include_package_data = True,
     install_requires = deps
     # dependency_links = deplinks
