@@ -21,13 +21,13 @@ from past.builtins import xrange
 unicode = unicode if 'unicode' in locals() else str
 
 
+import os
 import sys
 import xlrd
 import openpyxl
 
 
-def read_xls(xls_file, sheet = 0, csv_file = None,
-    return_table = True):
+def read_xls(xls_file, sheet = 0):
     """
     Generic function to read MS Excel XLS file, and convert one sheet
     to CSV, or return as a list of lists
@@ -47,10 +47,9 @@ def read_xls(xls_file, sheet = 0, csv_file = None,
         except xlrd.biffh.XLRDError:
             sheet = book.sheet_by_index(0)
         
-        table = [
-            [unicode(c.value) for c in sheet.row(i)]
-            for i in xrange(sheet.nrows)
-        ]
+        for i in xrange(sheet.nrows):
+            
+            yield [unicode(c.value) for c in sheet.row(i)]
         
     except IOError:
         
@@ -85,19 +84,10 @@ def read_xls(xls_file, sheet = 0, csv_file = None,
         cells = sheet.get_squared_range(
             1, 1, sheet.max_column, sheet.max_row
         )
-        table = [
-            [unicode(c.value) if c.value else '' for c in row]
-            for row in cells
-        ]
-    
-    if csv_file:
-        with open(csv_file, 'w') as csv:
-            csv.write('\n'.join(['\t'.join(r) for r in table]))
-    
-    if not return_table:
-        table = None
+        
+        for row in cells:
+            
+            yield [unicode(c.value) if c.value else '' for c in row]
     
     if 'book' in locals() and hasattr(book, 'release_resources'):
         book.release_resources()
-    
-    return table
