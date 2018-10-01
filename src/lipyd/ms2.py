@@ -2112,6 +2112,8 @@ class Scan(ScanBase):
             
             rec_str = rec.summary_str()
             
+            print(rec_str)
+            
             if rec_str not in result and rec.hg in idmethods[self.ionmode]:
                 
                 method = idmethods[self.ionmode][rec.hg]
@@ -4176,7 +4178,10 @@ class Cer_Positive(AbstractMS2Identifier):
                 sph_score, sph_max_score = self.sphingosine_base(
                     chains[0][0].attr.sph
                 )
+                
+                print(self.score)
                 self.score += sph_score
+                print(self.score)
                 self.max_score += sph_max_score
                 
                 if self.nacyl:
@@ -4188,6 +4193,7 @@ class Cer_Positive(AbstractMS2Identifier):
                 yield chains
                 
                 self.score -= sph_score
+                print(self.score)
                 self.max_score -= sph_max_score
                 
                 if self.nacyl:
@@ -4574,7 +4580,7 @@ class Cer_Positive(AbstractMS2Identifier):
     def sphingosine_d(self):
         
         score = 0
-        max_score = 15
+        max_score = 20
         
         if self.rec.chainsum and self.rec.chainsum.u == 0:
             
@@ -4601,14 +4607,14 @@ class Cer_Positive(AbstractMS2Identifier):
             )
         ):
             
-            score += 5
+            score += 6
             
             score += sum(map(bool,
                 (
                     not self.scn.has_fragment('[C2+NH2+O] (60.0444)'),
                     self.scn.has_fragment('NL [C+2xH2O] (NL 48.0211)')
                 )
-            ))
+            )) * 2
             
             if (
                 self.scn.chain_fragment_type_among_most_abundant(
@@ -4622,6 +4628,8 @@ class Cer_Positive(AbstractMS2Identifier):
                 )
             ):
                 score += 10
+        
+        print('d score: %u' % score)
         
         return score, max_score
     
@@ -4660,12 +4668,14 @@ class Cer_Positive(AbstractMS2Identifier):
             )
         )) * 3
         
+        print('DH score: %u' % score)
+        
         return score, max_score
     
     def sphingosine_t(self):
         
         score = 0
-        max_score = 23
+        max_score = 20
         
         if all((
             self.scn.chain_fragment_type_among_most_abundant(
@@ -4682,7 +4692,7 @@ class Cer_Positive(AbstractMS2Identifier):
             )
         )):
             
-            score = 12
+            score = 9
             
             score += sum(map(bool,
                 (
