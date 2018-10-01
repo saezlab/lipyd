@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 import os
 from lipyd import ms2
@@ -15,6 +16,57 @@ sm_frags = (
     'NL [H2O] (NL 18.0106)',
     'SM [Ch+P+C2NH] (225.0999)',
     'SM [Ch+P+C2NH+CO] (253.0948)',
+    '[C2+NH2+O] (60.0444)',
+    'NL [C+2xH2O] (NL 48.0211)',
+    'NL [3xH2O] (NL 54.0317)',
+    
+)
+
+# we assume C18 LCB
+chain_frags = (
+    {
+        'frag_type': 'Sph-H2O+H',
+        'c': 18,
+    },
+    {
+        'frag_type': 'FA+NH2-O',
+    },
+    {
+        'frag_type': 'Sph-2xH2O+H',
+        'c': 18,
+    },
+    {
+        'frag_type': 'Sph-C-O-H2O-H',
+        'c': 18,
+    },
+    {
+        'frag_type': 'Sph+H',
+        'c': 18,
+    },
+    {
+        'frag_type': 'Sph-C-O-H2O-NH',
+        'c': 18,
+    },
+    {
+        'frag_type': 'Sph-H2O-H',
+        'c': 18,
+    },
+    {
+        'frag_type': 'Sph-2xH2O-H',
+        'c': 18,
+    },
+    {
+        'frag_type': 'Sph-C-2xH2O',
+        'c': 18,
+    },
+    {
+        'frag_type': 'Sph-H',
+        'c': 18,
+    },
+    {
+        'frag_type': 'Sph-NH2-H2O-2H',
+        'c': 18,
+    },
 )
 
 def check_sm_frags(scan):
@@ -103,6 +155,7 @@ rts_invivo = (
 )
 
 
+# build the header
 hdr = [
     'mz', 'rt', 'scan_id',
     'deltaRT', 'frac',
@@ -110,7 +163,10 @@ hdr = [
     'score',
     '[Sph-2xH2O+H]+',
 ] + list(sm_frags)
-hdr.append('chain_frags')
+# chain fragments
+hdr.extenc([fr['frag_type'] for fr in chain_frags])
+# one field for 
+hdr.append('chain_comb')
 
 result = []
 
@@ -139,14 +195,16 @@ def collect_scan_lines(mzs, rts, mgfs):
                 
                 for cc in ccomb:
                     
-                    chainid.add('%s[full=%s,frags=[%s,%s],i=[%.03f,%.03f]]' % (
-                        sm[0].summary_str(),
-                        lipproc.full_str(sm[0].hg, cc[0]),
-                        cc[1].fragtype[0],
-                        cc[1].fragtype[1],
-                        cc[1].i[0] * 100,
-                        cc[1].i[1] * 100,
-                    ))
+                    chainid.add(
+                        '%s[full=%s,frags=[%s,%s],i=[%.03f,%.03f]]' % (
+                            sm[0].summary_str(),
+                            lipproc.full_str(sm[0].hg, cc[0]),
+                            cc[1].fragtype[0],
+                            cc[1].fragtype[1],
+                            cc[1].i[0] * 100,
+                            cc[1].i[1] * 100,
+                        )
+                    )
             
             for ms1id, ms2ids in ids.items():
                 
