@@ -15,6 +15,10 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+from past.builtins import xrange
+
+import os
+import sys
 import imp
 import re
 import csv
@@ -42,6 +46,15 @@ class PeaksReader(object):
         'z',
         'Avg. Area',
     ]
+    ignore = {
+        'Sample Profile (Ratio)',
+        'Control Normalized Area',
+        'Protein peaks Normalized Area',
+        'Group Profile (Ratio)',
+        'RT mean',
+        'Accession',
+        'PTM',
+    }
     
     def __init__(
             self,
@@ -64,7 +77,7 @@ class PeaksReader(object):
             A method to process headers of coulumns 7+.
         """
         
-        self.fname = fname
+        self.set_file(fname)
         self.ionmode = common.guess_ionmode(ionmode, self.fname)
         self.guess_format(format)
         self.label_processor = label_processor or self.default_label_processor
@@ -72,10 +85,18 @@ class PeaksReader(object):
     def reload(self):
         
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
+    def __repr__(self):
+        
+        return '<%s.%s fname=\'%s\'>' % (
+            self.__class__.__module__,
+            self.__class__.__name__,
+            self.fname,
+        )
     
     def read(self):
         
@@ -86,6 +107,7 @@ class PeaksReader(object):
         total_intensities = []
         centr_mzs         = []
         rt_ranges         = []
+        total_rt_means    = []
         
         # sample data
         mzs               = []
@@ -118,16 +140,19 @@ class PeaksReader(object):
             z.append(common.to_int(line[5]))
             total_intensities.append(common.to_float(line[6]))
             
+            if self.rt_mean_idx:
+                total_rt_means.append(common.to_float(line[self.rt_mean_idx]))
+            
             mzs.append([
-                common.to_float(sample['m/z'])
+                common.to_float(line[sample['m/z']])
                 for sample in self.samples
             ])
             intensities.append([
-                common.to_float(sample['Normalized Area'])
+                common.to_float(line[sample['Normalized Area']])
                 for sample in self.samples
             ])
             rt_means.append([
-                common.to_float(sample['RT mean'])
+                common.to_float(line[sample['RT mean']])
                 for sample in self.samples
             ])
         
@@ -138,6 +163,7 @@ class PeaksReader(object):
         self.total_intensities = np.array(total_intensities)
         self.centr_mzs         = np.array(centr_mzs)
         self.rt_ranges         = np.array(rt_ranges)
+        self.total_rt_means    = np.array(total_rt_means)
         
         # sample data
         self.mzs               = np.array(mzs)
@@ -164,7 +190,11 @@ class PeaksReader(object):
                     )
                 )
         
-        for i in xrange(7, len(self.hdr_raw)):
+        for i in xrange(7, len(self.hdr_raw), 3):
+            
+            if self.hdr_raw[i] in self.ignore or i + 1 > len(self.hdr_raw):
+                
+                continue
             
             sample = {}
             
@@ -178,25 +208,30 @@ class PeaksReader(object):
             
             else:
                 
-                warnings.warn(
-                    'Could not recognize column label `%s`.\nIn PEAKS '
-                    'output file coulumn triplets expected to end '
-                    '`m/z`, `RT mean` and `Normalized Area`.\n'
-                    'In file `%s`' % (
-                        self.hdr_raw[i],
-                        self.fname,
-                    )
-                )
+                self._column_label_warning(i)
             
             # repeating column triplets
             for j in xrange(3):
                 
                 col_idx = i + j
                 
-                label, field  = self.hdr_raw[col_idx]
-                sample[field] = col_idx
+                match = self.rehdr.search(self.hdr_raw[col_idx])
+                
+                if match:
+                    
+                    label, field  = match.groups()
+                    sample[field] = col_idx
+                    
+                else:
+                    
+                    self._column_label_warning(col_idx)
+            
+            self.samples.append(sample)
         
-        self.samples.append(sample)
+        try:
+            self.rt_mean_idx = self.hdr_raw.index('RT mean')
+        except ValueError:
+            self.rt_mean_idx = None
     
     def iterlines(self):
         
@@ -230,6 +265,28 @@ class PeaksReader(object):
             self.format = (
                 'xls' if 'excel' in mime or 'openxml' in mime else 'csv'
             )
+    
+    def set_file(self, fname):
+        
+        if os.path.exists(fname):
+            
+            self.fname = fname
+            
+        else:
+            
+            raise FileNotFoundError(fname)
+    
+    def _column_label_warning(self, col_idx):
+        
+        warnings.warn(
+            'Could not recognize column label `%s`.\nIn PEAKS '
+            'output file coulumn triplets expected to end '
+            '`m/z`, `RT mean` and `Normalized Area`.\n'
+            'In file `%s`' % (
+                self.hdr_raw[col_idx],
+                self.fname,
+            )
+        )
     
     @staticmethod
     def default_label_processor(label):

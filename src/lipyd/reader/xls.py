@@ -16,15 +16,15 @@
 #
 
 
-from __future__ import print_function
 from past.builtins import xrange
-unicode = unicode if 'unicode' in locals() else str
 
 
 import os
 import sys
 import xlrd
 import openpyxl
+
+import lipyd.reader.common as common
 
 
 def read_xls(xls_file, sheet = 0):
@@ -49,27 +49,29 @@ def read_xls(xls_file, sheet = 0):
         
         for i in xrange(sheet.nrows):
             
-            yield [unicode(c.value) for c in sheet.row(i)]
+            yield [common.basestring(c.value) for c in sheet.row(i)]
         
     except IOError:
         
-        sys.stdout.write('No such file: %s\n' % xls_file)
-        sys.stdout.flush()
+        raise FileNotFoundError(xls_file)
         
     except:
         
         try:
             
-            book = openpyxl.load_workbook(filename = xls_file, 
-            read_only = True)
+            book = openpyxl.load_workbook(
+                filename = xls_file,
+                read_only = True
+            )
             
         except:
             
-            sys.stdout.write('\tCould not open xls: %s\n' % xls_file)
-            if not os.path.exists(xls_file):
-                sys.stdout.write('\tFile does not exist.\n')
-            sys.stdout.flush()
+            raise ValueError('Could not open xls: %s' % xls_file)
             
+            if not os.path.exists(xls_file):
+                
+                raise FileNotFoundError(xls_file)
+        
         try:
             
             if type(sheet) is int:
@@ -87,7 +89,7 @@ def read_xls(xls_file, sheet = 0):
         
         for row in cells:
             
-            yield [unicode(c.value) if c.value else '' for c in row]
+            yield [common.basestring(c.value) if c.value else '' for c in row]
     
     if 'book' in locals() and hasattr(book, 'release_resources'):
         book.release_resources()

@@ -55,16 +55,20 @@ def to_float(num):
         
         return num
     
-    num = num.strip()
-    match = refloat.match(num)
-    
-    if match:
+    if isinstance(num, int):
         
-        return float(fnum.groups()[0])
+        return float(num)
     
-    else:
+    if isinstance(num, basestring):
         
-        if isinstance(num, basestring):
+        num = num.strip()
+        match = refloat.match(num)
+        
+        if match:
+            
+            return float(match.groups()[0])
+            
+        else:
             
             if num.lower() == 'inf':
                 
@@ -73,10 +77,8 @@ def to_float(num):
             if num.lower() == '-inf':
                 
                 return -np.inf
-            
-        else:
-            
-            return np.nan
+    
+    return np.nan
 
 
 def to_int(num):
@@ -92,7 +94,7 @@ def to_int(num):
     
     if match:
         
-        return int(num.groups(0)[0])
+        return int(match.groups(0)[0])
         
     else:
         
