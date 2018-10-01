@@ -2724,6 +2724,10 @@ class TestScan(object):
         
         iscan = scan.identify()
         
+        sm_rec = list(
+            scan.get_ms1_records(hg = 'SM', databases = {'lipyd.lipid'})
+        )
+        
         highest_score = max(
             (
                 i.score_pct
