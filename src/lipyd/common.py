@@ -24,8 +24,6 @@ import re
 import warnings
 import traceback
 import itertools
-import xlrd
-import openpyxl
 import numpy as np
 
 
