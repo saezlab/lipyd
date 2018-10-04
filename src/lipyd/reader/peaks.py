@@ -62,6 +62,7 @@ class PeaksReader(object):
             ionmode = None,
             format = None,
             label_processor = None,
+            sample_sorter = None,
         ):
         """
         Reads data from an output file of the PEAKS software.
@@ -81,6 +82,7 @@ class PeaksReader(object):
         self.ionmode = common.guess_ionmode(ionmode, self.fname)
         self.guess_format(format)
         self.label_processor = label_processor or self.default_label_processor
+        self.sample_sorter = sample_sorter or self.default_sample_sorter
         
         self.read()
     
@@ -230,6 +232,8 @@ class PeaksReader(object):
             
             self.samples.append(sample)
         
+        self.samples = self.sample_sorter(self.samples)
+        
         try:
             self.rt_mean_idx = self.hdr_raw.index('RT mean')
         except ValueError:
@@ -305,3 +309,8 @@ class PeaksReader(object):
                 'fraction': (row, col),
                 'ionmode': ionmode,
             }
+    
+    @staticmethod
+    def default_sample_sorter(samples):
+        
+        return sorted(samples, key = lambda s: s['label']['fraction'])
