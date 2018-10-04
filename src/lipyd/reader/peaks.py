@@ -26,6 +26,7 @@ import mimetypes
 import warnings
 import numpy as np
 
+import lipyd.sample
 import lipyd.reader.xls
 import lipyd.reader.common as common
 
@@ -314,3 +315,18 @@ class PeaksReader(object):
     def default_sample_sorter(samples):
         
         return sorted(samples, key = lambda s: s['label']['fraction'])
+    
+    def get_samples(self):
+        """
+        Yields ``lipyd.sample.Sample`` objects for each sample read from
+        the PEAKS output file.
+        """
+        
+        for i, sampleattrs in enumerate(self.samples):
+            
+            yield lipyd.sample.Sample(
+                mzs = self.mzs[:,i],
+                intensities = self.intensities[:,i],
+                rts = self.rts[:,i],
+                attrs = sampleattrs,
+            )
