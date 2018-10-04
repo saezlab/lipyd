@@ -320,6 +320,9 @@ class PeaksReader(object):
         """
         Yields ``lipyd.sample.Sample`` objects for each sample read from
         the PEAKS output file.
+        
+        To extract all data from ``PeaksReader`` the ``get_sampleset`` method
+        is more convenient.
         """
         
         for i, sampleattrs in enumerate(self.samples):
@@ -330,3 +333,10 @@ class PeaksReader(object):
                 rts = self.rts[:,i],
                 attrs = sampleattrs,
             )
+    
+    def get_sampleset(self):
+        """
+        Returns a ``SampleSet`` and a ``FeatureAttributes`` object.
+        """
+        
+        return lipyd.sample.SampleSet(self.get_samples()), None

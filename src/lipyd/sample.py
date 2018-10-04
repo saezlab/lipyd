@@ -19,14 +19,113 @@ import imp
 import numpy as np
 
 
-class FeatureAttributes(object):
+from lipyd.common import basestring
+
+
+class FeaturesBase(object):
     
-    def __init__(self):
+    def __new__(self):
+        
+        self.var     = set()
+        self.missing = set()
+        
+        return self
+    
+    def __init__(self, sorter = None, **kwargs):
+        
+        for attr, data in iteritems(kwargs):
+            
+            self.add_var(data, attr)
+        
+        self.sorter = FeatureIdx(len(self)) if sorter is None else sorter
+    
+    def add_var(self, data, attr):
+        
+        setattr(self, attr, data)
+        
+        if data is None:
+            
+            self.missing.add(attr)
+            
+        else:
+            
+            self.var.add(attr)
+    
+    def sort_all(self, by = None, desc = False, resort = False):
+        """
+        Sorts all data arrays according to an index array or values in one of
+        the data arrays.
+        
+        :param np.ndarray,str by:
+            Either an array of indices or the attribute name of any data
+            array of the object.
         """
         
+        isort = None
+        
+        if isinstance(by, basestring):
+            
+            if (
+                (by == self.sorted_by and not resort) or
+                not hasattr(self, by) or
+                getattr(self, by) is None
+            ):
+                
+                return None
+            
+            isort = np.argsort(getattr(self, by))
+            
+            if desc:
+                isort = isort[::-1]
+            
+            self.sorted_by = by
+            
+        if isinstance(by, np.ndarray):
+            
+            if len(by) != len(self):
+                
+                raise ValueError(
+                    'Could not sort object of length %u by '
+                    'index array of length %u.' (len(self), len(by))
+                )
+            
+            isort = by
+            
+            self.sorted_by = None
+        
+        if isort is not None:
+            
+            for var in self.var:
+                
+                setattr(self, var, getattr(self, var)[isort])
+    
+    def __len__(self):
+        
+        return (
+            getattr(self, next(self.var.__iter__())).shape[0]
+            if self.var else
+            0
+        )
+
+
+class FeatureAttributes(FeaturesBase):
+    
+    def __init__(
+            self,
+            attrs = None,
+            **kwargs
+        ):
+        """
+        Features are m/z values accompanied by other attributes.
+        Features might have been detected in one sample (one LC MS/MS run),
+        or across multiple runs (``SampleSet``).
+        ``FeatureAttributes`` handles the attributes for either a ``Sample``
+        or a ``SampleSet``.
         """
         
-        pass
+        FeatureBase.__init__(self, **kwargs)
+        
+        self.attrs = attrs or {}
     
     def reload(self):
         
@@ -42,13 +141,13 @@ class FeatureAttributes(object):
     
     def charges(self):
         """
-        Returns a set of ion charges observed in the sample.
+        Returns a set of ion charges observed in the sample(set).
         """
         
         return sorted(set(self.charge))
 
 
-class Sample(object):
+class Sample(FeaturesBase):
     
     def __init__(
             self,
@@ -56,6 +155,7 @@ class Sample(object):
             intensities = None,
             rts = None,
             attrs = None,
+            feature_attrs = None,
         ):
         """
         Represents one LC MS/MS run.
@@ -71,10 +171,11 @@ class Sample(object):
             raise ValueError('Sample object must have at least m/z values.')
         
         self.add_var(mzs, 'mzs')
-        self.add_var(intensities, 'intensities')
-        self.add_var(rts, 'rts')
         
-        self.attrs = attrs or {}
+        FeaturesBase.__init__(self, intensities = intensities, rts = rts)
+        
+        self.attrs   = attrs or {}
+        self.feattrs = feature_attrs
     
     def reload(self):
         
@@ -95,35 +196,11 @@ class Sample(object):
                 )
             )
         
-        setattr(self, attr, data)
-        
-        if data is None:
-            
-            self.missing.add(attr)
-            
-        else:
-            
-            self.var.add(attr)
+        FeaturesBase.add_var(self, data, attr)
     
     def sort_all(self, by = 'mzs', desc = False, resort = False):
-        """
-        Sorts all data arrays according to values in one of them.
-        """
         
-        if by == self.sorted_by and not resort:
-            
-            return None
-        
-        isort = np.argsort(getattr(self, by))
-        
-        if desc:
-            isort = isort[::-1]
-        
-        for var in self.var:
-            
-            setattr(self, var, getattr(self, var)[isort])
-        
-        self.sorted_by = by
+        FeaturesBase.sort_all(self, by = by, desc = desc, resort = resort)
     
     def __len__(self):
         """
@@ -131,3 +208,96 @@ class Sample(object):
         """
         
         return len(self.mzs)
+
+
+class FeatureIdx(FeaturesBase):
+    
+    def __init__(self, length):
+        """
+        Helps the sorting of features across multiple samples
+        with keeping track of feature IDs.
+        """
+        
+        FeaturesBase.__init__(self)
+        
+        self.var = {'_original', '_current'}
+        
+        self._original = np.arange(length)
+        self._current  = np.arange(length)
+        
+        self.registered = {}
+    
+    def sort(self, argsort):
+        
+        self._current  = self._current[argsort]
+        self._original = self._current.argsort()
+    
+    def current(self, o):
+        """
+        Tells the current index for the original index ``o``.
+        
+        :param int o:
+            An original index.
+        """
+        
+        return self._original[o]
+    
+    def original(self, c):
+        """
+        Tells the original index for the current index ``c``.
+        
+        :param int c:
+            An index in the current ordering.
+        """
+        
+        return self._current[c]
+    
+    def __len__(self):
+        
+        return len(self.aoriginal)
+    
+    def acurrent(self, ao):
+        """
+        For a vector of original indices ``ao`` returns a vector of
+        corresponding current indices.
+        
+        :param int ao:
+            Vector of original indices.
+        """
+        
+        return self._original[ao]
+    
+    def aoriginal(self, co):
+        """
+        For a vector of current indices ``ao`` returns a vector of
+        corresponding original indices.
+        
+        :param int co:
+            Vector of current indices.
+        """
+        
+        return self._current[ac]
+    
+    def convert(self, other):
+        """
+        Converts from the ordering of an other ``FeatureIdx`` instance
+        to the ordering of this one.
+        """
+        
+        pass
+    
+    def register(self, sortable):
+        """
+        Binds a sortable object of the same length to this one hence all
+        sorting operations will be applied also to this object.
+        Sortables registered assumed to share the same original indices.
+        It means should have the same ordering at time of registration.
+        """
+        
+        if len(sortable) != len(self):
+            
+            raise ValueError(
+                'FeatureIdx: Objects of unequal length can not be co-sorted.'
+            )
+        
+        self.registered[id(sortable)] = sortable
