@@ -29,3 +29,10 @@ class TestReaderPeaks(object):
         reader = lipyd.reader.peaks.PeaksReader(path)
         
         assert reader.mzs.shape == (443, 7)
+        assert ('A', 10) in {s['label']['fraction'] for s in reader.samples}
+        assert len(
+            {
+                s['Normalized Area'] - s['m/z']
+                for s in reader.samples
+            }
+        ) == 1
