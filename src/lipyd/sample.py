@@ -28,12 +28,19 @@ from lipyd.common import basestring
 class FeatureBase(object):
     
     def __init__(self, sorter = None, **kwargs):
+        """
+        Serves as a base class for various classes handling arrays of
+        features. Some of its predecessors represent one sample others
+        more than one, or maybe data or annotations but all represent
+        a series of features detected in one LC MS/MS run or more than
+        one runs aligned with each other.
+        """
         
         self.sorted_by = None
         
         for attr, data in iteritems(kwargs):
             
-            self.add_var(data, attr)
+            self._add_var(data, attr)
             
         self.sorter = (
             FeatureIdx(len(self))
@@ -48,7 +55,14 @@ class FeatureBase(object):
             
             self.sorter.register(self)
     
-    def add_var(self, data, attr):
+    def _add_var(self, data, attr):
+        """
+        Registers a variable (array of data). If an array added this way
+        it will be always sorted the same way as all the other arrays in
+        order to keep the data of features together.
+        This method should not be called by users it is to be called
+        automatically at creation of the object.
+        """
         
         setattr(self, attr, data)
         
@@ -182,6 +196,7 @@ class Sample(FeatureBase):
             rts = None,
             attrs = None,
             feature_attrs = None,
+            sorter = None,
         ):
         """
         Represents one LC MS/MS run.
@@ -196,9 +211,11 @@ class Sample(FeatureBase):
             
             raise ValueError('Sample object must have at least m/z values.')
         
-        self.add_var(mzs, 'mzs')
+        self._add_var(mzs, 'mzs')
         
-        FeatureBase.__init__(self, intensities = intensities, rts = rts)
+        FeatureBase.__init__(
+            self, intensities = intensities, rts = rts, sorter = sorter
+        )
         
         self.attrs   = attrs or {}
         self.feattrs = feature_attrs
@@ -211,7 +228,7 @@ class Sample(FeatureBase):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
-    def add_var(self, data, attr):
+    def _add_var(self, data, attr):
         
         if attr != 'mzs' and data is not None and len(data) != len(self):
             
@@ -222,7 +239,7 @@ class Sample(FeatureBase):
                 )
             )
         
-        FeatureBase.add_var(self, data, attr)
+        FeatureBase._add_var(self, data, attr)
     
     def sort_all(
             self,
@@ -230,15 +247,41 @@ class Sample(FeatureBase):
             desc = False,
             resort = False,
             propagate = True,
+            return_isort = False,
         ):
+        """
+        Sorts all data arrays according to an index array or values in one of
+        the data arrays.
         
-        FeatureBase.sort_all(
+        :param np.ndarray,str by:
+            Either an array of indices or the attribute name of any data
+            array of the object.
+        :param bool desc:
+            Sort descending. Applies only if ``by`` is the attribute name
+            of a data array.
+        :param bool resort:
+            Sort even if the object is already sorted according to the
+            value stored in ``sorted_by``.
+        :param bool propagate:
+            Whether to propagate the sorting to bound objects. This is to
+            avoid loops of sorting.
+        :param bool return_isort:
+            Return the argsort vector. A vector of indices which can be used
+            to apply the same sorting on other arrays.
+        """
+        
+        isort = FeatureBase.sort_all(
             self,
             by = by,
             desc = desc,
             resort = resort,
             propagate = propagate,
+            return_isort = return_isort,
         )
+        
+        if return_isort:
+            
+            return isort
     
     def __len__(self):
         """
@@ -265,7 +308,17 @@ class FeatureIdx(FeatureBase):
         
         self.clients = {}
     
-    def sort(self, argsort):
+    def _sort(self, argsort):
+        """
+        Sorts the two index arrays by an index array.
+        Do not call this because it does sync with clients.
+        """
+        
+        if len(argsort) != len(self):
+            
+            raise ValueError(
+                'FeatureIdx: can not sort by index array of different length.'
+            )
         
         self._current  = self._current[argsort]
         self._original = self._current.argsort()
@@ -341,6 +394,14 @@ class FeatureIdx(FeatureBase):
         self.clients[id(sortable)] = sortable
     
     def unregister(self, id_sortable):
+        """
+        Removes an object from the list of clients and also makes it forget
+        about this object to be its sorter. Simply it makes the this object
+        and the client independent.
+        
+        :param int,sortable id_sortable:
+            Either the ``id`` of a client or the object itself.
+        """
         
         if not isinstance(id_sortable, int):
             
@@ -351,23 +412,34 @@ class FeatureIdx(FeatureBase):
             self.clients[id_sortable].sorter = None
             del self.clients[id_sortable]
     
-    def sort_all(
-            self,
+    def sort_all(self,
             by = None,
-            desc = False,
-            resort = False,
-            propagate = True,
             origin = None,
         ):
+        """
+        Applies custom sort to the object if ``by`` is an index array.
+        If ``by`` is ``None``, it sorts by the original indices, which
+        means the restoration of the original order.
+        It calls ``sort_all`` by the same argsort on all registered clients
+        hence propagating the sorting. But omits the client if the sort
+        request originates from it in order to avoid infinite sorting loops.
+        Clients don't propagate further the sorting request also to avoid
+        loops.
+        In summary, this method is called either from outside and then
+        it applies a sorting to all object of the system (if called without
+        ``by`` restores the original order); or called by the ``sort_all``
+        method of one of the clients propagating the sorting to this object
+        and to all other clients.
+        """
+        
+        if by is None:
             
-            if by is None:
+            by = self._current.argsort()
+        
+        self.sort(by)
+        
+        for id_, client in iteritems(self.clients):
+            
+            if id_ != origin:
                 
-                by = self._current.argsort()
-            
-            self.sort(by)
-            
-            for id_, client in iteritems(self.clients):
-                
-                if id_ != origin:
-                    
-                    client.sort_all(by = by, propagate = False)
+                client.sort_all(by = by, propagate = False)
