@@ -18,28 +18,94 @@
 import imp
 import numpy as np
 
-import lipyd.mgf as mgf
 
-
-class Sample(mgf.MgfReader):
+class FeatureAttributes(object):
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
+        """
         
-        self.sorted_by = None
+        """
         
-        mgf.MgfReader.__init__(self, *args, **kwargs)
-        
-        self.read()
-        self.sort_all()
+        pass
     
     def reload(self):
+        
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
-    def sort_all(self, by = 'mz', desc = False, resort = False):
+    def __len__(self):
+        
+        return self.data.shape[0]
+    
+    def charges(self):
+        """
+        Returns a set of ion charges observed in the sample.
+        """
+        
+        return sorted(set(self.charge))
+
+
+class Sample(object):
+    
+    def __init__(
+            self,
+            mzs,
+            intensities = None,
+            rts = None,
+            attrs = None,
+        ):
+        """
+        Represents one LC MS/MS run.
+        Has at least a vector of m/z's, optionally vector of intensites,
+        retention times and other metadata.
+        """
+        
+        self.var     = set()
+        self.missing = set()
+        
+        if mzs is None:
+            
+            raise ValueError('Sample object must have at least m/z values.')
+        
+        self.add_var(mzs, 'mzs')
+        self.add_var(intensities, 'intensities')
+        self.add_var(rts, 'rts')
+        
+        self.attrs = attrs or {}
+    
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+    
+    def add_var(self, data, attr):
+        
+        if attr != 'mzs' and data is not None and len(data) != len(self):
+            
+            raise ValueError(
+                'Sample object: length of `%s` (%u) is not the same '
+                'as number of features in the sample (%u).' % (
+                    attr, len(data), len(self),
+                )
+            )
+        
+        setattr(self, attr, data)
+        
+        if data is None:
+            
+            self.missing.add(attr)
+            
+        else:
+            
+            self.var.add(attr)
+    
+    def sort_all(self, by = 'mzs', desc = False, resort = False):
         """
         Sorts all data arrays according to values in one of them.
         """
@@ -64,11 +130,4 @@ class Sample(mgf.MgfReader):
         Returns number of MS1 ions (m/z's) detected in the sample.
         """
         
-        return len(self.mz)
-    
-    def charges(self):
-        """
-        Returns a set of ion charges observed in the sample.
-        """
-        
-        return sorted(set(self.charge))
+        return len(self.mzs)
