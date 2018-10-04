@@ -25,7 +25,7 @@ import numpy as np
 from lipyd.common import basestring
 
 
-class FeaturesBase(object):
+class FeatureBase(object):
     
     def __init__(self, sorter = None, **kwargs):
         
@@ -134,7 +134,7 @@ class FeaturesBase(object):
         )
 
 
-class FeatureAttributes(FeaturesBase):
+class FeatureAttributes(FeatureBase):
     
     def __init__(
             self,
@@ -173,7 +173,7 @@ class FeatureAttributes(FeaturesBase):
         return sorted(set(self.charge))
 
 
-class Sample(FeaturesBase):
+class Sample(FeatureBase):
     
     def __init__(
             self,
@@ -198,7 +198,7 @@ class Sample(FeaturesBase):
         
         self.add_var(mzs, 'mzs')
         
-        FeaturesBase.__init__(self, intensities = intensities, rts = rts)
+        FeatureBase.__init__(self, intensities = intensities, rts = rts)
         
         self.attrs   = attrs or {}
         self.feattrs = feature_attrs
@@ -222,7 +222,7 @@ class Sample(FeaturesBase):
                 )
             )
         
-        FeaturesBase.add_var(self, data, attr)
+        FeatureBase.add_var(self, data, attr)
     
     def sort_all(
             self,
@@ -232,7 +232,7 @@ class Sample(FeaturesBase):
             propagate = True,
         ):
         
-        FeaturesBase.sort_all(
+        FeatureBase.sort_all(
             self,
             by = by,
             desc = desc,
@@ -248,7 +248,7 @@ class Sample(FeaturesBase):
         return len(self.mzs)
 
 
-class FeatureIdx(FeaturesBase):
+class FeatureIdx(FeatureBase):
     
     def __init__(self, length):
         """
@@ -256,7 +256,7 @@ class FeatureIdx(FeaturesBase):
         with keeping track of feature IDs.
         """
         
-        FeaturesBase.__init__(self)
+        FeatureBase.__init__(self)
         
         self.var = {'_original', '_current'}
         
