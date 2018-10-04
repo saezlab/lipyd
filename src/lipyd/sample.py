@@ -36,8 +36,15 @@ class FeaturesBase(object):
         for attr, data in iteritems(kwargs):
             
             self.add_var(data, attr)
-        
-        self.sorter = FeatureIdx(len(self)) if sorter is None else sorter
+            
+        self.sorter = (
+            FeatureIdx(len(self))
+            if (
+                sorter is None and
+                self.__class__.__name__ != 'FeatureIdx'
+            ) else
+            sorter
+        )
     
     def add_var(self, data, attr):
         
@@ -51,7 +58,14 @@ class FeaturesBase(object):
             
             self.var.add(attr)
     
-    def sort_all(self, by = None, desc = False, resort = False):
+    def sort_all(
+            self,
+            by = None,
+            desc = False,
+            resort = False,
+            propagate = True,
+            return_isort = False,
+        ):
         """
         Sorts all data arrays according to an index array or values in one of
         the data arrays.
@@ -59,6 +73,12 @@ class FeaturesBase(object):
         :param np.ndarray,str by:
             Either an array of indices or the attribute name of any data
             array of the object.
+        :param bool propagate:
+            Whether to propagate the sorting to bound objects. This is to
+            avoid loops of sorting.
+        :param bool return_isort:
+            Return the argsort vector. A vector of indices which can be used
+            to apply the same sorting on other arrays.
         """
         
         isort = None
@@ -98,6 +118,10 @@ class FeaturesBase(object):
             for var in self.var:
                 
                 setattr(self, var, getattr(self, var)[isort])
+            
+            if propagate and self.sorter is not None:
+                
+                self.sorter.sort_all(by = isort, origin = id(self))
     
     def __len__(self):
         
@@ -301,3 +325,42 @@ class FeatureIdx(FeaturesBase):
             )
         
         self.registered[id(sortable)] = sortable
+    
+    def unregister(self, id_sortable):
+        
+        if not isinstance(id_sortable, int):
+            
+            id_sortable = id(id_sortable)
+        
+        if id_sortable in self.registered:
+            
+            self.registered[id_sortable].sorter = None
+            del self.registered[id_sortable]
+    
+    def sort_all(
+            self,
+            by = None,
+            desc = False,
+            resort = False,
+            propagate = True,
+            origin = None,
+        ):
+            
+            if by is None:
+                
+                by = '_current'
+            
+            isort = FeaturesBase.sort_all(
+                self,
+                by = by,
+                desc = desc,
+                resort = resort,
+                propagate = False,
+                return_isort = True,
+            )
+            
+            for i, client in self.registered.values():
+                
+                if i != origin:
+                    
+                    isort = client.sort_all(by = isort, propagate = False)
