@@ -81,6 +81,8 @@ class PeaksReader(object):
         self.ionmode = common.guess_ionmode(ionmode, self.fname)
         self.guess_format(format)
         self.label_processor = label_processor or self.default_label_processor
+        
+        self.read()
     
     def reload(self):
         
