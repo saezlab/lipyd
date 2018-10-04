@@ -15,6 +15,9 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+from future.utils import iteritems
+
+
 import imp
 import numpy as np
 
@@ -24,14 +27,9 @@ from lipyd.common import basestring
 
 class FeaturesBase(object):
     
-    def __new__(self):
-        
-        self.var     = set()
-        self.missing = set()
-        
-        return self
-    
     def __init__(self, sorter = None, **kwargs):
+        
+        self.sorted_by = None
         
         for attr, data in iteritems(kwargs):
             
@@ -45,6 +43,10 @@ class FeaturesBase(object):
             ) else
             sorter
         )
+        
+        if self.sorter is not None:
+            
+            self.sorter.register(self)
     
     def add_var(self, data, attr):
         
@@ -222,9 +224,21 @@ class Sample(FeaturesBase):
         
         FeaturesBase.add_var(self, data, attr)
     
-    def sort_all(self, by = 'mzs', desc = False, resort = False):
+    def sort_all(
+            self,
+            by = 'mzs',
+            desc = False,
+            resort = False,
+            propagate = True,
+        ):
         
-        FeaturesBase.sort_all(self, by = by, desc = desc, resort = resort)
+        FeaturesBase.sort_all(
+            self,
+            by = by,
+            desc = desc,
+            resort = resort,
+            propagate = propagate,
+        )
     
     def __len__(self):
         """
@@ -249,7 +263,7 @@ class FeatureIdx(FeaturesBase):
         self._original = np.arange(length)
         self._current  = np.arange(length)
         
-        self.registered = {}
+        self.clients = {}
     
     def sort(self, argsort):
         
@@ -278,7 +292,7 @@ class FeatureIdx(FeaturesBase):
     
     def __len__(self):
         
-        return len(self.aoriginal)
+        return len(self._original)
     
     def acurrent(self, ao):
         """
@@ -314,7 +328,7 @@ class FeatureIdx(FeaturesBase):
         """
         Binds a sortable object of the same length to this one hence all
         sorting operations will be applied also to this object.
-        Sortables registered assumed to share the same original indices.
+        Sortables clients assumed to share the same original indices.
         It means should have the same ordering at time of registration.
         """
         
@@ -324,7 +338,7 @@ class FeatureIdx(FeaturesBase):
                 'FeatureIdx: Objects of unequal length can not be co-sorted.'
             )
         
-        self.registered[id(sortable)] = sortable
+        self.clients[id(sortable)] = sortable
     
     def unregister(self, id_sortable):
         
@@ -332,10 +346,10 @@ class FeatureIdx(FeaturesBase):
             
             id_sortable = id(id_sortable)
         
-        if id_sortable in self.registered:
+        if id_sortable in self.clients:
             
-            self.registered[id_sortable].sorter = None
-            del self.registered[id_sortable]
+            self.clients[id_sortable].sorter = None
+            del self.clients[id_sortable]
     
     def sort_all(
             self,
@@ -348,19 +362,12 @@ class FeatureIdx(FeaturesBase):
             
             if by is None:
                 
-                by = '_current'
+                by = self._current.argsort()
             
-            isort = FeaturesBase.sort_all(
-                self,
-                by = by,
-                desc = desc,
-                resort = resort,
-                propagate = False,
-                return_isort = True,
-            )
+            self.sort(by)
             
-            for i, client in self.registered.values():
+            for id_, client in iteritems(self.clients):
                 
-                if i != origin:
+                if id_ != origin:
                     
-                    isort = client.sort_all(by = isort, propagate = False)
+                    client.sort_all(by = by, propagate = False)
