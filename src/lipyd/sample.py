@@ -4,13 +4,13 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2014-2018 - EMBL
+#  Copyright (c) 2015-2018 - EMBL
 #
-#  File author(s): Dénes Türei (denes@ebi.ac.uk)
+#  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
-#  Distributed under the GNU GPLv3 License.
-#  See accompanying file LICENSE.txt or copy at
-#      http://www.gnu.org/licenses/gpl-3.0.html
+#  This code is not for public use.
+#  Please do not redistribute.
+#  For permission please contact me.
 #
 #  Website: http://www.ebi.ac.uk/~denes
 #
@@ -436,7 +436,7 @@ class FeatureIdx(FeatureBase):
             
             by = self._current.argsort()
         
-        self.sort(by)
+        self._sort(by)
         
         for id_, client in iteritems(self.clients):
             
