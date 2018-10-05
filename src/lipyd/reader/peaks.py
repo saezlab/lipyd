@@ -325,14 +325,20 @@ class PeaksReader(object):
         
         pass
     
-    def get_samples(self):
+    def get_samples(self, bind = True):
         """
         Yields ``lipyd.sample.Sample`` objects for each sample read from
         the PEAKS output file.
         
         To extract all data from ``PeaksReader`` the ``get_sampleset`` method
         is more convenient.
+        
+        :param bool bind:
+            Bind samples to each other. This way they will sort together, i.e.
+            if any of them is sorted all the others follow the same order.
         """
+        
+        sorter = lipyd.sampe.FeatureIdx(len(self)) if bind else None
         
         for i, sampleattrs in enumerate(self.samples):
             
@@ -341,6 +347,7 @@ class PeaksReader(object):
                 intensities = self.intensities[:,i],
                 rts = self.rt_means[:,i],
                 attrs = sampleattrs,
+                sorter = sorter,
             )
     
     def get_sampleset(self):

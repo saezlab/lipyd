@@ -360,7 +360,7 @@ class FeatureIdx(FeatureBase):
     
     def aoriginal(self, co):
         """
-        For a vector of current indices ``ao`` returns a vector of
+        For a vector of current indices ``co`` returns a vector of
         corresponding original indices.
         
         :param int co:
