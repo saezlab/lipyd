@@ -19,6 +19,8 @@ from future.utils import iteritems
 
 
 import imp
+import warnings
+import itertools
 import numpy as np
 
 
@@ -81,6 +83,7 @@ class FeatureBase(object):
             resort = False,
             propagate = True,
             return_isort = False,
+            indices = (),
         ):
         """
         Sorts all data arrays according to an index array or values in one of
@@ -109,7 +112,48 @@ class FeatureBase(object):
                 
                 return None
             
-            isort = np.argsort(getattr(self, by))
+            byarray = getattr(self, by)
+            
+            if len(byarray.shape) > 1:
+                
+                if len(indices) < len(byarray.shape) - 1:
+                    
+                    warnings.warn(
+                        'You requested sort by array of %u dimensions but'
+                        'selected only %u indices.\n'
+                        'Selecting 0 for all other axes by default.' % (
+                            len(byarray.shape),
+                            len(indices),
+                        )
+                    )
+                    
+                    indices = tuple(
+                        itertools.chain(
+                            indices,
+                            ((0,) * (len(byarray.shape) - len(indices)))
+                        )
+                    )
+                
+                if len(indices) > len(byarray.shape) - 1:
+                    
+                    warnings.warn(
+                        'You requested sort by array of %u dimensions but'
+                        'selected %u indices.\n'
+                        'Dropping indices from the end.' % (
+                            len(byarray.shape),
+                            len(indices),
+                        )
+                    )
+                    
+                    indices = indices[
+                        :(len(byarray.shape) -  len(indices) - 1)
+                    ]
+                
+                for i in indices:
+                    
+                    byarray = byarray[:,i]
+            
+            isort = byarray.argsort()
             
             if desc:
                 isort = isort[::-1]
@@ -121,7 +165,7 @@ class FeatureBase(object):
             if len(by) != len(self):
                 
                 raise ValueError(
-                    'Could not sort object of length %u by '
+                    'Can not sort object of length %u by '
                     'index array of length %u.' (len(self), len(by))
                 )
             
