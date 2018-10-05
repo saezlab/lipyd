@@ -316,6 +316,15 @@ class PeaksReader(object):
         
         return sorted(samples, key = lambda s: s['label']['fraction'])
     
+    def get_attributes(self):
+        """
+        Returns ``lipyd.sample.FeatureAttributes`` object.
+        This object contains variables describing series of features
+        across all samples. Quality, significance, mean RT, centroid m/z, etc
+        """
+        
+        pass
+    
     def get_samples(self):
         """
         Yields ``lipyd.sample.Sample`` objects for each sample read from
@@ -330,7 +339,7 @@ class PeaksReader(object):
             yield lipyd.sample.Sample(
                 mzs = self.mzs[:,i],
                 intensities = self.intensities[:,i],
-                rts = self.rts[:,i],
+                rts = self.rt_means[:,i],
                 attrs = sampleattrs,
             )
     
