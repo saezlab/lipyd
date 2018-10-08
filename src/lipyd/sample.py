@@ -38,6 +38,7 @@ class FeatureBase(object):
         one runs aligned with each other.
         """
         
+        self.var = self.var if hasattr(self, 'var') else set()
         self.sorted_by = None
         
         for attr, data in iteritems(kwargs):
@@ -119,7 +120,7 @@ class FeatureBase(object):
                 if len(indices) < len(byarray.shape) - 1:
                     
                     warnings.warn(
-                        'You requested sort by array of %u dimensions but'
+                        'You requested sort by array of %u dimensions but '
                         'selected only %u indices.\n'
                         'Selecting 0 for all other axes by default.' % (
                             len(byarray.shape),

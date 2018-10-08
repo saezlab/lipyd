@@ -323,7 +323,15 @@ class PeaksReader(object):
         across all samples. Quality, significance, mean RT, centroid m/z, etc
         """
         
-        pass
+        return lipyd.sample.FeatureAttributes(
+            quality = self.quality,
+            significance = self.significance,
+            charge = self.z,
+            total_intensities = self.total_intensities,
+            centr_mzs = self.centr_mzs,
+            rt_ranges = self.rt_ranges,
+            rt_means = self.total_rt_means,
+        )
     
     def get_samples(self, bind = True):
         """
@@ -338,15 +346,21 @@ class PeaksReader(object):
             if any of them is sorted all the others follow the same order.
         """
         
-        sorter = lipyd.sampe.FeatureIdx(len(self)) if bind else None
+        feature_attrs = self.get_attributes()
+        sorter = attrs.sorter if bind else None
         
-        for i, sampleattrs in enumerate(self.samples):
+        for i, sample_attrs in enumerate(self.samples):
+            
+            if not bind:
+                
+                feature_attrs = self.get_attributes()
             
             yield lipyd.sample.Sample(
                 mzs = self.mzs[:,i],
                 intensities = self.intensities[:,i],
                 rts = self.rt_means[:,i],
-                attrs = sampleattrs,
+                attrs = sample_attrs,
+                feature_attrs = feature_attrs,
                 sorter = sorter,
             )
     
