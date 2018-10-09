@@ -26,7 +26,6 @@ import mimetypes
 import warnings
 import numpy as np
 
-import lipyd.sample
 import lipyd.reader.xls
 import lipyd.reader.common as common
 
@@ -318,25 +317,32 @@ class PeaksReader(object):
     
     def get_attributes(self):
         """
-        Returns ``lipyd.sample.FeatureAttributes`` object.
+        Returns ``dict`` which can serve as arguments for the
+        ``lipyd.sample.FeatureAttributes`` object.
         This object contains variables describing series of features
         across all samples. Quality, significance, mean RT, centroid m/z, etc
+        
+        To get actual ``FeatureAttributes`` object use the ``SampleReader``
+        in the ``sample`` module.
         """
         
-        return lipyd.sample.FeatureAttributes(
-            quality = self.quality,
-            significance = self.significance,
-            charge = self.z,
-            total_intensities = self.total_intensities,
-            centr_mzs = self.centr_mzs,
-            rt_ranges = self.rt_ranges,
-            rt_means = self.total_rt_means,
-        )
+        return {
+            'quality': self.quality,
+            'significance': self.significance,
+            'charge': self.z,
+            'total_intensities': self.total_intensities,
+            'centr_mzs': self.centr_mzs,
+            'rt_ranges': self.rt_ranges,
+            'rt_means': self.total_rt_means,
+        }
     
-    def get_samples(self, bind = True):
+    def get_samples(self):
         """
-        Yields ``lipyd.sample.Sample`` objects for each sample read from
-        the PEAKS output file.
+        For each sample read from the PEAKS output file yields ``dict``s
+        which can serve as arguments for the ``lipyd.sample.Sample`` objects.
+        
+        To get actual ``Sample`` objects use the ``SampleReader`` in the
+        ``sample`` module.
         
         To extract all data from ``PeaksReader`` the ``get_sampleset`` method
         is more convenient.
@@ -346,42 +352,28 @@ class PeaksReader(object):
             if any of them is sorted all the others follow the same order.
         """
         
-        feature_attrs = self.get_attributes()
-        
-        sorter = (
-            (feature_attrs.sorter or sample.FeatureIdx(len(self.mzs)))
-                if bind else
-            None
-        )
-        
         for i, sample_attrs in enumerate(self.samples):
             
-            if not bind:
-                
-                feature_attrs = self.get_attributes()
-            
-            yield lipyd.sample.Sample(
-                mzs = self.mzs[:,i],
-                intensities = self.intensities[:,i],
-                rts = self.rt_means[:,i],
-                attrs = sample_attrs,
-                feature_attrs = feature_attrs,
-                sorter = sorter,
-            )
+            yield {
+                'mzs': self.mzs[:,i],
+                'intensities': self.intensities[:,i],
+                'rts': self.rt_means[:,i],
+                'attrs': sample_attrs,
+            }
     
     def get_sampleset(self):
         """
-        Returns a ``SampleSet`` and a ``FeatureAttributes`` object.
+        Returns a ``dict`` which can serve as arguments for
+        ``lipyd.sample.SampleSet`` and  ``lipyd.sample.FeatureAttributes`
+        objects.
+        
+        To get actual ``SampleSet`` object use the ``SampleReader`` in the
+        ``sample`` module.
         """
         
-        feature_attrs = self.get_attributes()
-        sorter = feature_attrs.sorter
-        
-        return lipyd.sample.SampleSet(
-            mzs = self.mzs,
-            intensities = self.intensities,
-            rts = self.rt_means,
-            attrs = self.samples,
-            feature_attrs = feature_attrs,
-            sorter = sorter,
-        )
+        return {
+            'mzs': self.mzs,
+            'intensities': self.intensities,
+            'rts': self.rt_means,
+            'attrs': self.samples,
+        }
