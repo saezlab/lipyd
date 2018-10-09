@@ -347,7 +347,12 @@ class PeaksReader(object):
         """
         
         feature_attrs = self.get_attributes()
-        sorter = attrs.sorter if bind else None
+        
+        sorter = (
+            (feature_attrs.sorter or sample.FeatureIdx(len(self.mzs)))
+                if bind else
+            None
+        )
         
         for i, sample_attrs in enumerate(self.samples):
             
@@ -369,4 +374,14 @@ class PeaksReader(object):
         Returns a ``SampleSet`` and a ``FeatureAttributes`` object.
         """
         
-        return lipyd.sample.SampleSet(self.get_samples()), None
+        feature_attrs = self.get_attributes()
+        sorter = feature_attrs.sorter
+        
+        return lipyd.sample.SampleSet(
+            mzs = self.mzs,
+            intensities = self.intensities,
+            rts = self.rt_means,
+            attrs = self.samples,
+            feature_attrs = feature_attrs,
+            sorter = sorter,
+        )

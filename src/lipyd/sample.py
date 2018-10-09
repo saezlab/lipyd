@@ -49,7 +49,8 @@ class FeatureBase(object):
             FeatureIdx(len(self))
             if (
                 sorter is None and
-                self.__class__.__name__ != 'FeatureIdx'
+                self.__class__.__name__ != 'FeatureIdx' and
+                len(self) is not None
             ) else
             sorter
         )
@@ -215,14 +216,18 @@ class FeatureAttributes(FeatureBase):
     def reload(self):
         
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
     def __len__(self):
         
-        return self.data.shape[0]
+        var = next(iter(self.var))
+        
+        if var:
+            
+            return len(getattr(self, var))
     
     def charges(self):
         """
@@ -242,6 +247,7 @@ class Sample(FeatureBase):
             attrs = None,
             feature_attrs = None,
             sorter = None,
+            **kwargs,
         ):
         """
         Represents one LC MS/MS run.
@@ -259,7 +265,11 @@ class Sample(FeatureBase):
         self._add_var(mzs, 'mzs')
         
         FeatureBase.__init__(
-            self, intensities = intensities, rts = rts, sorter = sorter
+            self,
+            intensities = intensities,
+            rts = rts,
+            sorter = sorter,
+            **kwargs,
         )
         
         self.attrs   = attrs or {}
@@ -420,7 +430,7 @@ class FeatureIdx(FeatureBase):
         to the ordering of this one.
         """
         
-        pass
+        raise NotImplementedError
     
     def register(self, sortable):
         """
@@ -488,3 +498,109 @@ class FeatureIdx(FeatureBase):
             if id_ != origin:
                 
                 client.sort_all(by = by, propagate = False)
+
+
+class SampleSet(Sample):
+    
+    def __init__(
+            self,
+            mzs,
+            intensities = None,
+            rts = None,
+            attrs = None,
+            feature_attrs = None,
+            sorter = None,
+        ):
+        
+        centr_mzs = (
+            feature_attrs.centr_mzs
+                if (
+                    feature_attrs is not None and
+                    hasattr(feature_attrs, 'centr_mzs')
+                ) else
+            mzs
+                if len(mzs.shape) == 1 else
+            mzs.mean(axis = tuple(range(1, len(mzs.shape))))
+        )
+        
+        Sample.__init__(
+            self,
+            mzs = centr_mzs,
+            intensities = intensities,
+            mzs_by_sample = mzs,
+            rts = rts,
+            attrs = attrs,
+            feature_attrs = feature_attrs,
+            sorter = sorter,
+        )
+    
+    @classmethod
+    def combine_samples(cls, attrs, samples):
+        """
+        Initializes the object by combining a series of ``Sample`` objects.
+        
+        All samples must be of the same length and have the same ordering.
+        It means the corresponding elements must belong to the same feature.
+        The ``FeatureAttributes`` and the ``sorter`` (``FeatureIdx``) will
+        be used from the first sample.
+        """
+        
+        if len(set(len(s) for s in samples)) > 1:
+            
+            # TODO: call aligner for different length samples
+            # TODO: check if at least sorters show the same ordering
+            raise ValueError(
+                'SampleSet: it\'s possible combine only equal length samples '
+                'into a set. Also samples assumed to have the same ordering.'
+            )
+        
+        mzs = np.hstack([s.mzs for s in samples])
+        
+        var = {}
+        
+        for var_name in sample[0].var:
+            
+            var[var_name] = np.hstack([getattr(s, var_name) for s in samples])
+        
+        sample_attrs = [s.attrs for s in samples]
+        
+        # TODO: combine FeatureAttributes
+        feature_attrs = samples[0].feattrs
+        sorter = samples[0].sorter
+        
+        return cls.__init__(
+            mzs = mzs,
+            attrs = sample_attrs,
+            feature_attrs = feature_attrs,
+            sorter = sorter,
+            **var,
+        )
+    
+    def get_sample_attrs(self, i):
+        """
+        Returns the sample attributes (dict of metadata) of the ``i``th
+        sample in the set.
+        """
+        
+        return self.attrs[i]
+    
+    def get_sample(self, i):
+        """
+        Returns the ``i``th sample as a ``Sample`` object.
+        """
+        
+        var = {}
+        
+        for var_name in self.var:
+            
+            var[var_name] = getattr(self, var_name)[:,i]
+        
+        sample_attrs = self.get_sample_attrs(i)
+        
+        return Sample(
+            mzs = self.mzs_by_sample[:,i],
+            attrs = sample_attrs,
+            feature_attrs = self.feattrs,
+            sorter = self.sorter,
+            **var,
+        )
