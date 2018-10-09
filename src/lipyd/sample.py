@@ -26,6 +26,99 @@ import numpy as np
 
 from lipyd.common import basestring
 
+from lipyd import reader
+import lipyd.reader.peaks
+
+
+class SampleReader(object):
+    
+    reader_classes = {
+        'peaks': reader.peaks.PeaksReader,
+    }
+    
+    def __init__(self, input_type, ionmode, **kwargs):
+        """
+        Reads data from files and creates ``Sample``, ``SampleSet`` and
+        ``FeatureAttributes`` objects.
+        
+        :param str input_type:
+            Format of the input files. Possible values: ``peaks``, ``mzml``.
+            Reader for ``mzml`` not yet available.
+        :param str ionmode:
+            Ion mode of the experiment: ``pos`` or ``neg``.
+        :param **kwargs:
+            Arguments for the reader. Depends on the input format, please
+            refer to classes in ``lipyd.reader`` modules.
+        """
+        
+        if input_type not in self.reader_classes:
+            
+            raise ValueError('Unknown input type: %s' % input_type)
+        
+        self.ionmode = ionmode
+        self.reader_class = reader_classes[input_type]
+        self.reader_args  = kwargs
+        
+        self.read()
+    
+    def read(self):
+        
+        self.reader = self.readerclass(**self.reader_args)
+    
+    def get_attributes(self):
+        """
+        Returns ``lipyd.sample.FeatureAttributes`` object.
+        This object contains variables describing series of features
+        across all samples. E.g. Quality, significance, mean RT,
+        centroid m/z, etc
+        """
+        
+        attrs = self.reader.get_attributes()
+        
+        return FeatureAttributes(**attrs)
+    
+    def get_samples(self, bind = True):
+        """
+        Yields ``lipyd.sample.Sample`` objects for each sample read.
+        
+        To extract all data from ``PeaksReader`` the ``get_sampleset`` method
+        is more convenient.
+        
+        :param bool bind:
+            Bind samples to each other. This way they will sort together, i.e.
+            if any of them is sorted all the others follow the same order.
+        """
+        
+        feature_attrs = self.get_attributes()
+        
+        sorter = (
+            (feature_attrs.sorter or FeatureIdx(len(self.reader.mzs)))
+                if bind else
+            None
+        )
+        
+        for sample_args in self.reader.get_samples():
+            
+            if not bind:
+                
+                feature_attrs = self.get_attributes()
+            
+            sample_args['sorter'] = feature_attrs.sorter
+            sample_args['feature_attrs'] = feature_attrs
+            
+            yield Sample(**sample_args)
+    
+    def get_sampleset(self):
+        """
+        Returns a ``SampleSet`` and a ``FeatureAttributes`` object.
+        """
+        
+        sampleset_args = self.reader.get_sampleset()
+        sampleset_args['feature_attrs'] = self.get_attributes()
+        sampleset_args['sorter'] = feature_attrs.sorter
+        
+        return ampleSet(**sampleset_args)
+
 
 class FeatureBase(object):
     
