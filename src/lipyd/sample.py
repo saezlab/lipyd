@@ -16,8 +16,11 @@
 #
 
 from future.utils import iteritems
+from past.builtins import xrange, range
 
 
+import os
+import re
 import imp
 import warnings
 import itertools
@@ -29,6 +32,9 @@ from lipyd.common import basestring
 from lipyd import reader
 import lipyd.reader.peaks
 import lipyd.moldb as moldb
+
+
+remgf = re.compile(r'([^\W_]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
 
 
 class SampleReader(object):
@@ -424,12 +430,28 @@ class Sample(FeatureBase):
             attrs = None,
             feature_attrs = None,
             sorter = None,
+            ms2_format = 'mgf',
+            ms2_param = None,
             **kwargs,
         ):
         """
         Represents one LC MS/MS run.
         Has at least a vector of m/z's, optionally vector of intensites,
         retention times and other metadata.
+        
+        :param str ms2_format:
+            Format of the MS2 data. At the moment ``mgf`` is accepted.
+        :param dict ms2_param:
+            - ``mgf_match_method`` (callable):
+            A method which finds the MGF files. It accepts 2 arguments:
+            the directory path with the MGF files and the attributes used
+            to match the file names.
+            - ``mgfdir`` (path):
+            Path to the directory containing the MGF files.
+            - ``mgf_charge``:
+            If a value provided here only the scans with this precursor
+            charge will be processed from the MGF files. If ``None``, charge
+            won't be considered.'
         """
         
         self.var     = set()
@@ -449,9 +471,11 @@ class Sample(FeatureBase):
             **kwargs,
         )
         
-        self.attrs   = attrs or {}
-        self.ionmode = ionmode
-        self.feattrs = feature_attrs
+        self.attrs      = attrs or {}
+        self.ionmode    = ionmode
+        self.feattrs    = feature_attrs
+        self.ms2_format = ms2_format
+        self.ms2_param  = ms2_param or {}
     
     def reload(self):
         
@@ -522,6 +546,89 @@ class Sample(FeatureBase):
         """
         
         return len(self.mzs)
+    
+    def collect_ms2(self, attrs = None):
+        """
+        Collects the MS2 scans belonging to this sample.
+        
+        The collected resources will be in the ``ms2_source`` attribute.
+        """
+        
+        attrs = attrs or self.attrs
+        
+        if self.ms2_format in self.ms2_collection_methods:
+            
+            self.ms2_collection_methods[self.ms2_format](attrs = attrs)
+    
+    def collect_mgf(self, attrs = None):
+        """
+        Collects MGF files containing the MS2 spectra.
+        
+        :param dict attrs:
+            A ``dict`` with attributes necessary to find the appropriate
+            MGF files.
+        """
+        
+        mgfdir = (
+            self.ms2_param['mgfdir']
+                if 'mgfdir' in self.ms2_param else
+            'mgf'
+        )
+        
+        if not os.isdir(mgfdir):
+            
+            raise FileNotFoundError(
+                'Please provide a directory with MGF files.'
+            )
+        
+        attrs = attrs or self.attrs
+        
+        mgf_match_method = (
+            self.ms2_param['mgf_match_method']
+                if 'mgf_match_method' in self.ms2_param else
+            self._default_mgf_match_method
+        )
+        
+        mgf_files = mgf_match_method(mgfdir, attrs)
+        
+        mgf_charge = (
+            self.ms2_param['mgf_charge']
+                if 'mgf_charge' in self.ms2_param else
+            None
+        )
+        
+        self.ms2_source = [
+            mgf.MgfReader(fname, charge = mgf_charge)
+            for fname in mgf_files
+        ]
+    
+    @staticmethod
+    def _default_mgf_match_method(mgfdir, attrs):
+        """
+        The default method for matching names of MGF files against attributes.
+        """
+        
+        result = set()
+        
+        for fname in os.listdir(mgfdir):
+            
+            remgf.search(fname)
+            
+            if not match:
+                
+                continue
+            
+            main, ionmode, fracrow, fraccol = match.groups()
+            
+            if (
+                main == attrs['label']['main'] and
+                (fracrow, int(fraccol)) == attrs['label']['fraction'] and
+                ionmode == attrs['label']['ionmode']
+            ):
+                
+                result.add(os.path.join(mgfdir, fname))
+        
+        return result
 
 
 class FeatureIdx(FeatureBase):
@@ -702,7 +809,16 @@ class SampleSet(Sample):
             attrs = None,
             feature_attrs = None,
             sorter = None,
+            ms2_format = 'mgf',
+            ms2_param = None,
         ):
+        """
+        This class represents an ordered set of samples.
+        It means all arrays have one more dimension than ``Sample``, though
+        the arrays can be multidimensional, i.e. in one data array more
+        than one value can belong to a feature in a sample.
+        It inherits from ``Sample``, see details in docs of ``Sample``.
+        """
         
         centr_mzs = (
             feature_attrs.centr_mzs
@@ -725,6 +841,8 @@ class SampleSet(Sample):
             attrs = attrs,
             feature_attrs = feature_attrs,
             sorter = sorter,
+            ms2_format = ms2_format,
+            ms2_param = ms2_param,
         )
     
     @classmethod
@@ -920,3 +1038,30 @@ class SampleSet(Sample):
             ),
             'records',
         )
+    
+    def collect_ms2(self, attrs = None):
+        """
+        Collects the MS2 resources for each sample a similar way as the same
+        method does in ``Sample``.
+        """
+        
+        ms2_source = []
+        
+        attrs = attrs or self.attrs
+        
+        for sample_attrs in attrs:
+            
+            Sample.collect_ms2(self, attrs = sample_attrs)
+            
+            ms2_source.append(self.ms2_source)
+        
+        self.ms2_source = ms2_source
+    
+    def ms2_analysis(self):
+        """
+        Runs MS2 identification methods on all features.
+        """
+        
+        for i_fe in xrange(len(self)):
+            
+            
