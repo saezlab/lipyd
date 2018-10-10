@@ -446,8 +446,7 @@ class Sample(FeatureBase):
             the sample attributes as an argument and returns such an ID.
             If ``None`` the default method will be applied which attempts
             to use the fraction ID from the attributes. If fails it uses
-            just the Python object ID of the object itself to have a unique
-            identifier for the sample.
+            a random string as a unique identifier for the sample.
         :param str ms2_format:
             Format of the MS2 data. At the moment ``mgf`` is accepted.
         :param dict ms2_param:
@@ -486,7 +485,7 @@ class Sample(FeatureBase):
         self.ms2_format = ms2_format
         self.ms2_param  = ms2_param or {}
         self._sample_id = sample_id
-        self.set_sample_id()
+        self._set_sample_id()
     
     def reload(self):
         
@@ -554,28 +553,37 @@ class Sample(FeatureBase):
             
             return isort
     
-    def set_sample_id(self):
+    def _set_sample_id(self):
         
-        if self._sample_id is None:
+        self.sample_id = self.get_sample_id(self._sample_id, self.attrs)
+    
+    @classmethod
+    def _get_sample_id(cls, sample_id = None, attrs = None)
+        
+        if sample_id is None:
             
-            self.sample_id = self._default_sample_id_method(self.attrs)
+            return cls._default_sample_id_method(attrs)
             
-        elif hasattr(self.sample_id, '__call__'):
+        elif hasattr(sample_id, '__call__'):
             
-            self.sample_id = self._sample_id(self.attrs)
+            return sample_id(attrs)
             
         else:
             
-            self.sample_id = self._sample_id
+            return sample_id
     
     @staticmethod
     def _default_sample_id_method(attrs):
         
-        if 'label' in attrs and 'fraction' in attrs['label']:
+        if (
+            attrs is not None and
+            'label' in attrs and
+            'fraction' in attrs['label']
+        ):
             
             return attrs['label']['fraction']
         
-        return id(self)
+        return common.random_string()
     
     def __len__(self):
         """

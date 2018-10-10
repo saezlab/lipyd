@@ -41,6 +41,12 @@ try:
 except NameError:
     basestring = str
 
+
+def random_string(length = 10):
+    
+    return ''.join(chr(i) for i in np.random.randint(97, 123, length))
+
+
 def uniqList(seq):
     # Not order preserving
     # from http://www.peterbe.com/plog/uniqifiers-benchmark
