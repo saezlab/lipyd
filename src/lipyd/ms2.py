@@ -5432,7 +5432,7 @@ class MS2Feature(object):
     
     def iterscans(self):
         
-        for resource in self.resources:
+        for sample_label, resource in iteritems(self.resources):
             
             res_type = self.guess_resouce_type(resource)
             
@@ -5442,11 +5442,13 @@ class MS2Feature(object):
                     'Unknown MS2 resource type: %s' % str(resource)
                 )
             
-            for scan in getattr(self, self.scan_methods[res_type])(resource):
+            scan_method = getattr(self, self.scan_methods[res_type])
+            
+            for scan in scan_method(resource, sample_label):
                 
                 yield scan
     
-    def mgf_iterscans(self, mgf_resource):
+    def mgf_iterscans(self, mgf_resource, sample_label = None):
         
         if isinstance(mgf_resource, basestring):
             
@@ -5485,7 +5487,7 @@ class MS2Feature(object):
                 ms1_records = self.ms1_records,
                 scan_id = mgffile.mgfindex[i,3],
                 rt = mgffile.mgfindex[i,2],
-                sample = sample,
+                sample = sample_label,
             )
     
     @staticmethod
