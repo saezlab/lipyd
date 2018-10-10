@@ -809,7 +809,7 @@ class Sample(FeatureBase):
             ms2_fe = ms2.MS2Feature(
                 mz = self.mzs[i],
                 ionmode = self.ionmode,
-                resources = {self.sample_id: self.mgf_readers[self.ionmode]},
+                resources = {self.sample_id: self.ms2_source},
                 rt = rt,
                 ms1_records = ms1_records,
             )
@@ -1026,7 +1026,7 @@ class SampleSet(Sample):
         """
         
         centr_mzs = (
-            feature_attrs.centr_mzs
+            feature_attrs.centr_mzs.copy()
                 if (
                     feature_attrs is not None and
                     hasattr(feature_attrs, 'centr_mzs')
