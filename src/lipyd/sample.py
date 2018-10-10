@@ -21,6 +21,7 @@ from future.utils import iteritems
 import imp
 import warnings
 import itertools
+import operator
 import numpy as np
 
 
@@ -36,7 +37,7 @@ class SampleReader(object):
         'peaks': reader.peaks.PeaksReader,
     }
     
-    def __init__(self, input_type, ionmode, **kwargs):
+    def __init__(self, input_type, **kwargs):
         """
         Reads data from files and creates ``Sample``, ``SampleSet`` and
         ``FeatureAttributes`` objects.
@@ -55,7 +56,6 @@ class SampleReader(object):
             
             raise ValueError('Unknown input type: %s' % input_type)
         
-        self.ionmode = ionmode
         self.reader_class = reader_classes[input_type]
         self.reader_args  = kwargs
         
@@ -285,6 +285,72 @@ class FeatureBase(object):
             if self.var else
             0
         )
+    
+    def filter(self, idx, negative = False, propagate = True):
+        """
+        Filters features at indices in ``idx``.
+        
+        :param list,np.array idx:
+            A list or array of inidices along axis 0.
+        :param bool negative:
+            Drop the features at indices instead of keeping them and removing
+            all others.
+        :param bool propagate:
+            Perform filtering on all object bound to the same sorter.
+            This is to avoid propagation in loops.
+        """
+        
+        selection = self._idx_to_selection(idx, negative = negative)
+        
+        self._filter(selection, propagate = propagate)
+    
+    @staticmethod
+    def _idx_to_selection(idx, negative = False):
+        
+        if isinstance(idx, list):
+            
+            idx = np.array(idx)
+        
+        selection = np.in1d(np.arange(len(self)), idx)
+        
+        if negative:
+            
+            selection = np.logical_not(selection)
+        
+        return selection
+    
+    def _filter(self, selection, propagate = True):
+        
+        for var in self.var:
+            
+            setattr(self, var, getattr(self, var)[selection])
+        
+        if propagate:
+            
+            self.sorter.filter(idx = idx, origin = id(self))
+    
+    def threshold_filter(self, attr, threshold, op = operator.gt):
+        """
+        Filters the features by any numeric attribute by simply applying
+        a threshold. If the attribute does not exist silently does nothing.
+        
+        :param str attr:
+            Name of the attribute.
+        :param float threshold:
+            Value of the threshold.
+        :param operator op:
+            The operator to use. By default ``operator.gt`` (greater than),
+            which means the features having attribute value greatre than
+            the threshold will be kept and all others removed.
+        """
+        
+        if attr not in self.var:
+            
+            return
+        
+        selection = op(getattr(self, var), threshold)
+        
+        self._filter(selection)
 
 
 class FeatureAttributes(FeatureBase):
@@ -591,6 +657,19 @@ class FeatureIdx(FeatureBase):
             if id_ != origin:
                 
                 client.sort_all(by = by, propagate = False)
+    
+    def _filter(self, selection, origin = None):
+        """
+        Applies filtering to all registered clients.
+        """
+        
+        FeatureBase._filter(self, selection, propagate = False)
+        
+        for id_, client in iteritems(self.clients):
+            
+            if id_ !+ origin:
+                
+                client._filter(selection, propagate = False)
 
 
 class SampleSet(Sample):
@@ -696,4 +775,46 @@ class SampleSet(Sample):
             feature_attrs = self.feattrs,
             sorter = self.sorter,
             **var,
+        )
+    
+    def quality_filter(self, threshold = 0.2):
+        """
+        If the features has an attribute named `quality` it removes the
+        ones with quality below the threshold.
+        
+        """
+        
+        self.feattrs.threshold_filter('quality', threshold = threshold)
+    
+    def rt_filter(self, threshold = 1.0):
+        """
+        Removes the features with mean retention time below the threshold.
+        Works only if the features has an attribute named `rt_means`.
+        """
+        
+        self.feattrs.threshold_filter('rt_means', threshold = threshold)
+    
+    def charge_filter(self, charge = 1):
+        """
+        Keeps only the features with the preferred charge.
+        Does not care about sign.
+        """
+        
+        self.feattrs.threshold_filter(
+            'charge',
+            threshold = abs(charge),
+            op = lambda vc, c: np.abs(vc) == c,
+        )
+    
+    def intensity_filter(self, threshold = 10000):
+        """
+        Removes the features with total intensities across samples lower than
+        the threshold.
+        
+        Works by the ``total_intensities`` attribute.
+        """
+        
+        self.feattrs.threshold_filter(
+            'total_intensities',
+            threshold = threshold
         )
