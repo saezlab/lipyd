@@ -903,6 +903,39 @@ class MoleculeDatabaseAggregator(object):
         
         return result
     
+    def aduct_lookup_many(
+            self,
+            mzs,
+            adducts = None,
+            ionmode = None,
+            charge = None,
+            adduct_constraints = True,
+            tolerance = None,
+        ):
+        """
+        Performs the lookup on a vector of m/z values.
+        Calls the ``adduct_lookup`` method on all m/z's.
+        
+        Returns array of dicts with lookup results.
+        """
+        
+        result = []
+        
+        for mz in mzs:
+            
+            result.append(
+                self.adduct_lookup(
+                    mz,
+                    adducts = adducts,
+                    ionmode = ionmode,
+                    charge = charge,
+                    adduct_constraints = adduct_constraints,
+                    tolerance = tolerance,
+                )
+            )
+        
+        return np.array(result)
+    
     def export_db(self, fname = 'molecule_database.tsv'):
         
         hdr = [

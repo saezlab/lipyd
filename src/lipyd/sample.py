@@ -816,7 +816,7 @@ class SampleSet(Sample):
         
         self.feattrs.threshold_filter(
             'total_intensities',
-            threshold = threshold
+            threshold = threshold,
         )
     
     def basic_filters(
