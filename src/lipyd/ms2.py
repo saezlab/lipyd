@@ -5458,23 +5458,25 @@ class MS2Feature(object):
     
     def iterscans(self):
         
-        for sample_label, resource in iteritems(self.resources):
+        for sample_id, resources in iteritems(self.resources):
             
-            res_type = self.guess_resouce_type(resource)
-            
-            if res_type not in self.scan_methods:
+            for resource in resources:
                 
-                raise ValueError(
-                    'Unknown MS2 resource type: %s' % str(resource)
-                )
-            
-            scan_method = getattr(self, self.scan_methods[res_type])
-            
-            for scan in scan_method(resource, sample_label):
+                res_type = self.guess_resouce_type(resource)
                 
-                yield scan
+                if res_type not in self.scan_methods:
+                    
+                    raise ValueError(
+                        'Unknown MS2 resource type: %s' % str(resource)
+                    )
+                
+                scan_method = getattr(self, self.scan_methods[res_type])
+                
+                for scan in scan_method(resource, sample_id):
+                    
+                    yield scan
     
-    def mgf_iterscans(self, mgf_resource, sample_label = None):
+    def mgf_iterscans(self, mgf_resource, sample_id = None):
         
         if isinstance(mgf_resource, basestring):
             
@@ -5512,11 +5514,12 @@ class MS2Feature(object):
                 precursor = self.mz,
                 ms1_records = self.ms1_records,
                 scan_id = mgffile.mgfindex[i,3],
+                sample_id = self.sample_id,
+                source = mgffile.fname,
                 rt = mgffile.mgfindex[i,2],
-                sample = sample_label,
             )
     
-    def mzml_iterscans(self, mzml_resource, sample_label = None):
+    def mzml_iterscans(self, mzml_resource, sample_id = None):
         
         raise NotImplementedError
     
