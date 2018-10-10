@@ -428,6 +428,7 @@ class Sample(FeatureBase):
             ionmode = None,
             intensities = None,
             rts = None,
+            sample_id = None,
             attrs = None,
             feature_attrs = None,
             sorter = None,
@@ -440,6 +441,13 @@ class Sample(FeatureBase):
         Has at least a vector of m/z's, optionally vector of intensites,
         retention times and other metadata.
         
+        :param str,tuple,callable sample_id:
+            An identifier for the sample or a callable method which takes
+            the sample attributes as an argument and returns such an ID.
+            If ``None`` the default method will be applied which attempts
+            to use the fraction ID from the attributes. If fails it uses
+            just the Python object ID of the object itself to have a unique
+            identifier for the sample.
         :param str ms2_format:
             Format of the MS2 data. At the moment ``mgf`` is accepted.
         :param dict ms2_param:
@@ -477,6 +485,8 @@ class Sample(FeatureBase):
         self.feattrs    = feature_attrs
         self.ms2_format = ms2_format
         self.ms2_param  = ms2_param or {}
+        self._sample_id = sample_id
+        self.set_sample_id()
     
     def reload(self):
         
@@ -488,6 +498,9 @@ class Sample(FeatureBase):
     
     def _add_var(self, data, attr):
         
+        # mzs is the first variable so it is added without
+        # checking its length. All others must be the same
+        # length as mzs.
         if attr != 'mzs' and data is not None and len(data) != len(self):
             
             raise ValueError(
@@ -540,6 +553,29 @@ class Sample(FeatureBase):
         if return_isort:
             
             return isort
+    
+    def set_sample_id(self):
+        
+        if self._sample_id is None:
+            
+            self.sample_id = self._default_sample_id_method(self.attrs)
+            
+        elif hasattr(self.sample_id, '__call__'):
+            
+            self.sample_id = self._sample_id(self.attrs)
+            
+        else:
+            
+            self.sample_id = self._sample_id
+    
+    @staticmethod
+    def _default_sample_id_method(attrs):
+        
+        if 'label' in attrs and 'fraction' in attrs['label']:
+            
+            return attrs['label']['fraction']
+        
+        return id(self)
     
     def __len__(self):
         """
