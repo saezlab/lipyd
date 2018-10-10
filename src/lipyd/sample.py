@@ -139,7 +139,7 @@ class SampleReader(object):
         sampleset_args['sorter']        = feature_attrs.sorter
         sampleset_args['ionmode']       = ionmode
         
-        return ampleSet(**sampleset_args)
+        return SampleSet(**sampleset_args)
 
 
 class FeatureBase(object):
@@ -761,7 +761,27 @@ class Sample(FeatureBase):
         
         for i in xrange(len(self)):
             
+            # MS2 identifications:
+            ms2_fe = ms2.MS2Feature(
+                self.mzs[i],
+                self.ionmode,
+                self.mgf_readers[self.ionmode],
+                rt = rt,
+                ms1_records = ms1_records,
+            )
+            ms2_fe.main()
+            ms2_id = ms2_fe.identity_summary(
+                sample_ids = True,
+                scan_ids = True,
+            )
+            ms2_max_score = max(i[1] for i in ms2_id) if ms2_id else 0
+            ms2_best = self.identities_str(
+                i for i in ms2_id if i[1] > 0 and i[1] == ms2_max_score
+            )
+            ms2_all = self.identities_str(ms2_id)
             
+            data['ms2_new_top'].append(ms2_best)
+            data['ms2_new_all'].append(ms2_all)
 
 
 class FeatureIdx(FeatureBase):

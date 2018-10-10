@@ -5373,61 +5373,133 @@ idmethods = {
 
 class MS2Feature(object):
     
-    def __init__(self, mz, ionmode, mgfs, rt, ms1_records = None):
+    scan_methods = {
+        'mgf': 'mgf_iterscans',
+    }
+    
+    def __init__(
+            self,
+            mz,
+            ionmode,
+            resources,
+            rt,
+            ms1_records = None,
+            rt_range = .5,
+            check_rt = True,
+        ):
+        """
+        Collects the MS2 scans from the provided resources for a single
+        feature. Calls identification methods on all scans collected.
+        
+        :param float mz:
+            m/z value of the precursor ion.
+        :param str ionmode:
+            Ion mode of the experiment. Either ``pos`` or ``neg``.
+        :param list resources:
+            List of MS2 scan resources. These are either ``mgf.MgfReader``
+            objects or paths to MGF files. Later more resource types
+            will be available, for example MzML format.
+        :param dict ms1_records:
+            A data structure resulted by ``moldb.adduct_lookup``. If ``None``
+            the lookup will be done here.
+        :param float rt_range:
+            If a single retention time value provided this is the largest
+            accepted difference between an MS2 scan's RT and the precursor's
+            RT. E.g. if ``rt = 8.3`` and ``rt_range = 0.5``, scans between
+            7.8 and 8.8 will be considered. If a tuple of floats provided
+            for RT, scans between these two values will be considered.
+        :param bool check_rt:
+            Check if the retention time of the scan is enough close to the
+            precursor's RT. If ``False``, scans will be matched only by the
+            m/z value of the precursor and scans with any large RT difference
+            will be analysed.
+        """
         
         self.mz = mz
         self.ionmode = ionmode
         self.ms1_records = ms1_records or moldb.adduct_lookup(mz, ionmode)
-        self.mgfs = mgfs
-        self.rt = (rt, rt) if type(rt) is float else rt
+        self.resources = resources
+        self.rt = (rt - rt_range, rt + rt_range) if type(rt) is float else rt
         self.rtmean = sum(self.rt) / 2.0
+        self.rt_range = rt_range
+        self.check_rt = check_rt
     
     def main(self):
         
+        self.ms1_lookup()
         self.build_scans()
         self.identify()
     
     def iterscans(self):
         
-        for sample, mgfname in iteritems(self.mgfs):
+        for resource in self.resources:
             
-            if type(mgfname) is basestring:
-                
-                mgffile = mgf.MgfReader(mgfname, charge = None)
-                
-            elif isinstance(mgfname, mgf.MgfReader):
-                
-                mgffile = mgfname
-                
-            else:
+            res_type = self.guess_resouce_type(resource)
+            
+            if res_type not in self.scan_methods:
                 
                 raise ValueError(
-                    'Mgf files should be lipyd.mgf.MgfReader '
-                    'instances of file names.'
+                    'Unknown MS2 resource type: %s' % str(resource)
                 )
             
-            idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
+            for scan in getattr(self, self.scan_methods[res_type])(resource):
+                
+                yield scan
+    
+    def mgf_iterscans(self, mgf_resource):
+        
+        if isinstance(mgf_resource, basestring):
             
-            for i, rtd in zip(idx, rtdiff):
+            mgffile = mgf.MgfReader(mgfname, charge = None)
+            
+        elif isinstance(mgf_resource, mgf.MgfReader):
+            
+            mgffile = mgf_resource
+            
+        else:
+            
+            raise ValueError(
+                'Mgf files should be lipyd.mgf.MgfReader '
+                'instances of file names.'
+            )
+        
+        idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
+        
+        for i, rtd in zip(idx, rtdiff):
+            
+            if self.check_rt:
                 
                 scan_rt = self.rtmean + rtd
                 
                 if scan_rt < self.rt[0] or scan_rt > self.rt[1]:
                     
                     continue
+            
+            sc = mgffile.get_scan(i)
+            
+            yield Scan(
+                mzs = sc[:,0],
+                intensities = sc[:,1],
+                ionmode = self.ionmode,
+                precursor = self.mz,
+                ms1_records = self.ms1_records,
+                scan_id = mgffile.mgfindex[i,3],
+                rt = mgffile.mgfindex[i,2],
+                sample = sample,
+            )
+    
+    @staticmethod
+    def guess_resouce_type(self, res):
+        
+        if isinstance(res, basestring) and os.path.exists(res):
+            
+            if res[-3:].lower() == 'mgf':
                 
-                sc = mgffile.get_scan(i)
-                
-                yield Scan(
-                    mzs = sc[:,0],
-                    intensities = sc[:,1],
-                    ionmode = self.ionmode,
-                    precursor = self.mz,
-                    ms1_records = self.ms1_records,
-                    scan_id = mgffile.mgfindex[i,3],
-                    rt = mgffile.mgfindex[i,2],
-                    sample = sample,
-                )
+                return 'mgf'
+            
+        elif isinstance(res, mgf.MgfReader):
+            
+            return 'mgf'
     
     def build_scans(self):
         
@@ -5492,6 +5564,12 @@ class MS2Feature(object):
                     identities.add(tuple(summary))
         
         return identities
+    
+    def ms1_lookup(self):
+        
+        if self.ms1_records is None:
+            
+            self.ms1_records = moldb.adduct_lookup(self.mz)
 
 ##############################################################################
 
