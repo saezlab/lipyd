@@ -65,6 +65,14 @@ class SampleReader(object):
         
         self.read()
     
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+    
     def read(self):
         
         self.reader = self.readerclass(**self.reader_args)
@@ -158,6 +166,14 @@ class FeatureBase(object):
         if self.sorter is not None:
             
             self.sorter.register(self)
+    
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
     
     def _add_var(self, data, attr):
         """
@@ -380,14 +396,6 @@ class FeatureAttributes(FeatureBase):
         
         self.attrs = attrs or {}
         self.ionmode = ionmode
-    
-    def reload(self):
-        
-        modname = self.__class__.__module__
-        mod = __import__(modname, fromlist = [modname.split('.')[0]])
-        imp.reload(mod)
-        new = getattr(mod, self.__class__.__name__)
-        setattr(self, '__class__', new)
     
     def __len__(self):
         
@@ -790,7 +798,36 @@ class SampleSet(Sample):
             **var,
         )
     
-    def quality_filter(self, threshold = 0.2):
+    #
+    # Methods for processing
+    #
+    
+    def process(
+            self,
+            basic_filters = True,
+            database_lookup = True,
+            ms2_analysis = True,
+            basic_filters_args = None,
+            database_lookup_args = None,
+            ms2_analysis_args = None,
+        ):
+        """
+        This method implements the workflow of processing the samples.
+        At the moment it does trivial filtering (see ``basic_filters``),
+        performs database lookups (see ``database_lookup``) and analyses
+        the MS2 data (see ``ms2_analysis``).
+        """
+        
+        if basic_filters:
+            self.basic_filters(**(basic_filters_args or {}))
+        
+        if database_lookup:
+            self.database_lookup(**(database_lookup_args or {}))
+        
+        if ms2_analysis:
+            self.ms2_analysis(**(ms2_analysis_args or {}))
+    
+    def quality_filter(self, threshold = .2):
         """
         If the features has an attribute named `quality` it removes the
         ones with quality below the threshold.
@@ -799,7 +836,7 @@ class SampleSet(Sample):
         
         self.feattrs.threshold_filter('quality', threshold = threshold)
     
-    def rt_filter(self, threshold = 1.0):
+    def rt_filter(self, threshold = 1.):
         """
         Removes the features with mean retention time below the threshold.
         Works only if the features has an attribute named `rt_means`.
@@ -819,7 +856,7 @@ class SampleSet(Sample):
             op = lambda vc, c: np.abs(vc) == c,
         )
     
-    def intensity_filter(self, threshold = 10000.0):
+    def intensity_filter(self, threshold = 10000.):
         """
         Removes the features with total intensities across samples lower than
         the threshold.
@@ -834,10 +871,10 @@ class SampleSet(Sample):
     
     def basic_filters(
             self,
-            quality_min = 0.2,
+            quality_min = .2,
             charge = 1,
-            rt_min = 1.0,
-            intensity_min = 10000.0
+            rt_min = 1.,
+            intensity_min = 10000.
         ):
         """
         Performs 4 trivial filtering steps which discard a large number of
@@ -853,7 +890,7 @@ class SampleSet(Sample):
         self.rt_filter(threshold = rt_min)
     
     def database_lookup(
-            database_args = {},
+            database_args = None,
             reinit_db = False,
             adduct_constraints = True,
             charge = None,
@@ -869,7 +906,7 @@ class SampleSet(Sample):
         
         if not hasattr(moldb, 'db') or reinit_db:
             
-            moldb.init_db(**database_args)
+            moldb.init_db(**(database_args or {}))
         
         # we add an array variable with the recodrs resulted
         # in the lookup
