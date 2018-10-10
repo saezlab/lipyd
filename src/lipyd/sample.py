@@ -806,7 +806,7 @@ class SampleSet(Sample):
             op = lambda vc, c: np.abs(vc) == c,
         )
     
-    def intensity_filter(self, threshold = 10000):
+    def intensity_filter(self, threshold = 10000.0):
         """
         Removes the features with total intensities across samples lower than
         the threshold.
@@ -818,3 +818,23 @@ class SampleSet(Sample):
             'total_intensities',
             threshold = threshold
         )
+    
+    def basic_filters(
+            self,
+            quality_min = 0.2,
+            charge = 1,
+            rt_min = 1.0,
+            intensity_min = 10000.0
+        ):
+        """
+        Performs 4 trivial filtering steps which discard a large number of
+        features at the beginning of the analysis. It removes the features
+        with quality lower than 0.2, non single charge, retention time lower
+        than 1 minute or total intensity lower than 10,000.
+        Different threshold values can be provided to this method.
+        """
+        
+        self.quality_filter(threshold = quality_min)
+        self.charge_filter(charge = charge)
+        self.intensity_filter(threshold = intensity_min)
+        self.rt_filter(threshold = rt_min)
