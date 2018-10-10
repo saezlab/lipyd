@@ -5396,10 +5396,11 @@ class MS2Feature(object):
             m/z value of the precursor ion.
         :param str ionmode:
             Ion mode of the experiment. Either ``pos`` or ``neg``.
-        :param list resources:
-            List of MS2 scan resources. These are either ``mgf.MgfReader``
+        :param dict resources:
+            ``dict`` of MS2 scan resources. These are either ``mgf.MgfReader``
             objects or paths to MGF files. Later more resource types
-            will be available, for example MzML format.
+            will be available, for example MzML format. Keys of the ``dict``
+            are used as sample labels. Thes can be strings or tuples.
         :param dict ms1_records:
             A data structure resulted by ``moldb.adduct_lookup``. If ``None``
             the lookup will be done here.
