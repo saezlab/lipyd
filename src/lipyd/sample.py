@@ -803,6 +803,8 @@ class Sample(FeatureBase):
         Runs MS2 identification methods on all features.
         """
         
+        ms2_identites = []
+        
         for i in xrange(len(self)):
             
             # MS2 identifications:
@@ -813,19 +815,14 @@ class Sample(FeatureBase):
                 rt = rt,
                 ms1_records = ms1_records,
             )
-            ms2_fe.main()
-            ms2_id = ms2_fe.identity_summary(
-                sample_ids = True,
-                scan_ids = True,
-            )
-            ms2_max_score = max(i[1] for i in ms2_id) if ms2_id else 0
-            ms2_best = self.identities_str(
-                i for i in ms2_id if i[1] > 0 and i[1] == ms2_max_score
-            )
-            ms2_all = self.identities_str(ms2_id)
             
-            data['ms2_new_top'].append(ms2_best)
-            data['ms2_new_all'].append(ms2_all)
+            ms2_fe.main()
+            
+            ms2_identites.append(ms2_fe.indentities)
+        
+        ms2_identites = np.array(ms2_identities)
+        
+        self._add_var(ms2_identites, 'ms2_identities')
 
 
 class FeatureIdx(FeatureBase):
@@ -1008,6 +1005,7 @@ class SampleSet(Sample):
             sorter = None,
             ms2_format = 'mgf',
             ms2_param = None,
+            sample_ids = None,
         ):
         """
         This class represents an ordered set of samples.
@@ -1023,6 +1021,11 @@ class SampleSet(Sample):
         sample attributes as first argument and the ``ms2_use_samples``
         or ``None`` will be passed as second. It should return ``bool``.
         By deafult MS2 scans from all samples are used.
+        
+        :param list,callable sample_ids:
+            Either a list of sample identifiers with the same length as
+            number of samples or a method which generates sample identifiers
+            from sample attributes.
         """
         
         centr_mzs = (
@@ -1036,6 +1039,43 @@ class SampleSet(Sample):
             mzs.mean(axis = tuple(range(1, len(mzs.shape))))
         )
         
+        # this is the default
+        self.numof_samples = 1
+        
+        if attrs:
+            
+            # if we have attributes number of samples should be obvious
+            self.numof_samples = len(attrs)
+            
+        else:
+            
+            # otherwise try to guess from shape of the data arrays
+            for var in (mzs, intensities, rts):
+                
+                if hasattr(var, 'shape') and len(var.shape) > 1:
+                    
+                    self.numof_samples = var.shape[1]
+                    break
+        
+        # by default None, which means the default method will be
+        # called from Sample to get IDs either from the attributes
+        # or random strings in worst case
+        self.sample_ids = [None] * self.numof_samples
+        
+        if hasattr(sample_ids, '__call__'):
+            
+            # if it is callable we register it as a sample ID
+            # provider method
+            sample_id = sample_ids
+            self.sample_ids = [None] * self.numof_samples
+            
+        elif sample_ids and len(sample_ids) == self.numof_samples:
+            
+            # if it is a list with same length as number of samples
+            # we just use it to assign an ID to each sample
+            sample_id = None
+            self.sample_ids = sample_ids
+        
         Sample.__init__(
             self,
             mzs = centr_mzs,
@@ -1048,6 +1088,7 @@ class SampleSet(Sample):
             sorter = sorter,
             ms2_format = ms2_format,
             ms2_param = ms2_param,
+            sample_id = sample_id,
         )
     
     @classmethod
@@ -1127,11 +1168,11 @@ class SampleSet(Sample):
         method does in ``Sample``.
         """
         
-        ms2_source = []
+        ms2_source = {}
         
         attrs = attrs or self.attrs
         
-        for sample_attrs in attrs:
+        for sample_id, sample_attrs in zip(attrs):
             
             if 'ms2_use_samples_method' in self.ms2_param:
                 
@@ -1149,7 +1190,9 @@ class SampleSet(Sample):
             
             Sample.collect_ms2(self, attrs = sample_attrs)
             
-            ms2_source.append(self.ms2_source)
+            sample_id = Sample._get_sample_id(self.sample_id, sample_attrs)
+            
+            ms2_source[].append(self.ms2_source)
         
         self.ms2_source = ms2_source
     
@@ -1158,6 +1201,4 @@ class SampleSet(Sample):
         Runs MS2 identification methods on all features.
         """
         
-        for i_fe in xrange(len(self)):
-            
-            
+        for 
