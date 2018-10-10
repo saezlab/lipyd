@@ -547,6 +547,129 @@ class Sample(FeatureBase):
         
         return len(self.mzs)
     
+    #
+    # Methods for processing
+    #
+    
+    def process(
+            self,
+            basic_filters = True,
+            database_lookup = True,
+            ms2_analysis = True,
+            basic_filters_args = None,
+            database_lookup_args = None,
+            ms2_analysis_args = None,
+        ):
+        """
+        This method implements the workflow of processing the samples.
+        At the moment it does trivial filtering (see ``basic_filters``),
+        performs database lookups (see ``database_lookup``) and analyses
+        the MS2 data (see ``ms2_analysis``).
+        """
+        
+        if basic_filters:
+            self.basic_filters(**(basic_filters_args or {}))
+        
+        if database_lookup:
+            self.database_lookup(**(database_lookup_args or {}))
+        
+        if ms2_analysis:
+            self.ms2_analysis(**(ms2_analysis_args or {}))
+    
+    def quality_filter(self, threshold = .2):
+        """
+        If the features has an attribute named `quality` it removes the
+        ones with quality below the threshold.
+        
+        """
+        
+        self.feattrs.threshold_filter('quality', threshold = threshold)
+    
+    def rt_filter(self, threshold = 1.):
+        """
+        Removes the features with mean retention time below the threshold.
+        Works only if the features has an attribute named `rt_means`.
+        """
+        
+        self.feattrs.threshold_filter('rt_means', threshold = threshold)
+    
+    def charge_filter(self, charge = 1):
+        """
+        Keeps only the features with the preferred charge.
+        Does not care about sign.
+        """
+        
+        self.feattrs.threshold_filter(
+            'charge',
+            threshold = abs(charge),
+            op = lambda vc, c: np.abs(vc) == c,
+        )
+    
+    def intensity_filter(self, threshold = 10000.):
+        """
+        Removes the features with total intensities across samples lower than
+        the threshold.
+        
+        Works by the ``total_intensities`` attribute.
+        """
+        
+        self.feattrs.threshold_filter(
+            'total_intensities',
+            threshold = threshold,
+        )
+    
+    def basic_filters(
+            self,
+            quality_min = .2,
+            charge = 1,
+            rt_min = 1.,
+            intensity_min = 10000.
+        ):
+        """
+        Performs 4 trivial filtering steps which discard a large number of
+        features at the beginning of the analysis. It removes the features
+        with quality lower than 0.2, non single charge, retention time lower
+        than 1 minute or total intensity lower than 10,000.
+        Different threshold values can be provided to this method.
+        """
+        
+        self.quality_filter(threshold = quality_min)
+        self.charge_filter(charge = charge)
+        self.intensity_filter(threshold = intensity_min)
+        self.rt_filter(threshold = rt_min)
+    
+    def database_lookup(
+            database_args = None,
+            reinit_db = False,
+            adduct_constraints = True,
+            charge = None,
+            tolerance = None,
+        ):
+        """
+        Performs database lookups of all m/z's.
+        
+        Creates an array variable named ``records`` in the
+        ``FeatureAttributes`` object (``feattrs``) with the records retrieved
+        from the database.
+        """
+        
+        if not hasattr(moldb, 'db') or reinit_db:
+            
+            moldb.init_db(**(database_args or {}))
+        
+        # we add an array variable with the recodrs resulted
+        # in the lookup
+        self.feattrs._add_var(
+            moldb.adduct_lookup_many(
+                self.mzs,
+                ionmode = ionmode,
+                adduct_constraints = adduct_constraints,
+                charge = charge,
+                tolerance = tolerance,
+            ),
+            'records',
+        )
+    
     def collect_ms2(self, attrs = None):
         """
         Collects the MS2 scans belonging to this sample.
@@ -914,129 +1037,6 @@ class SampleSet(Sample):
             feature_attrs = self.feattrs,
             sorter = self.sorter,
             **var,
-        )
-    
-    #
-    # Methods for processing
-    #
-    
-    def process(
-            self,
-            basic_filters = True,
-            database_lookup = True,
-            ms2_analysis = True,
-            basic_filters_args = None,
-            database_lookup_args = None,
-            ms2_analysis_args = None,
-        ):
-        """
-        This method implements the workflow of processing the samples.
-        At the moment it does trivial filtering (see ``basic_filters``),
-        performs database lookups (see ``database_lookup``) and analyses
-        the MS2 data (see ``ms2_analysis``).
-        """
-        
-        if basic_filters:
-            self.basic_filters(**(basic_filters_args or {}))
-        
-        if database_lookup:
-            self.database_lookup(**(database_lookup_args or {}))
-        
-        if ms2_analysis:
-            self.ms2_analysis(**(ms2_analysis_args or {}))
-    
-    def quality_filter(self, threshold = .2):
-        """
-        If the features has an attribute named `quality` it removes the
-        ones with quality below the threshold.
-        
-        """
-        
-        self.feattrs.threshold_filter('quality', threshold = threshold)
-    
-    def rt_filter(self, threshold = 1.):
-        """
-        Removes the features with mean retention time below the threshold.
-        Works only if the features has an attribute named `rt_means`.
-        """
-        
-        self.feattrs.threshold_filter('rt_means', threshold = threshold)
-    
-    def charge_filter(self, charge = 1):
-        """
-        Keeps only the features with the preferred charge.
-        Does not care about sign.
-        """
-        
-        self.feattrs.threshold_filter(
-            'charge',
-            threshold = abs(charge),
-            op = lambda vc, c: np.abs(vc) == c,
-        )
-    
-    def intensity_filter(self, threshold = 10000.):
-        """
-        Removes the features with total intensities across samples lower than
-        the threshold.
-        
-        Works by the ``total_intensities`` attribute.
-        """
-        
-        self.feattrs.threshold_filter(
-            'total_intensities',
-            threshold = threshold,
-        )
-    
-    def basic_filters(
-            self,
-            quality_min = .2,
-            charge = 1,
-            rt_min = 1.,
-            intensity_min = 10000.
-        ):
-        """
-        Performs 4 trivial filtering steps which discard a large number of
-        features at the beginning of the analysis. It removes the features
-        with quality lower than 0.2, non single charge, retention time lower
-        than 1 minute or total intensity lower than 10,000.
-        Different threshold values can be provided to this method.
-        """
-        
-        self.quality_filter(threshold = quality_min)
-        self.charge_filter(charge = charge)
-        self.intensity_filter(threshold = intensity_min)
-        self.rt_filter(threshold = rt_min)
-    
-    def database_lookup(
-            database_args = None,
-            reinit_db = False,
-            adduct_constraints = True,
-            charge = None,
-            tolerance = None,
-        ):
-        """
-        Performs database lookups of all m/z's.
-        
-        Creates an array variable named ``records`` in the
-        ``FeatureAttributes`` object (``feattrs``) with the records retrieved
-        from the database.
-        """
-        
-        if not hasattr(moldb, 'db') or reinit_db:
-            
-            moldb.init_db(**(database_args or {}))
-        
-        # we add an array variable with the recodrs resulted
-        # in the lookup
-        self.feattrs._add_var(
-            moldb.adduct_lookup_many(
-                self.mzs,
-                ionmode = ionmode,
-                adduct_constraints = adduct_constraints,
-                charge = charge,
-                tolerance = tolerance,
-            ),
-            'records',
         )
     
     def collect_ms2(self, attrs = None):
