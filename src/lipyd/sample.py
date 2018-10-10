@@ -26,9 +26,9 @@ import numpy as np
 
 
 from lipyd.common import basestring
-
 from lipyd import reader
 import lipyd.reader.peaks
+import lipyd.moldb as moldb
 
 
 class SampleReader(object):
@@ -37,7 +37,7 @@ class SampleReader(object):
         'peaks': reader.peaks.PeaksReader,
     }
     
-    def __init__(self, input_type, **kwargs):
+    def __init__(self, input_type, ionmode = None, **kwargs):
         """
         Reads data from files and creates ``Sample``, ``SampleSet`` and
         ``FeatureAttributes`` objects.
@@ -47,6 +47,9 @@ class SampleReader(object):
             Reader for ``mzml`` not yet available.
         :param str ionmode:
             Ion mode of the experiment: ``pos`` or ``neg``.
+            By deafult is ``None`` because the reading is possible without
+            the reader being aware of the ion mode. However it is most
+            convenient to provide it here.
         :param **kwargs:
             Arguments for the reader. Depends on the input format, please
             refer to classes in ``lipyd.reader`` modules.
@@ -56,6 +59,7 @@ class SampleReader(object):
             
             raise ValueError('Unknown input type: %s' % input_type)
         
+        self.ionmode = ionmode
         self.reader_class = reader_classes[input_type]
         self.reader_args  = kwargs
         
@@ -74,6 +78,7 @@ class SampleReader(object):
         """
         
         attrs = self.reader.get_attributes()
+        attrs['ionmode'] = self.ionmode
         
         return FeatureAttributes(**attrs)
     
@@ -103,8 +108,9 @@ class SampleReader(object):
                 
                 feature_attrs = self.get_attributes()
             
-            sample_args['sorter'] = feature_attrs.sorter
+            sample_args['sorter']        = feature_attrs.sorter
             sample_args['feature_attrs'] = feature_attrs
+            sample_args['ionmode']       = self.ionmode
             
             yield Sample(**sample_args)
     
@@ -115,7 +121,8 @@ class SampleReader(object):
         
         sampleset_args = self.reader.get_sampleset()
         sampleset_args['feature_attrs'] = self.get_attributes()
-        sampleset_args['sorter'] = feature_attrs.sorter
+        sampleset_args['sorter']        = feature_attrs.sorter
+        sampleset_args['ionmode']       = ionmode
         
         return ampleSet(**sampleset_args)
 
@@ -357,6 +364,7 @@ class FeatureAttributes(FeatureBase):
     
     def __init__(
             self,
+            ionmode = None,
             attrs = None,
             **kwargs
         ):
@@ -371,6 +379,7 @@ class FeatureAttributes(FeatureBase):
         FeatureBase.__init__(self, **kwargs)
         
         self.attrs = attrs or {}
+        self.ionmode = ionmode
     
     def reload(self):
         
@@ -401,6 +410,7 @@ class Sample(FeatureBase):
     def __init__(
             self,
             mzs,
+            ionmode = None,
             intensities = None,
             rts = None,
             attrs = None,
@@ -432,6 +442,7 @@ class Sample(FeatureBase):
         )
         
         self.attrs   = attrs or {}
+        self.ionmode = ionmode
         self.feattrs = feature_attrs
     
     def reload(self):
@@ -677,6 +688,7 @@ class SampleSet(Sample):
     def __init__(
             self,
             mzs,
+            ionmode = None,
             intensities = None,
             rts = None,
             attrs = None,
@@ -698,6 +710,7 @@ class SampleSet(Sample):
         Sample.__init__(
             self,
             mzs = centr_mzs,
+            ionmode = ionmode,
             intensities = intensities,
             mzs_by_sample = mzs,
             rts = rts,
@@ -838,3 +851,35 @@ class SampleSet(Sample):
         self.charge_filter(charge = charge)
         self.intensity_filter(threshold = intensity_min)
         self.rt_filter(threshold = rt_min)
+    
+    def database_lookup(
+            database_args = {},
+            reinit_db = False,
+            adduct_constraints = True,
+            charge = None,
+            tolerance = None,
+        ):
+        """
+        Performs database lookups of all m/z's.
+        
+        Creates an array variable named ``records`` in the
+        ``FeatureAttributes`` object (``feattrs``) with the records retrieved
+        from the database.
+        """
+        
+        if not hasattr(moldb, 'db') or reinit_db:
+            
+            moldb.init_db(**database_args)
+        
+        # we add an array variable with the recodrs resulted
+        # in the lookup
+        self.feattrs._add_var(
+            moldb.adduct_lookup_many(
+                self.mzs,
+                ionmode = ionmode,
+                adduct_constraints = adduct_constraints,
+                charge = charge,
+                tolerance = tolerance,
+            ),
+            'records',
+        )

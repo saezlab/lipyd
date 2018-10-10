@@ -1033,12 +1033,47 @@ def adduct_lookup(
         adduct_constraints = True,
         tolerance = None,
     ):
+    """
+    Does a series of lookups in the database assuming various adducts.
+    Calculates the exact mass for the m/z for each possible adduct
+    and searches these exact masses in the database.
+    
+    Returns a dict of tuples with 3-3 numpy arrays.
+    Keys of the dict are adduct types. The arrays are exact masses,
+    database record details and accuracies (ppm).
+    """
     
     db = get_db()
     
     return db.adduct_lookup(
         mz,
         ionmode = ionmode,
+        adduct_constraints = adduct_constraints,
+        tolerance = tolerance,
+    )
+
+def adduct_lookup_many(
+        mzs,
+        adducts = None,
+        ionmode = None,
+        charge = None,
+        adduct_constraints = True,
+        tolerance = None,
+    ):
+    """
+    Performs the lookup on a vector of m/z values.
+    Calls the ``adduct_lookup`` method on all m/z's.
+    
+    Returns array of dicts with lookup results.
+    """
+    
+    db = get_db()
+    
+    return db.adduct_lookup_many(
+        mzs = mzs,
+        adducts = adducts,
+        ionmode = ionmode,
+        charge = charge,
         adduct_constraints = adduct_constraints,
         tolerance = tolerance,
     )
