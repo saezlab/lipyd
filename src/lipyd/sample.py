@@ -32,6 +32,7 @@ from lipyd.common import basestring
 from lipyd import reader
 import lipyd.reader.peaks
 import lipyd.moldb as moldb
+import lipyd.ms2 as ms2
 
 
 remgf = re.compile(r'([^\W_]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
@@ -752,6 +753,15 @@ class Sample(FeatureBase):
                 result.add(os.path.join(mgfdir, fname))
         
         return result
+    
+    def ms2_analysis(self):
+        """
+        Runs MS2 identification methods on all features.
+        """
+        
+        for i in xrange(len(self)):
+            
+            
 
 
 class FeatureIdx(FeatureBase):
@@ -941,6 +951,14 @@ class SampleSet(Sample):
         the arrays can be multidimensional, i.e. in one data array more
         than one value can belong to a feature in a sample.
         It inherits from ``Sample``, see details in docs of ``Sample``.
+        
+        In ``ms2_param`` in addition to the parameters used in ``Sample``
+        you can provide ``ms2_use_samples`` and ``ms2_use_samples_method``,
+        a data and a function, respectively which will be used to select
+        only certain samples for MS2 analysis. The method should accept
+        sample attributes as first argument and the ``ms2_use_samples``
+        or ``None`` will be passed as second. It should return ``bool``.
+        By deafult MS2 scans from all samples are used.
         """
         
         centr_mzs = (
@@ -1050,6 +1068,20 @@ class SampleSet(Sample):
         attrs = attrs or self.attrs
         
         for sample_attrs in attrs:
+            
+            if 'ms2_use_samples_method' in self.ms2_param:
+                
+                select_samples = self.ms2_param['ms2_use_samples_method']
+                
+                ms2_use_samples = (
+                    self.ms2_param['ms2_use_samples']
+                        if 'ms2_use_samples' in self.ms2_param else
+                    None
+                )
+                
+                if not select_samples(sample_attrs, ms2_use_samples):
+                    
+                    continue
             
             Sample.collect_ms2(self, attrs = sample_attrs)
             
