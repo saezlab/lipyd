@@ -50,7 +50,8 @@ class MS2Identity(collections.namedtuple(
         'MS2IdentityBase',
         [
             'score', 'max_score', 'score_pct',
-            'hg', 'chainsum', 'chains', 'details',
+            'hg', 'chainsum', 'chains', 'chain_details',
+            'scan_details',
         ]
     )):
     
@@ -62,7 +63,8 @@ class MS2Identity(collections.namedtuple(
             hg = None,
             chainsum = None,
             chains = None,
-            details = None,
+            chain_details = None,
+            scan_details = None,
         ):
         
         return super(MS2Identity, cls).__new__(
@@ -73,7 +75,8 @@ class MS2Identity(collections.namedtuple(
             hg,
             chainsum = chainsum,
             chains = chains,
-            details = details,
+            chain_details = chain_details,
+            scan_details = scan_details,
         )
     
     def __str__(self):
@@ -101,6 +104,13 @@ class MS2Identity(collections.namedtuple(
 ChainIdentificationDetails = collections.namedtuple(
     'ChainIdentificationDetails',
     ['rank', 'i', 'fragtype']
+)
+ChainIdentificationDetails.__new__.__defaults__ = (None, None, None)
+
+
+ScanDetails = collection.namedtuple(
+    'ScanDetails',
+    ['sample_id', 'scan_id', 'source']
 )
 ChainIdentificationDetails.__new__.__defaults__ = (None, None, None)
 
@@ -300,7 +310,8 @@ class Scan(ScanBase):
             intensities = None,
             ms1_records = None,
             scan_id = None,
-            sample = None,
+            sample_id = None,
+            source = None,
             logger = None,
             verbose = False,
             tolerance = None,
@@ -342,14 +353,21 @@ class Scan(ScanBase):
             
         else:
             
-            # even if precursor is None, we end up with an empty list
+            # even if precursor is None, we end up with an empty dict
             self.ms1_records = ms1_records or {}
         
         self.scan_id = scan_id
-        self.sample = sample
+        self.sample_id = sample_id
+        self.source = source
         self.rt = rt
         self.log = logger
         self.verbose = verbose
+        
+        self.scan_details = ScanDetails(
+            sample_id = self.sample_id,
+            scan_id   = self.scan_id,
+            source    = self.source,
+        )
     
     @classmethod
     def from_mgf(
@@ -357,6 +375,7 @@ class Scan(ScanBase):
             fname,
             scan_id,
             ionmode,
+            sample_id = None,
             precursor = None,
             mgf_charge = None,
             **kwargs
@@ -375,6 +394,8 @@ class Scan(ScanBase):
                 ionmode = ionmode,
                 precursor = precursor,
                 scan_id = scan_id,
+                sample_id = sample_id,
+                source = fname,
                 **kwargs
             )
     
@@ -2488,7 +2509,8 @@ class AbstractMS2Identifier(object):
                 self.rec.hg,
                 self.rec.chainsum,
                 chains = chains[0],
-                details = chains[1],
+                chain_details = chains[1],
+                scan_details = self.scan_details,
             )
             chains_confirmed = True
         
@@ -2503,7 +2525,8 @@ class AbstractMS2Identifier(object):
                     self.rec.hg,
                     self.rec.chainsum,
                     chains = chains[0],
-                    details = chains[1],
+                    chain_details = chains[1],
+                    scan_details = self.scan_details,
                 )
                 
                 chains_confirmed = True
@@ -2517,7 +2540,8 @@ class AbstractMS2Identifier(object):
                 self.rec.hg,
                 self.rec.chainsum,
                 chains = None,
-                details = None,
+                chain_details = None,
+                scan_details = self.scan_details,
             )
     
     def percent_score(self):
@@ -5563,7 +5587,7 @@ class MS2Feature(object):
                     
                     if sample_ids:
                         
-                        summary.append(self.scans[i].sample)
+                        summary.append(self.scans[i].sample_id)
                     
                     if scan_ids:
                         

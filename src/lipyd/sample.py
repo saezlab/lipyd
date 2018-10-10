@@ -807,9 +807,9 @@ class Sample(FeatureBase):
             
             # MS2 identifications:
             ms2_fe = ms2.MS2Feature(
-                self.mzs[i],
-                self.ionmode,
-                self.mgf_readers[self.ionmode],
+                mz = self.mzs[i],
+                ionmode = self.ionmode,
+                resources = {self.sample_id: self.mgf_readers[self.ionmode]},
                 rt = rt,
                 ms1_records = ms1_records,
             )
