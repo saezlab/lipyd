@@ -5374,7 +5374,8 @@ idmethods = {
 class MS2Feature(object):
     
     scan_methods = {
-        'mgf': 'mgf_iterscans',
+        'mgf':  'mgf_iterscans',
+        'mzml': 'mzml_iterscans',
     }
     
     def __init__(
@@ -5489,6 +5490,10 @@ class MS2Feature(object):
                 rt = mgffile.mgfindex[i,2],
                 sample = sample_label,
             )
+    
+    def mzml_iterscans(self, mzml_resource, sample_label = None):
+        
+        raise NotImplementedError
     
     @staticmethod
     def guess_resouce_type(self, res):
