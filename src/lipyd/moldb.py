@@ -158,9 +158,10 @@ class LipidMaps(sdf.SdfReader):
             
             liprec = lipproc.LipidRecord(
                 lab = lipproc.LipidLabel(
-                    db_id = rec['id'],
-                    db    = 'LipidMaps',
-                    names = tuple(names),
+                    db_id   = rec['id'],
+                    db      = 'LipidMaps',
+                    names   = tuple(names),
+                    formula = rec['annot']['FORMULA'],
                 ),
                 hg  = hg,
                 chainsum = chainsum,
@@ -503,9 +504,10 @@ class SwissLipids(Reader):
             
             rec = lipproc.LipidRecord(
                 lab = lipproc.LipidLabel(
-                    db_id = mol.db_id,
-                    db    = 'SwissLipids',
-                    names = mol.title,
+                    db_id   = mol.db_id,
+                    db      = 'SwissLipids',
+                    names   = mol.title,
+                    formula = mol.swl_formula,
                 ),
                 hg = hg,
                 chainsum = chainsum,
@@ -734,7 +736,7 @@ class MoleculeDatabaseAggregator(object):
         
         Args
         ----
-        :param \**kwargs:
+        :param **kwargs:
             Arguments for fatty acid classes: `c`, `u`, `fa_counts`, etc.
         """
         
@@ -746,7 +748,7 @@ class MoleculeDatabaseAggregator(object):
         
         Args
         ----
-        :param \**kwargs:
+        :param **kwargs:
             Arguments for misc classes.
         """
         
@@ -759,7 +761,7 @@ class MoleculeDatabaseAggregator(object):
         
         Args
         ----
-        :param \**kwargs:
+        :param **kwargs:
             Arguments for sphingolipid classes (`fa_args`, `sph_args`, etc).
         """
         
@@ -772,7 +774,7 @@ class MoleculeDatabaseAggregator(object):
         
         Args
         ----
-        :param \**kwargs:
+        :param **kwargs:
             Arguments for glycerolipid classes
             (`fa_args`, `sn2_fa_args`, etc).
         """
@@ -786,7 +788,7 @@ class MoleculeDatabaseAggregator(object):
         
         Args
         ----
-        :param \**kwargs:
+        :param **kwargs:
             Arguments for glycerophospholipid classes
             (`fa_args`, `sn2_fa_args`, etc).
         """
@@ -942,7 +944,7 @@ class MoleculeDatabaseAggregator(object):
             'exact_mass', 'category', 'std_name', 'database_names',
             'database_id', 'database', 'prefix', 'sum_cc', 'sum_unsat',
             'fa1_cc', 'fa1_unsat', 'fa2_cc', 'fa2_unsat',
-            'fa3_cc', 'fa3_unsat'
+            'fa3_cc', 'fa3_unsat',
         ]
         
         with open(fname, 'w') as fp:
@@ -955,6 +957,49 @@ class MoleculeDatabaseAggregator(object):
                     mass,
                     '\t'.join(str(f) for f in data)
                 ))
+    
+    def export_db_lipidblast(self, fname = 'molecule_database.csv'):
+        
+        hdr = [
+            'Retention Time (min)', 'Neutral Mass', 'Compound ID',
+            'Description', 'Formula', 'URL',
+        ]
+        
+        with open(fname, 'w') as fp:
+            
+            _ = fp.write('%s\n' % ','.join(hdr))
+            
+            for mass, data in zip(self.masses, self.data):
+                
+                _ = fp.write(
+                    '%s\n' % ','.join((
+                        '',
+                        '%.012f' % mass,
+                        (
+                            'lipyd.lipid'
+                                if data.lab.db == 'lipyd.lipid' else
+                            data.lab.db_id
+                        ),
+                        '"%s"' % data.lab.names[0],
+                        data.lab.formula,
+                        (
+                            'lipyd.lipid'
+                                if data.lab.db == 'lipyd.lipid' else
+                            self.get_url(data.lab.db_id)
+                        ),
+                    ))
+                )
+    
+    @staticmethod
+    def get_url(db_id):
+        
+        if db_id[:3] == 'SLM':
+            
+            return 'http://swisslipids.org/#/entity/%s' % db_id
+            
+        elif db_id[:2] == 'LM':
+            
+            return 'http://lipidmaps.org/data/LMSDRecord.php?LMID=%s' % db_id
     
     @staticmethod
     def records_string(
@@ -999,7 +1044,7 @@ def init_db(**kwargs):
     
     Args
     ----
-    :param \**kwargs:
+    :param **kwargs:
         Arguments for ``:py:class:.MoleculeDatabaseAggregator`` class.
     """
     

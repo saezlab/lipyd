@@ -142,10 +142,10 @@ Headgroup.__new__.__defaults__ = ((),)
 
 LipidLabel = collections.namedtuple(
     'LipidLabel',
-    ['db_id', 'db', 'names']
+    ['db_id', 'db', 'names', 'formula']
 )
 # names are empty tuple by default
-LipidLabel.__new__.defaults__ = ((),)
+LipidLabel.__new__.defaults__ = ((), None)
 
 
 class LipidRecord(collections.namedtuple(

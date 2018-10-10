@@ -200,9 +200,10 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
                 ()
             )
             lab = lipproc.LipidLabel(
-                db_id = None,
-                db = 'lipyd.lipid',
-                names = name
+                db_id   = None,
+                db      = 'lipyd.lipid',
+                names   = name,
+                formula = inst.formula,
             )
             rec = lipproc.LipidRecord(
                 lab = lab,
