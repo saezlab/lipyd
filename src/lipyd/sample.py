@@ -979,6 +979,8 @@ class Sample(FeatureBase):
         Returns results as a header and a table as list of lists.
         """
         
+        self.feattrs.sort_all('total_intensities', desc = True)
+        
         hdr = [
             'm/z',
             'average area',
