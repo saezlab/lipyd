@@ -905,7 +905,7 @@ class MoleculeDatabaseAggregator(object):
         
         return result
     
-    def aduct_lookup_many(
+    def adduct_lookup_many(
             self,
             mzs,
             adducts = None,

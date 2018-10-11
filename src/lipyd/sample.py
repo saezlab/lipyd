@@ -360,14 +360,14 @@ class FeatureBase(object):
         
         if propagate:
             
-            self.sorter.filter(idx = idx, origin = id(self))
+            self.sorter._filter(selection = selection, origin = id(self))
     
-    def threshold_filter(self, attr, threshold, op = operator.gt):
+    def threshold_filter(self, var, threshold, op = operator.gt):
         """
         Filters the features by any numeric attribute by simply applying
         a threshold. If the attribute does not exist silently does nothing.
         
-        :param str attr:
+        :param str var:
             Name of the attribute.
         :param float threshold:
             Value of the threshold.
@@ -377,7 +377,7 @@ class FeatureBase(object):
             the threshold will be kept and all others removed.
         """
         
-        if attr not in self.var:
+        if var not in self.var:
             
             return
         
@@ -694,6 +694,7 @@ class Sample(FeatureBase):
         self.rt_filter(threshold = rt_min)
     
     def database_lookup(
+            self,
             database_args = None,
             reinit_db = False,
             adduct_constraints = True,
@@ -717,7 +718,7 @@ class Sample(FeatureBase):
         self.feattrs._add_var(
             moldb.adduct_lookup_many(
                 self.mzs,
-                ionmode = ionmode,
+                ionmode = self.ionmode,
                 adduct_constraints = adduct_constraints,
                 charge = charge,
                 tolerance = tolerance,
@@ -903,8 +904,10 @@ class Sample(FeatureBase):
         
         self.feattrs._add_var(ms2_identites, 'ms2_identities')
     
+    def ms2_
+    
     #
-    # Methods for export results
+    # Methods for exporting the results
     #
     
     def get_database_records(self, i, database = None, adduct = None):
