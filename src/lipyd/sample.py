@@ -99,7 +99,7 @@ class SampleReader(object):
         
         return FeatureAttributes(**attrs)
     
-    def get_samples(self, bind = True):
+    def get_samples(self, bind = True, sample_args = None):
         """
         Yields ``lipyd.sample.Sample`` objects for each sample read.
         
@@ -119,30 +119,38 @@ class SampleReader(object):
             None
         )
         
-        for sample_args in self.reader.get_samples():
+        for _sample_args in self.reader.get_samples():
             
             if not bind:
                 
                 feature_attrs = self.get_attributes()
             
-            sample_args['sorter']        = feature_attrs.sorter
-            sample_args['feature_attrs'] = feature_attrs
-            sample_args['ionmode']       = self.ionmode
+            _sample_args['sorter']        = feature_attrs.sorter
+            _sample_args['feature_attrs'] = feature_attrs
+            _sample_args['ionmode']       = self.ionmode
             
-            yield Sample(**sample_args)
+            if sample_args:
+                
+                _sample_args.update(sample_args)
+            
+            yield Sample(**_sample_args)
     
-    def get_sampleset(self):
+    def get_sampleset(self, sampleset_args = None):
         """
         Returns a ``SampleSet`` and a ``FeatureAttributes`` object.
         """
         
-        sampleset_args = self.reader.get_sampleset()
+        _sampleset_args = self.reader.get_sampleset()
         feature_attrs  = self.get_attributes()
-        sampleset_args['feature_attrs'] = feature_attrs
-        sampleset_args['sorter']        = feature_attrs.sorter
-        sampleset_args['ionmode']       = self.ionmode or self.reader.ionmode
+        _sampleset_args['feature_attrs'] = feature_attrs
+        _sampleset_args['sorter']        = feature_attrs.sorter
+        _sampleset_args['ionmode']       = self.ionmode or self.reader.ionmode
         
-        return SampleSet(**sampleset_args)
+        if sampleset_args:
+            
+            _sampleset_args.update(sampleset_args)
+        
+        return SampleSet(**_sampleset_args)
 
 
 class FeatureBase(object):
@@ -904,7 +912,10 @@ class Sample(FeatureBase):
         
         self.feattrs._add_var(ms2_identites, 'ms2_identities')
     
-    def ms2_
+    def ms2_identify(self):
+        
+        self.set_ms2_sources()
+        self.ms2_analysis()
     
     #
     # Methods for exporting the results
