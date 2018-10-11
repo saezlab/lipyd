@@ -1006,7 +1006,9 @@ class MoleculeDatabaseAggregator(object):
             records,
             adducts = None,
             databases = None,
-            ppm = False,
+            show_ppm = False,
+            show_adduct = False,
+            show_db = False,
         ):
         
         result = set()
@@ -1030,9 +1032,23 @@ class MoleculeDatabaseAggregator(object):
                         if rec.lab.names else
                     'Unknown'
                 )
-                result.add('%s%s' % (
+                
+                details = []
+                
+                if show_ppm:
+                    details.append('%.01fppm' % rec_ppm)
+                
+                if show_adduct:
+                    details.append(add)
+                
+                if show_db:
+                    details.append(rec.lab.db)
+                
+                result.add('%s%s%s%s' % (
                     name,
-                    '[%.01fppm]' % rec_ppm if ppm else ''
+                    '[' if details else '',
+                    ','.join(details),
+                    ']' if details else '',
                 ))
         
         return ';'.join(result)
@@ -1155,9 +1171,16 @@ def records_string(
         records,
         adducts = None,
         databases = None,
-        ppm = False,
+        show_ppm = False,
+        show_adduct = False,
+        show_db = False,
     ):
     
     return MoleculeDatabaseAggregator.records_string(
-        records, adducts, databases, ppm
+        records     = records,
+        adducts     = adducts,
+        databases   = databases,
+        show_ppm    = show_ppm,
+        show_adduct = show_adduct,
+        show_db     = show_db,
     )

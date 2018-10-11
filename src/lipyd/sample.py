@@ -33,6 +33,7 @@ from lipyd import reader
 import lipyd.reader.peaks
 import lipyd.moldb as moldb
 import lipyd.ms2 as ms2
+import lipyd.settings as settings
 
 
 remgf = re.compile(r'([^\W_]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
@@ -899,6 +900,61 @@ class Sample(FeatureBase):
         ms2_identites = np.array(ms2_identities)
         
         self._add_var(ms2_identites, 'ms2_identities')
+    
+    #
+    # Methods for export results
+    #
+    
+    def get_database_records(self, i, database = None, adduct = None):
+        """
+        Yields database records for one feature, optionally only records
+        of certain adduct or database.
+        """
+        
+        if adduct:
+            
+            records = self.feattrs.records[i][adduct][1]
+            
+        else:
+            
+            records =  itertools.chain(
+                *(add[1] for add in self.feattrs.records[i].values())
+            )
+        
+        for rec in records:
+            
+            if not database or database == rec.lab.db:
+                
+                yield rec
+    
+    def table(
+            self,
+            variables = None,
+            databases = None,
+        ):
+        """
+        Returns results as a header and a table as list of lists.
+        """
+        
+        adducts = list(settings.get('ad2ex')[1][self.ionmode].keys())
+        
+        if not databases:
+            
+            databases = sorted(set(
+                rec.lab.db
+                for adddict in self.feattrs.records
+                for add in adddict.values()
+                for rec in add[1]
+            ))
+        
+        hdr = [
+            'm/z',
+            'average area',
+            'RT range',
+            'quality',
+            'significance',
+            'database lookups',
+        ]
 
 
 class FeatureIdx(FeatureBase):
