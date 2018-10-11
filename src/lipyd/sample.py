@@ -968,7 +968,7 @@ class Sample(FeatureBase):
             )
             ms2_all = ';'.join(ms2i.full_str() for ms2i in ms2_id)
             
-            yield [
+            line = [
                 '%08f' % self.mzs[i],
                 '%u' % self.feattrs.total_intensities[i],
                 '%.02f - %.02f' % tuple(self.feattrs.rt_ranges[i]),
@@ -983,6 +983,27 @@ class Sample(FeatureBase):
                 ms2_best,
                 ms2_all,
             ]
+            
+            for var in variables:
+                
+                line.append(str(getattr(self.feattrs, var)[i]))
+            
+            yield line
+    
+    def export_table(self, fname, **kwargs):
+        
+        table = self.table(**kwargs)
+        
+        hdr = next(table)
+        
+        with open(fname, 'w') as fp:
+            
+            _ = fp.write('\t'.join(hdr))
+            
+            for row in table:
+                
+                _ = fp.write('\n')
+                _ = fp.write('\t'.join(row))
 
 
 class FeatureIdx(FeatureBase):
