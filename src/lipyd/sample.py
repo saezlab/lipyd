@@ -28,7 +28,8 @@ import operator
 import numpy as np
 
 
-from lipyd.common import basestring
+import lipyd.common as common
+basestring = common.basestring
 from lipyd import reader
 import lipyd.reader.peaks
 import lipyd.moldb as moldb
@@ -68,7 +69,7 @@ class SampleReader(object):
             raise RuntimeError('Unknown input type: %s' % input_type)
         
         self.ionmode = ionmode
-        self.reader_class = reader_classes[input_type]
+        self.reader_class = self.reader_classes[input_type]
         self.reader_args  = kwargs
         
         self.read()
@@ -83,7 +84,7 @@ class SampleReader(object):
     
     def read(self):
         
-        self.reader = self.readerclass(**self.reader_args)
+        self.reader = self.reader_class(**self.reader_args)
     
     def get_attributes(self):
         """
@@ -136,9 +137,10 @@ class SampleReader(object):
         """
         
         sampleset_args = self.reader.get_sampleset()
-        sampleset_args['feature_attrs'] = self.get_attributes()
+        feature_attrs  = self.get_attributes()
+        sampleset_args['feature_attrs'] = feature_attrs
         sampleset_args['sorter']        = feature_attrs.sorter
-        sampleset_args['ionmode']       = ionmode
+        sampleset_args['ionmode']       = self.ionmode or self.reader.ionmode
         
         return SampleSet(**sampleset_args)
 
@@ -563,7 +565,7 @@ class Sample(FeatureBase):
     
     def _set_sample_id(self):
         
-        self.sample_id = self.get_sample_id(self._sample_id, self.attrs)
+        self.sample_id = self._get_sample_id(self._sample_id, self.attrs)
     
     @classmethod
     def _get_sample_id(cls, sample_id = None, attrs = None):
@@ -1241,6 +1243,7 @@ class SampleSet(Sample):
         # by default None, which means the default method will be
         # called from Sample to get IDs either from the attributes
         # or random strings in worst case
+        sample_id = None
         self.sample_ids = [None] * self.numof_samples
         
         if hasattr(sample_ids, '__call__'):
@@ -1253,7 +1256,6 @@ class SampleSet(Sample):
             
             # if it is a list with same length as number of samples
             # we just use it to assign an ID to each sample
-            sample_id = None
             self.sample_ids = sample_ids
         
         Sample.__init__(
