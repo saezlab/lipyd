@@ -566,7 +566,7 @@ class Sample(FeatureBase):
         self.sample_id = self.get_sample_id(self._sample_id, self.attrs)
     
     @classmethod
-    def _get_sample_id(cls, sample_id = None, attrs = None)
+    def _get_sample_id(cls, sample_id = None, attrs = None):
         
         if sample_id is None:
             
@@ -1168,7 +1168,7 @@ class FeatureIdx(FeatureBase):
         
         for id_, client in iteritems(self.clients):
             
-            if id_ !+ origin:
+            if id_ != origin:
                 
                 client._filter(selection, propagate = False)
 

@@ -131,7 +131,7 @@ ChainIdentificationDetails = collections.namedtuple(
 ChainIdentificationDetails.__new__.__defaults__ = (None, None, None)
 
 
-ScanDetails = collection.namedtuple(
+ScanDetails = collections.namedtuple(
     'ScanDetails',
     ['sample_id', 'scan_id', 'source', 'deltart']
 )
