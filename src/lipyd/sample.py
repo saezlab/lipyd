@@ -1003,13 +1003,14 @@ class Sample(FeatureBase):
             ms2_id = self.feattrs.ms2_identities[i]
             ms2_max_score = (
                 max(
-                    ms2i.score_pct
-                    for ms2iii in ms2_id
-                    for ms2ii in ms2iii.values()
-                    for ms2i in ms2ii
+                    (
+                        ms2i.score_pct
+                        for ms2iii in ms2_id
+                        for ms2ii in ms2iii.values()
+                        for ms2i in ms2ii
+                    ),
+                    default = 0
                 )
-                    if ms2_id else
-                0
             )
             ms2_best = ';'.join(
                 ms2i.full_str()
@@ -1018,7 +1019,13 @@ class Sample(FeatureBase):
                 for ms2i in ms2ii
                 if ms2i.score_pct == ms2_max_score
             )
-            ms2_all = ';'.join(ms2i.full_str() for ms2i in ms2_id)
+            ms2_all = ';'.join(
+                ms2i.full_str()
+                for ms2iii in ms2_id
+                for ms2ii in ms2iii.values()
+                for ms2i in ms2ii
+                if ms2i.score_pct > 0.0
+            )
             
             line = [
                 '%08f' % self.mzs[i],
@@ -1452,3 +1459,43 @@ class SampleSet(Sample):
         """
         
         self.ms2_source = self.collect_ms2(attrs = attrs)
+    
+    def peak_size_filter(self, backg, prot, threshold = 2):
+        
+        def ps(a0, a1):
+            
+            if np.all(np.isnan(a1)) or np.nanmax(a1) == 0:
+                
+                return 0.0
+            
+            if (
+                (np.all(np.isnan(a0)) or np.nanmax(a0) == 0) and
+                np.nanmax(a1) > 0
+            ):
+                
+                return np.inf
+            
+            return np.nanmin(a1) / np.nanmax(a0)
+        
+        backg = set((f[0], int(f[1:])) for f in backg)
+        prot  = set((f[0], int(f[1:])) for f in prot)
+        
+        ibackg = np.array([
+            i
+            for i, attr in enumerate(self.attrs)
+            if attr['label']['fraction'] in backg
+        ])
+        iprot = np.array([
+            i
+            for i, attr in enumerate(self.attrs)
+            if attr['label']['fraction'] in prot
+        ])
+        
+        peaksize = np.array([
+            ps(self.intensities[i,ibackg], self.intensities[i,iprot])
+            for i in xrange(len(self))
+        ])
+        
+        self.feattrs._add_var(peaksize, 'peaksize')
+        
+        self.feattrs.threshold_filter('peaksize', threshold = threshold)
