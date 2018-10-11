@@ -91,12 +91,12 @@ class MS2Identity(collections.namedtuple(
         
         details = []
         
-        details.append('score=%.01' % self.score_pct)
+        details.append('score=%.01f' % self.score_pct)
         
         if self.scan_details:
             
             if self.scan_details.deltart is not None:
-                details.append('deltart=%.02' % self.scan_details.deltart)
+                details.append('deltart=%.02f' % self.scan_details.deltart)
             if self.scan_details.sample_id is not None:
                 sample_id = self.scan_details.sample_id
                 if isinstance(sample_id, tuple):
@@ -380,13 +380,13 @@ class Scan(ScanBase):
             # even if precursor is None, we end up with an empty dict
             self.ms1_records = ms1_records or {}
         
-        self.scan_id = scan_id
+        self.scan_id   = scan_id
         self.sample_id = sample_id
-        self.source = source
-        self.ms1_rt = deltart
-        self.rt = rt
-        self.log = logger
-        self.verbose = verbose
+        self.source    = source
+        self.deltart   = deltart
+        self.rt        = rt
+        self.log       = logger
+        self.verbose   = verbose
         
         self.scan_details = ScanDetails(
             sample_id = self.sample_id,
@@ -2159,8 +2159,6 @@ class Scan(ScanBase):
             
             rec_str = rec.summary_str()
             
-            print(rec_str)
-            
             if rec_str not in result and rec.hg in idmethods[self.ionmode]:
                 
                 method = idmethods[self.ionmode][rec.hg]
@@ -2536,7 +2534,7 @@ class AbstractMS2Identifier(object):
                 self.rec.chainsum,
                 chains = chains[0],
                 chain_details = chains[1],
-                scan_details = self.scan_details,
+                scan_details = self.scn.scan_details,
             )
             chains_confirmed = True
         
@@ -2552,7 +2550,7 @@ class AbstractMS2Identifier(object):
                     self.rec.chainsum,
                     chains = chains[0],
                     chain_details = chains[1],
-                    scan_details = self.scan_details,
+                    scan_details = self.scn.scan_details,
                 )
                 
                 chains_confirmed = True
@@ -2567,7 +2565,7 @@ class AbstractMS2Identifier(object):
                 self.rec.chainsum,
                 chains = None,
                 chain_details = None,
-                scan_details = self.scan_details,
+                scan_details = self.scn.scan_details,
             )
     
     def percent_score(self):
@@ -4229,9 +4227,7 @@ class Cer_Positive(AbstractMS2Identifier):
                     chains[0][0].attr.sph
                 )
                 
-                print(self.score)
                 self.score += sph_score
-                print(self.score)
                 self.max_score += sph_max_score
                 
                 if self.nacyl:
@@ -4243,7 +4239,6 @@ class Cer_Positive(AbstractMS2Identifier):
                 yield chains
                 
                 self.score -= sph_score
-                print(self.score)
                 self.max_score -= sph_max_score
                 
                 if self.nacyl:
@@ -4679,8 +4674,6 @@ class Cer_Positive(AbstractMS2Identifier):
             ):
                 score += 10
         
-        print('d score: %u' % score)
-        
         return score, max_score
     
     def sphingosine_dh(self):
@@ -4717,8 +4710,6 @@ class Cer_Positive(AbstractMS2Identifier):
                 )
             )
         )) * 3
-        
-        print('DH score: %u' % score)
         
         return score, max_score
     
@@ -5540,7 +5531,7 @@ class MS2Feature(object):
                 precursor = self.mz,
                 ms1_records = self.ms1_records,
                 scan_id = mgffile.mgfindex[i,3],
-                sample_id = self.sample_id,
+                sample_id = sample_id,
                 source = mgffile.fname,
                 deltart = rtd,
                 rt = mgffile.mgfindex[i,2],
@@ -5551,7 +5542,7 @@ class MS2Feature(object):
         raise NotImplementedError
     
     @staticmethod
-    def guess_resouce_type(self, res):
+    def guess_resouce_type(res):
         
         if isinstance(res, basestring) and os.path.exists(res):
             
@@ -5581,7 +5572,15 @@ class MS2Feature(object):
     
     def identify(self):
         
-        self.identities = [scan.identify() for scan in self.scans]
+        self.identities = []
+        
+        for scan in self.scans:
+            
+            identity = scan.identify()
+            
+            if identity:
+                
+                self.identities.append(identity)
     
     def identity_summary(
             self,

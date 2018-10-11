@@ -133,6 +133,11 @@ class PeaksReader(object):
                     'File `%s`, line %u' % (line[4], self.fname, i)
                 )
                 rtrange = (np.nan, np.nan)
+                
+            else:
+                
+                rtrange = rtrange.groups()
+            
             
             quality.append(common.to_float(line[1]))
             significance.append(common.to_float(line[2]))

@@ -34,10 +34,13 @@ from lipyd import reader
 import lipyd.reader.peaks
 import lipyd.moldb as moldb
 import lipyd.ms2 as ms2
+import lipyd.mgf as mgf
 import lipyd.settings as settings
+import lipyd.progress as progress
 
 
-remgf = re.compile(r'([^\W_]+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
+remgf  = re.compile(r'(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
+remgf2 = re.compile(r'(\w+)_([A-Z])([0-9]{1,2})_(pos|neg)\.mgf')
 
 
 class SampleReader(object):
@@ -450,6 +453,7 @@ class Sample(FeatureBase):
             sorter = None,
             ms2_format = 'mgf',
             ms2_param = None,
+            silent = False,
             **kwargs,
         ):
         """
@@ -497,6 +501,7 @@ class Sample(FeatureBase):
             **kwargs,
         )
         
+        self.silent     = silent
         self.attrs      = attrs or {}
         self.ionmode    = ionmode
         self.feattrs    = feature_attrs
@@ -749,7 +754,7 @@ class Sample(FeatureBase):
             
             self.ms2_source = ms2_source[self.sample_id]
     
-    def collect_ms2(self, attrs = None):
+    def collect_ms2(self, sample_id = None, attrs = None):
         """
         Collects the MS2 scans belonging to this sample.
         
@@ -758,6 +763,7 @@ class Sample(FeatureBase):
         """
         
         attrs = attrs or self.attrs
+        sample_id = sample_id or self._get_sample_id(attrs)
         
         if self.ms2_format is None:
             
@@ -769,9 +775,9 @@ class Sample(FeatureBase):
             
             method = self.ms2_collection_methods[self.ms2_format]
             
-            return getattr(self, method)(attrs = attrs)
+            return getattr(self, method)(sample_id = sample_id, attrs = attrs)
     
-    def collect_mgf(self, attrs = None):
+    def collect_mgf(self, sample_id = None, attrs = None):
         """
         Collects MGF files containing the MS2 spectra.
         
@@ -814,6 +820,7 @@ class Sample(FeatureBase):
             # ok, now we can find the MGF files by matching against
             # the sample attributes
             attrs = attrs or self.attrs
+            sample_id = sample_id or self.sample_id
             
             # see if a matching method provided
             mgf_match_method = (
@@ -844,7 +851,7 @@ class Sample(FeatureBase):
         # dict with one key and list of files probably only one element:
         # do like this to be able to directly pass to ms2.MS2Feature
         return  {
-            self.sample_id: [
+            sample_id: [
                 mgf.MgfReader(fname, charge = mgf_charge)
                 for fname in mgf_files
             ]
@@ -856,21 +863,23 @@ class Sample(FeatureBase):
         The default method for matching names of MGF files against attributes.
         """
         
-        match = remgf.search(path)
+        match  = remgf.search(path)
+        match2 = remgf2.search(path)
         
         if match:
             
             main, ionmode, fracrow, fraccol = match.groups()
-            
-            if (
-                main == attrs['label']['main'] and
-                (fracrow, int(fraccol)) == attrs['label']['fraction'] and
-                ionmode == attrs['label']['ionmode']
-            ):
-                
-                return True
         
-        return False
+        if match2:
+            
+            main, fracrow, fraccol, ionmode = match2.groups()
+        
+        return (
+            (match or match2) and
+            attrs['label']['main'].lower() in main.lower() and
+            (fracrow, int(fraccol)) == attrs['label']['fraction'] and
+            ionmode == attrs['label']['ionmode']
+        )
     
     def collect_mzml(self, attrs = None):
         
@@ -899,7 +908,15 @@ class Sample(FeatureBase):
         
         ms2_identities = []
         
+        if not self.silent:
+            
+            prg = progress.Progress(len(self), 'Analysing MS2 spectra', 1)
+        
         for i in xrange(len(self)):
+            
+            if not self.silent:
+                
+                prg.step()
             
             # MS2 identifications:
             ms2_fe = ms2.MS2Feature(
@@ -913,6 +930,10 @@ class Sample(FeatureBase):
             ms2_fe.main()
             
             ms2_identities.append(ms2_fe.identities)
+        
+        if not self.silent:
+            
+            prg.terminate()
         
         ms2_identities = np.array(ms2_identities)
         
@@ -969,9 +990,11 @@ class Sample(FeatureBase):
             'MS2 all',
         ]
         
-        for i, var in enumerate(variables):
+        if variables:
             
-            hdr.append(var if not headers else headers[i])
+            for i, var in enumerate(variables):
+                
+                hdr.append(var if not headers else headers[i])
         
         yield hdr
         
@@ -979,13 +1002,20 @@ class Sample(FeatureBase):
             
             ms2_id = self.feattrs.ms2_identities[i]
             ms2_max_score = (
-                max(ms2i.score_pct for ms2i in ms2_id)
+                max(
+                    ms2i.score_pct
+                    for ms2iii in ms2_id
+                    for ms2ii in ms2iii.values()
+                    for ms2i in ms2ii
+                )
                     if ms2_id else
                 0
             )
             ms2_best = ';'.join(
                 ms2i.full_str()
-                for ms2i in ms2_id
+                for ms2iii in ms2_id
+                for ms2ii in ms2iii.values()
+                for ms2i in ms2ii
                 if ms2i.score_pct == ms2_max_score
             )
             ms2_all = ';'.join(ms2i.full_str() for ms2i in ms2_id)
@@ -1006,9 +1036,11 @@ class Sample(FeatureBase):
                 ms2_all,
             ]
             
-            for var in variables:
+            if variables:
                 
-                line.append(str(getattr(self.feattrs, var)[i]))
+                for var in variables:
+                    
+                    line.append(str(getattr(self.feattrs, var)[i]))
             
             yield line
     
@@ -1364,6 +1396,18 @@ class SampleSet(Sample):
             **var,
         )
     
+    def get_sample_id(self, i):
+        
+        if hasattr(self.sample_id, '__call__'):
+            
+            sample_id = self.sample_id
+            
+        else:
+            
+            sample_id = self.sample_ids[i]
+        
+        return self._get_sample_id(sample_id, self.attrs[i])
+    
     def collect_ms2(self, attrs = None):
         """
         Collects the MS2 resources for each sample a similar way as the same
@@ -1390,7 +1434,21 @@ class SampleSet(Sample):
                     
                     continue
             
+            sample_id = self.get_sample_id(i)
             # adding MS2 sources for this sample to the dict
-            ms2_source.update(Sample.collect_ms2(self, attrs = sample_attrs))
+            ms2_source.update(Sample.collect_ms2(
+                self,
+                sample_id = sample_id,
+                attrs = sample_attrs
+            ))
         
         return ms2_source
+    
+    def set_ms2_sources(self, attrs = None):
+        """
+        Collects the MS2 scans for all samples.
+        
+        The collected resources will be in the ``ms2_source`` attribute.
+        """
+        
+        self.ms2_source = self.collect_ms2(attrs = attrs)
