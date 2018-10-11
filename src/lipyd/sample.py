@@ -64,7 +64,7 @@ class SampleReader(object):
         
         if input_type not in self.reader_classes:
             
-            raise ValueError('Unknown input type: %s' % input_type)
+            raise RuntimeError('Unknown input type: %s' % input_type)
         
         self.ionmode = ionmode
         self.reader_class = reader_classes[input_type]
@@ -289,7 +289,7 @@ class FeatureBase(object):
             
             if len(by) != len(self):
                 
-                raise ValueError(
+                raise RuntimeError(
                     'Can not sort object of length %u by '
                     'index array of length %u.' (len(self), len(by))
                 )
@@ -422,6 +422,11 @@ class FeatureAttributes(FeatureBase):
 
 class Sample(FeatureBase):
     
+    ms2_collection_methods = {
+        'mgf':  'collect_mgf',
+        'mzml': 'collect_mzml',
+    }
+    
     def __init__(
             self,
             mzs,
@@ -450,6 +455,8 @@ class Sample(FeatureBase):
         :param str ms2_format:
             Format of the MS2 data. At the moment ``mgf`` is accepted.
         :param dict ms2_param:
+            - ``mgf_files``:
+            A list of MGF file paths.
             - ``mgf_match_method`` (callable):
             A method which finds the MGF files. It accepts 2 arguments:
             the directory path with the MGF files and the attributes used
@@ -467,7 +474,7 @@ class Sample(FeatureBase):
         
         if mzs is None:
             
-            raise ValueError('Sample object must have at least m/z values.')
+            raise RuntimeError('Sample object must have at least m/z values.')
         
         self._add_var(mzs, 'mzs')
         
@@ -502,7 +509,7 @@ class Sample(FeatureBase):
         # length as mzs.
         if attr != 'mzs' and data is not None and len(data) != len(self):
             
-            raise ValueError(
+            raise RuntimeError(
                 'Sample object: length of `%s` (%u) is not the same '
                 'as number of features in the sample (%u).' % (
                     attr, len(data), len(self),
@@ -715,18 +722,36 @@ class Sample(FeatureBase):
             'records',
         )
     
-    def collect_ms2(self, attrs = None):
+    def set_ms2_sources(self, attrs = None):
         """
         Collects the MS2 scans belonging to this sample.
         
         The collected resources will be in the ``ms2_source`` attribute.
         """
         
+        self.ms2_source = []
+        
+        ms2_source = self.collect_ms2(attrs = attrs)
+        
+        if self.sample_id in ms2_source:
+            
+            self.ms2_source = ms2_source[self.sample_id]
+    
+    def collect_ms2(self, attrs = None):
+        """
+        Collects the MS2 scans belonging to this sample.
+        
+        The collected resources returned as ``dict`` which can be passed
+        to ``ms2.MS2Feature``.
+        """
+        
         attrs = attrs or self.attrs
         
         if self.ms2_format in self.ms2_collection_methods:
             
-            self.ms2_collection_methods[self.ms2_format](attrs = attrs)
+            method = self.ms2_collection_methods[self.ms2_format]
+            
+            return getattr(self, method)(attrs = attrs)
     
     def collect_mgf(self, attrs = None):
         """
@@ -737,54 +762,85 @@ class Sample(FeatureBase):
             MGF files.
         """
         
-        mgfdir = (
-            self.ms2_param['mgfdir']
-                if 'mgfdir' in self.ms2_param else
-            'mgf'
-        )
-        
-        if not os.isdir(mgfdir):
+        # if list of filenames provided we simply use those
+        if 'mgf_files' in self.ms2_param:
             
-            raise FileNotFoundError(
-                'Please provide a directory with MGF files.'
+            mgf_files = self.ms2_param['mgf_files']
+            
+            # if directory provided create paths
+            if 'mgfdir' in self.ms2_param:
+                
+                mgf_files = [
+                    os.path.join(self.ms2_param['mgfdir'], fname)
+                    for fname in mgf_files
+                ]
+            
+        # otherwise we need to collect the files
+        else:
+            
+            # check if directory with MGF files provided
+            mgfdir = (
+                self.ms2_param['mgfdir']
+                    if 'mgfdir' in self.ms2_param else
+                # fall back to this default
+                'mgf'
             )
+            
+            # if dir does not exist we can do nothing
+            if not os.isdir(mgfdir):
+                
+                raise FileNotFoundError(
+                    'Please provide a directory with MGF files.'
+                )
+            
+            # ok, now we can find the MGF files by matching against
+            # the sample attributes
+            attrs = attrs or self.attrs
+            
+            # see if a matching method provided
+            mgf_match_method = (
+                self.ms2_param['mgf_match_method']
+                    if 'mgf_match_method' in self.ms2_param else
+                # otherwise we use our default
+                self._default_mgf_match_method
+            )
+            
+            mgf_files = []
+            
+            for fname in os.listdir(mgfdir):
+                
+                mgf_path     = os.path.join(mgfdir, fname)
+                mgf_matches  = mgf_match_method(mgf_path, attrs)
+                
+                if mgf_matches:
+                    
+                    mgf_files.append(mgf_path)
         
-        attrs = attrs or self.attrs
-        
-        mgf_match_method = (
-            self.ms2_param['mgf_match_method']
-                if 'mgf_match_method' in self.ms2_param else
-            self._default_mgf_match_method
-        )
-        
-        mgf_files = mgf_match_method(mgfdir, attrs)
-        
+        # check if mgf_charge provided in params
         mgf_charge = (
             self.ms2_param['mgf_charge']
                 if 'mgf_charge' in self.ms2_param else
             None
         )
         
-        self.ms2_source = [
-            mgf.MgfReader(fname, charge = mgf_charge)
-            for fname in mgf_files
-        ]
+        # dict with one key and list of files probably only one element:
+        # do like this to be able to directly pass to ms2.MS2Feature
+        return  {
+            self.sample_id: [
+                mgf.MgfReader(fname, charge = mgf_charge)
+                for fname in mgf_files
+            ]
+        }
     
     @staticmethod
-    def _default_mgf_match_method(mgfdir, attrs):
+    def _default_mgf_match_method(path, attrs):
         """
         The default method for matching names of MGF files against attributes.
         """
         
-        result = set()
+        match = remgf.search(path)
         
-        for fname in os.listdir(mgfdir):
-            
-            remgf.search(fname)
-            
-            if not match:
-                
-                continue
+        if match:
             
             main, ionmode, fracrow, fraccol = match.groups()
             
@@ -794,14 +850,34 @@ class Sample(FeatureBase):
                 ionmode == attrs['label']['ionmode']
             ):
                 
-                result.add(os.path.join(mgfdir, fname))
+                return True
         
-        return result
+        return False
     
-    def ms2_analysis(self):
+    def collect_mzml(self, attrs = None):
+        
+        raise NotImplementedError
+    
+    def ms2_analysis(self, resources = None):
         """
         Runs MS2 identification methods on all features.
         """
+        
+        if resources is None:
+            
+            if isinstance(self.ms2_source, list):
+                
+                resources = {self.sample_id: self.ms2_source}
+                
+            elif isinstance(self.ms2_source, dict):
+                
+                resources = self.ms2_source
+                
+            else:
+                
+                raise RuntimeError(
+                    'No resources provided for MS2 identification.'
+                )
         
         ms2_identites = []
         
@@ -811,7 +887,7 @@ class Sample(FeatureBase):
             ms2_fe = ms2.MS2Feature(
                 mz = self.mzs[i],
                 ionmode = self.ionmode,
-                resources = {self.sample_id: self.ms2_source},
+                resources = resources,
                 rt = rt,
                 ms1_records = ms1_records,
             )
@@ -850,7 +926,7 @@ class FeatureIdx(FeatureBase):
         
         if len(argsort) != len(self):
             
-            raise ValueError(
+            raise RuntimeError(
                 'FeatureIdx: can not sort by index array of different length.'
             )
         
@@ -921,7 +997,7 @@ class FeatureIdx(FeatureBase):
         
         if len(sortable) != len(self):
             
-            raise ValueError(
+            raise RuntimeError(
                 'FeatureIdx: Objects of unequal length can not be co-sorted.'
             )
         
@@ -1067,7 +1143,6 @@ class SampleSet(Sample):
             # if it is callable we register it as a sample ID
             # provider method
             sample_id = sample_ids
-            self.sample_ids = [None] * self.numof_samples
             
         elif sample_ids and len(sample_ids) == self.numof_samples:
             
@@ -1106,7 +1181,7 @@ class SampleSet(Sample):
             
             # TODO: call aligner for different length samples
             # TODO: check if at least sorters show the same ordering
-            raise ValueError(
+            raise RuntimeError(
                 'SampleSet: it\'s possible combine only equal length samples '
                 'into a set. Also samples assumed to have the same ordering.'
             )
@@ -1172,7 +1247,7 @@ class SampleSet(Sample):
         
         attrs = attrs or self.attrs
         
-        for sample_id, sample_attrs in zip(attrs):
+        for i, sample_attrs in enumerate(attrs):
             
             if 'ms2_use_samples_method' in self.ms2_param:
                 
@@ -1188,17 +1263,7 @@ class SampleSet(Sample):
                     
                     continue
             
-            Sample.collect_ms2(self, attrs = sample_attrs)
-            
-            sample_id = Sample._get_sample_id(self.sample_id, sample_attrs)
-            
-            ms2_source[].append(self.ms2_source)
+            # adding MS2 sources for this sample to the dict
+            ms2_source.update(Sample.collect_ms2(self, attrs = sample_attrs))
         
         self.ms2_source = ms2_source
-    
-    def ms2_analysis(self):
-        """
-        Runs MS2 identification methods on all features.
-        """
-        
-        for 
