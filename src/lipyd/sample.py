@@ -899,7 +899,7 @@ class Sample(FeatureBase):
         
         ms2_identites = np.array(ms2_identities)
         
-        self._add_var(ms2_identites, 'ms2_identities')
+        self.feattrs._add_var(ms2_identites, 'ms2_identities')
     
     #
     # Methods for export results
@@ -930,22 +930,11 @@ class Sample(FeatureBase):
     def table(
             self,
             variables = None,
-            databases = None,
+            headers = None,
         ):
         """
         Returns results as a header and a table as list of lists.
         """
-        
-        adducts = list(settings.get('ad2ex')[1][self.ionmode].keys())
-        
-        if not databases:
-            
-            databases = sorted(set(
-                rec.lab.db
-                for adddict in self.feattrs.records
-                for add in adddict.values()
-                for rec in add[1]
-            ))
         
         hdr = [
             'm/z',
@@ -954,7 +943,46 @@ class Sample(FeatureBase):
             'quality',
             'significance',
             'database lookups',
+            'MS2 top',
+            'MS2 all',
         ]
+        
+        for i, var in enumerate(variables):
+            
+            hdr.append(var if not headers else headers[i])
+        
+        yield hdr
+        
+        for i in xrange(len(self)):
+            
+            ms2_id = self.feattrs.ms2_identities[i]
+            ms2_max_score = (
+                max(ms2i.score_pct for ms2i in ms2_id)
+                    if ms2_id else
+                0
+            )
+            ms2_best = ';'.join(
+                ms2i.full_str()
+                for ms2i in ms2_id
+                if ms2i.score_pct == ms2_max_score
+            )
+            ms2_all = ';'.join(ms2i.full_str() for ms2i in ms2_id)
+            
+            yield [
+                '%08f' % self.mzs[i],
+                '%u' % self.feattrs.total_intensities[i],
+                '%.02f - %.02f' % tuple(self.feattrs.rt_ranges[i]),
+                '%.02f' % self.feattrs.quality[i],
+                '%.02f' % self.feattrs.significance[i],
+                moldb.records_string(
+                    records = self.feattrs.records[i],
+                    show_ppm = True,
+                    show_adduct = True,
+                    show_db = True,
+                ),
+                ms2_best,
+                ms2_all,
+            ]
 
 
 class FeatureIdx(FeatureBase):

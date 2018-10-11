@@ -87,6 +87,29 @@ class MS2Identity(collections.namedtuple(
             lipproc.summary_str(self.hg, self.chainsum)
         )
     
+    def full_str(self):
+        
+        details = []
+        
+        details.append('score=%.01' % self.score_pct)
+        
+        if self.scan_details:
+            
+            if self.scan_details.deltart is not None:
+                details.append('deltart=%.02' % self.scan_details.deltart)
+            if self.scan_details.sample_id is not None:
+                sample_id = self.scan_details.sample_id
+                if isinstance(sample_id, tuple):
+                    sample_id = ''.join(str(i) for i in sample_id)
+                details.append('sample=%s' % sample_id)
+            if self.scan_details.scan_id is not None:
+                details.append('scan=%u' % self.scan_details.scan_id)
+        
+        return '%s[%s]' % (
+            self.__str__(),
+            ','.join(details),
+        )
+    
     def summary(self):
         
         return self.__str__(), self.score_pct
@@ -110,9 +133,9 @@ ChainIdentificationDetails.__new__.__defaults__ = (None, None, None)
 
 ScanDetails = collection.namedtuple(
     'ScanDetails',
-    ['sample_id', 'scan_id', 'source']
+    ['sample_id', 'scan_id', 'source', 'deltart']
 )
-ChainIdentificationDetails.__new__.__defaults__ = (None, None, None)
+ChainIdentificationDetails.__new__.__defaults__ = (None, None, None, None)
 
 
 class mz_sorted(object):
@@ -312,6 +335,7 @@ class Scan(ScanBase):
             scan_id = None,
             sample_id = None,
             source = None,
+            deltart = None,
             logger = None,
             verbose = False,
             tolerance = None,
@@ -359,6 +383,7 @@ class Scan(ScanBase):
         self.scan_id = scan_id
         self.sample_id = sample_id
         self.source = source
+        self.ms1_rt = deltart
         self.rt = rt
         self.log = logger
         self.verbose = verbose
@@ -367,6 +392,7 @@ class Scan(ScanBase):
             sample_id = self.sample_id,
             scan_id   = self.scan_id,
             source    = self.source,
+            deltart   = self.deltart,
         )
     
     @classmethod
@@ -5516,6 +5542,7 @@ class MS2Feature(object):
                 scan_id = mgffile.mgfindex[i,3],
                 sample_id = self.sample_id,
                 source = mgffile.fname,
+                deltart = rtd,
                 rt = mgffile.mgfindex[i,2],
             )
     
