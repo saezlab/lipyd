@@ -759,6 +759,12 @@ class Sample(FeatureBase):
         
         attrs = attrs or self.attrs
         
+        if self.ms2_format is None:
+            
+            raise RuntimeError(
+                '`ms2_format` is necessary to run MS2 analysis.'
+            )
+        
         if self.ms2_format in self.ms2_collection_methods:
             
             method = self.ms2_collection_methods[self.ms2_format]
@@ -799,7 +805,7 @@ class Sample(FeatureBase):
             )
             
             # if dir does not exist we can do nothing
-            if not os.isdir(mgfdir):
+            if not os.path.isdir(mgfdir):
                 
                 raise FileNotFoundError(
                     'Please provide a directory with MGF files.'
@@ -891,7 +897,7 @@ class Sample(FeatureBase):
                     'No resources provided for MS2 identification.'
                 )
         
-        ms2_identites = []
+        ms2_identities = []
         
         for i in xrange(len(self)):
             
@@ -900,17 +906,17 @@ class Sample(FeatureBase):
                 mz = self.mzs[i],
                 ionmode = self.ionmode,
                 resources = resources,
-                rt = rt,
-                ms1_records = ms1_records,
+                rt = tuple(self.feattrs.rt_ranges[i]),
+                ms1_records = self.feattrs.records[i],
             )
             
             ms2_fe.main()
             
-            ms2_identites.append(ms2_fe.indentities)
+            ms2_identities.append(ms2_fe.identities)
         
-        ms2_identites = np.array(ms2_identities)
+        ms2_identities = np.array(ms2_identities)
         
-        self.feattrs._add_var(ms2_identites, 'ms2_identities')
+        self.feattrs._add_var(ms2_identities, 'ms2_identities')
     
     def ms2_identify(self):
         
@@ -1387,4 +1393,4 @@ class SampleSet(Sample):
             # adding MS2 sources for this sample to the dict
             ms2_source.update(Sample.collect_ms2(self, attrs = sample_attrs))
         
-        self.ms2_source = ms2_source
+        return ms2_source
