@@ -348,8 +348,7 @@ class FeatureBase(object):
         
         self._filter(selection, propagate = propagate)
     
-    @staticmethod
-    def _idx_to_selection(idx, negative = False):
+    def _idx_to_selection(self, idx, negative = False):
         
         if isinstance(idx, list):
             
@@ -763,7 +762,7 @@ class Sample(FeatureBase):
         """
         
         attrs = attrs or self.attrs
-        sample_id = sample_id or self._get_sample_id(attrs)
+        sample_id = sample_id or self._get_sample_id(self.sample_id, attrs)
         
         if self.ms2_format is None:
             
@@ -1405,7 +1404,33 @@ class SampleSet(Sample):
             **var,
         )
     
+    def _set_sample_ids(self, i):
+        
+        self.sample_index_to_id = []
+        self.sample_id_to_index = {}
+        
+        for i in xrange(len(self.attrs)):
+            
+            sample_id = self._get_sample_id(i)
+            
+            self.sample_index_to_id.append(sample_id)
+            self.sample_id_to_index[sample_id] = i
+    
     def get_sample_id(self, i):
+        """
+        Returns the ID of a sample by its index.
+        """
+        
+        return self.sample_index_to_id[i]
+    
+    def get_sample_index(self, sample_id):
+        """
+        Returns the index of a sample by its ID.
+        """
+        
+        return self.sample_id_to_index[sample_id]
+    
+    def _get_sample_id(self, i):
         
         if hasattr(self.sample_id, '__call__'):
             
@@ -1415,7 +1440,7 @@ class SampleSet(Sample):
             
             sample_id = self.sample_ids[i]
         
-        return self._get_sample_id(sample_id, self.attrs[i])
+        return Sample._get_sample_id(Sample, sample_id, self.attrs[i])
     
     def collect_ms2(self, attrs = None):
         """
