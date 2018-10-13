@@ -586,7 +586,7 @@ class Sample(FeatureBase):
             
             return cls._default_sample_id_method(attrs)
             
-        elif hasattr(sample_id, '__call__'):
+        elif callable(sample_id):
             
             return sample_id(attrs)
             
@@ -613,6 +613,28 @@ class Sample(FeatureBase):
         """
         
         return len(self.mzs)
+    
+    def apply(
+            self,
+            method,
+            name,
+            variables = None,
+            feature_attrs = None,
+            **kwargs
+        ):
+        """
+        Applies a method on each of the features and creates a new variable
+        from the results.
+        
+        :param callable method:
+            The method to apply.
+        :param str name:
+            The name for the new variable.
+        :param list variables:
+            List of variables to be passed to the method.
+        :param
+        """
+        
     
     #
     # Methods for processing
@@ -1306,7 +1328,7 @@ class SampleSet(Sample):
         sample_id = None
         self.sample_ids = [None] * self.numof_samples
         
-        if hasattr(sample_ids, '__call__'):
+        if callable(sample_ids):
             
             # if it is callable we register it as a sample ID
             # provider method
@@ -1432,7 +1454,7 @@ class SampleSet(Sample):
     
     def _get_sample_id(self, i):
         
-        if hasattr(self.sample_id, '__call__'):
+        if callable(self.sample_id):
             
             sample_id = self.sample_id
             
