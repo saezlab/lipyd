@@ -387,13 +387,30 @@ class FeatureBase(object):
             the threshold will be kept and all others removed.
         """
         
-        if var not in self.var:
-            
-            return
-        
-        selection = op(getattr(self, var), threshold)
+        selection = self.threshold_select(var, threshold = threshold, op = op)
         
         self._filter(selection)
+    
+    def threshold_select(self, var, threshold, op = operator.gt):
+        """
+        Returns boolean vector by applying an operator on a variable and
+        a threshold.
+        """
+        
+        if var not in self.var:
+            
+            raise RuntimeError('No such variable: %s' % var)
+        
+        return self._threshold_select(
+            getattr(self, var),
+            threshold = threshold,
+            op = op,
+        )
+    
+    @staticmethod
+    def _threshold_select(var, threshold, op = operator.gt):
+        
+        return op(var, threshold)
     
     def feature_data(self, i, variables = None):
         """
@@ -686,6 +703,68 @@ class Sample(FeatureBase):
             result.append(result_i)
         
         np.vstack()
+    
+    def select(
+            self,
+            method = None,
+            variables = None,
+            feature_atts = None,
+            threshold = None,
+            negative = False,
+            op = operator.gt,
+            **kwargs
+        ):
+        """
+        Selects a subset of the features. Returns ``FeatureSelection`` object.
+        
+        If ``method`` is callable, applies it to the variables in
+        ``variables`` and ``feature_attrs`` and selects based on ``threshold``
+        and ``negative``. If ``method`` is ``None`` and a variable name
+        provided in ``variables`` or ``feature_attrs`` then uses this
+        variable to provide a selection.
+        
+        :param callable method:
+            Method to be applied to obtain a new variable which will be the
+            basis of the selection.
+        :param list,str variables:
+            Eiter a list of variables (to be passed to ``method``) or one
+            variable name which will be the basis of the selection.
+        :param list,str feature_attrs:
+            Like ``variables`` but refers to variables in the
+            ``FeatureAttributes`` object.
+        :param float threshold:
+            A threshold value for the filter.
+        :param bool negative:
+            Apply negative selection (selection vector is ``False`` where)
+            ``method`` returns ``True``.
+        :param operator op:
+            Operator to apply between variable and threshold.
+        """
+        
+        if callable(method):
+            
+            var = self._apply(
+                method,
+                variables = variables,
+                feature_attrs = feature_attrs,
+                **kwargs
+            )
+            
+        elif isinstance(variables, basestring):
+            
+            var = getattr(self, var)
+            
+        elif isinstance(feature_attrs, basestring):
+            
+            var = getattr(self.feattrs, var)
+            
+        selection = self._threshold_select(
+            var = var,
+            threshold = threshold,
+            op = op,
+        )
+        
+        return feature.FeatureSelection(self, selections)
     
     def feature_data(self, i, variables = None, feature_attrs = None):
         """
