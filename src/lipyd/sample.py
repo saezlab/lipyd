@@ -394,6 +394,22 @@ class FeatureBase(object):
         selection = op(getattr(self, var), threshold)
         
         self._filter(selection)
+    
+    def feature_data(self, i, variables = None):
+        """
+        For a feature returns the requested attributes.
+        
+        :param list variables:
+            Names of the variables.
+        """
+        
+        result = {}
+        
+        for var in varialbes:
+            
+            result[var] = getattr(self, var)[i]
+        
+        return result
 
 
 class FeatureAttributes(FeatureBase):
@@ -632,9 +648,49 @@ class Sample(FeatureBase):
             The name for the new variable.
         :param list variables:
             List of variables to be passed to the method.
-        :param
+        :param list feature_attrs:
+            List of variables in the ``FeatureAttributes`` object.
+        :param **kwargs:
+            Passed to method.
         """
         
+        new = self._apply(
+            method = method,
+            variables = variables,
+            feature_attrs = feature_attrs,
+            **kwargs,
+        )
+        
+        self.feattrs._add_var(new, name)
+    
+    def _apply(
+            self,
+            method,
+            variables = None,
+            feature_attrs = None,
+            **kwargs
+        ):
+        
+        
+        
+        np.vstack()
+    
+    def feature_data(self, i, variables = None, feature_attrs = None):
+        """
+        For a feature returns the requested attributes.
+        
+        :param list variables:
+            Names of the variables.
+        :param list feature_attrs:
+            Names of variables in the ``FeatureAttributes`` object.
+        """
+        
+        result = {}
+        
+        result.update(FeatureBase.feature_data(i, variables))
+        result.update(self.feattrs.feature_data(i, feature_attrs))
+        
+        return result
     
     #
     # Methods for processing
