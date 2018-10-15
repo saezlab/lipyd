@@ -609,7 +609,7 @@ class Sample(FeatureBase):
             return isort
     
     def _set_sample_id(self):
-        
+    
         self.sample_id = self._get_sample_id(self._sample_id, self.attrs)
     
     @classmethod
