@@ -37,6 +37,7 @@ import lipyd.ms2 as ms2
 import lipyd.mgf as mgf
 import lipyd.settings as settings
 import lipyd.progress as progress
+import lipyd.feature as feature
 
 
 remgf  = re.compile(r'(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
@@ -371,6 +372,20 @@ class FeatureBase(object):
         if propagate:
             
             self.sorter._filter(selection = selection, origin = id(self))
+    
+    def filter_selection(self, selection, negative = False):
+        """
+        Takes a ``FeatureSelection`` object and applies it as a filter i.e.
+        removes features where it is ``False``.
+        """
+        
+        if negative:
+            
+            self._filter(selection.negative)
+            
+        else:
+            
+            self._filter(selection.selection)
     
     def threshold_filter(self, var, threshold, op = operator.gt):
         """
@@ -764,7 +779,7 @@ class Sample(FeatureBase):
             op = op,
         )
         
-        return feature.FeatureSelection(self, selections)
+        return FeatureSelection(self, selections)
     
     def feature_data(self, i, variables = None, feature_attrs = None):
         """
@@ -1695,3 +1710,21 @@ class SampleSet(Sample):
         self.feattrs._add_var(peaksize, 'peaksize')
         
         self.feattrs.threshold_filter('peaksize', threshold = threshold)
+
+
+class FeatureSelection(FeatureBase):
+    
+    def __init__(self, samples, selection):
+        
+        self.samples = samples
+        
+        FeatureBase.__init__(
+            self,
+            sorter = self.samples.sorter,
+            selection = selection,
+        )
+    
+    @property
+    def negative(self):
+        
+        return np.logical_not(self.selection)
