@@ -671,7 +671,19 @@ class Sample(FeatureBase):
             **kwargs
         ):
         
+        result = []
         
+        for i in xrange(len(self)):
+            
+            args = self.feature_data(
+                i,
+                variables = variables,
+                feature_attrs = feature_attrs,
+            )
+            
+            result_i = method(**args, **kwargs)
+            
+            result.append(result_i)
         
         np.vstack()
     
