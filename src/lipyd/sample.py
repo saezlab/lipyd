@@ -625,21 +625,30 @@ class Sample(FeatureBase):
     
     def _set_sample_id(self):
     
-        self.sample_id = self._get_sample_id(self._sample_id, self.attrs)
+        self.sample_id = self._get_sample_id(
+            sample_id = self._sample_id,
+            attrs = self.attrs,
+        )
     
     @classmethod
     def _get_sample_id(cls, sample_id = None, attrs = None):
         
         if sample_id is None:
             
+            # first if it's None we call the deafult method to
+            # create sample ID from the sample attributes
             return cls._default_sample_id_method(attrs)
             
         elif callable(sample_id):
             
+            # if a custom method has been provided we use
+            # that instead
             return sample_id(attrs)
             
         else:
             
+            # if it's not callable but any other kind of object
+            # then we assume the sample ID is explicitely given
             return sample_id
     
     @staticmethod
@@ -1588,7 +1597,7 @@ class SampleSet(Sample):
             **var,
         )
     
-    def _set_sample_ids(self, i):
+    def _set_sample_id(self):
         
         self.sample_index_to_id = []
         self.sample_id_to_index = {}
@@ -1616,15 +1625,18 @@ class SampleSet(Sample):
     
     def _get_sample_id(self, i):
         
-        if callable(self.sample_id):
+        if callable(self.sample_ids):
             
-            sample_id = self.sample_id
+            sample_id = self.sample_ids
             
         else:
             
             sample_id = self.sample_ids[i]
         
-        return Sample._get_sample_id(Sample, sample_id, self.attrs[i])
+        return Sample._get_sample_id(
+            sample_id = sample_id,
+            attrs = self.attrs[i]
+        )
     
     def collect_ms2(self, attrs = None):
         """
