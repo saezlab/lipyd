@@ -1475,29 +1475,16 @@ class SampleSet(Sample):
             mzs.mean(axis = tuple(range(1, len(mzs.shape))))
         )
         
-        # this is the default
-        self.numof_samples = 1
-        
-        if attrs:
-            
-            # if we have attributes number of samples should be obvious
-            self.numof_samples = len(attrs)
-            
-        else:
-            
-            # otherwise try to guess from shape of the data arrays
-            for var in (mzs, intensities, rts):
-                
-                if hasattr(var, 'shape') and len(var.shape) > 1:
-                    
-                    self.numof_samples = var.shape[1]
-                    break
+        numof_samples = self._guess_numof_samples(
+            attrs,
+            (mzs, intensities, rts),
+        )
         
         # by default None, which means the default method will be
         # called from Sample to get IDs either from the attributes
         # or random strings in worst case
         sample_id = None
-        self.sample_ids = [None] * self.numof_samples
+        self.sample_ids = [None] * numof_samples
         
         if callable(sample_ids):
             
@@ -1567,6 +1554,33 @@ class SampleSet(Sample):
             sorter = sorter,
             **var,
         )
+    
+    @property
+    def numof_samples(self):
+        
+        return self._guess_numof_samples(
+            self.attrs,
+            (getattr(self, var for var in self.var)),
+        )
+    
+    def _guess_numof_samples(self, attrs = None, variables = None):
+        
+        if attrs:
+            
+            # if we have attributes number of samples should be obvious
+            return len(attrs)
+            
+        else:
+            
+            # otherwise try to guess from shape of the data arrays
+            for var in variables:
+                
+                if hasattr(var, 'shape') and len(var.shape) > 1:
+                    
+                    return var.shape[1]
+        
+        # this is the default
+        return 1
     
     def get_sample_attrs(self, i):
         """
