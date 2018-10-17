@@ -1,0 +1,32 @@
+##########################################################
+# Identify PE with checking  the precursor mass, FAS     #
+##########################################################
+
+QUERYNAME = Phosphatidylethanolamine;
+DEFINE PR = 'C[33..49] H[50..100] O[8] N[1] P[1]' WITH DBR = (2.5,9.5), CHG = -1;
+DEFINE FA1 ='C[14..22] H[20..50] O[2]' WITH DBR = (1.5,7.5), CHG = -1;
+DEFINE FA2 ='C[14..22] H[20..50] O[2]' WITH DBR = (1.5,7.5), CHG = -1;
+
+IDENTIFY Phosphatidylethanolamine WHERE
+	
+	# marking
+	PR IN MS1- AND
+	FA1 in MS2- AND
+	FA2 in MS2-
+
+SUCHTHAT
+	isOdd(PR.chemsc[C]) AND
+	isEven(FA1.chemsc[C]) AND
+	isEven(FA2.chemsc[C]) AND
+	FA1.chemsc + FA2.chemsc + 'C5 H11 O4 N1 P1' == PR.chemsc
+  
+REPORT 
+	MASS = "%4.4f" % "(PR.mass)";
+	CHEMSC = PR.chemsc;
+        ERROR = "%2.2fppm" % "(PR.errppm)";
+	NAME = "PE [%d:%d]" % "((PR.chemsc)[C] - 5, (PR.chemsc)[db] - 2.5)";
+	SPECIE = "PE [%d:%d / %d:%d]" % "(FA1.chemsc[C], FA1.chemsc[db] - 1.5, FA2.chemsc[C], FA2.chemsc[db] - 1.5)";
+	PRECURINTENS = PR.intensity;
+	FAS = sumIntensity(FA1, FA2);;
+
+################ end script ##################
