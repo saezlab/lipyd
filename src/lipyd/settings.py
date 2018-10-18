@@ -334,6 +334,8 @@ _defaults = {
     'mgf_neg_examples': 'neg_examples.mgf',
     'mgf_pos_examples': 'pos_examples.mgf',
     'peaks_example': 'peaks_example.csv',
+    # an MFQL example file
+    'mfql_example': 'Neg_bovine_heart_PE.mfql',
     # logarithm base for matching chain fragment intensities
     # this determines the tolerance and represents fold difference
     'chain_fragment_instensity_ratios_logbase': 1.5,
@@ -482,6 +484,7 @@ in_datadir = {
     'lipnamesf',
     'mgf_example',
     'peaks_example',
+    'mfql_example',
 }
 
 in_mgfdir = {
