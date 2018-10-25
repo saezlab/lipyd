@@ -1560,7 +1560,7 @@ class SampleSet(Sample):
         
         return self._guess_numof_samples(
             self.attrs,
-            (getattr(self, var for var in self.var)),
+            (getattr(self, var) for var in self.var),
         )
     
     def _guess_numof_samples(self, attrs = None, variables = None):
@@ -1614,14 +1614,21 @@ class SampleSet(Sample):
     def _set_sample_id(self):
         
         self.sample_index_to_id = []
-        self.sample_id_to_index = {}
         
         for i in xrange(len(self.attrs)):
             
             sample_id = self._get_sample_id(i)
             
             self.sample_index_to_id.append(sample_id)
-            self.sample_id_to_index[sample_id] = i
+        
+        self._update_id_to_index()
+    
+    def _update_id_to_index(self):
+        
+        self.sample_id_to_index = dict(
+            reversed(i)
+            for i in self.sample_index_to_id
+        )
     
     def get_sample_id(self, i):
         """
