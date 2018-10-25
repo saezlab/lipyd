@@ -1743,6 +1743,32 @@ class SampleSet(Sample):
         self.feattrs._add_var(peaksize, 'peaksize')
         
         self.feattrs.threshold_filter('peaksize', threshold = threshold)
+    
+    def order_samples(self, idx, propagate = True, origin = None):
+        
+        if origin == id(self):
+            
+            return
+        
+        numof_samples = self.numof_samples
+        
+        if len(idx) != numof_samples:
+            
+            raise RuntimeError(
+                'Invalid index length: %u while number of samples is %u.' % (
+                    len(idx), numof_samples
+                )
+            )
+        
+        for var in self.var:
+            
+            arr = getattr(self, var)
+            
+            if len(arr.shape) < 1 or arr.shape[1] != numof_samples:
+                
+                continue
+            
+            setattr(self, var, np.take(arr, idx, axis = 1))
 
 
 class FeatureSelection(FeatureBase):
