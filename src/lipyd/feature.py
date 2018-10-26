@@ -15,9 +15,117 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+import numpy as np
+
+
+class SampleSorter(object):
+    
+    def __init__(self, sample_data = None):
+        """
+        Keeps the order of samples synchronized between multiple objects.
+        These objects represent sets of the same samples such as
+        ``sample.SampleSet`` or ``feature.SampleData``.
+        """
+        
+        self.sample_data = {}
+        
+        if not isinstance(sample_data, (list, set)):
+            
+            sample_data = [sample_data]
+        
+        for s in sample_data:
+            
+            self.register(s)
+    
+    def register(self, s):
+        
+        self.sample_data[id(s)] = s
+    
+    def order_samples(self, order, propagate = True, done = None):
+        """
+        Changes the ordering of the samples.
+        """
+        
+        if origin == id(self):
+            
+            return
+        
+        numof_samples = self.numof_samples
+        
+        if len(idx) != numof_samples:
+            
+            raise RuntimeError(
+                'Invalid index length: %u while number of samples is %u.' % (
+                    len(idx), numof_samples
+                )
+            )
+        
+        for var in self.var:
+            
+            arr = getattr(self, var)
+            
+            if len(arr.shape) < 1 or arr.shape[1] != numof_samples:
+                
+                continue
+            
+            setattr(self, var, np.take(arr, idx, axis = 1))
+        
+        for 
+
+
+class SampleData(SampleSorter):
+    
+    def __init__(self, data, samples = None, labels = None):
+        """
+        Represents data about a series of samples. Samples are LC MS/MS runs.
+        Data might be a binary, qualitative or quantitative attribute about
+        these samples. E.g. disease status of a patient, time of sampling,
+        quantity of a protein, etc. The data might have more than one
+        dimensions but the first axis is always considered to be the sample
+        identity and the number of samples must agree with the number of
+        samples in the sampleset. If no ``labels`` provided the order of
+        sample data assumed to be the same as the order of samples in the
+        sampleset. Otherwise it will be ordered according to the labels.
+        
+        :param numpy.array data:
+            Data associated to samples. First dimension must agree with the
+            samples in the sampleset.
+        :param lipyd.samples.SampleSet samples:
+            A ``SampleSet`` object.
+        :param list labels:
+            A list of sample labels. Will be used to reorder the sample data
+            in order to have the same ordering as the samples in sampleset.
+        """
+        
+        self.data    = data
+        self.labels  = labels
+        self.samples = samples
+    
+    def __len__(self):
+        """
+        Returns the number of samples.
+        """
+        
+        return self.data.shape[0]
+    
+    def set_sampleset(self, sampleset):
+        """
+        Registers a ``SampleSet`` object.
+        """
+        
+        if sampleset.numof_samples != len(self):
+            
+            raise RuntimeError(
+                'First dimension of the data array '
+                'must gree with the number of samples.'
+            )
+        
+        
+
+
 class SampleSelection(object):
     
-    def __init__(self):
+    def __init__(self, selection, labels = None):
         
         pass
 

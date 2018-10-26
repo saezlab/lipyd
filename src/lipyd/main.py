@@ -29,6 +29,7 @@ import datetime
 
 import collections
 import itertools
+import operator as op
 
 try:
     import cPickle as pickle
@@ -2157,7 +2158,7 @@ class Screening(object):
     def protein_containing_fractions_from_absorbances(self, abscol = 1):
         """
         Sets the protein containing fractions (`fractions`) based on
-        the UV absorbances, considering protein containing those whit a
+        the UV absorbances, considering protein containing those with a
         value higher than the maximum / minratio.
         """
         self.fractions = dict(map(lambda protein: (protein, {}),
@@ -8796,6 +8797,8 @@ class Screening(object):
         and one set of highest fractions.
         """
         
+        print(':::: %s ::::' % protein)
+        
         w = self.filter_wrong_fractions
         
         wfracs = self.wrong_fractions(protein, mode)
@@ -8851,6 +8854,17 @@ class Screening(object):
         fe     = tbl['fe']
         shape  = [fe.shape[0], 1]
         
+        print('hpeak: ')
+        print(hfracs)
+        print('nfracs: ')
+        print(nfracs)
+        print('pfracs: ')
+        print(pfracs)
+        print('ifracs: ')
+        print(ifracs)
+        print('pprofs: ')
+        print(pprofs)
+        
         # this is the default, we select the one just before
         # the highest
         i_minus1 = pfracs[hfracs[0]]  - 1 # h-1
@@ -8888,6 +8902,7 @@ class Screening(object):
         fr32 = hfracs[-1] #
         
         tbl['sloi%u' % i] = []
+        tbl['_slop%u' % i] = {}
         
         with np.errstate(divide = 'ignore', invalid = 'ignore'):
             # as we control all arrays to be greater than zero
@@ -8899,8 +8914,10 @@ class Screening(object):
                 
                 pratio1 = pprofs[fr11] / pprofs[fr12] # either -1 or +2
                 
+                print(fr11, fr12, pratio1)
+                
                 iratio1 = (fe[:,ifracs[fr11][0]] / # numeric vector
-                        fe[:,ifracs[fr12][0]])  # of ratios
+                           fe[:,ifracs[fr12][0]])  # of ratios
                 
                 if only_descending:
                     # descending, but not more than certain threshold
@@ -8911,8 +8928,29 @@ class Screening(object):
                                     self.slope_descending_slope_diff_tolerance
                                 )
                             )
+                    
+                    tbl['_slop%u' % i][(fr11, fr12)] = {
+                        'pratio': pratio1,
+                        'conditions':
+                        (
+                            (op.lt, pratio1),
+                            (
+                                op.gt,
+                                pratio1 *
+                                self.slope_descending_slope_diff_tolerance
+                            ),
+                        ),
+                    }
+                    
                 else:
                     iratio1 = iratio1 < 1.0 # ascending
+                    
+                    tbl['_slop%u' % i][(fr11, fr12)] = {
+                        'pratio': pratio1,
+                        'conditions': (
+                            (op.lt, 1.0),
+                        ),
+                    }
                 
                 iratio1   = np.logical_and(
                                 np.logical_and(
@@ -8931,7 +8969,7 @@ class Screening(object):
                 
                 iratio2 = fe[:,ifracs[fr21][0]] / fe[:,ifracs[fr22][0]]
                 
-                iratio2   = np.logical_and(
+                iratio2 = np.logical_and(
                                 np.logical_and(
                                     fe[:,ifracs[fr21][0]] > 0.0,
                                     fe[:,ifracs[fr22][0]] > 0.0
@@ -8943,8 +8981,19 @@ class Screening(object):
                 
                 tbl['slo%u%s%s' % (i, fr21, fr22)] = iratio2.reshape(shape)
                 tbl['sloi%u' % i].append((fr21, fr22))
+                
+                tbl['_slop%u' % i][(fr21, fr22)] = {
+                    'pratio': pratio2,
+                    'conditions': (
+                        (op.gt, 1.0)
+                            if ratio2_descending else
+                        (op.lt, 1.0),
+                    ),
+                }
             
             if fr31 != fr32:
+                
+                pratio3 = pprofs[fr31] / pprofs[fr32]
                 # to not calculate it twice
                 iratio3 = (fe[:,ifracs[fr31][0]] /
                            fe[:,ifracs[fr32][0]])
@@ -8962,6 +9011,14 @@ class Screening(object):
                 
                 tbl['slo%u%s%s' % (i, fr31, fr32)] = iratio3.reshape(shape)
                 tbl['sloi%u' % i].append((fr31, fr32))
+                
+                tbl['_slop%u' % i][(fr31, fr32)] = {
+                    'pratio': pratio3,
+                    'conditions': (
+                        (op.gt, ratio),
+                        (op.lt, 1.0 / ratio),
+                    ),
+                }
         
         tbl['slob%u' % i] = (
                                 np.all(
@@ -15440,3 +15497,45 @@ class Screening(object):
             )
             if _s[2]['score'] > 0
         ]
+    
+    def export_slope_filter(self, fname = 'slope_filter.tsv'):
+        
+        result = []
+        
+        for protein, d in iteritems(self.valids):
+            
+            for mode, tbl in iteritems(d):
+                
+                for var in tbl.keys():
+                    
+                    if var[:5] != '_slop':
+                        
+                        continue
+                    
+                    this_row = ' AND '.join([
+                        '%s %s %.05f (protein=%.05f)' % (
+                            ('%s:%s' % key),
+                            '>' if con[0].__name__ == 'gt' else '<',
+                            con[1],
+                            val['pratio'],
+                        )
+                        for key, val in iteritems(tbl[var])
+                        for con in val['conditions']
+                    ])
+                    
+                    result.append([
+                        protein,
+                        mode,
+                        this_row,
+                    ])
+        
+        with open(fname, 'w') as fp:
+            
+            _ = fp.write('\t'.join(['protein', 'ionmode', 'conditions']))
+            _ = fp.write('\n')
+            
+            _ = fp.write(
+                '\n'.join(
+                    '\t'.join(l) for l in result
+                )
+            )

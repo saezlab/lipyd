@@ -624,6 +624,7 @@ class Sample(FeatureBase):
             return isort
     
     def _set_sample_id(self):
+        # Note: this is called by __init__()
     
         self.sample_id = self._get_sample_id(
             sample_id = self._sample_id,
@@ -1428,7 +1429,7 @@ class FeatureIdx(FeatureBase):
                 client._filter(selection, propagate = False)
 
 
-class SampleSet(Sample):
+class SampleSet(Sample, feature.SampleSorter):
     
     def __init__(
             self,
@@ -1442,6 +1443,7 @@ class SampleSet(Sample):
             ms2_format = 'mgf',
             ms2_param = None,
             sample_ids = None,
+            sample_data = None,
         ):
         """
         This class represents an ordered set of samples.
@@ -1462,6 +1464,9 @@ class SampleSet(Sample):
             Either a list of sample identifiers with the same length as
             number of samples or a method which generates sample identifiers
             from sample attributes.
+        :param list sample_data:
+            Other ``SampleSet`` or ``feature.SampleData`` objects which
+            should be co-sorted with this object.
         """
         
         centr_mzs = (
@@ -1512,9 +1517,11 @@ class SampleSet(Sample):
             ms2_param = ms2_param,
             sample_id = sample_id,
         )
+        
+        feature.SampleSorter.__init__(self, sample_data = sample_data)
     
     @classmethod
-    def combine_samples(cls, attrs, samples):
+    def combine_samples(cls, attrs, samples, **kwargs):
         """
         Initializes the object by combining a series of ``Sample`` objects.
         
@@ -1553,6 +1560,7 @@ class SampleSet(Sample):
             feature_attrs = feature_attrs,
             sorter = sorter,
             **var,
+            **kwargs,
         )
     
     @property
@@ -1612,6 +1620,7 @@ class SampleSet(Sample):
         )
     
     def _set_sample_id(self):
+        # Note: this is called by Sample.__init__()
         
         self.sample_index_to_id = []
         
@@ -1743,32 +1752,6 @@ class SampleSet(Sample):
         self.feattrs._add_var(peaksize, 'peaksize')
         
         self.feattrs.threshold_filter('peaksize', threshold = threshold)
-    
-    def order_samples(self, idx, propagate = True, origin = None):
-        
-        if origin == id(self):
-            
-            return
-        
-        numof_samples = self.numof_samples
-        
-        if len(idx) != numof_samples:
-            
-            raise RuntimeError(
-                'Invalid index length: %u while number of samples is %u.' % (
-                    len(idx), numof_samples
-                )
-            )
-        
-        for var in self.var:
-            
-            arr = getattr(self, var)
-            
-            if len(arr.shape) < 1 or arr.shape[1] != numof_samples:
-                
-                continue
-            
-            setattr(self, var, np.take(arr, idx, axis = 1))
 
 
 class FeatureSelection(FeatureBase):

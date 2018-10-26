@@ -95,6 +95,7 @@ deps = [
     'tqdm',
     'xmltodict',
     'bs4',
+    'regex',
 ]
 
 setup(
