@@ -41,12 +41,14 @@ class SampleSorter(object):
         
         self.sample_data[id(s)] = s
     
-    def order_samples(self, order, propagate = True, done = None):
+    def order_samples(self, idx, done = None):
         """
         Changes the ordering of the samples.
         """
         
-        if origin == id(self):
+        done = set() if done is None else done
+        
+        if id(self) in done:
             
             return
         
@@ -70,12 +72,24 @@ class SampleSorter(object):
             
             setattr(self, var, np.take(arr, idx, axis = 1))
         
-        for 
+        done.add(id(self))
+        
+        for sd_id, sd in iteritems(self.sample_data):
+            
+            if sd_id not in done:
+                
+                sd.order_samples(idx = idx, done = done)
 
 
 class SampleData(SampleSorter):
     
-    def __init__(self, data, samples = None, labels = None):
+    def __init__(
+            self,
+            data,
+            samples = None,
+            labels = None,
+            sample_data = None,
+        ):
         """
         Represents data about a series of samples. Samples are LC MS/MS runs.
         Data might be a binary, qualitative or quantitative attribute about
@@ -100,6 +114,8 @@ class SampleData(SampleSorter):
         self.data    = data
         self.labels  = labels
         self.samples = samples
+        
+        SampleSorter.__init__(self, sample_data = sample_data)
     
     def __len__(self):
         """
