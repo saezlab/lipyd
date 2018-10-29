@@ -38,9 +38,9 @@ class SampleAttrs(object):
         
         self.attrs = attrs or {}
         self._sample_id_method = sample_id_method
-        self._set_sample_id()
+        self.sample_id = self._get_sample_id()
     
-    def _set_sample_id(self):
+    def _get_sample_id(self):
         
         if self._sample_id_method is None:
             
@@ -273,11 +273,13 @@ class SampleSorter(object):
             
             sample_data = [sample_data]
         
-        self._init_attrs(
-            sample_data = sample_data,
-            sample_ids  = sample_ids,
-            sample_id_processor = sample_id_processor,
-        )
+        if not hasattr(self, 'attrs'):
+            
+            self._init_attrs(
+                sample_data = sample_data,
+                sample_ids  = sample_ids,
+                sample_id_processor = sample_id_processor,
+            )
         
         for s in sample_data:
             

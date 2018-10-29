@@ -37,7 +37,6 @@ import lipyd.ms2 as ms2
 import lipyd.mgf as mgf
 import lipyd.settings as settings
 import lipyd.progress as progress
-import lipyd.feature as feature
 import lipyd.sampleattrs as sampleattrs
 
 
@@ -503,6 +502,7 @@ class Sample(FeatureBase):
             ms2_format = 'mgf',
             ms2_param = None,
             silent = False,
+            sample_id_processor = None,
             **kwargs,
         ):
         """
@@ -1466,9 +1466,10 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             ms2_format = ms2_format,
             ms2_param = ms2_param,
             sample_id = sample_ids,
+            sample_id_processor = sample_id_processor,
         )
         
-        feature.SampleSorter.__init__(
+        sampleattrs.SampleSorter.__init__(
             self,
             sample_data = sample_data,
             sample_axis = 1,

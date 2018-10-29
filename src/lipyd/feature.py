@@ -20,7 +20,7 @@ import numpy as np
 import lipyd.sampleattrs as sampleattrs
 
 
-class SampleData(SampleSorter):
+class SampleData(sampleattrs.SampleSorter):
     
     def __init__(
             self,
