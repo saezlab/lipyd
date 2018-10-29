@@ -553,9 +553,10 @@ class Sample(FeatureBase):
         self.silent     = silent
         self.ionmode    = ionmode
         self.feattrs    = feature_attrs
-        self.attrs      = sampleattrs.SampleAttrs(sample_id, attrs)
         self.ms2_format = ms2_format
         self.ms2_param  = ms2_param or {}
+        
+        self._set_attrs(sample_id, attrs)
     
     def reload(self):
         
@@ -564,6 +565,10 @@ class Sample(FeatureBase):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
+    def _set_attrs(self, sample_id, attrs):
+        
+        self.attrs = sampleattrs.SampleAttrs(sample_id, attrs)
     
     def _add_var(self, data, attr):
         
@@ -1390,7 +1395,7 @@ class FeatureIdx(FeatureBase):
                 client._filter(selection, propagate = False)
 
 
-class SampleSet(Sample, feature.SampleSorter):
+class SampleSet(Sample, sampleattrs.SampleSorter):
     
     def __init__(
             self,
@@ -1404,6 +1409,7 @@ class SampleSet(Sample, feature.SampleSorter):
             ms2_format = 'mgf',
             ms2_param = None,
             sample_ids = None,
+            sample_id_processor = None,
             sample_data = None,
         ):
         """
@@ -1425,6 +1431,8 @@ class SampleSet(Sample, feature.SampleSorter):
             Either a list of sample identifiers with the same length as
             number of samples or a method which generates sample identifiers
             from sample attributes.
+        :param callable sample_id_processor:
+            A method to process sample IDs if ``sample_ids`` provided.
         :param list sample_data:
             Other ``SampleSet`` or ``feature.SampleData`` objects which
             should be co-sorted with this object.
@@ -1478,6 +1486,8 @@ class SampleSet(Sample, feature.SampleSorter):
             ms2_param = ms2_param,
             sample_id = sample_id,
         )
+        
+        
         
         feature.SampleSorter.__init__(
             self,
@@ -1583,40 +1593,6 @@ class SampleSet(Sample, feature.SampleSorter):
             sorter = self.sorter,
             **var,
         )
-    
-    def _set_sample_id(self):
-        # Note: this is called by Sample.__init__()
-        
-        self.sample_index_to_id = []
-        
-        for i in xrange(len(self.attrs)):
-            
-            sample_id = self._get_sample_id(i)
-            
-            self.sample_index_to_id.append(sample_id)
-        
-        self._update_id_to_index()
-    
-    def _update_id_to_index(self):
-        
-        self.sample_id_to_index = dict(
-            reversed(i)
-            for i in enumerate(self.sample_index_to_id)
-        )
-    
-    def get_sample_id(self, i):
-        """
-        Returns the ID of a sample by its index.
-        """
-        
-        return self.sample_index_to_id[i]
-    
-    def get_sample_index(self, sample_id):
-        """
-        Returns the index of a sample by its ID.
-        """
-        
-        return self.sample_id_to_index[sample_id]
     
     def _get_sample_id(self, i):
         

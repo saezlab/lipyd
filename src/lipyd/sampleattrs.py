@@ -187,3 +187,105 @@ class SampleSetAttrs(object):
         ])
         
         self.sort_by_index(idx)
+
+
+class SampleSorter(object):
+    
+    def __init__(self, sample_data = None, sample_axis = 0):
+        """
+        Keeps the order of samples synchronized between multiple objects.
+        These objects represent sets of the same samples such as
+        ``sample.SampleSet`` or ``feature.SampleData``.
+        
+        :param list,set sample_data:
+            Other ``sample.SampleSet`` or ``feature.SampleData`` derived
+            objects that should keep the same order of samples.
+        :param int sample_axis:
+            Which axis in the arrays corresponds to the samples.
+            In ``sample.SampleSet`` objects this is axis 1 as axis 0
+            corresponds to the features. In ``feature.SampleData`` derived
+            objects this is axis 0.
+        """
+        
+        self._sample_data = {}
+        self._sample_axis = sample_axis
+        
+        if sample_data is None:
+            
+            sample_data = []
+        
+        if not isinstance(sample_data, (list, set)):
+            
+            sample_data = [sample_data]
+        
+        for s in sample_data:
+            
+            self.register(s)
+    
+    def register(self, s):
+        """
+        Registers a ``sample.SampleSet`` or ``feature.SampleData`` derived
+        object ensuring it will keep the same order of samples.
+        
+        :param SampleSet,SampleData s:
+            A ``sample.SampleSet`` or ``feature.SampleData`` derived
+            object.
+        """
+        
+        self._sample_data[id(s)] = s
+        
+        if id(self) not in s._sample_data:
+            
+            s.register(self)
+    
+    def order_samples(self, idx, done = None):
+        """
+        Changes the ordering of the samples.
+        """
+        
+        done = set() if done is None else done
+        
+        if id(self) in done:
+            
+            return
+        
+        numof_samples = self.numof_samples
+        
+        if len(idx) != numof_samples:
+            
+            raise RuntimeError(
+                'Invalid index length: %u while number of samples is %u.' % (
+                    len(idx), numof_samples
+                )
+            )
+        
+        if hasattr(self, 'var'):
+            
+            for var in self.var:
+                
+                arr = getattr(self, var)
+                
+                if (
+                    len(arr.shape) <= self._sample_axis or
+                    arr.shape[self._sample_axis] != numof_samples
+                ):
+                    
+                    continue
+                
+                setattr(
+                    self,
+                    var,
+                    np.take(arr, idx, axis = self._sample_axis),
+                )
+        
+        if hasattr(self, 'data'):
+            
+            self.data = np.take(data, idx, axis = 0)
+        
+        done.add(id(self))
+        
+        for sd_id, sd in iteritems(self.sample_data):
+            
+            if sd_id not in done:
+                
+                sd.order_samples(idx = idx, done = done)
