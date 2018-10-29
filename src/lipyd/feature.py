@@ -52,8 +52,20 @@ class SampleSorter(object):
             self.register(s)
     
     def register(self, s):
+        """
+        Registers a ``sample.SampleSet`` or ``feature.SampleData`` derived
+        object ensuring it will keep the same order of samples.
+        
+        :param SampleSet,SampleData s:
+            A ``sample.SampleSet`` or ``feature.SampleData`` derived
+            object.
+        """
         
         self.sample_data[id(s)] = s
+        
+        if id(self) not in s.sample_data:
+            
+            s.register(self)
     
     def order_samples(self, idx, done = None):
         """
