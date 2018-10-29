@@ -168,7 +168,30 @@ class SampleSetAttrs(object):
         
         self._set_sample_ids()
     
-    def sort_by_sample_id(self, sample_ids, process = False):
+    def argsort_by_sample_id(self, sample_ids, process = False):
+        """
+        Returns an index array which sorts the sample attributes according
+        to the list of sample IDs provided.
+        
+        :param list sample_ids:
+            A list of sample IDs, e.g. ``[('A', 1), ('A', 2), ...]``.
+        :param bool process:
+            Process ``sample_ids`` by the ``sample_id_processor`` method.
+        """
+        
+        return np.array([
+            self.sample_id_to_index[
+                sample_id if not process else self._get_sample_id(sample_id)
+            ]
+            for sample_id in sample_ids
+        ])
+    
+    def sort_by_sample_id(
+            self,
+            sample_ids,
+            process = False,
+            return_idx = False,
+        ):
         """
         Sets the order of the sample attributes according to the list of
         sample IDs provided.
@@ -177,21 +200,47 @@ class SampleSetAttrs(object):
             A list of sample IDs, e.g. ``[('A', 1), ('A', 2), ...]``.
         :param bool process:
             Process ``sample_ids`` by the ``sample_id_processor`` method.
+        :param bool return_idx:
+            Return the index array corresponding to the sort.
         """
         
-        idx = np.array([
-            self.sample_id_to_index[
-                sample_id if not process else self._get_sample_id(sample_id)
-            ]
-            for sample_id in sample_ids
-        ])
+        idx = self.argsort_by_sample_id(
+            sample_ids = sample_ids,
+            process = process,
+        )
         
         self.sort_by_index(idx)
+        
+        if return_idx:
+            
+            return idx
+    
+    def sort_by(self, other, return_idx = False):
+        """
+        Sorts the sample attributes according to an other ``SampleSetAttrs``
+        object. The other object must have the same sample IDs.
+        
+        :param SampleSetAttrs other:
+            An other ``SampleSetAttrs`` with the same sample IDs.
+        :param bool return_idx:
+            Return the index array corresponding to the sort.
+        """
+        
+        return self.sort_by_sample_id(
+            other.sample_index_to_id,
+            return_idx = return_idx,
+        )
 
 
 class SampleSorter(object):
     
-    def __init__(self, sample_data = None, sample_axis = 0):
+    def __init__(
+            self,
+            sample_data = None,
+            sample_ids = None,
+            sample_id_processor = None,
+            sample_axis = 0,
+        ):
         """
         Keeps the order of samples synchronized between multiple objects.
         These objects represent sets of the same samples such as
@@ -200,6 +249,12 @@ class SampleSorter(object):
         :param list,set sample_data:
             Other ``sample.SampleSet`` or ``feature.SampleData`` derived
             objects that should keep the same order of samples.
+        :param list sample_ids:
+            A list of sample IDs which determines the initial ordering. All
+            objects in ``sample_data`` will be sorted according to this order.
+            If not provided the ordering in the first object in
+            ``sample_data`` will be used. You must provide at least
+            ``sample_ids`` or ``sample_data``.
         :param int sample_axis:
             Which axis in the arrays corresponds to the samples.
             In ``sample.SampleSet`` objects this is axis 1 as axis 0
@@ -218,46 +273,59 @@ class SampleSorter(object):
             
             sample_data = [sample_data]
         
+        self._init_attrs(
+            sample_data = sample_data,
+            sample_ids  = sample_ids,
+            sample_id_processor = sample_id_processor,
+        )
+        
         for s in sample_data:
             
             self.register(s)
     
-    def register(self, s):
+    def _init_attrs(self, sample_data, sample_ids, sample_id_processor):
         """
-        Registers a ``sample.SampleSet`` or ``feature.SampleData`` derived
-        object ensuring it will keep the same order of samples.
-        
-        :param SampleSet,SampleData s:
-            A ``sample.SampleSet`` or ``feature.SampleData`` derived
-            object.
+        Initializes a ``SampleSetAttrs`` object to keep track of the order
+        of samples by their IDs and ensure all objects will be set to the
+        same ordering at initialization.
         """
         
-        self._sample_data[id(s)] = s
-        
-        if id(self) not in s._sample_data:
+        if sample_ids:
             
-            s.register(self)
-    
-    def order_samples(self, idx, done = None):
-        """
-        Changes the ordering of the samples.
-        """
-        
-        done = set() if done is None else done
-        
-        if id(self) in done:
+            self.attrs = SampleSetAttrs(
+                sample_ids = sample_ids,
+                sample_id_processor = sample_id_processor,
+            )
             
-            return
-        
-        numof_samples = self.numof_samples
-        
-        if len(idx) != numof_samples:
+        elif sample_data:
+            
+            first = sample_data[0]
+            
+            self.attrs = SampleSetAttrs(
+                sample_ids = first.attrs.sample_id_to_index,
+                sample_id_processor = first.attrs._sample_id_processor,
+            )
+            
+        else:
             
             raise RuntimeError(
-                'Invalid index length: %u while number of samples is %u.' % (
-                    len(idx), numof_samples
-                )
+                'SampleSorter: `sample_data` or `sample_ids` '
+                'must be provided.'
             )
+    
+    def sort_by(self, s):
+        """
+        Makes sure object ``s`` has the same ordering as all in this sorter.
+        """
+        
+        idx = s.attrs.sort_by(self.attrs, return_idx = True)
+        
+        s._sort(idx)
+    
+    def _sort(self, idx):
+        """
+        Sorts only variables in this object by indices.
+        """
         
         if hasattr(self, 'var'):
             
@@ -277,15 +345,79 @@ class SampleSorter(object):
                     var,
                     np.take(arr, idx, axis = self._sample_axis),
                 )
+    
+    def register(self, s):
+        """
+        Registers a ``sample.SampleSet`` or ``feature.SampleData`` derived
+        object ensuring it will keep the same order of samples.
         
-        if hasattr(self, 'data'):
+        :param SampleSet,SampleData s:
+            A ``sample.SampleSet`` or ``feature.SampleData`` derived
+            object.
+        """
+        
+        self._sort_by(s)
+        
+        self._sample_data[id(s)] = s
+        
+        if id(self) not in s._sample_data:
             
-            self.data = np.take(data, idx, axis = 0)
+            s.register(self)
+    
+    def sort_by_sample_ids(self, sample_ids, process = False):
+        """
+        Sorts all connected objects by a list of sample IDs.
         
-        done.add(id(self))
+        :param list sample_ids:
+            A list of sample ids in the desired order, e.g.
+            ``[('A', 1), ('A', 2), ...]``.
+        :param bool process:
+            Use the ``sample_id_processor`` methods to convert the sample IDs
+            provided.
+        """
+        
+        idx = self.attrs.argsort_by_sample_ids(
+            sample_ids,
+            process = process,
+        )
+        
+        self.sort(idx)
+    
+    def sort(self, idx, _done = None):
+        """
+        Sorts all connected objects by indices.
+        
+        :param list idx:
+            A list of indices.
+        :param set _done:
+            As the sorting propagates across objects this ``set`` keeps track
+            which objects have been already sorted. Should be ``None`` when
+            called by user.
+        """
+        
+        _done = set() if _done is None else _done
+        
+        if id(self) in _done:
+            
+            return
+        
+        numof_samples = self.numof_samples
+        
+        if len(idx) != numof_samples:
+            
+            raise RuntimeError(
+                'Invalid index length: %u while number of samples is %u.' % (
+                    len(idx), numof_samples
+                )
+            )
+        
+        self.attrs.sort_by_index(idx)
+        self._sort(idx)
+        
+        _done.add(id(self))
         
         for sd_id, sd in iteritems(self.sample_data):
             
-            if sd_id not in done:
+            if sd_id not in _done:
                 
-                sd.order_samples(idx = idx, done = done)
+                sd.order_samples(idx = idx, _done = _done)

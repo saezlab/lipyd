@@ -556,7 +556,11 @@ class Sample(FeatureBase):
         self.ms2_format = ms2_format
         self.ms2_param  = ms2_param or {}
         
-        self._set_attrs(sample_id, attrs)
+        self._set_attrs(
+            sample_id = sample_id,
+            attrs = attrs,
+            sample_id_processor = sample_id_processor,
+        )
     
     def reload(self):
         
@@ -566,7 +570,7 @@ class Sample(FeatureBase):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
-    def _set_attrs(self, sample_id, attrs):
+    def _set_attrs(self, sample_id, attrs, sample_id_processor = None):
         
         self.attrs = sampleattrs.SampleAttrs(sample_id, attrs)
     
@@ -1449,29 +1453,6 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             mzs.mean(axis = tuple(range(1, len(mzs.shape))))
         )
         
-        numof_samples = self._guess_numof_samples(
-            attrs,
-            (mzs, intensities, rts),
-        )
-        
-        # by default None, which means the default method will be
-        # called from Sample to get IDs either from the attributes
-        # or random strings in worst case
-        sample_id = None
-        self.sample_ids = [None] * numof_samples
-        
-        if callable(sample_ids):
-            
-            # if it is callable we register it as a sample ID
-            # provider method
-            sample_id = sample_ids
-            
-        elif sample_ids and len(sample_ids) == self.numof_samples:
-            
-            # if it is a list with same length as number of samples
-            # we just use it to assign an ID to each sample
-            self.sample_ids = sample_ids
-        
         Sample.__init__(
             self,
             mzs = centr_mzs,
@@ -1484,15 +1465,21 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             sorter = sorter,
             ms2_format = ms2_format,
             ms2_param = ms2_param,
-            sample_id = sample_id,
+            sample_id = sample_ids,
         )
-        
-        
         
         feature.SampleSorter.__init__(
             self,
             sample_data = sample_data,
             sample_axis = 1,
+        )
+    
+    def _set_attrs(self, sample_id, attrs, sample_id_processor = None):
+        
+        self.attrs = sampleattrs.SampleSetAttrs(
+            sample_ids_method = sample_id,
+            sample_attrs = attrs,
+            sample_id_processor = sample_id_processor,
         )
     
     @classmethod
