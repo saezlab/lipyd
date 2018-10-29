@@ -38,6 +38,7 @@ import lipyd.mgf as mgf
 import lipyd.settings as settings
 import lipyd.progress as progress
 import lipyd.feature as feature
+import lipyd.sampleattrs as sampleattrs
 
 
 remgf  = re.compile(r'(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
@@ -495,6 +496,7 @@ class Sample(FeatureBase):
             intensities = None,
             rts = None,
             sample_id = None,
+            sample_id_method = None,
             attrs = None,
             feature_attrs = None,
             sorter = None,
@@ -549,13 +551,11 @@ class Sample(FeatureBase):
         )
         
         self.silent     = silent
-        self.attrs      = attrs or {}
         self.ionmode    = ionmode
         self.feattrs    = feature_attrs
+        self.attrs      = sampleattrs.SampleAttrs(sample_id, attrs)
         self.ms2_format = ms2_format
         self.ms2_param  = ms2_param or {}
-        self._sample_id = sample_id
-        self._set_sample_id()
     
     def reload(self):
         
@@ -622,48 +622,6 @@ class Sample(FeatureBase):
         if return_isort:
             
             return isort
-    
-    def _set_sample_id(self):
-        # Note: this is called by __init__()
-    
-        self.sample_id = self._get_sample_id(
-            sample_id = self._sample_id,
-            attrs = self.attrs,
-        )
-    
-    @classmethod
-    def _get_sample_id(cls, sample_id = None, attrs = None):
-        
-        if sample_id is None:
-            
-            # first if it's None we call the deafult method to
-            # create sample ID from the sample attributes
-            return cls._default_sample_id_method(attrs)
-            
-        elif callable(sample_id):
-            
-            # if a custom method has been provided we use
-            # that instead
-            return sample_id(attrs)
-            
-        else:
-            
-            # if it's not callable but any other kind of object
-            # then we assume the sample ID is explicitely given
-            return sample_id
-    
-    @staticmethod
-    def _default_sample_id_method(attrs):
-        
-        if (
-            attrs is not None and
-            'label' in attrs and
-            'fraction' in attrs['label']
-        ):
-            
-            return attrs['label']['fraction']
-        
-        return common.random_string()
     
     def __len__(self):
         """
@@ -956,7 +914,7 @@ class Sample(FeatureBase):
         """
         
         attrs = attrs or self.attrs
-        sample_id = sample_id or self._get_sample_id(self.sample_id, attrs)
+        sample_id = attrs.sample_id
         
         if self.ms2_format is None:
             
@@ -968,7 +926,10 @@ class Sample(FeatureBase):
             
             method = self.ms2_collection_methods[self.ms2_format]
             
-            return getattr(self, method)(sample_id = sample_id, attrs = attrs)
+            return getattr(self, method)(
+                sample_id = sample_id,
+                attrs = attrs.attrs,
+            )
     
     def collect_mgf(self, sample_id = None, attrs = None):
         """
@@ -1013,7 +974,7 @@ class Sample(FeatureBase):
             # ok, now we can find the MGF files by matching against
             # the sample attributes
             attrs = attrs or self.attrs
-            sample_id = sample_id or self.sample_id
+            sample_id = attrs.sample_id
             
             # see if a matching method provided
             mgf_match_method = (
@@ -1028,7 +989,7 @@ class Sample(FeatureBase):
             for fname in os.listdir(mgfdir):
                 
                 mgf_path     = os.path.join(mgfdir, fname)
-                mgf_matches  = mgf_match_method(mgf_path, attrs)
+                mgf_matches  = mgf_match_method(mgf_path, attrs.attrs)
                 
                 if mgf_matches:
                     
@@ -1640,7 +1601,7 @@ class SampleSet(Sample, feature.SampleSorter):
         
         self.sample_id_to_index = dict(
             reversed(i)
-            for i in self.sample_index_to_id
+            for i in enumerate(self.sample_index_to_id)
         )
     
     def get_sample_id(self, i):
@@ -1669,7 +1630,7 @@ class SampleSet(Sample, feature.SampleSorter):
         
         return Sample._get_sample_id(
             sample_id = sample_id,
-            attrs = self.attrs[i]
+            attrs = self.attrs[i],
         )
     
     def collect_ms2(self, attrs = None):

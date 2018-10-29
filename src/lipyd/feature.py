@@ -17,6 +17,8 @@
 
 import numpy as np
 
+import lipyd.sampleattrs as sampleattrs
+
 
 class SampleSorter(object):
     
@@ -36,7 +38,7 @@ class SampleSorter(object):
             objects this is axis 0.
         """
         
-        self.sample_data = {}
+        self._sample_data = {}
         self._sample_axis = sample_axis
         
         if sample_data is None:
@@ -61,9 +63,9 @@ class SampleSorter(object):
             object.
         """
         
-        self.sample_data[id(s)] = s
+        self._sample_data[id(s)] = s
         
-        if id(self) not in s.sample_data:
+        if id(self) not in s._sample_data:
             
             s.register(self)
     
@@ -88,15 +90,28 @@ class SampleSorter(object):
                 )
             )
         
-        for var in self.var:
+        if hasattr(self, 'var'):
             
-            arr = getattr(self, var)
-            
-            if len(arr.shape) < 1 or arr.shape[1] != numof_samples:
+            for var in self.var:
                 
-                continue
+                arr = getattr(self, var)
+                
+                if (
+                    len(arr.shape) <= self._sample_axis or
+                    arr.shape[self._sample_axis] != numof_samples
+                ):
+                    
+                    continue
+                
+                setattr(
+                    self,
+                    var,
+                    np.take(arr, idx, axis = self._sample_axis),
+                )
+        
+        if hasattr(self, 'data'):
             
-            setattr(self, var, np.take(arr, idx, axis = 1))
+            self.data = np.take(data, idx, axis = 0)
         
         done.add(id(self))
         
@@ -141,7 +156,11 @@ class SampleData(SampleSorter):
         self.labels  = labels
         self.samples = samples
         
-        SampleSorter.__init__(self, sample_data = sample_data)
+        SampleSorter.__init__(
+            self,
+            sample_data = sample_data,
+            sample_axis = 0,
+        )
     
     def __len__(self):
         """
@@ -165,7 +184,7 @@ class SampleData(SampleSorter):
         
 
 
-class SampleSelection(object):
+class SampleSelection(SampleData):
     
     def __init__(self, selection, labels = None):
         
