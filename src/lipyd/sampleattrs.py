@@ -23,6 +23,16 @@ import lipyd.common as common
 class SampleAttrs(object):
     
     def __init__(self, sample_id_method = None, attrs = None):
+        """
+        Represents the ID and attributes of a sample.
+        
+        :param object,callable sample_id_method:
+            Either an object (string or tuple) or a method which takes
+            a dict of attributes as its argument and returns a unique
+            identifier for the sample.
+        :param dict attrs:
+            A dictionary of sample attributes.
+        """
         
         self.attrs = attrs or {}
         self._sample_id_method = sample_id_method
@@ -34,13 +44,13 @@ class SampleAttrs(object):
             
             # first if it's None we call the deafult method to
             # create sample ID from the sample attributes
-            return self._default_sample_id_method(self.attrs)
+            return self._default_sample_id_method()
             
         elif callable(self._sample_id_method):
             
             # if a custom method has been provided we use
             # that instead
-            return self._sample_id_method(attrs)
+            return self._sample_id_method(self.attrs)
             
         else:
             
@@ -59,3 +69,10 @@ class SampleAttrs(object):
             return self.attrs['label']['fraction']
         
         return common.random_string()
+
+
+class SampleSetAttrs(object):
+    
+    def __init__(self):
+        
+        
