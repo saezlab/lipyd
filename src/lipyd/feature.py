@@ -20,14 +20,28 @@ import numpy as np
 
 class SampleSorter(object):
     
-    def __init__(self, sample_data = None):
+    def __init__(self, sample_data = None, sample_axis = 0):
         """
         Keeps the order of samples synchronized between multiple objects.
         These objects represent sets of the same samples such as
         ``sample.SampleSet`` or ``feature.SampleData``.
+        
+        :param list,set sample_data:
+            Other ``sample.SampleSet`` or ``feature.SampleData`` derived
+            objects that should keep the same order of samples.
+        :param int sample_axis:
+            Which axis in the arrays corresponds to the samples.
+            In ``sample.SampleSet`` objects this is axis 1 as axis 0
+            corresponds to the features. In ``feature.SampleData`` derived
+            objects this is axis 0.
         """
         
         self.sample_data = {}
+        self._sample_axis = sample_axis
+        
+        if sample_data is None:
+            
+            sample_data = []
         
         if not isinstance(sample_data, (list, set)):
             

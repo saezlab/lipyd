@@ -1518,7 +1518,11 @@ class SampleSet(Sample, feature.SampleSorter):
             sample_id = sample_id,
         )
         
-        feature.SampleSorter.__init__(self, sample_data = sample_data)
+        feature.SampleSorter.__init__(
+            self,
+            sample_data = sample_data,
+            sample_axis = 1,
+        )
     
     @classmethod
     def combine_samples(cls, attrs, samples, **kwargs):
