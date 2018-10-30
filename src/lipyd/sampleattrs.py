@@ -15,6 +15,7 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+from future.utils import iteritems
 from past.builtins import xrange, range
 
 import numpy as np
@@ -91,7 +92,7 @@ class SampleSetAttrs(object):
             # sample IDs provided for each sample
             sample_ids = [
                 self._get_sample_id(sample_id)
-                for sample_id in sample_ids
+                for sample_id in sample_ids_method
             ]
             
             length = len(sample_ids)
@@ -100,9 +101,11 @@ class SampleSetAttrs(object):
             
             # if sample attributes provided
             length = len(sample_attrs)
-        
-        # now it is either None or a method
-        sample_ids = [sample_ids_method] * length
+            
+        else:
+            
+            # now it is either None or a method
+            sample_ids = [sample_ids_method] * length
         
         if length is None:
             
@@ -119,6 +122,10 @@ class SampleSetAttrs(object):
         ])
         
         self._set_sample_ids()
+    
+    def __len__(self):
+        
+        return len(self.attrs)
     
     def _get_sample_id(self, sample_id):
         
@@ -331,6 +338,8 @@ class SampleSorter(object):
         
         if hasattr(self, 'var'):
             
+            numof_samples = len(self.attrs)
+            
             for var in self.var:
                 
                 arr = getattr(self, var)
@@ -378,7 +387,7 @@ class SampleSorter(object):
             provided.
         """
         
-        idx = self.attrs.argsort_by_sample_ids(
+        idx = self.attrs.argsort_by_sample_id(
             sample_ids,
             process = process,
         )
@@ -418,7 +427,7 @@ class SampleSorter(object):
         
         _done.add(id(self))
         
-        for sd_id, sd in iteritems(self.sample_data):
+        for sd_id, sd in iteritems(self._sample_data):
             
             if sd_id not in _done:
                 

@@ -111,3 +111,37 @@ class TestSample(object):
         with pytest.warns(UserWarning):
             
             f2.sort_all('a')
+    
+    def test_sampleset(self):
+        
+        def sample_id_processor(s):
+            
+            return (s[0], int(s[1:]))
+        
+        sample_ids = ['A12', 'A11', 'B2', 'B1']
+        
+        mzs = np.arange(40)
+        mzs.shape = (10, 4)
+        
+        rts = np.arange(40)[::-1]
+        rts.shape = (10, 4)
+        
+        samples = sample.SampleSet(
+            mzs = mzs,
+            rts = rts,
+            ionmode = 'pos',
+            sample_ids = sample_ids,
+            sample_id_processor = sample_id_processor,
+        )
+        
+        order = ['A11', 'A12', 'B1', 'B2']
+        
+        samples.sort_by_sample_ids(order, process = True)
+        
+        assert samples.mzs_by_sample[0, 1] == 0
+        assert samples.rts[4, 3] == 21
+        
+        samples.sort_all(by = 'mzs', desc = True)
+        
+        assert samples.mzs_by_sample[0, 1] == 36
+        assert samples.rts[4, 3] == 17
