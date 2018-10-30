@@ -48,7 +48,34 @@ intensitites = np.array([
 ])
 
 
+
+
 class TestSample(object):
+    
+    @pytest.fixture(autouse = True)
+    def auto_inject_fixture(self):
+        
+        def sample_id_processor(s):
+            
+            return (s[0], int(s[1:]))
+        
+        self.sample_id_processor = sample_id_processor
+        
+        sample_ids = ['A12', 'A11', 'B2', 'B1']
+        
+        mzs = np.arange(40)
+        mzs.shape = (10, 4)
+        
+        rts = np.arange(40)[::-1]
+        rts.shape = (10, 4)
+        
+        self.samples = sample.SampleSet(
+            mzs = mzs,
+            rts = rts,
+            ionmode = 'pos',
+            sample_ids = sample_ids,
+            sample_id_processor = self.sample_id_processor,
+        )
     
     def test_feature_idx(self):
         
@@ -115,30 +142,14 @@ class TestSample(object):
     
     def test_sampleset(self):
         
-        def sample_id_processor(s):
-            
-            return (s[0], int(s[1:]))
+        assert self.samples.attrs.attrs[0].sample_id == ('A', 12)
+    
+    def test_samplesorter(self):
         
-        sample_ids = ['A12', 'A11', 'B2', 'B1']
+        samples = self.samples
         
-        mzs = np.arange(40)
-        mzs.shape = (10, 4)
-        
-        rts = np.arange(40)[::-1]
-        rts.shape = (10, 4)
-        
-        samples = sample.SampleSet(
-            mzs = mzs,
-            rts = rts,
-            ionmode = 'pos',
-            sample_ids = sample_ids,
-            sample_id_processor = sample_id_processor,
-        )
-        
-        assert samples.attrs.attrs[0].sample_id == ('A', 12)
-        
+        # repeating these as pytest makes a copy of the object
         order = ['A11', 'A12', 'B1', 'B2']
-        
         samples.sort_by_sample_ids(order, process = True)
         
         assert samples.mzs_by_sample[0, 1] == 0
@@ -148,6 +159,15 @@ class TestSample(object):
         
         assert samples.mzs_by_sample[0, 1] == 36
         assert samples.rts[4, 3] == 17
+    
+    def test_sampledata(self):
+        
+        samples = self.samples
+        
+        # repeating these as pytest makes a copy of the object
+        order = ['A11', 'A12', 'B1', 'B2']
+        samples.sort_by_sample_ids(order, process = True)
+        samples.sort_all(by = 'mzs', desc = True)
         
         data0 = ['a',  'b',  'c',   'd']
         order = ['B2', 'B1', 'A12', 'A11']
@@ -156,7 +176,7 @@ class TestSample(object):
             var0 = data0,
             sample_ids = order,
             samples = samples,
-            sample_id_processor = sample_id_processor,
+            sample_id_processor = self.sample_id_processor,
         )
         
         assert sdata.var0[0] == 'd' and sdata.var0[-1] == 'a'
