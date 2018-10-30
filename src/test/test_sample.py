@@ -24,32 +24,6 @@ import lipyd.sample as sample
 import lipyd.feature as feature
 
 
-# here we test the sorting methods of the sample module with
-# some mock data of length 7
-
-mz = np.array([
-    323.23,
-    234.21,
-    231.19,
-    564.43,
-    343.32,
-    787.56,
-    672.47,
-])
-
-intensitites = np.array([
-    3000.0,
-    12000.0,
-    720000.0,
-    30000.0,
-    2430000.0,
-    2900.0,
-    4242000.0,
-])
-
-
-
-
 class TestSample(object):
     
     @pytest.fixture(autouse = True)
