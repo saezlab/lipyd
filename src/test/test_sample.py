@@ -134,6 +134,8 @@ class TestSample(object):
             sample_id_processor = sample_id_processor,
         )
         
+        assert samples.attrs.attrs[0].sample_id == ('A', 12)
+        
         order = ['A11', 'A12', 'B1', 'B2']
         
         samples.sort_by_sample_ids(order, process = True)

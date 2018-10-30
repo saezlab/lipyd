@@ -292,6 +292,13 @@ class SampleSorter(object):
             
             self.register(s)
     
+    def __len__(self):
+        """
+        Tells number of samples.
+        """
+        
+        return len(self.attrs)
+    
     def _init_attrs(self, sample_data, sample_ids, sample_id_processor):
         """
         Initializes a ``SampleSetAttrs`` object to keep track of the order
