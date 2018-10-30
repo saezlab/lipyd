@@ -57,10 +57,6 @@ class SampleData(sampleattrs.SampleSorter):
             A method to process elements in ``sample_ids``.
         """
         
-        self.data    = data
-        self.labels  = labels
-        self.samples = samples
-        
         if (not sample_ids and not samples) or not hasattr(samples, 'attrs'):
             
             raise RuntimeError(
@@ -77,11 +73,13 @@ class SampleData(sampleattrs.SampleSorter):
             sample_data = sample_data or []
             sample_data.append(samples)
         
+        self.var = set()
+        
         for attr, data in iteritems(kwargs):
             
             self._add_var(data, attr)
         
-        SampleSorter.__init__(
+        sampleattrs.SampleSorter.__init__(
             self,
             sample_data = sample_data,
             sample_ids = sample_ids,
@@ -111,6 +109,7 @@ class SampleData(sampleattrs.SampleSorter):
             )
         
         setattr(self, attr, data)
+        self.var.add(attr)
 
 
 class SampleSelection(SampleData):

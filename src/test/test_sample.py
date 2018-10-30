@@ -21,6 +21,7 @@ import warnings
 import numpy as np
 
 import lipyd.sample as sample
+import lipyd.feature as feature
 
 
 # here we test the sorting methods of the sample module with
@@ -147,3 +148,24 @@ class TestSample(object):
         
         assert samples.mzs_by_sample[0, 1] == 36
         assert samples.rts[4, 3] == 17
+        
+        data0 = ['a',  'b',  'c',   'd']
+        order = ['B2', 'B1', 'A12', 'A11']
+        
+        sdata = feature.SampleData(
+            var0 = data0,
+            sample_ids = order,
+            samples = samples,
+            sample_id_processor = sample_id_processor,
+        )
+        
+        assert sdata.var0[0] == 'd' and sdata.var0[-1] == 'a'
+        assert samples.mzs_by_sample[9,1] == 0
+        assert (
+            samples.attrs.sample_index_to_id ==
+            sdata.attrs.sample_index_to_id
+        )
+        assert samples.attrs.sample_index_to_id[2] == ('B', 1)
+        assert samples.rts[0,2] == 0
+        assert id(sdata) in samples._sample_data
+        assert id(samples) in sdata._sample_data

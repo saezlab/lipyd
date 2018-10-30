@@ -309,7 +309,7 @@ class SampleSorter(object):
         if sample_ids:
             
             self.attrs = SampleSetAttrs(
-                sample_ids = sample_ids,
+                sample_ids_method = sample_ids,
                 sample_id_processor = sample_id_processor,
             )
             
@@ -318,7 +318,7 @@ class SampleSorter(object):
             first = sample_data[0]
             
             self.attrs = SampleSetAttrs(
-                sample_ids = first.attrs.sample_id_to_index,
+                sample_ids_method = first.attrs.sample_id_to_index,
                 sample_id_processor = first.attrs._sample_id_processor,
             )
             
@@ -331,7 +331,25 @@ class SampleSorter(object):
     
     def sort_by(self, s):
         """
+        Sorts the current object according to another ``SampleSorter``
+        derived object.
+        
+        :param SampleSorter s:
+            A ``SampleSorter`` derived object such as ``sample.SampleSet``,
+            ``feature.SampleData`` etc.
+        """
+        
+        idx = self.attrs.sort_by(s.attrs, return_idx = True)
+        
+        self._sort(idx)
+    
+    def sort_to(self, s):
+        """
         Makes sure object ``s`` has the same ordering as all in this sorter.
+        
+        :param SampleSorter s:
+            A ``SampleSorter`` derived object such as ``sample.SampleSet``,
+            ``feature.SampleData`` etc.
         """
         
         idx = s.attrs.sort_by(self.attrs, return_idx = True)
@@ -374,7 +392,7 @@ class SampleSorter(object):
             object.
         """
         
-        self._sort_by(s)
+        self.sort_by(s)
         
         self._sample_data[id(s)] = s
         
