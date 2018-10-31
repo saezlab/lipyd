@@ -106,7 +106,7 @@ class SampleAttrs(object):
             
             # first if it's None we call the deafult method to
             # create sample ID from the sample attributes
-            return self._default_sample_id_method()
+            return plate_sample_id_processor()
             
         elif callable(self._sample_id_method):
             
