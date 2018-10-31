@@ -20,9 +20,11 @@ from past.builtins import xrange, range
 import imp
 import re
 import collections
+import mimetypes
 
 import numpy as np
 
+import lipyd.settings as settings
 import lipyd.common as common
 import lipyd.reader.xls as xls
 
@@ -38,6 +40,7 @@ class SECProfile(object):
     def __init__(self, path):
         
         self.path = path
+        self.read()
     
     def reload(self, children = False):
         
@@ -46,6 +49,18 @@ class SECProfile(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
+    def read(self):
+        
+        self.guess_format()
+        
+        if self.format == 'asc':
+            
+            self.read_asc()
+            
+        elif self.format == 'xls':
+            
+            self.read_xls()
     
     def read_asc(self):
         """
@@ -141,3 +156,10 @@ class SECProfile(object):
             fractions.append(Fraction((row, col), start, end))
         
         return fractions
+    
+    def guess_format(self):
+        
+        mime = mimetypes.guess_type(self.path)
+        self.format = (
+            'xls' if 'excel' in mime or 'openxml' in mime else 'asc'
+        )
