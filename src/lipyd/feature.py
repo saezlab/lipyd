@@ -110,13 +110,86 @@ class SampleData(sampleattrs.SampleSorter):
         
         setattr(self, attr, data)
         self.var.add(attr)
+    
+    @staticmethod
+    def _bool_array(
+            selection,
+            samples = None,
+            sample_ids = None,
+            sample_id_processor = None,
+        ):
+        """
+        This method helps to set up a sample selection but placed here as
+        staticmethod to make it usable other places.
+        """
+        
+        if not isinstance(selection[0], bool):
+            
+            if sample_id_processor:
+                
+                selection = [sample_id_processor(s) for s in selection]
+            
+            if not sample_ids:
+                
+                if isinstance(samples, sampleattrs.SampleSorter):
+                    
+                    first = samples
+                    
+                else:
+                    
+                    first = sample_data[0]
+                
+                sample_ids = first.attrs.sample_index_to_id
+            
+            selection = np.array([s in selection for s in sample_ids])
+        
+        return selection
 
 
 class SampleSelection(SampleData):
     
-    def __init__(self, selection, labels = None):
+    def __init__(
+            self,
+            selection,
+            samples = None,
+            sample_ids = None,
+            sample_data = None,
+            sample_id_processor = None,
+            **kwargs,
+        ):
+        """
+        Represents a binary selection of samples. You can provide either a
+        boolean array or a list of sample IDs to be selected.
+        """
         
-        pass
+        sample_id_processor = sample_id_processor or (lambda x: x)
+        
+        selection = self._bool_array(
+            selection = selection,
+            samples = samples,
+            sample_ids = sample_ids,
+            sample_id_processor = sample_id_processor,
+        )
+        
+        SampleData.__init__(
+            self,
+            samples = samples,
+            sample_ids = sample_ids,
+            sample_data = sample_data,
+            selection = selection,
+            sample_id_processor = sample_id_processor,
+        )
+    
+    def sample_ids_selected(self):
+        """
+        Returns a list IDs of selected samples.
+        """
+        
+        return [
+            sample_id
+            for i, sample_id in self.attrs.sample_index_to_id
+            if self.selection[i]
+        ]
 
 
 class FeatureAnalyzer(object):
