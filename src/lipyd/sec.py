@@ -32,7 +32,11 @@ import lipyd.reader.xls as xls
 refrac = re.compile(r'([A-Z])([0-9]{1,2})')
 
 
-Fraction = collections.namedtuple('Fraction', ['label', 'start', 'end'])
+Fraction = collections.namedtuple(
+    'Fraction',
+    ['row', 'col', 'start', 'end', 'mean']
+)
+Fraction.__new__.__defaults__ = (None,)
 
 
 class SECProfile(object):
@@ -100,7 +104,9 @@ class SECProfile(object):
                     
                     if start and end and frac:
                         
-                        fractions.append(Fraction(frac, start, end))
+                        fractions.append(
+                            Fraction(frac[0], frac[1], start, end)
+                        )
                     
                     m = refrac.search(l[3])
                     
@@ -136,12 +142,16 @@ class SECProfile(object):
     
     def auto_fractions(
             self,
-            start_volume = .615,
+            start_volume = .6,
             size = .15,
             start_row = 'A',
             start_col = 5,
             length = 9,
         ):
+        """
+        Autogenerates fraction volume boundaries according to the parameters
+        provided.
+        """
         
         fractions = []
         
@@ -153,13 +163,53 @@ class SECProfile(object):
             row   = chr(well // 12 + 65)
             col   = well % 12 + 1
             
-            fractions.append(Fraction((row, col), start, end))
+            fractions.append(Fraction(row, col, start, end))
         
         return fractions
     
     def guess_format(self):
         
-        mime = mimetypes.guess_type(self.path)
+        mime = mimetypes.guess_type(self.path)[0]
+        
         self.format = (
             'xls' if 'excel' in mime or 'openxml' in mime else 'asc'
         )
+    
+    def get_fraction(self, frac):
+        """
+        Returns absorbances measured within a fraction.
+        """
+        
+        return (
+            self.absorbance[
+                np.logical_and(
+                    self.volume  < frac.end,
+                    self.volume >= frac.start
+                )
+            ]
+        )
+    
+    def fraction_mean(self, frac):
+        """
+        Returns the mean absorbance from a fraction.
+        """
+        
+        return self.get_fraction(frac).mean()
+    
+    def get_profile(self, **kwargs):
+        """
+        Iterates fractions with their mean absorbance values.
+        
+        :param **kwargs:
+            Arguments passed to ``auto_fractions`` (if necessary).
+        """
+        
+        fractions = (
+            self.fractions
+                if hasattr(self, 'fractions') else
+            self.auto_fractions(**kwargs)
+        )
+        
+        for frac in fractions:
+            
+            yield Fraction(*frac[:-1], self.fraction_mean(frac))
