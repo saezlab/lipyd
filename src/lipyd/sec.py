@@ -15,6 +15,8 @@
 #  Website: http://www.ebi.ac.uk/~denes
 #
 
+from past.builtins import xrange, range
+
 import imp
 import re
 import collections
@@ -22,6 +24,7 @@ import collections
 import numpy as np
 
 import lipyd.common as common
+import lipyd.reader.xls as xls
 
 
 refrac = re.compile(r'([A-Z])([0-9]{1,2})')
@@ -46,7 +49,8 @@ class SECProfile(object):
     
     def read_asc(self):
         """
-        Reads SEC profile from asc file output from
+        Reads SEC UV absorbance profile from asc file output produced by
+        the Unicorn software from GE Healthcare.
         """
         
         start      = None
@@ -90,3 +94,50 @@ class SECProfile(object):
         self.volume = np.array(volume)
         self.absorbance = np.array(absorbance)
         self.fractions = fractions
+    
+    def read_xls(self):
+        """
+        Reads SEC UV absorbance profile from MS Excel XLS file output
+        produced by ???.
+        """
+        
+        volume     = []
+        absorbance = []
+        
+        tab = xls.read_xls(self.path)
+        
+        for l in tab:
+            
+            vol = common.to_float(l[0])
+            ab_ = common.to_float(l[1])
+            
+            if vol and ab_:
+                
+                volume.append(vol)
+                absorbance.append(ab_)
+        
+        self.volume = np.array(volume)
+        self.absorbance = np.array(absorbance)
+    
+    def auto_fractions(
+            self,
+            start_volume = .615,
+            size = .15,
+            start_row = 'A',
+            start_col = 5,
+            length = 9,
+        ):
+        
+        fractions = []
+        
+        for i in xrange(length):
+            
+            start = start_volume + size * i
+            end   = start + size
+            well  = (ord(start_row) - 65) * 12 + start_col + i - 1
+            row   = chr(well // 12 + 65)
+            col   = well % 12 + 1
+            
+            fractions.append(Fraction((row, col), start, end))
+        
+        return fractions

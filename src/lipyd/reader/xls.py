@@ -27,35 +27,41 @@ import openpyxl
 import lipyd.reader.common as common
 
 
-def read_xls(xls_file, sheet = 0):
+def read_xls(xls_file, sheet = 0, use_openpyxl = False):
     """
     Generic function to read MS Excel XLS file, and convert one sheet
     to CSV, or return as a list of lists
     """
     
-    table = []
-    
-    try:
-        
-        book = xlrd.open_workbook(xls_file, on_demand = True)
+    if not use_openpyxl:
         
         try:
-            if type(sheet) is int:
-                sheet = book.sheet_by_index(sheet)
-            else:
-                sheet = book.sheet_by_name(sheet)
-        except xlrd.biffh.XLRDError:
-            sheet = book.sheet_by_index(0)
-        
-        for i in xrange(sheet.nrows):
             
-            yield [common.basestring(c.value) for c in sheet.row(i)]
-        
-    except IOError:
-        
-        raise FileNotFoundError(xls_file)
-        
-    except:
+            book = xlrd.open_workbook(xls_file, on_demand = True)
+            
+            try:
+                if type(sheet) is int:
+                    sheet = book.sheet_by_index(sheet)
+                else:
+                    sheet = book.sheet_by_name(sheet)
+            except xlrd.biffh.XLRDError:
+                sheet = book.sheet_by_index(0)
+            
+            for i in xrange(sheet.nrows):
+                
+                yield [common.basestring(c.value) for c in sheet.row(i)]
+            
+            use_openpyxl = False
+            
+        except IOError:
+            
+            raise FileNotFoundError(xls_file)
+            
+        except:
+            
+            use_openpyxl = True
+    
+    if use_openpyxl:
         
         try:
             
