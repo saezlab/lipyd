@@ -25,7 +25,6 @@ import numpy as np
 import lipyd.common as common
 
 
-
 def sample_id_processor(method = None, *args):
     """
     Creates a custom sample identifier class.
@@ -41,6 +40,10 @@ def sample_id_processor(method = None, *args):
     class SampleId(collections.namedtuple('SampleIdBase', args)):
         
         def __new__(cls, raw):
+            
+            if isinstance(raw, cls):
+                
+                return raw
             
             values = cls.method(raw)
             
@@ -62,7 +65,7 @@ def plate_sample_id_processor():
     This is convenient if samples correspond to wells on a plate.
     """
 
-    def _plate_sample_id_processor(frac):
+    def _plate_sample_id_processor(well):
         
         if isinstance(well, common.basestring):
             
@@ -70,11 +73,11 @@ def plate_sample_id_processor():
                 
                 return (well[0].upper(), int(well[1:]))
                 
-            except ValueError, IndexError:
+            except (ValueError, IndexError):
                 
                 pass
         
-        return frac
+        return well
     
     return sample_id_processor(_plate_sample_id_processor, 'row', 'col')
 
