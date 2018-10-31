@@ -18,9 +18,65 @@
 from future.utils import iteritems
 from past.builtins import xrange, range
 
+import collections
+
 import numpy as np
 
 import lipyd.common as common
+
+
+
+def sample_id_processor(method = None, *args):
+    """
+    Creates a custom sample identifier class.
+    
+    :param callable method:
+        A method which takes a single argument corresponding to the raw
+        sample ID and returns a custom number of values.
+    :param str *args:
+        Names for the attributes representing the sample ID. These should
+        correspond to the values returned by ``method``.
+    """
+    
+    class SampleId(collections.namedtuple('SampleIdBase', args)):
+        
+        def __new__(cls, raw):
+            
+            values = cls.method(raw)
+            
+            return super(SampleId, cls).__new__(
+                cls,
+                **dict(zip(args, values))
+            )
+    
+    method = method or (lambda x: x)
+    SampleId.method = method
+    
+    return SampleId
+
+
+def plate_sample_id_processor():
+    """
+    Returns a sample ID processor which makes sure samples are represented
+    by a tuple of one uppercase letter and an integer.
+    This is convenient if samples correspond to wells on a plate.
+    """
+
+    def _plate_sample_id_processor(frac):
+        
+        if isinstance(well, common.basestring):
+            
+            try:
+                
+                return (well[0].upper(), int(well[1:]))
+                
+            except ValueError, IndexError:
+                
+                pass
+        
+        return frac
+    
+    return sample_id_processor(_plate_sample_id_processor, 'row', 'col')
 
 
 class SampleAttrs(object):
