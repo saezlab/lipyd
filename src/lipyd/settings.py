@@ -334,6 +334,8 @@ _defaults = {
     'mgf_neg_examples': 'neg_examples.mgf',
     'mgf_pos_examples': 'pos_examples.mgf',
     'peaks_example': 'peaks_example.csv',
+    'sec_xls_example': 'SEC_xls_example.xls',
+    'sec_unicorn_example': 'SEC_asc_unicorn_example.asc',
     # an MFQL example file
     'mfql_example': 'Neg_bovine_heart_PE.mfql',
     # logarithm base for matching chain fragment intensities
@@ -471,12 +473,29 @@ _defaults = {
     }
 }
 
-in_basedir = ['fractionsf', 'ppfracf', 'seqfile',
-    'pptablef', 'lipnamesf', 'bindpropf', 'metabsf',
+in_basedir = [
+    'fractionsf',
+    'ppfracf',
+    'seqfile',
+    'pptablef',
+    'lipnamesf',
+    'bindpropf',
+    'metabsf',
     'featurescache',
-    'auxcache', 'stdcachefile', 'validscache', 'marco_dir',
-    'abscache', 'pptable_file', 'recalfile', 'manual_ppratios_xls',
-    'manualdir', 'ltplistf', 'flimcache', 'ppsecdir', 'gelprofdir']
+    'auxcache',
+    'stdcachefile',
+    'validscache',
+    'marco_dir',
+    'abscache',
+    'pptable_file',
+    'recalfile',
+    'manual_ppratios_xls',
+    'manualdir',
+    'ltplistf',
+    'flimcache',
+    'ppsecdir',
+    'gelprofdir',
+]
 
 in_datadir = {
     'pfragmentsfile',
@@ -485,6 +504,8 @@ in_datadir = {
     'mgf_example',
     'peaks_example',
     'mfql_example',
+    'sec_xls_example',
+    'sec_unicorn_example',
 }
 
 in_mgfdir = {
