@@ -25,6 +25,7 @@ import lipyd.fragdb as fragdb
 import lipyd.ms2 as ms2
 import lipyd.settings as settings
 
+
 class TestFragdb(object):
     
     mgffile = settings.get('mgf_pos_examples')

@@ -101,7 +101,8 @@ class TestMoldb(object):
             lab = lipproc.LipidLabel(
                 db_id = None,
                 db = 'lipyd.lipid',
-                names = ('Cer-1P(DH42:2)',)
+                names = ('Cer-1P(DH42:2)',),
+                formula = 'C42H82N1O6P1',
             ),
             hg = lipproc.Headgroup(
                 main = 'Cer',
@@ -114,7 +115,7 @@ class TestMoldb(object):
                     lipproc.ChainAttr(sph = '', ether = False, oh = ())
                 ),
             ),
-            chains = ()
+            chains = (),
         )
         
         assert lyp_cer1p in list(result)
