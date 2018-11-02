@@ -292,10 +292,10 @@
 
 <span class="n">LipidLabel</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
     <span class="s1">&#39;LipidLabel&#39;</span><span class="p">,</span>
-    <span class="p">[</span><span class="s1">&#39;db_id&#39;</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">]</span>
+    <span class="p">[</span><span class="s1">&#39;db_id&#39;</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">,</span> <span class="s1">&#39;formula&#39;</span><span class="p">]</span>
 <span class="p">)</span>
 <span class="c1"># names are empty tuple by default</span>
-<span class="n">LipidLabel</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="n">defaults__</span> <span class="o">=</span> <span class="p">((),)</span>
+<span class="n">LipidLabel</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="n">defaults__</span> <span class="o">=</span> <span class="p">((),</span> <span class="kc">None</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="LipidRecord"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipproc.LipidRecord">[docs]</a><span class="k">class</span> <span class="nc">LipidRecord</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>

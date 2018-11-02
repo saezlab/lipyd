@@ -6,9 +6,9 @@
 #
 #  File author(s): Dénes Türei (denes@ebi.ac.uk)
 #
-#  This code is not for public use.
-#  Please do not redistribute.
-#  For permission please contact me.
+#  Distributed under the GNU GPLv3 License.
+#  See accompanying file LICENSE.txt or copy at
+#      http://www.gnu.org/licenses/gpl-3.0.html
 #
 #  Website: http://www.ebi.ac.uk/~denes
 #

@@ -154,7 +154,7 @@
 <span class="c1">#</span>
 <span class="c1">#  This file is part of the `lipyd` python module</span>
 <span class="c1">#</span>
-<span class="c1">#  Copyright (c) 2015-2017 - EMBL</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
 <span class="c1">#</span>
 <span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
 <span class="c1">#</span>
@@ -174,9 +174,8 @@
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
-<span class="kn">import</span> <span class="nn">xlrd</span>
-<span class="kn">import</span> <span class="nn">openpyxl</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
 
 <span class="n">ROOT</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
 
@@ -191,6 +190,12 @@
     <span class="n">basestring</span>
 <span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
     <span class="n">basestring</span> <span class="o">=</span> <span class="nb">str</span>
+
+
+<div class="viewcode-block" id="random_string"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.random_string">[docs]</a><span class="k">def</span> <span class="nf">random_string</span><span class="p">(</span><span class="n">length</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">97</span><span class="p">,</span> <span class="mi">123</span><span class="p">,</span> <span class="n">length</span><span class="p">))</span></div>
+
 
 <div class="viewcode-block" id="uniqList"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.uniqList">[docs]</a><span class="k">def</span> <span class="nf">uniqList</span><span class="p">(</span><span class="n">seq</span><span class="p">):</span>
     <span class="c1"># Not order preserving</span>
@@ -415,63 +420,6 @@
         <span class="p">}</span>
     <span class="p">}</span>
 <span class="p">}</span>
-
-
-<div class="viewcode-block" id="read_xls"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.read_xls">[docs]</a><span class="k">def</span> <span class="nf">read_xls</span><span class="p">(</span><span class="n">xls_file</span><span class="p">,</span> <span class="n">sheet</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">csv_file</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">return_table</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Generic function to read MS Excel XLS file, and convert one sheet</span>
-<span class="sd">    to CSV, or return as a list of lists</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">table</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">book</span> <span class="o">=</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">open_workbook</span><span class="p">(</span><span class="n">xls_file</span><span class="p">,</span> <span class="n">on_demand</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">sheet</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
-                <span class="n">sheet</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">sheet_by_index</span><span class="p">(</span><span class="n">sheet</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">sheet</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">sheet_by_name</span><span class="p">(</span><span class="n">sheet</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">biffh</span><span class="o">.</span><span class="n">XLRDError</span><span class="p">:</span>
-            <span class="n">sheet</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">sheet_by_index</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">table</span> <span class="o">=</span> <span class="p">[[</span><span class="n">unicode</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> \
-            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">sheet</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span> \
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sheet</span><span class="o">.</span><span class="n">nrows</span><span class="p">)]</span>
-    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
-        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;No such file: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">xls_file</span><span class="p">)</span>
-        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-    <span class="k">except</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">book</span> <span class="o">=</span> <span class="n">openpyxl</span><span class="o">.</span><span class="n">load_workbook</span><span class="p">(</span><span class="n">filename</span> <span class="o">=</span> <span class="n">xls_file</span><span class="p">,</span>
-                <span class="n">read_only</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">Could not open xls: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">xls_file</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">xls_file</span><span class="p">):</span>
-                <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">File does not exist.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">sheet</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
-                <span class="n">sheet</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">worksheets</span><span class="p">[</span><span class="n">sheet</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">sheet</span> <span class="o">=</span> <span class="n">book</span><span class="p">[</span><span class="n">sheet</span><span class="p">]</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="n">sheet</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">worksheets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">cells</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">get_squared_range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="n">sheet</span><span class="o">.</span><span class="n">max_column</span><span class="p">,</span> <span class="n">sheet</span><span class="o">.</span><span class="n">max_row</span><span class="p">)</span>
-        <span class="n">table</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span>
-            <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span>
-                <span class="n">unicode</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">value</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
-                <span class="n">row</span>
-            <span class="p">),</span>
-            <span class="n">cells</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="n">csv_file</span><span class="p">:</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">csv_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csv</span><span class="p">:</span>
-            <span class="n">csv</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">table</span><span class="p">]))</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">return_table</span><span class="p">:</span>
-        <span class="n">table</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="s1">&#39;book&#39;</span> <span class="ow">in</span> <span class="nb">locals</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">book</span><span class="p">,</span> <span class="s1">&#39;release_resources&#39;</span><span class="p">):</span>
-        <span class="n">book</span><span class="o">.</span><span class="n">release_resources</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">table</span></div>
 
 
 <div class="viewcode-block" id="iterator_insert"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.iterator_insert">[docs]</a><span class="k">def</span> <span class="nf">iterator_insert</span><span class="p">(</span><span class="n">full_length</span><span class="p">,</span> <span class="n">insert</span><span class="p">):</span>

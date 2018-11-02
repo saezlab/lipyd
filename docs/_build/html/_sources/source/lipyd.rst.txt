@@ -189,6 +189,15 @@ lipyd.sample module
     :undoc-members:
     :show-inheritance:
 
+lipyd.sampleattrs module
+------------------------
+
+.. automodule:: lipyd.sampleattrs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 lipyd.sdf module
 ----------------
 
@@ -196,6 +205,16 @@ lipyd.sdf module
     :members:
     :undoc-members:
     :show-inheritance:
+
+lipyd.sec module
+----------------
+
+.. automodule:: lipyd.sec
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 
 lipyd.session module
 --------------------

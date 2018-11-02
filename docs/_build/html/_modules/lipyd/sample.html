@@ -154,74 +154,1701 @@
 <span class="c1">#</span>
 <span class="c1">#  This file is part of the `lipyd` python module</span>
 <span class="c1">#</span>
-<span class="c1">#  Copyright (c) 2014-2018 - EMBL</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
 <span class="c1">#</span>
-<span class="c1">#  File author(s): Dénes Türei (denes@ebi.ac.uk)</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
 <span class="c1">#</span>
-<span class="c1">#  Distributed under the GNU GPLv3 License.</span>
-<span class="c1">#  See accompanying file LICENSE.txt or copy at</span>
-<span class="c1">#      http://www.gnu.org/licenses/gpl-3.0.html</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
 <span class="c1">#</span>
 <span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
 <span class="c1">#</span>
 
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">iteritems</span>
+<span class="kn">from</span> <span class="nn">past.builtins</span> <span class="k">import</span> <span class="n">xrange</span><span class="p">,</span> <span class="nb">range</span>
+
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">imp</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">operator</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
+
+<span class="kn">import</span> <span class="nn">lipyd.common</span> <span class="k">as</span> <span class="nn">common</span>
+<span class="n">basestring</span> <span class="o">=</span> <span class="n">common</span><span class="o">.</span><span class="n">basestring</span>
+<span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">reader</span>
+<span class="kn">import</span> <span class="nn">lipyd.reader.peaks</span>
+<span class="kn">import</span> <span class="nn">lipyd.moldb</span> <span class="k">as</span> <span class="nn">moldb</span>
+<span class="kn">import</span> <span class="nn">lipyd.ms2</span> <span class="k">as</span> <span class="nn">ms2</span>
 <span class="kn">import</span> <span class="nn">lipyd.mgf</span> <span class="k">as</span> <span class="nn">mgf</span>
+<span class="kn">import</span> <span class="nn">lipyd.settings</span> <span class="k">as</span> <span class="nn">settings</span>
+<span class="kn">import</span> <span class="nn">lipyd.progress</span> <span class="k">as</span> <span class="nn">progress</span>
+<span class="kn">import</span> <span class="nn">lipyd.sampleattrs</span> <span class="k">as</span> <span class="nn">sampleattrs</span>
 
 
-<div class="viewcode-block" id="Sample"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample">[docs]</a><span class="k">class</span> <span class="nc">Sample</span><span class="p">(</span><span class="n">mgf</span><span class="o">.</span><span class="n">MgfReader</span><span class="p">):</span>
+<span class="n">remgf</span>  <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf&#39;</span><span class="p">)</span>
+<span class="n">remgf2</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\w+)_([A-Z])([0-9]{1,2})_(pos|neg)\.mgf&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SampleReader"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleReader">[docs]</a><span class="k">class</span> <span class="nc">SampleReader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">reader_classes</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;peaks&#39;</span><span class="p">:</span> <span class="n">reader</span><span class="o">.</span><span class="n">peaks</span><span class="o">.</span><span class="n">PeaksReader</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_type</span><span class="p">,</span> <span class="n">ionmode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads data from files and creates ``Sample``, ``SampleSet`` and</span>
+<span class="sd">        ``FeatureAttributes`` objects.</span>
+<span class="sd">        </span>
+<span class="sd">        :param str input_type:</span>
+<span class="sd">            Format of the input files. Possible values: ``peaks``, ``mzml``.</span>
+<span class="sd">            Reader for ``mzml`` not yet available.</span>
+<span class="sd">        :param str ionmode:</span>
+<span class="sd">            Ion mode of the experiment: ``pos`` or ``neg``.</span>
+<span class="sd">            By deafult is ``None`` because the reading is possible without</span>
+<span class="sd">            the reader being aware of the ion mode. However it is most</span>
+<span class="sd">            convenient to provide it here.</span>
+<span class="sd">        :param **kwargs:</span>
+<span class="sd">            Arguments for the reader. Depends on the input format, please</span>
+<span class="sd">            refer to classes in ``lipyd.reader`` modules.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">sorted_by</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">input_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader_classes</span><span class="p">:</span>
+            
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Unknown input type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">input_type</span><span class="p">)</span>
         
-        <span class="n">mgf</span><span class="o">.</span><span class="n">MgfReader</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span> <span class="o">=</span> <span class="n">ionmode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reader_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader_classes</span><span class="p">[</span><span class="n">input_type</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reader_args</span>  <span class="o">=</span> <span class="n">kwargs</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sort_all</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="SampleReader.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleReader.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span> <span class="o">=</span> <span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SampleReader.read"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleReader.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader_class</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">reader_args</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SampleReader.get_attributes"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleReader.get_attributes">[docs]</a>    <span class="k">def</span> <span class="nf">get_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns ``lipyd.sample.FeatureAttributes`` object.</span>
+<span class="sd">        This object contains variables describing series of features</span>
+<span class="sd">        across all samples. E.g. Quality, significance, mean RT,</span>
+<span class="sd">        centroid m/z, etc</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">get_attributes</span><span class="p">()</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;ionmode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span>
+        
+        <span class="k">return</span> <span class="n">FeatureAttributes</span><span class="p">(</span><span class="o">**</span><span class="n">attrs</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SampleReader.get_samples"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleReader.get_samples">[docs]</a>    <span class="k">def</span> <span class="nf">get_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bind</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">sample_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Yields ``lipyd.sample.Sample`` objects for each sample read.</span>
+<span class="sd">        </span>
+<span class="sd">        To extract all data from ``PeaksReader`` the ``get_sampleset`` method</span>
+<span class="sd">        is more convenient.</span>
+<span class="sd">        </span>
+<span class="sd">        :param bool bind:</span>
+<span class="sd">            Bind samples to each other. This way they will sort together, i.e.</span>
+<span class="sd">            if any of them is sorted all the others follow the same order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">feature_attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attributes</span><span class="p">()</span>
+        
+        <span class="n">sorter</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">feature_attrs</span><span class="o">.</span><span class="n">sorter</span> <span class="ow">or</span> <span class="n">FeatureIdx</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">mzs</span><span class="p">)))</span>
+                <span class="k">if</span> <span class="n">bind</span> <span class="k">else</span>
+            <span class="kc">None</span>
+        <span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">_sample_args</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">get_samples</span><span class="p">():</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">bind</span><span class="p">:</span>
+                
+                <span class="n">feature_attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attributes</span><span class="p">()</span>
+            
+            <span class="n">_sample_args</span><span class="p">[</span><span class="s1">&#39;sorter&#39;</span><span class="p">]</span>        <span class="o">=</span> <span class="n">feature_attrs</span><span class="o">.</span><span class="n">sorter</span>
+            <span class="n">_sample_args</span><span class="p">[</span><span class="s1">&#39;feature_attrs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">feature_attrs</span>
+            <span class="n">_sample_args</span><span class="p">[</span><span class="s1">&#39;ionmode&#39;</span><span class="p">]</span>       <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span>
+            
+            <span class="k">if</span> <span class="n">sample_args</span><span class="p">:</span>
+                
+                <span class="n">_sample_args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">sample_args</span><span class="p">)</span>
+            
+            <span class="k">yield</span> <span class="n">Sample</span><span class="p">(</span><span class="o">**</span><span class="n">_sample_args</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SampleReader.get_sampleset"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleReader.get_sampleset">[docs]</a>    <span class="k">def</span> <span class="nf">get_sampleset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampleset_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a ``SampleSet`` and a ``FeatureAttributes`` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">_sampleset_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">get_sampleset</span><span class="p">()</span>
+        <span class="n">feature_attrs</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attributes</span><span class="p">()</span>
+        <span class="n">_sampleset_args</span><span class="p">[</span><span class="s1">&#39;feature_attrs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">feature_attrs</span>
+        <span class="n">_sampleset_args</span><span class="p">[</span><span class="s1">&#39;sorter&#39;</span><span class="p">]</span>        <span class="o">=</span> <span class="n">feature_attrs</span><span class="o">.</span><span class="n">sorter</span>
+        <span class="n">_sampleset_args</span><span class="p">[</span><span class="s1">&#39;ionmode&#39;</span><span class="p">]</span>       <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">ionmode</span>
+        
+        <span class="k">if</span> <span class="n">sampleset_args</span><span class="p">:</span>
+            
+            <span class="n">_sampleset_args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">sampleset_args</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">SampleSet</span><span class="p">(</span><span class="o">**</span><span class="n">_sampleset_args</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="FeatureBase"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureBase">[docs]</a><span class="k">class</span> <span class="nc">FeatureBase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sorter</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Serves as a base class for various classes handling arrays of</span>
+<span class="sd">        features. Some of its predecessors represent one sample others</span>
+<span class="sd">        more than one, or maybe data or annotations but all represent</span>
+<span class="sd">        a series of features detected in one LC MS/MS run or more than</span>
+<span class="sd">        one runs aligned with each other.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;var&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sorted_by</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_var</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">sorter</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">FeatureIdx</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">sorter</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span>
+                <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">!=</span> <span class="s1">&#39;FeatureIdx&#39;</span> <span class="ow">and</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">)</span> <span class="k">else</span>
+            <span class="n">sorter</span>
+        <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">sorter</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="FeatureBase.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureBase.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span> <span class="o">=</span> <span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">_add_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Registers a variable (array of data). If an array added this way</span>
+<span class="sd">        it will be always sorted the same way as all the other arrays in</span>
+<span class="sd">        order to keep the data of features together.</span>
+<span class="sd">        This method should not be called by users it is to be called</span>
+<span class="sd">        automatically at creation of the object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">missing</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="FeatureBase.sort_all"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureBase.sort_all">[docs]</a>    <span class="k">def</span> <span class="nf">sort_all</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">by</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">desc</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">resort</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">propagate</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">return_isort</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="p">(),</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sorts all data arrays according to an index array or values in one of</span>
+<span class="sd">        the data arrays.</span>
+<span class="sd">        </span>
+<span class="sd">        :param np.ndarray,str by:</span>
+<span class="sd">            Either an array of indices or the attribute name of any data</span>
+<span class="sd">            array of the object.</span>
+<span class="sd">        :param bool propagate:</span>
+<span class="sd">            Whether to propagate the sorting to bound objects. This is to</span>
+<span class="sd">            avoid loops of sorting.</span>
+<span class="sd">        :param bool return_isort:</span>
+<span class="sd">            Return the argsort vector. A vector of indices which can be used</span>
+<span class="sd">            to apply the same sorting on other arrays.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">isort</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">by</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">by</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted_by</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">resort</span><span class="p">)</span> <span class="ow">or</span>
+                <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by</span><span class="p">)</span> <span class="ow">or</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="p">):</span>
+                
+                <span class="k">return</span> <span class="kc">None</span>
+            
+            <span class="n">byarray</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">byarray</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">byarray</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                        <span class="s1">&#39;You requested sort by array of </span><span class="si">%u</span><span class="s1"> dimensions but &#39;</span>
+                        <span class="s1">&#39;selected only </span><span class="si">%u</span><span class="s1"> indices.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                        <span class="s1">&#39;Selecting 0 for all other axes by default.&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="nb">len</span><span class="p">(</span><span class="n">byarray</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
+                            <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                    
+                    <span class="n">indices</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                        <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span>
+                            <span class="n">indices</span><span class="p">,</span>
+                            <span class="p">((</span><span class="mi">0</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">byarray</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)))</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">byarray</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                        <span class="s1">&#39;You requested sort by array of </span><span class="si">%u</span><span class="s1"> dimensions but&#39;</span>
+                        <span class="s1">&#39;selected </span><span class="si">%u</span><span class="s1"> indices.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                        <span class="s1">&#39;Dropping indices from the end.&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="nb">len</span><span class="p">(</span><span class="n">byarray</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
+                            <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                    
+                    <span class="n">indices</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span>
+                        <span class="p">:(</span><span class="nb">len</span><span class="p">(</span><span class="n">byarray</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span>  <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="p">]</span>
+                
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+                    
+                    <span class="n">byarray</span> <span class="o">=</span> <span class="n">byarray</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span>
+            
+            <span class="n">isort</span> <span class="o">=</span> <span class="n">byarray</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+            
+            <span class="k">if</span> <span class="n">desc</span><span class="p">:</span>
+                <span class="n">isort</span> <span class="o">=</span> <span class="n">isort</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">sorted_by</span> <span class="o">=</span> <span class="n">by</span>
+            
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">by</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">by</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s1">&#39;Can not sort object of length </span><span class="si">%u</span><span class="s1"> by &#39;</span>
+                    <span class="s1">&#39;index array of length </span><span class="si">%u</span><span class="s1">.&#39;</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">by</span><span class="p">))</span>
+                <span class="p">)</span>
+            
+            <span class="n">isort</span> <span class="o">=</span> <span class="n">by</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">sorted_by</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="k">if</span> <span class="n">isort</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">:</span>
+                
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">)[</span><span class="n">isort</span><span class="p">])</span>
+            
+            <span class="k">if</span> <span class="n">propagate</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">sorter</span><span class="o">.</span><span class="n">sort_all</span><span class="p">(</span><span class="n">by</span> <span class="o">=</span> <span class="n">isort</span><span class="p">,</span> <span class="n">origin</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
+    
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()))</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="k">else</span>
+            <span class="mi">0</span>
+        <span class="p">)</span>
+    
+<div class="viewcode-block" id="FeatureBase.filter"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureBase.filter">[docs]</a>    <span class="k">def</span> <span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">negative</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">propagate</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Filters features at indices in ``idx``.</span>
+<span class="sd">        </span>
+<span class="sd">        :param list,np.array idx:</span>
+<span class="sd">            A list or array of inidices along axis 0.</span>
+<span class="sd">        :param bool negative:</span>
+<span class="sd">            Drop the features at indices instead of keeping them and removing</span>
+<span class="sd">            all others.</span>
+<span class="sd">        :param bool propagate:</span>
+<span class="sd">            Perform filtering on all object bound to the same sorter.</span>
+<span class="sd">            This is to avoid propagation in loops.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">selection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_idx_to_selection</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">negative</span> <span class="o">=</span> <span class="n">negative</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="n">propagate</span> <span class="o">=</span> <span class="n">propagate</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">_idx_to_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">negative</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        
+        <span class="n">selection</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">in1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="n">idx</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">negative</span><span class="p">:</span>
+            
+            <span class="n">selection</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">selection</span>
+    
+    <span class="k">def</span> <span class="nf">_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selection</span><span class="p">,</span> <span class="n">propagate</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        
+        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">:</span>
+            
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">)[</span><span class="n">selection</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="n">propagate</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">sorter</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="n">selection</span> <span class="o">=</span> <span class="n">selection</span><span class="p">,</span> <span class="n">origin</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+    
+<div class="viewcode-block" id="FeatureBase.filter_selection"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureBase.filter_selection">[docs]</a>    <span class="k">def</span> <span class="nf">filter_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selection</span><span class="p">,</span> <span class="n">negative</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Takes a ``FeatureSelection`` object and applies it as a filter i.e.</span>
+<span class="sd">        removes features where it is ``False``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">negative</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">negative</span><span class="p">)</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">selection</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="FeatureBase.threshold_filter"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureBase.threshold_filter">[docs]</a>    <span class="k">def</span> <span class="nf">threshold_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">op</span> <span class="o">=</span> <span class="n">operator</span><span class="o">.</span><span class="n">gt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Filters the features by any numeric attribute by simply applying</span>
+<span class="sd">        a threshold. If the attribute does not exist silently does nothing.</span>
+<span class="sd">        </span>
+<span class="sd">        :param str var:</span>
+<span class="sd">            Name of the attribute.</span>
+<span class="sd">        :param float threshold:</span>
+<span class="sd">            Value of the threshold.</span>
+<span class="sd">        :param operator op:</span>
+<span class="sd">            The operator to use. By default ``operator.gt`` (greater than),</span>
+<span class="sd">            which means the features having attribute value greatre than</span>
+<span class="sd">            the threshold will be kept and all others removed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">selection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold_select</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">op</span> <span class="o">=</span> <span class="n">op</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="FeatureBase.threshold_select"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureBase.threshold_select">[docs]</a>    <span class="k">def</span> <span class="nf">threshold_select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">op</span> <span class="o">=</span> <span class="n">operator</span><span class="o">.</span><span class="n">gt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns boolean vector by applying an operator on a variable and</span>
+<span class="sd">        a threshold.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">:</span>
+            
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;No such variable: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">var</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_threshold_select</span><span class="p">(</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">),</span>
+            <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">,</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="n">op</span><span class="p">,</span>
+        <span class="p">)</span></div>
+    
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_threshold_select</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">op</span> <span class="o">=</span> <span class="n">operator</span><span class="o">.</span><span class="n">gt</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">op</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="FeatureBase.feature_data"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureBase.feature_data">[docs]</a>    <span class="k">def</span> <span class="nf">feature_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">variables</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For a feature returns the requested attributes.</span>
+<span class="sd">        </span>
+<span class="sd">        :param list variables:</span>
+<span class="sd">            Names of the variables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">varialbes</span><span class="p">:</span>
+            
+            <span class="n">result</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">result</span></div></div>
+
+
+<div class="viewcode-block" id="FeatureAttributes"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureAttributes">[docs]</a><span class="k">class</span> <span class="nc">FeatureAttributes</span><span class="p">(</span><span class="n">FeatureBase</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">ionmode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Features are m/z values accompanied by other attributes.</span>
+<span class="sd">        Features might have been detected in one sample (one LC MS/MS run),</span>
+<span class="sd">        or across multiple runs (``SampleSet``).</span>
+<span class="sd">        ``FeatureAttributes`` handles the attributes for either a ``Sample``</span>
+<span class="sd">        or a ``SampleSet``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">FeatureBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span> <span class="o">=</span> <span class="n">ionmode</span>
+    
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">var</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">))</span>
+        
+        <span class="k">if</span> <span class="n">var</span><span class="p">:</span>
+            
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">))</span>
+    
+<div class="viewcode-block" id="FeatureAttributes.charges"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureAttributes.charges">[docs]</a>    <span class="k">def</span> <span class="nf">charges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a set of ion charges observed in the sample(set).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charge</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="Sample"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample">[docs]</a><span class="k">class</span> <span class="nc">Sample</span><span class="p">(</span><span class="n">FeatureBase</span><span class="p">):</span>
+    
+    <span class="n">ms2_collection_methods</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;mgf&#39;</span><span class="p">:</span>  <span class="s1">&#39;collect_mgf&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;mzml&#39;</span><span class="p">:</span> <span class="s1">&#39;collect_mzml&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">mzs</span><span class="p">,</span>
+            <span class="n">ionmode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">intensities</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">rts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_id_method</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">feature_attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sorter</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">ms2_format</span> <span class="o">=</span> <span class="s1">&#39;mgf&#39;</span><span class="p">,</span>
+            <span class="n">ms2_param</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">silent</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Represents one LC MS/MS run.</span>
+<span class="sd">        Has at least a vector of m/z&#39;s, optionally vector of intensites,</span>
+<span class="sd">        retention times and other metadata.</span>
+<span class="sd">        </span>
+<span class="sd">        :param str,tuple,callable sample_id:</span>
+<span class="sd">            An identifier for the sample or a callable method which takes</span>
+<span class="sd">            the sample attributes as an argument and returns such an ID.</span>
+<span class="sd">            If ``None`` the default method will be applied which attempts</span>
+<span class="sd">            to use the fraction ID from the attributes. If fails it uses</span>
+<span class="sd">            a random string as a unique identifier for the sample.</span>
+<span class="sd">        :param str ms2_format:</span>
+<span class="sd">            Format of the MS2 data. At the moment ``mgf`` is accepted.</span>
+<span class="sd">        :param dict ms2_param:</span>
+<span class="sd">            - ``mgf_files``:</span>
+<span class="sd">            A list of MGF file paths.</span>
+<span class="sd">            - ``mgf_match_method`` (callable):</span>
+<span class="sd">            A method which finds the MGF files. It accepts 2 arguments:</span>
+<span class="sd">            the directory path with the MGF files and the attributes used</span>
+<span class="sd">            to match the file names.</span>
+<span class="sd">            - ``mgfdir`` (path):</span>
+<span class="sd">            Path to the directory containing the MGF files.</span>
+<span class="sd">            - ``mgf_charge``:</span>
+<span class="sd">            If a value provided here only the scans with this precursor</span>
+<span class="sd">            charge will be processed from the MGF files. If ``None``, charge</span>
+<span class="sd">            won&#39;t be considered.&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">var</span>     <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">missing</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">mzs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Sample object must have at least m/z values.&#39;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_var</span><span class="p">(</span><span class="n">mzs</span><span class="p">,</span> <span class="s1">&#39;mzs&#39;</span><span class="p">)</span>
+        
+        <span class="n">FeatureBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">intensities</span> <span class="o">=</span> <span class="n">intensities</span><span class="p">,</span>
+            <span class="n">rts</span> <span class="o">=</span> <span class="n">rts</span><span class="p">,</span>
+            <span class="n">sorter</span> <span class="o">=</span> <span class="n">sorter</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">silent</span>     <span class="o">=</span> <span class="n">silent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span>    <span class="o">=</span> <span class="n">ionmode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span>    <span class="o">=</span> <span class="n">feature_attrs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ms2_format</span> <span class="o">=</span> <span class="n">ms2_format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span>  <span class="o">=</span> <span class="n">ms2_param</span> <span class="ow">or</span> <span class="p">{}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_attrs</span><span class="p">(</span>
+            <span class="n">sample_id</span> <span class="o">=</span> <span class="n">sample_id</span><span class="p">,</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">,</span>
+            <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="n">sample_id_processor</span><span class="p">,</span>
+        <span class="p">)</span>
     
 <div class="viewcode-block" id="Sample.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
         <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
         <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
         <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
         <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="Sample.sort_all"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.sort_all">[docs]</a>    <span class="k">def</span> <span class="nf">sort_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by</span> <span class="o">=</span> <span class="s1">&#39;mz&#39;</span><span class="p">,</span> <span class="n">desc</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">resort</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">,</span> <span class="n">attrs</span><span class="p">,</span> <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleAttrs</span><span class="p">(</span><span class="n">sample_id</span><span class="p">,</span> <span class="n">attrs</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_add_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        
+        <span class="c1"># mzs is the first variable so it is added without</span>
+        <span class="c1"># checking its length. All others must be the same</span>
+        <span class="c1"># length as mzs.</span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="o">!=</span> <span class="s1">&#39;mzs&#39;</span> <span class="ow">and</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s1">&#39;Sample object: length of `</span><span class="si">%s</span><span class="s1">` (</span><span class="si">%u</span><span class="s1">) is not the same &#39;</span>
+                <span class="s1">&#39;as number of features in the sample (</span><span class="si">%u</span><span class="s1">).&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">attr</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        
+        <span class="n">FeatureBase</span><span class="o">.</span><span class="n">_add_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="Sample.sort_all"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.sort_all">[docs]</a>    <span class="k">def</span> <span class="nf">sort_all</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">by</span> <span class="o">=</span> <span class="s1">&#39;mzs&#39;</span><span class="p">,</span>
+            <span class="n">desc</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">resort</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">propagate</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">return_isort</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Sorts all data arrays according to values in one of them.</span>
+<span class="sd">        Sorts all data arrays according to an index array or values in one of</span>
+<span class="sd">        the data arrays.</span>
+<span class="sd">        </span>
+<span class="sd">        :param np.ndarray,str by:</span>
+<span class="sd">            Either an array of indices or the attribute name of any data</span>
+<span class="sd">            array of the object.</span>
+<span class="sd">        :param bool desc:</span>
+<span class="sd">            Sort descending. Applies only if ``by`` is the attribute name</span>
+<span class="sd">            of a data array.</span>
+<span class="sd">        :param bool resort:</span>
+<span class="sd">            Sort even if the object is already sorted according to the</span>
+<span class="sd">            value stored in ``sorted_by``.</span>
+<span class="sd">        :param bool propagate:</span>
+<span class="sd">            Whether to propagate the sorting to bound objects. This is to</span>
+<span class="sd">            avoid loops of sorting.</span>
+<span class="sd">        :param bool return_isort:</span>
+<span class="sd">            Return the argsort vector. A vector of indices which can be used</span>
+<span class="sd">            to apply the same sorting on other arrays.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         
-        <span class="k">if</span> <span class="n">by</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted_by</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">resort</span><span class="p">:</span>
+        <span class="n">isort</span> <span class="o">=</span> <span class="n">FeatureBase</span><span class="o">.</span><span class="n">sort_all</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">by</span> <span class="o">=</span> <span class="n">by</span><span class="p">,</span>
+            <span class="n">desc</span> <span class="o">=</span> <span class="n">desc</span><span class="p">,</span>
+            <span class="n">resort</span> <span class="o">=</span> <span class="n">resort</span><span class="p">,</span>
+            <span class="n">propagate</span> <span class="o">=</span> <span class="n">propagate</span><span class="p">,</span>
+            <span class="n">return_isort</span> <span class="o">=</span> <span class="n">return_isort</span><span class="p">,</span>
+        <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">return_isort</span><span class="p">:</span>
             
-            <span class="k">return</span> <span class="kc">None</span>
-        
-        <span class="n">isort</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by</span><span class="p">))</span>
-        
-        <span class="k">if</span> <span class="n">desc</span><span class="p">:</span>
-            <span class="n">isort</span> <span class="o">=</span> <span class="n">isort</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        
-        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">:</span>
-            
-            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">)[</span><span class="n">isort</span><span class="p">])</span>
-        
-        <span class="bp">self</span><span class="o">.</span><span class="n">sorted_by</span> <span class="o">=</span> <span class="n">by</span></div>
+            <span class="k">return</span> <span class="n">isort</span></div>
     
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns number of MS1 ions (m/z&#39;s) detected in the sample.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         
-        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mz</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mzs</span><span class="p">)</span>
     
-<div class="viewcode-block" id="Sample.charges"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.charges">[docs]</a>    <span class="k">def</span> <span class="nf">charges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Sample.apply"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.apply">[docs]</a>    <span class="k">def</span> <span class="nf">apply</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">method</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">variables</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">feature_attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Returns a set of ion charges observed in the sample.</span>
+<span class="sd">        Applies a method on each of the features and creates a new variable</span>
+<span class="sd">        from the results.</span>
+<span class="sd">        </span>
+<span class="sd">        :param callable method:</span>
+<span class="sd">            The method to apply.</span>
+<span class="sd">        :param str name:</span>
+<span class="sd">            The name for the new variable.</span>
+<span class="sd">        :param list variables:</span>
+<span class="sd">            List of variables to be passed to the method.</span>
+<span class="sd">        :param list feature_attrs:</span>
+<span class="sd">            List of variables in the ``FeatureAttributes`` object.</span>
+<span class="sd">        :param **kwargs:</span>
+<span class="sd">            Passed to method.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         
-        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charge</span><span class="p">))</span></div></div>
+        <span class="n">new</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="n">method</span><span class="p">,</span>
+            <span class="n">variables</span> <span class="o">=</span> <span class="n">variables</span><span class="p">,</span>
+            <span class="n">feature_attrs</span> <span class="o">=</span> <span class="n">feature_attrs</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">_add_var</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">_apply</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">method</span><span class="p">,</span>
+            <span class="n">variables</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">feature_attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            
+            <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_data</span><span class="p">(</span>
+                <span class="n">i</span><span class="p">,</span>
+                <span class="n">variables</span> <span class="o">=</span> <span class="n">variables</span><span class="p">,</span>
+                <span class="n">feature_attrs</span> <span class="o">=</span> <span class="n">feature_attrs</span><span class="p">,</span>
+            <span class="p">)</span>
+            
+            <span class="n">result_i</span> <span class="o">=</span> <span class="n">method</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result_i</span><span class="p">)</span>
+        
+        <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="Sample.select"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.select">[docs]</a>    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">variables</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">feature_atts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">threshold</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">negative</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="n">operator</span><span class="o">.</span><span class="n">gt</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Selects a subset of the features. Returns ``FeatureSelection`` object.</span>
+<span class="sd">        </span>
+<span class="sd">        If ``method`` is callable, applies it to the variables in</span>
+<span class="sd">        ``variables`` and ``feature_attrs`` and selects based on ``threshold``</span>
+<span class="sd">        and ``negative``. If ``method`` is ``None`` and a variable name</span>
+<span class="sd">        provided in ``variables`` or ``feature_attrs`` then uses this</span>
+<span class="sd">        variable to provide a selection.</span>
+<span class="sd">        </span>
+<span class="sd">        :param callable method:</span>
+<span class="sd">            Method to be applied to obtain a new variable which will be the</span>
+<span class="sd">            basis of the selection.</span>
+<span class="sd">        :param list,str variables:</span>
+<span class="sd">            Eiter a list of variables (to be passed to ``method``) or one</span>
+<span class="sd">            variable name which will be the basis of the selection.</span>
+<span class="sd">        :param list,str feature_attrs:</span>
+<span class="sd">            Like ``variables`` but refers to variables in the</span>
+<span class="sd">            ``FeatureAttributes`` object.</span>
+<span class="sd">        :param float threshold:</span>
+<span class="sd">            A threshold value for the filter.</span>
+<span class="sd">        :param bool negative:</span>
+<span class="sd">            Apply negative selection (selection vector is ``False`` where)</span>
+<span class="sd">            ``method`` returns ``True``.</span>
+<span class="sd">        :param operator op:</span>
+<span class="sd">            Operator to apply between variable and threshold.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+            
+            <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span>
+                <span class="n">method</span><span class="p">,</span>
+                <span class="n">variables</span> <span class="o">=</span> <span class="n">variables</span><span class="p">,</span>
+                <span class="n">feature_attrs</span> <span class="o">=</span> <span class="n">feature_attrs</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+            
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>
+            
+            <span class="n">var</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+            
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">feature_attrs</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>
+            
+            <span class="n">var</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+            
+        <span class="n">selection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_threshold_select</span><span class="p">(</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="n">var</span><span class="p">,</span>
+            <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">,</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="n">op</span><span class="p">,</span>
+        <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">FeatureSelection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selections</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Sample.feature_data"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.feature_data">[docs]</a>    <span class="k">def</span> <span class="nf">feature_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">variables</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">feature_attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For a feature returns the requested attributes.</span>
+<span class="sd">        </span>
+<span class="sd">        :param list variables:</span>
+<span class="sd">            Names of the variables.</span>
+<span class="sd">        :param list feature_attrs:</span>
+<span class="sd">            Names of variables in the ``FeatureAttributes`` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">FeatureBase</span><span class="o">.</span><span class="n">feature_data</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">variables</span><span class="p">))</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">feature_data</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">feature_attrs</span><span class="p">))</span>
+        
+        <span class="k">return</span> <span class="n">result</span></div>
+    
+    <span class="c1">#</span>
+    <span class="c1"># Methods for processing</span>
+    <span class="c1">#</span>
+    
+<div class="viewcode-block" id="Sample.process"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.process">[docs]</a>    <span class="k">def</span> <span class="nf">process</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">basic_filters</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">database_lookup</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">ms2_analysis</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">basic_filters_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">database_lookup_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">ms2_analysis_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method implements the workflow of processing the samples.</span>
+<span class="sd">        At the moment it does trivial filtering (see ``basic_filters``),</span>
+<span class="sd">        performs database lookups (see ``database_lookup``) and analyses</span>
+<span class="sd">        the MS2 data (see ``ms2_analysis``).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">basic_filters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">basic_filters</span><span class="p">(</span><span class="o">**</span><span class="p">(</span><span class="n">basic_filters_args</span> <span class="ow">or</span> <span class="p">{}))</span>
+        
+        <span class="k">if</span> <span class="n">database_lookup</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">database_lookup</span><span class="p">(</span><span class="o">**</span><span class="p">(</span><span class="n">database_lookup_args</span> <span class="ow">or</span> <span class="p">{}))</span>
+        
+        <span class="k">if</span> <span class="n">ms2_analysis</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ms2_analysis</span><span class="p">(</span><span class="o">**</span><span class="p">(</span><span class="n">ms2_analysis_args</span> <span class="ow">or</span> <span class="p">{}))</span></div>
+    
+<div class="viewcode-block" id="Sample.quality_filter"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.quality_filter">[docs]</a>    <span class="k">def</span> <span class="nf">quality_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="o">.</span><span class="mi">2</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        If the features has an attribute named `quality` it removes the</span>
+<span class="sd">        ones with quality below the threshold.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">threshold_filter</span><span class="p">(</span><span class="s1">&#39;quality&#39;</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Sample.rt_filter"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.rt_filter">[docs]</a>    <span class="k">def</span> <span class="nf">rt_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Removes the features with mean retention time below the threshold.</span>
+<span class="sd">        Works only if the features has an attribute named `rt_means`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">threshold_filter</span><span class="p">(</span><span class="s1">&#39;rt_means&#39;</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Sample.charge_filter"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.charge_filter">[docs]</a>    <span class="k">def</span> <span class="nf">charge_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">charge</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Keeps only the features with the preferred charge.</span>
+<span class="sd">        Does not care about sign.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">threshold_filter</span><span class="p">(</span>
+            <span class="s1">&#39;charge&#39;</span><span class="p">,</span>
+            <span class="n">threshold</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">charge</span><span class="p">),</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">vc</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">vc</span><span class="p">)</span> <span class="o">==</span> <span class="n">c</span><span class="p">,</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Sample.intensity_filter"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.intensity_filter">[docs]</a>    <span class="k">def</span> <span class="nf">intensity_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="mf">10000.</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Removes the features with total intensities across samples lower than</span>
+<span class="sd">        the threshold.</span>
+<span class="sd">        </span>
+<span class="sd">        Works by the ``total_intensities`` attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">threshold_filter</span><span class="p">(</span>
+            <span class="s1">&#39;total_intensities&#39;</span><span class="p">,</span>
+            <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">,</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Sample.basic_filters"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.basic_filters">[docs]</a>    <span class="k">def</span> <span class="nf">basic_filters</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">quality_min</span> <span class="o">=</span> <span class="o">.</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">rt_min</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">,</span>
+            <span class="n">intensity_min</span> <span class="o">=</span> <span class="mf">10000.</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs 4 trivial filtering steps which discard a large number of</span>
+<span class="sd">        features at the beginning of the analysis. It removes the features</span>
+<span class="sd">        with quality lower than 0.2, non single charge, retention time lower</span>
+<span class="sd">        than 1 minute or total intensity lower than 10,000.</span>
+<span class="sd">        Different threshold values can be provided to this method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">quality_filter</span><span class="p">(</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">quality_min</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charge_filter</span><span class="p">(</span><span class="n">charge</span> <span class="o">=</span> <span class="n">charge</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intensity_filter</span><span class="p">(</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">intensity_min</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rt_filter</span><span class="p">(</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">rt_min</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Sample.database_lookup"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.database_lookup">[docs]</a>    <span class="k">def</span> <span class="nf">database_lookup</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">database_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">reinit_db</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">adduct_constraints</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs database lookups of all m/z&#39;s.</span>
+<span class="sd">        </span>
+<span class="sd">        Creates an array variable named ``records`` in the</span>
+<span class="sd">        ``FeatureAttributes`` object (``feattrs``) with the records retrieved</span>
+<span class="sd">        from the database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">moldb</span><span class="p">,</span> <span class="s1">&#39;db&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">reinit_db</span><span class="p">:</span>
+            
+            <span class="n">moldb</span><span class="o">.</span><span class="n">init_db</span><span class="p">(</span><span class="o">**</span><span class="p">(</span><span class="n">database_args</span> <span class="ow">or</span> <span class="p">{}))</span>
+        
+        <span class="c1"># we add an array variable with the recodrs resulted</span>
+        <span class="c1"># in the lookup</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">_add_var</span><span class="p">(</span>
+            <span class="n">moldb</span><span class="o">.</span><span class="n">adduct_lookup_many</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mzs</span><span class="p">,</span>
+                <span class="n">ionmode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span><span class="p">,</span>
+                <span class="n">adduct_constraints</span> <span class="o">=</span> <span class="n">adduct_constraints</span><span class="p">,</span>
+                <span class="n">charge</span> <span class="o">=</span> <span class="n">charge</span><span class="p">,</span>
+                <span class="n">tolerance</span> <span class="o">=</span> <span class="n">tolerance</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="s1">&#39;records&#39;</span><span class="p">,</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Sample.set_ms2_sources"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.set_ms2_sources">[docs]</a>    <span class="k">def</span> <span class="nf">set_ms2_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Collects the MS2 scans belonging to this sample.</span>
+<span class="sd">        </span>
+<span class="sd">        The collected resources will be in the ``ms2_source`` attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">ms2_source</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">ms2_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collect_ms2</span><span class="p">(</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_id</span> <span class="ow">in</span> <span class="n">ms2_source</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">ms2_source</span> <span class="o">=</span> <span class="n">ms2_source</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_id</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="Sample.collect_ms2"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.collect_ms2">[docs]</a>    <span class="k">def</span> <span class="nf">collect_ms2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Collects the MS2 scans belonging to this sample.</span>
+<span class="sd">        </span>
+<span class="sd">        The collected resources returned as ``dict`` which can be passed</span>
+<span class="sd">        to ``ms2.MS2Feature``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span>
+        <span class="n">sample_id</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">sample_id</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_format</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s1">&#39;`ms2_format` is necessary to run MS2 analysis.&#39;</span>
+            <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_format</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_collection_methods</span><span class="p">:</span>
+            
+            <span class="n">method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_collection_methods</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ms2_format</span><span class="p">]</span>
+            
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">)(</span>
+                <span class="n">sample_id</span> <span class="o">=</span> <span class="n">sample_id</span><span class="p">,</span>
+                <span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span>
+            <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Sample.collect_mgf"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.collect_mgf">[docs]</a>    <span class="k">def</span> <span class="nf">collect_mgf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Collects MGF files containing the MS2 spectra.</span>
+<span class="sd">        </span>
+<span class="sd">        :param dict attrs:</span>
+<span class="sd">            A ``dict`` with attributes necessary to find the appropriate</span>
+<span class="sd">            MGF files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># if list of filenames provided we simply use those</span>
+        <span class="k">if</span> <span class="s1">&#39;mgf_files&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span><span class="p">:</span>
+            
+            <span class="n">mgf_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span><span class="p">[</span><span class="s1">&#39;mgf_files&#39;</span><span class="p">]</span>
+            
+            <span class="c1"># if directory provided create paths</span>
+            <span class="k">if</span> <span class="s1">&#39;mgfdir&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span><span class="p">:</span>
+                
+                <span class="n">mgf_files</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span><span class="p">[</span><span class="s1">&#39;mgfdir&#39;</span><span class="p">],</span> <span class="n">fname</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">mgf_files</span>
+                <span class="p">]</span>
+            
+        <span class="c1"># otherwise we need to collect the files</span>
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="c1"># check if directory with MGF files provided</span>
+            <span class="n">mgfdir</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span><span class="p">[</span><span class="s1">&#39;mgfdir&#39;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="s1">&#39;mgfdir&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span> <span class="k">else</span>
+                <span class="c1"># fall back to this default</span>
+                <span class="s1">&#39;mgf&#39;</span>
+            <span class="p">)</span>
+            
+            <span class="c1"># if dir does not exist we can do nothing</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">mgfdir</span><span class="p">):</span>
+                
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                    <span class="s1">&#39;Please provide a directory with MGF files.&#39;</span>
+                <span class="p">)</span>
+            
+            <span class="c1"># ok, now we can find the MGF files by matching against</span>
+            <span class="c1"># the sample attributes</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span>
+            <span class="n">sample_id</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">sample_id</span>
+            
+            <span class="c1"># see if a matching method provided</span>
+            <span class="n">mgf_match_method</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span><span class="p">[</span><span class="s1">&#39;mgf_match_method&#39;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="s1">&#39;mgf_match_method&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span> <span class="k">else</span>
+                <span class="c1"># otherwise we use our default</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_default_mgf_match_method</span>
+            <span class="p">)</span>
+            
+            <span class="n">mgf_files</span> <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">mgfdir</span><span class="p">):</span>
+                
+                <span class="n">mgf_path</span>     <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mgfdir</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+                <span class="n">mgf_matches</span>  <span class="o">=</span> <span class="n">mgf_match_method</span><span class="p">(</span><span class="n">mgf_path</span><span class="p">,</span> <span class="n">attrs</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">mgf_matches</span><span class="p">:</span>
+                    
+                    <span class="n">mgf_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mgf_path</span><span class="p">)</span>
+        
+        <span class="c1"># check if mgf_charge provided in params</span>
+        <span class="n">mgf_charge</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span><span class="p">[</span><span class="s1">&#39;mgf_charge&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s1">&#39;mgf_charge&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span> <span class="k">else</span>
+            <span class="kc">None</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># dict with one key and list of files probably only one element:</span>
+        <span class="c1"># do like this to be able to directly pass to ms2.MS2Feature</span>
+        <span class="k">return</span>  <span class="p">{</span>
+            <span class="n">sample_id</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">mgf</span><span class="o">.</span><span class="n">MgfReader</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">charge</span> <span class="o">=</span> <span class="n">mgf_charge</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">mgf_files</span>
+            <span class="p">]</span>
+        <span class="p">}</span></div>
+    
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_default_mgf_match_method</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">attrs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The default method for matching names of MGF files against attributes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">match</span>  <span class="o">=</span> <span class="n">remgf</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">match2</span> <span class="o">=</span> <span class="n">remgf2</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            
+            <span class="n">main</span><span class="p">,</span> <span class="n">ionmode</span><span class="p">,</span> <span class="n">fracrow</span><span class="p">,</span> <span class="n">fraccol</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">match2</span><span class="p">:</span>
+            
+            <span class="n">main</span><span class="p">,</span> <span class="n">fracrow</span><span class="p">,</span> <span class="n">fraccol</span><span class="p">,</span> <span class="n">ionmode</span> <span class="o">=</span> <span class="n">match2</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">match</span> <span class="ow">or</span> <span class="n">match2</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">][</span><span class="s1">&#39;main&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">main</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">and</span>
+            <span class="p">(</span><span class="n">fracrow</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">fraccol</span><span class="p">))</span> <span class="o">==</span> <span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">][</span><span class="s1">&#39;fraction&#39;</span><span class="p">]</span> <span class="ow">and</span>
+            <span class="n">ionmode</span> <span class="o">==</span> <span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">][</span><span class="s1">&#39;ionmode&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+    
+<div class="viewcode-block" id="Sample.collect_mzml"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.collect_mzml">[docs]</a>    <span class="k">def</span> <span class="nf">collect_mzml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+    
+<div class="viewcode-block" id="Sample.ms2_analysis"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.ms2_analysis">[docs]</a>    <span class="k">def</span> <span class="nf">ms2_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resources</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runs MS2 identification methods on all features.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">resources</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ms2_source</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                
+                <span class="n">resources</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_id</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_source</span><span class="p">}</span>
+                
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ms2_source</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                
+                <span class="n">resources</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_source</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s1">&#39;No resources provided for MS2 identification.&#39;</span>
+                <span class="p">)</span>
+        
+        <span class="n">ms2_identities</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">silent</span><span class="p">:</span>
+            
+            <span class="n">prg</span> <span class="o">=</span> <span class="n">progress</span><span class="o">.</span><span class="n">Progress</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="s1">&#39;Analysing MS2 spectra&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">silent</span><span class="p">:</span>
+                
+                <span class="n">prg</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+            
+            <span class="c1"># MS2 identifications:</span>
+            <span class="n">ms2_fe</span> <span class="o">=</span> <span class="n">ms2</span><span class="o">.</span><span class="n">MS2Feature</span><span class="p">(</span>
+                <span class="n">mz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mzs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">ionmode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span><span class="p">,</span>
+                <span class="n">resources</span> <span class="o">=</span> <span class="n">resources</span><span class="p">,</span>
+                <span class="n">rt</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">rt_ranges</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                <span class="n">ms1_records</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">records</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="p">)</span>
+            
+            <span class="n">ms2_fe</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+            
+            <span class="n">ms2_identities</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ms2_fe</span><span class="o">.</span><span class="n">identities</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">silent</span><span class="p">:</span>
+            
+            <span class="n">prg</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        
+        <span class="n">ms2_identities</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ms2_identities</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">_add_var</span><span class="p">(</span><span class="n">ms2_identities</span><span class="p">,</span> <span class="s1">&#39;ms2_identities&#39;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Sample.ms2_identify"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.ms2_identify">[docs]</a>    <span class="k">def</span> <span class="nf">ms2_identify</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_ms2_sources</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ms2_analysis</span><span class="p">()</span></div>
+    
+    <span class="c1">#</span>
+    <span class="c1"># Methods for exporting the results</span>
+    <span class="c1">#</span>
+    
+<div class="viewcode-block" id="Sample.get_database_records"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.get_database_records">[docs]</a>    <span class="k">def</span> <span class="nf">get_database_records</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">database</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">adduct</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Yields database records for one feature, optionally only records</span>
+<span class="sd">        of certain adduct or database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">adduct</span><span class="p">:</span>
+            
+            <span class="n">records</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">records</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">adduct</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">records</span> <span class="o">=</span>  <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span>
+                <span class="o">*</span><span class="p">(</span><span class="n">add</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">add</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">records</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">database</span> <span class="ow">or</span> <span class="n">database</span> <span class="o">==</span> <span class="n">rec</span><span class="o">.</span><span class="n">lab</span><span class="o">.</span><span class="n">db</span><span class="p">:</span>
+                
+                <span class="k">yield</span> <span class="n">rec</span></div>
+    
+<div class="viewcode-block" id="Sample.table"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.table">[docs]</a>    <span class="k">def</span> <span class="nf">table</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">variables</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns results as a header and a table as list of lists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">sort_all</span><span class="p">(</span><span class="s1">&#39;total_intensities&#39;</span><span class="p">,</span> <span class="n">desc</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        
+        <span class="n">hdr</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;m/z&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;average area&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;RT range&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;quality&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;significance&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;database lookups&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;MS2 top&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;MS2 all&#39;</span><span class="p">,</span>
+        <span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">variables</span><span class="p">:</span>
+            
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">variables</span><span class="p">):</span>
+                
+                <span class="n">hdr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">headers</span> <span class="k">else</span> <span class="n">headers</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        
+        <span class="k">yield</span> <span class="n">hdr</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            
+            <span class="n">ms2_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">ms2_identities</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">ms2_max_score</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">max</span><span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="n">ms2i</span><span class="o">.</span><span class="n">score_pct</span>
+                        <span class="k">for</span> <span class="n">ms2iii</span> <span class="ow">in</span> <span class="n">ms2_id</span>
+                        <span class="k">for</span> <span class="n">ms2ii</span> <span class="ow">in</span> <span class="n">ms2iii</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                        <span class="k">for</span> <span class="n">ms2i</span> <span class="ow">in</span> <span class="n">ms2ii</span>
+                    <span class="p">),</span>
+                    <span class="n">default</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">ms2_best</span> <span class="o">=</span> <span class="s1">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">ms2i</span><span class="o">.</span><span class="n">full_str</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">ms2iii</span> <span class="ow">in</span> <span class="n">ms2_id</span>
+                <span class="k">for</span> <span class="n">ms2ii</span> <span class="ow">in</span> <span class="n">ms2iii</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">ms2i</span> <span class="ow">in</span> <span class="n">ms2ii</span>
+                <span class="k">if</span> <span class="n">ms2i</span><span class="o">.</span><span class="n">score_pct</span> <span class="o">==</span> <span class="n">ms2_max_score</span>
+            <span class="p">)</span>
+            <span class="n">ms2_all</span> <span class="o">=</span> <span class="s1">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">ms2i</span><span class="o">.</span><span class="n">full_str</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">ms2iii</span> <span class="ow">in</span> <span class="n">ms2_id</span>
+                <span class="k">for</span> <span class="n">ms2ii</span> <span class="ow">in</span> <span class="n">ms2iii</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">ms2i</span> <span class="ow">in</span> <span class="n">ms2ii</span>
+                <span class="k">if</span> <span class="n">ms2i</span><span class="o">.</span><span class="n">score_pct</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+            <span class="p">)</span>
+            
+            <span class="n">line</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s1">&#39;</span><span class="si">%08f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">mzs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="s1">&#39;</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">total_intensities</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="s1">&#39;</span><span class="si">%.02f</span><span class="s1"> - </span><span class="si">%.02f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">rt_ranges</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                <span class="s1">&#39;</span><span class="si">%.02f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">quality</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="s1">&#39;</span><span class="si">%.02f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">significance</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">moldb</span><span class="o">.</span><span class="n">records_string</span><span class="p">(</span>
+                    <span class="n">records</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">records</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="n">show_ppm</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">show_adduct</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">show_db</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">ms2_best</span><span class="p">,</span>
+                <span class="n">ms2_all</span><span class="p">,</span>
+            <span class="p">]</span>
+            
+            <span class="k">if</span> <span class="n">variables</span><span class="p">:</span>
+                
+                <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">:</span>
+                    
+                    <span class="n">line</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="p">,</span> <span class="n">var</span><span class="p">)[</span><span class="n">i</span><span class="p">]))</span>
+            
+            <span class="k">yield</span> <span class="n">line</span></div>
+    
+<div class="viewcode-block" id="Sample.export_table"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.export_table">[docs]</a>    <span class="k">def</span> <span class="nf">export_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="n">hdr</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            
+            <span class="n">_</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hdr</span><span class="p">))</span>
+            
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">table</span><span class="p">:</span>
+                
+                <span class="n">_</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">_</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">row</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="FeatureIdx"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureIdx">[docs]</a><span class="k">class</span> <span class="nc">FeatureIdx</span><span class="p">(</span><span class="n">FeatureBase</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helps the sorting of features across multiple samples</span>
+<span class="sd">        with keeping track of feature IDs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">FeatureBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;_original&#39;</span><span class="p">,</span> <span class="s1">&#39;_current&#39;</span><span class="p">}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_original</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">clients</span> <span class="o">=</span> <span class="p">{}</span>
+    
+    <span class="k">def</span> <span class="nf">_sort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">argsort</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sorts the two index arrays by an index array.</span>
+<span class="sd">        Do not call this because it does sync with clients.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">argsort</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s1">&#39;FeatureIdx: can not sort by index array of different length.&#39;</span>
+            <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current</span><span class="p">[</span><span class="n">argsort</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_original</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="FeatureIdx.current"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureIdx.current">[docs]</a>    <span class="k">def</span> <span class="nf">current</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tells the current index for the original index ``o``.</span>
+<span class="sd">        </span>
+<span class="sd">        :param int o:</span>
+<span class="sd">            An original index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_original</span><span class="p">[</span><span class="n">o</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="FeatureIdx.original"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureIdx.original">[docs]</a>    <span class="k">def</span> <span class="nf">original</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tells the original index for the current index ``c``.</span>
+<span class="sd">        </span>
+<span class="sd">        :param int c:</span>
+<span class="sd">            An index in the current ordering.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current</span><span class="p">[</span><span class="n">c</span><span class="p">]</span></div>
+    
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_original</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="FeatureIdx.acurrent"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureIdx.acurrent">[docs]</a>    <span class="k">def</span> <span class="nf">acurrent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ao</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For a vector of original indices ``ao`` returns a vector of</span>
+<span class="sd">        corresponding current indices.</span>
+<span class="sd">        </span>
+<span class="sd">        :param int ao:</span>
+<span class="sd">            Vector of original indices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_original</span><span class="p">[</span><span class="n">ao</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="FeatureIdx.aoriginal"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureIdx.aoriginal">[docs]</a>    <span class="k">def</span> <span class="nf">aoriginal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">co</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For a vector of current indices ``co`` returns a vector of</span>
+<span class="sd">        corresponding original indices.</span>
+<span class="sd">        </span>
+<span class="sd">        :param int co:</span>
+<span class="sd">            Vector of current indices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current</span><span class="p">[</span><span class="n">ac</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="FeatureIdx.convert"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureIdx.convert">[docs]</a>    <span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts from the ordering of an other ``FeatureIdx`` instance</span>
+<span class="sd">        to the ordering of this one.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+    
+<div class="viewcode-block" id="FeatureIdx.register"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureIdx.register">[docs]</a>    <span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sortable</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Binds a sortable object of the same length to this one hence all</span>
+<span class="sd">        sorting operations will be applied also to this object.</span>
+<span class="sd">        Sortables clients assumed to share the same original indices.</span>
+<span class="sd">        It means should have the same ordering at time of registration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sortable</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s1">&#39;FeatureIdx: Objects of unequal length can not be co-sorted.&#39;</span>
+            <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">sortable</span><span class="p">)]</span> <span class="o">=</span> <span class="n">sortable</span></div>
+    
+<div class="viewcode-block" id="FeatureIdx.unregister"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureIdx.unregister">[docs]</a>    <span class="k">def</span> <span class="nf">unregister</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_sortable</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Removes an object from the list of clients and also makes it forget</span>
+<span class="sd">        about this object to be its sorter. Simply it makes the this object</span>
+<span class="sd">        and the client independent.</span>
+<span class="sd">        </span>
+<span class="sd">        :param int,sortable id_sortable:</span>
+<span class="sd">            Either the ``id`` of a client or the object itself.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">id_sortable</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            
+            <span class="n">id_sortable</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">id_sortable</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">id_sortable</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">clients</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="n">id_sortable</span><span class="p">]</span><span class="o">.</span><span class="n">sorter</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">clients</span><span class="p">[</span><span class="n">id_sortable</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="FeatureIdx.sort_all"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureIdx.sort_all">[docs]</a>    <span class="k">def</span> <span class="nf">sort_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">by</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">origin</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies custom sort to the object if ``by`` is an index array.</span>
+<span class="sd">        If ``by`` is ``None``, it sorts by the original indices, which</span>
+<span class="sd">        means the restoration of the original order.</span>
+<span class="sd">        It calls ``sort_all`` by the same argsort on all registered clients</span>
+<span class="sd">        hence propagating the sorting. But omits the client if the sort</span>
+<span class="sd">        request originates from it in order to avoid infinite sorting loops.</span>
+<span class="sd">        Clients don&#39;t propagate further the sorting request also to avoid</span>
+<span class="sd">        loops.</span>
+<span class="sd">        In summary, this method is called either from outside and then</span>
+<span class="sd">        it applies a sorting to all object of the system (if called without</span>
+<span class="sd">        ``by`` restores the original order); or called by the ``sort_all``</span>
+<span class="sd">        method of one of the clients propagating the sorting to this object</span>
+<span class="sd">        and to all other clients.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">by</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="n">by</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sort</span><span class="p">(</span><span class="n">by</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">id_</span><span class="p">,</span> <span class="n">client</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clients</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="n">id_</span> <span class="o">!=</span> <span class="n">origin</span><span class="p">:</span>
+                
+                <span class="n">client</span><span class="o">.</span><span class="n">sort_all</span><span class="p">(</span><span class="n">by</span> <span class="o">=</span> <span class="n">by</span><span class="p">,</span> <span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selection</span><span class="p">,</span> <span class="n">origin</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies filtering to all registered clients.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">FeatureBase</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selection</span><span class="p">,</span> <span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">id_</span><span class="p">,</span> <span class="n">client</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clients</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="n">id_</span> <span class="o">!=</span> <span class="n">origin</span><span class="p">:</span>
+                
+                <span class="n">client</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SampleSet"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet">[docs]</a><span class="k">class</span> <span class="nc">SampleSet</span><span class="p">(</span><span class="n">Sample</span><span class="p">,</span> <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleSorter</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">mzs</span><span class="p">,</span>
+            <span class="n">ionmode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">intensities</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">rts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">feature_attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sorter</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">ms2_format</span> <span class="o">=</span> <span class="s1">&#39;mgf&#39;</span><span class="p">,</span>
+            <span class="n">ms2_param</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_ids</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_data</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This class represents an ordered set of samples.</span>
+<span class="sd">        It means all arrays have one more dimension than ``Sample``, though</span>
+<span class="sd">        the arrays can be multidimensional, i.e. in one data array more</span>
+<span class="sd">        than one value can belong to a feature in a sample.</span>
+<span class="sd">        It inherits from ``Sample``, see details in docs of ``Sample``.</span>
+<span class="sd">        </span>
+<span class="sd">        In ``ms2_param`` in addition to the parameters used in ``Sample``</span>
+<span class="sd">        you can provide ``ms2_use_samples`` and ``ms2_use_samples_method``,</span>
+<span class="sd">        a data and a function, respectively which will be used to select</span>
+<span class="sd">        only certain samples for MS2 analysis. The method should accept</span>
+<span class="sd">        sample attributes as first argument and the ``ms2_use_samples``</span>
+<span class="sd">        or ``None`` will be passed as second. It should return ``bool``.</span>
+<span class="sd">        By deafult MS2 scans from all samples are used.</span>
+<span class="sd">        </span>
+<span class="sd">        :param list,callable sample_ids:</span>
+<span class="sd">            Either a list of sample identifiers with the same length as</span>
+<span class="sd">            number of samples or a method which generates sample identifiers</span>
+<span class="sd">            from sample attributes.</span>
+<span class="sd">        :param callable sample_id_processor:</span>
+<span class="sd">            A method to process sample IDs if ``sample_ids`` provided.</span>
+<span class="sd">        :param list sample_data:</span>
+<span class="sd">            Other ``SampleSet`` or ``feature.SampleData`` objects which</span>
+<span class="sd">            should be co-sorted with this object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">centr_mzs</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">feature_attrs</span><span class="o">.</span><span class="n">centr_mzs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">feature_attrs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+                    <span class="nb">hasattr</span><span class="p">(</span><span class="n">feature_attrs</span><span class="p">,</span> <span class="s1">&#39;centr_mzs&#39;</span><span class="p">)</span>
+                <span class="p">)</span> <span class="k">else</span>
+            <span class="n">mzs</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mzs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span>
+            <span class="n">mzs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mzs</span><span class="o">.</span><span class="n">shape</span><span class="p">))))</span>
+        <span class="p">)</span>
+        
+        <span class="n">Sample</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">mzs</span> <span class="o">=</span> <span class="n">centr_mzs</span><span class="p">,</span>
+            <span class="n">ionmode</span> <span class="o">=</span> <span class="n">ionmode</span><span class="p">,</span>
+            <span class="n">intensities</span> <span class="o">=</span> <span class="n">intensities</span><span class="p">,</span>
+            <span class="n">mzs_by_sample</span> <span class="o">=</span> <span class="n">mzs</span><span class="p">,</span>
+            <span class="n">rts</span> <span class="o">=</span> <span class="n">rts</span><span class="p">,</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">,</span>
+            <span class="n">feature_attrs</span> <span class="o">=</span> <span class="n">feature_attrs</span><span class="p">,</span>
+            <span class="n">sorter</span> <span class="o">=</span> <span class="n">sorter</span><span class="p">,</span>
+            <span class="n">ms2_format</span> <span class="o">=</span> <span class="n">ms2_format</span><span class="p">,</span>
+            <span class="n">ms2_param</span> <span class="o">=</span> <span class="n">ms2_param</span><span class="p">,</span>
+            <span class="n">sample_id</span> <span class="o">=</span> <span class="n">sample_ids</span><span class="p">,</span>
+            <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="n">sample_id_processor</span><span class="p">,</span>
+        <span class="p">)</span>
+        
+        <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleSorter</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">sample_data</span> <span class="o">=</span> <span class="n">sample_data</span><span class="p">,</span>
+            <span class="n">sample_axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_set_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">,</span> <span class="n">attrs</span><span class="p">,</span> <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleSetAttrs</span><span class="p">(</span>
+            <span class="n">sample_ids_method</span> <span class="o">=</span> <span class="n">sample_id</span><span class="p">,</span>
+            <span class="n">sample_attrs</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">,</span>
+            <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="n">sample_id_processor</span><span class="p">,</span>
+        <span class="p">)</span>
+    
+<div class="viewcode-block" id="SampleSet.combine_samples"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet.combine_samples">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">combine_samples</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attrs</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the object by combining a series of ``Sample`` objects.</span>
+<span class="sd">        </span>
+<span class="sd">        All samples must be of the same length and have the same ordering.</span>
+<span class="sd">        It means the corresponding elements must belong to the same feature.</span>
+<span class="sd">        The ``FeatureAttributes`` and the ``sorter`` (``FeatureIdx``) will</span>
+<span class="sd">        be used from the first sample.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            
+            <span class="c1"># TODO: call aligner for different length samples</span>
+            <span class="c1"># TODO: check if at least sorters show the same ordering</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s1">&#39;SampleSet: it</span><span class="se">\&#39;</span><span class="s1">s possible combine only equal length samples &#39;</span>
+                <span class="s1">&#39;into a set. Also samples assumed to have the same ordering.&#39;</span>
+            <span class="p">)</span>
+        
+        <span class="n">mzs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">mzs</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">])</span>
+        
+        <span class="n">var</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">var</span><span class="p">:</span>
+            
+            <span class="n">var</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="nb">getattr</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">])</span>
+        
+        <span class="n">sample_attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">attrs</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">]</span>
+        
+        <span class="c1"># TODO: combine FeatureAttributes</span>
+        <span class="n">feature_attrs</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">feattrs</span>
+        <span class="n">sorter</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sorter</span>
+        
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">mzs</span> <span class="o">=</span> <span class="n">mzs</span><span class="p">,</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="n">sample_attrs</span><span class="p">,</span>
+            <span class="n">feature_attrs</span> <span class="o">=</span> <span class="n">feature_attrs</span><span class="p">,</span>
+            <span class="n">sorter</span> <span class="o">=</span> <span class="n">sorter</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">var</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">numof_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_guess_numof_samples</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span>
+            <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">),</span>
+        <span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_guess_numof_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">variables</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="n">attrs</span><span class="p">:</span>
+            
+            <span class="c1"># if we have attributes number of samples should be obvious</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="c1"># otherwise try to guess from shape of the data arrays</span>
+            <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">:</span>
+                
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s1">&#39;shape&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    
+                    <span class="k">return</span> <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="c1"># this is the default</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    
+<div class="viewcode-block" id="SampleSet.get_sample_attrs"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet.get_sample_attrs">[docs]</a>    <span class="k">def</span> <span class="nf">get_sample_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the sample attributes (dict of metadata) of the ``i``th</span>
+<span class="sd">        sample in the set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="SampleSet.get_sample"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet.get_sample">[docs]</a>    <span class="k">def</span> <span class="nf">get_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the ``i``th sample as a ``Sample`` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">var</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">:</span>
+            
+            <span class="n">var</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)[:,</span><span class="n">i</span><span class="p">]</span>
+        
+        <span class="n">sample_attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sample_attrs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">Sample</span><span class="p">(</span>
+            <span class="n">mzs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mzs_by_sample</span><span class="p">[:,</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="n">sample_attrs</span><span class="p">,</span>
+            <span class="n">feature_attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="p">,</span>
+            <span class="n">sorter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorter</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">var</span><span class="p">,</span>
+        <span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="nf">_get_sample_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_ids</span><span class="p">):</span>
+            
+            <span class="n">sample_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_ids</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="n">sample_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">Sample</span><span class="o">.</span><span class="n">_get_sample_id</span><span class="p">(</span>
+            <span class="n">sample_id</span> <span class="o">=</span> <span class="n">sample_id</span><span class="p">,</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+        <span class="p">)</span>
+    
+<div class="viewcode-block" id="SampleSet.collect_ms2"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet.collect_ms2">[docs]</a>    <span class="k">def</span> <span class="nf">collect_ms2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Collects the MS2 resources for each sample a similar way as the same</span>
+<span class="sd">        method does in ``Sample``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">ms2_source</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sample_attrs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">attrs</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="s1">&#39;ms2_use_samples_method&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span><span class="p">:</span>
+                
+                <span class="n">select_samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span><span class="p">[</span><span class="s1">&#39;ms2_use_samples_method&#39;</span><span class="p">]</span>
+                
+                <span class="n">ms2_use_samples</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span><span class="p">[</span><span class="s1">&#39;ms2_use_samples&#39;</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="s1">&#39;ms2_use_samples&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span> <span class="k">else</span>
+                    <span class="kc">None</span>
+                <span class="p">)</span>
+                
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">select_samples</span><span class="p">(</span><span class="n">sample_attrs</span><span class="p">,</span> <span class="n">ms2_use_samples</span><span class="p">):</span>
+                    
+                    <span class="k">continue</span>
+            
+            <span class="n">sample_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sample_id</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="c1"># adding MS2 sources for this sample to the dict</span>
+            <span class="n">ms2_source</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">Sample</span><span class="o">.</span><span class="n">collect_ms2</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span>
+                <span class="n">sample_id</span> <span class="o">=</span> <span class="n">sample_id</span><span class="p">,</span>
+                <span class="n">attrs</span> <span class="o">=</span> <span class="n">sample_attrs</span>
+            <span class="p">))</span>
+        
+        <span class="k">return</span> <span class="n">ms2_source</span></div>
+    
+<div class="viewcode-block" id="SampleSet.set_ms2_sources"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet.set_ms2_sources">[docs]</a>    <span class="k">def</span> <span class="nf">set_ms2_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Collects the MS2 scans for all samples.</span>
+<span class="sd">        </span>
+<span class="sd">        The collected resources will be in the ``ms2_source`` attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">ms2_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collect_ms2</span><span class="p">(</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SampleSet.peak_size_filter"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet.peak_size_filter">[docs]</a>    <span class="k">def</span> <span class="nf">peak_size_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backg</span><span class="p">,</span> <span class="n">prot</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
+        
+        <span class="k">def</span> <span class="nf">ps</span><span class="p">(</span><span class="n">a0</span><span class="p">,</span> <span class="n">a1</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">a1</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                
+                <span class="k">return</span> <span class="mf">0.0</span>
+            
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">a0</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="p">):</span>
+                
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span>
+        
+        <span class="n">backg</span> <span class="o">=</span> <span class="nb">set</span><span class="p">((</span><span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">backg</span><span class="p">)</span>
+        <span class="n">prot</span>  <span class="o">=</span> <span class="nb">set</span><span class="p">((</span><span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">prot</span><span class="p">)</span>
+        
+        <span class="n">ibackg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="n">i</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">attr</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">][</span><span class="s1">&#39;fraction&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">backg</span>
+        <span class="p">])</span>
+        <span class="n">iprot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="n">i</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">attr</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">][</span><span class="s1">&#39;fraction&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">prot</span>
+        <span class="p">])</span>
+        
+        <span class="n">peaksize</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="n">ps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">intensities</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">ibackg</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">intensities</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">iprot</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="p">])</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">_add_var</span><span class="p">(</span><span class="n">peaksize</span><span class="p">,</span> <span class="s1">&#39;peaksize&#39;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">threshold_filter</span><span class="p">(</span><span class="s1">&#39;peaksize&#39;</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="FeatureSelection"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureSelection">[docs]</a><span class="k">class</span> <span class="nc">FeatureSelection</span><span class="p">(</span><span class="n">FeatureBase</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">selection</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span>
+        
+        <span class="n">FeatureBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">sorter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="o">.</span><span class="n">sorter</span><span class="p">,</span>
+            <span class="n">selection</span> <span class="o">=</span> <span class="n">selection</span><span class="p">,</span>
+        <span class="p">)</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">negative</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selection</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

@@ -179,6 +179,7 @@
 
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">operator</span> <span class="k">as</span> <span class="nn">op</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">cPickle</span> <span class="k">as</span> <span class="nn">pickle</span>
@@ -2307,7 +2308,7 @@
 <div class="viewcode-block" id="Screening.protein_containing_fractions_from_absorbances"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.main.Screening.protein_containing_fractions_from_absorbances">[docs]</a>    <span class="k">def</span> <span class="nf">protein_containing_fractions_from_absorbances</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">abscol</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Sets the protein containing fractions (`fractions`) based on</span>
-<span class="sd">        the UV absorbances, considering protein containing those whit a</span>
+<span class="sd">        the UV absorbances, considering protein containing those with a</span>
 <span class="sd">        value higher than the maximum / minratio.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fractions</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">protein</span><span class="p">:</span> <span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="p">{}),</span>
@@ -8946,6 +8947,8 @@
 <span class="sd">        and one set of highest fractions.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;:::: </span><span class="si">%s</span><span class="s1"> ::::&#39;</span> <span class="o">%</span> <span class="n">protein</span><span class="p">)</span>
+        
         <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_wrong_fractions</span>
         
         <span class="n">wfracs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrong_fractions</span><span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
@@ -9001,6 +9004,17 @@
         <span class="n">fe</span>     <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;fe&#39;</span><span class="p">]</span>
         <span class="n">shape</span>  <span class="o">=</span> <span class="p">[</span><span class="n">fe</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">]</span>
         
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;hpeak: &#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">hfracs</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;nfracs: &#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">nfracs</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pfracs: &#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">pfracs</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ifracs: &#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">ifracs</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pprofs: &#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">pprofs</span><span class="p">)</span>
+        
         <span class="c1"># this is the default, we select the one just before</span>
         <span class="c1"># the highest</span>
         <span class="n">i_minus1</span> <span class="o">=</span> <span class="n">pfracs</span><span class="p">[</span><span class="n">hfracs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>  <span class="o">-</span> <span class="mi">1</span> <span class="c1"># h-1</span>
@@ -9038,6 +9052,7 @@
         <span class="n">fr32</span> <span class="o">=</span> <span class="n">hfracs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1">#</span>
         
         <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;sloi</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;_slop</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         
         <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span> <span class="o">=</span> <span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">invalid</span> <span class="o">=</span> <span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
             <span class="c1"># as we control all arrays to be greater than zero</span>
@@ -9049,8 +9064,10 @@
                 
                 <span class="n">pratio1</span> <span class="o">=</span> <span class="n">pprofs</span><span class="p">[</span><span class="n">fr11</span><span class="p">]</span> <span class="o">/</span> <span class="n">pprofs</span><span class="p">[</span><span class="n">fr12</span><span class="p">]</span> <span class="c1"># either -1 or +2</span>
                 
+                <span class="nb">print</span><span class="p">(</span><span class="n">fr11</span><span class="p">,</span> <span class="n">fr12</span><span class="p">,</span> <span class="n">pratio1</span><span class="p">)</span>
+                
                 <span class="n">iratio1</span> <span class="o">=</span> <span class="p">(</span><span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr11</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">/</span> <span class="c1"># numeric vector</span>
-                        <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr12</span><span class="p">][</span><span class="mi">0</span><span class="p">]])</span>  <span class="c1"># of ratios</span>
+                           <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr12</span><span class="p">][</span><span class="mi">0</span><span class="p">]])</span>  <span class="c1"># of ratios</span>
                 
                 <span class="k">if</span> <span class="n">only_descending</span><span class="p">:</span>
                     <span class="c1"># descending, but not more than certain threshold</span>
@@ -9061,8 +9078,29 @@
                                     <span class="bp">self</span><span class="o">.</span><span class="n">slope_descending_slope_diff_tolerance</span>
                                 <span class="p">)</span>
                             <span class="p">)</span>
+                    
+                    <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;_slop</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">][(</span><span class="n">fr11</span><span class="p">,</span> <span class="n">fr12</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;pratio&#39;</span><span class="p">:</span> <span class="n">pratio1</span><span class="p">,</span>
+                        <span class="s1">&#39;conditions&#39;</span><span class="p">:</span>
+                        <span class="p">(</span>
+                            <span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">lt</span><span class="p">,</span> <span class="n">pratio1</span><span class="p">),</span>
+                            <span class="p">(</span>
+                                <span class="n">op</span><span class="o">.</span><span class="n">gt</span><span class="p">,</span>
+                                <span class="n">pratio1</span> <span class="o">*</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">slope_descending_slope_diff_tolerance</span>
+                            <span class="p">),</span>
+                        <span class="p">),</span>
+                    <span class="p">}</span>
+                    
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">iratio1</span> <span class="o">=</span> <span class="n">iratio1</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="c1"># ascending</span>
+                    
+                    <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;_slop</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">][(</span><span class="n">fr11</span><span class="p">,</span> <span class="n">fr12</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;pratio&#39;</span><span class="p">:</span> <span class="n">pratio1</span><span class="p">,</span>
+                        <span class="s1">&#39;conditions&#39;</span><span class="p">:</span> <span class="p">(</span>
+                            <span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">lt</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+                        <span class="p">),</span>
+                    <span class="p">}</span>
                 
                 <span class="n">iratio1</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
                                 <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
@@ -9081,7 +9119,7 @@
                 
                 <span class="n">iratio2</span> <span class="o">=</span> <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr21</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">/</span> <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr22</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
                 
-                <span class="n">iratio2</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                <span class="n">iratio2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
                                 <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
                                     <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr21</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span>
                                     <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr22</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
@@ -9093,8 +9131,19 @@
                 
                 <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;slo</span><span class="si">%u%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">fr21</span><span class="p">,</span> <span class="n">fr22</span><span class="p">)]</span> <span class="o">=</span> <span class="n">iratio2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
                 <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;sloi</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">fr21</span><span class="p">,</span> <span class="n">fr22</span><span class="p">))</span>
+                
+                <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;_slop</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">][(</span><span class="n">fr21</span><span class="p">,</span> <span class="n">fr22</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;pratio&#39;</span><span class="p">:</span> <span class="n">pratio2</span><span class="p">,</span>
+                    <span class="s1">&#39;conditions&#39;</span><span class="p">:</span> <span class="p">(</span>
+                        <span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">gt</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">ratio2_descending</span> <span class="k">else</span>
+                        <span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">lt</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+                    <span class="p">),</span>
+                <span class="p">}</span>
             
             <span class="k">if</span> <span class="n">fr31</span> <span class="o">!=</span> <span class="n">fr32</span><span class="p">:</span>
+                
+                <span class="n">pratio3</span> <span class="o">=</span> <span class="n">pprofs</span><span class="p">[</span><span class="n">fr31</span><span class="p">]</span> <span class="o">/</span> <span class="n">pprofs</span><span class="p">[</span><span class="n">fr32</span><span class="p">]</span>
                 <span class="c1"># to not calculate it twice</span>
                 <span class="n">iratio3</span> <span class="o">=</span> <span class="p">(</span><span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr31</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">/</span>
                            <span class="n">fe</span><span class="p">[:,</span><span class="n">ifracs</span><span class="p">[</span><span class="n">fr32</span><span class="p">][</span><span class="mi">0</span><span class="p">]])</span>
@@ -9112,6 +9161,14 @@
                 
                 <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;slo</span><span class="si">%u%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">fr31</span><span class="p">,</span> <span class="n">fr32</span><span class="p">)]</span> <span class="o">=</span> <span class="n">iratio3</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
                 <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;sloi</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">fr31</span><span class="p">,</span> <span class="n">fr32</span><span class="p">))</span>
+                
+                <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;_slop</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">][(</span><span class="n">fr31</span><span class="p">,</span> <span class="n">fr32</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;pratio&#39;</span><span class="p">:</span> <span class="n">pratio3</span><span class="p">,</span>
+                    <span class="s1">&#39;conditions&#39;</span><span class="p">:</span> <span class="p">(</span>
+                        <span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">gt</span><span class="p">,</span> <span class="n">ratio</span><span class="p">),</span>
+                        <span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">lt</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">ratio</span><span class="p">),</span>
+                    <span class="p">),</span>
+                <span class="p">}</span>
         
         <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;slob</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
                                 <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
@@ -15589,7 +15646,49 @@
                 <span class="k">for</span> <span class="n">si</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">_scans</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">_s</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="s1">&#39;score&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
-        <span class="p">]</span></div></div>
+        <span class="p">]</span></div>
+    
+<div class="viewcode-block" id="Screening.export_slope_filter"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.main.Screening.export_slope_filter">[docs]</a>    <span class="k">def</span> <span class="nf">export_slope_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span> <span class="o">=</span> <span class="s1">&#39;slope_filter.tsv&#39;</span><span class="p">):</span>
+        
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">protein</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valids</span><span class="p">):</span>
+            
+            <span class="k">for</span> <span class="n">mode</span><span class="p">,</span> <span class="n">tbl</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+                
+                <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">tbl</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    
+                    <span class="k">if</span> <span class="n">var</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_slop&#39;</span><span class="p">:</span>
+                        
+                        <span class="k">continue</span>
+                    
+                    <span class="n">this_row</span> <span class="o">=</span> <span class="s1">&#39; AND &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                        <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%.05f</span><span class="s1"> (protein=</span><span class="si">%.05f</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">key</span><span class="p">),</span>
+                            <span class="s1">&#39;&gt;&#39;</span> <span class="k">if</span> <span class="n">con</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;gt&#39;</span> <span class="k">else</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">,</span>
+                            <span class="n">con</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                            <span class="n">val</span><span class="p">[</span><span class="s1">&#39;pratio&#39;</span><span class="p">],</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="n">var</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">con</span> <span class="ow">in</span> <span class="n">val</span><span class="p">[</span><span class="s1">&#39;conditions&#39;</span><span class="p">]</span>
+                    <span class="p">])</span>
+                    
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span>
+                        <span class="n">protein</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="p">,</span>
+                        <span class="n">this_row</span><span class="p">,</span>
+                    <span class="p">])</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            
+            <span class="n">_</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;protein&#39;</span><span class="p">,</span> <span class="s1">&#39;ionmode&#39;</span><span class="p">,</span> <span class="s1">&#39;conditions&#39;</span><span class="p">]))</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            
+            <span class="n">_</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">result</span>
+                <span class="p">)</span>
+            <span class="p">)</span></div></div>
 </pre></div>
 
            </div>
