@@ -105,7 +105,7 @@ class SECProfile(object):
                     if start and end and frac:
                         
                         fractions.append(
-                            Fraction(frac[0], frac[1], start, end)
+                            Fraction(frac[0], int(frac[1]), start, end)
                         )
                     
                     m = refrac.search(l[3])
@@ -196,7 +196,7 @@ class SECProfile(object):
         
         return self.get_fraction(frac).mean()
     
-    def get_profile(self, **kwargs):
+    def profile(self, **kwargs):
         """
         Iterates fractions with their mean absorbance values.
         
