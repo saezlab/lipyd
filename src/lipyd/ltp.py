@@ -4,7 +4,7 @@
 #
 #  Copyright (c) 2015-2016 - EMBL
 #
-#  File author(s): Dénes Türei (denes@ebi.ac.uk)
+#  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
 #  Distributed under the GNU GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
