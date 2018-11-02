@@ -21,6 +21,13 @@ from past.builtins import xrange
 
 import os
 import sys
+import time
+# workaround to avoid warnings from xlrd
+# this issue later will be fixed in the
+# xlrd module
+if hasattr(time, 'process_time'):
+    time.clock = time.process_time
+
 import xlrd
 import openpyxl
 
