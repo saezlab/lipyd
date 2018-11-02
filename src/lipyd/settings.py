@@ -330,7 +330,6 @@ _defaults = {
     'deltart_threshold': 0.5,
     # Don't know what it is for
     'uniprots': None,
-    'mgf_example': 'example_mgf__2015-06-28_GLTPD1_pos_A12.mgf',
     'mgf_neg_examples': 'neg_examples.mgf',
     'mgf_pos_examples': 'pos_examples.mgf',
     'peaks_example': 'peaks_example.csv',

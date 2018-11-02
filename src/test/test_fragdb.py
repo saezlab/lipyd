@@ -27,7 +27,7 @@ import lipyd.settings as settings
 
 class TestFragdb(object):
     
-    mgffile = settings.get('mgf_example')
+    mgffile = settings.get('mgf_pos_examples')
     mgfreader = mgf.MgfReader(mgffile)
     
     def test_mgf_reader(self):

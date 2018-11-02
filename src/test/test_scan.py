@@ -741,7 +741,6 @@ specimens = [
                 hg = Headgroup(main='VA', sub=()),
                 chainsum = None,
                 chains = None,
-                details = None,
             ),
         )}
     ),
@@ -756,7 +755,6 @@ specimens = [
                 hg = Headgroup(main='VA', sub=()),
                 chainsum = None,
                 chains = None,
-                details = None,
             ),
         )}
     ),
