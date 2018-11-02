@@ -120,7 +120,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -166,7 +165,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
             MS2Identity(
                 score = 5,
@@ -204,7 +202,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             )
         )}
     ),
@@ -242,7 +239,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -280,7 +276,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -318,7 +313,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         ),
         # this to see if score is 0
@@ -352,7 +346,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -374,7 +367,6 @@ specimens = [
                     )
                 ),
                 chains = None,
-                details = None
             ),
         )}
     ),
@@ -411,7 +403,6 @@ specimens = [
                         iso = ()
                     )
                     ),
-                details = None
             ),
         )}
     ),
@@ -448,7 +439,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -485,7 +475,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -522,7 +511,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -559,7 +547,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         ),
         'BMP(38:3)': (
@@ -591,7 +578,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -628,7 +614,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         ),
         'PG(36:2)': (
@@ -661,7 +646,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -689,7 +673,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -717,7 +700,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -745,7 +727,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -813,7 +794,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -851,7 +831,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -889,7 +868,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -927,7 +905,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -967,7 +944,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1005,7 +981,6 @@ specimens = [
                         iso = ()
                     )
                     ),
-                details = None
             ),
         )}
     ),
@@ -1043,7 +1018,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1081,7 +1055,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1119,7 +1092,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1157,7 +1129,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1195,7 +1166,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1232,7 +1202,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1270,7 +1239,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1298,7 +1266,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -1326,7 +1293,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -1354,7 +1320,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -1382,7 +1347,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -1411,7 +1375,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -1439,7 +1402,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -1467,7 +1429,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         ),
         # to see if this gets lower score
@@ -1491,7 +1452,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )},
     ),
@@ -1529,7 +1489,6 @@ specimens = [
                         iso = ()
                     )
                     ),
-                details = None
             ),
         ),
         'Cer(DH36:1)': (
@@ -1562,7 +1521,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1600,7 +1558,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1638,7 +1595,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1676,7 +1632,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1713,7 +1668,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1751,7 +1705,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1788,7 +1741,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1825,7 +1777,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1862,7 +1813,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1899,7 +1849,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -1936,7 +1885,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         ),
         'Cer(t36:1)': (
@@ -1969,7 +1917,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -2006,7 +1953,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         ),
         'Cer(t36:1)': (
@@ -2039,7 +1985,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -2061,7 +2006,6 @@ specimens = [
                     ),
                 ),
                 chains = None,
-                details = None
             ),
         )}
     ),
@@ -2084,7 +2028,6 @@ specimens = [
                     iso = None
                     ),
                 chains = None,
-                details = None
             ),
         )}
     ),
@@ -2121,7 +2064,6 @@ specimens = [
                         iso = ()
                     )
                     ),
-                details = None
             ),
         )}
     ),
@@ -2158,7 +2100,6 @@ specimens = [
                     iso = ()
                 )
             ),
-            details = None
             ),
         )}
     ),
@@ -2196,7 +2137,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -2233,7 +2173,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -2254,7 +2193,6 @@ specimens = [
                     iso = None
                     ),
                 chains = None,
-                details = None
             ),
         )}
     ),
@@ -2274,7 +2212,6 @@ specimens = [
                     iso = None
                     ),
                 chains = None,
-                details = None
             ),
         )}
     ),
@@ -2298,7 +2235,6 @@ specimens = [
                     iso = None
                 ),
                 chains = None,
-                details = None
             ),
         )}
     ),
@@ -2321,7 +2257,6 @@ specimens = [
                     iso = None
                 ),
                 chains = None,
-                details = None
             ),
         )}
     ),
@@ -2344,7 +2279,6 @@ specimens = [
                     iso = None
                 ),
                 chains = None,
-                details = None
             ),
         )}
     ),
@@ -2385,7 +2319,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -2425,7 +2358,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -2451,7 +2383,6 @@ specimens = [
                     iso = None
                 ),
                 chains = None,
-                details = None
             ),
         )}
     ),
@@ -2482,7 +2413,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -2505,7 +2435,6 @@ specimens = [
                     iso = None
                 ),
                 chains = None,
-                details = None
             ),
         )}
     ),
@@ -2536,7 +2465,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -2567,7 +2495,6 @@ specimens = [
                         iso = ()
                     ),
                 ),
-                details = None
             ),
         )}
     ),
@@ -2608,7 +2535,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -2649,7 +2575,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
@@ -2690,7 +2615,6 @@ specimens = [
                         iso = ()
                     )
                 ),
-                details = None
             ),
         )}
     ),
