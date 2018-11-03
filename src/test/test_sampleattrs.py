@@ -18,11 +18,12 @@
 import pytest
 
 import re
+import numpy as np
 
 import lipyd.sampleattrs as sampleattrs
 from lipyd.common import basestring
 
-class TestSampleAttrs(object):
+class TestSampleId(object):
     
     def test_plate_sample_id_processor(self):
         
@@ -69,3 +70,15 @@ class TestSampleAttrs(object):
         
         assert hasattr(foobar, 'sample_id')
         assert foobar.sample_id == 'foobar'
+
+
+class TestSampleAttrs(object):
+    
+    def test_sample_attrs_default(self):
+        
+        np.random.seed(123)
+        sa = sampleattrs.SampleAttrs()
+        
+        assert sa.sample_id = 'nccgrtkzwb'
+    
+    def 
