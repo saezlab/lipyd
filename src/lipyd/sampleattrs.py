@@ -154,34 +154,34 @@ class SampleSetAttrs(object):
     
     def __init__(
             self,
-            sample_ids_method = None,
-            sample_attrs = None,
-            sample_id_processor = None,
+            sample_ids = None,
+            attrs = None,
+            proc = None,
+            proc_method = None,
+            proc_names = None,
             length = None,
         ):
+        """
+        A set of ``SampleAttrs`` i.e. attributes for each sample in a sample
+        set. Arguments work a similar way like at ``SampleAttrs``.
+        """
         
-        # custom method to process sample IDs
-        self._sample_id_processor = sample_id_processor
+        proc_names = proc_names or []
+        self.proc = proc or sample_id_processor(proc_method, *proc_names)
         
-        if isinstance(sample_ids_method, (list, np.ndarray)):
-            
-            # sample IDs provided for each sample
-            sample_ids = [
-                self._get_sample_id(sample_id)
-                for sample_id in sample_ids_method
-            ]
+        if isinstance(sample_ids, (list, np.ndarray)):
             
             length = len(sample_ids)
             
-        elif sample_attrs is not None:
+        elif attrs is not None:
             
             # if sample attributes provided
             length = len(sample_attrs)
             
-        else:
+        elif length is not None:
             
             # now it is either None or a method
-            sample_ids = [sample_ids_method] * length
+            sample_ids = [sample_ids] * length
         
         if length is None:
             
@@ -189,12 +189,17 @@ class SampleSetAttrs(object):
                 'SampleSetAttrs: number of samples not provided.'
             )
         
+        attrs = attrs or [attrs] * length
+        
         self.attrs = np.array([
             SampleAttrs(
-                sample_id_method = sample_ids[i],
-                attrs = sample_attrs[i] if sample_attrs else {},
+                sample_id = sample_id,
+                attrs = attrs_,
+                proc = proc,
+                proc_method = proc_method,
+                proc_names = proc_names,
             )
-            for i in xrange(length)
+            for sample_id, attrs_ in zip(sample_ids, attrs)
         ])
         
         self._set_sample_ids()
@@ -203,16 +208,12 @@ class SampleSetAttrs(object):
         
         return len(self.attrs)
     
-    def _get_sample_id(self, sample_id):
+    def _make_sample_id(self, sample_id):
         
-        if callable(self._sample_id_processor):
-            
-            return self._sample_id_processor(sample_id)
-        
-        return sample_id
+        return self.proc(sample_id)
     
     def _set_sample_ids(self):
-        # Note: this is called by Sample.__init__()
+        # called by __init__()
         
         self.sample_index_to_id = []
         
@@ -223,6 +224,7 @@ class SampleSetAttrs(object):
         self._update_id_to_index()
     
     def _update_id_to_index(self):
+        # to keep this too in sync
         
         self.sample_id_to_index = dict(
             reversed(i)
@@ -251,20 +253,18 @@ class SampleSetAttrs(object):
         
         self._set_sample_ids()
     
-    def argsort_by_sample_id(self, sample_ids, process = False):
+    def argsort_by_sample_id(self, sample_ids):
         """
         Returns an index array which sorts the sample attributes according
         to the list of sample IDs provided.
         
         :param list sample_ids:
             A list of sample IDs, e.g. ``[('A', 1), ('A', 2), ...]``.
-        :param bool process:
-            Process ``sample_ids`` by the ``sample_id_processor`` method.
         """
         
         return np.array([
             self.sample_id_to_index[
-                sample_id if not process else self._get_sample_id(sample_id)
+                self._make_sample_id(sample_id)
             ]
             for sample_id in sample_ids
         ])
