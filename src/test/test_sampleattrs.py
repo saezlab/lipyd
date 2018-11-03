@@ -22,6 +22,7 @@ import numpy as np
 
 import lipyd.sampleattrs as sampleattrs
 from lipyd.common import basestring
+from lipyd.reader.peaks import peaks_sample_id_method
 
 class TestSampleId(object):
     
@@ -79,6 +80,29 @@ class TestSampleAttrs(object):
         np.random.seed(123)
         sa = sampleattrs.SampleAttrs()
         
-        assert sa.sample_id = 'nccgrtkzwb'
+        assert sa.sample_id.sample_id == 'nccgrtkzwb'
     
-    def 
+    def test_sample_attrs_from_attrs(self):
+        
+        attrs = {
+            'label': {
+                'fraction': ('A', 11),
+            }
+        }
+        
+        sa = sampleattrs.SampleAttrs(
+            sample_id = peaks_sample_id_method,
+            attrs = attrs,
+            proc = sampleattrs.plate_sample_id_processor(),
+        )
+        
+        assert sa.sample_id == ('A', 11)
+    
+    def test_sample_attrs_from_string(self):
+        
+        sa = sampleattrs.SampleAttrs(
+            sample_id = ('A', 11),
+            proc = sampleattrs.plate_sample_id_processor(),
+        )
+        
+        assert sa.sample_id == ('A', 11)
