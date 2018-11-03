@@ -60,3 +60,12 @@ class TestSampleAttrs(object):
         assert min10 == (10, 'min')
         assert h6    == (6,  'h')
         assert other == ('foobar', None)
+    
+    def test_passthrough_sample_id_processor(self):
+        
+        sip = sampleattrs.sample_id_processor()
+        
+        foobar = sip('foobar')
+        
+        assert hasattr(foobar, 'sample_id')
+        assert foobar.sample_id == 'foobar'

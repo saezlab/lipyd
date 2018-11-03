@@ -37,6 +37,10 @@ def sample_id_processor(method = None, *args):
         correspond to the values returned by ``method``.
     """
     
+    if not args:
+        
+        args = ['sample_id']
+    
     class SampleId(collections.namedtuple('SampleIdBase', args)):
         
         def __new__(cls, raw):
@@ -46,6 +50,10 @@ def sample_id_processor(method = None, *args):
                 return raw
             
             values = cls.method(raw)
+            
+            if not isinstance(values, (list, tuple)):
+                
+                values = (values,)
             
             return super(SampleId, cls).__new__(
                 cls,
