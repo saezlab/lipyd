@@ -382,3 +382,16 @@ class PeaksReader(object):
             'rts': self.rt_means,
             'attrs': self.samples,
         }
+
+
+def peaks_sample_id_method(attrs):
+        
+        if (
+            attrs is not None and
+            'label' in attrs and
+            'fraction' in attrs['label']
+        ):
+            
+            return attrs['label']['fraction']
+        
+        return common.random_string()
