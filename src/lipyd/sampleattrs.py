@@ -273,7 +273,6 @@ class SampleSetAttrs(object):
     def sort_by_sample_id(
             self,
             sample_ids,
-            process = False,
             return_idx = False,
         ):
         """
@@ -282,8 +281,6 @@ class SampleSetAttrs(object):
         
         :param list sample_ids:
             A list of sample IDs, e.g. ``[('A', 1), ('A', 2), ...]``.
-        :param bool process:
-            Process ``sample_ids`` by the ``sample_id_processor`` method.
         :param bool return_idx:
             Return the index array corresponding to the sort.
         """
@@ -474,7 +471,7 @@ class SampleSorter(object):
             
             s.register(self)
     
-    def sort_by_sample_ids(self, sample_ids, process = False):
+    def sort_by_sample_ids(self, sample_ids):
         """
         Sorts all connected objects by a list of sample IDs.
         
@@ -486,10 +483,7 @@ class SampleSorter(object):
             provided.
         """
         
-        idx = self.attrs.argsort_by_sample_id(
-            sample_ids,
-            process = process,
-        )
+        idx = self.attrs.argsort_by_sample_id(sample_ids)
         
         self.sort(idx)
     

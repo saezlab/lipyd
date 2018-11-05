@@ -187,3 +187,27 @@ class TestSampleAttrs(object):
         
         assert ssa.sample_id_to_index[('A', 12)] == 2
         assert ssa.sample_index_to_id[0] == ('A', 10)
+    
+    def test_sampleset_attrs_sort_by_other(self):
+        
+        ssa0 = sampleattrs.SampleSetAttrs(
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            proc = sampleattrs.plate_sample_id_processor(),
+        )
+        
+        ssa0.sort_by_sample_id(['A10', 'A11', 'A12', 'B1', 'A9'])
+        
+        ssa1 = sampleattrs.SampleSetAttrs(
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            proc = sampleattrs.plate_sample_id_processor(),
+        )
+        
+        ssa1.sort_by(ssa0)
+        
+        assert ssa0.sample_index_to_id == ssa1.sample_index_to_id
+        assert ssa1.sample_id_to_index[('A', 12)] == 2
+        assert ssa1.sample_index_to_id[0] == ('A', 10)
+        assert all(
+            ssa0.sample_id_to_index[s] == ssa1.sample_id_to_index[s]
+            for s in ssa0.sample_index_to_id
+        )
