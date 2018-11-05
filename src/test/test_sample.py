@@ -206,11 +206,13 @@ class TestSample(object):
         
         assert np.all(sel.selection == np.array([False, False, True, True]))
     
-    def test_get_sample_data(self):
+    def test_get_selection(self):
         
         samples = self.samples
         order = ['A11', 'A12', 'B1', 'B2']
         samples.sort_by_sample_ids(order)
+        
+        # SampleSelection
         
         sel = samples.get_selection(selection = ['A12', 'B1'])
         
@@ -227,3 +229,19 @@ class TestSample(object):
         samples.sort_by_sample_ids(['A12', 'B1', 'A11', 'B2'])
         
         assert np.all(sel.selection == np.array([False, False, True, True]))
+        
+    def test_get_sample_data(self):
+        
+        samples = self.samples
+        order = ['A11', 'A12', 'B1', 'B2']
+        samples.sort_by_sample_ids(order)
+        
+        # SampleData
+        
+        dt = samples.get_sample_data(data0 = np.array([7, 77, 777, 7777]))
+        
+        assert np.all(dt.data0 == np.array([7, 77, 777, 7777]))
+        
+        samples.sort_by_sample_ids(['A11', 'B2', 'A12', 'B1'])
+        
+        assert np.all(dt.data0 == np.array([7, 7777, 77, 777]))
