@@ -21,7 +21,6 @@ import warnings
 import numpy as np
 
 import lipyd.sample as sample
-import lipyd.feature as feature
 import lipyd.sampleattrs as sampleattrs
 
 
@@ -141,7 +140,7 @@ class TestSample(object):
         data0 = ['a',  'b',  'c',   'd']
         order = ['B2', 'B1', 'A12', 'A11']
         
-        sdata = feature.SampleData(
+        sdata = sampleattrs.SampleData(
             var0 = data0,
             sample_ids = order,
             samples = samples,
