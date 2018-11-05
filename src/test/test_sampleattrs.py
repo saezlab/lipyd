@@ -106,3 +106,22 @@ class TestSampleAttrs(object):
         )
         
         assert sa.sample_id == ('A', 11)
+    
+    def test_sampleset_attrs_default(self):
+        
+        np.random.seed(123)
+        ssa = sampleattrs.SampleSetAttrs(length = 9)
+        
+        assert len(ssa.sample_index_to_id) == 9
+        assert ssa.sample_id_to_index[('xqaziyunni',)] == 7
+    
+    def test_sampleset_from_sample_ids_proc(self):
+        
+        ssa = sampleattrs.SampleSetAttrs(
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            proc = sampleattrs.plate_sample_id_processor()
+        )
+        
+        assert ssa.sample_index_to_id[-1].row == 'B'
+        assert ssa.sample_id_to_index[('A', 12)] == 3
+        assert len(ssa.sample_index_to_id) == 5
