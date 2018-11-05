@@ -176,12 +176,7 @@ class SampleSetAttrs(object):
         elif attrs is not None:
             
             # if sample attributes provided
-            length = len(sample_attrs)
-            
-        elif length is not None:
-            
-            # now it is either None or a method
-            sample_ids = [sample_ids] * length
+            length = len(attrs)
         
         if length is None:
             
@@ -189,6 +184,12 @@ class SampleSetAttrs(object):
                 'SampleSetAttrs: number of samples not provided.'
             )
         
+        if not hasattr(sample_ids, '__iter__'):
+            
+            # now it is either None or a method
+            sample_ids = [sample_ids] * length
+        
+        # if attrs is still None make it a list of None's
         attrs = attrs or [attrs] * length
         
         self.attrs = np.array([

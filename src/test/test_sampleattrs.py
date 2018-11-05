@@ -113,7 +113,7 @@ class TestSampleAttrs(object):
         ssa = sampleattrs.SampleSetAttrs(length = 9)
         
         assert len(ssa.sample_index_to_id) == 9
-        assert ssa.sample_id_to_index[('xqaziyunni',)] == 7
+        assert ssa.sample_id_to_index[('hlwhblfxzs',)] == 7
     
     def test_sampleset_from_sample_ids_proc(self):
         
@@ -125,3 +125,21 @@ class TestSampleAttrs(object):
         assert ssa.sample_index_to_id[-1].row == 'B'
         assert ssa.sample_id_to_index[('A', 12)] == 3
         assert len(ssa.sample_index_to_id) == 5
+    
+    def test_sampleset_from_attrs(self):
+        
+        ssa = sampleattrs.SampleSetAttrs(
+            sample_ids = peaks_sample_id_method,
+            attrs = (
+                {'label': {'fraction': 'G2',}},
+                {'label': {'fraction': 'G3',}},
+                {'label': {'fraction': 'G4',}},
+            ),
+            proc = sampleattrs.plate_sample_id_processor()
+        )
+        
+        assert ssa.attrs[0].attrs['label']['fraction'] == 'G2'
+        assert ssa.sample_index_to_id[-1].col == 4
+        assert len(ssa.sample_id_to_index) == 3
+        assert ('G', 2) in ssa.sample_id_to_index
+        
