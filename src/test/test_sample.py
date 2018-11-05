@@ -22,6 +22,7 @@ import numpy as np
 
 import lipyd.sample as sample
 import lipyd.sampleattrs as sampleattrs
+import lipyd.settings as settings
 
 
 class TestSample(object):
@@ -157,3 +158,22 @@ class TestSample(object):
         assert samples.rts[0,2] == 0
         assert id(sdata) in samples._sample_data
         assert id(samples) in sdata._sample_data
+    
+    def test_sampleset_from_peaks(self):
+        
+        peaksfile = settings.get('peaks_example')
+        
+        reader = sample.SampleReader(
+            input_type = 'peaks',
+            fname = peaksfile
+        )
+        
+        samples = reader.get_sampleset(
+            sampleset_args = {
+                'sample_id_proc': sampleattrs.plate_sample_id_processor(),
+            }
+        )
+        
+        assert abs(samples.mzs_by_sample[7,3] - 375.0018) < 0.0001
+        assert samples.attrs.sample_index_to_id[-1] == ('A', 12)
+        assert samples.attrs.attrs[0].attrs['label']['fraction'] == ('A', 6)
