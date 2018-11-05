@@ -85,14 +85,14 @@ class SECProfile(object):
                 
                 l = l.strip().split('\t')
                 
-                if len(l) < 2:
+                if len(l) < 2 or '.' not in l[0] or '.' not in l[1]:
                     
                     continue
                 
                 vol = common.to_float(l[0])
                 ab_ = common.to_float(l[1])
                 
-                if vol and ab_:
+                if isinstance(vol, float) and isinstance(ab_, float):
                     
                     volume.append(vol)
                     absorbance.append(ab_)
@@ -129,10 +129,14 @@ class SECProfile(object):
         
         for l in tab:
             
+            if len(l) < 2 or '.' not in l[0] or '.' not in l[1]:
+                
+                continue
+            
             vol = common.to_float(l[0])
             ab_ = common.to_float(l[1])
             
-            if vol and ab_:
+            if isinstance(vol, float) and isinstance(ab_, float):
                 
                 volume.append(vol)
                 absorbance.append(ab_)
