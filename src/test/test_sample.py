@@ -177,3 +177,5 @@ class TestSample(object):
         assert abs(samples.mzs_by_sample[7,3] - 375.0018) < 0.0001
         assert samples.attrs.sample_index_to_id[-1] == ('A', 12)
         assert samples.attrs.attrs[0].attrs['label']['fraction'] == ('A', 6)
+    
+    

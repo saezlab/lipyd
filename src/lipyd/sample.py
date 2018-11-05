@@ -1706,6 +1706,36 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         self.feattrs._add_var(peaksize, 'peaksize')
         
         self.feattrs.threshold_filter('peaksize', threshold = threshold)
+    
+    def get_selection(self, selection):
+        """
+        Returns a ``SampleSelection`` object which is a binary selection
+        of some of the samples in the set.
+        
+        :param list,numpy.ndarray selection:
+            Either a list of sample IDs to be selected or a boolean array
+            with the length corresponding to the number of samples.
+        """
+        
+        return sampleattrs.SampleSelection(
+            selection = selection,
+            samples = self,
+        )
+    
+    def get_sample_data(self, **kwargs):
+        """
+        Returns a ``SampleData`` object which stores any data about the
+        samples.
+        
+        :param numpy.ndarray **kwargs:
+            One or more arrays with same their first dimension in
+            agreement with the number of samples.
+        """
+        
+        return sampleattrs.SampleData(
+            samples = self,
+            **kwargs,
+        )
 
 
 class FeatureSelection(FeatureBase):

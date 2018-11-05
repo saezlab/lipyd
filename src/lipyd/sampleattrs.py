@@ -360,7 +360,7 @@ class SampleSorter(object):
                 
                 if sample_data:
                     
-                    sample_ids, id_proc_ = self._get_sample_ids(sample_data)
+                    sample_ids = self._get_sample_ids(sample_data)
                     
                 else:
                     
@@ -369,9 +369,13 @@ class SampleSorter(object):
                         'must be provided.'
                     )
             
+            if not sample_id_proc:
+                
+                sample_id_proc = self._get_sample_id_proc(sample_data)
+            
             attr_args = attr_args or {
                 'sample_ids': sample_ids,
-                'proc': sample_id_proc or id_proc_,
+                'proc': sample_id_proc,
                 'proc_method': sample_id_proc_method,
                 'proc_names': sample_id_proc_names,
             }
@@ -403,8 +407,15 @@ class SampleSorter(object):
         
         first = sample_data[0]
         
-        return first.sample_id_to_index, first.proc
-
+        return first.sample_id_to_index
+    
+    def _get_sample_id_proc(self, sample_data):
+        
+        if sample_data:
+            
+            first = sample_data[0]
+            
+            return first.attrs.proc
     
     def sort_by(self, s):
         """
@@ -628,32 +639,19 @@ class SampleData(SampleSorter):
     @staticmethod
     def _bool_array(
             selection,
-            samples = None,
+            proc = None,
             sample_ids = None,
-            sample_id_processor = None,
         ):
         """
         This method helps to set up a sample selection but placed here as
-        staticmethod to make it usable other places.
+        staticmethod to make it usable in other derived classes.
         """
         
         if not isinstance(selection[0], bool):
             
-            if sample_id_processor:
+            if proc:
                 
-                selection = [sample_id_processor(s) for s in selection]
-            
-            if not sample_ids:
-                
-                if isinstance(samples, sampleattrs.SampleSorter):
-                    
-                    first = samples
-                    
-                else:
-                    
-                    first = sample_data[0]
-                
-                sample_ids = first.attrs.sample_index_to_id
+                selection = [proc(s) for s in selection]
             
             selection = np.array([s in selection for s in sample_ids])
         
@@ -668,7 +666,9 @@ class SampleSelection(SampleData):
             samples = None,
             sample_ids = None,
             sample_data = None,
-            sample_id_processor = None,
+            sample_id_proc = None,
+            sample_id_proc_method = None,
+            sample_id_proc_names = None,
             **kwargs,
         ):
         """
@@ -676,23 +676,26 @@ class SampleSelection(SampleData):
         boolean array or a list of sample IDs to be selected.
         """
         
-        sample_id_processor = sample_id_processor or (lambda x: x)
-        
-        selection = self._bool_array(
-            selection = selection,
-            samples = samples,
-            sample_ids = sample_ids,
-            sample_id_processor = sample_id_processor,
-        )
-        
         SampleData.__init__(
             self,
             samples = samples,
             sample_ids = sample_ids,
             sample_data = sample_data,
-            selection = selection,
-            sample_id_processor = sample_id_processor,
+            sample_id_proc = sample_id_proc,
+            sample_id_proc_method = sample_id_proc_method,
+            sample_id_proc_names = sample_id_proc_names,
         )
+        
+        proc = self.attrs.proc
+        sample_ids = self.attrs.sample_index_to_id
+        
+        sel = self._bool_array(
+            selection = selection,
+            proc = proc,
+            sample_ids = sample_ids,
+        )
+        
+        self._add_var(sel, 'selection')
     
     def sample_ids_selected(self):
         """
@@ -701,6 +704,6 @@ class SampleSelection(SampleData):
         
         return [
             sample_id
-            for i, sample_id in self.attrs.sample_index_to_id
+            for i, sample_id in enumerate(self.attrs.sample_index_to_id)
             if self.selection[i]
         ]
