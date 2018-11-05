@@ -142,4 +142,48 @@ class TestSampleAttrs(object):
         assert ssa.sample_index_to_id[-1].col == 4
         assert len(ssa.sample_id_to_index) == 3
         assert ('G', 2) in ssa.sample_id_to_index
+    
+    def test_sampleset_attrs_argsort(self):
         
+        ssa = sampleattrs.SampleSetAttrs(
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            proc = sampleattrs.plate_sample_id_processor()
+        )
+        
+        idx = ssa.argsort_by_sample_id(['A10', 'A11', 'A12', 'B1', 'A9'])
+        
+        assert np.all(idx == np.array([1, 2, 3, 4, 0]))
+    
+    def test_sampleset_attrs_sort(self):
+        
+        ssa = sampleattrs.SampleSetAttrs(
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            proc = sampleattrs.plate_sample_id_processor(),
+            attrs = (
+                {'fr': 'a9'},
+                {'fr': 'a10'},
+                {'fr': 'a11'},
+                {'fr': 'a12'},
+                {'fr': 'b1'},
+            ),
+        )
+        
+        idx = ssa.argsort_by_sample_id(['A10', 'A11', 'A12', 'B1', 'A9'])
+        
+        ssa.sort_by_index(idx)
+        
+        assert ssa.sample_id_to_index[('A', 12)] == 2
+        assert ssa.sample_index_to_id[0] == ('A', 10)
+        assert ssa.attrs[-1].attrs['fr'] == 'a9'
+    
+    def test_sampleset_attrs_sort_by_id(self):
+        
+        ssa = sampleattrs.SampleSetAttrs(
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            proc = sampleattrs.plate_sample_id_processor(),
+        )
+        
+        ssa.sort_by_sample_id(['A10', 'A11', 'A12', 'B1', 'A9'])
+        
+        assert ssa.sample_id_to_index[('A', 12)] == 2
+        assert ssa.sample_index_to_id[0] == ('A', 10)

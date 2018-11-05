@@ -288,10 +288,7 @@ class SampleSetAttrs(object):
             Return the index array corresponding to the sort.
         """
         
-        idx = self.argsort_by_sample_id(
-            sample_ids = sample_ids,
-            process = process,
-        )
+        idx = self.argsort_by_sample_id(sample_ids = sample_ids)
         
         self.sort_by_index(idx)
         
