@@ -178,4 +178,52 @@ class TestSample(object):
         assert samples.attrs.sample_index_to_id[-1] == ('A', 12)
         assert samples.attrs.attrs[0].attrs['label']['fraction'] == ('A', 6)
     
+    def test_sampleselection(self):
+        
+        samples = self.samples
+        order = ['A11', 'A12', 'B1', 'B2']
+        samples.sort_by_sample_ids(order)
+        
+        sel = sampleattrs.SampleSelection(
+            selection = ['A12', 'B1'],
+            samples = samples,
+        )
+        
+        assert np.all(sel.selection == np.array([False, True, True, False]))
+        
+        samples.sort_by_sample_ids(['A11', 'B2', 'A12', 'B1'])
+        
+        assert np.all(sel.selection == np.array([False, False, True, True]))
+        
+        sel = sampleattrs.SampleSelection(
+            selection = np.array([True, True, False, False]),
+            samples = samples
+        )
+        
+        assert np.all(sel.selection == np.array([True, True, False, False]))
+        
+        samples.sort_by_sample_ids(['A12', 'B1', 'A11', 'B2'])
+        
+        assert np.all(sel.selection == np.array([False, False, True, True]))
     
+    def test_get_sample_data(self):
+        
+        samples = self.samples
+        order = ['A11', 'A12', 'B1', 'B2']
+        samples.sort_by_sample_ids(order)
+        
+        sel = samples.get_selection(selection = ['A12', 'B1'])
+        
+        assert np.all(sel.selection == np.array([False, True, True, False]))
+        
+        samples.sort_by_sample_ids(['A11', 'B2', 'A12', 'B1'])
+        
+        assert np.all(sel.selection == np.array([False, False, True, True]))
+        
+        sel = samples.get_selection(np.array([True, True, False, False]))
+        
+        assert np.all(sel.selection == np.array([True, True, False, False]))
+        
+        samples.sort_by_sample_ids(['A12', 'B1', 'A11', 'B2'])
+        
+        assert np.all(sel.selection == np.array([False, False, True, True]))

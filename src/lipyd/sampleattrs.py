@@ -45,7 +45,10 @@ def sample_id_processor(method = None, *args):
         
         def __new__(cls, raw):
             
-            if isinstance(raw, cls):
+            if (
+                raw.__class__.__name__ == 'SampleId' and
+                all(hasattr(raw, a) for a in args)
+            ):
                 
                 return raw
             
@@ -541,7 +544,7 @@ class SampleSorter(object):
             
             if sd_id not in _done:
                 
-                sd.order_samples(idx = idx, _done = _done)
+                sd.sort(idx = idx, _done = _done)
 
 
 class SampleData(SampleSorter):
@@ -647,7 +650,7 @@ class SampleData(SampleSorter):
         staticmethod to make it usable in other derived classes.
         """
         
-        if not isinstance(selection[0], bool):
+        if not isinstance(selection[0], (bool, np.bool_)):
             
             if proc:
                 
@@ -676,6 +679,8 @@ class SampleSelection(SampleData):
         boolean array or a list of sample IDs to be selected.
         """
         
+        print(id(samples))
+        
         SampleData.__init__(
             self,
             samples = samples,
@@ -688,6 +693,12 @@ class SampleSelection(SampleData):
         
         proc = self.attrs.proc
         sample_ids = self.attrs.sample_index_to_id
+        
+        print(samples.attrs.sample_index_to_id)
+        print(self.attrs.sample_index_to_id)
+        print(selection)
+        print(proc == samples.attrs.proc)
+        print(proc('A12'))
         
         sel = self._bool_array(
             selection = selection,
