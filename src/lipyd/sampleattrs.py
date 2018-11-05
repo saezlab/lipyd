@@ -316,8 +316,11 @@ class SampleSorter(object):
             self,
             sample_data = None,
             sample_ids = None,
-            sample_id_processor = None,
+            sample_id_proc = None,
+            sample_id_proc_method = None,
+            sample_id_proc_names = None,
             sample_axis = 0,
+            attr_args = None,
         ):
         """
         Keeps the order of samples synchronized between multiple objects.
@@ -353,11 +356,27 @@ class SampleSorter(object):
         
         if not hasattr(self, 'attrs'):
             
-            self._init_attrs(
-                sample_data = sample_data,
-                sample_ids  = sample_ids,
-                sample_id_processor = sample_id_processor,
-            )
+            if not sample_ids:
+                
+                if sample_data:
+                    
+                    sample_ids, id_proc_ = self._get_sample_ids(sample_data)
+                    
+                else:
+                    
+                    raise RuntimeError(
+                        'SampleSorter: `sample_data` or `sample_ids` '
+                        'must be provided.'
+                    )
+            
+            attr_args = attr_args or {
+                'sample_ids': sample_ids,
+                'proc': sample_id_proc or id_proc_,
+                'proc_method': sample_id_proc_method,
+                'proc_names': sample_id_proc_names,
+            }
+            
+            self._set_attrs(**attr_args)
         
         for s in sample_data:
             
@@ -370,35 +389,22 @@ class SampleSorter(object):
         
         return len(self.attrs)
     
-    def _init_attrs(self, sample_data, sample_ids, sample_id_processor):
-        """
-        Initializes a ``SampleSetAttrs`` object to keep track of the order
-        of samples by their IDs and ensure all objects will be set to the
-        same ordering at initialization.
-        """
+    def _set_attrs(self, **kwargs):
         
-        if sample_ids:
+        if 'sample_id' in kwargs:
             
-            self.attrs = SampleSetAttrs(
-                sample_ids_method = sample_ids,
-                sample_id_processor = sample_id_processor,
-            )
-            
-        elif sample_data:
-            
-            first = sample_data[0]
-            
-            self.attrs = SampleSetAttrs(
-                sample_ids_method = first.attrs.sample_id_to_index,
-                sample_id_processor = first.attrs._sample_id_processor,
-            )
-            
-        else:
-            
-            raise RuntimeError(
-                'SampleSorter: `sample_data` or `sample_ids` '
-                'must be provided.'
-            )
+            # rename this arg as it is specific for SampleSetAttrs
+            kwargs['sample_ids'] = kwargs['sample_id']
+            del kwargs['sample_id']
+        
+        self.attrs = SampleSetAttrs(**kwargs)
+    
+    def _get_sample_ids(self, sample_data):
+        
+        first = sample_data[0]
+        
+        return first.sample_id_to_index, first.proc
+
     
     def sort_by(self, s):
         """

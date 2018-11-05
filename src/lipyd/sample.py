@@ -1506,16 +1506,6 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             sample_axis = 1,
         )
     
-    def _set_attrs(self, **kwargs):
-        
-        if 'sample_id' in kwargs:
-            
-            # rename this arg as it is specific for SampleSetAttrs
-            kwargs['sample_ids'] = kwargs['sample_id']
-            del kwargs['sample_id']
-        
-        self.attrs = sampleattrs.SampleSetAttrs(**kwargs)
-    
     @classmethod
     def combine_samples(cls, attrs, samples, **kwargs):
         """
@@ -1585,6 +1575,8 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         
         # this is the default
         return 1
+    
+    _set_attrs = sampleattrs.SampleSorter._set_attrs
     
     def get_sample_attrs(self, i):
         """

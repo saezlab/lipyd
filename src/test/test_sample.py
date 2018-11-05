@@ -22,18 +22,13 @@ import numpy as np
 
 import lipyd.sample as sample
 import lipyd.feature as feature
+import lipyd.sampleattrs as sampleattrs
 
 
 class TestSample(object):
     
     @pytest.fixture(autouse = True)
     def auto_inject_fixture(self):
-        
-        def sample_id_processor(s):
-            
-            return (s[0], int(s[1:]))
-        
-        self.sample_id_processor = sample_id_processor
         
         sample_ids = ['A12', 'A11', 'B2', 'B1']
         
@@ -48,7 +43,7 @@ class TestSample(object):
             rts = rts,
             ionmode = 'pos',
             sample_ids = sample_ids,
-            sample_id_processor = self.sample_id_processor,
+            sample_id_proc = sampleattrs.plate_sample_id_processor(),
         )
     
     def test_feature_idx(self):
@@ -124,7 +119,7 @@ class TestSample(object):
         
         # repeating these as pytest makes a copy of the object
         order = ['A11', 'A12', 'B1', 'B2']
-        samples.sort_by_sample_ids(order, process = True)
+        samples.sort_by_sample_ids(order)
         
         assert samples.mzs_by_sample[0, 1] == 0
         assert samples.rts[4, 3] == 21
@@ -140,7 +135,7 @@ class TestSample(object):
         
         # repeating these as pytest makes a copy of the object
         order = ['A11', 'A12', 'B1', 'B2']
-        samples.sort_by_sample_ids(order, process = True)
+        samples.sort_by_sample_ids(order)
         samples.sort_all(by = 'mzs', desc = True)
         
         data0 = ['a',  'b',  'c',   'd']
@@ -150,7 +145,7 @@ class TestSample(object):
             var0 = data0,
             sample_ids = order,
             samples = samples,
-            sample_id_processor = self.sample_id_processor,
+            sample_id_proc = sampleattrs.plate_sample_id_processor(),
         )
         
         assert sdata.var0[0] == 'd' and sdata.var0[-1] == 'a'

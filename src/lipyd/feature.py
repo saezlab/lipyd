@@ -29,7 +29,9 @@ class SampleData(sampleattrs.SampleSorter):
             samples = None,
             sample_ids = None,
             sample_data = None,
-            sample_id_processor = None,
+            sample_id_proc = None,
+            sample_id_proc_method = None,
+            sample_id_proc_names = None,
             **kwargs,
         ):
         """
@@ -84,7 +86,9 @@ class SampleData(sampleattrs.SampleSorter):
             sample_data = sample_data,
             sample_ids = sample_ids,
             sample_axis = 0,
-            sample_id_processor = sample_id_processor,
+            sample_id_proc = sample_id_proc,
+            sample_id_proc_method = sample_id_proc_method,
+            sample_id_proc_names = sample_id_proc_names,
         )
     
     def _add_var(self, data, attr):
