@@ -27,7 +27,7 @@ import warnings
 import numpy as np
 
 import lipyd.reader.xls
-import lipyd.reader.common as common
+import lipyd.common as common
 
 
 relabel = re.compile(r'(.*)_([A-Z])([0-9]{1,2})_(neg|pos)')
@@ -62,6 +62,7 @@ class PeaksReader(object):
             ionmode = None,
             format = None,
             label_processor = None,
+            sample_id_method = None,
             sample_sorter = None,
         ):
         """
@@ -83,6 +84,7 @@ class PeaksReader(object):
         self.guess_format(format)
         self.label_processor = label_processor or self.default_label_processor
         self.sample_sorter = sample_sorter or self.default_sample_sorter
+        self.sample_id_method = sample_id_method or peaks_sample_id_method
         
         self.read()
     
@@ -364,6 +366,7 @@ class PeaksReader(object):
                 'intensities': self.intensities[:,i],
                 'rts': self.rt_means[:,i],
                 'attrs': sample_attrs,
+                'sample_id': self.sample_id_method,
             }
     
     def get_sampleset(self):
@@ -381,6 +384,7 @@ class PeaksReader(object):
             'intensities': self.intensities,
             'rts': self.rt_means,
             'attrs': self.samples,
+            'sample_ids': self.sample_id_method,
         }
 
 

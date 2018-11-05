@@ -50,7 +50,12 @@ class SampleReader(object):
         'peaks': reader.peaks.PeaksReader,
     }
     
-    def __init__(self, input_type, ionmode = None, **kwargs):
+    def __init__(
+            self,
+            input_type,
+            ionmode = None,
+            **kwargs
+        ):
         """
         Reads data from files and creates ``Sample``, ``SampleSet`` and
         ``FeatureAttributes`` objects.
@@ -494,15 +499,17 @@ class Sample(FeatureBase):
             ionmode = None,
             intensities = None,
             rts = None,
-            sample_id = None,
-            sample_id_method = None,
             attrs = None,
             feature_attrs = None,
             sorter = None,
             ms2_format = 'mgf',
             ms2_param = None,
             silent = False,
-            sample_id_processor = None,
+            sample_id = None,
+            sample_id_proc = None,
+            sample_id_proc_method = None,
+            sample_id_proc_names = None,
+            attr_args = None,
             **kwargs,
         ):
         """
@@ -556,11 +563,16 @@ class Sample(FeatureBase):
         self.ms2_format = ms2_format
         self.ms2_param  = ms2_param or {}
         
-        self._set_attrs(
-            sample_id = sample_id,
-            attrs = attrs,
-            sample_id_processor = sample_id_processor,
-        )
+        attr_args = attr_args or {
+            'sample_id': sample_id,
+            'attrs': attrs,
+            'proc': sample_id_proc,
+            'proc_method': sample_id_proc_method,
+            'proc_names': sample_id_proc_names,
+            'length': length,
+        }
+        
+        self._set_attrs(**attr_args)
     
     def reload(self):
         
@@ -570,9 +582,9 @@ class Sample(FeatureBase):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
-    def _set_attrs(self, sample_id, attrs, sample_id_processor = None):
+    def _set_attrs(self, **kwargs):
         
-        self.attrs = sampleattrs.SampleAttrs(sample_id, attrs)
+        self.attrs = sampleattrs.SampleAttrs(**kwargs)
     
     def _add_var(self, data, attr):
         
@@ -1413,7 +1425,9 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             ms2_format = 'mgf',
             ms2_param = None,
             sample_ids = None,
-            sample_id_processor = None,
+            sample_id_proc = None,
+            sample_id_proc_method = None,
+            sample_id_proc_names = None,
             sample_data = None,
         ):
         """
@@ -1453,6 +1467,20 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             mzs.mean(axis = tuple(range(1, len(mzs.shape))))
         )
         
+        length = self._guess_numof_samples(
+            attrs = attrs,
+            variables = (mzs, intensities, rts)
+        )
+        
+        attr_args = {
+            'sample_id': sample_ids,
+            'attrs': attrs,
+            'proc': sample_id_proc,
+            'proc_method': sample_id_proc_method,
+            'proc_names': sample_id_proc_names,
+            'length': length,
+        }
+        
         Sample.__init__(
             self,
             mzs = centr_mzs,
@@ -1466,7 +1494,10 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             ms2_format = ms2_format,
             ms2_param = ms2_param,
             sample_id = sample_ids,
-            sample_id_processor = sample_id_processor,
+            sample_id_proc = sample_id_proc,
+            sample_id_proc_method = sample_id_proc_method,
+            sample_id_proc_names = sample_id_proc_names,
+            attr_args = attr_args,
         )
         
         sampleattrs.SampleSorter.__init__(
@@ -1475,13 +1506,15 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             sample_axis = 1,
         )
     
-    def _set_attrs(self, sample_id, attrs, sample_id_processor = None):
+    def _set_attrs(self, **kwargs):
         
-        self.attrs = sampleattrs.SampleSetAttrs(
-            sample_ids_method = sample_id,
-            sample_attrs = attrs,
-            sample_id_processor = sample_id_processor,
-        )
+        if 'sample_id' in kwargs:
+            
+            # rename this arg as it is specific for SampleSetAttrs
+            kwargs['sample_ids'] = kwargs['sample_id']
+            del kwargs['sample_id']
+        
+        self.attrs = sampleattrs.SampleSetAttrs(**kwargs)
     
     @classmethod
     def combine_samples(cls, attrs, samples, **kwargs):

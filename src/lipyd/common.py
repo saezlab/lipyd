@@ -182,6 +182,7 @@ count_prefix = {
 }
 
 fa_greek = {}
+
 for cc, uns, end in itertools.product(
     fa_greek_parts['cc'].items(),
     fa_greek_parts['uns'].items(),
@@ -299,29 +300,57 @@ def iterator_insert(full_length, insert):
             j += 1
 
 
+IONMODE_POS = 'pos'
+IONMODE_NEG = 'neg'
+
 refloat = re.compile(r'([-]?[0-9]*[\.]?[0-9]+[eE]?[-\+]?[0-9]*)')
 reint   = re.compile(r'([-]?[0-9]+[\.]?[0-9]*)')
+
+try:
+    basestring
+except NameError:
+    basestring = str
+
+def guess_ionmode(*args):
+    
+    for a in args:
+        
+        if hasattr(a, 'lower'):
+            
+            a = a.lower()
+            
+            if IONMODE_POS in a:
+                
+                return IONMODE_POS
+                
+            elif IONMODE_NEG in a:
+                
+                return IONMODE_NEG
 
 
 def to_float(num):
     """
-    Extracts float from string, or returns None.
+    Extracts ``float`` from string, or returns ``numpy.nan``.
     """
     
-    if type(num) is float or type(num) is np.float64:
+    if isinstance(num, float):
         
         return num
     
-    num = num.strip()
-    fnum = refloat.match(num)
-    
-    if fnum:
+    if isinstance(num, int):
         
-        return float(fnum.groups(0)[0])
+        return float(num)
     
-    else:
+    if isinstance(num, basestring):
         
-        if type(num) is str:
+        num = num.strip()
+        match = refloat.match(num)
+        
+        if match:
+            
+            return float(match.groups()[0])
+            
+        else:
             
             if num.lower() == 'inf':
                 
@@ -330,31 +359,25 @@ def to_float(num):
             if num.lower() == '-inf':
                 
                 return -np.inf
-            
-        else:
-            
-            return None
+    
+    return np.nan
 
 
 def to_int(num):
     """
-    Extracts int from string or returns None.
+    Extracts ``int`` from string.
     """
     
-    num = reint.match(num.strip())
-    
-    if num:
+    if isinstance(num, int):
         
-        return int(num.groups(0)[0])
+        return num
+    
+    match = reint.match(num.strip())
+    
+    if match:
+        
+        return int(match.groups(0)[0])
         
     else:
         
-        return num
-
-
-def float_lst(lst):
-    """
-    Converts elements of a list to floats.
-    """
-    
-    return [to_float(x) for x in lst]
+        raise ValueError('Integer expected: %g' % num)
