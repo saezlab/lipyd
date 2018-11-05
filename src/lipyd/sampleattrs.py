@@ -45,10 +45,7 @@ def sample_id_processor(method = None, *args):
         
         def __new__(cls, raw):
             
-            if (
-                raw.__class__.__name__ == 'SampleId' and
-                all(hasattr(raw, a) for a in args)
-            ):
+            if isinstance(raw, cls):
                 
                 return raw
             
