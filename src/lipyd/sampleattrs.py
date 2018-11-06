@@ -542,6 +542,62 @@ class SampleSorter(object):
             if sd_id not in _done:
                 
                 sd.sort(idx = idx, _done = _done)
+    
+    def index_previous(self, i):
+        """
+        An index or sample ID provided it returns the index of the sample
+        preceding in the series. Returns ``None`` if the first sample
+        is queried.
+        """
+        
+        if not isinstance(i, (int, np.int_)):
+            
+            i = self.attrs.sample_id_to_index[i]
+        
+        if i > 0:
+            
+            return i - 1
+    
+    def id_previous(self, i):
+        """
+        An index or sample ID provided it returns the ID of the sample
+        preceding in the series. Returns ``None`` if the first sample
+        is queried.
+        """
+        
+        i = self.index_previous(i)
+        
+        if i is not None:
+            
+            return self.attrs.sample_index_to_id[i]
+        
+    def index_next(self, i):
+        """
+        An index or sample ID provided it returns the index of the sample
+        following in the series. Returns ``None`` if the first sample
+        is queried.
+        """
+        
+        if not isinstance(i, (int, np.int_)):
+            
+            i = self.attrs.sample_id_to_index[i]
+        
+        if i < self.numof_samples:
+            
+            return i + 1
+    
+    def id_next(self, i):
+        """
+        An index or sample ID provided it returns the ID of the sample
+        following in the series. Returns ``None`` if the first sample
+        is queried.
+        """
+        
+        i = self.index_next(i)
+        
+        if i is not None:
+            
+            return self.attrs.sample_index_to_id[i]
 
 
 class SampleData(SampleSorter):
