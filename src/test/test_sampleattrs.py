@@ -234,3 +234,12 @@ class TestSampleAttrs(object):
             sec_path = secpath,
             samples = samples,
         )
+        
+        assert secprofile.numof_samples == samples.numof_samples
+        assert (
+            secprofile.attrs.sample_index_to_id ==
+            samples.attrs.sample_index_to_id
+        )
+        assert id(samples) in secprofile._sample_data
+        assert id(secprofile) in samples._sample_data
+        assert secprofile.profile.max() - 143.40397368421048 < 0.0001
