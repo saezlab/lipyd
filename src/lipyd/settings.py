@@ -330,9 +330,14 @@ _defaults = {
     'deltart_threshold': 0.5,
     # Don't know what it is for
     'uniprots': None,
+    # example files
     'mgf_neg_examples': 'neg_examples.mgf',
     'mgf_pos_examples': 'pos_examples.mgf',
     'peaks_example': 'peaks_example.csv',
+    'peaks_gltpd1_invitro': 'peaks_example_gltpd1_invitro.csv',
+    'peaks_gltpd1_invivo': 'peaks_example_gltpd1_invivo.csv',
+    'sec_gltpd1_invitro': 'SEC_GLTPD1_invitro.asc',
+    'sec_gltpd1_invivo': 'SEC_GLTPD1_invivo.xls',
     'sec_xls_example': 'SEC_xls_example.xls',
     'sec_unicorn_example': 'SEC_asc_unicorn_example.asc',
     # an MFQL example file
@@ -505,6 +510,10 @@ in_datadir = {
     'mfql_example',
     'sec_xls_example',
     'sec_unicorn_example',
+    'peaks_example_gltpd1_invitro',
+    'peaks_example_gltpd1_invivo',
+    'sec_gltpd1_invitro',
+    'sec_gltpd1_invivo',
 }
 
 in_mgfdir = {

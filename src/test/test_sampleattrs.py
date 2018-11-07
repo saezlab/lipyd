@@ -211,3 +211,7 @@ class TestSampleAttrs(object):
             ssa0.sample_id_to_index[s] == ssa1.sample_id_to_index[s]
             for s in ssa0.sample_index_to_id
         )
+    
+    def test_sec_profile(self):
+        
+        pass
