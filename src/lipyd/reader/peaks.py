@@ -30,8 +30,8 @@ import lipyd.reader.xls
 import lipyd.common as common
 
 
-relabel = re.compile(r'(.*)_([A-Z])([0-9]{1,2})_(neg|pos)')
-resecb  = re.compile(r'(.*)_secbuffer_(neg|pos)')
+relabel = re.compile(r'(.*)_([A-z])([0-9]{1,2})_(neg|pos)')
+resecb  = re.compile(r'([^_]*)_?(?:ctrl)?_?sec_?buffer_([^_]*)_?(neg|pos).*')
 
 
 class PeaksReader(object):
@@ -324,9 +324,10 @@ class PeaksReader(object):
             
             if match:
                 
-                main, ionmode = match.groups()
+                main1, main2, ionmode = match.groups()
                 row = 'Z'
                 col = 0
+                main = main2 or main1
                 
             else:
                 
@@ -337,7 +338,7 @@ class PeaksReader(object):
         
         return {
             'main': main,
-            'sample_id': (row, col),
+            'sample_id': (row.upper(), col),
             'ionmode': ionmode,
         }
     
