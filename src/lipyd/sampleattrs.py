@@ -773,9 +773,9 @@ class SECProfile(SampleData):
             sec_path,
             start_volume = .6,
             size = .15,
-            start_row = 'A',
-            start_col = 6,
-            length = 9,
+            start_row = None,
+            start_col = None,
+            length = None,
             sample_id_method = None,
             offsets = None,
             samples = None,
@@ -827,12 +827,13 @@ class SECProfile(SampleData):
             start_col or
             sorted(s for s in samples.attrs.sample_index_to_id)[0].col
         )
-        self.length = length or samples.numof_samples
+        self.length = length
         self.sample_id_method = (
             sample_id_method or
             self._default_sample_id_method
         )
         self.offsets = offsets
+        self._sampleset_numof_samples = samples.numof_samples
         
         profiles = {}
         
@@ -847,8 +848,6 @@ class SECProfile(SampleData):
                 profiles['profile%03u' % int(offset * 1000)] = (
                     self.read_sec(offset)
                 )
-        
-        print(self.sample_ids)
         
         SampleData.__init__(
             self,
@@ -888,16 +887,12 @@ class SECProfile(SampleData):
                 
                 continue
             
-            if self.length is not None and i >= self.length:
-                
-                break
-            
             sample_ids.append(self.sample_id_method(fr))
             values.append(fr.mean)
         
-        self.sample_ids = sample_ids
+        self.sample_ids = sample_ids[:self._sampleset_numof_samples]
         
-        return values
+        return values[:self._sampleset_numof_samples]
     
     @staticmethod
     def _default_sample_id_method(fraction):

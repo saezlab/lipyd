@@ -65,6 +65,7 @@ class PeaksReader(object):
             label_processor = None,
             sample_id_method = None,
             sample_sorter = None,
+            skip = None,
         ):
         """
         Reads data from an output file of the PEAKS software.
@@ -78,6 +79,9 @@ class PeaksReader(object):
         ----
         :param callable label_processor:
             A method to process headers of coulumns 7+.
+        :param set skip:
+            Sample IDs to be skipped. By default ``('Z', 0)`` is skipped
+            which represents the empty buffer.
         """
         
         self.set_file(fname)
@@ -86,6 +90,7 @@ class PeaksReader(object):
         self.label_processor = label_processor or self.default_label_processor
         self.sample_sorter = sample_sorter or self.default_sample_sorter
         self.sample_id_method = sample_id_method or peaks_sample_id_method
+        self.skip = skip or {('Z', 0)}
         
         self.read()
     
@@ -241,6 +246,7 @@ class PeaksReader(object):
             self.samples.append(sample)
         
         self.samples = self.sample_sorter(self.samples)
+        self.skip_samples()
         
         try:
             self.rt_mean_idx = self.hdr_raw.index('RT mean')
@@ -331,7 +337,7 @@ class PeaksReader(object):
         
         return {
             'main': main,
-            'fraction': (row, col),
+            'sample_id': (row, col),
             'ionmode': ionmode,
         }
     
@@ -343,10 +349,10 @@ class PeaksReader(object):
             if (
                 'label' in s and
                 s['label'] is not None and
-                'fraction' in s['label']
+                'sample_id' in s['label']
             ):
             
-                return s['label']['fraction']
+                return s['label']['sample_id']
             
             elif 'label' in s:
                 
@@ -357,6 +363,16 @@ class PeaksReader(object):
                 return s
         
         return sorted(samples, key = key_method)
+    
+    def skip_samples(self):
+        
+        if self.skip:
+            
+            self.samples = [
+                s
+                for s in self.samples
+                if s['label']['sample_id'] not in self.skip
+            ]
     
     def get_attributes(self):
         """
@@ -429,9 +445,9 @@ def peaks_sample_id_method(attrs):
         if (
             attrs is not None and
             'label' in attrs and
-            'fraction' in attrs['label']
+            'sample_id' in attrs['label']
         ):
             
-            return attrs['label']['fraction']
+            return attrs['label']['sample_id']
         
         return common.random_string()
