@@ -31,6 +31,7 @@ import lipyd.common as common
 
 
 relabel = re.compile(r'(.*)_([A-Z])([0-9]{1,2})_(neg|pos)')
+resecb  = re.compile(r'(.*)_secbuffer_(neg|pos)')
 
 
 class PeaksReader(object):
@@ -311,16 +312,51 @@ class PeaksReader(object):
             main, row, col, ionmode = match.groups()
             col = int(col)
             
-            return {
-                'main': main,
-                'fraction': (row, col),
-                'ionmode': ionmode,
-            }
+        else:
+            
+            match = resecb.search(label)
+            
+            if match:
+                
+                main, ionmode = match.groups()
+                row = 'Z'
+                col = 0
+                
+            else:
+                
+                main = label.split('_')[0]
+                row = 'X'
+                col = 0
+                ionmode = None
+        
+        return {
+            'main': main,
+            'fraction': (row, col),
+            'ionmode': ionmode,
+        }
     
     @staticmethod
     def default_sample_sorter(samples):
         
-        return sorted(samples, key = lambda s: s['label']['fraction'])
+        def key_method(s):
+            
+            if (
+                'label' in s and
+                s['label'] is not None and
+                'fraction' in s['label']
+            ):
+            
+                return s['label']['fraction']
+            
+            elif 'label' in s:
+                
+                return s['label']
+                
+            else:
+                
+                return s
+        
+        return sorted(samples, key = key_method)
     
     def get_attributes(self):
         """

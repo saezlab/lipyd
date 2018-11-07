@@ -21,6 +21,8 @@ import re
 import numpy as np
 
 import lipyd.sampleattrs as sampleattrs
+import lipyd.sample as sample
+import lipyd.settings as settings
 from lipyd.common import basestring
 from lipyd.reader.peaks import peaks_sample_id_method
 
@@ -212,6 +214,23 @@ class TestSampleAttrs(object):
             for s in ssa0.sample_index_to_id
         )
     
-    def test_sec_profile(self):
+    def test_sec_profile_1(self):
         
-        pass
+        peakspath = settings.get('peaks_gltpd1_invitro')
+        secpath = settings.get('sec_gltpd1_invitro')
+        
+        reader = sample.SampleReader(
+            input_type = 'peaks',
+            fname = peakspath,
+        )
+        
+        samples = reader.get_sampleset(
+            sampleset_args = {
+                'sample_id_proc': sampleattrs.plate_sample_id_processor(),
+            }
+        )
+        
+        secprofile = sampleattrs.SECProfile(
+            sec_path = secpath,
+            samples = samples,
+        )

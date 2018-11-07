@@ -819,9 +819,15 @@ class SECProfile(SampleData):
         self.sec_path = sec_path
         self.start_volume = start_volume
         self.size = size
-        self.start_row = start_row
-        self.start_col = start_col
-        self.length = length
+        self.start_row = (
+            start_row or
+            sorted(s.row for s in samples.attrs.sample_index_to_id)[0]
+        )
+        self.start_col = (
+            start_col or
+            sorted(s for s in samples.attrs.sample_index_to_id)[0].col
+        )
+        self.length = length or samples.numof_samples
         self.sample_id_method = (
             sample_id_method or
             self._default_sample_id_method
@@ -841,6 +847,8 @@ class SECProfile(SampleData):
                 profiles['profile%03u' % int(offset * 1000)] = (
                     self.read_sec(offset)
                 )
+        
+        print(self.sample_ids)
         
         SampleData.__init__(
             self,
@@ -862,7 +870,7 @@ class SECProfile(SampleData):
             self.start_volume + offset
         )
         
-        self.reader = sec.SECReader(path = sec_path)
+        self.reader = sec.SECReader(path = self.sec_path)
         profile = self.reader.profile(
             start_volume = start_volume,
             size = self.size,
@@ -891,7 +899,7 @@ class SECProfile(SampleData):
         
         return values
     
-    @classmethod
+    @staticmethod
     def _default_sample_id_method(fraction):
         
         return fraction.row, fraction.col
