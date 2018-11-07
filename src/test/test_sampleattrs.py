@@ -243,3 +243,40 @@ class TestSampleAttrs(object):
         assert id(samples) in secprofile._sample_data
         assert id(secprofile) in samples._sample_data
         assert secprofile.profile.max() - 143.40397368421048 < 0.0001
+    
+    def test_sec_profile_1(self):
+        
+        peakspath = settings.get('peaks_gltpd1_invivo')
+        secpath = settings.get('sec_gltpd1_invivo')
+        
+        reader = sample.SampleReader(
+            input_type = 'peaks',
+            fname = peakspath,
+        )
+        
+        samples = reader.get_sampleset(
+            sampleset_args = {
+                'sample_id_proc': sampleattrs.plate_sample_id_processor(),
+            }
+        )
+        
+        secprofile = sampleattrs.SECProfile(
+            sec_path = secpath,
+            samples = samples,
+            start_volume = 1.2,
+            offsets = (0.015, 0.045),
+            start_col = 9,
+            start_row = 'A',
+            length = samples.numof_samples,
+        )
+        
+        assert secprofile.numof_samples == samples.numof_samples
+        assert (
+            secprofile.attrs.sample_index_to_id ==
+            samples.attrs.sample_index_to_id
+        )
+        assert id(samples) in secprofile._sample_data
+        assert id(secprofile) in samples._sample_data
+        assert secprofile.profile015.max() - 20.92373913043478 < 0.0001
+        assert secprofile.profile045.argmax() == 2
+        assert secprofile.profile015.argmax() == 3
