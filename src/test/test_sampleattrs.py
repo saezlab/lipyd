@@ -88,7 +88,7 @@ class TestSampleAttrs(object):
         
         attrs = {
             'label': {
-                'fraction': ('A', 11),
+                'sample_id': ('A', 11),
             }
         }
         
@@ -133,14 +133,14 @@ class TestSampleAttrs(object):
         ssa = sampleattrs.SampleSetAttrs(
             sample_ids = peaks_sample_id_method,
             attrs = (
-                {'label': {'fraction': 'G2',}},
-                {'label': {'fraction': 'G3',}},
-                {'label': {'fraction': 'G4',}},
+                {'label': {'sample_id': 'G2',}},
+                {'label': {'sample_id': 'G3',}},
+                {'label': {'sample_id': 'G4',}},
             ),
             proc = sampleattrs.plate_sample_id_processor()
         )
         
-        assert ssa.attrs[0].attrs['label']['fraction'] == 'G2'
+        assert ssa.attrs[0].attrs['label']['sample_id'] == 'G2'
         assert ssa.sample_index_to_id[-1].col == 4
         assert len(ssa.sample_id_to_index) == 3
         assert ('G', 2) in ssa.sample_id_to_index
