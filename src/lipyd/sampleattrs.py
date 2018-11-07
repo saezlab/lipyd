@@ -713,6 +713,42 @@ class SampleData(SampleSorter):
             selection = np.array([s in selection for s in sample_ids])
         
         return selection
+    
+    def get_selection(self, selection = None, **kwargs):
+        """
+        Returns a ``SampleSelection`` object with samples corresponding to
+        the samples in this object.
+        
+        :param list,numpy.ndarray selection:
+            A list of sample IDs or a boolean array with the same length as
+            the number of samples.
+        :param **kwargs:
+            Arguments passed to ``make_selection`` if ``selection`` not
+            provided.
+        """
+        
+        if selection is None:
+            
+            selection = self.make_selection(**kwargs)
+        
+        return SampleSelection(
+            selection = selection,
+            sample_data = self._sample_data + [self],
+            sample_id_proc = self.attrs.proc,
+        )
+    
+    def make_selection(
+            self,
+            filters = None,
+            manual = None,
+            include = None,
+            exclude = None,
+        ):
+        """
+        Creates a boolean array based on the filters and criteria provided.
+        """
+        
+        pass
 
 
 class SampleSelection(SampleData):
@@ -898,3 +934,11 @@ class SECProfile(SampleData):
     def _default_sample_id_method(fraction):
         
         return fraction.row, fraction.col
+    
+    def protein_containing_samples(
+            self,
+            threshold = .33,
+            manual = None,
+        ):
+        
+        
