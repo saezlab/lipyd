@@ -244,7 +244,7 @@ class TestSampleAttrs(object):
         assert id(secprofile) in samples._sample_data
         assert secprofile.profile.max() - 143.40397368421048 < 0.0001
     
-    def test_sec_profile_1(self):
+    def test_sec_profile_2(self):
         
         peakspath = settings.get('peaks_gltpd1_invivo')
         secpath = settings.get('sec_gltpd1_invivo')
