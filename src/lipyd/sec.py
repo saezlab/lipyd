@@ -39,7 +39,7 @@ Fraction = collections.namedtuple(
 Fraction.__new__.__defaults__ = (None,)
 
 
-class SECProfile(object):
+class SECReader(object):
     
     def __init__(self, path):
         

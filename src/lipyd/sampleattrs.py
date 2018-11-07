@@ -23,6 +23,7 @@ import collections
 import numpy as np
 
 import lipyd.common as common
+import lipyd.sec as sec
 
 
 def sample_id_processor(method = None, *args):
@@ -732,8 +733,6 @@ class SampleSelection(SampleData):
         boolean array or a list of sample IDs to be selected.
         """
         
-        print(id(samples))
-        
         SampleData.__init__(
             self,
             samples = samples,
@@ -746,12 +745,6 @@ class SampleSelection(SampleData):
         
         proc = self.attrs.proc
         sample_ids = self.attrs.sample_index_to_id
-        
-        print(samples.attrs.sample_index_to_id)
-        print(self.attrs.sample_index_to_id)
-        print(selection)
-        print(proc == samples.attrs.proc)
-        print(proc('A12'))
         
         sel = self._bool_array(
             selection = selection,
@@ -771,3 +764,134 @@ class SampleSelection(SampleData):
             for i, sample_id in enumerate(self.attrs.sample_index_to_id)
             if self.selection[i]
         ]
+
+
+class SECProfile(SampleData):
+    
+    def __init__(
+            self,
+            sec_path,
+            start_volume = .6,
+            size = .15,
+            start_row = 'A',
+            start_col = 6,
+            length = 9,
+            sample_id_method = None,
+            offsets = None,
+            samples = None,
+            sample_data = None,
+            sample_ids = None,
+            sample_id_proc = None,
+            sample_id_proc_method = None,
+            sample_id_proc_names = None,
+            **kwargs,
+        ):
+        """
+        Reads protein abundance from size exclusion chromatography UV
+        absorbance profile.
+        
+        :param str sec_path:
+            Path to SEC file.
+        :param float start_volume:
+            The start volume in ml. Above this volume the collected fractions
+            have been analysed by LC MS/MS.
+        :param int length:
+            The number of fractions analyzed.
+        :param str start_row:
+            The row of the first well analyzed.
+        :param int start_col:
+            The column number of the first well analysed.
+        :param float size:
+            The volume collected in one fraction (in ml).
+        :param callable sample_id_method:
+            A method to process sample IDs from the data provided by the
+            SEC reader object.
+        :param tuple offsets:
+            A range of offsets to be applied to volume data in ml.
+            E.g. ``(0.015, 0.045)`` means the boundaries of the fractions
+            might be 0.015-0.045 ml later than it is stated in the file.
+        :param sample_ids:
+            Ignored here as sample IDs taken from the SEC profile reader.
+        
+        All other arguments passed to ``SampleData``.
+        """
+        
+        self.sec_path = sec_path
+        self.start_volume = start_volume
+        self.size = size
+        self.start_row = start_row
+        self.start_col = start_col
+        self.length = length
+        self.sample_id_method = (
+            sample_id_method or
+            self._default_sample_id_method
+        )
+        self.offsets = offsets
+        
+        profiles = {}
+        
+        if not offsets:
+            
+            profiles['profile'] = self.read_sec()
+            
+        else:
+            
+            for offset in offsets:
+                
+                profiles['profile%03u' % int(offset * 1000)] = (
+                    self.read_sec(offset)
+                )
+        
+        SampleData.__init__(
+            self,
+            samples = samples,
+            sample_ids = self.sample_ids,
+            sample_data = sample_data,
+            sample_id_proc = sample_id_proc,
+            sample_id_proc_method = sample_id_proc_method,
+            sample_id_proc_names = sample_id_proc_names,
+            **profiles,
+            **kwargs,
+        )
+    
+    def read_sec(self, offset = None):
+        
+        start_volume = (
+            self.start_volume
+                if offset is None else
+            self.start_volume + offset
+        )
+        
+        self.reader = sec.SECReader(path = sec_path)
+        profile = self.reader.profile(
+            start_volume = start_volume,
+            size = self.size,
+            start_col = self.start_col,
+            start_row = self.start_row,
+            length = self.length,
+        )
+        
+        sample_ids = []
+        values = []
+        
+        for i, fr in enumerate(profile):
+            
+            if (fr.row, fr.col) < (self.start_row, self.start_col):
+                
+                continue
+            
+            if self.length is not None and i >= self.length:
+                
+                break
+            
+            sample_ids.append(self.sample_id_method(fr))
+            values.append(fr.mean)
+        
+        self.sample_ids = sample_ids
+        
+        return values
+    
+    @classmethod
+    def _default_sample_id_method(fraction):
+        
+        return fraction.row, fraction.col
