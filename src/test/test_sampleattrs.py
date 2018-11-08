@@ -206,7 +206,7 @@ class TestSampleAttrs(object):
         
         ssa1.sort_by(ssa0)
         
-        assert ssa0.sample_index_to_id == ssa1.sample_index_to_id
+        assert np.all(ssa0.sample_index_to_id == ssa1.sample_index_to_id)
         assert ssa1.sample_id_to_index[('A', 12)] == 2
         assert ssa1.sample_index_to_id[0] == ('A', 10)
         assert all(
@@ -237,8 +237,10 @@ class TestSampleAttrs(object):
         
         assert secprofile.numof_samples == samples.numof_samples
         assert (
-            secprofile.attrs.sample_index_to_id ==
-            samples.attrs.sample_index_to_id
+            np.all(
+                secprofile.attrs.sample_index_to_id ==
+                samples.attrs.sample_index_to_id
+            )
         )
         assert id(samples) in secprofile._sample_data
         assert id(secprofile) in samples._sample_data
@@ -272,8 +274,10 @@ class TestSampleAttrs(object):
         
         assert secprofile.numof_samples == samples.numof_samples
         assert (
-            secprofile.attrs.sample_index_to_id ==
-            samples.attrs.sample_index_to_id
+            np.all(
+                secprofile.attrs.sample_index_to_id ==
+                samples.attrs.sample_index_to_id
+            )
         )
         assert id(samples) in secprofile._sample_data
         assert id(secprofile) in samples._sample_data

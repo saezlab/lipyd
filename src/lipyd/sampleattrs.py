@@ -217,11 +217,13 @@ class SampleSetAttrs(object):
     def _set_sample_ids(self):
         # called by __init__()
         
-        self.sample_index_to_id = []
+        sample_index_to_id = []
         
         for attr in self.attrs:
             
-            self.sample_index_to_id.append(attr.sample_id)
+            sample_index_to_id.append(attr.sample_id)
+        
+        self.sample_index_to_id = np.array(sample_index_to_id)
         
         self._update_id_to_index()
     
@@ -739,16 +741,66 @@ class SampleData(SampleSorter):
     
     def make_selection(
             self,
-            filters = None,
             manual = None,
             include = None,
             exclude = None,
+            logic = 'AND',
+            **kwargs,
         ):
         """
         Creates a boolean array based on the filters and criteria provided.
+        
+        :param **kwargs:
+            Variable names and methods. The method will be applied to each
+            element of the variable in the slot to obtain a boolean array.
+            E.g. ``profile = lambda x: x > 0.3`` will be ``True`` for values
+            in the profile array above 0.3.
         """
         
-        pass
+        selected = np.array([True] * self.numof_samples)
+        consensus = np.array([True] * self.numof_samples)
+        
+        if manual:
+            
+            selected = {self.attrs.proc(sample_id) for sample_id in manual}
+        
+        if kwargs:
+            
+            results = []
+            
+            for var, method in iteritems(kwargs):
+                
+                values = getattr(self, var)
+                result = []
+                
+                for i in xrange(values.shape[self._sample_axis]):
+                    
+                    val = np.take(arr, i, axis = self._sample_axis)
+                    result.append(method(val))
+                
+                results.append(result)
+            
+            results = np.vstack(results)
+            
+            consensus = (
+                np.any(results, 0)
+                    if logic.upper() == 'AND' else
+                np.all(results, 0)
+            )
+            
+            
+        
+        if include:
+            
+            incl = {self.attrs.proc(sample_id) for sample_id in include}
+            selected = selected | incl
+        
+        if exclude:
+            
+            excl = {self.attrs.proc(sample_id) for sample_id in exclude}
+            selected = selected - excl
+        
+        return np.any(np.vstack)
 
 
 class SampleSelection(SampleData):
@@ -941,4 +993,4 @@ class SECProfile(SampleData):
             manual = None,
         ):
         
-        
+        pass
