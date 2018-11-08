@@ -16,6 +16,7 @@
 #
 
 from future.utils import iteritems
+from past.builtins import xrange, range
 
 import numpy as np
 
@@ -24,9 +25,39 @@ import lipyd.sampleattrs as sampleattrs
 
 class FeatureAnalyzer(object):
     
-    def __init__(self, samples):
+    def __init__(self, name, samples, method, **variables):
         
+        self.name = name
         self.samples = samples
+        self.method = method
+        self.variables = variables
+        
+        result = self.run()
+        self.samples.feattrs._add_var(result, self.name)
+    
+    def run(self):
+        """
+        Applies the method for each feature and returns an array of the
+        results.
+        """
+        
+        result = []
+        
+        for i in xrange(len(self.samples)):
+            
+            featurevars = {}
+            
+            for var in self.samples.feattrs.var:
+                
+                featurevars[var] = getattr(self.samples.feattrs, var)[i]
+            
+            for var in self.samples.var:
+                
+                featurevars[var] = getattr(self.samples, var)[i,:]
+            
+            result.append(self.method(**featurevars, **self.variables))
+        
+        return np.array(result)
 
 
 class ProfileFeatureAnalyzer(FeatureAnalyzer):
