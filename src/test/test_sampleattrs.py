@@ -284,3 +284,29 @@ class TestSampleAttrs(object):
         assert secprofile.profile015.max() - 20.92373913043478 < 0.0001
         assert secprofile.profile045.argmax() == 2
         assert secprofile.profile015.argmax() == 3
+    
+    def test_protein_containing_samples(self):
+        
+        peakspath = settings.get('peaks_gltpd1_invivo')
+        secpath = settings.get('sec_gltpd1_invivo')
+        
+        reader = sample.SampleReader(
+            input_type = 'peaks',
+            fname = peakspath,
+        )
+        
+        samples = reader.get_sampleset(
+            sampleset_args = {
+                'sample_id_proc': sampleattrs.plate_sample_id_processor(),
+            }
+        )
+        
+        secprofile = sampleattrs.SECProfile(
+            sec_path = secpath,
+            samples = samples,
+            start_volume = 1.2,
+            offsets = (0.015, 0.045),
+            start_col = 9,
+            start_row = 'A',
+            length = samples.numof_samples,
+        )

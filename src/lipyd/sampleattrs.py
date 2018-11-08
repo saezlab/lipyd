@@ -602,7 +602,7 @@ class SampleSorter(object):
             
             return self.attrs.sample_index_to_id[i]
     
-        def get_selection(self, selection = None, **kwargs):
+    def get_selection(self, selection = None, **kwargs):
         """
         Returns a ``SampleSelection`` object with samples corresponding to
         the samples in this object.
@@ -946,9 +946,12 @@ class SECProfile(SampleData):
             
             for offset in offsets:
                 
-                profiles['profile%03u' % int(offset * 1000)] = (
+                profile_name = 'profile%03u' % int(offset * 1000)
+                profiles[profile_name] = (
                     self.read_sec(offset)
                 )
+        
+        self.profiles = set(profiles.keys())
         
         SampleData.__init__(
             self,
@@ -1003,7 +1006,38 @@ class SECProfile(SampleData):
     def protein_containing_samples(
             self,
             threshold = .33,
+            threshold_absolute = False,
             manual = None,
+            include = None,
+            exclude = None,
         ):
+        """
+        Returns a ``SampleSelection`` object with the protein containing
+        fractions selected.
+        In addition protein containing samples can be selected manually
+        overriding the evaluation of the SEC profile. This might be useful
+        if the peak was not clear.
+        Additionally samples can be included or excluded, this might
+        be useful if certain fractions are wrong and should not be considered.
+        """
         
-        pass
+        selection = []
+        
+        for profile_name in self.profiles:
+            
+            profile = getattr(self, profile_name)
+            threshold_ = (
+                threshold
+                    if threshold else
+                profile.nanmax() * threshold
+            )
+            selection.append(profile >= threshold_)
+        
+        selection = np.all(np.vstack(selection), 0)
+        
+        return self.get_selection(
+            by_profile = selection,
+            manual = manual,
+            include = include,
+            exclude = exclude,
+        )
