@@ -328,3 +328,18 @@ class TestSampleAttrs(object):
             pcs.selection ==
             np.array([False, False,  True, False, False])
         )
+    
+    def test_selection_logical_not(self):
+        
+        sel = sampleattrs.SampleSelection(
+            selection = [False, True, True, False, False],
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            sample_id_proc = sampleattrs.plate_sample_id_processor()
+        )
+        
+        nsel = sel.logical_not()
+        
+        assert np.all(
+            nsel.selection ==
+            np.array([ True, False, False,  True,  True])
+        )

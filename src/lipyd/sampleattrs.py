@@ -864,6 +864,18 @@ class SampleSelection(SampleData):
             for i, sample_id in enumerate(self.attrs.sample_index_to_id)
             if self.selection[i]
         ]
+    
+    def logical_not(self):
+        """
+        Returns the inverse of the selection.
+        """
+        
+        return SampleSelection(
+            selection = np.logical_not(self.selection),
+            sample_ids = self.attrs.sample_index_to_id,
+            sample_data = list(self._sample_data.values()) + [self],
+            proc = self.attrs.proc,
+        )
 
 
 class SECProfile(SampleData):
