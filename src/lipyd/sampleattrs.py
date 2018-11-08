@@ -601,6 +601,105 @@ class SampleSorter(object):
         if i is not None:
             
             return self.attrs.sample_index_to_id[i]
+    
+        def get_selection(self, selection = None, **kwargs):
+        """
+        Returns a ``SampleSelection`` object with samples corresponding to
+        the samples in this object.
+        
+        :param list,numpy.ndarray selection:
+            A list of sample IDs or a boolean array with the same length as
+            the number of samples.
+        :param **kwargs:
+            Arguments passed to ``make_selection`` if ``selection`` not
+            provided.
+        """
+        
+        if selection is None:
+            
+            selection = self.make_selection(**kwargs)
+        
+        return SampleSelection(
+            selection = selection,
+            sample_data = self._sample_data + [self],
+            sample_id_proc = self.attrs.proc,
+        )
+    
+    def make_selection(
+            self,
+            manual = None,
+            include = None,
+            exclude = None,
+            logic = 'AND',
+            **kwargs,
+        ):
+        """
+        Creates a boolean array based on the filters and criteria provided.
+        First the manual selection is evaluated, then the methods provided
+        in ``**kwargs``, after the samples in ``include`` added and finally
+        those in ``exclude`` removed from the selection.
+        
+        :param **kwargs:
+            Variable names and methods or boolean arrays. If boolean arrays
+            provided these will be used to select the samples.
+            Methods will be applied to each element of the variable in the
+            slot to obtain a boolean array.
+            E.g. ``profile = lambda x: x > 0.3`` will be ``True`` for values
+            in the profile array above 0.3.
+        """
+        
+        selected = np.array([True] * self.numof_samples)
+        consensus = np.array([True] * self.numof_samples)
+        
+        if manual:
+            
+            selected = {self.attrs.proc(sample_id) for sample_id in manual}
+        
+        if kwargs:
+            
+            bool_arrays = []
+            
+            for var, method in iteritems(kwargs):
+                
+                if isinstance(method, (list, np.ndarray)):
+                    
+                    bool_arrays.append(method)
+                    continue
+                
+                values = getattr(self, var)
+                bool_array = []
+                
+                for i in xrange(values.shape[self._sample_axis]):
+                    
+                    val = np.take(arr, i, axis = self._sample_axis)
+                    bool_array.append(method(val))
+                
+                bool_arrays.append(bool_array)
+            
+            bool_arrays = np.vstack(bool_arrays)
+            
+            consensus = (
+                np.any(bool_arrays, 0)
+                    if logic.upper() == 'AND' else
+                np.all(bool_arrays, 0)
+            )
+        
+        if include:
+            
+            incl = {self.attrs.proc(sample_id) for sample_id in include}
+            selected = selected | incl
+        
+        if exclude:
+            
+            excl = {self.attrs.proc(sample_id) for sample_id in exclude}
+            selected = selected - excl
+        
+        selected = [
+            self.sample_index_to_id[i] in selected
+            for i in xrange(self.numof_samples)
+        ]
+        
+        return np.all(np.vstack((selected, consensus)), 0)
 
 
 class SampleData(SampleSorter):
@@ -715,105 +814,6 @@ class SampleData(SampleSorter):
             selection = np.array([s in selection for s in sample_ids])
         
         return selection
-    
-    def get_selection(self, selection = None, **kwargs):
-        """
-        Returns a ``SampleSelection`` object with samples corresponding to
-        the samples in this object.
-        
-        :param list,numpy.ndarray selection:
-            A list of sample IDs or a boolean array with the same length as
-            the number of samples.
-        :param **kwargs:
-            Arguments passed to ``make_selection`` if ``selection`` not
-            provided.
-        """
-        
-        if selection is None:
-            
-            selection = self.make_selection(**kwargs)
-        
-        return SampleSelection(
-            selection = selection,
-            sample_data = self._sample_data + [self],
-            sample_id_proc = self.attrs.proc,
-        )
-    
-    def make_selection(
-            self,
-            manual = None,
-            include = None,
-            exclude = None,
-            logic = 'AND',
-            **kwargs,
-        ):
-        """
-        Creates a boolean array based on the filters and criteria provided.
-        First the manual selection is evaluated, then the methods provided
-        in ``**kwargs``, after the samples in ``include`` added and finally
-        those in ``exclude`` removed from the selection.
-        
-        :param **kwargs:
-            Variable names and methods or boolean arrays. If boolean arrays
-            provided these will be used to select the samples.
-            Methods will be applied to each element of the variable in the
-            slot to obtain a boolean array.
-            E.g. ``profile = lambda x: x > 0.3`` will be ``True`` for values
-            in the profile array above 0.3.
-        """
-        
-        selected = np.array([True] * self.numof_samples)
-        consensus = np.array([True] * self.numof_samples)
-        
-        if manual:
-            
-            selected = {self.attrs.proc(sample_id) for sample_id in manual}
-        
-        if kwargs:
-            
-            bool_arrays = []
-            
-            for var, method in iteritems(kwargs):
-                
-                if isinstance(method, (list, np.ndarray)):
-                    
-                    bool_arrays.append(method)
-                    continue
-                
-                values = getattr(self, var)
-                bool_array = []
-                
-                for i in xrange(values.shape[self._sample_axis]):
-                    
-                    val = np.take(arr, i, axis = self._sample_axis)
-                    bool_array.append(method(val))
-                
-                bool_arrays.append(bool_array)
-            
-            bool_arrays = np.vstack(bool_arrays)
-            
-            consensus = (
-                np.any(bool_arrays, 0)
-                    if logic.upper() == 'AND' else
-                np.all(bool_arrays, 0)
-            )
-        
-        if include:
-            
-            incl = {self.attrs.proc(sample_id) for sample_id in include}
-            selected = selected | incl
-        
-        if exclude:
-            
-            excl = {self.attrs.proc(sample_id) for sample_id in exclude}
-            selected = selected - excl
-        
-        selected = [
-            self.sample_index_to_id[i] in selected
-            for i in xrange(self.numof_samples)
-        ]
-        
-        return np.all(np.vstack((selected, consensus)), 0)
 
 
 class SampleSelection(SampleData):
