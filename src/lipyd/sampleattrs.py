@@ -217,13 +217,11 @@ class SampleSetAttrs(object):
     def _set_sample_ids(self):
         # called by __init__()
         
-        sample_index_to_id = []
+        self.sample_index_to_id = []
         
         for attr in self.attrs:
             
-            sample_index_to_id.append(attr.sample_id)
-        
-        self.sample_index_to_id = np.array(sample_index_to_id)
+            self.sample_index_to_id.append(attr.sample_id)
         
         self._update_id_to_index()
     
