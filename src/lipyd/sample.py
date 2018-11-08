@@ -38,6 +38,7 @@ import lipyd.mgf as mgf
 import lipyd.settings as settings
 import lipyd.progress as progress
 import lipyd.sampleattrs as sampleattrs
+import lipyd.feature as feature
 
 
 remgf  = re.compile(r'(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')

@@ -61,8 +61,37 @@ class FeatureAnalyzer(object):
         return np.array(result)
 
 
-class ProfileFeatureAnalyzer(FeatureAnalyzer):
+class PeakSize(FeatureAnalyzer):
     
-    def __init__(self, samples):
+    def __init__(
+            self,
+            samples,
+            protein_samples,
+            threshold = 2.0,
+            name = 'peaksize',
+        ):
         
-        FeatureAnalyzer.__init__(self, samples = samples)
+        self.threshold = threshold
+        
+        FeatureAnalyzer.__init__(
+            self,
+            name = name,
+            samples = samples,
+            method = self.peak_size,
+            protein_samples = protein_samples,
+        )
+    
+    def peak_size(self, intensities, protein_samples, **kwargs):
+        
+        protein   = intensities[protein_samples]
+        noprotein = intensities[np.logical_not(protein_samples)]
+        
+        if np.any(np.isnan(protein)):
+            
+            return False
+        
+        if np.all(np.isnan(noprotein)):
+            
+            return True
+        
+        return np.min(protein) > np.nanmax(noprotein) * self.threshold

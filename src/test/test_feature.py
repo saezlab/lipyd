@@ -74,3 +74,18 @@ class TestFeature(object):
                 True,  True,  True, False, False
             ])
         )
+    
+    def test_peak_size(self):
+        
+        fea = feature.PeakSize(
+            samples = self.samples,
+            protein_samples = self.protein_samples.selection,
+        )
+        
+        assert np.all(
+            self.samples.feattrs.peaksize ==
+            np.array([
+                False, False, False,  True,  True,
+                True,  True, False, False, False
+            ])
+        )
