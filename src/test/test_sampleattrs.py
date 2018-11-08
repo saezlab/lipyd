@@ -236,11 +236,9 @@ class TestSampleAttrs(object):
         )
         
         assert secprofile.numof_samples == samples.numof_samples
-        assert (
-            np.all(
-                secprofile.attrs.sample_index_to_id ==
-                samples.attrs.sample_index_to_id
-            )
+        assert np.all(
+            secprofile.attrs.sample_index_to_id ==
+            samples.attrs.sample_index_to_id
         )
         assert id(samples) in secprofile._sample_data
         assert id(secprofile) in samples._sample_data
@@ -273,11 +271,9 @@ class TestSampleAttrs(object):
         )
         
         assert secprofile.numof_samples == samples.numof_samples
-        assert (
-            np.all(
-                secprofile.attrs.sample_index_to_id ==
-                samples.attrs.sample_index_to_id
-            )
+        assert np.all(
+            secprofile.attrs.sample_index_to_id ==
+            samples.attrs.sample_index_to_id
         )
         assert id(samples) in secprofile._sample_data
         assert id(secprofile) in samples._sample_data
@@ -312,4 +308,23 @@ class TestSampleAttrs(object):
             length = samples.numof_samples,
         )
         
+        pcs = secprofile.protein_containing_samples()
         
+        assert np.all(
+            pcs.selection ==
+            np.array([False, False,  True,  True, False])
+        )
+        
+        pcs = secprofile.protein_containing_samples(manual = ['A10', 'A11'])
+        
+        assert np.all(
+            pcs.selection ==
+            np.array([False,  True,  True, False, False])
+        )
+        
+        pcs = secprofile.protein_containing_samples(exclude = ['A12'])
+        
+        assert np.all(
+            pcs.selection ==
+            np.array([False, False,  True, False, False])
+        )

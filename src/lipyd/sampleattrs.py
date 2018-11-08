@@ -1022,17 +1022,23 @@ class SECProfile(SampleData):
         
         selection = []
         
-        for profile_name in self.profiles:
+        if not manual:
             
-            profile = getattr(self, profile_name)
-            threshold_ = (
-                threshold
-                    if threshold else
-                profile.nanmax() * threshold
-            )
-            selection.append(profile >= threshold_)
-        
-        selection = np.all(np.vstack(selection), 0)
+            for profile_name in self.profiles:
+                
+                profile = getattr(self, profile_name)
+                threshold_ = (
+                    threshold
+                        if threshold_absolute else
+                    np.nanmax(profile) * threshold
+                )
+                selection.append(profile >= threshold_)
+            
+            selection = np.all(np.vstack(selection), 0)
+            
+        else:
+            
+            selection = np.array([True] * self.numof_samples)
         
         return self.get_selection(
             by_profile = selection,
