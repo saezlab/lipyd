@@ -17,12 +17,14 @@
 
 import pytest
 
+import numpy as np
+
 import lipyd.sample as sample
 import lipyd.feature as feature
 import lipyd.sampleattrs as sampleattrs
 
 
-class TestFeature(self):
+class TestFeature(object):
     
     @pytest.fixture(autouse = True)
     def auto_inject_fixture(self):
