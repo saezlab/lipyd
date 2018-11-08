@@ -95,3 +95,35 @@ class PeakSize(FeatureAnalyzer):
             return True
         
         return np.min(protein) > np.nanmax(noprotein) * self.threshold
+
+
+class Slope(FeatureAnalyzer):
+    
+    def __init__(
+            self,
+            samples,
+            protein_profile,
+            protein_samples,
+            highest_samples,
+            name = 'slope',
+        ):
+        
+        self.threshold = threshold
+        
+        FeatureAnalyzer.__init__(
+            self,
+            name = name,
+            samples = samples,
+            method = self.slope,
+            protein_samples = protein_samples,
+        )
+    
+    def slope(
+            self,
+            intensities,
+            protein_profile,
+            protein_samples,
+            highest_samples,
+        ):
+        
+        
