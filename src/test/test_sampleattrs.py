@@ -284,6 +284,7 @@ class TestSampleAttrs(object):
         assert secprofile.profile015.max() - 20.92373913043478 < 0.0001
         assert secprofile.profile045.argmax() == 2
         assert secprofile.profile015.argmax() == 3
+        assert secprofile.profiles == {'profile045', 'profile015'}
     
     def test_protein_containing_samples(self):
         
@@ -310,3 +311,5 @@ class TestSampleAttrs(object):
             start_row = 'A',
             length = samples.numof_samples,
         )
+        
+        

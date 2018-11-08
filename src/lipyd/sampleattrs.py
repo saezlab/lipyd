@@ -619,7 +619,8 @@ class SampleSorter(object):
         
         return SampleSelection(
             selection = selection,
-            sample_data = self._sample_data + [self],
+            sample_ids = self.attrs.sample_index_to_id,
+            sample_data = list(self._sample_data.values()) + [self],
             sample_id_proc = self.attrs.proc,
         )
     
@@ -646,7 +647,7 @@ class SampleSorter(object):
             in the profile array above 0.3.
         """
         
-        selected = np.array([True] * self.numof_samples)
+        selected = set(self.attrs.sample_index_to_id)
         consensus = np.array([True] * self.numof_samples)
         
         if manual:
@@ -693,7 +694,7 @@ class SampleSorter(object):
             selected = selected - excl
         
         selected = [
-            self.sample_index_to_id[i] in selected
+            self.attrs.sample_index_to_id[i] in selected
             for i in xrange(self.numof_samples)
         ]
         
@@ -736,7 +737,7 @@ class SampleData(SampleSorter):
             A method to process elements in ``sample_ids``.
         """
         
-        if (not sample_ids and not samples) or not hasattr(samples, 'attrs'):
+        if not sample_ids and (not samples or not hasattr(samples, 'attrs')):
             
             raise RuntimeError(
                 'SampleData: either `samples` or '
