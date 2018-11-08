@@ -12922,7 +12922,7 @@ class Screening(object):
         
         self.manual = data
     
-    def read_manual2(self, fname = 'All_results_v04.xlsx'):
+    def read_manual2(self, fname = 'All_results_v06.xlsx'):
         """
         Reads manually annotated results from Marco's final table.
         """
