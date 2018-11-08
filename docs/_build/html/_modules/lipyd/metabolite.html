@@ -1,0 +1,769 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.metabolite &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.metabolite</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.metabolite</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">generator_stop</span>
+
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">iteritems</span>
+<span class="kn">from</span> <span class="nn">past.builtins</span> <span class="k">import</span> <span class="n">xrange</span><span class="p">,</span> <span class="nb">range</span>
+
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">operator</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">lipyd.formula</span> <span class="k">as</span> <span class="nn">formula</span>
+<span class="kn">import</span> <span class="nn">lipyd.lipproc</span> <span class="k">as</span> <span class="nn">lipproc</span>
+
+
+<div class="viewcode-block" id="AbstractMetaboliteComponent"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractMetaboliteComponent">[docs]</a><span class="k">class</span> <span class="nc">AbstractMetaboliteComponent</span><span class="p">(</span><span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">core</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+                 <span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+                 <span class="n">isotope</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+                 <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">,</span>
+                 <span class="n">getname</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parent</span><span class="p">:</span> <span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Represents a component of a molecule. It can be the basis of a core</span>
+<span class="sd">        carrying more substituents. Or can be the basis of a substituent</span>
+<span class="sd">        which might provide a custom set of options or a homolog series</span>
+<span class="sd">        with different carbon counts and unsaturations on the aliphatic</span>
+<span class="sd">        chain.</span>
+<span class="sd">        </span>
+<span class="sd">        :param core: You can provide the core (unchanged part) 3 ways:</span>
+<span class="sd">            As a `float` which considered to be an exact mass.</span>
+<span class="sd">            As a formula, e.g. `C2H5OH`.</span>
+<span class="sd">            As a `dict` of atom counts, e.g. `{&#39;C&#39;: 2, &#39;H&#39;: 6, &#39;O&#39;: 1}`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">core</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">core</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">charge</span><span class="p">,</span>
+            <span class="n">isotope</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mass</span><span class="p">():</span>
+            
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">core</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">:</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">=</span> <span class="n">core</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;Please provide either formula or atom counts or mass.&#39;</span>
+                <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">getname</span> <span class="o">=</span> <span class="n">getname</span></div>
+
+
+<div class="viewcode-block" id="AbstractMetabolite"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractMetabolite">[docs]</a><span class="k">class</span> <span class="nc">AbstractMetabolite</span><span class="p">(</span><span class="n">AbstractMetaboliteComponent</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">core</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">isotope</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parent</span><span class="p">,</span> <span class="n">subs</span><span class="p">:</span>
+                <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="n">lipproc</span><span class="o">.</span><span class="n">cu_str</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">u</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">subs</span>
+                        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s1">&#39;u&#39;</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">),</span>
+            <span class="n">subs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sum_only</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Represents a metabolite with an unchanged core and a set of variable</span>
+<span class="sd">        substituents.</span>
+<span class="sd">        </span>
+<span class="sd">        :param bool sum_only: Do not iterate all aliphatic chains</span>
+<span class="sd">            independently but consider only sum of chain lengths and</span>
+<span class="sd">            unsaturations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">AbstractMetaboliteComponent</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">core</span><span class="p">,</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="n">charge</span><span class="p">,</span>
+            <span class="n">isotope</span> <span class="o">=</span> <span class="n">isotope</span><span class="p">,</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="n">getname</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">subs</span> <span class="o">=</span> <span class="n">subs</span> <span class="ow">or</span> <span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_substituent</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sum_only</span> <span class="o">=</span> <span class="n">sum_only</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub0</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hg</span> <span class="o">=</span> <span class="n">hg</span>
+    
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">for</span> <span class="n">subs</span><span class="p">,</span> <span class="n">inst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsproduct</span><span class="p">():</span>
+            
+            <span class="k">yield</span> <span class="n">inst</span>
+    
+<div class="viewcode-block" id="AbstractMetabolite.get_substituent"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractMetabolite.get_substituent">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_substituent</span><span class="p">(</span><span class="n">sub</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a `Formula` object if the substituent is not</span>
+<span class="sd">        already an instance of `Formula` or `Substituent`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="p">(</span>
+                <span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="s1">&#39;lower&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span>
+                <span class="k">else</span> <span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="p">(</span><span class="o">**</span><span class="n">sub</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span>
+                <span class="k">else</span> <span class="n">sub</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="AbstractMetabolite.itersubs"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractMetabolite.itersubs">[docs]</a>    <span class="k">def</span> <span class="nf">itersubs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterates all combinations of all substituents.</span>
+<span class="sd">        Yields tuples of substituents.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_restore_sub0</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">subs</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">subs</span><span class="p">):</span>
+            
+            <span class="k">yield</span> <span class="n">subs</span></div>
+    
+<div class="viewcode-block" id="AbstractMetabolite.subsproduct"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractMetabolite.subsproduct">[docs]</a>    <span class="k">def</span> <span class="nf">subsproduct</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterates instances and substituents in parallel.</span>
+<span class="sd">        Yields tuples of two elements.</span>
+<span class="sd">        First element is a tuple of all molecule parts (substituents).</span>
+<span class="sd">        Second element is the actual instance, i.e. the whole molecule.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">iterator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">itersum</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum_only</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">itersubs</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">subs</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">inst_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getname</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subs</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">inst</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
+                <span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">,</span>
+                <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">((</span><span class="bp">self</span><span class="p">,),</span> <span class="p">(</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">subs</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inst</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inst_name</span>
+            
+            <span class="k">yield</span> <span class="n">subs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inst</span></div>
+    
+<div class="viewcode-block" id="AbstractMetabolite.iterlines"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractMetabolite.iterlines">[docs]</a>    <span class="k">def</span> <span class="nf">iterlines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterates standard lines.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="n">subs</span><span class="p">,</span> <span class="n">inst</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsproduct</span><span class="p">():</span>
+            
+            <span class="n">full_name</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">getname</span><span class="p">()</span>
+            
+            <span class="n">chains</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">s</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">chain</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">subs</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span> <span class="s1">&#39;chain&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">chainsum</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">sum_chains</span><span class="p">(</span><span class="n">chains</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">lipproc</span><span class="o">.</span><span class="n">summary_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span> <span class="n">chainsum</span><span class="p">),)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hg</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum_only</span> <span class="k">else</span>
+                <span class="p">(</span><span class="n">lipproc</span><span class="o">.</span><span class="n">full_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span> <span class="n">chains</span><span class="p">),)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hg</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum_only</span> <span class="k">else</span>
+                <span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">lab</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">LipidLabel</span><span class="p">(</span>
+                <span class="n">db_id</span>   <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">db</span>      <span class="o">=</span> <span class="s1">&#39;lipyd.lipid&#39;</span><span class="p">,</span>
+                <span class="n">names</span>   <span class="o">=</span> <span class="n">name</span><span class="p">,</span>
+                <span class="n">formula</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">formula</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">rec</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">LipidRecord</span><span class="p">(</span>
+                <span class="n">lab</span> <span class="o">=</span> <span class="n">lab</span><span class="p">,</span>
+                <span class="n">hg</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span>
+                <span class="n">chainsum</span> <span class="o">=</span> <span class="n">chainsum</span> <span class="k">if</span> <span class="n">chainsum</span><span class="o">.</span><span class="n">c</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">chains</span> <span class="o">=</span> <span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum_only</span> <span class="k">else</span> <span class="n">chains</span>
+            <span class="p">)</span>
+            
+            <span class="k">yield</span> <span class="n">inst</span><span class="o">.</span><span class="n">mass</span><span class="p">,</span> <span class="n">rec</span></div>
+    
+<div class="viewcode-block" id="AbstractMetabolite.itersum"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractMetabolite.itersum">[docs]</a>    <span class="k">def</span> <span class="nf">itersum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterates by considering only the sum of chain lengths and</span>
+<span class="sd">        unsaturations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_restore_sub0</span><span class="p">()</span>
+        
+        <span class="n">chains</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">chlens</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">unsats</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_variable_aliphatic_chain</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="p">]</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chains</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            
+            <span class="k">for</span> <span class="n">subs</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">itersubs</span><span class="p">():</span>
+                
+                <span class="k">yield</span> <span class="n">subs</span>
+            
+            <span class="k">return</span>
+        
+        <span class="n">min_chlens</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">min_unsats</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">sum_chlens</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span> <span class="o">-</span> <span class="n">min_chlens</span> <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span>
+            <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">))</span>
+        <span class="p">))</span>
+        <span class="n">sum_unsats</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="n">uu</span><span class="p">)</span> <span class="o">-</span> <span class="n">min_unsats</span> <span class="k">for</span> <span class="n">uu</span> <span class="ow">in</span>
+            <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">))</span>
+        <span class="p">))</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub0</span> <span class="o">=</span> <span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">isub0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">sub0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subs</span><span class="p">[</span><span class="n">isub0</span><span class="p">]</span>
+        
+        <span class="n">sub0</span><span class="o">.</span><span class="n">chlens</span> <span class="o">=</span> <span class="n">sum_chlens</span>
+        <span class="n">sub0</span><span class="o">.</span><span class="n">unsats</span> <span class="o">=</span> <span class="n">sum_unsats</span>
+        
+        <span class="k">for</span> <span class="n">subs</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="p">(</span>
+                <span class="n">s</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">isub0</span> <span class="k">else</span>
+                <span class="c1"># other substituents iterated by their cores only</span>
+                <span class="n">s</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">(</span><span class="n">cores_only</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subs</span><span class="p">)</span>
+            <span class="p">)):</span>
+            
+            <span class="k">yield</span> <span class="n">subs</span>
+        
+        <span class="c1"># at the end restore the real values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_restore_sub0</span><span class="p">()</span></div>
+    
+    <span class="k">def</span> <span class="nf">_restore_sub0</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For iterating with considering only total carbon count and</span>
+<span class="sd">        unsaturation accross all aliphatic chains, we pretend that</span>
+<span class="sd">        all extra carbons and unsaturations are added to the first</span>
+<span class="sd">        substituent with variable aliphatic chain, e.g. it may</span>
+<span class="sd">        have C54 while in reality it has max C18 and the other 36</span>
+<span class="sd">        carbons are in the other chains. After setting these fake</span>
+<span class="sd">        numbers on the first substituent we need to restore the</span>
+<span class="sd">        real numbers otherwise it could mess up things later.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub0</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">subs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sub0</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">chlens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub0</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sub0</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">unsats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub0</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    
+<div class="viewcode-block" id="AbstractMetabolite.has_variable_aliphatic_chain"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractMetabolite.has_variable_aliphatic_chain">[docs]</a>    <span class="k">def</span> <span class="nf">has_variable_aliphatic_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tells if the substituent really has more than one possible</span>
+<span class="sd">        chain length or unsaturation variation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">hasattr</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="s1">&#39;variable_aliphatic_chain&#39;</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="n">sub</span><span class="o">.</span><span class="n">variable_aliphatic_chain</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="AbstractSubstituent"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractSubstituent">[docs]</a><span class="k">class</span> <span class="nc">AbstractSubstituent</span><span class="p">(</span><span class="n">AbstractMetaboliteComponent</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">cores</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">charges</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">isotopes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">,</span>
+            <span class="n">chain_attr</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">chain_type</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parent</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">%u</span><span class="s1">:</span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">parent</span><span class="o">.</span><span class="n">u</span><span class="p">),</span>
+            <span class="n">c_u_diff</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">c</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">c</span> <span class="o">&gt;</span> <span class="n">u</span> <span class="o">+</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">(</span><span class="n">c</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">even</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">valence</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Represents a set of distinct substituent parts in a molecule or</span>
+<span class="sd">        a homolog series spanning accross a range of aliphatic chain</span>
+<span class="sd">        length and unsaturated bonds.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">        -----</span>
+<span class="sd">        :param list cores:</span>
+<span class="sd">            List of core variations. Same kind of definitions</span>
+<span class="sd">            are possible like at `formula.Formula`: formula as `str`, `dict` of</span>
+<span class="sd">            atoms or exact mass as `float`.</span>
+<span class="sd">        :param tuple c:</span>
+<span class="sd">            Tuple of 2 integers: range of chain lengths.</span>
+<span class="sd">        :param tuple u:</span>
+<span class="sd">            Tuple of 2 integers: range of unsaturations.</span>
+<span class="sd">        :param list counts:</span>
+<span class="sd">            Dictionary with extra atom counts.</span>
+<span class="sd">            If you have one or more extra oxygen, nitrogen, phosphorous or</span>
+<span class="sd">            any other atoms in the compound you can include here.</span>
+<span class="sd">            Alternatively you can also include them in the core.</span>
+<span class="sd">            Also accounts for the valences of the aliphatic chain</span>
+<span class="sd">            not occupied by hydrogens. E.g. for a fatty acyl you need to</span>
+<span class="sd">            remove 3 hydrogens as 3 valences are occupied by the oxygens.</span>
+<span class="sd">            If you have a secondary amine you need to remove one more</span>
+<span class="sd">            hydrogen. Otherwise, as this data structure has no information</span>
+<span class="sd">            about constitution, we could not guess the number of hydrogens.</span>
+<span class="sd">            Similarly, for oxo groups removal of 2 hydrogens necessary.</span>
+<span class="sd">        :param list charges:</span>
+<span class="sd">            List of integers: charges for each core</span>
+<span class="sd">            variation.</span>
+<span class="sd">        :param list isotopes:</span>
+<span class="sd">            List of integers: extra neutrons for each core</span>
+<span class="sd">            variation.</span>
+<span class="sd">        :param getname:</span>
+<span class="sd">            Method (callable) to create a name from the chain</span>
+<span class="sd">            length and the unsaturation.</span>
+<span class="sd">        :param c_u_diff:</span>
+<span class="sd">            Method (callable) to decide if the chain length and</span>
+<span class="sd">            unsaturation are compatible. E.g. if chain length is only C2, an</span>
+<span class="sd">            unsaturation of 4 double bonds is not possible. By default, chain</span>
+<span class="sd">            length must be greater by 2 than unsaturation, it means at acyl</span>
+<span class="sd">            chains we avoid to assume double bond right next to the carboxyl</span>
+<span class="sd">            group which is clearly impossible.</span>
+<span class="sd">        :param bool even:</span>
+<span class="sd">            If true only even chain lengths are considered.</span>
+<span class="sd">        :param int valence:</span>
+<span class="sd">            Total valence of the substituent. Number of bonds connecting</span>
+<span class="sd">            to other parts of the molecule.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span>   <span class="o">=</span> <span class="n">prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c_u_diff</span> <span class="o">=</span> <span class="n">c_u_diff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">even</span>     <span class="o">=</span> <span class="n">even</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">valence</span>  <span class="o">=</span> <span class="n">valence</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">getname</span>  <span class="o">=</span> <span class="n">getname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cores</span>    <span class="o">=</span> <span class="p">(</span>
+            <span class="n">cores</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">cores</span><span class="p">)</span> <span class="ow">in</span> <span class="p">{</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">}</span> <span class="k">else</span> <span class="p">[</span><span class="n">cores</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="s1">&#39;charges&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="s1">&#39;names&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_attr</span><span class="p">(</span><span class="n">isotopes</span><span class="p">,</span> <span class="s1">&#39;isotopes&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">counts</span>   <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">counts</span> <span class="ow">or</span> <span class="p">{})</span>
+        
+        <span class="n">AbstractMetaboliteComponent</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cores</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">isotope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">isotopes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="n">getname</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># range of possible lengths and unsats</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_chlens</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_unsats</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+        
+        <span class="c1"># current value of length and unsat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chlens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsats</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chlens</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unsats</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variable_aliphatic_chain</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chlens</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chlens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">chain_attr</span> <span class="o">=</span> <span class="n">chain_attr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chain_type</span> <span class="o">=</span> <span class="n">chain_type</span>
+    
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cores_only</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cores</span><span class="p">)):</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_core</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chlens</span><span class="p">:</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">c</span>
+                
+                <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsats</span><span class="p">:</span>
+                    
+                    <span class="bp">self</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="n">u</span>
+                    
+                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">c_u_diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">):</span>
+                        
+                        <span class="k">continue</span>
+                    
+                    <span class="c1"># implicit hydrogens</span>
+                    <span class="n">h</span> <span class="o">=</span> <span class="n">c</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">valence</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">u</span>
+                    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_prefix</span><span class="p">()</span>
+                    <span class="n">new_counts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">new_counts</span><span class="p">[</span><span class="s1">&#39;C&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">c</span>
+                    <span class="n">new_counts</span><span class="p">[</span><span class="s1">&#39;H&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">h</span>
+                    <span class="n">new_attrs</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+                    <span class="c1"># `attrs` might contain methods which are called</span>
+                    <span class="c1"># with the present instance passed and their returned</span>
+                    <span class="c1"># value will be the attribute value of the</span>
+                    <span class="c1"># iteration products</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">new_attrs</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;__call__&#39;</span><span class="p">):</span>
+                            <span class="nb">setattr</span><span class="p">(</span><span class="n">new_attrs</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+                    
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chain_type</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">chain_attr</span> <span class="ow">and</span> <span class="n">c</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        
+                        <span class="n">new_attrs</span><span class="o">.</span><span class="n">chain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_chain</span><span class="p">()</span>
+                    
+                    <span class="n">new</span> <span class="o">=</span> <span class="bp">self</span> <span class="o">+</span> <span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="p">(</span><span class="o">**</span><span class="n">new_counts</span><span class="p">)</span>
+                    
+                    <span class="n">new</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">new_attrs</span>
+                    <span class="n">new</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">c</span>
+                    <span class="n">new</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="n">u</span>
+                    <span class="n">new</span><span class="o">.</span><span class="n">get_prefix</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">p</span>
+                    <span class="n">new</span><span class="o">.</span><span class="n">variable_aliphatic_chain</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">variable_aliphatic_chain</span>
+                    <span class="p">)</span>
+                    <span class="n">new</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getname</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                    <span class="c1"># new.attrs.chain = self.get_chain()</span>
+                    
+                    <span class="k">yield</span> <span class="n">new</span>
+                    
+                    <span class="k">if</span> <span class="n">cores_only</span><span class="p">:</span>
+                        
+                        <span class="k">break</span>
+                
+                <span class="k">if</span> <span class="n">cores_only</span><span class="p">:</span>
+                    
+                    <span class="k">break</span>
+    
+<div class="viewcode-block" id="AbstractSubstituent.set_attr"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractSubstituent.set_attr">[docs]</a>    <span class="k">def</span> <span class="nf">set_attr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        
+        <span class="nb">setattr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">val</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="ow">in</span> <span class="p">{</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">}</span> <span class="k">else</span>
+            <span class="p">(</span><span class="n">val</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cores</span><span class="p">)</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="AbstractSubstituent.set_chlens"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractSubstituent.set_chlens">[docs]</a>    <span class="k">def</span> <span class="nf">set_chlens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span> <span class="n">c</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span> <span class="n">c</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">chlens</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="p">{</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">range</span><span class="p">}</span>
+            <span class="k">else</span> <span class="p">[</span>
+                <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span>
+                <span class="nb">range</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">even</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="p">]</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="AbstractSubstituent.set_unsats"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractSubstituent.set_unsats">[docs]</a>    <span class="k">def</span> <span class="nf">set_unsats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span> <span class="n">u</span> <span class="o">=</span> <span class="p">[</span><span class="n">u</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span> <span class="n">u</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">unsats</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="ow">in</span> <span class="p">{</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">range</span><span class="p">}</span>
+            <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="AbstractSubstituent.update_core"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractSubstituent.update_core">[docs]</a>    <span class="k">def</span> <span class="nf">update_core</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cores</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Number of cores is less than </span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">new</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">=</span> <span class="n">new</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">new</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">formula_from_dict</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+            
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="s1">&#39;lower&#39;</span><span class="p">):</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">=</span> <span class="n">new</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Wrong mass or formula: `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">new</span><span class="p">))</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">charge</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">charges</span><span class="p">)</span> <span class="ow">in</span> <span class="p">{</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">}</span> <span class="k">else</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">charges</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isotope</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">isotopes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">isotopes</span><span class="p">)</span> <span class="ow">in</span> <span class="p">{</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">}</span> <span class="k">else</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">isotypes</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="ow">in</span> <span class="p">{</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">}</span> <span class="k">else</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">names</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_atoms</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calc_mass</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="AbstractSubstituent.get_prefix"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractSubstituent.get_prefix">[docs]</a>    <span class="k">def</span> <span class="nf">get_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span></div>
+    
+<div class="viewcode-block" id="AbstractSubstituent.get_chain"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.metabolite.AbstractSubstituent.get_chain">[docs]</a>    <span class="k">def</span> <span class="nf">get_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Chain</span><span class="p">(</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">,</span>
+            <span class="n">typ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chain_type</span><span class="p">,</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chain_attr</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -29,7 +29,7 @@ import cPickle as pickle
 
 from future.utils import iteritems
 
-from common import *
+#from common import *
 
 #
 
@@ -60,13 +60,13 @@ Processing standards from mzML
 Calculating drifts
 Recalibrating all m/z's
 '''
-l.recalibration()
+#l.recalibration()
 
 '''
 Lookup lipids for all the valid features. (variable name: `lip`)
 '''
 l.ms1()
-l.ms2()
+l.ms2_onebyone()
 
 l.std_layout_tables_xlsx()
 l.read_marco_standards()
@@ -535,3 +535,17 @@ for protein, d in ms2i.iteritems():
 for protein, d in ms2result.iteritems():
     for mode, lst in d.iteritems():
         ms2i[protein][mode] = ms2i[protein][mode] | set(lst)
+
+###
+
+# export first ratios
+
+with open('first_ratios.csv', 'w') as f:
+    
+    f.write('%s\t%s\t%s\n' % ('protein', 'fractions', 'ratio'))
+    
+    for protein, fracs in l.first_ratio.items():
+        
+        if len(fracs):
+            f.write('%s\t%s:%s\t%.09f\n' % \
+                (protein, fracs[0], fracs[1], l.ppratios[protein][fracs][0]))

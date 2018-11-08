@@ -1,0 +1,275 @@
+Domain name	Gene name	Name	Binding	PMID (Binding)	Lipid class	Classes standard abbrev.
+OSBP	OSBP (OSBP1)	OSBP	25-hydroxycholesterol	17428193	Sterol lipids	HCH
+		OSBP	photo-25-hydroxycholesterol	17428193	Sterol lipids	PHCH
+		OSBP	PI(4)P	24209621	Glycerophospholipids	PI
+		OSBP	Dehydroergosterol	24209621	Sterol lipids	ES
+OSBP	OSBPL1A (ORP1)	ORP1	25-hydroxycholesterol	17428193	Sterol lipids	HCH
+		ORP1	photo-cholesterol	17428193	Sterol lipids	PCH
+OSBP	OSBPL2 (ORP2)	ORP2	25-hydroxycholesterol	17428193	Sterol lipids	HCH
+		ORP2	22(R)-hydroxycholesterol	19224871	Sterol lipids	HCH
+		ORP2	7-ketocholesterol	19224871	Sterol lipids	KCH
+		ORP2	Cholesterol	19224871	Sterol lipids	CH
+OSBP	OSBPL3 (ORP3)	ORP3	photo-25-hydroxycholesterol	17428193	Sterol lipids	PHCH
+		ORP3	photo-cholesterol	17428193	Sterol lipids	PCH
+OSBP	OSBP2 (ORP4)	ORP4	7-ketocholesterol	11278871	Sterol lipids	KCH
+		ORP4	photo-25-hydroxycholesterol	17428193	Sterol lipids	PHCH
+OSBP	OSBPL5 (ORP5)	ORP5	photo-25-hydroxycholesterol	17428193	Sterol lipids	PHCH
+		ORP5	photo-cholesterol	17428193	Sterol lipids	PCH
+		ORP5	Dehydroergosterol	21220512	Sterol lipids	DES
+		ORP5	PS	23934110	Glycerohospholipids	PS
+OSBP	OSBPL6 (ORP6)	ORP6	photo-25-hydroxycholesterol	17428193	Sterol lipids	PHCH
+OSBP	OSBPL7 (ORP7)	ORP7	photo-25-hydroxycholesterol	17428193	Sterol lipids	PHCH
+OSBP	OSBPL8 (ORP8)	ORP8	photo-25-hydroxycholesterol	17991739	Sterol lipids	PHCH
+		ORP8	photo-cholesterol	17428193	Sterol lipids	PCH
+OSBP	OSBPL9 (ORP9)	ORP9	PI(4)P	25255026	Glycerohospholipids	PI
+		ORP9	Cholestatrienol	25255026	Sterol lipids	CHT
+		ORP9	Dehydroergosterol	25255026	Sterol lipids	DES
+OSBP	OSBPL10 (ORP10)	ORP10	photo-25-hydroxycholesterol	17428193	Sterol lipids	PHCH
+		ORP10	PS	23934110	Glycerohospholipids	PS
+OSBP	OSBPL11 (ORP11)	ORP11	photo-25-hydroxycholesterol	17428193	Sterol lipids	PHCH
+		ORP11	photo-cholesterol	17428193	Sterol lipids	PCH
+STAR	STAR (STARD1)	STARD1	Cholesterol	9756854	Sterol lipids	CH
+		STARD1	Cholesterol	10802740	Sterol lipids	CH
+		STARD1	Cholesterol	18403318	Sterol lipids	CH
+		STARD1	Cholesterol	18211099	Sterol lipids	CH
+STAR	PCTP (STARD2)	STARD2	PC	12055623	Glycerophospholipids	PC
+		STARD2	PC	1168494	Glycerophospholipids	PC
+		STARD2	PC	6250569	Glycerophospholipids	PC
+STAR	STARD3 (MLN64)	STARD3	Cholesterol	19965586	Sterol lipids	CH
+		STARD3	Cholesterol	10802740	Sterol lipids	CH
+		STARD3	Cholesterol	18211099	Sterol lipids	CH
+		STARD3	Cholesterol	12070139	Sterol lipids	CH
+STAR	STARD4	STARD4	Cholesterol	18403318	Sterol lipids	CH
+STAR	STARD5	STARD5	Cholesterol	15897605	Sterol lipids	CH
+		STARD5	Cholesterol	10802740	Sterol lipids	CH
+		STARD5	Cholesterol	18211099	Sterol lipids	CH
+		STARD5	25-hydroxylcholesterol	15897605	Sterol lipids	HCH
+		STARD5	Chenodeoxycholic acid	23018617	Sterol lipids	CCA
+		STARD5	Cholic acid	23018617	Sterol lipids	CA
+STAR	STARD6	STARD6	Cholesterol	18211099	Sterol lipids	CH
+STAR	STARD7 (GTT1)	STARD7	PC	20042613	Glycerophospholipids	PC
+STAR	STARD8 (DLC3)	STARD8	ND			ND
+STAR	STARD9	STARD9	ND			ND
+STAR	STARD10 (PCTP-like)	STARD10	PC	15911624	Glycerophospholipids	PC
+		STARD10	PE	15911624	Glycerophospholipids	PE
+STAR	COL4A3BP (STARD11) (CERT isoform 2)	STARD11	Ceramide	14685229	Sphingolipids	Cer
+		STARD11	Ceramide	18184806	Sphingolipids	Cer
+STAR	DLC1 (STARD12)	STARD12	ND			ND
+STAR	STARD13 (DLC2)	STARD13	ND			ND
+STAR	ACOT11 (STARD14)	STARD14	ND			ND
+STAR	ACOT12 (STARD15)	STARD15	ND			ND
+NPC1 N-terminal	NPC1	NPC1	Cholesterol	19563754	Sterol lipids	CH
+		NPC1	Cholesterol	9927649	Sterol lipids	CH
+		NPC1	25-hydroxylcholesterol	19563754	Sterol lipids	HCH
+		NPC1	25-hydroxylcholesterol	17989073	Sterol lipids	HCH
+NPC1 N-terminal	NPC1L1	NPC1L1	Cholesterol	16407187	Sterol lipids	CH
+E1_DerP2_DerF2	NPC2	NPC2	Dehydroergosterol	12591954	Sterol lipids	DES
+		NPC2	Cholesterol	12591949	Sterol lipids	CH
+		NPC2	Cholesterol	10366780	Sterol lipids	CH
+		NPC2	Cholesterol-3-O-sulfate	17573352	Sterol lipids	CHS
+E1_DerP2_DerF2	LY86	LY86	Lipid Iva	20534476	Saccharolipids	IVA
+		LY86	Tetra-acylated lipid Iva	20595044	Saccharolipids	TAIVA
+		LY86	LPS	20534476	Saccharolipids	LPS
+E1_DerP2_DerF2	LY96	LY96	LPS	19252480	Saccharolipids	LPS
+		LY96	LPS	11500507	Saccharolipids	LPS
+		LY96	Lipid IVa	17569869	Saccharolipids	IVA
+E1_DerP2_DerF2	GM2A	GM2A	GM2 	12909021	Sphingolipids	GM
+		GM2A	GM2 	6210531	Sphingolipids	GM
+		GM2A	GM1	10329374	Sphingolipids	GM
+		GM2A	(lyso)platelet activating factor	15327957	Glycerophospholipids	PAF, LPAF
+		GM2A	Platelet activating factor	10329374	Glycerophospholipids	PAF
+		GM2A	PC	16216074	Glycerophospholipids	PC
+LBP_BPI_CETP	CETP	CETP	CE	6691846	Sterol lipids	CE
+		CETP	CE	17237796	Sterol lipids	CE
+		CETP	TAG	6691846	Glycerolipids	TAG
+		CETP	PC	6691846	Glycerophospholipids	PC
+		CETP	PC	17237796	Glycerophospholipids	PC
+LBP_BPI_CETP	BPIFB6 (BPIL3)	BPIFB6	ND			ND
+LBP_BPI_CETP	LBP	LBP	LPS	7517398	Saccharolipids	LPS
+		LBP	LPS	2471708	Saccharolipids	LPS
+LBP_BPI_CETP	BPIFA3	BPIFA3	ND			ND
+LBP_BPI_CETP	BPIFA1	BPIFA1	ND			ND
+LBP_BPI_CETP	BPIFB2	BPIFB2	ND			ND
+LBP_BPI_CETP	BPIFB3	BPIFB3	ND			ND
+LBP_BPI_CETP	BPIFB1	BPIFB1	ND			ND
+LBP_BPI_CETP	LATH	LATH	ND			ND
+LBP_BPI_CETP	BPI	BPI	LPS	7517398	Saccharolipids	LPS
+		BPI	LPS	8409400	Saccharolipids	LPS
+LBP_BPI_CETP	BPIFA2	BPIFA2	LPS	15158712	Saccharolipids	LPS
+		BPIFA2	LPS	21833535	Saccharolipids	LPS
+LBP_BPI_CETP	BPIFC	BPIFC	ND			ND
+LBP_BPI_CETP	BPIFB4	BPIFB4	ND			ND
+LBP_BPI_CETP	PLTP	PLTP	DAG	9132017	Glycerolipids	DAG
+		PLTP	PA	9132017	Glycerophospholipids	PA
+		PLTP	SM	9132017	Sphingolipids	SM
+		PLTP	PC	9132017	Glycerophospholipids	PC
+		PLTP	PG	9132017	Glycerophospholipids	PG
+		PLTP	Cerobroside	9132017	Sphingolipids	Cer
+		PLTP	PE	9132017	Glycerophospholipids	PE
+		PLTP	alpha-tocopherol	7832785	Prenol lipids	VE
+		PLTP	PC	6691846	Glycerophospholipids	PC
+IP_trans	PITPNM1 (DRES9) (NIR2) (PITPNM)	PITPNM1	PI	10531358	Glycerophospholipids	PI
+		PITPNM1	PI	22822086	Glycerophospholipids	PI
+IP_trans	PITPNM2 (NIR3)	PITPNM2	ND		Glycerophospholipids	ND
+IP_trans	PITPNC1 (canonical)	PITPNC1	PI	10531358	Glycerophospholipids	PI
+		PITPNC1	PI	22822086	Glycerophospholipids	PI
+		PITPNC1	PA	22822086	Glycerophospholipids	PA
+IP_trans	PITPNB	PITPNB	PI	11923101	Glycerophospholipids	PI
+		PITPNB	PI	10531358	Glycerophospholipids	PI
+		PITPNB	PI	16274224	Glycerophospholipids	PI
+		PITPNB	PI	20332109	Glycerophospholipids	PI
+		PITPNB	PC	11923101	Glycerophospholipids	PC
+		PITPNB	PC	16274224	Glycerophospholipids	PC
+		PITPNB	PC	20332109	Glycerophospholipids	PC
+		PITPNB	Sphingomyelin	11923101	Sphingolipids	SM
+IP_trans	PITPNA (PITPN)	PITPNA	Sphingomyelin	11923101	Sphingolipids	SM
+		PITPNA	PI	14962392	Glycerophospholipids	PI
+		PITPNA	PI	10531358	Glycerophospholipids	PI
+		PITPNA	PI	22822086	Glycerophospholipids	PI
+		PITPNA	PC	11104777	Glycerophospholipids	PC
+		PITPNA	PC	22822086	Glycerophospholipids	PC
+scp2	SCP2	SCP2	Cholesterol	8300590	Sterol lipids	CH
+		SCP2	photo-cholesterol	18465878	Sterol lipids	PCH
+		SCP2	PC	8300590	Giycerophospholipids	PC
+		SCP2	PC	1661153	Glycerophospholipids	PC
+		SCP2	PI	12641450	Glycerophospholipids	PI
+		SCP2	Very-long-chain fatty acyl-CoA esters	10085244	Fatty acyls	VLCFA
+		SCP2	Long-chain-fatty acid-CoA esters	17418802	Fatty acyls	LCFA
+		SCP2	Fatty acyl-CoA esters	8943231	Fatty acyls	FA
+		SCP2	16-doxylstearic acid	10623549	Fatty acyls	FA
+scp2	SCP2D1 (C20orf79)	SCP2D1	ND			ND
+scp2	HSD17B4	HSD17B4	ND			ND
+scp2	STOML1	STOML1	ND			ND
+scp2	HSDL2	HSDL2	ND			ND
+GLTP	GLTPD1	GLTPD1	Ceramide-1-phosphate	23863933	Sphingolipids	Cer1P
+GLTP	GLTPD2	GLTPD2	ND			ND
+GLTP	GLTP	GLTP	BODYPI-GlcCer	17980653	Sphingolipids	Cer
+		GLTP	Galactosylceramide	18261224	Sphingolipids	Cer
+		GLTP	Lactosylceramide	15329726	Sphingolipids	Cer
+GLTP	PLEKHA8 (FAPP2)	FAPP2	C12-BODIPY-glucosylceramide	17687330	Sphingolipids	Cer
+GLTP	PLEKHA8P1 (HAW1053) (PLEKHA9)	PLEKHA9	ND			ND
+lipocalin	FABP3 (FABP11) (MDGI)	FABP3	Fatty acids (Oleate, Palmitate)	3421901	Fatty acyls	FA
+		FABP3	Fatty acids  (Stearate, Elaidate, Oleate)	7922029	Fatty acyls	FA
+lipocalin	FABP2 (FABPI)	FABP2	Fatty acids (Palmitate, Oleate, Arachidonate)	3553183	Fatty acyls	FA
+		FABP2	Fatty acids (Oleate, Arachidonate)	7883976	Fatty acyls	FA
+lipocalin	FABP1 (FABPL)	FABP1	Phytanic acid	10191295	Fatty acyls	FA
+		FABP1	Oleate	9054409	Fatty acyls	FA
+		FABP1	Lyso-phosphatidic acid	1629224	Glycerophospholipids	PA
+		FABP1	Lyso-phosphatidic acid	8541331	Glycerophospholipids	PA
+		FABP1	Oleoyl-CoA ester	8541331	Fatty acyls	FA
+		FABP1	Arachidonate	8541331	Fatty acyls	FA
+		FABP1	Oleate	8541331	Fatty acyls	FA
+		FABP1	Hydroperoxyeicosatetraenoic acids	2500117	Fatty acyls	FA
+		FABP1	Hydroxyeicosatetraenoic acids	2500117	Fatty acyls	FA
+		FABP1	Bile acids (various)	3789743	Sterol lipids	CA
+lipocalin	FABP4	FABP4	Oleate	2481498	Fatty acyls	FA
+		FABP4	Arachidonate	7929228	Fatty acyls	FA
+		FABP4	Retinoic acid	2481498	Prenol lipids	VA
+		FABP4	Linoleate	17761196		FA
+lipocalin	FABP5	FABP5	Stearate	10493790	Fatty acyls	FA
+		FABP5	Fatty acids (linoleate, arachidonate) 	24692951	Fatty acyls	FA
+		FABP5	Retinoic acid	17512406	Prenol lipids	VA
+lipocalin	FABP7	FABP7	Fatty acids (Oleate, Arachidonate, Docosahexaenate)	8798739	Fatty acyls	FA
+lipocalin	FABP9	FABP9	ND			ND
+lipocalin	C8G	C8G	Retinol	1707134	Prenol lipids	VA
+		C8G	Retinoic acid	1707134	Prenol lipids	VA
+lipocalin	LCN15	LCN15	ND			ND
+lipocalin	RBP1	RBP1	Retinol	7683727	Prenol lipids	VA
+lipocalin	LCN1	LCN1	Fatty acids (Stearate, Palmitate,  Laurate)	76488662	Fatty acyls	FA
+		LCN1	Retinol	1400345	Prenol lipids	VA
+		LCN1	Cholesterol	7648862	Sterol lipids	CH
+		LCN1	Triacylglycerol	7648862	Glycerolipids	TAG
+		LCN1	PC	10515687	Glycerophospholipids	PC
+lipocalin	LCN2	LCN2	Iron (FeDHBA/FeENT)	12453412	Othel ligands	ND
+lipocalin	RBP4	RBP4	Retinol	5675424	Prenol lipids	VA
+		RBP4	Retinol	571335	Prenol lipids	VA
+lipocalin	LCN8 (LCN5)	LCN8	ND			ND
+lipocalin	OBP2A	OBP2A	Odorants (IBMP, α-pinene, citralva, and vanillin)	12044155	Other ligands	ND
+		OBP2A	Palmitate	12044155	Fatty acyls	FA
+lipocalin	LCNL1	LCNL1	ND			ND
+lipocalin	CRABP2	CRABP2	Retinoic acid	77044533	Prenol lipids	VA
+		CRABP2	Synthetic retinoid, 'compound 19'	77044533	Prenol lipids	VA
+lipocalin	RBP7	RBP7	Retinol	12177003	Prenol lipids	VA
+lipocalin	ORM1	ORM1	Melatonin	9380773	Other ligands	MT
+		ORM1	Drug (Imatinib)	17008009	Other ligands	ND
+lipocalin	LCN6 (LCN5)	LCN6	ND			ND
+lipocalin	PAEP	PAEP	ND			ND
+lipocalin	LCN9	LCN9	ND			ND
+lipocalin	APOD	APOD	Progesterone	11180564	Sterol lipids	PR
+		APOD	Progesterone	17699160	Sterol lipids	PR
+		APOD	Arachidonate	11180564	Fatty acyls	FA
+		APOD	Arachidonate	7789516	Fatty acyls	FA
+		APOD	Retinol	16461020	Prenol lipids	VA
+		APOD	Retinol 	23777559	Prenol lipids	VA
+		APOD	Retinoic acid	23777559	Prenol lipids	VA
+		APOD	Fatty acids (Arachidonate, Palmitate)	23777559	Fatty acyls	FA
+		APOD	Sphingomyelin	23777559	Sphingolipids	SM
+		APOD	Bilirubin	10915645	Other ligands	CA
+		APOD	Cholesterol	9278274	Sterol lipids	CH
+lipocalin	PTGDS	PTGDS	Retinoic acid	9188476	Prenol lipids	VA
+		PTGDS	Retinoic acid	4723913	Prenol lipids	VA
+		PTGDS	Retinal	9188476	Prenol lipids	VA
+		PTGDS	Biliverdin, Bilirubin	10387044	Other ligands	CA
+		PTGDS	L-thyroxine, 3,3',5'-triiodo-L-thyronine, 3,3', 5-triiodo-L-thyronine	10387044	Other ligands	TY
+		PTGDS	GM1, GM2	16515539	Sphingolipids	GM
+lipocalin	ORM2 (AGP2)	ORM2	ND			ND
+lipocalin	FABP5P3 (FABP5L3)	FABP5L3	ND			ND
+lipocalin	CRABP1 (RBP5)	CRABP1	Retinoic acid	77044533	Prenol lipids	VA
+lipocalin	AMBP	AMBP	ND			ND
+lipocalin	LCN1P1 (LCN1L1)	LCN1L1	ND			ND
+lipocalin	RBP2 (CRBP2)	RBP2	Retinol	8487303	Prenol lipids	VA
+lipocalin	OBP2B	OBP2B	ND			ND
+lipocalin	PMP2	PMP2	Palmitate	20421974	Fatty acyls	FA
+		PMP2	Cholesterol	20421974	Sterol lipids	CH
+lipocalin	LCN12	LCN12	ND			ND
+lipocalin	RBP5	RBP5	Retinol	11274389	Prenol lipids	VA
+lipocalin	FABP6	FABP6	Chenodeoxycholic acid	8805562	Sterol lipids	CCA
+		FABP6	Bile acids (Taurocholate, Cholate, Ursodeoxycholate, Taurochenodeoxycholate)	9657973	Sterol lipids	CA
+		FABP6	Chenodeoxycholate	1699943	Sterol lipids	CCA
+		FABP6	Palmitate, Oleate	1699943	Fatty acyls	FA
+CRAL-TRIO	SEC14L1	SEC14L1	ND			ND
+CRAL-TRIO	SEC14L2	SEC14L2	alpha-tocopherol	11444841	Prenol lipids	VE
+		SEC14L2	alpha-tocopherol	10829015	Prenol lipids	VE
+		SEC14L2	alpha-tocopherol	12757856	Prenol lipids	VE
+		SEC14L2	RRR-alpha-tocopherylquinone	12972248	Prenol lipids	VE
+		SEC14L2	Gycerophospholipids (PG,PS,PI,PA)	7364757	Glycerophospholipids	PG;PS;PI;PA
+		SEC14L2	Gycerophospholipids (PC,PI,PG)	12757856	Glycerophospholipids	PC;PI;PG
+		SEC14L2	Biotinylated alpha-tocopherol	10829015	Prenol lipids	VE
+		SEC14L2	Squalene	11226224	Prenol lipids	SQ
+		SEC14L2	Squalene	12757856	Prenol lipids	SQ
+CRAL-TRIO	SEC14L3 (TAP2)	SEC14L3	Gycerophospholipids (PC,PI,PG)	12757856	Glycerophospholipids	PC;PI;PG
+		SEC14L3	alpha-tocopherol	12757856	Prenol lipids	VE
+		SEC14L3	Squalene	12757856	Prenol lipids	SQ
+CRAL-TRIO	SEC14L4 (TAP3)	SEC14L4	Gycerophospholipids (PC,PI,PG)	12757856	Glycerophospholipids	PC;PI;PG
+		SEC14L4	alpha-tocopherol	12757856	Prenol lipids	VE
+		SEC14L4	Squalene	12757856	Prenol lipids	SQ
+CRAL-TRIO	SEC14L5	SEC14L5	ND			ND
+CRAL-TRIO	SEC14L6	SEC14L6	ND			ND
+CRAL-TRIO	MCF2L (KIAA0362)	MCF2L	ND			ND
+CRAL-TRIO	MCF2 (DBL)	MCF2	ND			ND
+CRAL-TRIO	RLBP1 (CRALBP)	RLBP1	11-cis-retinaldehyde	6292186	Prenol lipids	VA
+		RLBP1	11-cis-retinol	6292186	Prenol lipids	VA
+		RLBP1	11-cis-retinal	19846785	Prenol lipids	VA
+		RLBP1	11-cis-retinal	15100222	Prenol lipids	VA
+CRAL-TRIO	TTPA	TTPA	alpha-tocopherol	12899840	Prenol lipids	VE
+		TTPA	alpha-tocopherol	23599266	Prenol lipids	VE
+		TTPA	alpha-tocopherol	14657365	Prenol lipids	VE
+		TTPA	PIPs (PI(3,4)P2, PI(4,5)P2	23599266	Glycerophospholipids	PI
+CRAL-TRIO	CLVS2	CLVS2	ND			ND
+CRAL-TRIO	CLVS1	CLVS1	ND			ND
+CRAL-TRIO	TTPAL	TTPAL	ND			ND
+CRAL-TRIO	NF1	NF1	Glycerophospholipids (PG, PC, PE, PS, PI)	17187824	Glycerophospholipids	PG;PS;PI;PA;PE
+CRAL-TRIO	ARHGAP8	ARHGAP8	ND			ND
+CRAL-TRIO	ARHGAP1 (CDC42GAP) (RHOGAP1)	ARHGAP1	ND			ND
+CRAL-TRIO	BNIP2 (NIP2)	BNIP2	ND			ND
+CRAL-TRIO	PRUNE2	PRUNE2	ND			ND
+CRAL-TRIO	BNIPL	BNIPL	ND			ND
+CRAL-TRIO	GDAP2	GDAP2	ND			ND
+CRAL-TRIO	SESTD1 (SOLO)	SOLO	ND			ND
+CRAL-TRIO	ATCAY	ATCAY	ND			ND
+CRAL-TRIO	TRIO	TRIO	ND			ND
+CRAL-TRIO	PTPN9	PTPN9	ND			ND
+CRAL-TRIO	MOSPD2	MOSPD2	ND			ND
+CRAL-TRIO	MCF2L2	MCF2L2	ND			ND
+CRAL-TRIO	KIAA1755	KIAA1755	ND			ND
+CRAL-TRIO	KALRN (DUO)	KALRN	ND			ND

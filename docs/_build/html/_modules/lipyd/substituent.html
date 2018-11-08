@@ -1,0 +1,374 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.substituent &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.substituent</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.substituent</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">lipyd.metabolite</span> <span class="k">as</span> <span class="nn">metabolite</span>
+<span class="kn">import</span> <span class="nn">lipyd.lipproc</span> <span class="k">as</span> <span class="nn">lipproc</span>
+
+
+<div class="viewcode-block" id="FattyAcyl"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.substituent.FattyAcyl">[docs]</a><span class="k">class</span> <span class="nc">FattyAcyl</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">36</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="k">if</span> <span class="n">u</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+        
+        <span class="n">chain_attr</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">ChainAttr</span><span class="p">()</span>
+        
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">cores</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;O&#39;</span><span class="p">],</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span> <span class="ow">or</span> <span class="p">{</span><span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">2</span><span class="p">},</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="p">,</span>
+            <span class="n">chain_attr</span> <span class="o">=</span> <span class="n">chain_attr</span><span class="p">,</span>
+            <span class="n">chain_type</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HydroxyFattyAcyl"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.substituent.HydroxyFattyAcyl">[docs]</a><span class="k">class</span> <span class="nc">HydroxyFattyAcyl</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="k">if</span> <span class="n">u</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+        
+        <span class="n">chain_attr</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">ChainAttr</span><span class="p">(</span><span class="n">oh</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;2OH&#39;</span><span class="p">,))</span>
+        
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">cores</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;O&#39;</span><span class="p">],</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span> <span class="ow">or</span> <span class="p">{</span><span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;O&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="p">,</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;2OH&#39;</span><span class="p">,</span>
+            <span class="n">chain_attr</span> <span class="o">=</span> <span class="n">chain_attr</span><span class="p">,</span>
+            <span class="n">chain_type</span> <span class="o">=</span> <span class="s1">&#39;FAOH&#39;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FattyAlkoxy"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.substituent.FattyAlkoxy">[docs]</a><span class="k">class</span> <span class="nc">FattyAlkoxy</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">36</span><span class="p">),</span> <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">counts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="n">chain_attr</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">ChainAttr</span><span class="p">(</span><span class="n">ether</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">cores</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">],</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span> <span class="ow">or</span> <span class="p">{},</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="p">,</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;O-&#39;</span><span class="p">,</span>
+            <span class="n">chain_attr</span> <span class="o">=</span> <span class="n">chain_attr</span><span class="p">,</span>
+            <span class="n">chain_type</span> <span class="o">=</span> <span class="s1">&#39;FAL&#39;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Sphingosine"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.substituent.Sphingosine">[docs]</a><span class="k">class</span> <span class="nc">Sphingosine</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">lcb_type</span> <span class="o">=</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Note: this is a sphingosine backbone in a sphingolipid</span>
+<span class="sd">        hence 2 hydrogens are missing and these should be replaced</span>
+<span class="sd">        by the appropriate substituents.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="k">if</span> <span class="n">u</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span> <span class="ow">or</span> <span class="p">{}</span>
+        
+        <span class="k">if</span> <span class="n">lcb_type</span> <span class="o">==</span> <span class="s1">&#39;k&#39;</span><span class="p">:</span>
+            <span class="n">counts</span><span class="p">[</span><span class="s1">&#39;H&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="p">[</span><span class="s1">&#39;H&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">2</span> <span class="k">if</span> <span class="s1">&#39;H&#39;</span> <span class="ow">in</span> <span class="n">counts</span> <span class="k">else</span> <span class="o">-</span><span class="mi">2</span>
+        <span class="k">if</span> <span class="n">lcb_type</span> <span class="o">==</span> <span class="s1">&#39;t&#39;</span><span class="p">:</span>
+            <span class="n">counts</span><span class="p">[</span><span class="s1">&#39;O&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="p">[</span><span class="s1">&#39;O&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="s1">&#39;O&#39;</span> <span class="ow">in</span> <span class="n">counts</span> <span class="k">else</span> <span class="mi">1</span>
+        
+        <span class="n">chain_attr</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span> <span class="o">=</span> <span class="n">lcb_type</span><span class="p">)</span>
+        
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">cores</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;O2N&#39;</span><span class="p">],</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span><span class="p">,</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="p">,</span>
+            <span class="n">chain_attr</span> <span class="o">=</span> <span class="n">chain_attr</span><span class="p">,</span>
+            <span class="n">chain_type</span> <span class="o">=</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="n">lcb_type</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+    
+<div class="viewcode-block" id="Sphingosine.get_prefix"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.substituent.Sphingosine.get_prefix">[docs]</a>    <span class="k">def</span> <span class="nf">get_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;DH&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span></div></div>
+
+
+<div class="viewcode-block" id="DihydroSphingosine"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.substituent.DihydroSphingosine">[docs]</a><span class="k">class</span> <span class="nc">DihydroSphingosine</span><span class="p">(</span><span class="n">Sphingosine</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="k">if</span> <span class="n">u</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+        
+        <span class="n">Sphingosine</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="p">,</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span> <span class="ow">or</span> <span class="p">{},</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;DH&#39;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HydroxySphingosine"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.substituent.HydroxySphingosine">[docs]</a><span class="k">class</span> <span class="nc">HydroxySphingosine</span><span class="p">(</span><span class="n">Sphingosine</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="n">c</span> <span class="o">=</span> <span class="n">c</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="k">if</span> <span class="n">u</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+        
+        <span class="n">Sphingosine</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="p">,</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span> <span class="ow">or</span> <span class="p">{</span><span class="s1">&#39;O&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

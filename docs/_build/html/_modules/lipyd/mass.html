@@ -1,0 +1,783 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.mass &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.mass</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.mass</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">iteritems</span>
+
+<span class="kn">import</span> <span class="nn">bs4</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">imp</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">import</span> <span class="nn">lipyd._curl</span> <span class="k">as</span> <span class="nn">_curl</span>
+
+<span class="c1">#: URL for atomic masses</span>
+<span class="n">urlMasses</span> <span class="o">=</span> <span class="s1">&#39;http://www.ciaaw.org/atomic-masses.htm&#39;</span>
+<span class="c1">#: URL for atomic weights</span>
+<span class="n">urlWeights</span> <span class="o">=</span> <span class="s1">&#39;http://www.ciaaw.org/atomic-weights.htm&#39;</span>
+<span class="c1">#: URL for isotopic abundances</span>
+<span class="n">urlAbundances</span> <span class="o">=</span> <span class="s1">&#39;http://www.ciaaw.org/isotopic-abundances.htm&#39;</span>
+
+<span class="c1">#: Mass of a proton</span>
+<span class="n">proton</span> <span class="o">=</span> <span class="mf">1.00727646677</span>
+<span class="c1">#: Mass of an electron</span>
+<span class="n">electron</span> <span class="o">=</span> <span class="mf">0.00054857990924</span>
+<span class="c1">#: Mass of a neutron</span>
+<span class="n">neutron</span> <span class="o">=</span> <span class="mf">1.00866491588</span>
+
+<span class="c1">#: Mass of a proton</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">proton</span>
+<span class="c1">#: Mass of an electron</span>
+<span class="n">e</span> <span class="o">=</span> <span class="n">electron</span>
+<span class="c1">#: Mass of a neutron</span>
+<span class="n">n</span> <span class="o">=</span> <span class="n">neutron</span>
+
+<span class="n">reNonDigit</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[^\d.]+&#39;</span><span class="p">)</span>
+<span class="n">reform</span>  <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([A-Za-z][a-z]*)([0-9]*)&#39;</span><span class="p">)</span>
+<span class="n">replmi</span>  <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([-+])&#39;</span><span class="p">)</span>
+<span class="n">refloat</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[0-9\.]+&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="getMasses"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.getMasses">[docs]</a><span class="k">def</span> <span class="nf">getMasses</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
+    
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Downloads an HTML table from CIAAW webpage</span>
+<span class="sd">    and extracts the atomic mass or weight information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">c</span> <span class="o">=</span> <span class="n">_curl</span><span class="o">.</span><span class="n">Curl</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">silent</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">reqMasses</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">result</span>
+    <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+        <span class="c1"># there is a deprecated call in lxml</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+        <span class="n">soupMasses</span> <span class="o">=</span> <span class="n">bs4</span><span class="o">.</span><span class="n">BeautifulSoup</span><span class="p">(</span><span class="n">reqMasses</span><span class="p">,</span> <span class="s1">&#39;lxml&#39;</span><span class="p">)</span>
+
+    <span class="n">mass</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">symbol</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">tr</span> <span class="ow">in</span> <span class="n">soupMasses</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;tr&#39;</span><span class="p">):</span>
+        <span class="n">tr</span> <span class="o">=</span> <span class="p">[</span><span class="n">td</span> <span class="k">for</span> <span class="n">td</span> <span class="ow">in</span> <span class="n">tr</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;td&#39;</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">tr</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">tr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">symbol</span> <span class="o">=</span> <span class="n">tr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">mass</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">reNonDigit</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">tr</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">reNonDigit</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tr</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="n">mass</span><span class="p">[</span><span class="n">symbol</span><span class="p">][</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span>
+    
+    <span class="n">mass</span><span class="p">[</span><span class="s1">&#39;proton&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="mf">1.00727646677</span>
+    <span class="n">mass</span><span class="p">[</span><span class="s1">&#39;electron&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.00054857990924</span>
+    <span class="n">mass</span><span class="p">[</span><span class="s1">&#39;neutron&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="mf">1.00866491588</span>
+    
+    <span class="k">return</span> <span class="n">mass</span></div>
+
+<div class="viewcode-block" id="getMassMonoIso"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.getMassMonoIso">[docs]</a><span class="k">def</span> <span class="nf">getMassMonoIso</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Obtains monoisotopic masses from CIAAW webpage.</span>
+<span class="sd">    Stores the result in `massMonoIso` module level variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">globals</span><span class="p">()[</span><span class="s1">&#39;massMonoIso&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">getMasses</span><span class="p">(</span><span class="n">urlMasses</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="getMassFirstIso"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.getMassFirstIso">[docs]</a><span class="k">def</span> <span class="nf">getMassFirstIso</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Obtains the masses of the most abundant isotope for each element.</span>
+<span class="sd">    The result stored in the :py:attr:`.massFirstIso` module attribute.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="s1">&#39;massMonoIso&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">globals</span><span class="p">():</span>
+        <span class="n">getMassMonoIso</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s1">&#39;freqIso&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">globals</span><span class="p">():</span>
+        <span class="n">getFreqIso</span><span class="p">()</span>
+    <span class="n">firstIso</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">isos</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">massMonoIso</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">freqIso</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">firstIso</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> \
+                    <span class="n">isos</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="n">freqIso</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">continue</span>
+    
+    <span class="n">firstIso</span><span class="p">[</span><span class="s1">&#39;proton&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">proton</span>
+    <span class="n">firstIso</span><span class="p">[</span><span class="s1">&#39;electron&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">electron</span>
+    <span class="n">firstIso</span><span class="p">[</span><span class="s1">&#39;neutron&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">neutron</span>
+    <span class="nb">globals</span><span class="p">()[</span><span class="s1">&#39;massFirstIso&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">firstIso</span>
+    <span class="nb">globals</span><span class="p">()[</span><span class="s1">&#39;massdb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">firstIso</span></div>
+
+
+<div class="viewcode-block" id="getWeightStd"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.getWeightStd">[docs]</a><span class="k">def</span> <span class="nf">getWeightStd</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Obtains atomic waights from CIAAW webpage.</span>
+<span class="sd">    Stores the result in :py:attr:`.weightStd` attribute of the module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">globals</span><span class="p">()[</span><span class="s1">&#39;weightStd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">getMasses</span><span class="p">(</span><span class="n">urlWeights</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="getFreqIso"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.getFreqIso">[docs]</a><span class="k">def</span> <span class="nf">getFreqIso</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Obtains isotope abundances from CIAAW webpage.</span>
+<span class="sd">    Stores the result in :py:attr:`.freqIso` attribute of the module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">_curl</span><span class="o">.</span><span class="n">Curl</span><span class="p">(</span><span class="n">urlAbundances</span><span class="p">,</span> <span class="n">silent</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">reqAbundances</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    
+    <span class="c1"># fixing erroneous HTML from CIAAW:</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">reqAbundances</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+        
+        <span class="n">l</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="c1"># print(&#39;..%s.. ..%s..&#39; % (l[-5:], reqAbundances[i + 1][:3]))</span>
+        <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;&lt;/tr&gt;&#39;</span> <span class="ow">and</span> <span class="n">reqAbundances</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">][:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&lt;td&#39;</span><span class="p">:</span>
+            <span class="c1"># print(&#39;ermfeoirm&#39;)</span>
+            <span class="n">reqAbundances</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&lt;tr&gt;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">reqAbundances</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+    
+    <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+        <span class="c1"># there is a deprecated call in lxml</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+        <span class="n">soupAbundances</span> <span class="o">=</span> <span class="n">bs4</span><span class="o">.</span><span class="n">BeautifulSoup</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">reqAbundances</span><span class="p">),</span> <span class="s1">&#39;lxml&#39;</span><span class="p">)</span>
+    
+    <span class="n">freqIso</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">symbol</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">for</span> <span class="n">tr</span> <span class="ow">in</span> <span class="n">soupAbundances</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;tr&#39;</span><span class="p">):</span>
+        <span class="n">tr</span> <span class="o">=</span> <span class="p">[</span><span class="n">td</span> <span class="k">for</span> <span class="n">td</span> <span class="ow">in</span> <span class="n">tr</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;td&#39;</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">symbol</span> <span class="o">=</span> <span class="n">tr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">freqIso</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">ai</span> <span class="o">=</span> <span class="o">-</span><span class="mi">3</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span> <span class="k">else</span> <span class="o">-</span><span class="mi">2</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tr</span><span class="p">[</span><span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">reNonDigit</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tr</span><span class="p">[</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="n">freqIso</span><span class="p">[</span><span class="n">symbol</span><span class="p">][</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+            <span class="k">continue</span>
+    <span class="nb">globals</span><span class="p">()[</span><span class="s1">&#39;freqIso&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">freqIso</span></div>
+
+
+<span class="n">weight_builtin</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;proton&quot;</span><span class="p">:</span> <span class="mf">1.00727646677</span><span class="p">,</span>
+    <span class="s2">&quot;electron&quot;</span><span class="p">:</span> <span class="mf">0.00054857990924</span><span class="p">,</span>
+    <span class="s2">&quot;neutron&quot;</span><span class="p">:</span> <span class="mf">1.00866491588</span><span class="p">,</span>
+    <span class="s2">&quot;H&quot;</span><span class="p">:</span>  <span class="mf">1.007825</span><span class="p">,</span>
+    <span class="s2">&quot;He&quot;</span><span class="p">:</span> <span class="mf">4.002602</span><span class="p">,</span>
+    <span class="s2">&quot;Li&quot;</span><span class="p">:</span> <span class="mf">6.941</span><span class="p">,</span>
+    <span class="s2">&quot;Be&quot;</span><span class="p">:</span> <span class="mf">9.012182</span><span class="p">,</span>
+    <span class="s2">&quot;B&quot;</span><span class="p">:</span>  <span class="mf">10.811</span><span class="p">,</span>
+    <span class="s2">&quot;C&quot;</span><span class="p">:</span>  <span class="mf">12.0107</span><span class="p">,</span>
+    <span class="s2">&quot;N&quot;</span><span class="p">:</span>  <span class="mf">14.00674</span><span class="p">,</span>
+    <span class="s2">&quot;O&quot;</span><span class="p">:</span>  <span class="mf">15.9994</span><span class="p">,</span>
+    <span class="s2">&quot;F&quot;</span><span class="p">:</span>  <span class="mf">18.9984032</span><span class="p">,</span>
+    <span class="s2">&quot;Ne&quot;</span><span class="p">:</span> <span class="mf">20.1797</span><span class="p">,</span>
+    <span class="s2">&quot;Na&quot;</span><span class="p">:</span> <span class="mf">22.989768</span><span class="p">,</span>
+    <span class="s2">&quot;Mg&quot;</span><span class="p">:</span> <span class="mf">24.3050</span><span class="p">,</span>
+    <span class="s2">&quot;Al&quot;</span><span class="p">:</span> <span class="mf">26.981539</span><span class="p">,</span>
+    <span class="s2">&quot;Si&quot;</span><span class="p">:</span> <span class="mf">28.0855</span><span class="p">,</span>
+    <span class="s2">&quot;P&quot;</span><span class="p">:</span>  <span class="mf">30.973762</span><span class="p">,</span>
+    <span class="s2">&quot;S&quot;</span><span class="p">:</span>  <span class="mf">32.066</span><span class="p">,</span>
+    <span class="s2">&quot;Cl&quot;</span><span class="p">:</span> <span class="mf">35.4527</span><span class="p">,</span>
+    <span class="s2">&quot;Ar&quot;</span><span class="p">:</span> <span class="mf">39.948</span><span class="p">,</span>
+    <span class="s2">&quot;K&quot;</span><span class="p">:</span>  <span class="mf">39.0983</span><span class="p">,</span>
+    <span class="s2">&quot;Ca&quot;</span><span class="p">:</span> <span class="mf">40.078</span><span class="p">,</span>
+    <span class="s2">&quot;Sc&quot;</span><span class="p">:</span> <span class="mf">44.955910</span><span class="p">,</span>
+    <span class="s2">&quot;Ti&quot;</span><span class="p">:</span> <span class="mf">47.88</span><span class="p">,</span>
+    <span class="s2">&quot;V&quot;</span><span class="p">:</span>  <span class="mf">50.9415</span><span class="p">,</span>
+    <span class="s2">&quot;Cr&quot;</span><span class="p">:</span> <span class="mf">51.9961</span><span class="p">,</span>
+    <span class="s2">&quot;Mn&quot;</span><span class="p">:</span> <span class="mf">54.93805</span><span class="p">,</span>
+    <span class="s2">&quot;Fe&quot;</span><span class="p">:</span> <span class="mf">55.847</span><span class="p">,</span>
+    <span class="s2">&quot;Co&quot;</span><span class="p">:</span> <span class="mf">58.93320</span><span class="p">,</span>
+    <span class="s2">&quot;Ni&quot;</span><span class="p">:</span> <span class="mf">58.6934</span><span class="p">,</span>
+    <span class="s2">&quot;Cu&quot;</span><span class="p">:</span> <span class="mf">63.546</span><span class="p">,</span>
+    <span class="s2">&quot;Zn&quot;</span><span class="p">:</span> <span class="mf">65.39</span><span class="p">,</span>
+    <span class="s2">&quot;Ga&quot;</span><span class="p">:</span> <span class="mf">69.723</span><span class="p">,</span>
+    <span class="s2">&quot;Ge&quot;</span><span class="p">:</span> <span class="mf">72.61</span><span class="p">,</span>
+    <span class="s2">&quot;As&quot;</span><span class="p">:</span> <span class="mf">74.92159</span><span class="p">,</span>
+    <span class="s2">&quot;Se&quot;</span><span class="p">:</span> <span class="mf">78.96</span><span class="p">,</span>
+    <span class="s2">&quot;Br&quot;</span><span class="p">:</span> <span class="mf">79.904</span><span class="p">,</span>
+    <span class="s2">&quot;Kr&quot;</span><span class="p">:</span> <span class="mf">83.80</span><span class="p">,</span>
+    <span class="s2">&quot;Rb&quot;</span><span class="p">:</span> <span class="mf">85.4678</span><span class="p">,</span>
+    <span class="s2">&quot;Sr&quot;</span><span class="p">:</span> <span class="mf">87.62</span><span class="p">,</span>
+    <span class="s2">&quot;Y&quot;</span><span class="p">:</span>  <span class="mf">88.90585</span><span class="p">,</span>
+    <span class="s2">&quot;Zr&quot;</span><span class="p">:</span> <span class="mf">91.224</span><span class="p">,</span>
+    <span class="s2">&quot;Nb&quot;</span><span class="p">:</span> <span class="mf">92.90638</span><span class="p">,</span>
+    <span class="s2">&quot;Mo&quot;</span><span class="p">:</span> <span class="mf">95.94</span><span class="p">,</span>
+    <span class="s2">&quot;Tc&quot;</span><span class="p">:</span> <span class="mf">98.0</span><span class="p">,</span>
+    <span class="s2">&quot;Ru&quot;</span><span class="p">:</span> <span class="mf">101.07</span><span class="p">,</span>
+    <span class="s2">&quot;Rh&quot;</span><span class="p">:</span> <span class="mf">102.90550</span><span class="p">,</span>
+    <span class="s2">&quot;Pd&quot;</span><span class="p">:</span> <span class="mf">106.42</span><span class="p">,</span>
+    <span class="s2">&quot;Ag&quot;</span><span class="p">:</span> <span class="mf">107.8682</span><span class="p">,</span>
+    <span class="s2">&quot;Cd&quot;</span><span class="p">:</span> <span class="mf">112.411</span><span class="p">,</span>
+    <span class="s2">&quot;In&quot;</span><span class="p">:</span> <span class="mf">114.82</span><span class="p">,</span>
+    <span class="s2">&quot;Sn&quot;</span><span class="p">:</span> <span class="mf">118.710</span><span class="p">,</span>
+    <span class="s2">&quot;Sb&quot;</span><span class="p">:</span> <span class="mf">121.757</span><span class="p">,</span>
+    <span class="s2">&quot;Te&quot;</span><span class="p">:</span> <span class="mf">127.60</span><span class="p">,</span>
+    <span class="s2">&quot;I&quot;</span><span class="p">:</span>  <span class="mf">126.90447</span><span class="p">,</span>
+    <span class="s2">&quot;Xe&quot;</span><span class="p">:</span> <span class="mf">131.29</span><span class="p">,</span>
+    <span class="s2">&quot;Cs&quot;</span><span class="p">:</span> <span class="mf">132.90543</span><span class="p">,</span>
+    <span class="s2">&quot;Ba&quot;</span><span class="p">:</span> <span class="mf">137.327</span><span class="p">,</span>
+    <span class="s2">&quot;La&quot;</span><span class="p">:</span> <span class="mf">138.9055</span><span class="p">,</span>
+    <span class="s2">&quot;Ce&quot;</span><span class="p">:</span> <span class="mf">140.115</span><span class="p">,</span>
+    <span class="s2">&quot;Pr&quot;</span><span class="p">:</span> <span class="mf">140.90765</span><span class="p">,</span>
+    <span class="s2">&quot;Nd&quot;</span><span class="p">:</span> <span class="mf">144.24</span><span class="p">,</span>
+    <span class="s2">&quot;Pm&quot;</span><span class="p">:</span> <span class="mf">145.0</span><span class="p">,</span>
+    <span class="s2">&quot;Sm&quot;</span><span class="p">:</span> <span class="mf">150.36</span><span class="p">,</span>
+    <span class="s2">&quot;Eu&quot;</span><span class="p">:</span> <span class="mf">151.965</span><span class="p">,</span>
+    <span class="s2">&quot;Gd&quot;</span><span class="p">:</span> <span class="mf">157.25</span><span class="p">,</span>
+    <span class="s2">&quot;Tb&quot;</span><span class="p">:</span> <span class="mf">158.92534</span><span class="p">,</span>
+    <span class="s2">&quot;Dy&quot;</span><span class="p">:</span> <span class="mf">162.50</span><span class="p">,</span>
+    <span class="s2">&quot;Ho&quot;</span><span class="p">:</span> <span class="mf">164.93032</span><span class="p">,</span>
+    <span class="s2">&quot;Er&quot;</span><span class="p">:</span> <span class="mf">167.26</span><span class="p">,</span>
+    <span class="s2">&quot;Tm&quot;</span><span class="p">:</span> <span class="mf">168.93421</span><span class="p">,</span>
+    <span class="s2">&quot;Yb&quot;</span><span class="p">:</span> <span class="mf">173.04</span><span class="p">,</span>
+    <span class="s2">&quot;Lu&quot;</span><span class="p">:</span> <span class="mf">174.967</span><span class="p">,</span>
+    <span class="s2">&quot;Hf&quot;</span><span class="p">:</span> <span class="mf">178.49</span><span class="p">,</span>
+    <span class="s2">&quot;Ta&quot;</span><span class="p">:</span> <span class="mf">180.9479</span><span class="p">,</span>
+    <span class="s2">&quot;W&quot;</span><span class="p">:</span>  <span class="mf">183.85</span><span class="p">,</span>
+    <span class="s2">&quot;Re&quot;</span><span class="p">:</span> <span class="mf">186.207</span><span class="p">,</span>
+    <span class="s2">&quot;Os&quot;</span><span class="p">:</span> <span class="mf">190.2</span><span class="p">,</span>
+    <span class="s2">&quot;Ir&quot;</span><span class="p">:</span> <span class="mf">192.22</span><span class="p">,</span>
+    <span class="s2">&quot;Pt&quot;</span><span class="p">:</span> <span class="mf">195.08</span><span class="p">,</span>
+    <span class="s2">&quot;Au&quot;</span><span class="p">:</span> <span class="mf">196.96654</span><span class="p">,</span>
+    <span class="s2">&quot;Hg&quot;</span><span class="p">:</span> <span class="mf">200.59</span><span class="p">,</span>
+    <span class="s2">&quot;Tl&quot;</span><span class="p">:</span> <span class="mf">204.3833</span><span class="p">,</span>
+    <span class="s2">&quot;Pb&quot;</span><span class="p">:</span> <span class="mf">207.2</span><span class="p">,</span>
+    <span class="s2">&quot;Bi&quot;</span><span class="p">:</span> <span class="mf">208.98037</span><span class="p">,</span>
+    <span class="s2">&quot;Po&quot;</span><span class="p">:</span> <span class="mi">209</span><span class="p">,</span>
+    <span class="s2">&quot;At&quot;</span><span class="p">:</span> <span class="mi">210</span><span class="p">,</span>
+    <span class="s2">&quot;Rn&quot;</span><span class="p">:</span> <span class="mi">222</span><span class="p">,</span>
+    <span class="s2">&quot;Fr&quot;</span><span class="p">:</span> <span class="mi">223</span><span class="p">,</span>
+    <span class="s2">&quot;Ra&quot;</span><span class="p">:</span> <span class="mf">226.0254</span><span class="p">,</span>
+    <span class="s2">&quot;Ac&quot;</span><span class="p">:</span> <span class="mi">227</span><span class="p">,</span>
+    <span class="s2">&quot;Th&quot;</span><span class="p">:</span> <span class="mf">232.0381</span><span class="p">,</span>
+    <span class="s2">&quot;Pa&quot;</span><span class="p">:</span> <span class="mf">213.0359</span><span class="p">,</span>
+    <span class="s2">&quot;U&quot;</span><span class="p">:</span>  <span class="mf">238.0289</span><span class="p">,</span>
+    <span class="s2">&quot;Np&quot;</span><span class="p">:</span> <span class="mf">237.0482</span><span class="p">,</span>
+    <span class="s2">&quot;Pu&quot;</span><span class="p">:</span> <span class="mi">244</span><span class="p">,</span>
+    <span class="s2">&quot;Am&quot;</span><span class="p">:</span> <span class="mi">243</span><span class="p">,</span>
+    <span class="s2">&quot;Cm&quot;</span><span class="p">:</span> <span class="mi">247</span><span class="p">,</span>
+    <span class="s2">&quot;Bk&quot;</span><span class="p">:</span> <span class="mi">247</span><span class="p">,</span>
+    <span class="s2">&quot;Cf&quot;</span><span class="p">:</span> <span class="mi">251</span><span class="p">,</span>
+    <span class="s2">&quot;Es&quot;</span><span class="p">:</span> <span class="mi">252</span><span class="p">,</span>
+    <span class="s2">&quot;Fm&quot;</span><span class="p">:</span> <span class="mi">257</span><span class="p">,</span>
+    <span class="s2">&quot;Md&quot;</span><span class="p">:</span> <span class="mi">258</span><span class="p">,</span>
+    <span class="s2">&quot;No&quot;</span><span class="p">:</span> <span class="mi">259</span><span class="p">,</span>
+    <span class="s2">&quot;Lr&quot;</span><span class="p">:</span> <span class="mi">260</span><span class="p">,</span>
+    <span class="s2">&quot;Rf&quot;</span><span class="p">:</span> <span class="mi">261</span><span class="p">,</span>
+    <span class="s2">&quot;Db&quot;</span><span class="p">:</span> <span class="mi">262</span><span class="p">,</span>
+    <span class="s2">&quot;Sg&quot;</span><span class="p">:</span> <span class="mi">263</span><span class="p">,</span>
+    <span class="s2">&quot;Bh&quot;</span><span class="p">:</span> <span class="mi">262</span><span class="p">,</span>
+    <span class="s2">&quot;Hs&quot;</span><span class="p">:</span> <span class="mi">265</span><span class="p">,</span>
+    <span class="s2">&quot;Mt&quot;</span><span class="p">:</span> <span class="mi">266</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">isotopes</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;H2&quot;</span><span class="p">:</span> <span class="mf">2.01410178</span><span class="p">,</span>
+    <span class="s2">&quot;H3&quot;</span><span class="p">:</span> <span class="mf">3.0160492</span><span class="p">,</span>
+    <span class="s2">&quot;C13&quot;</span><span class="p">:</span> <span class="mf">13.003355</span><span class="p">,</span>
+    <span class="s2">&quot;N15&quot;</span><span class="p">:</span> <span class="mf">15.000109</span><span class="p">,</span>
+    <span class="s2">&quot;O17&quot;</span><span class="p">:</span> <span class="mf">16.999132</span><span class="p">,</span>
+    <span class="s2">&quot;O18&quot;</span><span class="p">:</span> <span class="mf">17.999160</span><span class="p">,</span>
+    <span class="s2">&quot;S33&quot;</span><span class="p">:</span> <span class="mf">32.971458</span><span class="p">,</span>
+    <span class="s2">&quot;S34&quot;</span><span class="p">:</span> <span class="mf">33.967867</span><span class="p">,</span>
+    <span class="s2">&quot;S35&quot;</span><span class="p">:</span> <span class="mf">35.967081</span>
+<span class="p">}</span>
+
+<span class="n">iso_freq</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;H2&quot;</span><span class="p">:</span> <span class="mf">0.000115</span><span class="p">,</span>
+    <span class="s2">&quot;H3&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;C13&quot;</span><span class="p">:</span> <span class="mf">0.0107</span><span class="p">,</span>
+    <span class="s2">&quot;N15&quot;</span><span class="p">:</span> <span class="mf">0.0068</span><span class="p">,</span>
+    <span class="s2">&quot;O17&quot;</span><span class="p">:</span> <span class="mf">0.00038</span><span class="p">,</span>
+    <span class="s2">&quot;O18&quot;</span><span class="p">:</span> <span class="mf">0.00205</span><span class="p">,</span>
+    <span class="s2">&quot;S33&quot;</span><span class="p">:</span> <span class="mf">0.0076</span><span class="p">,</span>
+    <span class="s2">&quot;S34&quot;</span><span class="p">:</span> <span class="mf">0.0429</span><span class="p">,</span>
+    <span class="s2">&quot;S35&quot;</span><span class="p">:</span> <span class="mf">0.0002</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="MassBase"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.MassBase">[docs]</a><span class="k">class</span> <span class="nc">MassBase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">formula_mass</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">isotope</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This class is very similar to `Formula`. Actually it can be</span>
+<span class="sd">        initialized either with providing a formula or a mass or</span>
+<span class="sd">        even element counts as keyword arguments.</span>
+<span class="sd">        The key difference compared to `Formula` is that it behaves</span>
+<span class="sd">        as a `float` i.e. indeed represents a molecular mass, while</span>
+<span class="sd">        `Formula` behaves as a chemical formula i.e. representing</span>
+<span class="sd">        the counts of elements. If you add two `MassBase` instances</span>
+<span class="sd">        (or a float) you get a `float` while if you add two</span>
+<span class="sd">        `Formula` instances (or a string) you get a new `Formula`.</span>
+<span class="sd">        Finally `Mass` is able to provide both behaviours but</span>
+<span class="sd">        adding two `Mass` instances will result a new `Mass`.</span>
+<span class="sd">        </span>
+<span class="sd">        Args</span>
+<span class="sd">        ----</span>
+<span class="sd">        :param str,float,NoneType formula_mass: Either a string</span>
+<span class="sd">            expressing a chemical formula (e.g. H2O) or a molecular</span>
+<span class="sd">            mass (e.g. 237.1567) or `None` if you provide the</span>
+<span class="sd">            formula as keyword arguments.</span>
+<span class="sd">        **kwargs: elements &amp; counts, e.g. c = 6, h = 12, o = 6...</span>
+<span class="sd">        </span>
+<span class="sd">        Thanks for</span>
+<span class="sd">        https://github.com/bsimas/molecular-weight/blob/master/chemweight.py</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="s1">&#39;massFirstIso&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">globals</span><span class="p">():</span>
+            <span class="n">getMassFirstIso</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">exmass</span> <span class="o">=</span> <span class="n">massFirstIso</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charge</span> <span class="o">=</span> <span class="n">charge</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isotope</span> <span class="o">=</span> <span class="n">isotope</span>
+        
+        <span class="k">if</span> <span class="n">formula_mass</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">formula_from_dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+            
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">formula_mass</span><span class="p">,</span> <span class="s1">&#39;lower&#39;</span><span class="p">):</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">=</span> <span class="n">formula_mass</span>
+            
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">formula_mass</span><span class="p">,</span> <span class="n">MassBase</span><span class="p">):</span>
+            
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">formula_mass</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">):</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">=</span> <span class="n">formula_mass</span><span class="o">.</span><span class="n">mass</span>
+                
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">formula_mass</span><span class="p">,</span> <span class="s1">&#39;formula&#39;</span><span class="p">):</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">=</span> <span class="n">formula_mass</span><span class="o">.</span><span class="n">formula</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">mass_calculated</span> <span class="o">=</span> <span class="n">formula_mass</span><span class="o">.</span><span class="n">mass_calculated</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">formula_mass</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">=</span> <span class="n">formula_mass</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">calc_mass</span><span class="p">()</span>
+    
+    <span class="k">def</span> <span class="nf">__neg__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+    
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+    
+    <span class="k">def</span> <span class="nf">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__add__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__rsub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+    
+    <span class="k">def</span> <span class="nf">__isub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__rtruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+    
+    <span class="k">def</span> <span class="nf">__itruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">/=</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__imul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">*=</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__float__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+    
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">other</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="mf">0.01</span>
+    
+<div class="viewcode-block" id="MassBase.calc_mass"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.MassBase.calc_mass">[docs]</a>    <span class="k">def</span> <span class="nf">calc_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_formula</span><span class="p">():</span>
+            
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mass_calculated</span> <span class="o">=</span> <span class="kc">True</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                
+                <span class="n">atoms</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">reform</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">formula</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;atoms&#39;</span><span class="p">)</span>
+                    <span class="k">else</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">for</span> <span class="n">element</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+                    <span class="n">count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">count</span> <span class="ow">or</span> <span class="s1">&#39;1&#39;</span><span class="p">)</span>
+                    <span class="n">m</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exmass</span><span class="p">[</span><span class="n">element</span><span class="p">]</span> <span class="o">*</span> <span class="n">count</span>
+                <span class="n">m</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge</span> <span class="o">*</span> <span class="n">massdb</span><span class="p">[</span><span class="s1">&#39;electron&#39;</span><span class="p">]</span>
+                <span class="n">m</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">isotope</span> <span class="o">*</span> <span class="n">massdb</span><span class="p">[</span><span class="s1">&#39;neutron&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">=</span> <span class="n">m</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">mass_calculated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mass</span><span class="p">()</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">mass_calculated</span> <span class="o">=</span> <span class="kc">False</span></div>
+    
+<div class="viewcode-block" id="MassBase.has_mass"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.MassBase.has_mass">[docs]</a>    <span class="k">def</span> <span class="nf">has_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MassBase.has_formula"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.MassBase.has_formula">[docs]</a>    <span class="k">def</span> <span class="nf">has_formula</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+    
+<div class="viewcode-block" id="MassBase.formula_from_dict"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.MassBase.formula_from_dict">[docs]</a>    <span class="k">def</span> <span class="nf">formula_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">formula</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s%u</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">elem</span><span class="o">.</span><span class="n">capitalize</span><span class="p">(),</span> <span class="n">num</span><span class="p">)</span> \
+            <span class="k">for</span> <span class="n">elem</span><span class="p">,</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">atoms</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="MassBase.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.MassBase.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div></div>
+
+
+<span class="n">parts</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;water&#39;</span><span class="p">:</span> <span class="s1">&#39;H2O&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;twowater&#39;</span><span class="p">:</span> <span class="s1">&#39;H4O2&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;carboxyl&#39;</span><span class="p">:</span> <span class="s1">&#39;COOH&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;aldehyde&#39;</span><span class="p">:</span> <span class="s1">&#39;CHO&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">form</span> <span class="ow">in</span> <span class="n">parts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">],</span> <span class="n">name</span><span class="p">,</span> <span class="n">MassBase</span><span class="p">(</span><span class="n">form</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="first_isotope_mass"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.first_isotope_mass">[docs]</a><span class="k">def</span> <span class="nf">first_isotope_mass</span><span class="p">(</span><span class="n">elem</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="n">massFirstIso</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="k">if</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">massFirstIso</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="get_mass"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.get_mass">[docs]</a><span class="k">def</span> <span class="nf">get_mass</span><span class="p">(</span><span class="n">elem</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns exact mass of the highest abundant isotope of an element.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="n">first_isotope_mass</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="isotope_mass"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.isotope_mass">[docs]</a><span class="k">def</span> <span class="nf">isotope_mass</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="n">iso</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">massMonoIso</span><span class="p">[</span><span class="n">elem</span><span class="p">][</span><span class="n">iso</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">massMonoIso</span> <span class="ow">and</span> <span class="n">iso</span> <span class="ow">in</span> <span class="n">massMonoIso</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="k">else</span>
+        <span class="kc">None</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_weight"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.get_weight">[docs]</a><span class="k">def</span> <span class="nf">get_weight</span><span class="p">(</span><span class="n">elem</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="n">weight_builtin</span><span class="p">[</span><span class="n">elem</span><span class="p">]</span> <span class="k">if</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">weight_builtin</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="calculate"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mass.calculate">[docs]</a><span class="k">def</span> <span class="nf">calculate</span><span class="p">(</span><span class="n">formula</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluates a string as formula.</span>
+<span class="sd">    </span>
+<span class="sd">    Args</span>
+<span class="sd">    ----</span>
+<span class="sd">    :param str formula:</span>
+<span class="sd">        Expression as a string e.g. ``HCH3CHOHCOOH - water + electron``.</span>
+<span class="sd">        </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        Mass as float.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;__add__&#39;</span>
+    
+    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">replmi</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">formula</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="n">step</span> <span class="o">==</span> <span class="s1">&#39;-&#39;</span><span class="p">:</span>
+            
+            <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;__sub__&#39;</span>
+            <span class="k">continue</span>
+        
+        <span class="k">if</span> <span class="n">step</span> <span class="o">==</span> <span class="s1">&#39;+&#39;</span><span class="p">:</span>
+            
+            <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;__add__&#39;</span>
+            <span class="k">continue</span>
+        
+        <span class="n">step</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">refloat</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">step</span> <span class="ow">in</span> <span class="nb">globals</span><span class="p">()</span> <span class="ow">and</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="nb">globals</span><span class="p">()[</span><span class="n">step</span><span class="p">],</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">MassBase</span><span class="p">))</span>
+        <span class="p">):</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()[</span><span class="n">step</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">MassBase</span><span class="p">(</span><span class="n">result</span><span class="p">),</span> <span class="n">op</span><span class="p">)(</span><span class="n">MassBase</span><span class="p">(</span><span class="n">step</span><span class="p">))</span>
+        
+        <span class="n">op</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<span class="c1">#: Synonym of :py:func:`calculate`.</span>
+<span class="n">expr</span> <span class="o">=</span> <span class="n">calculate</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

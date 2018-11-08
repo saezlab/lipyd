@@ -1,0 +1,569 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.common &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.common</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.common</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">past.builtins</span> <span class="k">import</span> <span class="n">xrange</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="n">reduce</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="n">ROOT</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="s1">&#39;unicode&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">__builtins__</span><span class="p">:</span>
+    <span class="n">unicode</span> <span class="o">=</span> <span class="nb">str</span>
+
+<span class="n">simpleTypes</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">unicode</span><span class="p">}</span>
+
+<span class="n">charTypes</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">,</span> <span class="n">unicode</span><span class="p">}</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">basestring</span>
+<span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
+    <span class="n">basestring</span> <span class="o">=</span> <span class="nb">str</span>
+
+
+<div class="viewcode-block" id="random_string"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.random_string">[docs]</a><span class="k">def</span> <span class="nf">random_string</span><span class="p">(</span><span class="n">length</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+    
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">97</span><span class="p">,</span> <span class="mi">123</span><span class="p">,</span> <span class="n">length</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="uniqList"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.uniqList">[docs]</a><span class="k">def</span> <span class="nf">uniqList</span><span class="p">(</span><span class="n">seq</span><span class="p">):</span>
+    <span class="c1"># Not order preserving</span>
+    <span class="c1"># from http://www.peterbe.com/plog/uniqifiers-benchmark</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">keys</span><span class="p">[</span><span class="n">e</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">keys</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="flatList"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.flatList">[docs]</a><span class="k">def</span> <span class="nf">flatList</span><span class="p">(</span><span class="n">lst</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">it</span> <span class="k">for</span> <span class="n">sl</span> <span class="ow">in</span> <span class="n">lst</span> <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="n">sl</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="delEmpty"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.delEmpty">[docs]</a><span class="k">def</span> <span class="nf">delEmpty</span><span class="p">(</span><span class="n">lst</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">lst</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="uniqOrdList"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.uniqOrdList">[docs]</a><span class="k">def</span> <span class="nf">uniqOrdList</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">idfun</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> 
+    <span class="c1"># Order preserving</span>
+    <span class="c1"># from http://www.peterbe.com/plog/uniqifiers-benchmark</span>
+    <span class="k">if</span> <span class="n">idfun</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">idfun</span><span class="p">(</span><span class="n">x</span><span class="p">):</span> <span class="k">return</span> <span class="n">x</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
+        <span class="n">marker</span> <span class="o">=</span> <span class="n">idfun</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">marker</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span> <span class="k">continue</span>
+        <span class="n">seen</span><span class="p">[</span><span class="n">marker</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="addToList"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.addToList">[docs]</a><span class="k">def</span> <span class="nf">addToList</span><span class="p">(</span><span class="n">lst</span><span class="p">,</span> <span class="n">toadd</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">toadd</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">lst</span> <span class="o">+=</span> <span class="n">toadd</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">toadd</span><span class="p">)</span>
+    <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">:</span>
+        <span class="n">lst</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">uniqList</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="warn_with_traceback"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.warn_with_traceback">[docs]</a><span class="k">def</span> <span class="nf">warn_with_traceback</span><span class="p">(</span>
+        <span class="n">message</span><span class="p">,</span> <span class="n">category</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">line</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prints warnings with traceback.</span>
+<span class="sd">    From https://stackoverflow.com/a/22376126/854988</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">traceback</span><span class="o">.</span><span class="n">print_stack</span><span class="p">()</span>
+    <span class="n">log</span> <span class="o">=</span> <span class="n">file</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">file</span><span class="p">,</span><span class="s1">&#39;write&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">formatwarning</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">category</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">_const</span><span class="p">:</span>
+    
+    <span class="k">class</span> <span class="nc">ConstError</span><span class="p">(</span><span class="ne">TypeError</span><span class="p">):</span>
+        
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            
+            <span class="k">raise</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ConstError</span><span class="p">,</span> <span class="s2">&quot;Can&#39;t rebind const(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+
+<span class="n">fa_greek_parts</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;cc&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;hex&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+        <span class="s1">&#39;hept&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+        <span class="s1">&#39;oct&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="s1">&#39;non&#39;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+        <span class="s1">&#39;dec&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="s1">&#39;undec&#39;</span><span class="p">:</span> <span class="mi">11</span><span class="p">,</span>
+        <span class="s1">&#39;dodec&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span>
+        <span class="s1">&#39;tridec&#39;</span><span class="p">:</span> <span class="mi">13</span><span class="p">,</span>
+        <span class="s1">&#39;tetradec&#39;</span><span class="p">:</span> <span class="mi">14</span><span class="p">,</span>
+        <span class="s1">&#39;pentadec&#39;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>
+        <span class="s1">&#39;hexadec&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+        <span class="s1">&#39;heptadec&#39;</span><span class="p">:</span> <span class="mi">17</span><span class="p">,</span>
+        <span class="s1">&#39;octadec&#39;</span><span class="p">:</span> <span class="mi">18</span><span class="p">,</span>
+        <span class="s1">&#39;nonadec&#39;</span><span class="p">:</span> <span class="mi">19</span><span class="p">,</span>
+        <span class="s1">&#39;eicos&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="s1">&#39;icos&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="s1">&#39;heneicos&#39;</span><span class="p">:</span> <span class="mi">21</span><span class="p">,</span>
+        <span class="s1">&#39;docos&#39;</span><span class="p">:</span> <span class="mi">22</span><span class="p">,</span>
+        <span class="s1">&#39;tricos&#39;</span><span class="p">:</span> <span class="mi">23</span><span class="p">,</span>
+        <span class="s1">&#39;tetracos&#39;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+        <span class="s1">&#39;pentacos&#39;</span><span class="p">:</span> <span class="mi">25</span><span class="p">,</span>
+        <span class="s1">&#39;hexacos&#39;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span>
+        <span class="s1">&#39;heptacos&#39;</span><span class="p">:</span> <span class="mi">27</span><span class="p">,</span>
+        <span class="s1">&#39;octacos&#39;</span><span class="p">:</span> <span class="mi">28</span><span class="p">,</span>
+        <span class="s1">&#39;nonacos&#39;</span><span class="p">:</span> <span class="mi">29</span><span class="p">,</span>
+        <span class="s1">&#39;triacont&#39;</span><span class="p">:</span> <span class="mi">30</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;uns&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;adi&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s1">&#39;atri&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="s1">&#39;atetra&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="s1">&#39;apenta&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="s1">&#39;ahexa&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+        <span class="s1">&#39;ahepta&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+        <span class="s1">&#39;aocta&#39;</span><span class="p">:</span> <span class="mi">8</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;end&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;enoate&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;anoate&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;enoic acid&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;anoic acid&#39;</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">count_prefix</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;mono&#39;</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;di&#39;</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="s1">&#39;tri&#39;</span><span class="p">,</span>
+    <span class="mi">4</span><span class="p">:</span> <span class="s1">&#39;tetra&#39;</span><span class="p">,</span>
+    <span class="mi">5</span><span class="p">:</span> <span class="s1">&#39;penta&#39;</span><span class="p">,</span>
+    <span class="mi">6</span><span class="p">:</span> <span class="s1">&#39;hexa&#39;</span><span class="p">,</span>
+    <span class="mi">7</span><span class="p">:</span> <span class="s1">&#39;hepta&#39;</span><span class="p">,</span>
+    <span class="mi">8</span><span class="p">:</span> <span class="s1">&#39;octa&#39;</span><span class="p">,</span>
+    <span class="mi">9</span><span class="p">:</span> <span class="s1">&#39;nona&#39;</span>
+<span class="p">}</span>
+
+<span class="n">fa_greek</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">cc</span><span class="p">,</span> <span class="n">uns</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span>
+    <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;cc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+    <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;uns&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+    <span class="n">fa_greek_parts</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">uns</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">continue</span>
+    
+    <span class="n">fa_greek</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">uns</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="o">=</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">uns</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">end</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+<span class="n">adducts</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;[M+H]+&#39;</span><span class="p">,</span> <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">,</span> <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;[M-H]-&#39;</span><span class="p">,</span> <span class="s1">&#39;[M+HCOO]-&#39;</span><span class="p">]</span>
+<span class="p">}</span>
+
+
+<span class="n">ad2ex</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;[M+H]+&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_h&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_nh4&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_na&#39;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;[M-H]-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_h&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;[M+HCOO]-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_fo&#39;</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;[M-2H]2-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_2h&#39;</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;[M-3H]3-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_3h&#39;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">exact_method</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;[M+OAc]-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_ac&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M+H]+&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_h&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M-H]-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_h&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M+HCOO]-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_fo&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_nh4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_na&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M+H-H2O]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_oh&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># method names to convert between exact and adduct masses</span>
+<span class="n">adduct_method</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;[M+OAc]-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_ac&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M+H]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_h&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M-H]-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_h&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M+HCOO]-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_fo&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_nh4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_na&#39;</span>
+<span class="p">}</span>
+
+<span class="n">ex2ad</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;[M+H]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_h&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_nh4&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_na&#39;</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;[M-H]-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_h&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;[M+HCOO]-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_fo&#39;</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;[M-2H]2-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_2h&#39;</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;[M-3H]3-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_3h&#39;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="iterator_insert"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.iterator_insert">[docs]</a><span class="k">def</span> <span class="nf">iterator_insert</span><span class="p">(</span><span class="n">full_length</span><span class="p">,</span> <span class="n">insert</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Yields indices from two iterators.</span>
+<span class="sd">    At the index `insert` it inserts a `None` instead of the second index.</span>
+<span class="sd">    </span>
+<span class="sd">    E.g. if full_length = 3 and insert = 1 it yields:</span>
+<span class="sd">        (0, 0), (1, None), (2, 1)</span>
+<span class="sd">    </span>
+<span class="sd">    If insert is None or greater or equal than full_length, it yields</span>
+<span class="sd">    always tuples of the same indices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">full_length</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">insert</span><span class="p">:</span>
+            
+            <span class="k">yield</span> <span class="n">i</span><span class="p">,</span> <span class="kc">None</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="k">yield</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span>
+            
+            <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+
+<span class="n">refloat</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([-]?[0-9]*[\.]?[0-9]+[eE]?[-\+]?[0-9]*)&#39;</span><span class="p">)</span>
+<span class="n">reint</span>   <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([-]?[0-9]+[\.]?[0-9]*)&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="to_float"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.to_float">[docs]</a><span class="k">def</span> <span class="nf">to_float</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extracts float from string, or returns None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">num</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">num</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
+        
+        <span class="k">return</span> <span class="n">num</span>
+    
+    <span class="n">num</span> <span class="o">=</span> <span class="n">num</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">fnum</span> <span class="o">=</span> <span class="n">refloat</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">fnum</span><span class="p">:</span>
+        
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">fnum</span><span class="o">.</span><span class="n">groups</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+    
+    <span class="k">else</span><span class="p">:</span>
+        
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">num</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="n">num</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;inf&#39;</span><span class="p">:</span>
+                
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            
+            <span class="k">if</span> <span class="n">num</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;-inf&#39;</span><span class="p">:</span>
+                
+                <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="to_int"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.to_int">[docs]</a><span class="k">def</span> <span class="nf">to_int</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extracts int from string or returns None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">num</span> <span class="o">=</span> <span class="n">reint</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">num</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    
+    <span class="k">if</span> <span class="n">num</span><span class="p">:</span>
+        
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">num</span><span class="o">.</span><span class="n">groups</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        
+    <span class="k">else</span><span class="p">:</span>
+        
+        <span class="k">return</span> <span class="n">num</span></div>
+
+
+<div class="viewcode-block" id="float_lst"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.common.float_lst">[docs]</a><span class="k">def</span> <span class="nf">float_lst</span><span class="p">(</span><span class="n">lst</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts elements of a list to floats.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="p">[</span><span class="n">to_float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">]</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

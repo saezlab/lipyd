@@ -1,0 +1,749 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.settings &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.settings</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.settings</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2017 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">iteritems</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+
+<span class="kn">import</span> <span class="nn">lipyd.common</span> <span class="k">as</span> <span class="nn">common</span>
+<span class="kn">import</span> <span class="nn">lipyd.lipproc</span> <span class="k">as</span> <span class="nn">lipproc</span>
+
+<span class="n">_defaults</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># The absolute root directory.</span>
+    <span class="c1"># This should not be necessary, why is it here?</span>
+    <span class="s1">&#39;path_root&#39;</span><span class="p">:</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span>
+    <span class="c1"># The basedir for every files and directories in the followings.</span>
+    <span class="s1">&#39;basedir&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span>
+    <span class="c1"># If None will be the same as ``basedir``.</span>
+    <span class="s1">&#39;data_basedir&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="c1"># List of the shared directories containing most of the data.</span>
+    <span class="c1"># Due to their large size these are kept on separate partition.</span>
+    <span class="c1"># Lists are joined by `os.path.join`.</span>
+    <span class="c1"># E.g. two shared folders can be defined as</span>
+    <span class="c1"># `[[&#39;my&#39;, &#39;huge&#39;, &#39;partition&#39;], [`another`, `huge`, `disk`]]`.</span>
+    <span class="s1">&#39;datadirs&#39;</span><span class="p">:</span> <span class="p">[[</span><span class="s1">&#39;share&#39;</span><span class="p">]],</span>
+    <span class="c1"># the overview table of Enric&#39;s screening</span>
+    <span class="c1"># we read the protein containing and the</span>
+    <span class="c1"># highest fractions from here</span>
+    <span class="s1">&#39;fractionsf&#39;</span><span class="p">:</span> <span class="s1">&#39;LTPsceenprogres_v07d.xlsx&#39;</span><span class="p">,</span>
+    <span class="c1"># list of potentially problematic fractions</span>
+    <span class="s1">&#39;wrongfracsf&#39;</span><span class="p">:</span> <span class="s1">&#39;wrong_fractions.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># File with offsets of fractions from SEC in ml.</span>
+    <span class="c1"># This we used at Antonella, but at Enric, these values</span>
+    <span class="c1"># are different for each protein, and contained by the</span>
+    <span class="c1"># individual SEC profile files.</span>
+    <span class="s1">&#39;ppfracf&#39;</span><span class="p">:</span> <span class="s1">&#39;fractions.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># Directory with the SEC absorbance profiles for each protein.</span>
+    <span class="s1">&#39;ppsecdir&#39;</span><span class="p">:</span> <span class="s1">&#39;SEC_profiles&#39;</span><span class="p">,</span>
+    <span class="c1"># The first section in the SEC profile filenames is the protein</span>
+    <span class="c1"># name or the second:</span>
+    <span class="s1">&#39;sec_filenames_protein_first&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># This is a typo in some of the PEAK table headers.</span>
+    <span class="c1"># If this cause trouble just turn it off.</span>
+    <span class="s1">&#39;fix_fraction_name_ab_typo&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Directory with the SDS PAGE protein quantities for some</span>
+    <span class="c1"># proteins.</span>
+    <span class="s1">&#39;gelprofdir&#39;</span><span class="p">:</span> <span class="s1">&#39;gel_profiles&#39;</span><span class="p">,</span>
+    <span class="c1"># The directory containing the standards in mzML format.</span>
+    <span class="c1"># These are used for calculation of recalibration.</span>
+    <span class="s1">&#39;stddir&#39;</span><span class="p">:</span> <span class="s1">&#39;Standards_mzML format&#39;</span><span class="p">,</span>
+    <span class="c1"># Directory with manually processed files. These are originally</span>
+    <span class="c1"># output of this module, then have been manually processed, and</span>
+    <span class="c1"># can be read again and compared/further analysed.</span>
+    <span class="s1">&#39;manualdir&#39;</span><span class="p">:</span> <span class="s1">&#39;Processed_files&#39;</span><span class="p">,</span>
+    <span class="c1"># ending of processed files</span>
+    <span class="s1">&#39;manualend&#39;</span><span class="p">:</span> <span class="s1">&#39;final.xlsx&#39;</span><span class="p">,</span>
+    <span class="c1"># For recalibration we read the dates of runs from here.</span>
+    <span class="s1">&#39;seqfile&#39;</span><span class="p">:</span> <span class="s1">&#39;Sequence_list_LTP_screen_2015.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># This is an output file to export the absorbance based</span>
+    <span class="c1"># protein quantities for all proteins and fractions.</span>
+    <span class="s1">&#39;pptablef&#39;</span><span class="p">:</span> <span class="s1">&#39;proteins_by_fraction.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># Defines abbreviations of each lipid names and the keywords</span>
+    <span class="c1"># to identify these in SwissLipids and LipidMaps.</span>
+    <span class="s1">&#39;lipnamesf&#39;</span><span class="p">:</span> <span class="s1">&#39;lipid_names_v2.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># Literature curated data about known binding properties of LTPs.</span>
+    <span class="s1">&#39;bindpropf&#39;</span><span class="p">:</span> <span class="s1">&#39;binding_properties.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># Lipid classes properties and database IDsb</span>
+    <span class="s1">&#39;lipipropf&#39;</span><span class="p">:</span> <span class="s1">&#39;lipid_properties.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># The file with recalibration values from Marco.</span>
+    <span class="s1">&#39;recalfile&#39;</span><span class="p">:</span> <span class="s1">&#39;Recalibration_values_LTP.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># If the recalibration performed by this module, we read the</span>
+    <span class="c1"># expected values of the standards from this file.</span>
+    <span class="s1">&#39;metabsf&#39;</span><span class="p">:</span> <span class="s1">&#39;Metabolites.xlsx&#39;</span><span class="p">,</span>
+    <span class="c1"># Simple list with lipid binding domains, names and UniProt</span>
+    <span class="c1"># IDs of all lipid transfer proteins.</span>
+    <span class="s1">&#39;ltplistf&#39;</span><span class="p">:</span> <span class="s1">&#39;ltplist.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># Tolerate numpy warnings, or raise them as errors.</span>
+    <span class="c1"># Useful for debugging.</span>
+    <span class="s1">&#39;tolerate_numpy_warnings&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># URLs of external databases.</span>
+    <span class="c1"># SwissLipids: calculated masses of hundreds of thousands</span>
+    <span class="c1"># of lipid species.</span>
+    <span class="s1">&#39;swisslipids_url&#39;</span><span class="p">:</span> <span class="s1">&#39;http://www.swisslipids.org/php/&#39;</span>\
+        <span class="s1">&#39;export.php?action=get&amp;file=lipids.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># Experimentally verified masses of few tens of thousands lipids.</span>
+    <span class="s1">&#39;lipidmaps_url&#39;</span><span class="p">:</span> <span class="s1">&#39;http://www.lipidmaps.org/resources/downloads/&#39;</span>\
+        <span class="s1">&#39;LMSDFDownload12Dec17.tar.gz&#39;</span><span class="p">,</span>
+    <span class="c1"># The filename to use after extracting the archice above.</span>
+    <span class="s1">&#39;lipidmaps_fname&#39;</span><span class="p">:</span> <span class="s1">&#39;LMSDFDownload12Dec17/&#39;</span>\
+        <span class="s1">&#39;LMSDFDownload12Dec17FinalAll.sdf&#39;</span><span class="p">,</span>
+    <span class="c1"># ComPPI: protein subcellular localization data.</span>
+    <span class="s1">&#39;comppi_url&#39;</span><span class="p">:</span> <span class="s1">&#39;http://comppi.linkgroup.hu/downloads&#39;</span><span class="p">,</span>
+    <span class="c1"># Gene Ontology.</span>
+    <span class="s1">&#39;goa_url&#39;</span><span class="p">:</span> <span class="s1">&#39;ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/</span><span class="si">%s</span><span class="s1">/&#39;</span>\
+        <span class="s1">&#39;goa_</span><span class="si">%s</span><span class="s1">.gaf.gz&#39;</span><span class="p">,</span>
+    <span class="c1"># Gene Ontology.</span>
+    <span class="s1">&#39;quickgo_url&#39;</span><span class="p">:</span> <span class="s1">&#39;http://www.ebi.ac.uk/QuickGO/GAnnotation?format=tsv&amp;&#39;</span>\
+        <span class="s1">&#39;limit=-1</span><span class="si">%s</span><span class="s1">&amp;termUse=</span><span class="si">%s</span><span class="s1">&amp;tax=</span><span class="si">%u</span><span class="s1">&amp;col=proteinID,goID,goName,aspect&#39;</span><span class="p">,</span>
+    <span class="c1"># PubChem webservice URL to query molecule properties</span>
+    <span class="c1"># see details here:</span>
+    <span class="c1"># https://pubchem.ncbi.nlm.nih.gov/help.html#Glossary</span>
+    <span class="s1">&#39;pubchem_url&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;https://pubchem.ncbi.nlm.nih.gov/&#39;</span>
+        <span class="s1">&#39;rest/pug/compound/cid/</span><span class="si">%s</span><span class="s1">/property/&#39;</span>
+        <span class="s1">&#39;TPSA,&#39;</span> <span class="c1"># polar surface area in square angstroms</span>
+        <span class="s1">&#39;XLogP,&#39;</span> <span class="c1"># water octanol partitioning coefficient</span>
+        <span class="s1">&#39;Complexity,&#39;</span> <span class="c1"># Bertz/Hendrickson/Ihlenfeldt formula</span>
+        <span class="s1">&#39;HBondDonorCount,&#39;</span> <span class="c1"># O, N, P, S with hydrogene</span>
+        <span class="s1">&#39;HBondAcceptorCount,&#39;</span> <span class="c1"># O, N, P, S with lone pair</span>
+        <span class="s1">&#39;HeavyAtomCount,&#39;</span> <span class="c1"># non-H atom count</span>
+        <span class="s1">&#39;RotatableBondCount/XML&#39;</span><span class="p">),</span> <span class="c1"># rotatable bondsgg</span>
+    <span class="c1"># Manually curated data by Charlotte about localization</span>
+    <span class="c1"># and membrane composition.</span>
+    <span class="s1">&#39;localizationf&#39;</span><span class="p">:</span> <span class="s1">&#39;subcellular_localisation_and_binding.xlsx&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;membranesf&#39;</span><span class="p">:</span> <span class="s1">&#39;membranes_lipid_composition.xlsx&#39;</span><span class="p">,</span>
+    <span class="c1"># Original MS2 fragment lists manually compiled by Marco.</span>
+    <span class="c1"># One for positive and one for negative mode.</span>
+    <span class="s1">&#39;pfragmentsfile&#39;</span><span class="p">:</span> <span class="s1">&#39;lipid_fragments_positive_mode_v11d.txt&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;nfragmentsfile&#39;</span><span class="p">:</span> <span class="s1">&#39;lipid_fragments_negative_mode_v11d.txt&#39;</span><span class="p">,</span>
+    <span class="c1"># This is a file to output protein profiles to.</span>
+    <span class="c1"># Serves only the purpose of checking for errors.</span>
+    <span class="s1">&#39;pptable_file&#39;</span><span class="p">:</span> <span class="s1">&#39;protein_profiles.txt&#39;</span><span class="p">,</span>
+    <span class="c1"># Cache files. At certain points this module saves and reloads</span>
+    <span class="c1"># data from pickles, so it don&#39;t need to reprocess everything</span>
+    <span class="c1"># every time. Although if something changed, or something</span>
+    <span class="c1"># goes wrong, you might need to delete these to ensure</span>
+    <span class="c1"># everything processed by the most recent code.</span>
+    <span class="s1">&#39;featurescache&#39;</span><span class="p">:</span> <span class="s1">&#39;features.pickle&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;pprofcache&#39;</span><span class="p">:</span> <span class="s1">&#39;pprofiles_raw.pickle&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;abscache&#39;</span><span class="p">:</span> <span class="s1">&#39;absorbances.pickle&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;flimcache&#39;</span><span class="p">:</span> <span class="s1">&#39;fraclims.pickle&#39;</span><span class="p">,</span>
+    <span class="c1"># The directory with all MS2 MGF files. If not set, the MGF files</span>
+    <span class="c1"># will be searched under the directory of each protein.</span>
+    <span class="s1">&#39;ms2dir&#39;</span><span class="p">:</span> <span class="s1">&#39;MGFfiles&#39;</span><span class="p">,</span>
+    <span class="c1"># Directory with manually processed `golden standards`</span>
+    <span class="c1"># from Marco.</span>
+    <span class="s1">&#39;marco_dir&#39;</span><span class="p">:</span> <span class="s1">&#39;marco&#39;</span><span class="p">,</span>
+    <span class="c1"># table with manually set protein ratios among</span>
+    <span class="c1"># many other columns</span>
+    <span class="s1">&#39;manual_ppratios_xls&#39;</span><span class="p">:</span> <span class="s1">&#39;Proteins_Overview_05.xlsx&#39;</span><span class="p">,</span>
+    <span class="c1"># Columns to read from the manual ppratios XLS file.</span>
+    <span class="c1"># These were different at Antonella and Enric, so we</span>
+    <span class="c1"># need to set them here.</span>
+    <span class="c1">#&#39;manual_ppratios_xls_cols&#39;: [2, 4, 8, 9], # 03b</span>
+    <span class="s1">&#39;manual_ppratios_xls_cols&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">],</span> <span class="c1"># 05</span>
+    <span class="s1">&#39;auxcache&#39;</span><span class="p">:</span> <span class="s1">&#39;save.pickle&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;stdcachefile&#39;</span><span class="p">:</span> <span class="s1">&#39;calibrations.pickle&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;validscache&#39;</span><span class="p">:</span> <span class="s1">&#39;valids.pickle&#39;</span><span class="p">,</span>
+    <span class="c1"># Write a log about MS2 processing to this file.</span>
+    <span class="s1">&#39;ms2log&#39;</span><span class="p">:</span> <span class="s1">&#39;ms2identities.log&#39;</span><span class="p">,</span>
+    <span class="c1"># use the items only of these levels from SwissLipids.</span>
+    <span class="c1"># Useful to avoid flooding data with redundant subspecies.</span>
+    <span class="s1">&#39;swl_levels&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Species&#39;</span><span class="p">],</span>
+    <span class="c1"># the source of recalibration: either from Marco, or calculated</span>
+    <span class="c1"># by this software by processing raw data from the standards.</span>
+    <span class="s1">&#39;recal_source&#39;</span><span class="p">:</span> <span class="s1">&#39;marco&#39;</span><span class="p">,</span>
+    <span class="c1"># at Antonella, these proteins come before our fractions, or</span>
+    <span class="c1"># maybe in A9, so the further fractions we can consider void</span>
+    <span class="c1"># and we can use their average to reduce the background of the</span>
+    <span class="c1"># absorbances of the same fractions of other proteins.</span>
+    <span class="s1">&#39;background_proteins&#39;</span><span class="p">:</span> <span class="nb">set</span><span class="p">([</span><span class="s1">&#39;BNIPL&#39;</span><span class="p">,</span> <span class="s1">&#39;OSBP&#39;</span><span class="p">,</span> <span class="s1">&#39;SEC14L1&#39;</span><span class="p">]),</span>
+    <span class="c1"># the minimum total intensities (average areas) of MS1 features</span>
+    <span class="c1"># in negative and positive mode. Below these values features are</span>
+    <span class="c1"># not highlighted and not included on the `best` sheet in the</span>
+    <span class="c1"># output tables unless they have MS2 data.</span>
+    <span class="s1">&#39;aa_threshold&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="mf">30000.0</span><span class="p">,</span>
+        <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="mf">150000.0</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;fr_offsets&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">],</span>          <span class="c1"># at Enric this is [0.0],</span>
+                                    <span class="c1"># at Antonella [0.010, 0.045]</span>
+    <span class="s1">&#39;abs_cols&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="c1"># this can be [1, 3, 5] if we want to read</span>
+                        <span class="c1"># also the 260 and 215 nm UV profiles...</span>
+    <span class="s1">&#39;fraclims_from_sec&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="c1"># read the fraction limits from</span>
+                                <span class="c1"># the same files as SEC profiles</span>
+                                <span class="c1"># or simply from `fractions.csv`</span>
+    <span class="s1">&#39;pp_do_correction&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="c1"># bypass corrections</span>
+    <span class="s1">&#39;pcont_fracs_from_abs&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="c1"># determine protein containing</span>
+                                    <span class="c1"># fractions from the absorbances</span>
+                                    <span class="c1"># or read from separate file</span>
+    <span class="c1"># allow features to have missing values in first or last</span>
+    <span class="c1"># protein containing fractions</span>
+    <span class="s1">&#39;permit_profile_end_nan&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># This is the maximum extent we can broaden the band</span>
+    <span class="c1"># when selecting the features with intensity ratios</span>
+    <span class="c1"># closest to the protein ratio. This is used as a</span>
+    <span class="c1"># ratio-like limit, e.g. if the number here is 0.25,</span>
+    <span class="c1"># and the protein ratio is 1.0, then the lower limit</span>
+    <span class="c1"># will be 1.0 * 0.25 = 0.25 and the upper</span>
+    <span class="c1"># 1.0 / 0.25 * 1.0 = 4.0.</span>
+    <span class="s1">&#39;peak_ratio_score_max_bandwidth&#39;</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">,</span>
+    <span class="s1">&#39;peak_ratio_score_optimal_bandwidth&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="c1"># This is the preferred number of features to</span>
+    <span class="c1"># calculate the mean and SD in protein ratio score.</span>
+    <span class="c1"># It means we try to select this number of features</span>
+    <span class="c1"># with intensity ratio closest to the protein ratio,</span>
+    <span class="c1"># and use their mean and SD to estimate the fit of </span>
+    <span class="c1"># other features. The lower the number the closer</span>
+    <span class="c1"># features will be selected, but it should be enough</span>
+    <span class="c1"># large to make the SD a meaningful metric. Similarly</span>
+    <span class="c1"># we can set a minumum population, below this it</span>
+    <span class="c1"># really does not make sense to calculate an SD.</span>
+    <span class="s1">&#39;peak_ratio_score_optimal_population&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="s1">&#39;peak_ratio_score_still_good_population&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+    <span class="s1">&#39;peak_ratio_score_minimal_population&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="c1"># Use the adaptive method at the peak ratio score</span>
+    <span class="c1"># calculation. This means to iteratively broaden the</span>
+    <span class="c1"># band at selecting the features with intensity ratios</span>
+    <span class="c1"># closest to the protein ratio, either until we have</span>
+    <span class="c1"># the optimal population of features, or we reach the</span>
+    <span class="c1"># maximum bandwith. If no features found this way,</span>
+    <span class="c1"># a warning message will be displayed.</span>
+    <span class="s1">&#39;adaptive_peak_ratio_score&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="c1"># Read externally determined protein peak ratios from file</span>
+    <span class="c1"># these were provided by Marco and used for Antonella`s</span>
+    <span class="c1"># data analysis</span>
+    <span class="s1">&#39;use_manual_ppratios&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="c1"># omg, I don&#39;t remember what it is</span>
+    <span class="s1">&#39;use_last_ratio&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="c1"># for calculation of peak ratio score, take all intensity ratios</span>
+    <span class="c1"># within this range of tolerance around the protein ratio.</span>
+    <span class="c1"># E.g if the protein ratio is 0.6, then the lower threshold</span>
+    <span class="c1"># will be 0.6 * 0.5 = 0.3, and the upper 1 / 0.5 * 0.6 = 1.2;</span>
+    <span class="c1"># Then the standard deviation of all intensity ratios within</span>
+    <span class="c1"># this range is calculated from both positive and negative</span>
+    <span class="c1"># features, and for each feature and for each pairs of fractions</span>
+    <span class="c1"># the difference between its intensity ratio divided by the SD</span>
+    <span class="c1"># results the `peak ratio score`. This is calculated for all</span>
+    <span class="c1"># pairs of protein containing fractions, and we take their</span>
+    <span class="c1"># mean if more than 2 fractions are available.</span>
+    <span class="s1">&#39;peak_ratio_range&#39;</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">,</span>
+    <span class="c1"># The threshold below the peak ratio scores considered good.</span>
+    <span class="c1"># We set a cut-off e.g. for highlighting with green in the</span>
+    <span class="c1"># output tables, but otherwise it is a continuous measure</span>
+    <span class="c1"># of goodness.</span>
+    <span class="s1">&#39;peak_ratio_score_threshold&#39;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="c1"># constant fraction layout in Antonella&#39;s screening</span>
+    <span class="c1"># not used at Enric, is kind of &quot;deprecated&quot;</span>
+    <span class="s1">&#39;fixed_fraction_layout&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;fracs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;A9&#39;</span><span class="p">,</span> <span class="s1">&#39;A10&#39;</span><span class="p">,</span> <span class="s1">&#39;A11&#39;</span><span class="p">,</span> <span class="s1">&#39;A12&#39;</span><span class="p">,</span> <span class="s1">&#39;B1&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;all_fracs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;A5&#39;</span><span class="p">,</span> <span class="s1">&#39;A6&#39;</span><span class="p">,</span> <span class="s1">&#39;A7&#39;</span><span class="p">,</span> <span class="s1">&#39;A8&#39;</span><span class="p">,</span> <span class="s1">&#39;A9&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;A10&#39;</span><span class="p">,</span> <span class="s1">&#39;A11&#39;</span><span class="p">,</span> <span class="s1">&#39;A12&#39;</span><span class="p">,</span> <span class="s1">&#39;B1&#39;</span><span class="p">],</span>
+    <span class="c1"># constant fraction layout in Antonella&#39;s screening</span>
+    <span class="c1"># not used at Enric, is kind of &quot;deprecated&quot;</span>
+    <span class="c1"># uppercase version with leading zeros</span>
+    <span class="s1">&#39;fracsU&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;A09&#39;</span><span class="p">,</span> <span class="s1">&#39;A10&#39;</span><span class="p">,</span> <span class="s1">&#39;A11&#39;</span><span class="p">,</span> <span class="s1">&#39;A12&#39;</span><span class="p">,</span> <span class="s1">&#39;B01&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;pp_minratio&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="c1"># at Antonella&#39;s screening a fraction which is considered</span>
+    <span class="c1"># void, so adjusting the zero of the absorbance profiles</span>
+    <span class="c1"># to this fraction</span>
+    <span class="c1"># see method ``pp_baseline_correction()``</span>
+    <span class="s1">&#39;basefrac&#39;</span><span class="p">:</span> <span class="s1">&#39;A5&#39;</span><span class="p">,</span>
+    <span class="c1"># the tolerance when looking up MS1 m/z values in databases</span>
+    <span class="c1"># ppm</span>
+    <span class="s1">&#39;ms1_tolerance&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="c1"># the tolerance when looking up MS2 fragment masses ppm</span>
+    <span class="s1">&#39;ms2_tolerance&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="c1"># tolarance at matching MS1 peaks against precursors in</span>
+    <span class="c1"># mgf files with MS2 spectra</span>
+    <span class="s1">&#39;precursor_match_tolerance&#39;</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span>
+    <span class="c1"># the tolerance at identifying features in standards ppm</span>
+    <span class="s1">&#39;std_tolerance&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="c1"># MS2 precursors must have their charges determined</span>
+    <span class="s1">&#39;ms2_precursor_charge&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="c1"># Use only fragments from Marco&#39;s lists (note: the series)</span>
+    <span class="c1"># are still programmatically generated and their m/z values</span>
+    <span class="c1"># calculated automatically), or use an extended fragment list</span>
+    <span class="c1"># constructed by Denes (note: this might contain more false</span>
+    <span class="c1"># positives, i.e. fragments which do not occure, or are iso-</span>
+    <span class="c1"># baric with others, resulting unnecessary noise; but some-</span>
+    <span class="c1"># times these annotations still might help to have a clue</span>
+    <span class="c1"># what is there in cases where otherwise you would see only</span>
+    <span class="c1"># unknown fragments)</span>
+    <span class="s1">&#39;only_marcos_fragments&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Expect only certain adducts at certain lipid categories</span>
+    <span class="c1"># or assume any lipid may form any type of adduct.</span>
+    <span class="s1">&#39;adducts_constraints&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="c1"># In output tables construct the lipid names programmatically</span>
+    <span class="c1"># or copy the ones from the database.</span>
+    <span class="s1">&#39;marco_lipnames_from_db&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Use the average area values from the `PEAK` software</span>
+    <span class="c1"># output, or recalculate them here using the intensity</span>
+    <span class="c1"># values of features across all fractions</span>
+    <span class="s1">&#39;use_original_average_area&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Overwrite UV absorbance based protein quantities with</span>
+    <span class="c1"># those manually acquired from SDS PAGE when these are</span>
+    <span class="c1"># available</span>
+    <span class="s1">&#39;use_gel_profiles&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Use slope_filter (by Enric) for the final</span>
+    <span class="c1"># selection of profiles</span>
+    <span class="s1">&#39;slope_profile_selection&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># In slope_filter, if there are 2 highest fractions</span>
+    <span class="c1"># with approximately equal protein content,</span>
+    <span class="c1"># we use this range of tolerance to filter</span>
+    <span class="c1"># the intensity ratios between them. E.g if this number is</span>
+    <span class="c1"># 0.75, ratios between 0.75 and 1.33 will be accepted.</span>
+    <span class="s1">&#39;slope_equal_fractions_ratio&#39;</span><span class="p">:</span> <span class="mf">0.75</span><span class="p">,</span>
+    <span class="c1"># When we have only the descending parts of the profiles</span>
+    <span class="c1"># in the measured fractions, we set this additional</span>
+    <span class="c1"># constraint to avoid include everything descending</span>
+    <span class="c1"># and select those which still fit better the protein</span>
+    <span class="s1">&#39;slope_descending_slope_diff_tolerance&#39;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span>
+    <span class="c1"># Do not use the fractions marked as wrong</span>
+    <span class="c1"># at comparing protein and intensity profiles</span>
+    <span class="s1">&#39;filter_wrong_fractions&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># The MS2 retention time values must be within the RT</span>
+    <span class="c1"># range of the feature detected in MS1, otherwise</span>
+    <span class="c1"># will be dropped</span>
+    <span class="s1">&#39;ms2_rt_within_range&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="c1"># Consider the MS2 scans from only those fractions</span>
+    <span class="c1"># containing the protein, or from all available fractions</span>
+    <span class="s1">&#39;ms2_only_protein_fractions&#39;</span> <span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="c1"># Above this threshold we consider the MS2 spectrum to not</span>
+    <span class="c1"># belong to the protein and highlight with red in the</span>
+    <span class="c1"># output tables.</span>
+    <span class="s1">&#39;deltart_threshold&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="c1"># Don&#39;t know what it is for</span>
+    <span class="s1">&#39;uniprots&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s1">&#39;mgf_example&#39;</span><span class="p">:</span> <span class="s1">&#39;example_mgf__2015-06-28_GLTPD1_pos_A12.mgf&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;mgf_neg_examples&#39;</span><span class="p">:</span> <span class="s1">&#39;neg_examples.mgf&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;mgf_pos_examples&#39;</span><span class="p">:</span> <span class="s1">&#39;pos_examples.mgf&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;peaks_example&#39;</span><span class="p">:</span> <span class="s1">&#39;peaks_example.csv&#39;</span><span class="p">,</span>
+    <span class="c1"># an MFQL example file</span>
+    <span class="s1">&#39;mfql_example&#39;</span><span class="p">:</span> <span class="s1">&#39;Neg_bovine_heart_PE.mfql&#39;</span><span class="p">,</span>
+    <span class="c1"># logarithm base for matching chain fragment intensities</span>
+    <span class="c1"># this determines the tolerance and represents fold difference</span>
+    <span class="s1">&#39;chain_fragment_instensity_ratios_logbase&#39;</span><span class="p">:</span> <span class="mf">1.5</span><span class="p">,</span>
+    <span class="c1"># if no expected ratios provided still require the ratios to be even</span>
+    <span class="c1"># at glycero(phospho)lipids?</span>
+    <span class="s1">&#39;even_chain_fragment_intensity_ratios_gl_gpl&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># if no expected ratios provided still require the ratios to be even</span>
+    <span class="c1"># at aphingolipids?</span>
+    <span class="s1">&#39;even_chain_fragment_intensity_ratios_sl&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="c1"># at MS2 identification, add chain details</span>
+    <span class="c1"># (fragment rank, intensity and type) to the MS2Identity object</span>
+    <span class="c1"># turning this off makes MS2 spectra analysis faster</span>
+    <span class="s1">&#39;ms2_scan_chain_details&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1"># Method names to convert between adduct and exact masses</span>
+    <span class="s1">&#39;ad2ex&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;[M+H]+&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_h&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_nh4&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_na&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M-H2O+H]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_oh&#39;</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;[M-H]-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_h&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+HCOO]-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_fo&#39;</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;[M-2H]2-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_2h&#39;</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;[M-3H]3-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_3h&#39;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="c1"># method names to convert between exact and adduct masses</span>
+    <span class="s1">&#39;ex2ad&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;[M+H]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_h&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_nh4&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">:</span> <span class="s1">&#39;add_na&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M-H2O+H]+&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_oh&#39;</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;[M-H]-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_h&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+HCOO]-&#39;</span><span class="p">:</span> <span class="s1">&#39;add_fo&#39;</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;[M-2H]2-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_2h&#39;</span>
+            <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{},</span>
+            <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;[M-3H]3-&#39;</span><span class="p">:</span> <span class="s1">&#39;remove_3h&#39;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="c1"># metrics to use for determining similarity of protein</span>
+    <span class="c1"># and intensity profiles; these were attempts, and not</span>
+    <span class="c1"># used any more, are &quot;deprecated&quot;</span>
+    <span class="s1">&#39;metrics&#39;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;Kendall</span><span class="se">\&#39;</span><span class="s1">s tau&#39;</span><span class="p">,</span> <span class="s1">&#39;ktv&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;Spearman corr.&#39;</span><span class="p">,</span> <span class="s1">&#39;spv&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;Pearson corr.&#39;</span><span class="p">,</span> <span class="s1">&#39;pev&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;Euclidean dist.&#39;</span><span class="p">,</span> <span class="s1">&#39;euv&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;Robust corr.&#39;</span><span class="p">,</span> <span class="s1">&#39;rcv&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;Goodman-Kruskal</span><span class="se">\&#39;</span><span class="s1">s gamma&#39;</span><span class="p">,</span> <span class="s1">&#39;gkv&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;Difference&#39;</span><span class="p">,</span> <span class="s1">&#39;dfv&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="p">],</span>
+    <span class="c1"># adducts used by default</span>
+    <span class="s1">&#39;adducts_default&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mi">1</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;[M-H]-&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+HCOO]-&#39;</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="mi">1</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;[M+H]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="c1"># additional constraints for adduct lookups at various species</span>
+    <span class="c1"># e.g. by default `[M-H2O+H]+` is not used but at Vitamin A we use it:</span>
+    <span class="s1">&#39;adduct_constraints&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;pos&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;VA&#39;</span><span class="p">):</span> <span class="p">{</span>
+                <span class="s1">&#39;[M+H]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M-H2O+H]+&#39;</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Hex&#39;</span><span class="p">,)):</span> <span class="p">{</span>
+                <span class="s1">&#39;[M+H]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M-H2O+H]+&#39;</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Hex2&#39;</span><span class="p">,)):</span> <span class="p">{</span>
+                <span class="s1">&#39;[M+H]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M-H2O+H]+&#39;</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;SHex&#39;</span><span class="p">,)):</span> <span class="p">{</span>
+                <span class="s1">&#39;[M+H]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M-H2O+H]+&#39;</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;SHex2&#39;</span><span class="p">,)):</span> <span class="p">{</span>
+                <span class="s1">&#39;[M+H]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M+Na]+&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;[M-H2O+H]+&#39;</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;neg&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">in_basedir</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;fractionsf&#39;</span><span class="p">,</span> <span class="s1">&#39;ppfracf&#39;</span><span class="p">,</span> <span class="s1">&#39;seqfile&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;pptablef&#39;</span><span class="p">,</span> <span class="s1">&#39;lipnamesf&#39;</span><span class="p">,</span> <span class="s1">&#39;bindpropf&#39;</span><span class="p">,</span> <span class="s1">&#39;metabsf&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;featurescache&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;auxcache&#39;</span><span class="p">,</span> <span class="s1">&#39;stdcachefile&#39;</span><span class="p">,</span> <span class="s1">&#39;validscache&#39;</span><span class="p">,</span> <span class="s1">&#39;marco_dir&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;abscache&#39;</span><span class="p">,</span> <span class="s1">&#39;pptable_file&#39;</span><span class="p">,</span> <span class="s1">&#39;recalfile&#39;</span><span class="p">,</span> <span class="s1">&#39;manual_ppratios_xls&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;manualdir&#39;</span><span class="p">,</span> <span class="s1">&#39;ltplistf&#39;</span><span class="p">,</span> <span class="s1">&#39;flimcache&#39;</span><span class="p">,</span> <span class="s1">&#39;ppsecdir&#39;</span><span class="p">,</span> <span class="s1">&#39;gelprofdir&#39;</span><span class="p">]</span>
+
+<span class="n">in_datadir</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;pfragmentsfile&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;nfragmentsfile&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;lipnamesf&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;mgf_example&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;peaks_example&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;mfql_example&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">in_mgfdir</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;mgf_neg_examples&#39;</span><span class="p">,</span> <span class="s1">&#39;mgf_pos_examples&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<div class="viewcode-block" id="reset_all"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.settings.reset_all">[docs]</a><span class="k">def</span> <span class="nf">reset_all</span><span class="p">():</span>
+    
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;Settings&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">_defaults</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+    
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_defaults</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        
+        <span class="n">val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">defaults</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">in_datadir</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">common</span><span class="o">.</span><span class="n">ROOT</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">in_mgfdir</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">common</span><span class="o">.</span><span class="n">ROOT</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;ms2_examples&#39;</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+    
+    <span class="nb">globals</span><span class="p">()[</span><span class="s1">&#39;settings&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span></div>
+
+<div class="viewcode-block" id="setup"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.settings.setup">[docs]</a><span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    
+    <span class="k">for</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.settings.get">[docs]</a><span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+    
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_default"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.settings.get_default">[docs]</a><span class="k">def</span> <span class="nf">get_default</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+    
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">defaults</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">defaults</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="reset"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.settings.reset">[docs]</a><span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+    
+    <span class="n">setup</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">get_default</span><span class="p">(</span><span class="n">param</span><span class="p">))</span></div>
+
+<span class="n">defaults</span> <span class="o">=</span> <span class="n">common</span><span class="o">.</span><span class="n">_const</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">_defaults</span><span class="p">):</span>
+    
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">defaults</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+<span class="n">reset_all</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

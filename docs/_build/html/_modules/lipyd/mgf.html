@@ -1,0 +1,579 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lipyd.mgf &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lipyd.mgf</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lipyd.mgf</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="c1">#</span>
+<span class="c1">#  This file is part of the `lipyd` python module</span>
+<span class="c1">#</span>
+<span class="c1">#  Copyright (c) 2015-2018 - EMBL</span>
+<span class="c1">#</span>
+<span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
+<span class="c1">#</span>
+<span class="c1">#  This code is not for public use.</span>
+<span class="c1">#  Please do not redistribute.</span>
+<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#</span>
+<span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">imp</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">lipyd.lookup</span> <span class="k">as</span> <span class="nn">lookup</span>
+<span class="kn">import</span> <span class="nn">lipyd.session</span> <span class="k">as</span> <span class="nn">session</span>
+<span class="kn">import</span> <span class="nn">lipyd.settings</span> <span class="k">as</span> <span class="nn">settings</span>
+
+
+<div class="viewcode-block" id="MgfReader"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader">[docs]</a><span class="k">class</span> <span class="nc">MgfReader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="n">stRrtinseconds</span> <span class="o">=</span> <span class="s1">&#39;RTINSECONDS&#39;</span>
+    <span class="n">stRtitle</span> <span class="o">=</span> <span class="s1">&#39;TITLE&#39;</span>
+    <span class="n">stRbe</span> <span class="o">=</span> <span class="s1">&#39;BE&#39;</span>
+    <span class="n">stRen</span> <span class="o">=</span> <span class="s1">&#39;EN&#39;</span>
+    <span class="n">stRch</span> <span class="o">=</span> <span class="s1">&#39;CH&#39;</span>
+    <span class="n">stRpepmass</span> <span class="o">=</span> <span class="s1">&#39;PEPMASS&#39;</span>
+    <span class="n">stRempty</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">stRcharge</span> <span class="o">=</span> <span class="s1">&#39;CHARGE&#39;</span>
+    <span class="n">reln</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)[&quot;]?$&#39;</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">fname</span><span class="p">,</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">rt_tolerance</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">drift</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provides methods for looking up MS2 scans from an MGF file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname</span>  <span class="o">=</span> <span class="n">fname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span>  <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charge</span> <span class="o">=</span> <span class="n">charge</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rt_tolerance</span> <span class="o">=</span> <span class="n">rt_tolerance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drift</span>  <span class="o">=</span> <span class="n">drift</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get_log</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ms2_within_range</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ms2_within_range&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">tolerance</span> <span class="ow">or</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;precursor_match_tolerance&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+    
+<div class="viewcode-block" id="MgfReader.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__module__</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">modname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">imp</span><span class="o">.</span><span class="n">reload</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MgfReader.index"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader.index">[docs]</a>    <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Indexing offsets in one MS2 MGF file.</span>
+<span class="sd">        </span>
+<span class="sd">        Columns:</span>
+<span class="sd">            -- pepmass</span>
+<span class="sd">            -- intensity</span>
+<span class="sd">            -- retention time</span>
+<span class="sd">            -- scan num</span>
+<span class="sd">            -- offset in file</span>
+<span class="sd">            -- fraction num</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">features</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">cap_next</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">,</span> <span class="mi">8192</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">fp</span><span class="p">:</span>
+                
+                <span class="n">l</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">and</span>
+                    <span class="ow">not</span> <span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span>
+                    <span class="ow">not</span> <span class="n">l</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">stRbe</span> <span class="ow">and</span>
+                    <span class="ow">not</span> <span class="n">l</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">stRen</span>
+                <span class="p">):</span>
+                    
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">l</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">stRch</span><span class="p">:</span>
+                        
+                        <span class="k">try</span><span class="p">:</span>
+                            
+                            <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reln</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+                            
+                        <span class="k">except</span><span class="p">:</span>
+                            
+                            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                                <span class="s1">&#39;Line in MGF file `</span><span class="si">%s</span><span class="s1">`&#39;</span>
+                                <span class="s1">&#39;could not be processed: &#39;</span>
+                                <span class="s1">&#39;</span><span class="se">\n\t</span><span class="s1">`</span><span class="si">%s</span><span class="s1">`</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+                            <span class="p">)</span>
+                            <span class="k">continue</span>
+                        
+                        <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">stRtitle</span><span class="p">:</span>
+                            
+                            <span class="n">scan</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        
+                        <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">stRrtinseconds</span><span class="p">:</span>
+                            
+                            <span class="n">rtime</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mf">60.0</span>
+                        
+                        <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">stRpepmass</span><span class="p">:</span>
+                            
+                            <span class="n">pepmass</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                            <span class="n">intensity</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="mf">0.0</span>
+                                    <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">stRempty</span> <span class="k">else</span>
+                                <span class="nb">float</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                            <span class="p">)</span>
+                            
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                
+                                <span class="n">cap_next</span> <span class="o">=</span> <span class="kc">True</span>
+                        
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">_charge</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">8</span> <span class="k">else</span> <span class="kc">None</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">_charge</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">charge</span><span class="p">:</span>
+                            <span class="n">cap_next</span> <span class="o">=</span> <span class="kc">True</span>
+                
+                <span class="k">elif</span> <span class="n">cap_next</span><span class="p">:</span>
+                    
+                    <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">([</span>
+                        <span class="n">pepmass</span><span class="p">,</span> <span class="c1"># precursor ion mass</span>
+                        <span class="n">intensity</span><span class="p">,</span> <span class="c1"># intensity</span>
+                        <span class="n">rtime</span><span class="p">,</span> <span class="c1"># retention time</span>
+                        <span class="n">scan</span><span class="p">,</span> <span class="c1"># scan ID</span>
+                        <span class="n">offset</span><span class="p">,</span> <span class="c1"># byte offset in file</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="c1"># fraction ID</span>
+                    <span class="p">])</span>
+                    <span class="c1"># reset all values</span>
+                    <span class="n">scan</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">rtime</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">intensity</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">pepmass</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">_charge</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">cap_next</span> <span class="o">=</span> <span class="kc">False</span>
+                
+                <span class="n">offset</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        
+        <span class="c1"># sorted by precursor mass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mgfindex</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="nb">sorted</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">object</span>
+        <span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">scan_index</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mgfindex</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span> <span class="c1"># scan indices</span>
+            <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span> <span class="c1"># row numbers</span>
+        <span class="p">))</span></div>
+    
+<div class="viewcode-block" id="MgfReader.lookup"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader.lookup">[docs]</a>    <span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mz</span><span class="p">,</span> <span class="n">rt</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Looks up an MS1 m/z and returns the indices of MS2 scans in the</span>
+<span class="sd">        MGF file.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns 2 numpy arrays of the same length: first one with the indices,</span>
+<span class="sd">        second one with the RT differences.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">msg</span><span class="p">(</span>
+                <span class="s1">&#39;Recalibrated m/z: </span><span class="si">%.08f</span><span class="s1">; drift = </span><span class="si">%.08f</span><span class="s1">; &#39;</span>
+                <span class="s1">&#39;measured m/z: </span><span class="si">%.08f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">drift</span><span class="p">,</span> <span class="n">mz</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">drift</span><span class="p">)</span>
+            <span class="p">)</span>
+        
+        <span class="n">rt</span> <span class="o">=</span> <span class="n">rt</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">mz_uncorr</span> <span class="o">=</span> <span class="n">mz</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">drift</span>
+        
+        <span class="n">idx</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lookup</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mgfindex</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">mz_uncorr</span><span class="p">,</span>
+            <span class="n">tolerance</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span>
+        <span class="p">))</span>
+        <span class="n">rtdiff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">mgfindex</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">rt</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">msg</span><span class="p">(</span>
+                <span class="s1">&#39;Looking up MS1 m/z </span><span class="si">%.08f</span><span class="s1">. &#39;</span>
+                <span class="s1">&#39;MS2 scans with matching precursor mass: </span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">mz_uncorr</span><span class="p">,</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms2_within_range</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">rt</span><span class="p">):</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">msg</span><span class="p">(</span>
+                    <span class="s1">&#39;No MS1 RT provided, could not check RT &#39;</span>
+                    <span class="s1">&#39;difference of MS2 scans.&#39;</span>
+                <span class="p">)</span>
+            
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span><span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">rtdiff</span><span class="p">),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">rtdiff</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">rt_tolerance</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+            
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">msg</span><span class="p">(</span>
+                <span class="s1">&#39;RT range: </span><span class="si">%.03f</span><span class="s1">--</span><span class="si">%.03f</span><span class="s1">; &#39;</span>
+                <span class="s1">&#39;Matching MS2 scans within this range: </span><span class="si">%u</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">rtlower</span><span class="p">,</span>
+                    <span class="n">rtupper</span><span class="p">,</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">msg</span><span class="p">(</span><span class="s1">&#39;Not checking RT.&#39;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">idx</span><span class="p">,</span> <span class="n">rtdiff</span></div>
+    
+<div class="viewcode-block" id="MgfReader.lookup_scan_ids"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader.lookup_scan_ids">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_scan_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mz</span><span class="p">,</span> <span class="n">rt</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Same as `lookup` but returns scan ids instead of indices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">idx</span><span class="p">,</span> <span class="n">rtdiff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">rt</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">)</span>
+        
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">mgfindex</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx</span><span class="p">],</span> <span class="n">dtype</span> <span class="o">=</span> <span class="nb">int</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">ids</span><span class="p">,</span> <span class="n">rtdiff</span></div>
+    
+<div class="viewcode-block" id="MgfReader.get_scan"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader.get_scan">[docs]</a>    <span class="k">def</span> <span class="nf">get_scan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads MS2 fragment peaks from one scan.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns m/z&#39;s and intensities in 2 columns array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">scan</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_file</span><span class="p">()</span>
+        <span class="c1"># jumping to offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mgfindex</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">4</span><span class="p">]),</span> <span class="mi">0</span><span class="p">)</span>
+        
+        <span class="c1"># zero means no clue about charge</span>
+        <span class="n">charge</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="n">l</span><span class="p">[:</span><span class="mi">6</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">stRcharge</span><span class="p">:</span>
+                <span class="c1"># one chance to obtain the charge</span>
+                <span class="n">charge</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+                <span class="c1"># end of scan</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># reading fragment masses</span>
+                <span class="n">mi</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mi</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                
+                <span class="n">intensity</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">mi</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                
+                <span class="k">if</span> <span class="n">intensity</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                    
+                    <span class="n">scan</span><span class="o">.</span><span class="n">append</span><span class="p">([</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">mi</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="c1"># mass</span>
+                        <span class="n">intensity</span>     <span class="c1"># intensity</span>
+                    <span class="p">])</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">msg</span><span class="p">(</span>
+                <span class="s1">&#39;Read scan #</span><span class="si">%u</span><span class="s1"> from file `</span><span class="si">%s</span><span class="s1">`;&#39;</span>
+                <span class="s1">&#39;</span><span class="si">%u</span><span class="s1"> peaks retrieved.&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mgfindex</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">scan</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MgfReader.get_scans"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader.get_scans">[docs]</a>    <span class="k">def</span> <span class="nf">get_scans</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mz</span><span class="p">,</span> <span class="n">rt</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Looks up all scans for one precursor mass and RT, yields 2 column</span>
+<span class="sd">        arrays of MS2 m/z&#39;s and intensities and delta RTs.</span>
+<span class="sd">        </span>
+<span class="sd">        Calls `get_scan` for all indices returned by `lookup`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">idx</span><span class="p">,</span> <span class="n">rtdiff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="n">mz</span><span class="p">,</span> <span class="n">rt</span> <span class="o">=</span> <span class="n">rt</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">rtdiff</span><span class="p">):</span>
+            
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_scan</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">r</span></div>
+    
+<div class="viewcode-block" id="MgfReader.i_by_id"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader.i_by_id">[docs]</a>    <span class="k">def</span> <span class="nf">i_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scan_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the row number for one scan ID.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_index</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">scan_id</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="MgfReader.precursor_by_id"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader.precursor_by_id">[docs]</a>    <span class="k">def</span> <span class="nf">precursor_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scan_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the precursor ion mass by scan ID.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">i_by_id</span><span class="p">(</span><span class="n">scan_id</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mgfindex</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span></div>
+    
+<div class="viewcode-block" id="MgfReader.scan_by_id"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader.scan_by_id">[docs]</a>    <span class="k">def</span> <span class="nf">scan_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scan_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves a scan by its ID as used in the MGF file.</span>
+<span class="sd">        Scan ID is an integer number, the number of the scan in the sequence</span>
+<span class="sd">        of the whole experiment.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns the scan as 2 columns array by `get_scan` or `None` if the</span>
+<span class="sd">        scan ID could not be found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">i_by_id</span><span class="p">(</span><span class="n">scan_id</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_scan</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span></div>
+    
+<div class="viewcode-block" id="MgfReader.get_file"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.mgf.MgfReader.get_file">[docs]</a>    <span class="k">def</span> <span class="nf">get_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the file pointer, opens the file if necessary.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;fp&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">fp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span></div>
+        
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mgfindex</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;fp&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

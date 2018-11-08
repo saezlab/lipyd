@@ -1,0 +1,5 @@
+include HISTORY.rst
+recursive-include src/lipyd *.py
+recursive-include src/lipyd/data *
+recursive-include src/lipyd/data/ms2_examples *
+include src/lipyd/__version__
