@@ -53,7 +53,8 @@ class FeatureAnalyzer(object):
             
             for var in self.samples.var:
                 
-                featurevars[var] = getattr(self.samples, var)[i,:]
+                # safe to do this as first axis is always the features
+                featurevars[var] = getattr(self.samples, var)[i]
             
             result.append(self.method(**featurevars, **self.variables))
         

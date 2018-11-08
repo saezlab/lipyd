@@ -559,7 +559,7 @@ class Sample(FeatureBase):
         
         self.silent     = silent
         self.ionmode    = ionmode
-        self.feattrs    = feature_attrs
+        self._set_feature_attrs(feature_attrs)
         self.ms2_format = ms2_format
         self.ms2_param  = ms2_param or {}
         
@@ -585,6 +585,14 @@ class Sample(FeatureBase):
     def _set_attrs(self, **kwargs):
         
         self.attrs = sampleattrs.SampleAttrs(**kwargs)
+    
+    def _set_feature_attrs(self, feature_attrs = None):
+        
+        if feature_attrs is None:
+            
+            feature_attrs = FeatureAttributes(sorter = self.sorter)
+        
+        self.feattrs = feature_attrs
     
     def _add_var(self, data, attr):
         
@@ -1338,7 +1346,7 @@ class FeatureIdx(FeatureBase):
         It means should have the same ordering at time of registration.
         """
         
-        if len(sortable) != len(self):
+        if sortable.var and len(sortable) != len(self):
             
             raise RuntimeError(
                 'FeatureIdx: Objects of unequal length can not be co-sorted.'

@@ -24,6 +24,51 @@ import lipyd.sampleattrs as sampleattrs
 
 class TestFeature(self):
     
+    @pytest.fixture(autouse = True)
+    def auto_inject_fixture(self):
+        
+        sample_ids = ['A10', 'A11', 'A12', 'B1']
+        
+        intensities = np.vstack([
+            [.1] * 10,
+            np.arange(10) * .1,
+            (np.arange(10) * .1)[::-1],
+            [.1] * 10,
+        ])
+        intensities = intensities.transpose()
+        
+        mzs = np.random.random(10)
+        
+        self.samples = sample.SampleSet(
+            mzs = mzs,
+            intensities = intensities,
+            ionmode = 'pos',
+            sample_ids = sample_ids,
+            sample_id_proc = sampleattrs.plate_sample_id_processor(),
+        )
+        
+        self.protein_samples = self.samples.get_selection(['A11', 'A12'])
+    
     def test_feature_analyzer(self):
         
+        def method(intensities, protein_samples, **kwargs):
+            
+            return (
+                np.nanmin(intensities[protein_samples]) >
+                np.nanmax(intensities[np.logical_not(protein_samples)])
+            )
         
+        fea = feature.FeatureAnalyzer(
+            name = 'peaksize',
+            samples = self.samples,
+            method = method,
+            protein_samples = self.protein_samples.selection,
+        )
+        
+        assert np.all(
+            self.samples.feattrs.peaksize ==
+            np.array([
+                False, False,  True,  True,  True,
+                True,  True,  True, False, False
+            ])
+        )
