@@ -343,3 +343,45 @@ class TestSampleAttrs(object):
             nsel.selection ==
             np.array([ True, False, False,  True,  True])
         )
+    
+    def test_selection_logical_and(self):
+        
+        sel0 = sampleattrs.SampleSelection(
+            selection = [False, True, True, False, False],
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            sample_id_proc = sampleattrs.plate_sample_id_processor()
+        )
+        
+        sel1 = sampleattrs.SampleSelection(
+            selection = ['A11', 'A12'],
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            sample_id_proc = sampleattrs.plate_sample_id_processor()
+        )
+        
+        andsel = sel0.logical_and(sel1)
+        
+        assert np.all(
+            andsel.selection ==
+            np.array([False, False, True, False, False])
+        )
+    
+    def test_selection_logical_or(self):
+        
+        sel0 = sampleattrs.SampleSelection(
+            selection = [False, True, True, False, False],
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            sample_id_proc = sampleattrs.plate_sample_id_processor()
+        )
+        
+        sel1 = sampleattrs.SampleSelection(
+            selection = ['A12'],
+            sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
+            sample_id_proc = sampleattrs.plate_sample_id_processor()
+        )
+        
+        orsel = sel0.logical_or(sel1)
+        
+        assert np.all(
+            orsel.selection ==
+            np.array([False, True, True, True, False])
+        )

@@ -876,7 +876,38 @@ class SampleSelection(SampleData):
             sample_data = list(self._sample_data.values()) + [self],
             proc = self.attrs.proc,
         )
-
+    
+    def logical_and(self, other):
+        """
+        Returns a ``SampleSelection`` object with samples selected in both
+        this object and the other.
+        
+        :param SampleSelection other:
+            An other ``SampleSelection`` object.
+        """
+        
+        return SampleSelection(
+            selection = np.logical_and(self.selection, other.selection),
+            sample_ids = self.attrs.sample_index_to_id,
+            sample_data = list(self._sample_data.values()) + [self, other],
+            proc = self.attrs.proc,
+        )
+    
+    def logical_or(self, other):
+        """
+        Returns a ``SampleSelection`` object with samples selected in either
+        this object or the other.
+        
+        :param SampleSelection other:
+            An other ``SampleSelection`` object.
+        """
+        
+        return SampleSelection(
+            selection = np.logical_or(self.selection, other.selection),
+            sample_ids = self.attrs.sample_index_to_id,
+            sample_data = list(self._sample_data.values()) + [self, other],
+            proc = self.attrs.proc,
+        )
 
 class SECProfile(SampleData):
     
