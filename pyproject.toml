@@ -1,0 +1,36 @@
+[package]
+name = "lipyd"
+summary = """A module for lipidomics LC MS/MS data analysis."""
+url = "https://saezlab.github.io/lipyd"
+author = "Dénes Türei"
+author-email = "turei.denes@gmail.com"
+license = "GPLv3"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Environment :: Console",
+    "Natural Language :: English",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+
+[package.dependencies]
+runtime = []
+
+[package.build]
+dependencies = [
+    "setuptools",
+    "wheel",
+    "numpy"
+]
+
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "numpy"
+]
