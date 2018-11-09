@@ -1,0 +1,892 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Tutorial &mdash; lipyd 0.7.19 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Reference manual" href="modules.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> lipyd
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#chemical-calculator">1: Chemical calculator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#calculations-with-adducts">2: Calculations with adducts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#metabolite-model">3: Metabolite model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#lipid-definitions">4: Lipid definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#external-databases">5: External databases</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#swisslipids">5.1: SwissLipids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lipidmaps">5.2: LipidMaps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#lipid-name-parser">6: Lipid name parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#combined-molecule-database">7: Combined molecule database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ms2-fragment-definitions">8: MS2 fragment definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ms2-fragment-database">9: MS2 fragment database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ms2-spectrum-analysis">10: MS2 spectrum analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Reference manual</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">lipyd</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Tutorial</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/source/tutorial.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="chemical-calculator">
+<h2>1: Chemical calculator<a class="headerlink" href="#chemical-calculator" title="Permalink to this headline">¶</a></h2>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">imp</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">pprint</span>
+<span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">pprint_namedtuple</span>
+<span class="n">pprint</span><span class="o">.</span><span class="n">PrettyPrinter</span> <span class="o">=</span> <span class="n">pprint_namedtuple</span><span class="o">.</span><span class="n">PrettyPrinter</span>
+<span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">mass</span>
+<span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">formula</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">mass</span></code> module knows exact masses of isotopes, isotopic abundances,
+weights, etc. The <code class="docutils literal notranslate"><span class="pre">MassBase</span></code> class is able to process chemical
+formula, calculate masses and do arithmetics.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mass</span><span class="o">.</span><span class="n">get_mass</span><span class="p">(</span><span class="s1">&#39;Na&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">22.989769282</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;C2H6&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;OH&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">46.04186481376</span>
+</pre></div>
+</div>
+<p>Expression evaluation with <code class="docutils literal notranslate"><span class="pre">mass.expr</span></code>:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mass</span><span class="o">.</span><span class="n">expr</span><span class="p">(</span><span class="s1">&#39;C2H6 - H + OH&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">46.04186481376</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mass</span><span class="o">.</span><span class="n">expr</span><span class="p">(</span><span class="s1">&#39;C6H12O6 - water&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">162.0528234236</span>
+</pre></div>
+</div>
+<p>Make a deuterium:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mass</span><span class="o">.</span><span class="n">expr</span><span class="p">(</span><span class="s1">&#39;H + n&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">2.0164899481400003</span>
+</pre></div>
+</div>
+<p>Hydrogensulphate ion:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mass</span><span class="o">.</span><span class="n">expr</span><span class="p">(</span><span class="s1">&#39;HSO4 + e&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">96.96010326786924</span>
+</pre></div>
+</div>
+<p>Additional attributes can be provided in keyword arguments to carry
+metadata.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">lactic_acid</span> <span class="o">=</span> <span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="p">(</span><span class="s1">&#39;CH3CHOHCOOH&#39;</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lactic acid&#39;</span><span class="p">)</span>
+<span class="n">lactic_acid</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">name</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">&#39;lactic acid&#39;</span>
+</pre></div>
+</div>
+<p>A galactose:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="p">(</span><span class="s1">&#39;C6H12O6&#39;</span><span class="p">))</span> <span class="o">-</span> <span class="s1">&#39;H2O&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">formula</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">&#39;C12H22O11&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="calculations-with-adducts">
+<h2>2: Calculations with adducts<a class="headerlink" href="#calculations-with-adducts" title="Permalink to this headline">¶</a></h2>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">mz</span>
+</pre></div>
+</div>
+<p>This is an oleic acid. What is the mass of the [M-H]- adduct?</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">formula</span><span class="o">.</span><span class="n">Formula</span><span class="p">(</span><span class="s1">&#39;C18H34O2&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">remove_h</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">281.24860387047</span>
+</pre></div>
+</div>
+<p>We have seen a mass and wondering what is the exact mass if it is an
+[M+NH4]+ adduct:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mz</span><span class="o">.</span><span class="n">Mz</span><span class="p">(</span><span class="mf">854.576482597791</span><span class="p">)</span><span class="o">.</span><span class="n">remove_nh4</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">836.5426570444603</span>
+</pre></div>
+</div>
+<p>Calculate the [M+Li]+ adduct for the same molecule:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mz</span><span class="o">.</span><span class="n">Mz</span><span class="p">(</span><span class="mf">836.5426570444603</span><span class="p">)</span><span class="o">.</span><span class="n">adduct</span><span class="p">(</span><span class="n">mass</span><span class="o">.</span><span class="n">MassBase</span><span class="p">(</span><span class="s1">&#39;Li&#39;</span><span class="p">,</span> <span class="n">charge</span> <span class="o">=</span> <span class="mi">1</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">843.558111907551</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="metabolite-model">
+<h2>3: Metabolite model<a class="headerlink" href="#metabolite-model" title="Permalink to this headline">¶</a></h2>
+<p>Metabolites consist of a core and optionally substituents. Substituents
+might be formulas or moieties with aliphatic chains.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">metabolite</span>
+<span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">substituent</span>
+</pre></div>
+</div>
+<p>Make all combinations of halogenated methanes:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">halo_methanes</span> <span class="o">=</span> <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="p">(</span>
+    <span class="n">core</span> <span class="o">=</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span>
+    <span class="n">subs</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">,</span> <span class="s1">&#39;Cl&#39;</span><span class="p">,</span> <span class="s1">&#39;Br&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">4</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Check the first 3:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[(</span><span class="n">m</span><span class="o">.</span><span class="n">formula</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">halo_methanes</span><span class="p">][:</span><span class="mi">3</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[(</span><span class="s1">&#39;C1H4&#39;</span><span class="p">,</span> <span class="mf">16.031300129039998</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;C1F1H3&#39;</span><span class="p">,</span> <span class="mf">34.02187826038</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;C1Cl1H3&#39;</span><span class="p">,</span> <span class="mf">49.99232782678</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>Do the same with all alcohols up to 1-8 carbon count with 0-2
+unsaturated bonds:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">chain</span> <span class="o">=</span> <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="p">(</span><span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">alcohols</span> <span class="o">=</span> <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="p">(</span><span class="n">subs</span> <span class="o">=</span> <span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;OH&#39;</span><span class="p">,)))</span>
+<span class="p">[(</span><span class="n">m</span><span class="o">.</span><span class="n">formula</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">alcohols</span><span class="p">][:</span><span class="mi">3</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[(</span><span class="s1">&#39;C1H4O1&#39;</span><span class="p">,</span> <span class="mf">32.02621474924</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;C2H6O1&#39;</span><span class="p">,</span> <span class="mf">46.04186481376</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;C3H8O1&#39;</span><span class="p">,</span> <span class="mf">60.057514878279996</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>Make some ceramides:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># fatty acyls of length 16, 18 or 20 and one or no unsaturation:</span>
+<span class="n">fattyacyl</span> <span class="o">=</span> <span class="n">substituent</span><span class="o">.</span><span class="n">FattyAcyl</span><span class="p">(</span><span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">lcb</span> <span class="o">=</span> <span class="n">substituent</span><span class="o">.</span><span class="n">Sphingosine</span><span class="p">(</span><span class="n">c</span> <span class="o">=</span> <span class="mi">18</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">ceramides</span> <span class="o">=</span> <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="p">(</span><span class="n">core</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="n">subs</span> <span class="o">=</span> <span class="p">(</span><span class="n">lcb</span><span class="p">,</span> <span class="n">fattyacyl</span><span class="p">),</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Cer&#39;</span><span class="p">)</span>
+<span class="c1"># name, formula, mass, [M+H]+, [M+NH4]+</span>
+<span class="p">[(</span><span class="n">cer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">cer</span><span class="o">.</span><span class="n">formula</span><span class="p">,</span> <span class="n">cer</span><span class="o">.</span><span class="n">mass</span><span class="p">,</span> <span class="n">cer</span><span class="o">.</span><span class="n">add_nh4</span><span class="p">())</span> <span class="k">for</span> <span class="n">cer</span> <span class="ow">in</span> <span class="n">ceramides</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[(</span><span class="s1">&#39;Cer(18:1/16:0)&#39;</span><span class="p">,</span> <span class="s1">&#39;C34H67N1O3&#39;</span><span class="p">,</span> <span class="mf">537.51209502622</span><span class="p">,</span> <span class="mf">555.5459205795507</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;Cer(18:1/16:1)&#39;</span><span class="p">,</span> <span class="s1">&#39;C34H65N1O3&#39;</span><span class="p">,</span> <span class="mf">535.4964449617</span><span class="p">,</span> <span class="mf">553.5302705150308</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;Cer(18:1/18:0)&#39;</span><span class="p">,</span> <span class="s1">&#39;C36H71N1O3&#39;</span><span class="p">,</span> <span class="mf">565.54339515526</span><span class="p">,</span> <span class="mf">583.5772207085907</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;Cer(18:1/18:1)&#39;</span><span class="p">,</span> <span class="s1">&#39;C36H69N1O3&#39;</span><span class="p">,</span> <span class="mf">563.52774509074</span><span class="p">,</span> <span class="mf">581.5615706440708</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;Cer(18:1/20:0)&#39;</span><span class="p">,</span> <span class="s1">&#39;C38H75N1O3&#39;</span><span class="p">,</span> <span class="mf">593.5746952843</span><span class="p">,</span> <span class="mf">611.6085208376307</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;Cer(18:1/20:1)&#39;</span><span class="p">,</span> <span class="s1">&#39;C38H73N1O3&#39;</span><span class="p">,</span> <span class="mf">591.55904521978</span><span class="p">,</span> <span class="mf">609.5928707731108</span><span class="p">)]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="lipid-definitions">
+<h2>4: Lipid definitions<a class="headerlink" href="#lipid-definitions" title="Permalink to this headline">¶</a></h2>
+<p>In the <code class="docutils literal notranslate"><span class="pre">lipyd.lipid</span></code> module more than 150 lipid varieties are
+predefined.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">lipid</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">d_ceramides</span> <span class="o">=</span> <span class="n">lipid</span><span class="o">.</span><span class="n">CeramideD</span><span class="p">(</span>
+    <span class="n">sph_args</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="mi">18</span><span class="p">,</span> <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)},</span>
+    <span class="n">fa_args</span>  <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;c&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="s1">&#39;u&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="s1">&#39;even&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[(</span><span class="n">cer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">cer</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span> <span class="k">for</span> <span class="n">cer</span> <span class="ow">in</span> <span class="n">d_ceramides</span><span class="p">][:</span><span class="mi">3</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[(</span><span class="s1">&#39;Cer(DH18:0/14:0)&#39;</span><span class="p">,</span> <span class="mf">511.49644496170004</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;Cer(DH18:0/14:1)&#39;</span><span class="p">,</span> <span class="mf">509.48079489718003</span><span class="p">),</span>
+ <span class="p">(</span><span class="s1">&#39;Cer(DH18:0/14:2)&#39;</span><span class="p">,</span> <span class="mf">507.46514483266003</span><span class="p">)]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="external-databases">
+<h2>5: External databases<a class="headerlink" href="#external-databases" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">lipyd.moldb</span></code> module provides access to <em>SwissLipis</em> and
+<em>LipidMaps</em>. Automatically downloads and processes the databases which
+you can search by various names and identifiers, you can also access
+structures as OpenBabel objects, InChI and SMILE strings.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">moldb</span>
+<span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">name</span>
+<span class="kn">from</span> <span class="nn">lipyd.lipproc</span> <span class="k">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+<div class="section" id="swisslipids">
+<h3>5.1: SwissLipids<a class="headerlink" href="#swisslipids" title="Permalink to this headline">¶</a></h3>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">swl</span> <span class="o">=</span> <span class="n">moldb</span><span class="o">.</span><span class="n">SwissLipids</span><span class="p">(</span><span class="n">levels</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;species&#39;</span><span class="p">})</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Indexing SwissLipids -- finished: 100%|██████████| 623M/623M [00:13&lt;00:00, 47.4Mit/s]
+</pre></div>
+</div>
+<p>Get phosphatidylethanolamines as OpenBabel objects:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">swl</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span>
+<span class="n">pe</span> <span class="o">=</span> <span class="n">swl</span><span class="o">.</span><span class="n">get_hg_obmol</span><span class="p">(</span><span class="s1">&#39;PE&#39;</span><span class="p">)</span>
+<span class="n">pe0</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">pe</span><span class="p">)</span>
+<span class="n">pe0</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">title</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">islice</span><span class="p">(</span><span class="n">pe</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="s1">&#39;Phosphatidylethanolamine (28:1)&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Phosphatidylethanolamine (39:3)&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Phosphatidylethanolamine (O-29:1)&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="lipidmaps">
+<h3>5.2: LipidMaps<a class="headerlink" href="#lipidmaps" title="Permalink to this headline">¶</a></h3>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">lm</span> <span class="o">=</span> <span class="n">moldb</span><span class="o">.</span><span class="n">LipidMaps</span><span class="p">()</span>
+</pre></div>
+</div>
+<pre class="literal-block">
+:: Indexed 42556 records from <cite>cache/LMSDFDownload12Dec17FinalAll.sdf</cite>.
+</pre>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">gibberellin</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lm</span><span class="o">.</span><span class="n">get_record</span><span class="p">(</span><span class="s1">&#39;LMPR0104170034&#39;</span><span class="p">,</span> <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;mainkey&#39;</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">gibberellin</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;COMMON_NAME&#39;</span><span class="p">:</span> <span class="s1">&#39;gibberellin A17&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;SYNONYMS&#39;</span><span class="p">:</span> <span class="s1">&#39;GA17; gibberellin 17&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;PUBCHEM_CID&#39;</span><span class="p">:</span> <span class="s1">&#39;5460657&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;CHEBI_ID&#39;</span><span class="p">:</span> <span class="s1">&#39;24236&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;INCHI&#39;</span><span class="p">:</span> <span class="s1">&#39;InChI=1S/C20H26O7/c1-10-8-18-9-19(10,27)7-4-11(18)20(16(25)26)6-3-5-17(2,15(23)24)13(20)12(18)14(21)22/h11-13,27H,1,3-9H2,2H3,(H,21,22)(H,23,24)(H,25,26)/t11-,12-,13-,17-,18+,19+,20-/m1/s1&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>LipidMaps too is able to yield OpenBabel objects:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tag</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lm</span><span class="o">.</span><span class="n">get_obmol</span><span class="p">(</span><span class="s1">&#39;TAG(15:0_20:4_20:5)&#39;</span><span class="p">,</span> <span class="s1">&#39;synonym&#39;</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">tag</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="lipid-name-parser">
+<h2>6: Lipid name parser<a class="headerlink" href="#lipid-name-parser" title="Permalink to this headline">¶</a></h2>
+<p>In order to make the databases computationally useful and use them as a
+combined database, we need to process their nomenclature. The
+<code class="docutils literal notranslate"><span class="pre">lipyd.name</span></code> module is able to recognize dozens of lipid names used in
+SwissLipids and LipidMaps.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">name</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nameproc</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">LipidNameProcessor</span><span class="p">(</span><span class="n">database</span> <span class="o">=</span> <span class="s1">&#39;swisslipids&#39;</span><span class="p">,</span> <span class="n">iso</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">processed_name</span> <span class="o">=</span> <span class="n">nameproc</span><span class="o">.</span><span class="n">process</span><span class="p">(</span>
+    <span class="p">[</span><span class="s1">&#39;Phosphatidylethanolamine (16:0/20:4(5Z,8Z,11Z,14Z))&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">processed_name</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span>
+  <span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span><span class="o">=</span><span class="s1">&#39;PE&#39;</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="p">()),</span>
+  <span class="n">ChainSummary</span><span class="p">(</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="mi">36</span><span class="p">,</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="n">typ</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="s1">&#39;FA&#39;</span><span class="p">),</span>
+    <span class="n">attr</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+     <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">())</span>
+        <span class="p">),</span>
+    <span class="n">iso</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="p">),</span>
+  <span class="p">(</span>
+    <span class="n">Chain</span><span class="p">(</span>
+      <span class="n">c</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+      <span class="n">u</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+      <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span>
+      <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+      <span class="n">iso</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="p">),</span>
+   <span class="n">Chain</span><span class="p">(</span>
+      <span class="n">c</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+      <span class="n">u</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+      <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span>
+      <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+      <span class="n">iso</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;5Z&#39;</span><span class="p">,</span> <span class="s1">&#39;8Z&#39;</span><span class="p">,</span> <span class="s1">&#39;11Z&#39;</span><span class="p">,</span> <span class="s1">&#39;14Z&#39;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="p">)</span>
+  <span class="p">)</span>
+</pre></div>
+</div>
+<p>It understands even greek names:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nameproc</span><span class="o">.</span><span class="n">process</span><span class="p">([</span><span class="s1">&#39;eicosapentaenoate&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span><span class="o">=</span><span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="p">()),</span>
+ <span class="n">ChainSummary</span><span class="p">(</span><span class="n">c</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">typ</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;FA&#39;</span><span class="p">,),</span> <span class="n">attr</span><span class="o">=</span><span class="p">(</span><span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),),</span> <span class="n">iso</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>
+ <span class="p">[</span><span class="n">Chain</span><span class="p">(</span><span class="n">c</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">typ</span><span class="o">=</span><span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span> <span class="n">iso</span><span class="o">=</span><span class="p">())])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="combined-molecule-database">
+<h2>7: Combined molecule database<a class="headerlink" href="#combined-molecule-database" title="Permalink to this headline">¶</a></h2>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">db</span> <span class="o">=</span> <span class="n">moldb</span><span class="o">.</span><span class="n">MoleculeDatabaseAggregator</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Indexing SwissLipids -- finished: 100%|██████████| 623M/623M [00:13&lt;00:00, 16.0Mit/s]
+</pre></div>
+</div>
+<pre class="literal-block">
+:: Indexed 42556 records from <cite>cache/LMSDFDownload12Dec17FinalAll.sdf</cite>.
+</pre>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Generating metabolites -- finished: 100%|██████████| 44.0/44.0 [00:09&lt;00:00, 4.50it/s]
+Generating metabolites -- finished: 100%|██████████| 18.0/18.0 [00:05&lt;00:00, 4.10it/s]
+Generating metabolites -- finished: 100%|██████████| 106/106 [00:09&lt;00:00, 11.4it/s]
+Generating metabolites -- finished: 100%|██████████| 1.00/1.00 [00:00&lt;00:00, 11.9it/s]
+Generating metabolites -- finished: 100%|██████████| 1.00/1.00 [00:00&lt;00:00, 48.9it/s]
+</pre></div>
+</div>
+<p>Either exact masses or adducts can be searched in the database by
+<code class="docutils literal notranslate"><span class="pre">lookup</span></code> and <code class="docutils literal notranslate"><span class="pre">adduct_lookup</span></code> methods, respectively.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">adduct_lookup</span><span class="p">(</span><span class="mf">757.549011</span><span class="p">,</span> <span class="n">ionmode</span> <span class="o">=</span> <span class="s1">&#39;pos&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Take a closer look at one of the resulted records:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">LipidRecord</span><span class="p">(</span>
+  <span class="n">lab</span> <span class="o">=</span> <span class="n">LipidLabel</span><span class="p">(</span><span class="n">db_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="s1">&#39;lipyd.lipid&#39;</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;PC(33:4)&#39;</span><span class="p">,)),</span>
+  <span class="n">hg</span> <span class="o">=</span> <span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span><span class="o">=</span><span class="s1">&#39;PC&#39;</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="p">()),</span>
+  <span class="n">chainsum</span> <span class="o">=</span> <span class="n">ChainSummary</span><span class="p">(</span>
+      <span class="n">c</span> <span class="o">=</span> <span class="mi">33</span><span class="p">,</span>
+      <span class="n">u</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+      <span class="n">typ</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="s1">&#39;FA&#39;</span><span class="p">),</span>
+      <span class="n">attr</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+      <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">())</span>
+          <span class="p">),</span>
+      <span class="n">iso</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">),</span>
+  <span class="n">chains</span> <span class="o">=</span> <span class="p">()</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The exact masses and errors for all hits are also provided. Errors in
+ppm:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.69750819e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.69750819e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.69161082e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.69161082e-02</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">2.69161082e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.69161082e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.04974547e-02</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.23033863e+00</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">3.23033863e+00</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.23033863e+00</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.11723392e+01</span><span class="p">,</span>  <span class="mf">1.73995818e+01</span><span class="p">,</span>
+        <span class="mf">1.73995818e+01</span><span class="p">,</span>  <span class="mf">1.73995818e+01</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Repeat the lookup with lower tolerance, and the items with high ppm
+disappear:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">adduct_lookup</span><span class="p">(</span><span class="mf">757.549011</span><span class="p">,</span> <span class="n">ionmode</span> <span class="o">=</span> <span class="s1">&#39;pos&#39;</span><span class="p">,</span> <span class="n">tolerance</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
+<span class="n">result</span><span class="p">[</span><span class="s1">&#39;[M+NH4]+&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">0.01697508</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.01697508</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.02691611</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.02691611</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.02691611</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">0.02691611</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span>
+       <span class="o">-</span><span class="mf">0.03049745</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.23033863</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.23033863</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.23033863</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="ms2-fragment-definitions">
+<h2>8: MS2 fragment definitions<a class="headerlink" href="#ms2-fragment-definitions" title="Permalink to this headline">¶</a></h2>
+<p>The fragment database provided by <code class="docutils literal notranslate"><span class="pre">lipyd.fragment</span></code> and
+<code class="docutils literal notranslate"><span class="pre">lipyd.fragdb</span></code> modules works similar way as <code class="docutils literal notranslate"><span class="pre">lipyd.lipid</span></code> and
+<code class="docutils literal notranslate"><span class="pre">lipyd.moldb</span></code>. <code class="docutils literal notranslate"><span class="pre">lipyd.fragment</span></code> contains near 100 predefined
+aliphatic chain derived fragments. In addition 140 headgroup derived
+fragments are included like for example 184 for choline.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">fragment</span>
+<span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">fragdb</span>
+</pre></div>
+</div>
+<p>As an example take a look at a [Sph-NH2-OH]- fragment:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sphfrag</span> <span class="o">=</span> <span class="n">fragment</span><span class="o">.</span><span class="n">Sph_mNH2_mOH</span><span class="p">(</span><span class="n">c</span> <span class="o">=</span> <span class="mi">18</span><span class="p">,</span> <span class="n">u</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>At this fragment type the constraints tell us which lipid varieties this
+fragment can be observed. In this case <em>dCer</em> and <em>DHCer</em>.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sphfrag</span><span class="o">.</span><span class="n">constraints</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">FragConstraint</span><span class="p">(</span><span class="n">hg</span><span class="o">=</span><span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="n">family</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sph</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">chaintype</span><span class="o">=</span><span class="s1">&#39;Sph&#39;</span><span class="p">),</span>
+ <span class="n">FragConstraint</span><span class="p">(</span><span class="n">hg</span><span class="o">=</span><span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="n">family</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sph</span><span class="o">=</span><span class="s1">&#39;DH&#39;</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">chaintype</span><span class="o">=</span><span class="s1">&#39;Sph&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">list</span><span class="p">(</span><span class="n">sphfrag</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">charge</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">sphfrag</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mass</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mf">263.2380392001693</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="ms2-fragment-database">
+<h2>9: MS2 fragment database<a class="headerlink" href="#ms2-fragment-database" title="Permalink to this headline">¶</a></h2>
+<p>Look up a negative mode fragment m/z in the database. It results an
+array with mass, fragment name, fragment type, aliphatic chain type,
+carbon count, unsaturation and charge in each row. At neutral losses the
+charge is 0.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fragdb</span><span class="o">.</span><span class="n">lookup_neg</span><span class="p">(</span><span class="mf">283.26</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">array</span><span class="p">([[</span><span class="mf">283.2642539494093</span><span class="p">,</span> <span class="s1">&#39;[FA(18:0)-H]-&#39;</span><span class="p">,</span> <span class="s1">&#39;FA-H&#39;</span><span class="p">,</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+       <span class="p">[</span><span class="mf">283.2642539494093</span><span class="p">,</span> <span class="s1">&#39;[Sph(20:0)-C2H4-NH2-2H]-&#39;</span><span class="p">,</span> <span class="s1">&#39;Sph-C2H4-NH2-2H&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now let’s annotate an MS2 scan with possible fragment identifications.
+To do this we open an example MGF file included in the module. The
+<code class="docutils literal notranslate"><span class="pre">lipyd.mgf</span></code> module serves MS2 scans from MGF files on demand. Btw the
+<code class="docutils literal notranslate"><span class="pre">lipyd.settings</span></code> module gives easy access for and control over near
+100 customizable parameters.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">mgf</span>
+<span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">settings</span>
+<span class="n">mgffile</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mgf_example&#39;</span><span class="p">)</span>
+<span class="n">mgfreader</span> <span class="o">=</span> <span class="n">mgf</span><span class="o">.</span><span class="n">MgfReader</span><span class="p">(</span><span class="n">mgffile</span><span class="p">)</span>
+<span class="n">precursor</span> <span class="o">=</span> <span class="mf">590.45536</span> <span class="c1"># this is a Cer-1P</span>
+<span class="n">idx</span><span class="p">,</span> <span class="n">rtdiff</span> <span class="o">=</span> <span class="n">mgfreader</span><span class="o">.</span><span class="n">lookup_scan_ids</span><span class="p">(</span><span class="n">precursor</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We found the following scans for precursor 590.455:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">idx</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">array</span><span class="p">([</span><span class="mi">1941</span><span class="p">,</span> <span class="mi">1929</span><span class="p">,</span>  <span class="mi">427</span><span class="p">,</span>  <span class="mi">423</span><span class="p">,</span>  <span class="mi">589</span><span class="p">,</span>  <span class="mi">645</span><span class="p">,</span>  <span class="mi">642</span><span class="p">,</span>  <span class="mi">308</span><span class="p">,</span>  <span class="mi">481</span><span class="p">,</span>  <span class="mi">478</span><span class="p">,</span>  <span class="mi">586</span><span class="p">,</span>
+        <span class="mi">368</span><span class="p">,</span>  <span class="mi">696</span><span class="p">,</span>  <span class="mi">535</span><span class="p">,</span>  <span class="mi">532</span><span class="p">,</span>  <span class="mi">755</span><span class="p">,</span>  <span class="mi">752</span><span class="p">,</span>  <span class="mi">700</span><span class="p">,</span>  <span class="mi">721</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Select a scan from the ones above and annotate its fragments:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scan</span> <span class="o">=</span> <span class="n">mgfreader</span><span class="o">.</span><span class="n">scan_by_id</span><span class="p">(</span><span class="mi">1941</span><span class="p">)</span>
+<span class="n">annot</span> <span class="o">=</span> <span class="n">fragdb</span><span class="o">.</span><span class="n">FragmentAnnotator</span><span class="p">(</span>
+    <span class="n">mzs</span> <span class="o">=</span> <span class="n">scan</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">ionmode</span> <span class="o">=</span> <span class="s1">&#39;pos&#39;</span><span class="p">,</span>
+    <span class="n">precursor</span> <span class="o">=</span> <span class="n">precursor</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>One example of the annotations. This fragment ranks 25 by intensity.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">annot</span><span class="p">)[</span><span class="mi">24</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span>
+  <span class="n">FragmentAnnotation</span><span class="p">(</span>
+    <span class="n">mz</span> <span class="o">=</span> <span class="mf">228.23219101229077</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;[Sph(14:0)-H2O+H]+&#39;</span><span class="p">,</span>
+    <span class="n">fragtype</span> <span class="o">=</span> <span class="s1">&#39;Sph-H2O+H&#39;</span><span class="p">,</span>
+    <span class="n">chaintype</span> <span class="o">=</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="mi">14</span><span class="p">,</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">charge</span> <span class="o">=</span> <span class="mi">1</span>
+  <span class="p">),</span>
+  <span class="n">FragmentAnnotation</span><span class="p">(</span>
+    <span class="n">mz</span> <span class="o">=</span> <span class="mf">228.23219101229077</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;[FA(14:0)+NH2-O]+&#39;</span><span class="p">,</span>
+    <span class="n">fragtype</span> <span class="o">=</span> <span class="s1">&#39;FA+NH2-O&#39;</span><span class="p">,</span>
+    <span class="n">chaintype</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="mi">14</span><span class="p">,</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">charge</span> <span class="o">=</span> <span class="mi">1</span>
+  <span class="p">),</span>
+  <span class="n">FragmentAnnotation</span><span class="p">(</span>
+    <span class="n">mz</span> <span class="o">=</span> <span class="mf">228.23219101229077</span><span class="p">,</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;[Sph(14:1)-O+H]+&#39;</span><span class="p">,</span>
+    <span class="n">fragtype</span> <span class="o">=</span> <span class="s1">&#39;Sph-O+H&#39;</span><span class="p">,</span>
+    <span class="n">chaintype</span> <span class="o">=</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="mi">14</span><span class="p">,</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">charge</span> <span class="o">=</span> <span class="mi">1</span>
+  <span class="p">)</span>
+  <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="ms2-spectrum-analysis">
+<h2>10: MS2 spectrum analysis<a class="headerlink" href="#ms2-spectrum-analysis" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">lipyd.ms2.Scan</span></code> class is able to perform the entire
+identification workflow. By an alternative constructor method it can be
+initialized by providing and MGF file and scan ID.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lipyd</span> <span class="k">import</span> <span class="n">ms2</span>
+</pre></div>
+</div>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mgfname</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mgf_pos_examples&#39;</span><span class="p">)</span>
+<span class="n">scan_id</span> <span class="o">=</span> <span class="mi">3626</span>
+<span class="n">scan</span> <span class="o">=</span> <span class="n">ms2</span><span class="o">.</span><span class="n">Scan</span><span class="o">.</span><span class="n">from_mgf</span><span class="p">(</span><span class="n">mgfname</span><span class="p">,</span> <span class="n">scan_id</span><span class="p">,</span> <span class="s1">&#39;pos&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If not provided the <code class="docutils literal notranslate"><span class="pre">Scan</span></code> instance performs the database lookup of
+the precursor ion. Here are the results:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">scan</span><span class="o">.</span><span class="n">ms1_records</span><span class="p">[</span><span class="s1">&#39;[M+H]+&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">LipidRecord</span><span class="p">(</span>
+  <span class="n">lab</span> <span class="o">=</span> <span class="n">LipidLabel</span><span class="p">(</span><span class="n">db_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">db</span><span class="o">=</span><span class="s1">&#39;lipyd.lipid&#39;</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Hex2-Cer(t42:2)&#39;</span><span class="p">,)),</span>
+  <span class="n">hg</span> <span class="o">=</span> <span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span><span class="o">=</span><span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Hex2&#39;</span><span class="p">,)),</span>
+  <span class="n">chainsum</span> <span class="o">=</span> <span class="n">ChainSummary</span><span class="p">(</span>
+      <span class="n">c</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+      <span class="n">u</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+      <span class="n">typ</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="s1">&#39;FA&#39;</span><span class="p">),</span>
+      <span class="n">attr</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+      <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">())</span>
+          <span class="p">),</span>
+      <span class="n">iso</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">),</span>
+  <span class="n">chains</span> <span class="o">=</span> <span class="p">()</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">identify</span></code> method attempts to confirm each of the records by
+analysing the MS2 spectrum.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">identity</span> <span class="o">=</span> <span class="n">scan</span><span class="o">.</span><span class="n">identify</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The results are grouped by lipid species and come with a score.
+Hex2-Cer(t42:2) got a score of 45, which is the highest at this scan:</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">identity</span><span class="p">[</span><span class="s1">&#39;Hex2-Cer(t42:2)&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">MS2Identity</span><span class="p">(</span>
+  <span class="n">score</span> <span class="o">=</span> <span class="mi">45</span><span class="p">,</span>
+  <span class="n">hg</span> <span class="o">=</span> <span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span><span class="o">=</span><span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Hex2&#39;</span><span class="p">,)),</span>
+  <span class="n">chainsum</span> <span class="o">=</span> <span class="n">ChainSummary</span><span class="p">(</span>
+      <span class="n">c</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+      <span class="n">u</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+      <span class="n">typ</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="s1">&#39;FA&#39;</span><span class="p">),</span>
+      <span class="n">attr</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+      <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">())</span>
+          <span class="p">),</span>
+      <span class="n">iso</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">),</span>
+  <span class="n">chains</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">Chain</span><span class="p">(</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mi">18</span><span class="p">,</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+        <span class="n">iso</span> <span class="o">=</span> <span class="p">()</span>
+      <span class="p">),</span>
+    <span class="n">Chain</span><span class="p">(</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mi">24</span><span class="p">,</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+        <span class="n">iso</span> <span class="o">=</span> <span class="p">()</span>
+      <span class="p">)</span>
+      <span class="p">),</span>
+  <span class="n">details</span> <span class="o">=</span> <span class="n">ChainIdentificationDetails</span><span class="p">(</span><span class="n">rank</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">fragtype</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Sph-2xH2O-H&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>At the same time there were attempts to confirm for example
+Hex-Cer(d53:9-2OH) but it resulted a score of 0.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">identity</span><span class="p">[</span><span class="s1">&#39;Hex-Cer(d53:9-2OH)&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">MS2Identity</span><span class="p">(</span>
+  <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+  <span class="n">hg</span> <span class="o">=</span> <span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span><span class="o">=</span><span class="s1">&#39;Cer&#39;</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Hex&#39;</span><span class="p">,)),</span>
+  <span class="n">chainsum</span> <span class="o">=</span> <span class="n">ChainSummary</span><span class="p">(</span>
+      <span class="n">c</span> <span class="o">=</span> <span class="mi">53</span><span class="p">,</span>
+      <span class="n">u</span> <span class="o">=</span> <span class="mi">9</span><span class="p">,</span>
+      <span class="n">typ</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Sph&#39;</span><span class="p">,</span> <span class="s1">&#39;FAOH&#39;</span><span class="p">),</span>
+      <span class="n">attr</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+      <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;2OH&#39;</span><span class="p">,))</span>
+          <span class="p">),</span>
+      <span class="n">iso</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">),</span>
+  <span class="n">chains</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">Chain</span><span class="p">(</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mi">17</span><span class="p">,</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;Sph&#39;</span><span class="p">,</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+        <span class="n">iso</span> <span class="o">=</span> <span class="p">()</span>
+      <span class="p">),</span>
+    <span class="n">Chain</span><span class="p">(</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mi">36</span><span class="p">,</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;FAOH&#39;</span><span class="p">,</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;2OH&#39;</span><span class="p">,)),</span>
+        <span class="n">iso</span> <span class="o">=</span> <span class="p">()</span>
+      <span class="p">)</span>
+      <span class="p">),</span>
+  <span class="n">details</span> <span class="o">=</span> <span class="n">ChainIdentificationDetails</span><span class="p">(</span>
+      <span class="n">rank</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+      <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.18172325900094663</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+      <span class="n">fragtype</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Sph-2xH2O+H&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Let’s see one more example.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mgfname</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mgf_neg_examples&#39;</span><span class="p">)</span>
+<span class="n">scan_id</span> <span class="o">=</span> <span class="mi">2516</span>
+<span class="n">scan</span> <span class="o">=</span> <span class="n">ms2</span><span class="o">.</span><span class="n">Scan</span><span class="o">.</span><span class="n">from_mgf</span><span class="p">(</span><span class="n">mgfname</span><span class="p">,</span> <span class="n">scan_id</span><span class="p">,</span> <span class="s1">&#39;neg&#39;</span><span class="p">)</span>
+<span class="n">identity</span> <span class="o">=</span> <span class="n">scan</span><span class="o">.</span><span class="n">identify</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>We see that this is a PI(34:1) with score 11 and both fatty acyl
+fragments are confirmed by [FA-H]- ions (see the
+<code class="docutils literal notranslate"><span class="pre">ChainIdentificationDetails</span></code> object). These fragments are the 1st and
+2nd most abundant with relative intensities of 100% and 99%.</p>
+<div class="code python highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pprint</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">identity</span><span class="p">[</span><span class="s1">&#39;PI(34:1)&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">MS2Identity</span><span class="p">(</span>
+  <span class="n">score</span> <span class="o">=</span> <span class="mf">11.0</span><span class="p">,</span>
+  <span class="n">hg</span> <span class="o">=</span> <span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span><span class="o">=</span><span class="s1">&#39;PI&#39;</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="p">()),</span>
+  <span class="n">chainsum</span> <span class="o">=</span> <span class="n">ChainSummary</span><span class="p">(</span>
+      <span class="n">c</span> <span class="o">=</span> <span class="mi">34</span><span class="p">,</span>
+      <span class="n">u</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+      <span class="n">typ</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;FA&#39;</span><span class="p">,</span> <span class="s1">&#39;FA&#39;</span><span class="p">),</span>
+      <span class="n">attr</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+      <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">())</span>
+          <span class="p">),</span>
+      <span class="n">iso</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">),</span>
+  <span class="n">chains</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">Chain</span><span class="p">(</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mi">18</span><span class="p">,</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+        <span class="n">iso</span> <span class="o">=</span> <span class="p">()</span>
+      <span class="p">),</span>
+    <span class="n">Chain</span><span class="p">(</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="s1">&#39;FA&#39;</span><span class="p">,</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="n">ChainAttr</span><span class="p">(</span><span class="n">sph</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ether</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">oh</span><span class="o">=</span><span class="p">()),</span>
+        <span class="n">iso</span> <span class="o">=</span> <span class="p">()</span>
+      <span class="p">)</span>
+      <span class="p">),</span>
+  <span class="n">details</span> <span class="o">=</span> <span class="n">ChainIdentificationDetails</span><span class="p">(</span><span class="n">rank</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.9897746748655405</span><span class="p">),</span> <span class="n">fragtype</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;FA-H&#39;</span><span class="p">,</span> <span class="s1">&#39;FA-H&#39;</span><span class="p">))</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="modules.html" class="btn btn-neutral float-right" title="Reference manual" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="installation.html" class="btn btn-neutral" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015-2018, Dénes Türei.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.7.19',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
