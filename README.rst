@@ -21,7 +21,7 @@ Metabolite database lookup
 
 The ``lipyd.modb`` module provides an unified interface to standard
 databases like `SwissLipids <https://swisslipids.org/>`_ and
-`SwissLipids <http://lipidmaps.org/>`_ In addition it is able to generate
+`LipidMaps <http://lipidmaps.org/>`_ In addition it is able to generate
 custom metabolite masses.
 With the default settings the database consists of more than
 100 thousands of lipid species. The ``lipyd.lipid`` module
