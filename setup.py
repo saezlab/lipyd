@@ -16,30 +16,31 @@
 #
 
 __revision__ = "$Id$"
-import sys
 import os
 from setuptools import setup, find_packages
 import imp
 
-_version = imp.load_source('_version', os.path.join('src', 'lipyd', '_version.py'))
+_version = imp.load_source(
+    '_version',
+    os.path.join('src', 'lipyd', '_version.py')
+)
 __version__ = _version.__version__
 
-metainfo = {
-    'authors': {
-        'Türei': ('Dénes Türei','turei.denes@gmail.com'),
-    },
-    'version': __version__,
-    'license': 'GPLv3',
-    'download_url': ['https://github.com/saezlab/lipyd/archive/dev3.zip'],
-    'url': ['https://github.com/saezlab/lipyd'],
-    'description': 'Analysis of lipidomics mass spectrometry data',
-    'platforms': [
-        'Linux',
-        'Unix',
-        'MacOSX',
-        'Windows',
-    ],
-    'keywords': [
+with open('README.rst') as f:
+    readme = f.read()
+
+with open('HISTORY.rst') as f:
+    history = f.read()
+
+setup(
+    name = 'lipyd',
+    version = __version__,
+    maintainer = 'Dénes Türei',
+    maintainer_email = 'turei.denes@gmail.com',
+    author = 'Dénes Türei',
+    author_email = 'turei.denes@gmail.com',
+    long_description = readme + '\n\n' + history,
+    keywords = [
         'lipidomics',
         'lipids',
         'mass spectrometry',
@@ -58,70 +59,61 @@ metainfo = {
         'chemical formula',
         'chemistry',
     ],
-    'classifiers': [
-        'Development Status :: 4 - Beta',
+    description = 'Analysis of lipidomics mass spectrometry data',
+    license = 'GPLv3',
+    platforms = [
+        'Linux',
+        'Unix',
+        'MacOSX',
+        'Windows',
+    ],
+    url = ['https://saezlab.github.io/lipyd'],
+    download_url = ['https://github.com/saezlab/lipyd/archive/master.zip'],
+    classifiers = [
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Natural Language :: English',
-        'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
         'Topic :: Scientific/Engineering :: Chemistry'
-    ]
-}
-
-with open('README.rst') as f:
-    readme = f.read()
-with open('HISTORY.rst') as f:
-    history = f.read()
-
-deps = [
-    'numpy',
-    'scipy',
-    'matplotlib',
-    'fastcluster',
-    'pycurl',
-    'lxml',
-    'xlrd',
-    'httplib2',
-    'seaborn',
-    'sklearn',
-    'xlrd',
-    'openpyxl',
-    'xlsxwriter',
-    'future',
-    'tqdm',
-    'xmltodict',
-    'bs4',
-    'regex',
-]
-
-setup(
-    name = 'lipyd',
-    version = metainfo['version'],
-    maintainer = metainfo['authors']['Türei'][0],
-    maintainer_email = metainfo['authors']['Türei'][1],
-    author = metainfo['authors']['Türei'][0],
-    author_email = metainfo['authors']['Türei'][1],
-    long_description = readme + '\n\n' + history,
-    keywords = metainfo['keywords'],
-    description = metainfo['description'],
-    license = metainfo['license'],
-    platforms = metainfo['platforms'],
-    url = metainfo['url'],
-    download_url = metainfo['download_url'],
-    classifiers = metainfo['classifiers'],
-    # package installation
-    package_dir = {'':'src'},
+    ],
+    package_dir = {'': 'src'},
     packages = [
         'lipyd',
         'lipyd.reader',
         'lipyd.data',
-        'lipyd.data.ms2_examples'
+        'lipyd.data.ms2_examples',
     ],
     include_package_data = True,
-    install_requires = deps
-    # dependency_links = deplinks
+    install_requires = [
+        'numpy',
+        'scipy',
+        'matplotlib',
+        'fastcluster',
+        'pycurl',
+        'lxml',
+        'xlrd',
+        'httplib2',
+        'seaborn',
+        'sklearn',
+        'xlrd',
+        'openpyxl',
+        'xlsxwriter',
+        'future',
+        'tqdm',
+        'xmltodict',
+        'bs4',
+        'regex',
+    ],
+    extras_require = {
+        'tests': [
+            'pytest',
+        ],
+        'docs': [
+            'sphinx',
+        ]
+    }
 )
