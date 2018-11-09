@@ -8,11 +8,11 @@ Input and preprocessing
 -----------------------
 
 At reading raw mass spec data from mzML files, peak picking and feature
-detection we rely on the `OpenMS http://openms.de/`_ library. This ensures
+detection we rely on the `OpenMS <http://openms.de/>`_ library. This ensures
 computationally efficient processing by well established methods. As our
 OpenMS integration is not yet complete we provide a temporary solution to
 read already preprocessed features from CSV files exported by the
-`PEAKS http://www.bioinfor.com/peaks-studio/`_ software. We are not
+`PEAKS <http://www.bioinfor.com/peaks-studio/>`_ software. We are not
 comfortable with the idea of building on expensive proprietary software and
 in the near future we will provide complete integration with OpenMS.
 
@@ -20,8 +20,8 @@ Metabolite database lookup
 --------------------------
 
 The ``lipyd.modb`` module provides an unified interface to standard
-databases like `SwissLipids https://swisslipids.org/`_ and
-`SwissLipids http://lipidmaps.org/`_ In addition it is able to generate
+databases like `SwissLipids <https://swisslipids.org/>`_ and
+`SwissLipids <http://lipidmaps.org/>`_ In addition it is able to generate
 custom metabolite masses.
 With the default settings the database consists of more than
 100 thousands of lipid species. The ``lipyd.lipid`` module
@@ -39,7 +39,7 @@ run by our group and reviewing many spectra from publications and
 databases we created bult in rules for identification of more than 80
 lipid classes. You can modify the methods or create new ones by writing
 Python methods. However we are working on
-`MFQL https://wiki.mpi-cbg.de/lipidx/LipidXplorer_MFQL`_ integration to
+`MFQL <https://wiki.mpi-cbg.de/lipidx/LipidXplorer_MFQL>`_ integration to
 provide a more standard way of defining rules. Also we will introduce
 similarity search against spectrum databases.
 
