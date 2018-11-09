@@ -158,9 +158,9 @@
 <span class="c1">#</span>
 <span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
 <span class="c1">#</span>
-<span class="c1">#  This code is not for public use.</span>
-<span class="c1">#  Please do not redistribute.</span>
-<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#  Distributed under the GNU GPLv3 License.</span>
+<span class="c1">#  See accompanying file LICENSE.txt or copy at</span>
+<span class="c1">#      http://www.gnu.org/licenses/gpl-3.0.html</span>
 <span class="c1">#</span>
 <span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
 <span class="c1">#</span>
@@ -480,10 +480,16 @@
     <span class="s1">&#39;deltart_threshold&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
     <span class="c1"># Don&#39;t know what it is for</span>
     <span class="s1">&#39;uniprots&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="s1">&#39;mgf_example&#39;</span><span class="p">:</span> <span class="s1">&#39;example_mgf__2015-06-28_GLTPD1_pos_A12.mgf&#39;</span><span class="p">,</span>
+    <span class="c1"># example files</span>
     <span class="s1">&#39;mgf_neg_examples&#39;</span><span class="p">:</span> <span class="s1">&#39;neg_examples.mgf&#39;</span><span class="p">,</span>
     <span class="s1">&#39;mgf_pos_examples&#39;</span><span class="p">:</span> <span class="s1">&#39;pos_examples.mgf&#39;</span><span class="p">,</span>
     <span class="s1">&#39;peaks_example&#39;</span><span class="p">:</span> <span class="s1">&#39;peaks_example.csv&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;peaks_gltpd1_invitro&#39;</span><span class="p">:</span> <span class="s1">&#39;peaks_example_gltpd1_invitro_50.csv&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;peaks_gltpd1_invivo&#39;</span><span class="p">:</span> <span class="s1">&#39;peaks_example_gltpd1_invivo_50.csv&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sec_gltpd1_invitro&#39;</span><span class="p">:</span> <span class="s1">&#39;SEC_GLTPD1_invitro.asc&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sec_gltpd1_invivo&#39;</span><span class="p">:</span> <span class="s1">&#39;SEC_GLTPD1_invivo.xls&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sec_xls_example&#39;</span><span class="p">:</span> <span class="s1">&#39;SEC_xls_example.xls&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sec_unicorn_example&#39;</span><span class="p">:</span> <span class="s1">&#39;SEC_asc_unicorn_example.asc&#39;</span><span class="p">,</span>
     <span class="c1"># an MFQL example file</span>
     <span class="s1">&#39;mfql_example&#39;</span><span class="p">:</span> <span class="s1">&#39;Neg_bovine_heart_PE.mfql&#39;</span><span class="p">,</span>
     <span class="c1"># logarithm base for matching chain fragment intensities</span>
@@ -621,12 +627,29 @@
     <span class="p">}</span>
 <span class="p">}</span>
 
-<span class="n">in_basedir</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;fractionsf&#39;</span><span class="p">,</span> <span class="s1">&#39;ppfracf&#39;</span><span class="p">,</span> <span class="s1">&#39;seqfile&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;pptablef&#39;</span><span class="p">,</span> <span class="s1">&#39;lipnamesf&#39;</span><span class="p">,</span> <span class="s1">&#39;bindpropf&#39;</span><span class="p">,</span> <span class="s1">&#39;metabsf&#39;</span><span class="p">,</span>
+<span class="n">in_basedir</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;fractionsf&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ppfracf&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;seqfile&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;pptablef&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;lipnamesf&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;bindpropf&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;metabsf&#39;</span><span class="p">,</span>
     <span class="s1">&#39;featurescache&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;auxcache&#39;</span><span class="p">,</span> <span class="s1">&#39;stdcachefile&#39;</span><span class="p">,</span> <span class="s1">&#39;validscache&#39;</span><span class="p">,</span> <span class="s1">&#39;marco_dir&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;abscache&#39;</span><span class="p">,</span> <span class="s1">&#39;pptable_file&#39;</span><span class="p">,</span> <span class="s1">&#39;recalfile&#39;</span><span class="p">,</span> <span class="s1">&#39;manual_ppratios_xls&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;manualdir&#39;</span><span class="p">,</span> <span class="s1">&#39;ltplistf&#39;</span><span class="p">,</span> <span class="s1">&#39;flimcache&#39;</span><span class="p">,</span> <span class="s1">&#39;ppsecdir&#39;</span><span class="p">,</span> <span class="s1">&#39;gelprofdir&#39;</span><span class="p">]</span>
+    <span class="s1">&#39;auxcache&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;stdcachefile&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;validscache&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;marco_dir&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;abscache&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;pptable_file&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;recalfile&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;manual_ppratios_xls&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;manualdir&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ltplistf&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;flimcache&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ppsecdir&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gelprofdir&#39;</span><span class="p">,</span>
+<span class="p">]</span>
 
 <span class="n">in_datadir</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;pfragmentsfile&#39;</span><span class="p">,</span>
@@ -635,6 +658,12 @@
     <span class="s1">&#39;mgf_example&#39;</span><span class="p">,</span>
     <span class="s1">&#39;peaks_example&#39;</span><span class="p">,</span>
     <span class="s1">&#39;mfql_example&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sec_xls_example&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sec_unicorn_example&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;peaks_gltpd1_invitro&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;peaks_gltpd1_invivo&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sec_gltpd1_invitro&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;sec_gltpd1_invivo&#39;</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="n">in_mgfdir</span> <span class="o">=</span> <span class="p">{</span>

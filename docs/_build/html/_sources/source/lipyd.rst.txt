@@ -84,13 +84,6 @@ lipyd.lookup module
     :show-inheritance:
 
 
-lipyd.main module
------------------
-
-.. automodule:: lipyd.main
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 lipyd.mass module
 -----------------

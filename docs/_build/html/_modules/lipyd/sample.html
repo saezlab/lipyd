@@ -158,9 +158,9 @@
 <span class="c1">#</span>
 <span class="c1">#  File author(s): Dénes Türei (turei.denes@gmail.com)</span>
 <span class="c1">#</span>
-<span class="c1">#  This code is not for public use.</span>
-<span class="c1">#  Please do not redistribute.</span>
-<span class="c1">#  For permission please contact me.</span>
+<span class="c1">#  Distributed under the GNU GPLv3 License.</span>
+<span class="c1">#  See accompanying file LICENSE.txt or copy at</span>
+<span class="c1">#      http://www.gnu.org/licenses/gpl-3.0.html</span>
 <span class="c1">#</span>
 <span class="c1">#  Website: http://www.ebi.ac.uk/~denes</span>
 <span class="c1">#</span>
@@ -188,6 +188,7 @@
 <span class="kn">import</span> <span class="nn">lipyd.settings</span> <span class="k">as</span> <span class="nn">settings</span>
 <span class="kn">import</span> <span class="nn">lipyd.progress</span> <span class="k">as</span> <span class="nn">progress</span>
 <span class="kn">import</span> <span class="nn">lipyd.sampleattrs</span> <span class="k">as</span> <span class="nn">sampleattrs</span>
+<span class="kn">import</span> <span class="nn">lipyd.feature</span> <span class="k">as</span> <span class="nn">feature</span>
 
 
 <span class="n">remgf</span>  <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf&#39;</span><span class="p">)</span>
@@ -200,7 +201,12 @@
         <span class="s1">&#39;peaks&#39;</span><span class="p">:</span> <span class="n">reader</span><span class="o">.</span><span class="n">peaks</span><span class="o">.</span><span class="n">PeaksReader</span><span class="p">,</span>
     <span class="p">}</span>
     
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_type</span><span class="p">,</span> <span class="n">ionmode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">input_type</span><span class="p">,</span>
+            <span class="n">ionmode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reads data from files and creates ``Sample``, ``SampleSet`` and</span>
 <span class="sd">        ``FeatureAttributes`` objects.</span>
@@ -644,15 +650,17 @@
             <span class="n">ionmode</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">intensities</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">rts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">sample_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">sample_id_method</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">feature_attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">sorter</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">ms2_format</span> <span class="o">=</span> <span class="s1">&#39;mgf&#39;</span><span class="p">,</span>
             <span class="n">ms2_param</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">silent</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-            <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_id_proc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_id_proc_method</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_id_proc_names</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">attr_args</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -702,15 +710,20 @@
         
         <span class="bp">self</span><span class="o">.</span><span class="n">silent</span>     <span class="o">=</span> <span class="n">silent</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ionmode</span>    <span class="o">=</span> <span class="n">ionmode</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span>    <span class="o">=</span> <span class="n">feature_attrs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_feature_attrs</span><span class="p">(</span><span class="n">feature_attrs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ms2_format</span> <span class="o">=</span> <span class="n">ms2_format</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ms2_param</span>  <span class="o">=</span> <span class="n">ms2_param</span> <span class="ow">or</span> <span class="p">{}</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">_set_attrs</span><span class="p">(</span>
-            <span class="n">sample_id</span> <span class="o">=</span> <span class="n">sample_id</span><span class="p">,</span>
-            <span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">,</span>
-            <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="n">sample_id_processor</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">attr_args</span> <span class="o">=</span> <span class="n">attr_args</span> <span class="ow">or</span> <span class="p">{</span>
+            <span class="s1">&#39;sample_id&#39;</span><span class="p">:</span> <span class="n">sample_id</span><span class="p">,</span>
+            <span class="s1">&#39;attrs&#39;</span><span class="p">:</span> <span class="n">attrs</span><span class="p">,</span>
+            <span class="s1">&#39;proc&#39;</span><span class="p">:</span> <span class="n">sample_id_proc</span><span class="p">,</span>
+            <span class="s1">&#39;proc_method&#39;</span><span class="p">:</span> <span class="n">sample_id_proc_method</span><span class="p">,</span>
+            <span class="s1">&#39;proc_names&#39;</span><span class="p">:</span> <span class="n">sample_id_proc_names</span><span class="p">,</span>
+            <span class="s1">&#39;length&#39;</span><span class="p">:</span> <span class="n">length</span><span class="p">,</span>
+        <span class="p">}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_attrs</span><span class="p">(</span><span class="o">**</span><span class="n">attr_args</span><span class="p">)</span>
     
 <div class="viewcode-block" id="Sample.reload"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.Sample.reload">[docs]</a>    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
@@ -720,9 +733,17 @@
         <span class="n">new</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span></div>
     
-    <span class="k">def</span> <span class="nf">_set_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">,</span> <span class="n">attrs</span><span class="p">,</span> <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleAttrs</span><span class="p">(</span><span class="n">sample_id</span><span class="p">,</span> <span class="n">attrs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleAttrs</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_set_feature_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_attrs</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="n">feature_attrs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            
+            <span class="n">feature_attrs</span> <span class="o">=</span> <span class="n">FeatureAttributes</span><span class="p">(</span><span class="n">sorter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorter</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span> <span class="o">=</span> <span class="n">feature_attrs</span>
     
     <span class="k">def</span> <span class="nf">_add_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
         
@@ -1476,7 +1497,7 @@
 <span class="sd">        It means should have the same ordering at time of registration.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sortable</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sortable</span><span class="o">.</span><span class="n">var</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">sortable</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
                 <span class="s1">&#39;FeatureIdx: Objects of unequal length can not be co-sorted.&#39;</span>
@@ -1563,7 +1584,9 @@
             <span class="n">ms2_format</span> <span class="o">=</span> <span class="s1">&#39;mgf&#39;</span><span class="p">,</span>
             <span class="n">ms2_param</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">sample_ids</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_id_proc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_id_proc_method</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sample_id_proc_names</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">sample_data</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1603,6 +1626,20 @@
             <span class="n">mzs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mzs</span><span class="o">.</span><span class="n">shape</span><span class="p">))))</span>
         <span class="p">)</span>
         
+        <span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_guess_numof_samples</span><span class="p">(</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">,</span>
+            <span class="n">variables</span> <span class="o">=</span> <span class="p">(</span><span class="n">mzs</span><span class="p">,</span> <span class="n">intensities</span><span class="p">,</span> <span class="n">rts</span><span class="p">)</span>
+        <span class="p">)</span>
+        
+        <span class="n">attr_args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;sample_id&#39;</span><span class="p">:</span> <span class="n">sample_ids</span><span class="p">,</span>
+            <span class="s1">&#39;attrs&#39;</span><span class="p">:</span> <span class="n">attrs</span><span class="p">,</span>
+            <span class="s1">&#39;proc&#39;</span><span class="p">:</span> <span class="n">sample_id_proc</span><span class="p">,</span>
+            <span class="s1">&#39;proc_method&#39;</span><span class="p">:</span> <span class="n">sample_id_proc_method</span><span class="p">,</span>
+            <span class="s1">&#39;proc_names&#39;</span><span class="p">:</span> <span class="n">sample_id_proc_names</span><span class="p">,</span>
+            <span class="s1">&#39;length&#39;</span><span class="p">:</span> <span class="n">length</span><span class="p">,</span>
+        <span class="p">}</span>
+        
         <span class="n">Sample</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">mzs</span> <span class="o">=</span> <span class="n">centr_mzs</span><span class="p">,</span>
@@ -1616,21 +1653,16 @@
             <span class="n">ms2_format</span> <span class="o">=</span> <span class="n">ms2_format</span><span class="p">,</span>
             <span class="n">ms2_param</span> <span class="o">=</span> <span class="n">ms2_param</span><span class="p">,</span>
             <span class="n">sample_id</span> <span class="o">=</span> <span class="n">sample_ids</span><span class="p">,</span>
-            <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="n">sample_id_processor</span><span class="p">,</span>
+            <span class="n">sample_id_proc</span> <span class="o">=</span> <span class="n">sample_id_proc</span><span class="p">,</span>
+            <span class="n">sample_id_proc_method</span> <span class="o">=</span> <span class="n">sample_id_proc_method</span><span class="p">,</span>
+            <span class="n">sample_id_proc_names</span> <span class="o">=</span> <span class="n">sample_id_proc_names</span><span class="p">,</span>
+            <span class="n">attr_args</span> <span class="o">=</span> <span class="n">attr_args</span><span class="p">,</span>
         <span class="p">)</span>
         
         <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleSorter</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">sample_data</span> <span class="o">=</span> <span class="n">sample_data</span><span class="p">,</span>
             <span class="n">sample_axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="p">)</span>
-    
-    <span class="k">def</span> <span class="nf">_set_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">,</span> <span class="n">attrs</span><span class="p">,</span> <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-        
-        <span class="bp">self</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleSetAttrs</span><span class="p">(</span>
-            <span class="n">sample_ids_method</span> <span class="o">=</span> <span class="n">sample_id</span><span class="p">,</span>
-            <span class="n">sample_attrs</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">,</span>
-            <span class="n">sample_id_processor</span> <span class="o">=</span> <span class="n">sample_id_processor</span><span class="p">,</span>
         <span class="p">)</span>
     
 <div class="viewcode-block" id="SampleSet.combine_samples"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet.combine_samples">[docs]</a>    <span class="nd">@classmethod</span>
@@ -1702,6 +1734,8 @@
         
         <span class="c1"># this is the default</span>
         <span class="k">return</span> <span class="mi">1</span>
+    
+    <span class="n">_set_attrs</span> <span class="o">=</span> <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleSorter</span><span class="o">.</span><span class="n">_set_attrs</span>
     
 <div class="viewcode-block" id="SampleSet.get_sample_attrs"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet.get_sample_attrs">[docs]</a>    <span class="k">def</span> <span class="nf">get_sample_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1830,7 +1864,37 @@
         
         <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">_add_var</span><span class="p">(</span><span class="n">peaksize</span><span class="p">,</span> <span class="s1">&#39;peaksize&#39;</span><span class="p">)</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">threshold_filter</span><span class="p">(</span><span class="s1">&#39;peaksize&#39;</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feattrs</span><span class="o">.</span><span class="n">threshold_filter</span><span class="p">(</span><span class="s1">&#39;peaksize&#39;</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SampleSet.get_selection"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet.get_selection">[docs]</a>    <span class="k">def</span> <span class="nf">get_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selection</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a ``SampleSelection`` object which is a binary selection</span>
+<span class="sd">        of some of the samples in the set.</span>
+<span class="sd">        </span>
+<span class="sd">        :param list,numpy.ndarray selection:</span>
+<span class="sd">            Either a list of sample IDs to be selected or a boolean array</span>
+<span class="sd">            with the length corresponding to the number of samples.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleSelection</span><span class="p">(</span>
+            <span class="n">selection</span> <span class="o">=</span> <span class="n">selection</span><span class="p">,</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="p">,</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="SampleSet.get_sample_data"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.SampleSet.get_sample_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_sample_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a ``SampleData`` object which stores any data about the</span>
+<span class="sd">        samples.</span>
+<span class="sd">        </span>
+<span class="sd">        :param numpy.ndarray **kwargs:</span>
+<span class="sd">            One or more arrays with same their first dimension in</span>
+<span class="sd">            agreement with the number of samples.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="n">sampleattrs</span><span class="o">.</span><span class="n">SampleData</span><span class="p">(</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="FeatureSelection"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureSelection">[docs]</a><span class="k">class</span> <span class="nc">FeatureSelection</span><span class="p">(</span><span class="n">FeatureBase</span><span class="p">):</span>

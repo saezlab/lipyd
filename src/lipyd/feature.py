@@ -126,4 +126,4 @@ class Slope(FeatureAnalyzer):
             highest_samples,
         ):
         
-        
+        pass
