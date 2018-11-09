@@ -184,8 +184,8 @@ font-style:normal;
     pipelines. In each module and class we try to set reasonable defaults and
     we provide tutorials to show how a workflow builds up. As of November 2018
     certain key elements are not yet complete, but we are in active
-    development as we are planning to publish paper in the next few months and
-    we want to provide complete workflow at that point. See details below.
+    development as we are planning to publish a paper in the next few months
+    and we want to provide complete workflow at that point. See details below.
    </p>
    <p><a class="lipyd" href="https://twitter.com/lipyd1" target="_blank">
         Follow us on Twitter!
@@ -221,7 +221,56 @@ font-style:normal;
   
   <h2 id="status">Status</h2>
   <em>Last updated: 9 Nov 2018</em>
-  
+  <h3>Input and preprocessing</h3>
+  <p>
+    At reading raw mass spec data from mzML files, peak picking and feature
+    detection we rely on the <a href="http://openms.de/" target="_blank">
+    OpenMS</a> library. This ensures computationally efficient processing by
+    well established methods. As our OpenMS integration is not yet complete
+    we provide a temporary solution to read already preprocessed features
+    from CSV files exported by the
+    <a href="http://www.bioinfor.com/peaks-studio/" target="_blank">PEAKS</a>
+    software. We are not comfortable with the idea of building on expensive
+    proprietary software and in the near future we will provide complete
+    integration with OpenMS.
+  </p>
+  <h3>Metabolite database lookup</h3>
+  <p>
+    The <em>lipyd.modb</em> module provides an unified interface to standard
+    databases like <a href="https://swisslipids.org/" target="_blank">
+    SwissLipids</a> and <a href="http://lipidmaps.org/" target="_blank">
+    LipidMaps</a>. In addition it is able to generate custom metabolite
+    masses. With the default settings the database consists of more than
+    100 thousands of lipid species. The <em>lipyd.lipid</em> module
+    contains more than 150 predefined lipid classes and it's easy to define
+    new ones. The <em>Sample</em> and <em>SampleSet</em> objects in
+    <em>lipyd.sample</em>, which represent a series of features, support
+    the automatic lookup in the databases.
+  </p>
+  <h3>MS2 spectrum identification</h3>
+  <p>
+    The <em>lipyd.ms2</em> module contains generic classes to support the
+    analysis and identification of MS2 spectra. Based on around 50 standards
+    run by our group and reviewing many spectra from publications and
+    databases we created bult in rules for identification of more than 80
+    lipid classes. You can modify the methods or create new ones by writing
+    Python methods. However we are working on
+    <a href="https://wiki.mpi-cbg.de/lipidx/LipidXplorer_MFQL"
+        target="_blank">MFQL</a> integration to provide a more standard way
+    of defining rules. Also we will introduce similarity search against
+    spectrum databases.
+  </p>
+  <h3>Feature filtering, post-processing</h3>
+  <p>
+    The <em>lipyd.sample</em> and <em>lipyd.feature</em> modules provide
+    classes for analysis of features optionally in relation to other variables
+    and filter them. Analysis and filtering of the features can be done
+    before or after the lipid identification. Doing it before reduces the
+    number of MS2 spectra to be analyzed this way saving time. In the future
+    we will add more utilities to build arrays of features and also MS2
+    fragments across arbitrary number of experiments to provide opportunities
+    for higher level analysis.
+  </p>
   <h2 id="code">Code</h2>
     Lipyd is available under GPLv3 license. You can access the code in the
    <a class="lipyd" href="http://github.com/saezlab/lipyd" target="_blank">
