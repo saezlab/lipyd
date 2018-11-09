@@ -23,5 +23,3 @@ import lipyd.session as session
 
 _session = session.get_session()
 _session.log.msg('This is %s module version %s' % (__name__, __version__))
-
-from lipyd.main import *
