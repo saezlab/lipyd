@@ -30,12 +30,12 @@ class TestReaderPeaks(object):
         samples = reader.samples
         
         assert reader.mzs.shape == (443, 7)
-        assert ('A', 10) in {s['label']['fraction'] for s in samples}
+        assert ('A', 10) in {s['label']['sample_id'] for s in samples}
         assert len({s['Normalized Area'] - s['m/z'] for s in samples}) == 1
         assert all(
             (
-                samples[i    ]['label']['fraction'] <=
-                samples[i + 1]['label']['fraction']
+                samples[i    ]['label']['sample_id'] <=
+                samples[i + 1]['label']['sample_id']
             )
             for i in range(len(samples) - 1)
         )
