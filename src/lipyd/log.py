@@ -38,9 +38,10 @@ class Logger(object):
             
             self.fp.write('[%s] %s\n' % (self.timestamp(), msg))
     
-    def timestamp(self):
+    @classmethod
+    def timestamp(cls):
         
-        return self.strftime('%Y-%m-%d %H:%M:%S')
+        return cls.strftime('%Y-%m-%d %H:%M:%S')
     
     def __del__(self):
         
@@ -68,3 +69,9 @@ class Logger(object):
         if hasattr(self, 'fp') and not self.fp.closed:
             
             self.fp.close()
+    
+    def flush(self):
+        
+        if hasattr(self, 'fp') and not self.fp.closed:
+            
+            self.fp.flush()

@@ -473,11 +473,9 @@ class FeatureAttributes(FeatureBase):
     
     def __len__(self):
         
-        var = next(iter(self.var))
+        obj = self if self.var else self.sorter
         
-        if var:
-            
-            return len(getattr(self, var))
+        return len(getattr(obj, next(iter(obj.var))))
     
     def charges(self):
         """

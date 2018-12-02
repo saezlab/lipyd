@@ -5475,23 +5475,21 @@ class MS2Feature(object):
     
     def iterscans(self):
         
-        for sample_id, resources in iteritems(self.resources):
+        for sample_id, resource in iteritems(self.resources):
             
-            for resource in resources:
+            res_type = self.guess_resouce_type(resource)
+            
+            if res_type not in self.scan_methods:
                 
-                res_type = self.guess_resouce_type(resource)
+                raise ValueError(
+                    'Unknown MS2 resource type: %s' % str(resource)
+                )
+            
+            scan_method = getattr(self, self.scan_methods[res_type])
+            
+            for scan in scan_method(resource, sample_id):
                 
-                if res_type not in self.scan_methods:
-                    
-                    raise ValueError(
-                        'Unknown MS2 resource type: %s' % str(resource)
-                    )
-                
-                scan_method = getattr(self, self.scan_methods[res_type])
-                
-                for scan in scan_method(resource, sample_id):
-                    
-                    yield scan
+                yield scan
     
     def mgf_iterscans(self, mgf_resource, sample_id = None):
         
