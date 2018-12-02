@@ -33,7 +33,8 @@ fattyacids = [
 ]
 
 misc = [
-    'VitaminA'
+    'RetinoicAcid',
+    'Retinol',
 ]
 
 # will be populated by the factory
@@ -1222,7 +1223,7 @@ class FattyAcid(metabolite.AbstractMetabolite):
 # Vitamins
 #
 
-class VitaminA(metabolite.AbstractMetabolite):
+class RetinoicAcid(metabolite.AbstractMetabolite):
     
     def __init__(
             self,
@@ -1236,20 +1237,53 @@ class VitaminA(metabolite.AbstractMetabolite):
         
         def _getname(parent, subs):
             
-            return 'VA'
+            return 'Ret'
         
         metabolite.AbstractMetabolite.__init__(
             self,
             core = 'C19H26',
             subs = (
                 metabolite.AbstractSubstituent(
-                    cores = ('COOH', 'CH2OH'),
+                    cores = ('COOH',),
                     c = (0,),
                     u = (0,),
                 ),
             ),
-            name = 'VA',
-            hg = lipproc.Headgroup(main = 'VA', sub = ()),
+            name = 'Ret',
+            hg = lipproc.Headgroup(main = 'Ret', sub = ('Ac',)),
+            getname = getname or _getname,
+            **kwargs
+        )
+
+
+class Retinol(metabolite.AbstractMetabolite):
+    
+    def __init__(
+            self,
+            c = None,
+            u = None,
+            fa_counts = None,
+            getname = None,
+            sub = (),
+            **kwargs
+        ):
+        
+        def _getname(parent, subs):
+            
+            return 'Ret'
+        
+        metabolite.AbstractMetabolite.__init__(
+            self,
+            core = 'C19H26',
+            subs = (
+                metabolite.AbstractSubstituent(
+                    cores = ('CH2OH',),
+                    c = (0,),
+                    u = (0,),
+                ),
+            ),
+            name = 'Ret',
+            hg = lipproc.Headgroup(main = 'Ret', sub = ('Ol',)),
             getname = getname or _getname,
             **kwargs
         )
