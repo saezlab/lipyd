@@ -5686,6 +5686,98 @@ class MS2Feature(object):
         
         return self.identities_group_by(by = 'class')
     
+    def identities_str(
+            self,
+            only_best = True,
+            only_top = True,
+            group_by = 'subspecies'
+        ):
+        """
+        only_best : bool
+            Only the ones with highest score.
+        only_top : bool
+            Only the first one for each group (the one with highest score
+            and lowest delta RT), ignoring the repeated identifications.
+        group_by : str
+            Passed to ``identities_group_by``. Group by lipid identification
+            level ``subspecies``, ``species``, ``subclass`` or ``class``.
+        """
+        
+        identities = self.identities_group_by(by = group_by)
+        
+        if only_best:
+            
+            max_score = max(
+                ids[0].score_pct for ids in identities,
+                default = 0
+            )
+            
+        else:
+            
+            max_score = 0
+        
+        return ';'.join(
+            (
+                self._identities_str(
+                    ids if only_top else (ids[0],),
+                    full_str = group_by != 'subspecies'
+                )
+                if ids else ''
+            )
+            for ids in identities.values()
+            if not only_best or (ids[0] > 0 and ids[0] == max_score)
+        )
+    
+    def identities_str_all(self):
+        
+        return self.identities_str(
+            only_best = False,
+            only_top  = False,
+            group_by  = 'subspecies',
+        )
+    
+    def identities_str_best_sum(self):
+        
+        return self.identities_str(
+            only_best = True,
+            only_top  = True,
+            group_by  = 'species',
+        )
+    
+    def identities_str_full_toplist(self):
+        
+        return self.identities_str(
+            only_best = False,
+            only_top  = True,
+            group_by  = 'subclass',
+        )
+    
+    @classmethod
+    def _identities_str(cls, ids, sum_str = False):
+        
+        return (
+            ';'.join(
+                sorted(cls.format_ms2id(i, sum_str = sum_str) for i in ids)
+            )
+        )
+    
+    @staticmethod
+    def format_ms2id(i, sum_str = False):
+        # TODO: more generic handling of sample IDs!!!
+        
+        return '%s[score=%u,deltart=%.02f,fraction=%s%u,scan=%u]' % (
+            (
+                lipproc.summary_string(i.hg, i.chainsum)
+                if sum_str else
+                i.__str__()
+            ),
+            i.score_pct,
+            i.scan_details.deltart,
+            i.scan_details.sample_id[0],
+            i.scan_details.sample_id[1],
+            i.scan_details.scan_id,
+        )
+    
     def identity_summary(
             self,
             chains = True,
