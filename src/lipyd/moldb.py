@@ -1184,3 +1184,22 @@ def records_string(
         show_adduct = show_adduct,
         show_db     = show_db,
     )
+
+def lookup_result_summary(result):
+    
+    return set(
+        (
+            adduct, # adduct
+            lip.lab.db, # database name
+            lip.lab.db_id, # database ID
+            (
+                lipproc.summary_str(lip.hg, lip.chainsum)
+                if lip.hg and lip.chainsum else
+                lip.hg.main
+                if lip.hg else
+                None
+            ) # summary string or headgroup class or None
+        )
+        for adduct, res in result.items()
+        for lip in res[1]
+    )
