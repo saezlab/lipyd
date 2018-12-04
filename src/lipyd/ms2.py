@@ -5624,7 +5624,7 @@ class MS2Feature(object):
             scan_ids = False,
         ):
         
-        identities = set()
+        identities = {}
         
         for i, scan_i in enumerate(self.identities):
             
@@ -5632,11 +5632,11 @@ class MS2Feature(object):
                 
                 for var in varieties:
                     
-                    summary = [var.__str__()]
+                    key = [var.__str__()]
                     
                     if scores:
                         
-                        summary.append(var.score_pct)
+                        key.append(var.score_pct)
                         
                     else:
                         
@@ -5646,19 +5646,25 @@ class MS2Feature(object):
                     
                     if drt:
                         
-                        summary.append(self.deltart[i])
+                        key.append(self.deltart[i])
                     
                     if sample_ids:
                         
-                        summary.append(self.scans[i].sample_id)
+                        key.append(self.scans[i].sample_id)
                     
                     if scan_ids:
                         
-                        summary.append(self.scans[i].scan_id)
+                        key.append(self.scans[i].scan_id)
                     
-                    summary.append(sum_str)
+                    key.append(sum_str)
                     
-                    identities.add(tuple(summary))
+                    key = tuple(key)
+                    
+                    if key not in identities:
+                        
+                        identites[key] = []
+                    
+                    identities[key].append(var)
         
         return identities
     
