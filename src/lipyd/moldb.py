@@ -1185,7 +1185,7 @@ def records_string(
         show_db     = show_db,
     )
 
-def lookup_result_summary(result):
+def result_summary(result):
     
     return set(
         (
