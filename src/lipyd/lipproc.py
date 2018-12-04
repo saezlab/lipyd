@@ -301,6 +301,12 @@ def subclass_str(hg, chainsum = None):
         hydroxy
     )
 
+def class_str(hg):
+    """
+    From Headgroup returns the main class as string.
+    """
+    
+    return hg.main
 
 def get_attributes(hg, chainsum = None):
     """

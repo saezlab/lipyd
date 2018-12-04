@@ -5616,6 +5616,76 @@ class MS2Feature(object):
                 
                 self.identities.append(identity)
     
+    @staticmethod
+    def identities_sort(ids):
+        """
+        Sorts identites by score and deltart.
+        """
+        
+        return sorted(
+            ids,
+            key = lambda i:
+                (
+                    100 - i.score_pct,
+                    # if we don't have scan details don't consider
+                    i.scan_details.deltart if i.scan_details else 0,
+                )
+        )
+    
+    def identites_group_by(self, by = 'subspecies'):
+        """
+        Parameters
+        ----------
+        species : str
+            Either ``species`` or ``subspecies`` or ``subclass``.
+        """
+        
+        identities = {}
+        
+        for scan in self.identities:
+            
+            for sum_str, varieties in iteritems(scan):
+                
+                for var in varieties:
+                    
+                    key = (
+                        sum_str
+                        if by = 'species' else
+                        lipproc.full_str(var.hg, var.chains)
+                        if by = 'subspecies' else
+                        lipproc.subclass_str(var.hg)
+                        if by = 'subclass' else
+                        lipproc.class_str(var.hg)
+                    )
+                    
+                    if key not in identities:
+                        
+                        identites[key] = []
+                    
+                    identities[key].append(var)
+        
+        for k, v in iteritems(identities):
+            
+            identites[k] = self.identities_sort(v)
+        
+        return identities
+    
+    def identites_group_by_species(self):
+        
+        return self.identities_group_by(by = 'species')
+    
+    def identites_group_by_subspecies(self):
+        
+        return self.identities_group_by(by = 'subspecies')
+    
+    def identites_group_by_subclass(self):
+        
+        return self.identities_group_by(by = 'subclass')
+    
+    def identites_group_by_class(self):
+        
+        return self.identities_group_by(by = 'class')
+    
     def identity_summary(
             self,
             chains = True,
