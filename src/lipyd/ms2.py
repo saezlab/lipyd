@@ -139,6 +139,7 @@ ScanDetails = collections.namedtuple(
 )
 ChainIdentificationDetails.__new__.__defaults__ = (None, None, None, None)
 
+
 PrecursorDetails = collections.namedtuple(
     'MS1LookupDetails',
     ['adduct', 'exmass', 'error', 'db', 'db_id', 'charge', 'id']
