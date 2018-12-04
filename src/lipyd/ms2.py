@@ -5620,6 +5620,8 @@ class MS2Feature(object):
                         
                         summary.append(self.scans[i].scan_id)
                     
+                    summary.append(sum_str)
+                    
                     identities.add(tuple(summary))
         
         return identities

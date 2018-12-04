@@ -3996,6 +3996,18 @@ aliphatic chain.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="lipyd.lipid.RetinoicAcid">
+<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">RetinoicAcid</code><span class="sig-paren">(</span><em>c=None</em>, <em>u=None</em>, <em>fa_counts=None</em>, <em>getname=None</em>, <em>sub=()</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lipyd/lipid.html#RetinoicAcid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.RetinoicAcid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lipyd.metabolite.AbstractMetabolite" title="lipyd.metabolite.AbstractMetabolite"><code class="xref py py-class docutils literal notranslate"><span class="pre">lipyd.metabolite.AbstractMetabolite</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="lipyd.lipid.Retinol">
+<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">Retinol</code><span class="sig-paren">(</span><em>c=None</em>, <em>u=None</em>, <em>fa_counts=None</em>, <em>getname=None</em>, <em>sub=()</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lipyd/lipid.html#Retinol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.Retinol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lipyd.metabolite.AbstractMetabolite" title="lipyd.metabolite.AbstractMetabolite"><code class="xref py py-class docutils literal notranslate"><span class="pre">lipyd.metabolite.AbstractMetabolite</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
 <dt id="lipyd.lipid.SQDG">
 <em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">SQDG</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.SQDG" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lipyd.lipid.AbstractGlycerolipid" title="lipyd.lipid.AbstractGlycerolipid"><code class="xref py py-class docutils literal notranslate"><span class="pre">lipyd.lipid.AbstractGlycerolipid</span></code></a></p>
@@ -4163,12 +4175,6 @@ aliphatic chain.</p>
 <dt id="lipyd.lipid.TrimethylSphingosineT">
 <em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">TrimethylSphingosineT</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lipyd.lipid.TrimethylSphingosineT" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lipyd.lipid.AbstractSphingolipid" title="lipyd.lipid.AbstractSphingolipid"><code class="xref py py-class docutils literal notranslate"><span class="pre">lipyd.lipid.AbstractSphingolipid</span></code></a></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="lipyd.lipid.VitaminA">
-<em class="property">class </em><code class="descclassname">lipyd.lipid.</code><code class="descname">VitaminA</code><span class="sig-paren">(</span><em>c=None</em>, <em>u=None</em>, <em>fa_counts=None</em>, <em>getname=None</em>, <em>sub=()</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lipyd/lipid.html#VitaminA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.lipid.VitaminA" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lipyd.metabolite.AbstractMetabolite" title="lipyd.metabolite.AbstractMetabolite"><code class="xref py py-class docutils literal notranslate"><span class="pre">lipyd.metabolite.AbstractMetabolite</span></code></a></p>
 </dd></dl>
 
 </div>
@@ -4416,6 +4422,11 @@ a summary Chain object.</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="lipyd.log.Logger.flush">
+<code class="descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lipyd/log.html#Logger.flush"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.log.Logger.flush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="lipyd.log.Logger.get_logdir">
 <code class="descname">get_logdir</code><span class="sig-paren">(</span><em>dirname=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lipyd/log.html#Logger.get_logdir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.log.Logger.get_logdir" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -4455,9 +4466,9 @@ is not present, current time as returned by localtime() is used.</p>
 the C library strftime function.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="classmethod">
 <dt id="lipyd.log.Logger.timestamp">
-<code class="descname">timestamp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lipyd/log.html#Logger.timestamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.log.Logger.timestamp" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">timestamp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/lipyd/log.html#Logger.timestamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lipyd.log.Logger.timestamp" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

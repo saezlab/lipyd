@@ -209,7 +209,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
                 lab = lab,
                 hg  = self.hg,
                 chainsum = chainsum if chainsum.c else None,
-                chains = () if self.sum_only else chains
+                chains = () if self.sum_only else chains,
             )
             
             yield inst.mass, rec
@@ -325,8 +325,8 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         -----
         :param list cores:
             List of core variations. Same kind of definitions
-            are possible like at `formula.Formula`: formula as `str`, `dict` of
-            atoms or exact mass as `float`.
+            are possible like at `formula.Formula`: formula as `str`, `dict`
+            of atoms or exact mass as `float`.
         :param tuple c:
             Tuple of 2 integers: range of chain lengths.
         :param tuple u:

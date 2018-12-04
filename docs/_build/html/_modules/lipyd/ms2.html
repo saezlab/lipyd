@@ -5625,23 +5625,21 @@
     
 <div class="viewcode-block" id="MS2Feature.iterscans"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.MS2Feature.iterscans">[docs]</a>    <span class="k">def</span> <span class="nf">iterscans</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
-        <span class="k">for</span> <span class="n">sample_id</span><span class="p">,</span> <span class="n">resources</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">sample_id</span><span class="p">,</span> <span class="n">resource</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">):</span>
             
-            <span class="k">for</span> <span class="n">resource</span> <span class="ow">in</span> <span class="n">resources</span><span class="p">:</span>
+            <span class="n">res_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">guess_resouce_type</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">res_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_methods</span><span class="p">:</span>
                 
-                <span class="n">res_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">guess_resouce_type</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;Unknown MS2 resource type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+                <span class="p">)</span>
+            
+            <span class="n">scan_method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_methods</span><span class="p">[</span><span class="n">res_type</span><span class="p">])</span>
+            
+            <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scan_method</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">):</span>
                 
-                <span class="k">if</span> <span class="n">res_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_methods</span><span class="p">:</span>
-                    
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s1">&#39;Unknown MS2 resource type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
-                    <span class="p">)</span>
-                
-                <span class="n">scan_method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_methods</span><span class="p">[</span><span class="n">res_type</span><span class="p">])</span>
-                
-                <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scan_method</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">):</span>
-                    
-                    <span class="k">yield</span> <span class="n">scan</span></div>
+                <span class="k">yield</span> <span class="n">scan</span></div>
     
 <div class="viewcode-block" id="MS2Feature.mgf_iterscans"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.ms2.MS2Feature.mgf_iterscans">[docs]</a>    <span class="k">def</span> <span class="nf">mgf_iterscans</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mgf_resource</span><span class="p">,</span> <span class="n">sample_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         
@@ -5771,6 +5769,8 @@
                     <span class="k">if</span> <span class="n">scan_ids</span><span class="p">:</span>
                         
                         <span class="n">summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scans</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">scan_id</span><span class="p">)</span>
+                    
+                    <span class="n">summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sum_str</span><span class="p">)</span>
                     
                     <span class="n">identities</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">summary</span><span class="p">))</span>
         

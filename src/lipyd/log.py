@@ -19,6 +19,21 @@ import time
 import os
 
 
+def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
+    """
+    Returns a new logger with default settings (can be customized).
+    """
+    
+    return Logger(
+        fname = '%s__%s.log' % (
+            name,
+            Logger.timestamp().replace(' ', '_').replace(':', '.'),
+        ),
+        verbosity = 0,
+        logdir = logdir,
+    )
+
+
 class Logger(object):
     
     strftime = time.strftime

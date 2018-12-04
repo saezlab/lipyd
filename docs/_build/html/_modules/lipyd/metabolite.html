@@ -359,7 +359,7 @@
                 <span class="n">lab</span> <span class="o">=</span> <span class="n">lab</span><span class="p">,</span>
                 <span class="n">hg</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hg</span><span class="p">,</span>
                 <span class="n">chainsum</span> <span class="o">=</span> <span class="n">chainsum</span> <span class="k">if</span> <span class="n">chainsum</span><span class="o">.</span><span class="n">c</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="n">chains</span> <span class="o">=</span> <span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum_only</span> <span class="k">else</span> <span class="n">chains</span>
+                <span class="n">chains</span> <span class="o">=</span> <span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum_only</span> <span class="k">else</span> <span class="n">chains</span><span class="p">,</span>
             <span class="p">)</span>
             
             <span class="k">yield</span> <span class="n">inst</span><span class="o">.</span><span class="n">mass</span><span class="p">,</span> <span class="n">rec</span></div>
@@ -475,8 +475,8 @@
 <span class="sd">        -----</span>
 <span class="sd">        :param list cores:</span>
 <span class="sd">            List of core variations. Same kind of definitions</span>
-<span class="sd">            are possible like at `formula.Formula`: formula as `str`, `dict` of</span>
-<span class="sd">            atoms or exact mass as `float`.</span>
+<span class="sd">            are possible like at `formula.Formula`: formula as `str`, `dict`</span>
+<span class="sd">            of atoms or exact mass as `float`.</span>
 <span class="sd">        :param tuple c:</span>
 <span class="sd">            Tuple of 2 integers: range of chain lengths.</span>
 <span class="sd">        :param tuple u:</span>

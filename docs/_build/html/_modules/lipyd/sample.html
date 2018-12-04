@@ -623,11 +623,9 @@
     
     <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
-        <span class="n">var</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">))</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="bp">self</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorter</span>
         
-        <span class="k">if</span> <span class="n">var</span><span class="p">:</span>
-            
-            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">var</span><span class="p">))))</span>
     
 <div class="viewcode-block" id="FeatureAttributes.charges"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.sample.FeatureAttributes.charges">[docs]</a>    <span class="k">def</span> <span class="nf">charges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>

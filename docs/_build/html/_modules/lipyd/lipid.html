@@ -183,7 +183,8 @@
 <span class="p">]</span>
 
 <span class="n">misc</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s1">&#39;VitaminA&#39;</span>
+    <span class="s1">&#39;RetinoicAcid&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Retinol&#39;</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="c1"># will be populated by the factory</span>
@@ -1372,7 +1373,7 @@
 <span class="c1"># Vitamins</span>
 <span class="c1">#</span>
 
-<div class="viewcode-block" id="VitaminA"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.VitaminA">[docs]</a><span class="k">class</span> <span class="nc">VitaminA</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="p">):</span>
+<div class="viewcode-block" id="RetinoicAcid"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.RetinoicAcid">[docs]</a><span class="k">class</span> <span class="nc">RetinoicAcid</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
@@ -1386,20 +1387,53 @@
         
         <span class="k">def</span> <span class="nf">_getname</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">subs</span><span class="p">):</span>
             
-            <span class="k">return</span> <span class="s1">&#39;VA&#39;</span>
+            <span class="k">return</span> <span class="s1">&#39;Ret&#39;</span>
         
         <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">core</span> <span class="o">=</span> <span class="s1">&#39;C19H26&#39;</span><span class="p">,</span>
             <span class="n">subs</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="p">(</span>
-                    <span class="n">cores</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;COOH&#39;</span><span class="p">,</span> <span class="s1">&#39;CH2OH&#39;</span><span class="p">),</span>
+                    <span class="n">cores</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;COOH&#39;</span><span class="p">,),</span>
                     <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,),</span>
                     <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,),</span>
                 <span class="p">),</span>
             <span class="p">),</span>
-            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;VA&#39;</span><span class="p">,</span>
-            <span class="n">hg</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;VA&#39;</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">()),</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Ret&#39;</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;Ret&#39;</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Ac&#39;</span><span class="p">,)),</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="n">getname</span> <span class="ow">or</span> <span class="n">_getname</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Retinol"><a class="viewcode-back" href="../../source/lipyd.html#lipyd.lipid.Retinol">[docs]</a><span class="k">class</span> <span class="nc">Retinol</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">fa_counts</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">getname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sub</span> <span class="o">=</span> <span class="p">(),</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">):</span>
+        
+        <span class="k">def</span> <span class="nf">_getname</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">subs</span><span class="p">):</span>
+            
+            <span class="k">return</span> <span class="s1">&#39;Ret&#39;</span>
+        
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractMetabolite</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">core</span> <span class="o">=</span> <span class="s1">&#39;C19H26&#39;</span><span class="p">,</span>
+            <span class="n">subs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">metabolite</span><span class="o">.</span><span class="n">AbstractSubstituent</span><span class="p">(</span>
+                    <span class="n">cores</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;CH2OH&#39;</span><span class="p">,),</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,),</span>
+                    <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,),</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Ret&#39;</span><span class="p">,</span>
+            <span class="n">hg</span> <span class="o">=</span> <span class="n">lipproc</span><span class="o">.</span><span class="n">Headgroup</span><span class="p">(</span><span class="n">main</span> <span class="o">=</span> <span class="s1">&#39;Ret&#39;</span><span class="p">,</span> <span class="n">sub</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Ol&#39;</span><span class="p">,)),</span>
             <span class="n">getname</span> <span class="o">=</span> <span class="n">getname</span> <span class="ow">or</span> <span class="n">_getname</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span></div>

@@ -21,6 +21,9 @@ Cer		d	Sph;FA	Ceramide	eramide;!phosphate;!exo;(d	Cer(d;!phosphate;!Glc;!Lac;!Ga
 Cer		t	Sph;FA	Ceramide	eramide;!phosphate;!exo;(t	Cer(t;!phosphate;!Glc;!Lac;!Gal;!ulfo;!1-O	[M+H]+	[M+HCOO]-
 Cer	1P		Sph;FA	Ceramide-1-phosphate	eramide;phosphate	Cer;1-phosphate	ND	[M-H]-
 TAG			FA;FA;FA	Triacylglycerol	Triacylglycerol	TG	[M+NH4]+	ND
+PIP3			FA;FA	Phosphatidylinositol trisphosphate	PIP3|osphatidylinositol;trisphosphate	PIP3|lycero;phospho;inositol;trisphosphate	ND	ND
+PIP2			FA;FA	Phosphatidylinositol bisphosphate	PIP2|osphatidylinositol;bisphosphate	PIP3|lycero;phospho;inositol;bisphosphate	ND	ND
+PIP			FA;FA	Phosphatidylinositol monophosphate	PIP|osphatidylinositol;monophosphate	PIP3|lycero;phospho;inositol;monophosphate	ND	ND
 PI	Lyso		FA	Lysophosphatidylinositol		PI;/0:0;!PIP;!Manp;!PIM	ND	ND
 PI			FA;FA	Phosphatidylinositol	hosphatidylinositol	PI;!/0:0;!PIP;!Manp;!PIM	ND	ND
 BMP			FA;FA	lysobisphosphatidic acid, (LBPA) also termed bis(monoacylglyceryl)phosphate (	Bismonoacylglycerolphosphate	2-acyl;glycero;phosphate	ND	ND
