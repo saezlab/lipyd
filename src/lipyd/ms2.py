@@ -65,6 +65,7 @@ class MS2Identity(collections.namedtuple(
             chains = None,
             chain_details = None,
             scan_details = None,
+            precursor_details = None,
         ):
         
         return super(MS2Identity, cls).__new__(
@@ -77,6 +78,7 @@ class MS2Identity(collections.namedtuple(
             chains = chains,
             chain_details = chain_details,
             scan_details = scan_details,
+            precursor_details = precursor_details,
         )
     
     def __str__(self):
@@ -136,6 +138,12 @@ ScanDetails = collections.namedtuple(
     ['sample_id', 'scan_id', 'source', 'deltart']
 )
 ChainIdentificationDetails.__new__.__defaults__ = (None, None, None, None)
+
+PrecursorDetails = collections.namedtuple(
+    'MS1LookupDetails',
+    ['adduct', 'exmass', 'error', 'db', 'db_id', 'charge', 'id']
+)
+PrecursorDetails.__new__.__defaults__ = (None, None, None, None, None, None)
 
 
 class mz_sorted(object):
@@ -332,6 +340,7 @@ class Scan(ScanBase):
             precursor = None,
             intensities = None,
             ms1_records = None,
+            add_precursor_details = False,
             scan_id = None,
             sample_id = None,
             source = None,
@@ -379,6 +388,8 @@ class Scan(ScanBase):
             
             # even if precursor is None, we end up with an empty dict
             self.ms1_records = ms1_records or {}
+        
+        self.add_precursor_details = add_precursor_details
         
         self.scan_id   = scan_id
         self.sample_id = sample_id
@@ -2107,9 +2118,25 @@ class Scan(ScanBase):
             
             if adducts is None or add in adducts:
                 
-                for rec in recs[1]:
+                for exmass, rec, err in zip(*recs):
                     
-                    yield add, rec
+                    # if needed we create here the precursor details
+                    # it can be included in the identity object
+                    if self.add_precursor_details:
+                        
+                        precursor_details = PrecursorDetails(
+                            db = rec.lab.db,
+                            db_id = rec.lab.db_id,
+                            adduct = self.add,
+                            error = err,
+                            exmass = exmass,
+                        )
+                        
+                    else:
+                        
+                        precursor_details = None
+                    
+                    yield add, rec, precursor_details
     
     def records_by_type(self, headgroup, sub = (), adducts = None):
         """
@@ -2170,6 +2197,7 @@ class Scan(ScanBase):
                         record = rec,
                         scan = self,
                         adduct = adduct,
+                        adduct_str = add,
                     ).identify()
                 )
         
@@ -2491,6 +2519,7 @@ class AbstractMS2Identifier(object):
             record,
             scan,
             adduct = None,
+            adduct_str = None,
             missing_chains = None,
             explicit_and_implicit = False,
             must_have_chains = True,
@@ -2503,6 +2532,7 @@ class AbstractMS2Identifier(object):
         self.rec = record
         self.scn = scan
         self.add = adduct
+        self.adduct_str = adduct_str
         self.missing_chains = (
             missing_chains if missing_chains is not None else
             tuple(range(len(record.chainsum))) # any chain can be missing
@@ -2535,6 +2565,7 @@ class AbstractMS2Identifier(object):
                 chains = chains[0],
                 chain_details = chains[1],
                 scan_details = self.scn.scan_details,
+                precursor_details = self.precursor_details,
             )
             chains_confirmed = True
         
@@ -2551,6 +2582,7 @@ class AbstractMS2Identifier(object):
                     chains = chains[0],
                     chain_details = chains[1],
                     scan_details = self.scn.scan_details,
+                    precursor_details = self.precursor_details,
                 )
                 
                 chains_confirmed = True
