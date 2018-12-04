@@ -290,6 +290,12 @@ class LipidNameProcessor(object):
                     c = int(cc2[i * _g + 1])
                     u = int(cc2[i * _g + 2])
                     attr = self.attr_proc(cc2[i * _g:i * _g + _g], u)
+                    
+                    # in lipidmaps one unsaturation
+                    # for plasmalogens is implicit
+                    if self.database == 'lipidmaps' and cc2[i * _g] == 'P':
+                        u += 1
+                    
                     sphingo = sphingo or bool(attr.sph)
                     
                     chains.append(lipproc.Chain(
@@ -371,11 +377,12 @@ class LipidNameProcessor(object):
         Returns tuple of `lipproc.Headgroup` object and expected chain types.
         """
         
-        database = database or self.database
+        database = database.lower() or self.database
         
         names = '|'.join(names)
         
-        db = 'lmp' if database.lower() == 'lipidmaps' else 'swl'
+        db = 'lmp' if database == 'lipidmaps' else 'swl'
+        
         for lipclass, spec in iteritems(self.lipnames):
             for kwset in spec[db]:
                 matched = [kw in names for kw in kwset['pos']]
