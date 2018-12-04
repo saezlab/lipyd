@@ -5461,6 +5461,7 @@ class MS2Feature(object):
             ms1_records = None,
             rt_range = .5,
             check_rt = True,
+            add_precursor_details = False,
         ):
         """
         Collects the MS2 scans from the provided resources for a single
@@ -5494,6 +5495,7 @@ class MS2Feature(object):
         self.mz = mz
         self.ionmode = ionmode
         self.ms1_records = ms1_records or moldb.adduct_lookup(mz, ionmode)
+        self.add_precursor_details = add_precursor_details
         self.resources = resources
         self.rt = (rt - rt_range, rt + rt_range) if type(rt) is float else rt
         self.rtmean = sum(self.rt) / 2.0
@@ -5561,6 +5563,7 @@ class MS2Feature(object):
                 ionmode = self.ionmode,
                 precursor = self.mz,
                 ms1_records = self.ms1_records,
+                add_precursor_details = self.add_precursor_details,
                 scan_id = mgffile.mgfindex[i,3],
                 sample_id = sample_id,
                 source = mgffile.fname,
