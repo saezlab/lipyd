@@ -3294,7 +3294,7 @@ class PC_Negative(AbstractMS2Identifier):
     
     def confirm_class(self):
         
-        self.max_score = 17
+        self.max_score = 27
         
         if (
             self.scn.chain_fragment_type_is(
@@ -3306,6 +3306,18 @@ class PC_Negative(AbstractMS2Identifier):
         ):
             
             self.score += 5
+            
+            if self.scn.has_chain_combination(
+                self.rec,
+                head = 3,
+                chain_param = ({
+                    'frag_type': {
+                        'FA-H',
+                    }
+                },)
+            ):
+                
+                self.score += 10
             
             self.score += sum(map(bool, (
                 self.scn.has_fragment('PE [G+P+E-H2O] (196.0380)'),
@@ -5638,7 +5650,7 @@ class MS2Feature(object):
                 (
                     100 - i.score_pct,
                     # if we don't have scan details don't consider
-                    i.scan_details.deltart if i.scan_details else 0,
+                    abs(i.scan_details.deltart) if i.scan_details else 0,
                 )
         )
     
@@ -5729,7 +5741,7 @@ class MS2Feature(object):
         return ';'.join(
             (
                 self._identities_str(
-                    ids if only_top else (ids[0],),
+                    (ids[0],) if only_top else ids,
                     sum_str = group_by != 'subspecies'
                 )
                 if ids else ''
