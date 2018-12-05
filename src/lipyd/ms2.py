@@ -2158,7 +2158,7 @@ class Scan(ScanBase):
             set([sub])
         )
         
-        for add, rec in self.iterrecords(adducts = adducts):
+        for add, rec, prec_details in self.iterrecords(adducts = adducts):
             
             if rec.hg and rec.hg.main == headgroup and set(rec.hg.sub) == sub:
                 
@@ -5729,12 +5729,17 @@ class MS2Feature(object):
             (
                 self._identities_str(
                     ids if only_top else (ids[0],),
-                    full_str = group_by != 'subspecies'
+                    sum_str = group_by != 'subspecies'
                 )
                 if ids else ''
             )
             for ids in identities.values()
-            if not only_best or (ids[0] > 0 and ids[0] == max_score)
+            if (
+                not only_best or (
+                    ids[0].score_pct > 0 and
+                    ids[0].score_pct == max_score
+                )
+            )
         )
     
     def identities_str_all(self):
@@ -5785,8 +5790,8 @@ class MS2Feature(object):
         
         return '%s[score=%u,deltart=%.02f,fraction=%s%u,scan=%u%s%s]' % (
             (
-                lipproc.summary_string(i.hg, i.chainsum)
-                if sum_str else
+                lipproc.summary_str(i.hg, i.chainsum)
+                if sum_str and i.chainsum else
                 i.__str__()
             ),
             i.score_pct,
