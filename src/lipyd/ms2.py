@@ -5650,11 +5650,11 @@ class MS2Feature(object):
                     
                     key = (
                         sum_str
-                        if by = 'species' else
+                        if by == 'species' else
                         lipproc.full_str(var.hg, var.chains)
-                        if by = 'subspecies' else
+                        if by == 'subspecies' else
                         lipproc.subclass_str(var.hg)
-                        if by = 'subclass' else
+                        if by == 'subclass' else
                         lipproc.class_str(var.hg)
                     )
                     
@@ -5708,8 +5708,8 @@ class MS2Feature(object):
         if only_best:
             
             max_score = max(
-                ids[0].score_pct for ids in identities,
-                default = 0
+                (ids[0].score_pct for ids in identities),
+                default = 0,
             )
             
         else:

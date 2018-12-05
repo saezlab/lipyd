@@ -377,7 +377,13 @@ class LipidNameProcessor(object):
         Returns tuple of `lipproc.Headgroup` object and expected chain types.
         """
         
-        database = database.lower() or self.database
+        if database is not None:
+            
+            database = database.lower()
+            
+        else:
+            
+            database = self.database
         
         names = '|'.join(names)
         
