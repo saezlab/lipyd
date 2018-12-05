@@ -2179,7 +2179,7 @@ class Scan(ScanBase):
         
         result = {}
         
-        for add, rec in self.iterrecords(adducts):
+        for add, rec, precursor_details in self.iterrecords(adducts):
             
             if rec.hg is None:
                 
@@ -2199,6 +2199,7 @@ class Scan(ScanBase):
                         scan = self,
                         adduct = adduct,
                         adduct_str = add,
+                        precursor_details = precursor_details,
                     ).identify()
                 )
         
@@ -2521,6 +2522,7 @@ class AbstractMS2Identifier(object):
             scan,
             adduct = None,
             adduct_str = None,
+            precursor_details = None,
             missing_chains = None,
             explicit_and_implicit = False,
             must_have_chains = True,
@@ -2534,6 +2536,7 @@ class AbstractMS2Identifier(object):
         self.scn = scan
         self.add = adduct
         self.adduct_str = adduct_str
+        self.precursor_details = precursor_details
         self.missing_chains = (
             missing_chains if missing_chains is not None else
             tuple(range(len(record.chainsum))) # any chain can be missing
