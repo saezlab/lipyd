@@ -5752,20 +5752,29 @@ class MS2Feature(object):
             group_by  = 'subclass',
         )
     
-    @classmethod
-    def _identities_str(cls, ids, sum_str = False):
+    def _identities_str(self, ids, sum_str = False):
         
         return (
             ';'.join(
-                sorted(cls.format_ms2id(i, sum_str = sum_str) for i in ids)
+                sorted(self.format_ms2id(i, sum_str = sum_str) for i in ids)
             )
         )
     
-    @staticmethod
-    def format_ms2id(i, sum_str = False):
+    def format_ms2id(self, i, sum_str = False):
         # TODO: more generic handling of sample IDs!!!
         
-        return '%s[score=%u,deltart=%.02f,fraction=%s%u,scan=%u]' % (
+        adduct = (
+            ',adduct=%s' % i.precursor_details.adduct
+                if self.add_precursor_details else
+            ''
+        )
+        error = (
+            ',ms1ppm=%0.1f' % i.precursor_details.error
+                if self.add_precursor_details else
+            ''
+        )
+        
+        return '%s[score=%u,deltart=%.02f,fraction=%s%u,scan=%u%s%s]' % (
             (
                 lipproc.summary_string(i.hg, i.chainsum)
                 if sum_str else
@@ -5776,6 +5785,8 @@ class MS2Feature(object):
             i.scan_details.sample_id[0],
             i.scan_details.sample_id[1],
             i.scan_details.scan_id,
+            adduct,
+            error,
         )
     
     def identity_summary(
