@@ -147,7 +147,7 @@ ChainIdentificationDetails.__new__.__defaults__ = (None, None, None, None)
 
 
 PrecursorDetails = collections.namedtuple(
-    'MS1LookupDetails',
+    'PrecursorDetails',
     ['adduct', 'exmass', 'error', 'db', 'db_id', 'charge', 'id']
 )
 PrecursorDetails.__new__.__defaults__ = (None, None, None, None, None, None)
@@ -2608,6 +2608,7 @@ class AbstractMS2Identifier(object):
                 chains = None,
                 chain_details = None,
                 scan_details = self.scn.scan_details,
+                precursor_details = self.precursor_details,
             )
     
     def percent_score(self):
