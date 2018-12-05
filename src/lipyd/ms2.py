@@ -49,9 +49,15 @@ ChainFragment = collections.namedtuple(
 class MS2Identity(collections.namedtuple(
         'MS2IdentityBase',
         [
-            'score', 'max_score', 'score_pct',
-            'hg', 'chainsum', 'chains', 'chain_details',
+            'score',
+            'max_score',
+            'score_pct',
+            'hg',
+            'chainsum',
+            'chains',
+            'chain_details',
             'scan_details',
+            'precursor_details',
         ]
     )):
     
