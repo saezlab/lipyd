@@ -5628,7 +5628,7 @@ class MS2Feature(object):
     @staticmethod
     def identities_sort(ids):
         """
-        Sorts identites by score and deltart.
+        Sorts identities by score and deltart.
         """
         
         return sorted(
@@ -5641,7 +5641,7 @@ class MS2Feature(object):
                 )
         )
     
-    def identites_group_by(self, by = 'subspecies'):
+    def identities_group_by(self, by = 'subspecies'):
         """
         Parameters
         ----------
@@ -5669,29 +5669,29 @@ class MS2Feature(object):
                     
                     if key not in identities:
                         
-                        identites[key] = []
+                        identities[key] = []
                     
                     identities[key].append(var)
         
         for k, v in iteritems(identities):
             
-            identites[k] = self.identities_sort(v)
+            identities[k] = self.identities_sort(v)
         
         return identities
     
-    def identites_group_by_species(self):
+    def identities_group_by_species(self):
         
         return self.identities_group_by(by = 'species')
     
-    def identites_group_by_subspecies(self):
+    def identities_group_by_subspecies(self):
         
         return self.identities_group_by(by = 'subspecies')
     
-    def identites_group_by_subclass(self):
+    def identities_group_by_subclass(self):
         
         return self.identities_group_by(by = 'subclass')
     
-    def identites_group_by_class(self):
+    def identities_group_by_class(self):
         
         return self.identities_group_by(by = 'class')
     
@@ -5847,7 +5847,7 @@ class MS2Feature(object):
                     
                     if key not in identities:
                         
-                        identites[key] = []
+                        identities[key] = []
                     
                     identities[key].append(var)
         
