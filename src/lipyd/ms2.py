@@ -2128,7 +2128,7 @@ class Scan(ScanBase):
                         precursor_details = PrecursorDetails(
                             db = rec.lab.db,
                             db_id = rec.lab.db_id,
-                            adduct = self.add,
+                            adduct = add,
                             error = err,
                             exmass = exmass,
                         )
