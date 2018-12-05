@@ -5717,7 +5717,7 @@ class MS2Feature(object):
         if only_best:
             
             max_score = max(
-                (ids[0].score_pct for ids in identities),
+                (ids[0].score_pct for ids in identities.values()),
                 default = 0,
             )
             
