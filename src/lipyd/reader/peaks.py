@@ -437,7 +437,7 @@ class PeaksReader(object):
             'intensities': self.intensities,
             'rts': self.rt_means,
             'attrs': self.samples,
-            'sample_id_proc': self.sample_id_method,
+            'sample_ids': self.sample_id_method,
         }
 
 
