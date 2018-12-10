@@ -245,6 +245,8 @@ class SampleSetAttrs(object):
         Returns the index of a sample by its ID.
         """
         
+        sample_id = self.proc(sample_id)
+        
         return self.sample_id_to_index[sample_id]
     
     def sort_by_index(self, idx):
