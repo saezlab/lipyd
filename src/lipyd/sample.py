@@ -160,14 +160,17 @@ class SampleReader(object):
             
             _sampleset_args.update(sampleset_args)
         
-        for k, v in iteritems(_sampleset_args):
+        # I leave this here for one more round of testing
+        # and debugging until docs are complete
+        
+        #for k, v in iteritems(_sampleset_args):
             
-            if isinstance(v, np.ndarray):
+            #if isinstance(v, np.ndarray):
                 
-                print('%s: Array' % k)
+                #print('%s: Array' % k)
                 
-            else:
-                print(k, v)
+            #else:
+                #print(k, v)
         
         return SampleSet(**_sampleset_args)
 
