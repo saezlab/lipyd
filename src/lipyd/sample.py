@@ -145,7 +145,7 @@ class SampleReader(object):
             
             yield Sample(**_sample_args)
     
-    def get_sampleset(self, sampleset_args = None):
+    def get_sampleset(self, **sampleset_args):
         """
         Returns a ``SampleSet`` and a ``FeatureAttributes`` object.
         """
@@ -158,7 +158,9 @@ class SampleReader(object):
         
         if sampleset_args:
             
-            _sampleset_args.update(sampleset_args)
+            _sampleset_args.update(sampleset_args.items())
+        
+        print(sampleset_args)
         
         return SampleSet(**_sampleset_args)
 

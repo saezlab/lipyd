@@ -23,6 +23,10 @@ import collections
 import mimetypes
 
 import numpy as np
+# for peak detection fits
+import scipy as sp
+import scipy.optimize
+import scipy.spatial
 
 import lipyd.settings as settings
 import lipyd.common as common
@@ -217,3 +221,58 @@ class SECReader(object):
         for frac in fractions:
             
             yield Fraction(*frac[:-1], self.fraction_mean(frac))
+    
+    def baseline_correction(self):
+        """
+        Performs a baseline correction by selecting points in the lowest
+        decile and subtracting.
+        """
+        
+    
+    def baseline_correction_rubberband(self):
+        """
+        Performs a rubberband baseline correction following
+        https://dsp.stackexchange.com/a/30723.
+        """
+        
+        self.absorbance_baselinecorr = self.baseline_correction_rubberband(
+            self.volume,
+            self.absorbance,
+        )
+    
+    @classmethod
+    def rubberband_correction(cls, x, y):
+        """
+        Performs a rubberband baseline correction following
+        https://dsp.stackexchange.com/a/30723.
+        """
+        
+        rb = cls.rubberband(x, y)
+        # Rotate convex hull vertices until they start from the lowest one
+        rb = np.roll(rb, -rb.argmin())
+        # Leave only the ascending part
+        rb = rb[:rb.argmax()]
+        # Create baseline using linear interpolation between vertices
+        rb = np.interp(x, x[rb], y[rb])
+        # The baseline is corrected like this
+        return y - rb
+    
+    @staticmethod
+    def rubberband(x, y):
+        """
+        Returns a convex hull of curve defined by ``x`` and ``y``.
+        From https://dsp.stackexchange.com/a/30723.
+        """
+        
+        return sp.spatial.ConvexHull(np.array(zip(x, y))).vertices
+    
+    def peak_detections(self):
+        """
+        Detects peaks by fitting and deconvoluting asymmetric decaying
+        Gaussian functions.
+        
+        Following http://kitchingroup.cheme.cmu.edu/blog/2013/01/29/
+        Curve-fitting-to-get-overlapping-peak-areas/
+        """
+        
+        pass

@@ -225,9 +225,7 @@ class TestSampleAttrs(object):
         )
         
         samples = reader.get_sampleset(
-            sampleset_args = {
-                'sample_id_proc': sampleattrs.plate_sample_id_processor(),
-            }
+            sample_id_proc = sampleattrs.plate_sample_id_processor(),
         )
         
         secprofile = sampleattrs.SECProfile(

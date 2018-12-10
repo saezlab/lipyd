@@ -4316,7 +4316,6 @@ class Cer_Positive(AbstractMS2Identifier):
     
     def cer(self):
         
-        
         score = 0
         max_score = 0
         
