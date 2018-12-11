@@ -968,7 +968,7 @@ class Sample(FeatureBase):
             
             return getattr(self, method)(
                 sample_id = sample_id,
-                attrs = attrs.attrs,
+                attrs = attrs,
             )
     
     def collect_mgf(self, sample_id = None, attrs = None):
@@ -1029,7 +1029,7 @@ class Sample(FeatureBase):
             for fname in os.listdir(mgfdir):
                 
                 mgf_path     = os.path.join(mgfdir, fname)
-                mgf_matches  = mgf_match_method(mgf_path, attrs.attrs)
+                mgf_matches  = mgf_match_method(mgf_path, attrs)
                 
                 if mgf_matches:
                     
@@ -1123,7 +1123,7 @@ class Sample(FeatureBase):
             
             ms2_fe.main()
             
-            ms2_identities.append(ms2_fe.identities)
+            ms2_identities.append(ms2_fe)
         
         if not self.silent:
             
@@ -1524,6 +1524,8 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             sample_data = sample_data,
             sample_axis = 1,
         )
+        
+        self.normalize_intensities()
     
     @classmethod
     def combine_samples(cls, attrs, samples, **kwargs):
@@ -1649,7 +1651,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         
         ms2_source = {}
         
-        attrs = attrs or self.attrs
+        attrs = attrs or self.attrs.attrs
         
         for i, sample_attrs in enumerate(attrs):
             
@@ -1667,12 +1669,12 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
                     
                     continue
             
-            sample_id = self.get_sample_id(i)
+            sample_id = self.attrs.get_sample_id(i)
             # adding MS2 sources for this sample to the dict
             ms2_source.update(Sample.collect_ms2(
                 self,
                 sample_id = sample_id,
-                attrs = sample_attrs
+                attrs = sample_attrs,
             ))
         
         return ms2_source
@@ -1755,6 +1757,21 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             samples = self,
             **kwargs,
         )
+    
+    def normalize_intensities(self):
+        """
+        Creates an array with intensity values divided by the maximum
+        for each feature. The new array assigned to the variable name
+        ``intens_norm``.
+        """
+        
+        if isinstance(self.intensities, np.ndarray):
+            
+            self._add_var(
+                self.intensities /
+                np.nanmax(self.intensities, axis = 1, keepdims = True),
+                'intens_norm',
+            )
 
 
 class FeatureSelection(FeatureBase):
