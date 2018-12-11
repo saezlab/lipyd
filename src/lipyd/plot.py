@@ -20,13 +20,276 @@
 # See original at https://github.com/matrixx567/MassSpectraPlot
 #
 
+from future.utils import iteritems
+from past.builtins import xrange, range
+
 import imp
+import copy
 import pandas as pd
 import numpy as np
 import math as mt
-import matplotlib.pyplot as plt
 
+import matplotlib as mpl
+import matplotlib.gridspec as gridspec
+import matplotlib.backends.backend_pdf
+from matplotlib import ticker
 from matplotlib import rcParams
+
+
+class PlotBase(object):
+    
+    def __init__(
+            self,
+            fname = None,
+            xlab = None,
+            ylab = None,
+            width = 7,
+            height = 7,
+            grid_rows = 1,
+            grid_cols = 1,
+            grid_hratios = None,
+            grid_wratios = None,
+            font_family = 'Helvetica Neue LT Std',
+            font_style = 'normal',
+            font_weight = 'normal',
+            font_variant = 'normal',
+            font_stretch = 'normal',
+            axis_lab_font = {},
+            bar_args = {},
+            ticklabel_font = {},
+            xticklabel_font = {},
+            legend_font = {},
+            title_font = {},
+            uniform_ylim = False,
+            palette = None,
+            context = 'poster',
+            lab_size = (9, 9),
+            axis_lab_size = 10.0,
+            lab_angle = 0, 
+            rc = {},
+            title = None,
+            maketitle = False,
+            fp_title = None,
+            title_halign = None,
+        ):
+        
+        for k, v in iteritems(locals()):
+            
+            if not hasattr(self, k) or getattr(self, k) is None:
+                
+                setattr(self, k, v)
+        
+        if type(self.lab_size) is not tuple:
+            self.lab_size = (self.lab_size, ) * 2
+        if 'axes.labelsize' not in self.rc:
+            self.rc['axes.labelsize'] = self.axis_lab_size
+        if 'ytick.labelsize' not in self.rc:
+            self.rc['ytick.labelsize'] = self.lab_size[0]
+        if 'ytick.labelsize' not in self.rc:
+            self.rc['ytick.labelsize'] = self.lab_size[1]
+        
+        self.rc['font.family'] = self.font_family
+        self.rc['font.style'] = self.font_style
+        self.rc['font.variant'] = self.font_variant
+        self.rc['font.weight'] = self.font_weight
+        self.rc['font.stretch'] = self.font_stretch
+        
+        self.fp = mpl.font_manager.FontProperties(
+            family=self.font_family,
+            style=self.font_style,
+            variant=self.font_variant,
+            weight=self.font_weight,
+            stretch=self.font_stretch
+        )
+        
+        self.grid_hratios = grid_hratios or [1.] * grid_rows
+        self.grid_wratios = grid_wratios or [1.] * grid_cols
+        
+    
+    def reload(self):
+        """
+        Reloads the module and updates the class instance.
+        """
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+
+    def plot(self):
+        """
+        The total workflow of this class.
+        Calls all methods in the correct order.
+        """
+        self.pre_plot()
+        self.do_plot()
+        self.post_plot()
+
+    def pre_plot(self):
+        """
+        Executes all necessary tasks before plotting in the correct order.
+        """
+        pass
+
+    def do_plot(self):
+        """
+        Calls the plotting methods in the correct order.
+        """
+        self.set_figsize()
+        self.init_fig()
+        self.set_fontproperties()
+        self.set_grid()
+        self.make_plots()
+        self.labels()
+        self.set_ylims()
+        self.set_title()
+
+    def post_plot(self):
+        """
+        Saves the plot into file, and closes the figure.
+        """
+        self.finish()
+    
+    def set_figsize(self):
+        """
+        Converts width and height to a tuple so can be used for figsize.
+        """
+        if hasattr(self, 'width') and hasattr(self, 'height'):
+            
+            self.figsize = (self.width, self.height)
+
+    def init_fig(self):
+        """
+        Creates a figure using the object oriented matplotlib interface.
+        """
+        self.pdf = mpl.backends.backend_pdf.PdfPages(self.fname)
+        self.fig = mpl.figure.Figure(figsize = self.figsize)
+        self.cvs = mpl.backends.backend_pdf.FigureCanvasPdf(self.fig)
+
+    def set_grid(self):
+        """
+        Sets up a grid according to the number of subplots,
+        with proportions according to the number of elements
+        in each subplot.
+        """
+        self.gs = mpl.gridspec.GridSpec(
+            self.grid_rows,
+            self.grid_cols,
+            height_ratios = self.grid_hratios,
+            width_ratios = self.grid_wratios,
+        )
+        self.axes = [[None] * self.grid_cols] * self.grid_rows
+
+    def get_subplot(self, i, j = 0):
+        
+        if self.axes[j][i] is None:
+            self.axes[j][i] = self.fig.add_subplot(self.gs[j, i])
+        self.ax = self.axes[j][i]
+    
+    def set_ylims(self):
+        
+        if self.uniform_ylim:
+            
+            maxy = max(
+                ax.get_ylim()[1]
+                for ax in self.axes[0][0:]
+            )
+            
+            _ = [None for _ in ax.set_ylim([0, maxy]) for ax in self.axes[0]]
+
+    def set_title(self):
+        """
+        Sets the main title.
+        """
+        if self.maketitle:
+            self.title_text = self.fig.suptitle(self.title)
+            self.title_text.set_fontproperties(self.fp_title)
+            self.title_text.set_horizontalalignment(self.title_halign)
+    
+    def labels(self):
+        """
+        Sets properties of axis labels and ticklabels.
+        """
+        if self.xlab is not None:
+            self._xlab = self.ax.set_xlabel(self.xlab)
+        
+        if self.ylab is not None:
+            self._ylab = self.ax.set_ylabel(self.ylab)
+        
+        _ = [
+            tick.label.set_fontproperties(self.fp_xticklabel) or (
+                self.lab_angle == 0 or self.lab_angle == 90
+            ) and (
+                tick.label.set_rotation(self.lab_angle) or
+                tick.label.set_horizontalalignment('center')
+            )
+            for tick in self.ax.xaxis.get_major_ticks()
+        ]
+        
+        _ = [
+            tick.label.set_fontproperties(self.fp_ticklabel)
+            for tick in self.ax.yaxis.get_major_ticks()
+        ]
+        
+        self.ax.set_ylabel(self.ylab, fontproperties = self.fp_axis_lab)
+        # self.ax.yaxis.label.set_fontproperties(self)
+    
+    def set_fontproperties(self):
+        
+        self.fp_axis_lab = \
+            mpl.font_manager.FontProperties(
+                **copy.deepcopy(self.axis_lab_font)
+            )
+        
+        self.fp_xticklabel = \
+            mpl.font_manager.FontProperties(
+                **copy.deepcopy(
+                    self.xticklabel_font
+                        if self.xticklabel_font else
+                    self.ticklabel_font
+                )
+            )
+        
+        self.fp_ticklabel = \
+            mpl.font_manager.FontProperties(
+                **copy.deepcopy(self.ticklabel_font)
+            )
+    
+    def finish(self):
+        """
+        Applies tight layout, draws the figure, writes the file and closes.
+        """
+        self.fig.tight_layout()
+        self.fig.subplots_adjust(top = .92)
+        self.cvs.draw()
+        self.cvs.print_figure(self.pdf)
+        self.pdf.close()
+        self.fig.clf()
+
+
+class TestPlot(PlotBase):
+    
+    def __init__(self, **kwargs):
+        
+        PlotBase.__init__(self, **kwargs)
+    
+    def make_plots(self):
+        
+        self.get_subplot(0, 0)
+        
+        x = np.linspace(0, 10, 1000)
+        self.ax.plot(x, np.sin(x))
+
+
+class Profiles(PlotBase):
+    
+    def __init__(self, **kwargs):
+        
+        PlotBase.__init__(self, **kwargs)
+    
+    def make_plots(self, profiles, xlabels):
+        
+        self.get_subplot(0, 0)
 
 
 class SpectrumPlot(object):
