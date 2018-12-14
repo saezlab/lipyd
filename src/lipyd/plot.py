@@ -54,9 +54,12 @@ class PlotBase(object):
             font_weight = 'normal',
             font_variant = 'normal',
             font_stretch = 'normal',
+            font_size = None,
             axis_lab_font = {},
             bar_args = {},
             ticklabel_font = {},
+            xticks = None,
+            xticklabels = None,
             xticklabel_font = {},
             legend_font = {},
             title_font = {},
@@ -65,7 +68,7 @@ class PlotBase(object):
             context = 'poster',
             lab_size = (9, 9),
             axis_lab_size = 10.0,
-            lab_angle = 0, 
+            lab_angle = 0,
             rc = {},
             title = None,
             maketitle = False,
@@ -143,6 +146,7 @@ class PlotBase(object):
         self.labels()
         self.set_ylims()
         self.set_title()
+        self.set_ticklabels()
 
     def post_plot(self):
         """
@@ -236,12 +240,26 @@ class PlotBase(object):
     
     def set_fontproperties(self):
         
-        self.fp_axis_lab = \
+        self.fp_default = (
+            mpl.font_manager.FontProperties(
+                family = self.font_family,
+                style = self.font_style,
+                weight = self.font_weight,
+                variant = self.font_variant,
+                stretch = self.font_stretch,
+                size = self.font_size,
+            )
+        )
+        
+        self.fp_axis_lab = (
             mpl.font_manager.FontProperties(
                 **copy.deepcopy(self.axis_lab_font)
             )
+            if self.axis_lab_font else
+            self.fp_default
+        )
         
-        self.fp_xticklabel = \
+        self.fp_xticklabel = (
             mpl.font_manager.FontProperties(
                 **copy.deepcopy(
                     self.xticklabel_font
@@ -249,22 +267,51 @@ class PlotBase(object):
                     self.ticklabel_font
                 )
             )
+            if self.xticklabel_font or self.ticklabel_font else
+            self.fp_default
+        )
         
-        self.fp_ticklabel = \
+        self.fp_ticklabel = (
             mpl.font_manager.FontProperties(
                 **copy.deepcopy(self.ticklabel_font)
+            ) if self.ticklabel_font else
+            self.fp_default
+        )
+    
+    def set_ticklabels(self):
+        
+        if self.xticklabels:
+            
+            self.ax.xaxis.set_ticklabels(
+                ('{:,g}'.format(x) for x in self.xticklabels),
             )
+        
+        _ = [
+            tl.set_fontproperties(self.fp_ticklabel)
+            for tl in self.ax.get_xticklabels()
+        ]
+        
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
+        
+        if self.xticks:
+            
+            self.ax.xaxis.xticks(self.xticks)
     
     def finish(self):
         """
         Applies tight layout, draws the figure, writes the file and closes.
         """
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
         self.fig.tight_layout()
         self.fig.subplots_adjust(top = .92)
         self.cvs.draw()
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
         self.cvs.print_figure(self.pdf)
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
         self.pdf.close()
-        self.fig.clf()
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
+        #self.fig.clf()
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
 
 
 class TestPlot(PlotBase):
@@ -317,7 +364,7 @@ class SpectrumPlot(object):
             'legend.frameon': True,
             'xtick.labelsize': 8,
             'ytick.labelsize': 8,
-            'font.family': 'serif',
+            'font.family': 'Helvetica',
             'text.usetex': True,
             'text.latex.unicode': True,
             'axes.linewidth': 0.5,

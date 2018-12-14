@@ -5595,6 +5595,7 @@ class MS2Feature(object):
     def mgf_iterscans(self, mgf_resource, sample_id = None):
         
         mgffile = self.get_mgf(mgf_resource)
+        print(mgffile)
         idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
         
         for i, rtd in zip(idx, rtdiff):
