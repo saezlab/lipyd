@@ -19,7 +19,11 @@
 import lipyd._version as _version
 __version__ = _version.__version__
 
+import pprint
 import lipyd.session as session
+import lipyd.pprint_namedtuple as pprint_namedtuple
 
 _session = session.get_session()
 _session.log.msg('This is %s module version %s' % (__name__, __version__))
+
+pprint.PrettyPrinter = pprint_namedtuple.PrettyPrinter
