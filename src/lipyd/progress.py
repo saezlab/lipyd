@@ -26,10 +26,16 @@ __all__ = ['Progress', 'OldProgress']
 
 class Progress(object):
     
-    """
-    Before I had my custom progressbar here.
+    """Before I had my custom progressbar here.
     Now it is a wrapper around the great progressbar `tqdm`.
     Old implementation moved to `OldProgress` class.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, total = None, name = "Progress",
@@ -50,6 +56,7 @@ class Progress(object):
             self.init_tqdm()
     
     def reload(self):
+        """ """
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
@@ -57,6 +64,7 @@ class Progress(object):
         setattr(self, '__class__', new)
     
     def init_tqdm(self):
+        """ """
         self.tqdm = tqdm.tqdm(total = self.total,
                               desc = '%s: %s' % (self.name, self.status),
                               unit_scale = True,
@@ -64,10 +72,24 @@ class Progress(object):
         self.last_updated = time.time()
     
     def step(self, step = 1, msg = None, status = 'busy', force = False):
-        """
-        Updates the progressbar by the desired number of steps.
-        
-        :param int step: Number of steps or items.
+        """Updates the progressbar by the desired number of steps.
+
+        Parameters
+        ----------
+        int :
+            step: Number of steps or items.
+        step :
+             (Default value = 1)
+        msg :
+             (Default value = None)
+        status :
+             (Default value = 'busy')
+        force :
+             (Default value = False)
+
+        Returns
+        -------
+
         """
         self.done += step
         
@@ -88,23 +110,47 @@ class Progress(object):
             self.last_updated = time.time()
     
     def terminate(self, status = 'finished'):
-        """
-        Terminates the progressbar and destroys the tqdm object.
+        """Terminates the progressbar and destroys the tqdm object.
+
+        Parameters
+        ----------
+        status :
+             (Default value = 'finished')
+
+        Returns
+        -------
+
         """
         self.step(self.total - self.done, force = True, status = status)
         self.tqdm.close()
     
     def set_total(self, total):
-        """
-        Changes the total value of the progress bar.
+        """Changes the total value of the progress bar.
+
+        Parameters
+        ----------
+        total :
+            
+
+        Returns
+        -------
+
         """
         self.total = total
         self.tqdm.total = total
         self.step(0)
     
     def set_done(self, done):
-        """
-        Sets the position of the progress bar.
+        """Sets the position of the progress bar.
+
+        Parameters
+        ----------
+        done :
+            
+
+        Returns
+        -------
+
         """
         self.done = done
         self.tqdm.n = self.done
@@ -112,8 +158,16 @@ class Progress(object):
         self.step(0)
     
     def set_status(self, status):
-        """
-        Changes the prefix of the progressbar.
+        """Changes the prefix of the progressbar.
+
+        Parameters
+        ----------
+        status :
+            
+
+        Returns
+        -------
+
         """
         if status != self.status:
             self.status = status
@@ -121,11 +175,17 @@ class Progress(object):
             self.tqdm.refresh()
     
     def get_desc(self):
-        """
-        Returns a formatted string of the description, consisted of
+        """Returns a formatted string of the description, consisted of
         the name and the status. The name supposed something constant
         within the life of the progressbar, while the status is there
         to give information about the current stage of the task.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         return '%s%s%s%s' % (' ' * 8,
                              self.name,
@@ -134,6 +194,7 @@ class Progress(object):
 
 
 class OldProgress(object):
+    """ """
     
     def __init__(self, total = None, name = "Progress",
         interval = 3000, percent = True, status = 'initializing'):
@@ -160,6 +221,23 @@ class OldProgress(object):
         sys.stdout.flush()
     
     def step(self, step = 1, msg = None, status = 'working on it', force = False):
+        """
+
+        Parameters
+        ----------
+        step :
+             (Default value = 1)
+        msg :
+             (Default value = None)
+        status :
+             (Default value = 'working on it')
+        force :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         self.status = status
         self.done += step
         if force or (self.done % self.interval < 1.0 and \
@@ -181,17 +259,61 @@ class OldProgress(object):
             self.last_updated = time.time()
     
     def set_total(self, total):
+        """
+
+        Parameters
+        ----------
+        total :
+            
+
+        Returns
+        -------
+
+        """
         self.total = total or 9999999999.0
     
     def set_done(self, done):
+        """
+
+        Parameters
+        ----------
+        done :
+            
+
+        Returns
+        -------
+
+        """
         self.done = done
     
     def set_status(self, status):
+        """
+
+        Parameters
+        ----------
+        status :
+            
+
+        Returns
+        -------
+
+        """
         #if self.ipython == 'notebook':
         #    status = '%s; progress indicator disabled in IPython notebook.' % status
         self.step(step = 0, status = status, force = True)
     
     def terminate(self, status = 'finished'):
+        """
+
+        Parameters
+        ----------
+        status :
+             (Default value = 'finished')
+
+        Returns
+        -------
+
+        """
         self.finished_time = time.time()
         self.seconds_elapsed =  self.finished_time - self.start_time
         m, s = divmod(self.seconds_elapsed, 60)
@@ -215,6 +337,7 @@ class OldProgress(object):
         self.last_updated = time.time()
     
     def in_ipython(self):
+        """ """
         self.ipython = False
         if 'ipykernel' in sys.modules:
             self.ipython = 'notebook'

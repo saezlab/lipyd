@@ -19,14 +19,17 @@ import lipyd.formula as formula
 
 
 class TestFormula(object):
+    """ """
     
     def test_calc_mass(self):
+        """ """
         
         ethanol = formula.Formula('C2H5OH')
         
         assert abs(ethanol.mass - 46.04186481376) < 0.0000001
     
     def test_bind(self):
+        """ """
         
         ethanol = formula.Formula('C2H5OH')
         aceticacid = formula.Formula('CH3COOH')
@@ -35,6 +38,7 @@ class TestFormula(object):
         assert diethylester.formula == 'C4H8O2'
     
     def test_bind_split(self):
+        """ """
         
         ethanol = formula.Formula('C2H5OH')
         aceticacid = formula.Formula('CH3COOH')
@@ -46,6 +50,7 @@ class TestFormula(object):
         assert aceticacid.formula == aceticacid2.formula
     
     def test_add(self):
+        """ """
         
         aceticacid  = formula.Formula('CH3COOH')
         acetate     = aceticacid - formula.Formula('H', charge = 1)

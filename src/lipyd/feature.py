@@ -24,6 +24,7 @@ import lipyd.sampleattrs as sampleattrs
 
 
 class FeatureAnalyzer(object):
+    """ """
     
     def __init__(self, name, samples, method, **variables):
         
@@ -36,9 +37,15 @@ class FeatureAnalyzer(object):
         self.samples.feattrs._add_var(result, self.name)
     
     def run(self):
-        """
-        Applies the method for each feature and returns an array of the
+        """Applies the method for each feature and returns an array of the
         results.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         result = []
@@ -62,6 +69,7 @@ class FeatureAnalyzer(object):
 
 
 class PeakSize(FeatureAnalyzer):
+    """ """
     
     def __init__(
             self,
@@ -82,6 +90,21 @@ class PeakSize(FeatureAnalyzer):
         )
     
     def peak_size(self, intensities, protein_samples, **kwargs):
+        """
+
+        Parameters
+        ----------
+        intensities :
+            
+        protein_samples :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         
         protein   = intensities[protein_samples]
         noprotein = intensities[np.logical_not(protein_samples)]
@@ -98,6 +121,7 @@ class PeakSize(FeatureAnalyzer):
 
 
 class Slope(FeatureAnalyzer):
+    """ """
     
     def __init__(
             self,
@@ -125,5 +149,22 @@ class Slope(FeatureAnalyzer):
             protein_samples,
             highest_samples,
         ):
+        """
+
+        Parameters
+        ----------
+        intensities :
+            
+        protein_profile :
+            
+        protein_samples :
+            
+        highest_samples :
+            
+
+        Returns
+        -------
+
+        """
         
         pass

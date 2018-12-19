@@ -20,6 +20,7 @@ import lipyd.lipproc as lipproc
 
 
 class FattyAcyl(metabolite.AbstractSubstituent):
+    """ """
     
     def __init__(self, c = None, u = None, counts = None, **kwargs):
         
@@ -41,6 +42,7 @@ class FattyAcyl(metabolite.AbstractSubstituent):
 
 
 class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
+    """ """
     
     def __init__(
             self,
@@ -69,6 +71,7 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
 
 
 class FattyAlkoxy(metabolite.AbstractSubstituent):
+    """ """
     
     def __init__(self, c = (2, 36), u = (0, 10), counts = None, **kwargs):
         
@@ -88,6 +91,7 @@ class FattyAlkoxy(metabolite.AbstractSubstituent):
 
 
 class Sphingosine(metabolite.AbstractSubstituent):
+    """ """
     
     def __init__(
             self,
@@ -127,11 +131,13 @@ class Sphingosine(metabolite.AbstractSubstituent):
         )
     
     def get_prefix(self):
+        """ """
         
         return 'DH' if self.u == 0 and self.prefix == 'd' else self.prefix
 
 
 class DihydroSphingosine(Sphingosine):
+    """ """
     
     def __init__(self, c = None, u = None, counts = None, **kwargs):
         
@@ -149,6 +155,7 @@ class DihydroSphingosine(Sphingosine):
 
 
 class HydroxySphingosine(Sphingosine):
+    """ """
     
     def __init__(self, c = None, u = None, counts = None, **kwargs):
         

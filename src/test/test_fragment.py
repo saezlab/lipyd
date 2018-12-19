@@ -46,8 +46,10 @@ standards = {
 
 
 class TestFragment(object):
+    """ """
     
     def test_fatty_fragment(self):
+        """ """
         
         ff = list(lipyd.fragment.FattyFragment(
             c = 18, u = 0, charge = -1, head = 'OO', minus = 'H'
@@ -59,6 +61,19 @@ class TestFragment(object):
     
     @pytest.mark.parametrize('name, refmass', standards.items())
     def test_fragment_classes(self, name, refmass):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+        refmass :
+            
+
+        Returns
+        -------
+
+        """
         
         toalkyl = (
             lipyd.fragment.mass.MassBase('O').mass -
@@ -89,12 +104,14 @@ class TestFragment(object):
                     assert abs(aff.mass + toalkyl - ff.mass) < 0.0000001
     
     def test_fragment_names(self):
+        """ """
         
         fr = list(lipyd.fragment.Sph_mNH2_mH2O_m2H(c = 18, u = 1))[0]
         
         assert fr.name == '[Sph(18:1)-NH2-H2O-2H]+'
     
     def test_fatty_fraglines(self):
+        """ """
         
         sample_line = [
             '[Sph(18:1)-NH2-H2O-2H]+', '', '',

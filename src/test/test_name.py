@@ -131,10 +131,12 @@ lmp_names = {
 
 
 class TestName(object):
+    """ """
     
     nameproc = lipyd.name.LipidNameProcessor()
     
     def test_name_swisslipids(self):
+        """ """
         
         for name, result in swl_names.items():
             
@@ -144,6 +146,7 @@ class TestName(object):
             )
     
     def test_name_lipidmaps(self):
+        """ """
         
         for name, result in lmp_names.items():
             
@@ -153,6 +156,7 @@ class TestName(object):
             )
     
     def test_name_iso(self):
+        """ """
         
         self.nameproc.iso = True
         self.nameproc.database = 'lipidmaps'
@@ -218,6 +222,7 @@ class TestName(object):
         assert fahfa_chains == fahfa[2]
     
     def test_name_oh(self):
+        """ """
         
         self.nameproc.database = 'lipidmaps'
         self.nameproc.iso = True

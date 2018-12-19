@@ -56,9 +56,17 @@ refloat = re.compile(r'[0-9\.]+')
 
 def getMasses(url):
     
-    """
-    Downloads an HTML table from CIAAW webpage
+    """Downloads an HTML table from CIAAW webpage
     and extracts the atomic mass or weight information.
+
+    Parameters
+    ----------
+    url :
+        
+
+    Returns
+    -------
+
     """
     
     c = _curl.Curl(url, silent = False)
@@ -91,17 +99,29 @@ def getMasses(url):
     return mass
 
 def getMassMonoIso():
-    """
-    Obtains monoisotopic masses from CIAAW webpage.
+    """Obtains monoisotopic masses from CIAAW webpage.
     Stores the result in `massMonoIso` module level variable.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     globals()['massMonoIso'] = getMasses(urlMasses)
 
 
 def getMassFirstIso():
-    """
-    Obtains the masses of the most abundant isotope for each element.
+    """Obtains the masses of the most abundant isotope for each element.
     The result stored in the :py:attr:`.massFirstIso` module attribute.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     if 'massMonoIso' not in globals():
@@ -125,17 +145,29 @@ def getMassFirstIso():
 
 
 def getWeightStd():
-    """
-    Obtains atomic waights from CIAAW webpage.
+    """Obtains atomic waights from CIAAW webpage.
     Stores the result in :py:attr:`.weightStd` attribute of the module.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     globals()['weightStd'] = getMasses(urlWeights)
 
 
 def getFreqIso():
-    """
-    Obtains isotope abundances from CIAAW webpage.
+    """Obtains isotope abundances from CIAAW webpage.
     Stores the result in :py:attr:`.freqIso` attribute of the module.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     c = _curl.Curl(urlAbundances, silent = False)
     reqAbundances = c.result.split('\n')
@@ -315,6 +347,7 @@ iso_freq = {
 
 
 class MassBase(object):
+    """ """
     
     def __init__(
             self,
@@ -430,6 +463,7 @@ class MassBase(object):
         return abs(self.mass - float(other)) <= 0.01
     
     def calc_mass(self):
+        """ """
         
         if self.has_formula():
             
@@ -460,19 +494,33 @@ class MassBase(object):
             self.mass_calculated = False
     
     def has_mass(self):
+        """ """
         
         return self.mass > 0.0 or (self.formula == '' and self.mass == 0.0)
     
     def has_formula(self):
+        """ """
         
         return self.formula is not None
     
     def formula_from_dict(self, atoms):
+        """
+
+        Parameters
+        ----------
+        atoms :
+            
+
+        Returns
+        -------
+
+        """
         
         self.formula = ''.join('%s%u'%(elem.capitalize(), num) \
             for elem, num in iteritems(atoms))
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -495,19 +543,51 @@ for name, form in parts.items():
 
 
 def first_isotope_mass(elem):
+    """
+
+    Parameters
+    ----------
+    elem :
+        
+
+    Returns
+    -------
+
+    """
     
     return massFirstIso[elem] if elem in massFirstIso else None
 
 
 def get_mass(elem):
-    """
-    Returns exact mass of the highest abundant isotope of an element.
+    """Returns exact mass of the highest abundant isotope of an element.
+
+    Parameters
+    ----------
+    elem :
+        
+
+    Returns
+    -------
+
     """
     
     return first_isotope_mass(elem)
 
 
 def isotope_mass(elem, iso):
+    """
+
+    Parameters
+    ----------
+    elem :
+        
+    iso :
+        
+
+    Returns
+    -------
+
+    """
     
     return (
         massMonoIso[elem][iso]
@@ -517,22 +597,42 @@ def isotope_mass(elem, iso):
 
 
 def get_weight(elem):
+    """
+
+    Parameters
+    ----------
+    elem :
+        
+
+    Returns
+    -------
+
+    """
     
     return weight_builtin[elem] if elem in weight_builtin else None
 
 
 def calculate(formula):
-    """
-    Evaluates a string as formula.
+    """Evaluates a string as formula.
     
     Args
     ----
-    :param str formula:
+
+    Parameters
+    ----------
+    str :
+        formula:
         Expression as a string e.g. ``HCH3CHOHCOOH - water + electron``.
         
+        Returns
+        -------
+        Mass as float.
+    formula :
+        
+
     Returns
     -------
-        Mass as float.
+
     """
     
     result = None

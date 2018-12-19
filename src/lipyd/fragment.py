@@ -50,38 +50,89 @@ FragConstraint.__new__.__defaults__ = (None, None, None, None, 0, None)
 
 
 class AdductCalculator(object):
-    """
-    Deprecated. To be removed soon.
-    """
+    """Deprecated. To be removed soon."""
     
     def __init__(self):
         self.reform = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
         self.init_counts()
     
     def init_counts(self):
+        """ """
         self.counts = self.counts if hasattr(self, 'counts') else {}
     
     def formula2counts(self, formula):
+        """
+
+        Parameters
+        ----------
+        formula :
+            
+
+        Returns
+        -------
+
+        """
         for elem, num in self.reform.findall(formula):
             yield elem, int(num or '1')
     
     def remove(self, formula):
+        """
+
+        Parameters
+        ----------
+        formula :
+            
+
+        Returns
+        -------
+
+        """
         for elem, num in self.formula2counts(formula):
             self.add_atoms(elem, -num)
     
     def add(self, formula):
+        """
+
+        Parameters
+        ----------
+        formula :
+            
+
+        Returns
+        -------
+
+        """
         for elem, num in self.formula2counts(formula):
             self.add_atoms(elem, num)
     
     def add_atoms(self, elem, num):
+        """
+
+        Parameters
+        ----------
+        elem :
+            
+        num :
+            
+
+        Returns
+        -------
+
+        """
         self.counts[elem] = num if elem not in self.counts \
             else self.counts[elem] + num
 
 
 class FattyFragment(metabolite.AbstractSubstituent):
-    """
-    Represents a fragment ion derived from a moiety with variable length
+    """Represents a fragment ion derived from a moiety with variable length
     aliphatic chain.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(
@@ -98,6 +149,17 @@ class FattyFragment(metabolite.AbstractSubstituent):
         self.ionmode = ionmode
         
         def getname(parent):
+            """
+
+            Parameters
+            ----------
+            parent :
+                
+
+            Returns
+            -------
+
+            """
             
             return '[%s]%s' % (
                 parent.name % (
@@ -140,18 +202,22 @@ class FattyFragment(metabolite.AbstractSubstituent):
         )
     
     def cu_str(self):
+        """ """
         
         return '({})'.format(lipproc.cu_str(self.c, self.u))
     
     def charge_str(self):
+        """ """
         
         return lipproc.charge_str(self.charge)
     
     def get_name(self):
+        """ """
         
         return '[%s]%s' % (self.name % self.cu_str(), self.charge_str())
     
     def iterfraglines(self):
+        """ """
         
         for fr in self:
             
@@ -166,6 +232,7 @@ class FattyFragment(metabolite.AbstractSubstituent):
             ]
 
 class FattyFragmentOld(mass.MassBase, AdductCalculator):
+    """ """
     
     def __init__(self, charge, c = 3, unsat = 0,
         minus = None, plus = None, isotope = 0, name = None, hg = None):
@@ -189,6 +256,17 @@ class FattyFragmentOld(mass.MassBase, AdductCalculator):
         self.set_name(name)
     
     def set_name(self, name):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+
+        Returns
+        -------
+
+        """
         if name is None: name = ''
         self.name = '[%s(C%u:%u)%s%s]%s' % (
             name,
@@ -200,12 +278,14 @@ class FattyFragmentOld(mass.MassBase, AdductCalculator):
         )
     
     def charge_str(self):
+        """ """
         return '%s%s' % (
                 ('%u' % abs(self.charge)) if abs(self.charge) > 1 else '',
                 '-' if self.charge < 0 else '+'
             ) if self.charge != 0 else 'NL'
     
     def adduct_str(self):
+        """ """
         return '%s%s' % (
                 ('-' if self.charge < 0 else '') \
                     if not self.minus  else \
@@ -216,6 +296,7 @@ class FattyFragmentOld(mass.MassBase, AdductCalculator):
             )
     
     def get_fragline(self):
+        """ """
         
         return [
             self.mass,
@@ -226,6 +307,7 @@ class FattyFragmentOld(mass.MassBase, AdductCalculator):
 
 
 class FattyFragmentFactory(object):
+    """ """
     
     docs = {
         'LysoPEAlkyl':
@@ -1874,6 +1956,7 @@ del _factory
 
 
 class FAFragSeries(object):
+    """ """
     
     def __init__(self, typ, charge, cmin = 2, unsatmin = 0,
         cmax = 36, unsatmax = 6,
@@ -1901,9 +1984,11 @@ class FAFragSeries(object):
             yield fr
     
     def itermass(self):
+        """ """
         for fr in self.fragments:
             yield fr.mass
     
     def iterfraglines(self):
+        """ """
         for fr in self.fragments:
             yield fr.get_fragline()

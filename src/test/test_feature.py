@@ -25,9 +25,11 @@ import lipyd.sampleattrs as sampleattrs
 
 
 class TestFeature(object):
+    """ """
     
     @pytest.fixture(autouse = True)
     def auto_inject_fixture(self):
+        """ """
         
         sample_ids = ['A10', 'A11', 'A12', 'B1']
         
@@ -52,8 +54,24 @@ class TestFeature(object):
         self.protein_samples = self.samples.get_selection(['A11', 'A12'])
     
     def test_feature_analyzer(self):
+        """ """
         
         def method(intensities, protein_samples, **kwargs):
+            """
+
+            Parameters
+            ----------
+            intensities :
+                
+            protein_samples :
+                
+            **kwargs :
+                
+
+            Returns
+            -------
+
+            """
             
             return (
                 np.nanmin(intensities[protein_samples]) >
@@ -76,6 +94,7 @@ class TestFeature(object):
         )
     
     def test_peak_size(self):
+        """ """
         
         fea = feature.PeakSize(
             samples = self.samples,

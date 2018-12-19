@@ -26,9 +26,11 @@ import lipyd.settings as settings
 
 
 class TestSample(object):
+    """ """
     
     @pytest.fixture(autouse = True)
     def auto_inject_fixture(self):
+        """ """
         
         sample_ids = ['A12', 'A11', 'B2', 'B1']
         
@@ -47,6 +49,7 @@ class TestSample(object):
         )
     
     def test_feature_idx(self):
+        """ """
         
         idx = sample.FeatureIdx(10)
         
@@ -66,6 +69,7 @@ class TestSample(object):
         assert np.all(idx._current == idx._original)
     
     def test_feature_base(self):
+        """ """
         
         a0 = np.random.random(10)
         a1 = np.random.random(10)
@@ -86,6 +90,7 @@ class TestSample(object):
         assert f1.b[0] == b1a0min
     
     def test_feature_base_3d(self):
+        """ """
         
         a0 = np.random.random((10, 7, 5))
         a1 = np.random.random((10, 7, 5))
@@ -110,10 +115,12 @@ class TestSample(object):
             f2.sort_all('a')
     
     def test_sampleset(self):
+        """ """
         
         assert self.samples.attrs.attrs[0].sample_id == ('A', 12)
     
     def test_samplesorter(self):
+        """ """
         
         samples = self.samples
         
@@ -130,6 +137,7 @@ class TestSample(object):
         assert samples.rts[4, 3] == 17
     
     def test_sampledata(self):
+        """ """
         
         samples = self.samples
         
@@ -160,6 +168,7 @@ class TestSample(object):
         assert id(samples) in sdata._sample_data
     
     def test_sampleset_from_peaks(self):
+        """ """
         
         peaksfile = settings.get('peaks_example')
         
@@ -179,6 +188,7 @@ class TestSample(object):
         assert samples.attrs.attrs[0].attrs['label']['sample_id'] == ('A', 6)
     
     def test_sampleselection(self):
+        """ """
         
         samples = self.samples
         order = ['A11', 'A12', 'B1', 'B2']
@@ -207,6 +217,7 @@ class TestSample(object):
         assert np.all(sel.selection == np.array([False, False, True, True]))
     
     def test_get_selection(self):
+        """ """
         
         samples = self.samples
         order = ['A11', 'A12', 'B1', 'B2']
@@ -231,6 +242,7 @@ class TestSample(object):
         assert np.all(sel.selection == np.array([False, False, True, True]))
         
     def test_get_sample_data(self):
+        """ """
         
         samples = self.samples
         order = ['A11', 'A12', 'B1', 'B2']

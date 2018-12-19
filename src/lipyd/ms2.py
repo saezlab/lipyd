@@ -60,6 +60,32 @@ class MS2Identity(collections.namedtuple(
             'precursor_details',
         ]
     )):
+    """ Class 1.
+
+    Description of class.
+
+    Attributes
+    ----------
+    score : int
+        score
+    max_score : int
+        Maximal score
+    score_pct : int
+        ?
+    hg : str
+        ?
+    chainsum : str
+        Sum of chains
+    chains : str
+        Number of chains
+    chain_details : str
+        Chain details
+    scan_details : str
+        Scan details
+    precursor_details : str
+        Precursor details
+
+    """
     
     def __new__(
             cls,
@@ -96,6 +122,17 @@ class MS2Identity(collections.namedtuple(
         )
     
     def full_str(self):
+        """Methods for .
+
+        Extended description of function.
+
+
+        Returns
+        -------
+        str
+
+
+        """
         
         details = []
         
@@ -119,6 +156,18 @@ class MS2Identity(collections.namedtuple(
         )
     
     def summary(self):
+        """Method .
+
+        Extended description of function.
+
+        Returns
+        -------
+        __str__
+            Description of return value
+        score_pct
+            Description of return value
+
+        """
         
         return self.__str__(), self.score_pct
     
@@ -154,6 +203,22 @@ PrecursorDetails.__new__.__defaults__ = (None, None, None, None, None, None)
 
 
 class mz_sorted(object):
+    """Class of .
+
+    Extended description of function.
+
+    Parameters
+    ----------
+    scan : int
+        Description of arg1
+    extyp : str
+        Description of arg2
+    exval : int
+        Description of arg1
+    tb : str
+        Description of arg2
+
+    """
     
     def __init__(self, scan):
         
@@ -169,6 +234,22 @@ class mz_sorted(object):
 
 
 class intensity_sorted(object):
+    """Class of .
+
+    Extended description of function.
+
+    Parameters
+    ----------
+    scan : int
+        Description of arg1
+    extyp : str
+        Description of arg2
+    exval : int
+        Description of arg1
+    tb : str
+        Description of arg2
+
+    """
     
     def __init__(self, scan):
         
@@ -184,6 +265,26 @@ class intensity_sorted(object):
 
 
 class ScanBase(object):
+    """ Class of .
+
+    Extended description of class.
+
+    Parameters
+    ----------
+    mzs : int
+        Description of arg1
+    ionmode : str
+        Description of arg2
+    precursor : str
+        Description of arg1
+    intensities : str
+        Description of arg2
+    tolerance : str
+        Description of arg2
+    scan_id : str
+        Description of arg2
+
+    """
     
     def __init__(
             self,
@@ -194,7 +295,7 @@ class ScanBase(object):
             tolerance = None,
             scan_id = None,
         ):
-        
+
         self.tolerance = tolerance or settings.get('ms2_tolerance')
         self.sorted_by = None
         self.mzs = mzs
@@ -228,7 +329,6 @@ class ScanBase(object):
         self.sorted_by = 'intensities'
     
     def reload(self):
-        
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist = [modname.split('.')[0]])
         imp.reload(mod)
@@ -240,8 +340,9 @@ class ScanBase(object):
         return len(self.mzs)
     
     def sort_mz(self):
-        """
-        Sorts the scan by m/z values ascending.
+        """Sorts the scan by m/z values ascending
+
+
         """
         
         if self.sorted_by == 'mzs':
@@ -260,8 +361,9 @@ class ScanBase(object):
         self.sorted_by = 'mzs'
     
     def sort_intensity(self):
-        """
-        Sorts the scan by intensities descending.
+        """Sorts the scan by intensities descending
+
+
         """
         
         if self.sorted_by == 'intensities':
@@ -280,8 +382,14 @@ class ScanBase(object):
         self.sorted_by = 'intensities'
     
     def sort(self, isort):
-        """
-        Applies sorted indices to the scan.
+        """Applies sorted indices to the scan.
+
+        Parameters
+        ----------
+        isort : int
+
+
+
         """
         
         self.intensities = self.intensities[isort]
@@ -298,17 +406,27 @@ class ScanBase(object):
             data['annot'] = data['annot'][isort]
     
     def annotate(self):
-        """
-        Annotates the fragments in the scan with identities provided by
+        """Annotates the fragments in the scan with identities provided by
         the fragment database.
+
         """
         
         self.annot = self.get_annot()
     
     def get_annot(self, precursor = None, tolerance = None):
-        """
-        Returns array of annotations.
+        """Returns array of annotations.
         Makes it possible to use different precursor or tolerance.
+
+        Parameters
+        ----------
+        precursor :
+             (Default value = None)
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         precursor = precursor or self.precursor
@@ -325,9 +443,15 @@ class ScanBase(object):
                                          # only to be sortable
     
     def normalize_intensities(self):
-        """
-        Creates a vector of normalized intensities i.e. divides intensities
+        """Creates a vector of normalized intensities i.e. divides intensities
         by their maximum.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         self.imax  = self.intensities.max()
@@ -335,6 +459,7 @@ class ScanBase(object):
 
 
 class Scan(ScanBase):
+    """ """
     
     method_hg = {
         'fa_neg_1': ('FA', ()),
@@ -424,6 +549,29 @@ class Scan(ScanBase):
             mgf_charge = None,
             **kwargs
         ):
+        """
+
+        Parameters
+        ----------
+        fname :
+            
+        scan_id :
+            
+        ionmode :
+            
+        sample_id :
+             (Default value = None)
+        precursor :
+             (Default value = None)
+        mgf_charge :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         
         mgfreader = mgf.MgfReader(fname, charge = mgf_charge)
         sc = mgfreader.scan_by_id(scan_id)
@@ -444,6 +592,7 @@ class Scan(ScanBase):
             )
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -452,25 +601,19 @@ class Scan(ScanBase):
         setattr(self, '__class__', new)
     
     def print_scan(self):
-        """
-        Prints the list of fragments as an annotated table.
-        """
+        """Prints the list of fragments as an annotated table."""
         
         if self.log:
             
             self.log.msg(self.scan_str())
     
     def show(self):
-        """
-        Prints the scan table to standard output.
-        """
+        """Prints the scan table to standard output."""
         
         sys.stdout.write(self.scan_str())
     
     def scan_str(self):
-        """
-        Returns the scan table as string.
-        """
+        """Returns the scan table as string."""
         
         lindent = ' ' * 12
         
@@ -513,14 +656,25 @@ class Scan(ScanBase):
         )
     
     def html_table(self):
+        """ """
         
         # TODO
         pass
     
     def nl(self, mz, adduct = None):
-        """
-        For m/z returns the corresponding neutral loss m/z.
+        """For m/z returns the corresponding neutral loss m/z.
         If precursor ion mass is unknown returns `numpy.nan`.
+
+        Parameters
+        ----------
+        mz :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if adduct is None:
@@ -534,9 +688,7 @@ class Scan(ScanBase):
             return self.adducts[adduct]['fake_precursor'] - mz
     
     def full_list_str(self):
-        """
-        Returns list of fragments as single string.
-        """
+        """Returns list of fragments as single string."""
         
         return '; '.join(
             '/'.join(
@@ -559,9 +711,7 @@ class Scan(ScanBase):
         )
     
     def most_abundant_mz(self):
-        """
-        Returns the m/z of the fragment with highest intensity.
-        """
+        """Returns the m/z of the fragment with highest intensity."""
         
         result = self.mzs[0]
         
@@ -572,17 +722,35 @@ class Scan(ScanBase):
         return result
     
     def mz_match(self, mz_detected, mz):
-        """
-        Tests if two m/z's can be accepted to be equal.
+        """Tests if two m/z's can be accepted to be equal.
+
+        Parameters
+        ----------
+        mz_detected :
+            
+        mz :
+            
+
+        Returns
+        -------
+
         """
         
         return lookup.match(mz_detected, mz, self.tolerance)
     
     def mz_lookup(self, mz):
-        """
-        Returns the index of the closest m/z value
+        """Returns the index of the closest m/z value
         detected in the scan if it is within the
         range of tolerance, otherwise None.
+
+        Parameters
+        ----------
+        mz :
+            
+
+        Returns
+        -------
+
         """
         
         self.sort_mz()
@@ -595,8 +763,16 @@ class Scan(ScanBase):
         return i
     
     def has_mz(self, mz):
-        """
-        Tells if an m/z exists in this scan.
+        """Tells if an m/z exists in this scan.
+
+        Parameters
+        ----------
+        mz :
+            
+
+        Returns
+        -------
+
         """
         
         result = self.mz_lookup(mz) is not None
@@ -612,8 +788,18 @@ class Scan(ScanBase):
         return result
     
     def has_nl(self, nl, adduct = None):
-        """
-        Tells if a neutral loss exists in this scan.
+        """Tells if a neutral loss exists in this scan.
+
+        Parameters
+        ----------
+        nl :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         result = self.has_mz(self.nl(nl, adduct = adduct))
@@ -634,8 +820,7 @@ class Scan(ScanBase):
         return result
     
     def fragment_by_name(self, name, adduct = None):
-        """
-        Returns the index of a fragment by its name.
+        """Returns the index of a fragment by its name.
         Returns `None` if the fragment does not exist in the scan.
         Returns `False` if the fragment name could not be found in
         the database.
@@ -647,9 +832,21 @@ class Scan(ScanBase):
         
         Args
         ----
-        :param str name:
+
+        Parameters
+        ----------
+        str :
+            name:
             Fragment full name as used in the database 2nd column,
             e.g. `PE [P+E] (140.0118)`.
+        name :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         frag = fragdb.by_name(name, self.ionmode)
@@ -667,11 +864,21 @@ class Scan(ScanBase):
         return False
     
     def has_fragment(self, name, adduct = None):
-        """
-        Tells if a fragment exists in this scan by its name.
+        """Tells if a fragment exists in this scan by its name.
         
         Returns bool or `None` if fragment name could not be found
         in the database.
+
+        Parameters
+        ----------
+        name :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         i = self.fragment_by_name(name, adduct = adduct)
@@ -679,17 +886,37 @@ class Scan(ScanBase):
         return None if i is False else i is not None
     
     def nl_lookup(self, nl, adduct = None):
-        """
-        Looks up if a neutral loss exists in this scan and returns its index.
+        """Looks up if a neutral loss exists in this scan and returns its index.
+
+        Parameters
+        ----------
+        nl :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.mz_lookup(self.nl(nl, adduct = adduct))
     
     def most_abundant_fragment_is(self, name, adduct = None):
-        """
-        Tells if the fragment name is the highest abundant.
+        """Tells if the fragment name is the highest abundant.
         Returns `None` if the fragment name could not be
         found in the database.
+
+        Parameters
+        ----------
+        name :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         frag = fragdb.by_name(name, self.ionmode)
@@ -705,8 +932,20 @@ class Scan(ScanBase):
             return self.mz_match(self.mzs[0], mz)
     
     def fragment_among_most_abundant(self, name, n = 2, adduct = None):
-        """
-        Tells if the fragment is among the top `n`.
+        """Tells if the fragment is among the top `n`.
+
+        Parameters
+        ----------
+        name :
+            
+        n :
+             (Default value = 2)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         frag = fragdb.by_name(name, self.ionmode)
@@ -727,9 +966,21 @@ class Scan(ScanBase):
             percent = 80.0,
             adduct = None,
         ):
-        """
-        Tells if a fragment has at least certain percent of intensity
+        """Tells if a fragment has at least certain percent of intensity
         compared to the highest peak.
+
+        Parameters
+        ----------
+        name :
+            
+        percent :
+             (Default value = 80.0)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         frag = fragdb.by_name(name, self.ionmode)
@@ -745,10 +996,18 @@ class Scan(ScanBase):
             return self.mz_percent_of_most_abundant(mz, percent = percent)
     
     def most_abundant_mz_is(self, mz):
-        """
-        Tells if the m/z with the highest intensity is `mz`.
+        """Tells if the m/z with the highest intensity is `mz`.
         Returns `None` if the fragment name could not be
         found in the database.
+
+        Parameters
+        ----------
+        mz :
+            
+
+        Returns
+        -------
+
         """
         
         result = self.mz_match(self.most_abundant_mz(), mz)
@@ -765,16 +1024,28 @@ class Scan(ScanBase):
         return result
     
     def mz_among_most_abundant(self, mz, n = 2):
-        """
-        Tells if an m/z is among the most aboundant `n` fragments
+        """Tells if an m/z is among the most aboundant `n` fragments
         in a spectrum.
         
         Args
         ----
-        :param float mz:
+
+        Parameters
+        ----------
+        float :
+            mz:
             The m/z value.
-        :param int n:
+        int :
+            n:
             The number of most abundant fragments considered.
+        mz :
+            
+        n :
+             (Default value = 2)
+
+        Returns
+        -------
+
         """
         
         self.sort_mz()
@@ -798,16 +1069,30 @@ class Scan(ScanBase):
         return i is not None
     
     def nl_among_most_abundant(self, nl, n = 2, adduct = None):
-        """
-        Tells if a neutral loss corresponds to one of the
+        """Tells if a neutral loss corresponds to one of the
         most aboundant `n` fragments in a spectrum.
         
         Args
         ----
-        :param float nl:
+
+        Parameters
+        ----------
+        float :
+            nl:
             The mass of the neutral loss.
-        :param int n:
+        int :
+            n:
             The number of most abundant fragments considered.
+        nl :
+            
+        n :
+             (Default value = 2)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         result = self.mz_among_most_abundant(
@@ -827,9 +1112,17 @@ class Scan(ScanBase):
         return result
     
     def get_intensity(self, mz):
-        """
-        Returns the relative intensity of a fragment ion from its m/z.
+        """Returns the relative intensity of a fragment ion from its m/z.
         Value is `None` if m/z does not present.
+
+        Parameters
+        ----------
+        mz :
+            
+
+        Returns
+        -------
+
         """
         
         i = self.mz_lookup(mz)
@@ -841,25 +1134,46 @@ class Scan(ScanBase):
         return None
     
     def get_nl_intensity(self, nl, adduct = None):
-        """
-        Returns the relative intensity of a neutral loss fragment ion.
+        """Returns the relative intensity of a neutral loss fragment ion.
         Value is `None` if neutral loss does not present.
+
+        Parameters
+        ----------
+        nl :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.get_intensity(self.nl(nl, adduct = adduct))
     
     def mz_percent_of_most_abundant(self, mz, percent = 80.0):
-        """
-        Tells if an m/z has at least certain percent of intensity
+        """Tells if an m/z has at least certain percent of intensity
         compared to the most intensive fragment.
         
         Args
         ----
-        :param float mz:
+
+        Parameters
+        ----------
+        float :
+            mz:
             The m/z value.
-        :param float percent:
+        float :
+            percent:
             The threshold in percent of the highest intensity.
-        
+        mz :
+            
+        percent :
+             (Default value = 80.0)
+
+        Returns
+        -------
+
         """
         
         i = self.get_intensity(mz)
@@ -878,25 +1192,49 @@ class Scan(ScanBase):
     
     @classmethod
     def match_chtype(cls, value, accepted):
-        """
-        Matches strings or strings to set of strings, optionally negative.
+        """Matches strings or strings to set of strings, optionally negative.
         Calls `match_chattr` with `typ = basestring`.
+
+        Parameters
+        ----------
+        value :
+            
+        accepted :
+            
+
+        Returns
+        -------
+
         """
         
         return cls.match_chattr(value, accepted, typ = basestring)
     
     @staticmethod
     def match_chattr(value, accepted, typ = int):
-        """
-        Args
+        """Args
         ----
-        :param int value:
+
+        Parameters
+        ----------
+        int :
+            value:
             The actual value.
-        :param int,set accepted:
+        int :
+            set accepted:
             A single value or a set of values to match against.
             Negative match is possible by providing a tuple with `False`
             as it's first element and the set of not acceptable values
             as the second element.
+        value :
+            
+        accepted :
+            
+        typ :
+             (Default value = int)
+
+        Returns
+        -------
+
         """
         
         return (
@@ -925,9 +1263,25 @@ class Scan(ScanBase):
             c = None,
             u = None
         ):
-        """
-        Tests a fragment annotation against criteria of fragment type,
+        """Tests a fragment annotation against criteria of fragment type,
         chain type, carbon count and unsaturation.
+
+        Parameters
+        ----------
+        annot :
+            
+        frag_type :
+             (Default value = None)
+        chain_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return all((
@@ -946,12 +1300,29 @@ class Scan(ScanBase):
             u = None,
             adduct = None,
         ):
-        """
-        Returns the highest instensity fragment matching a particular
+        """Returns the highest instensity fragment matching a particular
         chain type.
-        Returns fragment index or `None` if no such fragment exists.
-        
-        Arguments passed to `chain_fragment_type_is`.
+
+        Parameters
+        ----------
+        head :
+             (Default value = None)
+        frag_type :
+             (Default value = None)
+        chain_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+        type
+            
+
         """
         
         frags = self.fragments_by_chain_type(
@@ -980,10 +1351,28 @@ class Scan(ScanBase):
             u = None,
             adduct = None,
         ):
-        """
-        Collects fragments matching a particular chain type.
+        """Collects fragments matching a particular chain type.
         Yields indices.
         Arguments passed to `chain_fragment_type_is`.
+
+        Parameters
+        ----------
+        head :
+             (Default value = None)
+        frag_type :
+             (Default value = None)
+        chain_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         head = len(self.mzs) if head is None else min(head, len(self.mzs))
@@ -1011,11 +1400,27 @@ class Scan(ScanBase):
             u = None,
             adduct = None,
         ):
-        """
-        Tells if a particular type of aliphatic chain fragment can be
+        """Tells if a particular type of aliphatic chain fragment can be
         found among the `n` highest intensity fragments.
-        
-        Arguments passed to `chain_fragment_type_is`.
+
+        Parameters
+        ----------
+        n :
+             (Default value = 2)
+        frag_type :
+             (Default value = None)
+        chain_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return bool(len(list(
@@ -1039,8 +1444,7 @@ class Scan(ScanBase):
             return_annot = False,
             adduct = None,
         ):
-        """
-        Tells if an aliphatic chain fragment is a specified type. The type
+        """Tells if an aliphatic chain fragment is a specified type. The type
         should be the string representation of the fragment,
         e.g. `FA-O` for fatty acid minus oxygen fragments.
         
@@ -1048,10 +1452,33 @@ class Scan(ScanBase):
         
         Args
         ----
-        :param int i:
+
+        Parameters
+        ----------
+        int :
+            i:
             Index of the fragment.
-        :param bool return_annot:
+        bool :
+            return_annot:
             Return iterator with the matching fragment annotations.
+        i :
+            
+        frag_type :
+             (Default value = None)
+        chain_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+        return_annot :
+             (Default value = False)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if i >= len(self.mzs):
@@ -1106,14 +1533,33 @@ class Scan(ScanBase):
             yield_annot = False,
             adduct = None,
         ):
-        """
-        Iterates chain fragments matching certain criteria.
+        """Iterates chain fragments matching certain criteria.
         Yields fragment indices or indices with annotations.
         
         Args
         ----
-        :param bool yield_annot:
+
+        Parameters
+        ----------
+        bool :
+            yield_annot:
             Yield tuples of indices and annotations instead of indices only.
+        chain_type :
+             (Default value = None)
+        frag_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+        yield_annot :
+             (Default value = False)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         for i in xrange(len(self.mzs)):
@@ -1153,9 +1599,24 @@ class Scan(ScanBase):
             u = None,
             adduct = None,
         ):
-        """
-        Tells if at least one fragment matches certain criteria.
-        Arguments passed to `chain_fragment_type_is`.
+        """Tells if at least one fragment matches certain criteria.
+
+        Parameters
+        ----------
+        chain_type :
+             (Default value = None)
+        frag_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.highest_fragment_by_chain_type(
@@ -1176,8 +1637,7 @@ class Scan(ScanBase):
             chain_param = (),
             adduct = None,
         ):
-        """
-        Provides a way to see if specific chain combinations exist.
+        """Provides a way to see if specific chain combinations exist.
         The database record defines the chain layout of the molecule.
         Further arguments are passed to `chain_combinations`.
         The `chain_param` tuple contains dicts to match against chain
@@ -1186,27 +1646,66 @@ class Scan(ScanBase):
         
         Args
         ----
-        :param lipproc.LipidRecord record:
+
+        Parameters
+        ----------
+        lipproc :
+            LipidRecord record:
             A lipid database record matching the MS1 m/z.
-        :param int head:
+        int :
+            head:
             Consider only the n most intensive fragments.
-        :param float intensity_threshold:
+        float :
+            intensity_threshold:
             Consider only fragments with intensity higher than threshold.
             Relative to highest fragment, between 0 and 1.
-        :param expected_intensities:
-            See at `intensity_ratios`.
-        :param bool no_intensity_check:
+        expected_intensities :
+            See at `intensity_ratios`. (Default value = None)
+        bool :
+            no_intensity_check:
             Completely skip checking intensity ratios.
-        :param tuple chain_param:
+        tuple :
+            chain_param:
             Tuple of dicts. Each dict contains criteria for one chain moiety.
             Keys can be `chain_type`, `frag_type`, `c` and `u`.
             These can be single str or int values or sets of multiple
             values. If omitted or `None` any value will pass the filter.
             An empty tuple which is the default value will pass through
             everything, this is equivalent with calling `chain_combinations`.
+        record :
+            
+        head :
+             (Default value = None)
+        intensity_threshold :
+             (Default value = None)
+        no_intensity_check :
+             (Default value = False)
+        chain_param :
+             (Default value = ())
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         def match(key, param, value):
+            """
+
+            Parameters
+            ----------
+            key :
+                
+            param :
+                
+            value :
+                
+
+            Returns
+            -------
+
+            """
             
             return (
                 key not in param or
@@ -1267,10 +1766,28 @@ class Scan(ScanBase):
             chain_param = (),
             adduct = None,
         ):
-        """
-        Tells if a certain chain combination exists in the scan.
-        
-        Arguments passed to `matching_chain_combinations`.
+        """Tells if a certain chain combination exists in the scan.
+
+        Parameters
+        ----------
+        record :
+            
+        head :
+             (Default value = None)
+        intensity_threshold :
+             (Default value = None)
+        expected_intensities :
+             (Default value = None)
+        no_intensity_check :
+             (Default value = False)
+        chain_param :
+             (Default value = ())
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         ccomb = self.matching_chain_combinations(
@@ -1305,11 +1822,49 @@ class Scan(ScanBase):
             count_only = False,
             adduct = None,
         ):
+        """
+
+        Parameters
+        ----------
+        record :
+            
+        chain_type :
+             (Default value = None)
+        frag_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+        partner_chain_types :
+             (Default value = None)
+        partner_frag_types :
+             (Default value = None)
+        count_only :
+             (Default value = False)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         # small caching of constraint matching
         type_pos = {}
         
         def get_positions(self, frag_type):
+            """
+
+            Parameters
+            ----------
+            frag_type :
+                
+
+            Returns
+            -------
+
+            """
             
             if frag_type not in type_pos:
                 
@@ -1373,8 +1928,18 @@ class Scan(ScanBase):
                     )
     
     def positions_for_frag_type(self, record, frag_type):
-        """
-        Returns the possible chain positions for a record and a fragment type.
+        """Returns the possible chain positions for a record and a fragment type.
+
+        Parameters
+        ----------
+        record :
+            
+        frag_type :
+            
+
+        Returns
+        -------
+
         """
         
         # constraints for the fragment type
@@ -1384,8 +1949,18 @@ class Scan(ScanBase):
         return lipproc.match_constraints(record, constr)[1]
     
     def is_chain(self, i, adduct = None):
-        """
-        Examines if a fragment has an aliphatic chain.
+        """Examines if a fragment has an aliphatic chain.
+
+        Parameters
+        ----------
+        i :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         annot = self.adduct_annot(adduct)
@@ -1406,10 +1981,22 @@ class Scan(ScanBase):
         return result
     
     def is_chain_type(self, i, typ = 'FA', adduct = None):
-        """
-        Checks if a fragment might origin from a certain aliphatic
+        """Checks if a fragment might origin from a certain aliphatic
         chain type (e.g. `FA` -- fatty acyl, `FAL` -- fatty alkyl,
         `Sph` -- sphingosin base).
+
+        Parameters
+        ----------
+        i :
+            
+        typ :
+             (Default value = 'FA')
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.chain_fragment_type_is(
@@ -1417,29 +2004,71 @@ class Scan(ScanBase):
         )
     
     def is_fa(self, i, adduct = None):
-        """
-        Tells if a fragment origins from a fatty acyl moiety.
+        """Tells if a fragment origins from a fatty acyl moiety.
+
+        Parameters
+        ----------
+        i :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.is_chain_type(i, adduct = adduct)
     
     def is_fal(self, i, adduct = None):
-        """
-        Tells if a fragment origins from a fatty alkyl moiety.
+        """Tells if a fragment origins from a fatty alkyl moiety.
+
+        Parameters
+        ----------
+        i :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.is_chain_type(i, 'FAL', adduct = adduct)
     
     def is_sph(self, i, adduct = None):
-        """
-        Tells if a fragment origins from a shpingosin backbone.
+        """Tells if a fragment origins from a shpingosin backbone.
+
+        Parameters
+        ----------
+        i :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.is_chain_type(i, 'Sph', adduct = adduct)
     
     def is_type(self, i, typ, adduct = None):
-        """
-        Tells if a fragment is a certain type.
+        """Tells if a fragment is a certain type.
+
+        Parameters
+        ----------
+        i :
+            
+        typ :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.chain_fragment_type_is(
@@ -1453,8 +2082,22 @@ class Scan(ScanBase):
             frag_type = None,
             adduct = None,
         ):
-        """
-        Returns the annotations matching certain types.
+        """Returns the annotations matching certain types.
+
+        Parameters
+        ----------
+        i :
+            
+        chain_type :
+             (Default value = None)
+        frag_type :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         annot = self.adduct_annot(adduct)
@@ -1475,9 +2118,23 @@ class Scan(ScanBase):
             frag_type = None,
             adduct = None,
         ):
-        """
-        Returns `(carbon count, unsaturation)` tuples for fragment `i`
+        """Returns `(carbon count, unsaturation)` tuples for fragment `i`
         considering only the the requested chain types and fragment types.
+
+        Parameters
+        ----------
+        i :
+            
+        chain_type :
+             (Default value = None)
+        frag_type :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return tuple(
@@ -1492,9 +2149,17 @@ class Scan(ScanBase):
         )
     
     def _build_chain_list(self, annot = None):
-        """
-        Builds a list of chains which facilitates the anlysis of chain
+        """Builds a list of chains which facilitates the anlysis of chain
         combinations.
+
+        Parameters
+        ----------
+        annot :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         annot = annot if type(annot) is np.ndarray else self.annot
@@ -1509,6 +2174,17 @@ class Scan(ScanBase):
         )
     
     def build_chain_list(self, rebuild = False):
+        """
+
+        Parameters
+        ----------
+        rebuild :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         
         if (
             not rebuild and
@@ -1529,9 +2205,31 @@ class Scan(ScanBase):
             skip_non_chains = False,
             adduct = None,
         ):
-        """
-        Returns `True` if the defined type of chain fragment can be found
+        """Returns `True` if the defined type of chain fragment can be found
         among the most abundant fragments.
+
+        Parameters
+        ----------
+        head :
+             (Default value = 1)
+        chain_type :
+             (Default value = None)
+        frag_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+        min_mass :
+             (Default value = None)
+        skip_non_chains :
+             (Default value = False)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if self.verbose:
@@ -1585,9 +2283,27 @@ class Scan(ScanBase):
             u = None,
             adduct = None,
         ):
-        """
-        Looks up the most abundant fatty acid fragment of the given type.
+        """Looks up the most abundant fatty acid fragment of the given type.
         Returns the fragment index.
+
+        Parameters
+        ----------
+        head :
+             (Default value = 1)
+        frag_type :
+             (Default value = None)
+        chain_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         for i in xrange(len(self)):
@@ -1612,14 +2328,33 @@ class Scan(ScanBase):
             u = None,
             adduct = None,
         ):
-        """
-        Tells if a certain chain present with an abundance at least the
+        """Tells if a certain chain present with an abundance at least the
         given percent of the most abundant fragment.
         
         Args
         ----
-        :param float percent:
+
+        Parameters
+        ----------
+        float :
+            percent:
             Percentage, between 0 and 100.
+        percent :
+            
+        frag_type :
+             (Default value = None)
+        chain_type :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         result = any((
@@ -1642,17 +2377,29 @@ class Scan(ScanBase):
         return result
     
     def mz_most_abundant_fold(self, mz, fold):
-        """
-        Tells if an m/z is the most abundant fragment
+        """Tells if an m/z is the most abundant fragment
         and it has at least a certain fold higher intensity
         than any other fragment.
         
         Args
         ----
-        :param float mz:
+
+        Parameters
+        ----------
+        float :
+            mz:
             The m/z value.
-        :param float fold:
+        float :
+            fold:
             The m/z must be this times higher than any other.
+        mz :
+            
+        fold :
+            
+
+        Returns
+        -------
+
         """
         
         result = (
@@ -1672,6 +2419,21 @@ class Scan(ScanBase):
         return result
     
     def cer_fa_test(self, i_fa, i_sph, adduct = None):
+        """
+
+        Parameters
+        ----------
+        i_fa :
+            
+        i_sph :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         return (
             self.chain_fragment_type_is(
@@ -1688,9 +2450,21 @@ class Scan(ScanBase):
         )
     
     def has_chain_combinations(self, rec, adduct = None, **kwargs):
-        """
-        Calls `chain_combinations` only to check if at least one
+        """Calls `chain_combinations` only to check if at least one
         conbination explicitely confirmed.
+
+        Parameters
+        ----------
+        rec :
+            
+        adduct :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         ccomb = self.chain_combinations(rec, adduct = adduct, **kwargs)
@@ -1716,8 +2490,7 @@ class Scan(ScanBase):
             fragment_details = None,
             adduct = None,
         ):
-        """
-        Finds all combinations of chain derived fragments matching the
+        """Finds all combinations of chain derived fragments matching the
         total carbon count and unsaturation in a database record.
         
         Yields tuple of chains (`lipproc.Chain` objects).
@@ -1726,15 +2499,42 @@ class Scan(ScanBase):
         
         Args
         ----
-        :param lipproc.LipidRecord rec:
+
+        Parameters
+        ----------
+        lipproc :
+            LipidRecord rec:
             The database record to match against.
-        :param bool no_intensity_check:
+        bool :
+            no_intensity_check:
             Completely skip checking intensity ratios.
-        :param float intensity_threshold:
+        float :
+            intensity_threshold:
             Only fragments with intensities above this threshold will be
             considered. Intensities relative to the highest, between 0 and 1.
-        :param tuple frag_types:
+        tuple :
+            frag_types:
             See at `frags_for_positions`.
+        rec :
+            
+        head :
+             (Default value = None)
+        intensity_threshold :
+             (Default value = 0)
+        expected_intensities :
+             (Default value = None)
+        no_intensity_check :
+             (Default value = False)
+        frag_types :
+             (Default value = None)
+        fragment_details :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if not rec.chainsum and not rec.chains:
@@ -1795,18 +2595,22 @@ class Scan(ScanBase):
             frag_types = None,
             adduct = None,
         ):
-        """
-        Returns the possible fragments for each positions (sn1, sn2 in
+        """Returns the possible fragments for each positions (sn1, sn2 in
         glycerophospholipids, sphingosine base and N-acyl in sphingolipids,
         etc).
-        
-        :param int head:
+
+        Parameters
+        ----------
+        int :
+            head:
             If `None` or `numpy.inf` all fragment ions will be considered,
             otherwise only the first most aboundant until the number `head`.
-        :param float intensity_threshold:
+        float :
+            intensity_threshold:
             Only fragments with intensities above this threshold will be
             considered. Intensities relative to the highest, between 0 and 1.
-        :param tuple frag_types:
+        tuple :
+            frag_types:
             Limit the query to certain fragment types in addition to
             built in fragment constraints and other criteria.
             A tuple of tuples with fragment type names can be provided
@@ -1816,6 +2620,20 @@ class Scan(ScanBase):
             hydrogen fragment or lysophosphatidic acid fragment, while the
             second position could be anything allowed by the built in
             constraints.
+        rec :
+            
+        head :
+             (Default value = None)
+        intensity_threshold :
+             (Default value = 0)
+        frag_types :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         frags_for_position = collections.defaultdict(list)
@@ -1853,19 +2671,35 @@ class Scan(ScanBase):
             expected = None,
             logbase = None,
         ):
-        """
-        Tells if the ratio of a list of intensities fits the one in
+        """Tells if the ratio of a list of intensities fits the one in
         `expected` or is more or less even if `expected` is `None`.
-        
-        :param list intensities:
+
+        Parameters
+        ----------
+        list :
+            intensities:
             List of intensities.
-        :param list expected:
+        list :
+            expected:
             List with expected intensity proportions. E.g. `[1, 1, 2]`
             means the third ion is twice higher intense than the 2 others.
-        :param int logbase:
+        int :
+            logbase:
             The fold difference tolerance when comparing intensities.
             E.g. if this is 2, then an almost twice less or more intense
             ion will considered to have similar intensity.
+        intensities :
+            
+        frag_indices :
+             (Default value = None)
+        expected :
+             (Default value = None)
+        logbase :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         logbase = settings.get('chain_fragment_instensity_ratios_logbase')
@@ -1912,8 +2746,20 @@ class Scan(ScanBase):
             chainsum,
             expected_intensities = None
         ):
-        """
-        Performs the chain intensity ratio check according to settings.
+        """Performs the chain intensity ratio check according to settings.
+
+        Parameters
+        ----------
+        frag_comb :
+            
+        chainsum :
+            
+        expected_intensities :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return (
@@ -1940,12 +2786,28 @@ class Scan(ScanBase):
             missing_position = None,
             missing_chain = None,
         ):
-        """
-        Returns a tuple of chains from a fragment annotation combination
+        """Returns a tuple of chains from a fragment annotation combination
         and a database record chain summary object.
         
         Potentially includes a missing chain which does not yield any
         fragment.
+
+        Parameters
+        ----------
+        frag_comb :
+            
+        chainsum :
+            
+        details :
+             (Default value = None)
+        missing_position :
+             (Default value = None)
+        missing_chain :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         # boolean: whether we provide details or not
@@ -2012,8 +2874,7 @@ class Scan(ScanBase):
             frag_types = None,
             adduct = None,
         ):
-        """
-        Finds ''missing'' chains i.e. which could complement the chains
+        """Finds ''missing'' chains i.e. which could complement the chains
         identified among the fragments to fit the species in the record.
         
         Yields tuples with first element a tuple of identified chains and
@@ -2023,11 +2884,35 @@ class Scan(ScanBase):
         
         Args
         ----
-        :param int missing_position:
+
+        Parameters
+        ----------
+        int :
+            missing_position:
             Position of the missing chain. 0, 1, 2 are sn1, sn2 and sn3
             positions on glycerol, 0 and 1 are sphingosine base and
             N-acyl in sphingolipids, respectively.
             By default is 1 (sn2 or N-acyl).
+        rec :
+            
+        missing_position :
+             (Default value = 1)
+        head :
+             (Default value = None)
+        intensity_threshold :
+             (Default value = 0)
+        expected_intensities :
+             (Default value = None)
+        no_intensity_check :
+             (Default value = False)
+        frag_types :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         chain_list = self.adduct_chain_list(adduct = adduct)
@@ -2103,11 +2988,25 @@ class Scan(ScanBase):
                 )
     
     def cu_complete(self, chainsum, chain = None, c = None, u = None):
-        """
-        Returns the carbon count and unsaturation needed to complete
+        """Returns the carbon count and unsaturation needed to complete
         the `chain` or `c` and `u` to fit the `chainsum`.
         
         Returns tuple of c and u.
+
+        Parameters
+        ----------
+        chainsum :
+            
+        chain :
+             (Default value = None)
+        c :
+             (Default value = None)
+        u :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         c = c or chain.c
@@ -2116,9 +3015,17 @@ class Scan(ScanBase):
         return chainsum.c - c, chainsum.u - u
     
     def iterrecords(self, adducts = None):
-        """
-        Iterates MS1 records.
+        """Iterates MS1 records.
         Yields tuple of adduct type and record.
+
+        Parameters
+        ----------
+        adducts :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         for add, recs in iteritems(self.ms1_records):
@@ -2146,8 +3053,20 @@ class Scan(ScanBase):
                     yield add, rec, precursor_details
     
     def records_by_type(self, headgroup, sub = (), adducts = None):
-        """
-        Iterates MS1 database records with a certain headgroup and subtype.
+        """Iterates MS1 database records with a certain headgroup and subtype.
+
+        Parameters
+        ----------
+        headgroup :
+            
+        sub :
+             (Default value = ())
+        adducts :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         sub = (
@@ -2165,8 +3084,20 @@ class Scan(ScanBase):
                 yield rec
     
     def first_record(self, headgroup, sub = (), adducts = None):
-        """
-        Returns the first MS1 database record matching headgroup and subtype.
+        """Returns the first MS1 database record matching headgroup and subtype.
+
+        Parameters
+        ----------
+        headgroup :
+            
+        sub :
+             (Default value = ())
+        adducts :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         recbytyp = self.records_by_type(
@@ -2182,6 +3113,17 @@ class Scan(ScanBase):
             return None
     
     def identify(self, adducts = None):
+        """
+
+        Parameters
+        ----------
+        adducts :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         result = {}
         
@@ -2216,18 +3158,23 @@ class Scan(ScanBase):
     #
     
     def cer1p_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a Ceramide-1-phosphate.
-
+        """Examines if a negative mode MS2 spectrum is a Ceramide-1-phosphate.
+        
         **Specimen:**
         
         - GLTPD1 - 616.47
-      
+        
         **Principle:**
         
         - The most abundant fragment is 78.9591 metaphosphate.
-      - If 96.9696 phosphate present adds to the score.
-        
+              - If 96.9696 phosphate present adds to the score.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         score = 0
@@ -2240,17 +3187,22 @@ class Scan(ScanBase):
         return {'score': score, 'fattya': fattya}
     
     def hexcer_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a Hexosyl-Ceramide.
-
+        """Examines if a negative mode MS2 spectrum is a Hexosyl-Ceramide.
+        
         **Specimen:**
         
         - GLTP - 744.5627
-      
+        
         **Principle:**
         
         - Hexose fragments 71.0115, 89.0220 and 101.0219 must present.
-      
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         score = 0
@@ -2265,35 +3217,45 @@ class Scan(ScanBase):
         return {'score': score, 'fattya': fattya}
     
     def hexceroh_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a Hexosyl-Ceramide-OH
+        """Examines if a negative mode MS2 spectrum is a Hexosyl-Ceramide-OH
         ('t'). This method is the same as `hexcer_neg_1`.
-
+        
         **Specimen:**
         
         - GLTP - 760.557
-      
+        
         **Principle:**
         
         - Hexose fragments 71.0115, 89.0220 and 101.0219 must present.
-      
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         return self.hexcer_neg_1()
     
     def sm_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a Sphingomyeline.
-
+        """Examines if a negative mode MS2 spectrum is a Sphingomyeline.
+        
         **Specimen:**
         
         - GLTPD1 - 745.55
-      
+        
         **Principle:**
         
         - Must have a neutral loss of CH3+COOH (60.0211).
-      - Phosphate+choline-CH3 fragment 168.0431 must be present.
-        
+              - Phosphate+choline-CH3 fragment 168.0431 must be present.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         score = 0
@@ -2305,17 +3267,22 @@ class Scan(ScanBase):
         return {'score': score, 'fattya': fattya}
     
     def sph1p_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a Spingosine-1-phosphate.
-
+        """Examines if a negative mode MS2 spectrum is a Spingosine-1-phosphate.
+        
         **Specimen:**
         
         - Only observed in standard.
-      
+        
         **Principle:**
         
         - Phosphate 78.9590 must be present.
-      
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         score = 0
@@ -2327,19 +3294,24 @@ class Scan(ScanBase):
         return {'score': score, 'fattya': fattya}
     
     def cer_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is Ceramide.
-
+        """Examines if a negative mode MS2 spectrum is Ceramide.
+        
         **Specimen:**
         
         - SEC14L1 - 582.509
-      
+        
         **Principle:**
         
         - A Ceramide backbone fragment must be among the 2 most abundant.
-      - Ceramide backbone fragments lighter by N or C2N but same carbon
+              - Ceramide backbone fragments lighter by N or C2N but same carbon
           count and unsaturation add to the score.
-        
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         score = 0
@@ -2364,19 +3336,24 @@ class Scan(ScanBase):
         return {'score': score, 'fattya': fattya}
     
     def cerp_neg_1(self):
-        """
-        Examines if a negative mode MS2 spectrum is a Ceramide-1-phosphate.
+        """Examines if a negative mode MS2 spectrum is a Ceramide-1-phosphate.
         Gives similar result as Sphingosine-1-phosphate.
-
+        
         **Specimen:**
         
         - GLTPD1 - 616.47
-      
+        
         **Principle:**
         
         - The most abundant fragment must be 78.9591 metaphosphate.
-      - Presence of 96.9696 phosphate increase the score.
-        
+              - Presence of 96.9696 phosphate increase the score.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         score = 0
@@ -2393,18 +3370,23 @@ class Scan(ScanBase):
         return {'score': score, 'fattya': fattya}
     
     def cerp_pos_1(self):
-        """
-        Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.
-
+        """Examines if a positive mode MS2 spectrum is a Ceramide-1-phosphate.
+        
         **Specimen:**
         
         - GLTPD1 + 728.59, 590.45, 702.58, 618.430, 616.415, 640.409
-      
+        
         **Principle:**
         
         - A sphingosine fragment with double H2O loss must be among the three
         highest abundant fragments.
-        
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         score = 0
@@ -2416,10 +3398,20 @@ class Scan(ScanBase):
         return {'score': score, 'fattya': fattya}
     
     def adduct(self, adduct, reset = False):
-        """
-        Creates a copy of the current scan assuming that the precursor
+        """Creates a copy of the current scan assuming that the precursor
         is a certain adduct. The precursor will be converted to [M+H]+
         or [M-H]- adduct and neutral losses will be calculated accordingly.
+
+        Parameters
+        ----------
+        adduct :
+            
+        reset :
+             (Default value = False)
+
+        Returns
+        -------
+
         """
         
         if adduct in self.adducts and not reset:
@@ -2452,20 +3444,49 @@ class Scan(ScanBase):
         }
     
     def adduct_annot(self, adduct = None):
-        """
-        Gets the annotations for a certain adduct.
+        """Gets the annotations for a certain adduct.
+
+        Parameters
+        ----------
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.adduct_data('annot', adduct = adduct)
     
     def adduct_chain_list(self, adduct = None):
-        """
-        Gets the chain list for a certain adduct.
+        """Gets the chain list for a certain adduct.
+
+        Parameters
+        ----------
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.adduct_data('chain_list', adduct = adduct)
     
     def adduct_data(self, name, adduct = None):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         if adduct is None:
             
@@ -2484,10 +3505,28 @@ class Scan(ScanBase):
             oh = None,
             databases = None,
         ):
-        """
-        Iterates MS1 records for a given type.
+        """Iterates MS1 records for a given type.
         
         Yields tuples of record, adduct type and error in ppm
+
+        Parameters
+        ----------
+        hg :
+            
+        subtype :
+             (Default value = None)
+        sph :
+             (Default value = None)
+        ether :
+             (Default value = None)
+        oh :
+             (Default value = None)
+        databases :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         subtype = subtype or ()
@@ -2518,6 +3557,7 @@ class Scan(ScanBase):
 
 
 class AbstractMS2Identifier(object):
+    """ """
     
     class_methods = {}
     subclass_methods = {}
@@ -2555,6 +3595,7 @@ class AbstractMS2Identifier(object):
         self.scores = {}
     
     def identify(self):
+        """ """
         
         if not self.rec.hg:
             
@@ -2612,10 +3653,16 @@ class AbstractMS2Identifier(object):
             )
     
     def percent_score(self):
-        """
-        Returns the score as a percentage of the maximum possible score.
+        """Returns the score as a percentage of the maximum possible score.
         
         Zero maximum score means something is wrong, then it returns 200.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         return (
@@ -2625,9 +3672,15 @@ class AbstractMS2Identifier(object):
         )
     
     def confirm_class(self):
-        """
-        In this base class pass through everything.
+        """In this base class pass through everything.
         Most of the subclasses should override this.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         self.score = 0
@@ -2643,6 +3696,7 @@ class AbstractMS2Identifier(object):
             self.max_score += max_score
     
     def confirm_subclass(self):
+        """ """
         
         subclasses = self.rec.hg.sub or ('empty',)
         
@@ -2662,10 +3716,12 @@ class AbstractMS2Identifier(object):
                     self.max_score += max_score
     
     def confirm_chains_explicit(self):
+        """ """
         
         return self.scn.chain_combinations(self.rec, **self.chain_comb_args)
     
     def confirm_chains_implicit(self):
+        """ """
         
         for missing in self.missing_chains:
             
@@ -2683,6 +3739,25 @@ class AbstractMS2Identifier(object):
             chain_param2,
             score_method = lambda ccomb: (min(ccomb, 3) * 2, 6),
         ):
+        """
+
+        Parameters
+        ----------
+        chain_param1 :
+            
+        chain_param2 :
+            
+        score_method :
+             (Default value = lambda ccomb: (min(ccomb)
+        3) * 2 :
+            
+        6) :
+            
+
+        Returns
+        -------
+
+        """
         
         ccomb = len(list(
             self.scn.matching_chain_combinations(
@@ -2697,13 +3772,21 @@ class AbstractMS2Identifier(object):
         self.max_score += score
     
     def check_lyso(self, score_threshold = 5):
-        """
-        Checks whether the this mass has been identified in the database
+        """Checks whether the this mass has been identified in the database
         as a lyso species and calls the corresponding lyso identification
         method.
         
         Returns ``True`` if the score from the lyso is larger than
         ``score_threshold``.
+
+        Parameters
+        ----------
+        score_threshold :
+             (Default value = 5)
+
+        Returns
+        -------
+
         """
         
         rec_lyso = self.scn.first_record(self.rec.hg.main, sub = ('Lyso',))
@@ -2731,11 +3814,10 @@ class AbstractMS2Identifier(object):
 #
 
 class FA_Negative(AbstractMS2Identifier):
-    """
-    Examines if a negative mode MS2 spectrum is a fatty acid.
+    """Examines if a negative mode MS2 spectrum is a fatty acid.
     Here we only check if the most abundant fragment is the
     fatty acid itself.
-
+    
     **Specimen:**
     
     - in vitro FABP1 -
@@ -2744,7 +3826,13 @@ class FA_Negative(AbstractMS2Identifier):
     
     - The most abundant fragment must be a fatty acid which matches
       the carbon count and the unsaturation of the whole molecule.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -2764,6 +3852,7 @@ class FA_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 10
         
@@ -2780,11 +3869,10 @@ class FA_Negative(AbstractMS2Identifier):
 
 
 class FA_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a fatty acid.
+    """Examines if a positive mode MS2 spectrum is a fatty acid.
     Here we only check if the most abundant fragment is the
     fatty acid itself.
-
+    
     **Specimen:**
     
     - Not known
@@ -2793,7 +3881,13 @@ class FA_Positive(AbstractMS2Identifier):
     
     - The most abundant fragment must be a fatty acid which matches
       the carbon count and the unsaturation of the whole molecule.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -2809,6 +3903,7 @@ class FA_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 10
         
@@ -2828,9 +3923,8 @@ class FA_Positive(AbstractMS2Identifier):
 #
 
 class DAG_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a DAG.
-
+    """Examines if a positive mode MS2 spectrum is a DAG.
+    
     **Specimen:**
     
     - in vivo: SEC14L2 + 584.52
@@ -2841,7 +3935,13 @@ class DAG_Positive(AbstractMS2Identifier):
     - Combination of fatty acid fragments among the 10 most abundant
       fragments must match the expected carbon count and unsaturation.
     - If these are among the 5 highest fragments the score is higher.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -2856,6 +3956,7 @@ class DAG_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 6
         
@@ -2869,9 +3970,8 @@ class DAG_Positive(AbstractMS2Identifier):
 
 
 class DAG_Negative(AbstractMS2Identifier):
-    """
-    Examines if a negative mode MS2 spectrum is a DAG.
-
+    """Examines if a negative mode MS2 spectrum is a DAG.
+    
     **Specimen:**
     
     - We don't have yet.
@@ -2883,7 +3983,13 @@ class DAG_Negative(AbstractMS2Identifier):
     - If these are among the 5 highest fragments the score is higher.
     
     (Same as in positive ionmode.)
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -2898,6 +4004,7 @@ class DAG_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 6
         
@@ -2911,9 +4018,8 @@ class DAG_Negative(AbstractMS2Identifier):
 
 
 class TAG_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a TAG.
-
+    """Examines if a positive mode MS2 spectrum is a TAG.
+    
     **Specimen:**
     
     - STARD11 + 818.7187
@@ -2922,7 +4028,13 @@ class TAG_Positive(AbstractMS2Identifier):
     
     - Combination of fatty acid fragments must match the expected
       carbon count and unsaturation.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -2937,6 +4049,7 @@ class TAG_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 10
         
@@ -2950,9 +4063,8 @@ class TAG_Positive(AbstractMS2Identifier):
 
 
 class TAG_Negative(AbstractMS2Identifier):
-    """
-    Examines if a negative mode MS2 spectrum is a TAG.
-
+    """Examines if a negative mode MS2 spectrum is a TAG.
+    
     **Specimen:**
     
     - We don't have yet.
@@ -2963,6 +4075,13 @@ class TAG_Negative(AbstractMS2Identifier):
       expected carbon count and unsaturation.
     
     (Same as in positive ionmode.)
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -2977,6 +4096,7 @@ class TAG_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.score = 0
         self.max_score = 5
@@ -2987,9 +4107,7 @@ class TAG_Negative(AbstractMS2Identifier):
 
 
 class GL_Positive(AbstractMS2Identifier):
-    """
-    Generic class for identification of glycerolipids.
-    """
+    """Generic class for identification of glycerolipids."""
     
     def __init__(self, record, scan, **kwargs):
         
@@ -3012,12 +4130,14 @@ class GL_Positive(AbstractMS2Identifier):
     }
     
     def confirm_class(self):
+        """ """
         
         if self.rec.hg.main in self.class_methods:
             
             getattr(self, self.class_methods[self.rec.hg.main])()
     
     def dgts(self):
+        """ """
         
         self.max_score += 30
         
@@ -3033,6 +4153,7 @@ class GL_Positive(AbstractMS2Identifier):
             )) * 10
     
     def dgcc(self):
+        """ """
         
         self.max_score += 20
         
@@ -3045,6 +4166,7 @@ class GL_Positive(AbstractMS2Identifier):
                 self.score += 10
     
     def sqdg(self):
+        """ """
         
         self.max_score += 10
         
@@ -3053,6 +4175,7 @@ class GL_Positive(AbstractMS2Identifier):
             self.score += 10
     
     def mgdg(self):
+        """ """
         
         self.max_score += 10
         
@@ -3061,6 +4184,7 @@ class GL_Positive(AbstractMS2Identifier):
             self.score += 10
     
     def dgdg(self):
+        """ """
         
         self.max_score += 10
         
@@ -3070,9 +4194,7 @@ class GL_Positive(AbstractMS2Identifier):
 
 
 class GL_Negative(AbstractMS2Identifier):
-    """
-    Generic class for identification of glycerolipids.
-    """
+    """Generic class for identification of glycerolipids."""
     
     def __init__(self, record, scan, **kwargs):
         
@@ -3086,6 +4208,7 @@ class GL_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score += 10
         
@@ -3103,9 +4226,8 @@ class GL_Negative(AbstractMS2Identifier):
 #
 
 class PE_Negative(AbstractMS2Identifier):
-    """
-    Examines if a negative mode MS2 spectrum is Phosphatidylethanolamine.
-
+    """Examines if a negative mode MS2 spectrum is Phosphatidylethanolamine.
+    
     **Specimen:**
     
     - GM2A - 714.507 and 716.523
@@ -3117,7 +4239,13 @@ class PE_Negative(AbstractMS2Identifier):
     - Other headgroup ions 196.0380 and 178.0275 add to the score.
     - Lyso-PE and [M-H-CO2]- fatty acid fragments complementing the
       highest [M-H]- fatty acid increase the score.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3132,6 +4260,7 @@ class PE_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score += 11
         
@@ -3165,10 +4294,9 @@ class PE_Negative(AbstractMS2Identifier):
 
 
 class PE_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a
+    """Examines if a positive mode MS2 spectrum is a
     Phosphatidylethanolamine.
-
+    
     **Specimen:**
     
     - in vivo BPI + 718.536
@@ -3178,7 +4306,13 @@ class PE_Positive(AbstractMS2Identifier):
     
     - The PE headgroup neutral loss 141.0191 has the highest intensity.
     - If it is a Lyso-PE score will be zero.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3193,6 +4327,7 @@ class PE_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 20
         
@@ -3210,10 +4345,9 @@ class PE_Positive(AbstractMS2Identifier):
 
 
 class LysoPE_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a
+    """Examines if a positive mode MS2 spectrum is a
     Lysophosphatidylethanolamine.
-
+    
     **Specimen:**
     
     - in vitro FABP1 + 454.29
@@ -3223,7 +4357,13 @@ class LysoPE_Positive(AbstractMS2Identifier):
     - The PE headgroup neutral loss 141.0191 has the highest intensity.
     - A fatty acid-glycerol fragment should match the carbon count and
       unsaturation of the whole molecule.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3238,6 +4378,7 @@ class LysoPE_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 15
         
@@ -3265,9 +4406,8 @@ class LysoPE_Positive(AbstractMS2Identifier):
 
 
 class PC_Negative(AbstractMS2Identifier):
-    """
-    Examines if a negative mode MS2 spectrum is a Phosphatidylcholine.
-
+    """Examines if a negative mode MS2 spectrum is a Phosphatidylcholine.
+    
     **Specimen:**
     
     - BPI - 804.57 and 776.545
@@ -3278,7 +4418,13 @@ class PC_Negative(AbstractMS2Identifier):
     - The highest abundant fragment must be a fatty acid [M-H]- fragment.
     - Lyso-PC fragments complementing the highest [M-H]- fatty acid
       increase the score.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3293,6 +4439,7 @@ class PC_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 27
         
@@ -3332,9 +4479,8 @@ class PC_Negative(AbstractMS2Identifier):
 
 
 class PC_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a Phosphatidylcholine.
-
+    """Examines if a positive mode MS2 spectrum is a Phosphatidylcholine.
+    
     **Specimen:**
     
     - BPI + 786.607
@@ -3347,7 +4493,13 @@ class PC_Positive(AbstractMS2Identifier):
       and unsaturation as the whole molecule (then it is Lyso-PC).
     - Fragments 104.1069, 124.9998, 60.0808 and 58.0651 increase the
       score.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3363,6 +4515,7 @@ class PC_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 13
         
@@ -3388,8 +4541,7 @@ class PC_Positive(AbstractMS2Identifier):
 
 
 class LysoPC_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a Lysophosphatidylcholine.
+    """Examines if a positive mode MS2 spectrum is a Lysophosphatidylcholine.
     
     **Specimen:**
     
@@ -3402,7 +4554,13 @@ class LysoPC_Positive(AbstractMS2Identifier):
     - The latter neutral loss corresponds to a fatty acid+glycerol ion.
     - The carbon count and unsaturation of this fragment should match
       that of the whole molecule.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3418,6 +4576,7 @@ class LysoPC_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 15
         
@@ -3442,9 +4601,8 @@ class LysoPC_Positive(AbstractMS2Identifier):
 
 
 class PI_Negative(AbstractMS2Identifier):
-    """
-    Examines if a negative MS2 spectrum is Phosphatidylinositol.
-
+    """Examines if a negative MS2 spectrum is Phosphatidylinositol.
+    
     **Specimen:**
     
     - GM2A - 835.52
@@ -3457,7 +4615,13 @@ class PI_Negative(AbstractMS2Identifier):
       increase the score.
     - Presence of Lyso-PI fragments complementing other [M-H]- fatty
       acid fragments increase the score.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3472,6 +4636,7 @@ class PI_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 19
         
@@ -3502,9 +4667,8 @@ class PI_Negative(AbstractMS2Identifier):
 
 
 class PI_Positive(AbstractMS2Identifier):
-    """
-    Examines if a negative MS2 spectrum is Phosphatidylinositol.
-
+    """Examines if a negative MS2 spectrum is Phosphatidylinositol.
+    
     **Specimen:**
     
     - SEC14L2 + 906.60 and 882.6
@@ -3514,7 +4678,13 @@ class PI_Positive(AbstractMS2Identifier):
     - Combinations of fatty acid fragments must match the expected
       carbon count and unsaturation for PI.
     - Presence of neutral losses 259.0219 and 277.0563 adds to the score.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3530,6 +4700,7 @@ class PI_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 9
         
@@ -3544,9 +4715,8 @@ class PI_Positive(AbstractMS2Identifier):
 
 
 class PS_Negative(AbstractMS2Identifier):
-    """
-    Examines if a negative mode MS2 spectrum is a Phosphatidylserine.
-
+    """Examines if a negative mode MS2 spectrum is a Phosphatidylserine.
+    
     **Specimen:**
     
     - ORP9 - 788.54
@@ -3559,7 +4729,13 @@ class PS_Negative(AbstractMS2Identifier):
     - Serine-H2O neutral loss 87.0320 adds to the score.
     - Presence of Lyso-PS and Lyso-PA fragments complementing
       the highest [M-H]- fatty acid fragment increase the score.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3575,6 +4751,7 @@ class PS_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 17
         
@@ -3603,9 +4780,8 @@ class PS_Negative(AbstractMS2Identifier):
 
 
 class PS_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a Phosphatidylserine.
-
+    """Examines if a positive mode MS2 spectrum is a Phosphatidylserine.
+    
     **Specimen:**
     
     - BPI + 790.56
@@ -3613,6 +4789,13 @@ class PS_Positive(AbstractMS2Identifier):
     **Principle:**
     
     - PS headgroup neutral loss 185.0089 must be the highest intensity.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3628,6 +4811,7 @@ class PS_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 5
         
@@ -3637,12 +4821,11 @@ class PS_Positive(AbstractMS2Identifier):
 
 
 class PG_Negative(AbstractMS2Identifier):
-    """
-    Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
+    """Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
     The result will be the same as `bmp_neg_1`, as in negative
     mode we do not know a way to distinguish these species.
     
-
+    
     **Specimen:**
     
     - GM2A - 799.54
@@ -3655,7 +4838,13 @@ class PG_Negative(AbstractMS2Identifier):
     - If Lyso-PG fragment present with carbon count complementing
       the [M-H]- fatty acid score is higher.
     - Presence of 171.0064 headgroup fragment adds to the score.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3671,6 +4860,7 @@ class PG_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 14
         
@@ -3700,14 +4890,20 @@ class PG_Negative(AbstractMS2Identifier):
 
 
 class PG_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a Phosphatidylglycerol.
+    """Examines if a positive mode MS2 spectrum is a Phosphatidylglycerol.
     At in vivo observed only in standard.
     
     **Principle:**
     
     - The PG headgroup neutral loss (189.0402) is the fragment ion
       with the highest intensity?
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3722,6 +4918,7 @@ class PG_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 5
         
@@ -3749,12 +4946,11 @@ class PG_Positive(AbstractMS2Identifier):
 
 
 class BMP_Negative(PG_Negative):
-    """
-    Examines if a negative mode MS2 spectrum is Bismonoacylglycerophosphate.
+    """Examines if a negative mode MS2 spectrum is Bismonoacylglycerophosphate.
     The result will be the same as for PG, as in negative
     mode we do not know a way to distinguish these species.
     
-
+    
     **Specimen:**
     
     - GM2A - 799.54
@@ -3767,7 +4963,13 @@ class BMP_Negative(PG_Negative):
     - If Lyso-PG fragment present with carbon count complementing
       the [M-H]- fatty acid score is higher.
     - Presence of 171.0064 headgroup fragment adds to the score.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3776,10 +4978,9 @@ class BMP_Negative(PG_Negative):
 
 
 class BMP_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum
+    """Examines if a positive mode MS2 spectrum
     is a Bismonoacylglycerophosphate.
-
+    
     **Specimen:**
     
     - BPIFB2 + 792.57
@@ -3790,7 +4991,13 @@ class BMP_Positive(AbstractMS2Identifier):
     - The PG headgroup neutral loss (189.0402) is among the fragments?
     - If so, does it have a lower intensity than half of the fatty
       acid+glycerol fragment?
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3806,6 +5013,7 @@ class BMP_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 10
         
@@ -3836,12 +5044,11 @@ class BMP_Positive(AbstractMS2Identifier):
 
 
 class PA_Negative(AbstractMS2Identifier):
-    """
-    Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
+    """Examines if a negative mode MS2 spectrum is Phosphatidylglycerol.
     The result will be the same as `bmp_neg_1`, as in negative
     mode we do not know a way to distinguish these species.
     
-
+    
     **Specimen:**
     
     - GM2A - 799.54
@@ -3854,7 +5061,13 @@ class PA_Negative(AbstractMS2Identifier):
     - If Lyso-PG fragment present with carbon count complementing
       the [M-H]- fatty acid score is higher.
     - Presence of 171.0064 headgroup fragment adds to the score.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3870,6 +5083,7 @@ class PA_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 25
         
@@ -3894,14 +5108,20 @@ class PA_Negative(AbstractMS2Identifier):
 
 
 class PA_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a Phosphatidylglycerol.
+    """Examines if a positive mode MS2 spectrum is a Phosphatidylglycerol.
     At in vivo observed only in standard.
     
     **Principle:**
     
     - The PG headgroup neutral loss (189.0402) is the fragment ion
       with the highest intensity?
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3916,6 +5136,7 @@ class PA_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 20
         
@@ -3945,9 +5166,8 @@ class PA_Positive(AbstractMS2Identifier):
 #
 
 class VA_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive MS2 spectrum is vitamin A (retinol).
-
+    """Examines if a positive MS2 spectrum is vitamin A (retinol).
+    
     **Specimen:**
     
     - in vivo RBP1 + 269.2245
@@ -3958,7 +5178,13 @@ class VA_Positive(AbstractMS2Identifier):
     - The most abundant ion is the whole molecule m/z = 269.224.
     - Presence off 3 other ions adds to the score but not
       mandatory: 213.165, 145.1027, 157.1028.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -3974,6 +5200,7 @@ class VA_Positive(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 8
         
@@ -3989,9 +5216,8 @@ class VA_Positive(AbstractMS2Identifier):
 
 
 class VA_Negative(AbstractMS2Identifier):
-    """
-    Examines if a positive MS2 spectrum is vitamin A (retinol).
-
+    """Examines if a positive MS2 spectrum is vitamin A (retinol).
+    
     **Specimen:**
     
     - Standards 141020 negative scan 673
@@ -4002,6 +5228,13 @@ class VA_Negative(AbstractMS2Identifier):
       79.055, 119.087 and 255.212; presence of these is the main condition.
     - We also detected 125.061 in our standards which is special because
       contains 2 oxygens; presence of this increase the score.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     def __init__(self, record, scan, **kwargs):
@@ -4017,6 +5250,7 @@ class VA_Negative(AbstractMS2Identifier):
         )
     
     def confirm_class(self):
+        """ """
         
         self.max_score = 8
         
@@ -4040,8 +5274,7 @@ class VA_Negative(AbstractMS2Identifier):
 #
 
 class Cer_Positive(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a ceramide.
+    """Examines if a positive mode MS2 spectrum is a ceramide.
     Identifies ceramide varieties including sphingomyeline,
     ceramide-1-phosphare, ceramide-phosphoethanolamine,
     OH-acyl-ceramide, hexosyl and dihexosyl-ceramides,
@@ -4052,7 +5285,7 @@ class Cer_Positive(AbstractMS2Identifier):
     
     **Specimen:**
     
-    - Sphingolipid standards scans 
+    - Sphingolipid standards scans
     - SEC14L1 + 538.52
     - STARD11 + 538.526
     
@@ -4198,7 +5431,13 @@ class Cer_Positive(AbstractMS2Identifier):
     - 142.0264 phospho-ethanolamine fragment and neutral loss of
       phospho-ethanolamine+water might be present.
     - Sph-2xH2O fragment increases the score.
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     class_methods = {
@@ -4241,6 +5480,7 @@ class Cer_Positive(AbstractMS2Identifier):
         self.fa_max_scores  = {}
     
     def confirm_class(self):
+        """ """
         
         AbstractMS2Identifier.confirm_class(self)
         
@@ -4257,14 +5497,20 @@ class Cer_Positive(AbstractMS2Identifier):
         self.confirm_subclass()
     
     def confirm_chains_explicit(self):
-        """
-        Most of the time we don't really have fatty acid derived
+        """Most of the time we don't really have fatty acid derived
         fragments from ceramides in positive mode. However certain
         sphingosin base derived fragments correspond to neutral losses
         of fatty acids as the molecule is composed of a sphingosine
         and a fatty acid but this is redundant. Hence we call both
         explicit and implicit identification as practically the it
         is implicit anyways.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         for chains in itertools.chain(
@@ -4302,6 +5548,17 @@ class Cer_Positive(AbstractMS2Identifier):
                     self.max_score -= fa_max_score
     
     def fatty_acyl(self, fa):
+        """
+
+        Parameters
+        ----------
+        fa :
+            
+
+        Returns
+        -------
+
+        """
         
         score = 0
         max_score = 0
@@ -4315,6 +5572,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def cer(self):
+        """ """
         
         
         score = 0
@@ -4328,6 +5586,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def non_hex(self):
+        """ """
         
         score = 0
         max_score = 0
@@ -4356,6 +5615,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def sm(self):
+        """ """
         
         score = 0
         max_score = 47
@@ -4387,10 +5647,16 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def pc(self):
-        """
-        Lyso-SM aka Sph-PC.
+        """Lyso-SM aka Sph-PC.
         
         Scherer 2010, Table 1.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         score = 0
@@ -4403,6 +5669,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def pe_cer(self):
+        """ """
         
         score = 0
         max_score = 30
@@ -4422,6 +5689,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def cer1p(self):
+        """ """
         
         score = 0
         max_score = 31
@@ -4463,6 +5731,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def hexcer(self):
+        """ """
         
         score = 0
         max_score = 14
@@ -4482,6 +5751,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def hex2cer(self):
+        """ """
         
         score = 0
         max_score = 39
@@ -4508,6 +5778,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def hexcer_chain_combination(self):
+        """ """
         
         return self.scn.has_chain_combination(
             self.rec,
@@ -4530,6 +5801,7 @@ class Cer_Positive(AbstractMS2Identifier):
         )
     
     def shexcer(self):
+        """ """
         
         score = 0
         max_score = 25
@@ -4547,6 +5819,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def shex2cer(self):
+        """ """
         
         score = 0
         max_score = 25
@@ -4564,6 +5837,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def m2(self):
+        """ """
         
         score = 0
         max_score = 46
@@ -4603,6 +5877,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def m1(self):
+        """ """
         
         score = 0
         max_score = 30
@@ -4638,6 +5913,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def m3(self):
+        """ """
         
         score = 0
         max_score = 20
@@ -4651,6 +5927,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def sph(self):
+        """ """
         
         score = 0
         max_score = 9
@@ -4666,6 +5943,17 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def sphingosine_base(self, sph):
+        """
+
+        Parameters
+        ----------
+        sph :
+            
+
+        Returns
+        -------
+
+        """
         
         if sph not in self.sph_scores:
             
@@ -4678,6 +5966,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return self.sph_scores[sph], self.sph_max_scores[sph]
     
     def sphingosine_d(self):
+        """ """
         
         score = 0
         max_score = 20
@@ -4732,6 +6021,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def sphingosine_dh(self):
+        """ """
         
         score = 0
         max_score = 20
@@ -4769,6 +6059,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def sphingosine_t(self):
+        """ """
         
         score = 0
         max_score = 20
@@ -4814,6 +6105,7 @@ class Cer_Positive(AbstractMS2Identifier):
         return score, max_score
     
     def sphingosine_k(self):
+        """ """
         
         score = 0
         max_score = 39
@@ -4852,8 +6144,7 @@ class Cer_Positive(AbstractMS2Identifier):
 
 
 class Cer_Negative(AbstractMS2Identifier):
-    """
-    Examines if a positive mode MS2 spectrum is a ceramide.
+    """Examines if a positive mode MS2 spectrum is a ceramide.
     Identifies ceramide varieties including sphingomyeline,
     ceramide-1-phosphare, ceramide-phosphoethanolamine,
     OH-acyl-ceramide, hexosyl and dihexosyl-ceramides,
@@ -4881,7 +6172,13 @@ class Cer_Negative(AbstractMS2Identifier):
     **Specimen:**
     
     - standards
-    
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     class_methods = {
@@ -4915,12 +6212,14 @@ class Cer_Negative(AbstractMS2Identifier):
         self.fa_max_scores  = {}
     
     def confirm_class(self):
+        """ """
         
         AbstractMS2Identifier.confirm_class(self)
         
         self.confirm_subclass()
     
     def confirm_chains_explicit(self):
+        """ """
         
         for chains in itertools.chain(
             AbstractMS2Identifier.confirm_chains_explicit(self),
@@ -4956,6 +6255,17 @@ class Cer_Negative(AbstractMS2Identifier):
                     self.max_score -= fa_max_score
     
     def fatty_acyl(self, fa):
+        """
+
+        Parameters
+        ----------
+        fa :
+            
+
+        Returns
+        -------
+
+        """
         
         score = 0
         max_score = 0
@@ -4988,6 +6298,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def cer(self):
+        """ """
         
         max_score = 23
         
@@ -5012,6 +6323,17 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def sphingosine_base(self, sph):
+        """
+
+        Parameters
+        ----------
+        sph :
+            
+
+        Returns
+        -------
+
+        """
         
         if sph not in self.sph_scores:
             
@@ -5024,6 +6346,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return self.sph_scores[sph], self.sph_max_scores[sph]
     
     def sphingosine_d_dh(self):
+        """ """
         
         score = 0
         max_score = 20
@@ -5054,6 +6377,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def sphingosine_d(self):
+        """ """
         
         score = 0
         max_score = 20
@@ -5070,6 +6394,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def sphingosine_dh(self):
+        """ """
         
         score = 0
         max_score = -20
@@ -5086,6 +6411,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def sphingosine_t(self):
+        """ """
         
         score = 0
         max_score = 28
@@ -5128,6 +6454,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def cer1p(self):
+        """ """
         
         score = 0
         max_score = 70
@@ -5171,6 +6498,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def sm(self):
+        """ """
         
         score = 0
         max_score = 45
@@ -5200,6 +6528,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def hexcer(self):
+        """ """
         
         score = 0
         max_score = 90
@@ -5222,6 +6551,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def hex2cer(self):
+        """ """
         
         score = 0
         max_score = 140
@@ -5249,6 +6579,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def shexcer(self):
+        """ """
         
         score = 0
         max_score = 100
@@ -5299,6 +6630,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def shex2cer(self):
+        """ """
         
         score = 0
         max_score = 140
@@ -5354,6 +6686,7 @@ class Cer_Negative(AbstractMS2Identifier):
         return score, max_score
     
     def pe_cer(self):
+        """ """
         
         score = 0
         max_score = 30
@@ -5468,6 +6801,7 @@ idmethods = {
 
 
 class MS2Feature(object):
+    """ """
     
     scan_methods = {
         'mgf':  'mgf_iterscans',
@@ -5525,12 +6859,14 @@ class MS2Feature(object):
         self.check_rt = check_rt
     
     def main(self):
+        """ """
         
         self.ms1_lookup()
         self.build_scans()
         self.identify()
     
     def iterscans(self):
+        """ """
         
         for sample_id, resource in iteritems(self.resources):
             
@@ -5549,6 +6885,19 @@ class MS2Feature(object):
                 yield scan
     
     def mgf_iterscans(self, mgf_resource, sample_id = None):
+        """
+
+        Parameters
+        ----------
+        mgf_resource :
+            
+        sample_id :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         if isinstance(mgf_resource, basestring):
             
@@ -5594,11 +6943,35 @@ class MS2Feature(object):
             )
     
     def mzml_iterscans(self, mzml_resource, sample_id = None):
+        """
+
+        Parameters
+        ----------
+        mzml_resource :
+            
+        sample_id :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         raise NotImplementedError
     
     @staticmethod
     def guess_resouce_type(res):
+        """
+
+        Parameters
+        ----------
+        res :
+            
+
+        Returns
+        -------
+
+        """
         
         if isinstance(res, basestring) and os.path.exists(res):
             
@@ -5611,6 +6984,7 @@ class MS2Feature(object):
             return 'mgf'
     
     def build_scans(self):
+        """ """
         
         self.scans = np.array(list(self.iterscans()))
         self.deltart = np.array([sc.rt - self.rtmean for sc in self.scans])
@@ -5627,6 +7001,7 @@ class MS2Feature(object):
         self.deltart = self.deltart[rtsort]
     
     def identify(self):
+        """ """
         
         self.identities = []
         
@@ -5640,8 +7015,16 @@ class MS2Feature(object):
     
     @staticmethod
     def identities_sort(ids):
-        """
-        Sorts identities by score and deltart.
+        """Sorts identities by score and deltart.
+
+        Parameters
+        ----------
+        ids :
+            
+
+        Returns
+        -------
+
         """
         
         return sorted(
@@ -5656,10 +7039,16 @@ class MS2Feature(object):
     
     def identities_group_by(self, by = 'subspecies'):
         """
+
         Parameters
         ----------
-        species : str
-            Either ``species`` or ``subspecies`` or ``subclass``.
+        by :
+             (Default value = 'subspecies')
+
+        Returns
+        -------
+
+        
         """
         
         identities = {}
@@ -5693,18 +7082,22 @@ class MS2Feature(object):
         return identities
     
     def identities_group_by_species(self):
+        """ """
         
         return self.identities_group_by(by = 'species')
     
     def identities_group_by_subspecies(self):
+        """ """
         
         return self.identities_group_by(by = 'subspecies')
     
     def identities_group_by_subclass(self):
+        """ """
         
         return self.identities_group_by(by = 'subclass')
     
     def identities_group_by_class(self):
+        """ """
         
         return self.identities_group_by(by = 'class')
     
@@ -5714,8 +7107,7 @@ class MS2Feature(object):
             only_top = True,
             group_by = 'subspecies'
         ):
-        """
-        only_best : bool
+        """only_best : bool
             Only the ones with highest score.
         only_top : bool
             Only the first one for each group (the one with highest score
@@ -5723,6 +7115,19 @@ class MS2Feature(object):
         group_by : str
             Passed to ``identities_group_by``. Group by lipid identification
             level ``subspecies``, ``species``, ``subclass`` or ``class``.
+
+        Parameters
+        ----------
+        only_best :
+             (Default value = True)
+        only_top :
+             (Default value = True)
+        group_by :
+             (Default value = 'subspecies')
+
+        Returns
+        -------
+
         """
         
         identities = self.identities_group_by(by = group_by)
@@ -5756,6 +7161,7 @@ class MS2Feature(object):
         )
     
     def identities_str_all(self):
+        """ """
         
         return self.identities_str(
             only_best = False,
@@ -5764,6 +7170,7 @@ class MS2Feature(object):
         )
     
     def identities_str_best_sum(self):
+        """ """
         
         return self.identities_str(
             only_best = True,
@@ -5772,6 +7179,7 @@ class MS2Feature(object):
         )
     
     def identities_str_full_toplist(self):
+        """ """
         
         return self.identities_str(
             only_best = False,
@@ -5780,6 +7188,19 @@ class MS2Feature(object):
         )
     
     def _identities_str(self, ids, sum_str = False):
+        """
+
+        Parameters
+        ----------
+        ids :
+            
+        sum_str :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         
         return (
             ';'.join(
@@ -5788,6 +7209,19 @@ class MS2Feature(object):
         )
     
     def format_ms2id(self, i, sum_str = False):
+        """
+
+        Parameters
+        ----------
+        i :
+            
+        sum_str :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         # TODO: more generic handling of sample IDs!!!
         
         adduct = (
@@ -5824,6 +7258,25 @@ class MS2Feature(object):
             sample_ids = False,
             scan_ids = False,
         ):
+        """
+
+        Parameters
+        ----------
+        chains :
+             (Default value = True)
+        scores :
+             (Default value = True)
+        drt :
+             (Default value = True)
+        sample_ids :
+             (Default value = False)
+        scan_ids :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         
         identities = {}
         
@@ -5872,6 +7325,7 @@ class MS2Feature(object):
         return identities
     
     def ms1_lookup(self):
+        """ """
         
         if self.ms1_records is None:
             

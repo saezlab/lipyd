@@ -65,6 +65,7 @@ import lipyd.lipproc as lipproc
 
 
 class Reader(object):
+    """ """
     
     def __init__(self):
         
@@ -73,6 +74,17 @@ class Reader(object):
         return self.__iter__()
     
     def reload(self, children = False):
+        """
+
+        Parameters
+        ----------
+        children :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -81,6 +93,7 @@ class Reader(object):
         setattr(self, '__class__', new)
     
     def iterrows(self):
+        """ """
         
         for mol in self:
             
@@ -96,6 +109,7 @@ class Reader(object):
 
 
 class LipidMaps(sdf.SdfReader):
+    """ """
     
     def __init__(self, extract_file = True):
         
@@ -172,6 +186,7 @@ class LipidMaps(sdf.SdfReader):
 
 
 class SwissLipids(Reader):
+    """ """
     
     def __init__(self, levels = set(['Species']), silent = False,
                  nameproc_args = None, branched = False,
@@ -209,15 +224,24 @@ class SwissLipids(Reader):
         self.make_index()
     
     def set_levels(self, levels):
-        """
-        Sets the levels to be processed. Levels in SwissLipids are `Species`,
+        """Sets the levels to be processed. Levels in SwissLipids are `Species`,
         `Molecular subspecies`, `Structural subspecies` and
         `Isomeric subspecies`.
         
         Args
         ----
-        :param set levels:
+
+        Parameters
+        ----------
+        set :
+            levels:
             A set of one or more of the levels above.
+        levels :
+            
+
+        Returns
+        -------
+
         """
         
         if isinstance(levels, common.basestring):
@@ -228,9 +252,15 @@ class SwissLipids(Reader):
         self.init_name_processor()
     
     def init_name_processor(self):
-        """
-        Creates a `LipidNameProcessor` instance to process lipid names
+        """Creates a `LipidNameProcessor` instance to process lipid names
         at indexing.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         self.nameproc = lipidname.LipidNameProcessor(
@@ -239,6 +269,7 @@ class SwissLipids(Reader):
         )
     
     def load(self):
+        """ """
         
         self.close_gzfile()
         
@@ -247,6 +278,7 @@ class SwissLipids(Reader):
         self._gzfile = self._curl.result
     
     def iterfile(self):
+        """ """
         
         self._plainfile.seek(0)
         _ = self._plainfile.readline()
@@ -257,12 +289,35 @@ class SwissLipids(Reader):
     
     @staticmethod
     def names(line):
+        """
+
+        Parameters
+        ----------
+        line :
+            
+
+        Returns
+        -------
+
+        """
         
         return '|'.join(line[2:5])
     
     def make_index(self):
+        """ """
         
         def cc2str(cc):
+            """
+
+            Parameters
+            ----------
+            cc :
+                
+
+            Returns
+            -------
+
+            """
             
             return (
                 '%s%s%u:%u' % (
@@ -348,6 +403,19 @@ class SwissLipids(Reader):
         self._plainfile = open(self._plainfilename, 'r')
     
     def get_hg(self, hg, sub = ()):
+        """
+
+        Parameters
+        ----------
+        hg :
+            
+        sub :
+             (Default value = ())
+
+        Returns
+        -------
+
+        """
         
         if isinstance(hg, common.basestring):
             
@@ -356,18 +424,64 @@ class SwissLipids(Reader):
         return self.get_record(hg, index = 'hg')
     
     def get_species(self, name):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         return self.get_record(name, index = 'species')
     
     def get_subspec(self, name):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         return self.get_record(name, index = 'subspec')
     
     def get_isomer(self, name):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         return self.get_record(name, index = 'isomer')
     
     def get_hg_obmol(self, hg, sub = ()):
+        """
+
+        Parameters
+        ----------
+        hg :
+            
+        sub :
+             (Default value = ())
+
+        Returns
+        -------
+
+        """
         
         if isinstance(hg, common.basestring):
             
@@ -376,18 +490,64 @@ class SwissLipids(Reader):
         return self.get_obmol(hg, index = 'hg')
     
     def get_species_obmol(self, name):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         return self.get_obmol(name, index = 'species')
     
     def get_subspec_obmol(self, name):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         return self.get_obmol(name, index = 'subspec')
     
     def get_isomer_obmol(self, name):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         return self.get_obmol(name, index = 'isomer')
     
     def get_record(self, name, index = ''):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+        index :
+             (Default value = '')
+
+        Returns
+        -------
+
+        """
         
         indexname = '%s%sindex' % (index, '_' if index else '')
         index = getattr(self, indexname)
@@ -400,6 +560,19 @@ class SwissLipids(Reader):
                 yield self._plainfile.readline().strip().split('\t')
     
     def get_obmol(self, name, index = ''):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+        index :
+             (Default value = '')
+
+        Returns
+        -------
+
+        """
         
         for rec in self.get_record(name, index = index):
             
@@ -409,6 +582,17 @@ class SwissLipids(Reader):
     
     @staticmethod
     def to_obmol(record):
+        """
+
+        Parameters
+        ----------
+        record :
+            
+
+        Returns
+        -------
+
+        """
         
         if not record[9] or record[9] == 'InChI=none':
             
@@ -424,6 +608,21 @@ class SwissLipids(Reader):
     
     @staticmethod
     def add_annotations(mol, record, exact_mass_formula_fallback = True):
+        """
+
+        Parameters
+        ----------
+        mol :
+            
+        record :
+            
+        exact_mass_formula_fallback :
+             (Default value = True)
+
+        Returns
+        -------
+
+        """
         
         mol.db_id = record[0]
         mol.name  = record[3]
@@ -454,17 +653,26 @@ class SwissLipids(Reader):
         return mol
     
     def itermol(self, obmol = False):
-        """
-        Iterates the database either by yielding `pybel.Molecule` objects
+        """Iterates the database either by yielding `pybel.Molecule` objects
         with extra attributes or dummy objects with the same attributes
         containing the various IDs and structure representations
         (see code of `add_annotation`) for details.
         
         Args
         ----
-        :param bool obmol:
+
+        Parameters
+        ----------
+        bool :
+            obmol:
             Yield `pybel.Molecule` objects. By default simple dummy objects
             produced.
+        obmol :
+             (Default value = False)
+
+        Returns
+        -------
+
         """
         
         nosmiles = 0
@@ -523,18 +731,31 @@ class SwissLipids(Reader):
         self.close_plainfile()
     
     def close_gzfile(self):
+        """ """
         
         if hasattr(self, '_gzfile'):
             
             self._gzfile.close()
     
     def close_plainfile(self):
+        """ """
         
         if hasattr(self, '_plainfile'):
             
             self._plainfile.close()
     
     def export_names(self, proc):
+        """
+
+        Parameters
+        ----------
+        proc :
+            
+
+        Returns
+        -------
+
+        """
         
         with open('names.tmp', 'w') as fp:
             
@@ -546,6 +767,7 @@ class SwissLipids(Reader):
 
 
 class MoleculeDatabaseAggregator(object):
+    """ """
     
     def __init__(
             self,
@@ -591,6 +813,17 @@ class MoleculeDatabaseAggregator(object):
             self.build()
     
     def reload(self, children = False):
+        """
+
+        Parameters
+        ----------
+        children :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -599,23 +832,35 @@ class MoleculeDatabaseAggregator(object):
         setattr(self, '__class__', new)
     
     def init_rebuild(self):
-        """
-        Creates an empty list where this object collects the masses and
+        """Creates an empty list where this object collects the masses and
         molecule annotations. This needs to be done before (re)building the
         database in order to start from an empty array.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         self._mass_data = []
     
     def build(self):
-        """
-        Executes the workflow of the entire database building process.
+        """Executes the workflow of the entire database building process.
         
         First loads the third party databases (SwissLipids and LipidMaps),
         then autogenerates glycerophospholipid, glycerolipid and sphingolipid
         series. At the end all data merged into common `masses` and `data`
         arrays and sorted by increasing mass. At this point the instance
         is able to do lookups.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         self.init_rebuild()
@@ -629,9 +874,7 @@ class MoleculeDatabaseAggregator(object):
         self.sort()
     
     def load_databases(self):
-        """
-        Loads all databases and generates main array.
-        """
+        """Loads all databases and generates main array."""
         
         for cls, resargs in self.resources.values():
             
@@ -640,6 +883,7 @@ class MoleculeDatabaseAggregator(object):
             self._mass_data.extend(resource)
     
     def mass_data_arrays(self):
+        """ """
         
         if hasattr(self, '_mass_data'):
             
@@ -662,6 +906,25 @@ class MoleculeDatabaseAggregator(object):
             classes = None,
             **kwargs
         ):
+        """
+
+        Parameters
+        ----------
+        fa_args :
+             (Default value = None)
+        sph_args :
+             (Default value = None)
+        sum_only :
+             (Default value = True)
+        classes :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         
         fa_args  = fa_args  or self.fa_args
         sph_args = sph_args or self.sph_args
@@ -699,9 +962,23 @@ class MoleculeDatabaseAggregator(object):
             sum_only = True,
             **kwargs
         ):
-        """
-        Adds metabolites of a single class generated along a defined
+        """Adds metabolites of a single class generated along a defined
         range of homolog series.
+
+        Parameters
+        ----------
+        fa_args :
+             (Default value = None)
+        sph_args :
+             (Default value = None)
+        sum_only :
+             (Default value = True)
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         if not hasattr(cls, '__call__'):
@@ -730,81 +1007,128 @@ class MoleculeDatabaseAggregator(object):
         self._mass_data.extend(gen.iterlines())
     
     def auto_fattyacids(self, **kwargs):
-        """
-        Autogenerates all fatty acids from classes listed in
+        """Autogenerates all fatty acids from classes listed in
         `lipid.fattyacids`.
         
         Args
         ----
-        :param **kwargs:
-            Arguments for fatty acid classes: `c`, `u`, `fa_counts`, etc.
+
+        Parameters
+        ----------
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         self.auto_metabolites(classes = lipid.fattyacids, **kwargs)
     
     def auto_misc(self, **kwargs):
-        """
-        Autogenerates all miscellanous classes listed in `lipid.misc`.
+        """Autogenerates all miscellanous classes listed in `lipid.misc`.
         
         Args
         ----
-        :param **kwargs:
-            Arguments for misc classes.
+
+        Parameters
+        ----------
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         self.auto_metabolites(classes = lipid.misc, **kwargs)
     
     def auto_sphingolipids(self, **kwargs):
-        """
-        Autogenerates all sphingolipids from classes listed in
+        """Autogenerates all sphingolipids from classes listed in
         `lipid.sphingolipids`.
         
         Args
         ----
-        :param **kwargs:
-            Arguments for sphingolipid classes (`fa_args`, `sph_args`, etc).
+
+        Parameters
+        ----------
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         self.auto_metabolites(classes = lipid.sphingolipids, **kwargs)
     
     def auto_glycerolipids(self, **kwargs):
-        """
-        Autogenerates all glycerolipids from classes listed in
+        """Autogenerates all glycerolipids from classes listed in
         `lipid.glycerolipids`.
         
         Args
         ----
-        :param **kwargs:
-            Arguments for glycerolipid classes
-            (`fa_args`, `sn2_fa_args`, etc).
+
+        Parameters
+        ----------
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         self.auto_metabolites(classes = lipid.glycerolipids, **kwargs)
     
     def auto_glycerophospholipids(self, **kwargs):
-        """
-        Autogenerates all glycerophospholipids from classes listed in
+        """Autogenerates all glycerophospholipids from classes listed in
         `lipid.glycerophospholipids`.
         
         Args
         ----
-        :param **kwargs:
-            Arguments for glycerophospholipid classes
-            (`fa_args`, `sn2_fa_args`, etc).
+
+        Parameters
+        ----------
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         self.auto_metabolites(classes = lipid.glycerophospholipids, **kwargs)
     
     def sort(self):
-        """
-        Sorts the `masses` and `data` arrays by increasing mass in order to
+        """Sorts the `masses` and `data` arrays by increasing mass in order to
         make fast lookups possible.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         self.data = self.data[self.masses.argsort()]
         self.masses.sort()
     
     def ilookup(self, m, tolerance = None):
+        """
+
+        Parameters
+        ----------
+        m :
+            
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         return _lookup.findall(
             self.masses,
@@ -813,6 +1137,19 @@ class MoleculeDatabaseAggregator(object):
         )
     
     def lookup(self, m, tolerance = None):
+        """
+
+        Parameters
+        ----------
+        m :
+            
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         i = self.ilookup(m, tolerance = tolerance)
         
@@ -822,8 +1159,18 @@ class MoleculeDatabaseAggregator(object):
         )
     
     def lookup_accuracy(self, m, tolerance = None):
-        """
-        Performs a lookup and adds accuracy information to the result.
+        """Performs a lookup and adds accuracy information to the result.
+
+        Parameters
+        ----------
+        m :
+            
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         r = self.lookup(m, tolerance = tolerance)
@@ -843,14 +1190,32 @@ class MoleculeDatabaseAggregator(object):
             adduct_constraints = True,
             tolerance = None,
         ):
-        """
-        Does a series of lookups in the database assuming various adducts.
+        """Does a series of lookups in the database assuming various adducts.
         Calculates the exact mass for the m/z for each possible adduct
         and searches these exact masses in the database.
         
         Returns a dict of tuples with 3-3 numpy arrays.
         Keys of the dict are adduct types. The arrays are exact masses,
         database record details and accuracies (ppm).
+
+        Parameters
+        ----------
+        mz :
+            
+        adducts :
+             (Default value = None)
+        ionmode :
+             (Default value = None)
+        charge :
+             (Default value = None)
+        adduct_constraints :
+             (Default value = True)
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         result = {}
@@ -914,11 +1279,29 @@ class MoleculeDatabaseAggregator(object):
             adduct_constraints = True,
             tolerance = None,
         ):
-        """
-        Performs the lookup on a vector of m/z values.
+        """Performs the lookup on a vector of m/z values.
         Calls the ``adduct_lookup`` method on all m/z's.
         
         Returns array of dicts with lookup results.
+
+        Parameters
+        ----------
+        mzs :
+            
+        adducts :
+             (Default value = None)
+        ionmode :
+             (Default value = None)
+        charge :
+             (Default value = None)
+        adduct_constraints :
+             (Default value = True)
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         result = []
@@ -939,6 +1322,17 @@ class MoleculeDatabaseAggregator(object):
         return np.array(result)
     
     def export_db(self, fname = 'molecule_database.tsv'):
+        """
+
+        Parameters
+        ----------
+        fname :
+             (Default value = 'molecule_database.tsv')
+
+        Returns
+        -------
+
+        """
         
         hdr = [
             'exact_mass', 'category', 'std_name', 'database_names',
@@ -959,6 +1353,17 @@ class MoleculeDatabaseAggregator(object):
                 ))
     
     def export_db_lipidblast(self, fname = 'molecule_database.csv'):
+        """
+
+        Parameters
+        ----------
+        fname :
+             (Default value = 'molecule_database.csv')
+
+        Returns
+        -------
+
+        """
         
         hdr = [
             'Retention Time (min)', 'Neutral Mass', 'Compound ID',
@@ -992,6 +1397,17 @@ class MoleculeDatabaseAggregator(object):
     
     @staticmethod
     def get_url(db_id):
+        """
+
+        Parameters
+        ----------
+        db_id :
+            
+
+        Returns
+        -------
+
+        """
         
         if db_id[:3] == 'SLM':
             
@@ -1010,6 +1426,27 @@ class MoleculeDatabaseAggregator(object):
             show_adduct = False,
             show_db = False,
         ):
+        """
+
+        Parameters
+        ----------
+        records :
+            
+        adducts :
+             (Default value = None)
+        databases :
+             (Default value = None)
+        show_ppm :
+             (Default value = False)
+        show_adduct :
+             (Default value = False)
+        show_db :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         
         result = set()
         
@@ -1055,13 +1492,19 @@ class MoleculeDatabaseAggregator(object):
 
 
 def init_db(**kwargs):
-    """
-    Initializes a database.
+    """Initializes a database.
     
     Args
     ----
-    :param **kwargs:
-        Arguments for ``:py:class:.MoleculeDatabaseAggregator`` class.
+
+    Parameters
+    ----------
+    **kwargs :
+        
+
+    Returns
+    -------
+
     """
     
     mod = sys.modules[__name__]
@@ -1069,10 +1512,16 @@ def init_db(**kwargs):
     setattr(mod, 'db', MoleculeDatabaseAggregator(**kwargs))
 
 def get_db():
-    """
-    Returns the module's default database.
+    """Returns the module's default database.
     Initializes the database with default paremeters if no database
     yet available.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     
     mod = sys.modules[__name__]
@@ -1084,6 +1533,19 @@ def get_db():
     return getattr(mod, 'db')
 
 def lookup(m, tolerance = None):
+    """
+
+    Parameters
+    ----------
+    m :
+        
+    tolerance :
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
     
     db = get_db()
     return db.lookup(m)
@@ -1094,14 +1556,28 @@ def adduct_lookup(
         adduct_constraints = True,
         tolerance = None,
     ):
-    """
-    Does a series of lookups in the database assuming various adducts.
+    """Does a series of lookups in the database assuming various adducts.
     Calculates the exact mass for the m/z for each possible adduct
     and searches these exact masses in the database.
     
     Returns a dict of tuples with 3-3 numpy arrays.
     Keys of the dict are adduct types. The arrays are exact masses,
     database record details and accuracies (ppm).
+
+    Parameters
+    ----------
+    mz :
+        
+    ionmode :
+        
+    adduct_constraints :
+         (Default value = True)
+    tolerance :
+         (Default value = None)
+
+    Returns
+    -------
+
     """
     
     db = get_db()
@@ -1121,11 +1597,29 @@ def adduct_lookup_many(
         adduct_constraints = True,
         tolerance = None,
     ):
-    """
-    Performs the lookup on a vector of m/z values.
+    """Performs the lookup on a vector of m/z values.
     Calls the ``adduct_lookup`` method on all m/z's.
     
     Returns array of dicts with lookup results.
+
+    Parameters
+    ----------
+    mzs :
+        
+    adducts :
+         (Default value = None)
+    ionmode :
+         (Default value = None)
+    charge :
+         (Default value = None)
+    adduct_constraints :
+         (Default value = True)
+    tolerance :
+         (Default value = None)
+
+    Returns
+    -------
+
     """
     
     db = get_db()
@@ -1146,11 +1640,27 @@ def possible_classes(
         main_only = True,
         tolerance = None,
     ):
-    """
-    For a m/z returns a set of possible classes.
-    
-    :param bool main_only:
+    """For a m/z returns a set of possible classes.
+
+    Parameters
+    ----------
+    bool :
+        main_only:
         Return only the set of main classes or subclasses.
+    mz :
+        
+    ionmode :
+        
+    adduct_constraints :
+         (Default value = True)
+    main_only :
+         (Default value = True)
+    tolerance :
+         (Default value = None)
+
+    Returns
+    -------
+
     """
     
     return set(
@@ -1175,6 +1685,27 @@ def records_string(
         show_adduct = False,
         show_db = False,
     ):
+    """
+
+    Parameters
+    ----------
+    records :
+        
+    adducts :
+         (Default value = None)
+    databases :
+         (Default value = None)
+    show_ppm :
+         (Default value = False)
+    show_adduct :
+         (Default value = False)
+    show_db :
+         (Default value = False)
+
+    Returns
+    -------
+
+    """
     
     return MoleculeDatabaseAggregator.records_string(
         records     = records,
@@ -1186,6 +1717,17 @@ def records_string(
     )
 
 def result_summary(result):
+    """
+
+    Parameters
+    ----------
+    result :
+        
+
+    Returns
+    -------
+
+    """
     
     return set(
         (

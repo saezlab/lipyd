@@ -27,15 +27,26 @@ import lipyd.sec as sec
 
 
 def sample_id_processor(method = None, *args):
-    """
-    Creates a custom sample identifier class.
-    
-    :param callable method:
+    """Creates a custom sample identifier class.
+
+    Parameters
+    ----------
+    callable :
+        method:
         A method which takes a single argument corresponding to the raw
         sample ID and returns a custom number of values.
-    :param str *args:
+    str :
+        args:
         Names for the attributes representing the sample ID. These should
         correspond to the values returned by ``method``.
+    method :
+         (Default value = None)
+    *args :
+        
+
+    Returns
+    -------
+
     """
     
     if not args:
@@ -43,6 +54,7 @@ def sample_id_processor(method = None, *args):
         args = ['sample_id']
     
     class SampleId(collections.namedtuple('SampleIdBase', args)):
+        """ """
         
         def __new__(cls, raw):
             
@@ -68,13 +80,30 @@ def sample_id_processor(method = None, *args):
 
 
 def plate_sample_id_processor():
-    """
-    Returns a sample ID processor which makes sure samples are represented
+    """Returns a sample ID processor which makes sure samples are represented
     by a tuple of one uppercase letter and an integer.
     This is convenient if samples correspond to wells on a plate.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def _plate_sample_id_processor(well):
+        """
+
+        Parameters
+        ----------
+        well :
+            
+
+        Returns
+        -------
+
+        """
         
         if isinstance(well, common.basestring):
             
@@ -92,6 +121,7 @@ def plate_sample_id_processor():
 
 
 class SampleAttrs(object):
+    """ """
     
     def __init__(
             self,
@@ -127,6 +157,7 @@ class SampleAttrs(object):
         self._set_sample_id()
     
     def _get_sample_id(self):
+        """ """
         
         if self._sample_id is None and not self.attrs:
             
@@ -147,11 +178,13 @@ class SampleAttrs(object):
             return self._sample_id
     
     def _set_sample_id(self):
+        """ """
         
         self.sample_id = self.proc(self._get_sample_id())
 
 
 class SampleSetAttrs(object):
+    """ """
     
     def __init__(
             self,
@@ -211,10 +244,22 @@ class SampleSetAttrs(object):
         return len(self.attrs)
     
     def _make_sample_id(self, sample_id):
+        """
+
+        Parameters
+        ----------
+        sample_id :
+            
+
+        Returns
+        -------
+
+        """
         
         return self.proc(sample_id)
     
     def _set_sample_ids(self):
+        """ """
         # called by __init__()
         
         self.sample_index_to_id = []
@@ -226,6 +271,7 @@ class SampleSetAttrs(object):
         self._update_id_to_index()
     
     def _update_id_to_index(self):
+        """ """
         # to keep this too in sync
         
         self.sample_id_to_index = dict(
@@ -234,20 +280,47 @@ class SampleSetAttrs(object):
         )
     
     def get_sample_id(self, i):
-        """
-        Returns the ID of a sample by its index.
+        """Returns the ID of a sample by its index.
+
+        Parameters
+        ----------
+        i :
+            
+
+        Returns
+        -------
+
         """
         
         return self.sample_index_to_id[i]
     
     def get_sample_index(self, sample_id):
-        """
-        Returns the index of a sample by its ID.
+        """Returns the index of a sample by its ID.
+
+        Parameters
+        ----------
+        sample_id :
+            
+
+        Returns
+        -------
+
         """
         
         return self.sample_id_to_index[sample_id]
     
     def sort_by_index(self, idx):
+        """
+
+        Parameters
+        ----------
+        idx :
+            
+
+        Returns
+        -------
+
+        """
         
         idx = np.array(idx)
         
@@ -256,12 +329,20 @@ class SampleSetAttrs(object):
         self._set_sample_ids()
     
     def argsort_by_sample_id(self, sample_ids):
-        """
-        Returns an index array which sorts the sample attributes according
+        """Returns an index array which sorts the sample attributes according
         to the list of sample IDs provided.
-        
-        :param list sample_ids:
+
+        Parameters
+        ----------
+        list :
+            sample_ids:
             A list of sample IDs, e.g. ``[('A', 1), ('A', 2), ...]``.
+        sample_ids :
+            
+
+        Returns
+        -------
+
         """
         
         return np.array([
@@ -276,14 +357,25 @@ class SampleSetAttrs(object):
             sample_ids,
             return_idx = False,
         ):
-        """
-        Sets the order of the sample attributes according to the list of
+        """Sets the order of the sample attributes according to the list of
         sample IDs provided.
-        
-        :param list sample_ids:
+
+        Parameters
+        ----------
+        list :
+            sample_ids:
             A list of sample IDs, e.g. ``[('A', 1), ('A', 2), ...]``.
-        :param bool return_idx:
+        bool :
+            return_idx:
             Return the index array corresponding to the sort.
+        sample_ids :
+            
+        return_idx :
+             (Default value = False)
+
+        Returns
+        -------
+
         """
         
         idx = self.argsort_by_sample_id(sample_ids = sample_ids)
@@ -295,14 +387,25 @@ class SampleSetAttrs(object):
             return idx
     
     def sort_by(self, other, return_idx = False):
-        """
-        Sorts the sample attributes according to an other ``SampleSetAttrs``
+        """Sorts the sample attributes according to an other ``SampleSetAttrs``
         object. The other object must have the same sample IDs.
-        
-        :param SampleSetAttrs other:
+
+        Parameters
+        ----------
+        SampleSetAttrs :
+            other:
             An other ``SampleSetAttrs`` with the same sample IDs.
-        :param bool return_idx:
+        bool :
+            return_idx:
             Return the index array corresponding to the sort.
+        other :
+            
+        return_idx :
+             (Default value = False)
+
+        Returns
+        -------
+
         """
         
         return self.sort_by_sample_id(
@@ -312,6 +415,7 @@ class SampleSetAttrs(object):
 
 
 class SampleSorter(object):
+    """ """
     
     def __init__(
             self,
@@ -395,6 +499,17 @@ class SampleSorter(object):
         return len(self.attrs)
     
     def _set_attrs(self, **kwargs):
+        """
+
+        Parameters
+        ----------
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         
         if 'sample_id' in kwargs:
             
@@ -405,12 +520,34 @@ class SampleSorter(object):
         self.attrs = SampleSetAttrs(**kwargs)
     
     def _get_sample_ids(self, sample_data):
+        """
+
+        Parameters
+        ----------
+        sample_data :
+            
+
+        Returns
+        -------
+
+        """
         
         first = sample_data[0]
         
         return first.sample_id_to_index
     
     def _get_sample_id_proc(self, sample_data):
+        """
+
+        Parameters
+        ----------
+        sample_data :
+            
+
+        Returns
+        -------
+
+        """
         
         if sample_data:
             
@@ -419,13 +556,21 @@ class SampleSorter(object):
             return first.attrs.proc
     
     def sort_by(self, s):
-        """
-        Sorts the current object according to another ``SampleSorter``
+        """Sorts the current object according to another ``SampleSorter``
         derived object.
-        
-        :param SampleSorter s:
+
+        Parameters
+        ----------
+        SampleSorter :
+            s:
             A ``SampleSorter`` derived object such as ``sample.SampleSet``,
             ``feature.SampleData`` etc.
+        s :
+            
+
+        Returns
+        -------
+
         """
         
         idx = self.attrs.sort_by(s.attrs, return_idx = True)
@@ -433,12 +578,20 @@ class SampleSorter(object):
         self._sort(idx)
     
     def sort_to(self, s):
-        """
-        Makes sure object ``s`` has the same ordering as all in this sorter.
-        
-        :param SampleSorter s:
+        """Makes sure object ``s`` has the same ordering as all in this sorter.
+
+        Parameters
+        ----------
+        SampleSorter :
+            s:
             A ``SampleSorter`` derived object such as ``sample.SampleSet``,
             ``feature.SampleData`` etc.
+        s :
+            
+
+        Returns
+        -------
+
         """
         
         idx = s.attrs.sort_by(self.attrs, return_idx = True)
@@ -446,8 +599,16 @@ class SampleSorter(object):
         s._sort(idx)
     
     def _sort(self, idx):
-        """
-        Sorts only variables in this object by indices.
+        """Sorts only variables in this object by indices.
+
+        Parameters
+        ----------
+        idx :
+            
+
+        Returns
+        -------
+
         """
         
         if hasattr(self, 'var'):
@@ -472,13 +633,21 @@ class SampleSorter(object):
                 )
     
     def register(self, s):
-        """
-        Registers a ``sample.SampleSet`` or ``feature.SampleData`` derived
+        """Registers a ``sample.SampleSet`` or ``feature.SampleData`` derived
         object ensuring it will keep the same order of samples.
-        
-        :param SampleSet,SampleData s:
+
+        Parameters
+        ----------
+        SampleSet :
+            SampleData s:
             A ``sample.SampleSet`` or ``feature.SampleData`` derived
             object.
+        s :
+            
+
+        Returns
+        -------
+
         """
         
         self.sort_by(s)
@@ -490,15 +659,24 @@ class SampleSorter(object):
             s.register(self)
     
     def sort_by_sample_ids(self, sample_ids):
-        """
-        Sorts all connected objects by a list of sample IDs.
-        
-        :param list sample_ids:
+        """Sorts all connected objects by a list of sample IDs.
+
+        Parameters
+        ----------
+        list :
+            sample_ids:
             A list of sample ids in the desired order, e.g.
             ``[('A', 1), ('A', 2), ...]``.
-        :param bool process:
+        bool :
+            process:
             Use the ``sample_id_processor`` methods to convert the sample IDs
             provided.
+        sample_ids :
+            
+
+        Returns
+        -------
+
         """
         
         idx = self.attrs.argsort_by_sample_id(sample_ids)
@@ -506,15 +684,26 @@ class SampleSorter(object):
         self.sort(idx)
     
     def sort(self, idx, _done = None):
-        """
-        Sorts all connected objects by indices.
-        
-        :param list idx:
+        """Sorts all connected objects by indices.
+
+        Parameters
+        ----------
+        list :
+            idx:
             A list of indices.
-        :param set _done:
+        set :
+            _done:
             As the sorting propagates across objects this ``set`` keeps track
             which objects have been already sorted. Should be ``None`` when
             called by user.
+        idx :
+            
+        _done :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         _done = set() if _done is None else _done
@@ -545,10 +734,18 @@ class SampleSorter(object):
                 sd.sort(idx = idx, _done = _done)
     
     def index_previous(self, i):
-        """
-        An index or sample ID provided it returns the index of the sample
+        """An index or sample ID provided it returns the index of the sample
         preceding in the series. Returns ``None`` if the first sample
         is queried.
+
+        Parameters
+        ----------
+        i :
+            
+
+        Returns
+        -------
+
         """
         
         if not isinstance(i, (int, np.int_)):
@@ -560,10 +757,18 @@ class SampleSorter(object):
             return i - 1
     
     def id_previous(self, i):
-        """
-        An index or sample ID provided it returns the ID of the sample
+        """An index or sample ID provided it returns the ID of the sample
         preceding in the series. Returns ``None`` if the first sample
         is queried.
+
+        Parameters
+        ----------
+        i :
+            
+
+        Returns
+        -------
+
         """
         
         i = self.index_previous(i)
@@ -573,10 +778,18 @@ class SampleSorter(object):
             return self.attrs.sample_index_to_id[i]
         
     def index_next(self, i):
-        """
-        An index or sample ID provided it returns the index of the sample
+        """An index or sample ID provided it returns the index of the sample
         following in the series. Returns ``None`` if the first sample
         is queried.
+
+        Parameters
+        ----------
+        i :
+            
+
+        Returns
+        -------
+
         """
         
         if not isinstance(i, (int, np.int_)):
@@ -588,10 +801,18 @@ class SampleSorter(object):
             return i + 1
     
     def id_next(self, i):
-        """
-        An index or sample ID provided it returns the ID of the sample
+        """An index or sample ID provided it returns the ID of the sample
         following in the series. Returns ``None`` if the first sample
         is queried.
+
+        Parameters
+        ----------
+        i :
+            
+
+        Returns
+        -------
+
         """
         
         i = self.index_next(i)
@@ -601,16 +822,23 @@ class SampleSorter(object):
             return self.attrs.sample_index_to_id[i]
     
     def get_selection(self, selection = None, **kwargs):
-        """
-        Returns a ``SampleSelection`` object with samples corresponding to
+        """Returns a ``SampleSelection`` object with samples corresponding to
         the samples in this object.
-        
-        :param list,numpy.ndarray selection:
+
+        Parameters
+        ----------
+        list :
+            numpy.ndarray selection:
             A list of sample IDs or a boolean array with the same length as
             the number of samples.
-        :param **kwargs:
-            Arguments passed to ``make_selection`` if ``selection`` not
-            provided.
+        selection :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         if selection is None:
@@ -632,19 +860,27 @@ class SampleSorter(object):
             logic = 'AND',
             **kwargs,
         ):
-        """
-        Creates a boolean array based on the filters and criteria provided.
+        """Creates a boolean array based on the filters and criteria provided.
         First the manual selection is evaluated, then the methods provided
         in ``**kwargs``, after the samples in ``include`` added and finally
         those in ``exclude`` removed from the selection.
-        
-        :param **kwargs:
-            Variable names and methods or boolean arrays. If boolean arrays
-            provided these will be used to select the samples.
-            Methods will be applied to each element of the variable in the
-            slot to obtain a boolean array.
-            E.g. ``profile = lambda x: x > 0.3`` will be ``True`` for values
-            in the profile array above 0.3.
+
+        Parameters
+        ----------
+        manual :
+             (Default value = None)
+        include :
+             (Default value = None)
+        exclude :
+             (Default value = None)
+        logic :
+             (Default value = 'AND')
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         selected = set(self.attrs.sample_index_to_id)
@@ -702,6 +938,7 @@ class SampleSorter(object):
 
 
 class SampleData(SampleSorter):
+    """ """
     
     def __init__(
             self,
@@ -770,10 +1007,20 @@ class SampleData(SampleSorter):
         )
     
     def _add_var(self, data, attr):
-        """
-        Adds a new variable to the data handler object.
+        """Adds a new variable to the data handler object.
         The first dimension of the array must agree with
         the number of samples.
+
+        Parameters
+        ----------
+        data :
+            
+        attr :
+            
+
+        Returns
+        -------
+
         """
         
         if isinstance(data, list):
@@ -799,9 +1046,21 @@ class SampleData(SampleSorter):
             proc = None,
             sample_ids = None,
         ):
-        """
-        This method helps to set up a sample selection but placed here as
+        """This method helps to set up a sample selection but placed here as
         staticmethod to make it usable in other derived classes.
+
+        Parameters
+        ----------
+        selection :
+            
+        proc :
+             (Default value = None)
+        sample_ids :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if not isinstance(selection[0], (bool, np.bool_)):
@@ -816,6 +1075,7 @@ class SampleData(SampleSorter):
 
 
 class SampleSelection(SampleData):
+    """ """
     
     def __init__(
             self,
@@ -855,9 +1115,7 @@ class SampleSelection(SampleData):
         self._add_var(sel, 'selection')
     
     def sample_ids_selected(self):
-        """
-        Returns a list IDs of selected samples.
-        """
+        """Returns a list IDs of selected samples."""
         
         return [
             sample_id
@@ -866,9 +1124,7 @@ class SampleSelection(SampleData):
         ]
     
     def logical_not(self):
-        """
-        Returns the inverse of the selection.
-        """
+        """Returns the inverse of the selection."""
         
         return SampleSelection(
             selection = np.logical_not(self.selection),
@@ -878,12 +1134,20 @@ class SampleSelection(SampleData):
         )
     
     def logical_and(self, other):
-        """
-        Returns a ``SampleSelection`` object with samples selected in both
+        """Returns a ``SampleSelection`` object with samples selected in both
         this object and the other.
-        
-        :param SampleSelection other:
+
+        Parameters
+        ----------
+        SampleSelection :
+            other:
             An other ``SampleSelection`` object.
+        other :
+            
+
+        Returns
+        -------
+
         """
         
         return SampleSelection(
@@ -894,12 +1158,20 @@ class SampleSelection(SampleData):
         )
     
     def logical_or(self, other):
-        """
-        Returns a ``SampleSelection`` object with samples selected in either
+        """Returns a ``SampleSelection`` object with samples selected in either
         this object or the other.
-        
-        :param SampleSelection other:
+
+        Parameters
+        ----------
+        SampleSelection :
+            other:
             An other ``SampleSelection`` object.
+        other :
+            
+
+        Returns
+        -------
+
         """
         
         return SampleSelection(
@@ -910,6 +1182,7 @@ class SampleSelection(SampleData):
         )
 
 class SECProfile(SampleData):
+    """ """
     
     def __init__(
             self,
@@ -1008,6 +1281,17 @@ class SECProfile(SampleData):
         )
     
     def read_sec(self, offset = None):
+        """
+
+        Parameters
+        ----------
+        offset :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         start_volume = (
             self.start_volume
@@ -1042,6 +1326,17 @@ class SECProfile(SampleData):
     
     @staticmethod
     def _default_sample_id_method(fraction):
+        """
+
+        Parameters
+        ----------
+        fraction :
+            
+
+        Returns
+        -------
+
+        """
         
         return fraction.row, fraction.col
     
@@ -1053,14 +1348,30 @@ class SECProfile(SampleData):
             include = None,
             exclude = None,
         ):
-        """
-        Returns a ``SampleSelection`` object with the protein containing
+        """Returns a ``SampleSelection`` object with the protein containing
         fractions selected.
         In addition protein containing samples can be selected manually
         overriding the evaluation of the SEC profile. This might be useful
         if the peak was not clear.
         Additionally samples can be included or excluded, this might
         be useful if certain fractions are wrong and should not be considered.
+
+        Parameters
+        ----------
+        threshold :
+             (Default value = .33)
+        threshold_absolute :
+             (Default value = False)
+        manual :
+             (Default value = None)
+        include :
+             (Default value = None)
+        exclude :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         selection = []

@@ -521,6 +521,7 @@ in_mgfdir = {
 }
 
 def reset_all():
+    """ """
     
     settings = collections.namedtuple('Settings', list(_defaults.keys()))
     
@@ -539,24 +540,68 @@ def reset_all():
     globals()['settings'] = settings
 
 def setup(**kwargs):
+    """
+
+    Parameters
+    ----------
+    **kwargs :
+        
+
+    Returns
+    -------
+
+    """
     
     for param, value in iteritems(kwargs):
         
         setattr(settings, param, value)
 
 def get(param):
+    """
+
+    Parameters
+    ----------
+    param :
+        
+
+    Returns
+    -------
+
+    """
     
     if hasattr(settings, param):
         
         return getattr(settings, param)
 
 def get_default(param):
+    """
+
+    Parameters
+    ----------
+    param :
+        
+
+    Returns
+    -------
+
+    """
     
     if hasattr(defaults, param):
         
         return getattr(defaults, param)
 
 def reset(param):
+    """
+
+    Parameters
+    ----------
+    param :
+        
+
+    Returns
+    -------
+
+    """
     
     setup(param, get_default(param))
 

@@ -35,9 +35,21 @@ import lipyd.reader.common as common
 
 
 def read_xls(xls_file, sheet = 0, use_openpyxl = False):
-    """
-    Generic function to read MS Excel XLS file, and convert one sheet
+    """Generic function to read MS Excel XLS file, and convert one sheet
     to CSV, or return as a list of lists
+
+    Parameters
+    ----------
+    xls_file :
+        
+    sheet :
+         (Default value = 0)
+    use_openpyxl :
+         (Default value = False)
+
+    Returns
+    -------
+
     """
     
     if not use_openpyxl:

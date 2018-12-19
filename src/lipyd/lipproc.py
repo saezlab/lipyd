@@ -51,6 +51,7 @@ class Chain(collections.namedtuple(
         'ChainBase',
         ['c', 'u', 'typ', 'attr', 'iso']
     )):
+    """ """
     
     def __new__(cls, c, u, typ = 'FA', attr = ChainAttr(), iso = ()):
         
@@ -80,6 +81,7 @@ class Chain(collections.namedtuple(
         )
     
     def isomer_str(self):
+        """ """
         
         return self.__str__(iso = True)
     
@@ -89,6 +91,7 @@ class Chain(collections.namedtuple(
 
 
 class ChainSummary(Chain):
+    """ """
     
     def __new__(cls, c, u, typ = (), attr = (), iso = None):
         
@@ -152,43 +155,51 @@ class LipidRecord(collections.namedtuple(
         'LipidRecordBase',
         ['lab', 'hg', 'chainsum', 'chains']
     )):
+    """ """
     
     def __new__(cls, lab, hg, chainsum, chains):
         
         return super(LipidRecord, cls).__new__(cls, lab, hg, chainsum, chains)
     
     def full_str(self):
+        """ """
         
         return full_str(self.hg, self.chains, iso = False)
     
     def summary_str(self):
+        """ """
         
         return summary_str(self.hg, self.chainsum)
     
     def subclass_str(self):
+        """ """
         
         return subclass_str(self.hg, self.chainsum)
 
 
 def empty_chain():
-    """
-    Returns an empty Chain object which might serve as a dummy object.
-    """
+    """Returns an empty Chain object which might serve as a dummy object."""
     
     return Chain(c = 0, u = 0, attr = ChainAttr())
 
 
 def empty_chainsum():
-    """
-    Returns an empty ChainSummary object.
-    """
+    """Returns an empty ChainSummary object."""
     
     return ChainSummary(c = 0, u = 0, attr = (), typ = ())
 
 
 def str2hg(hgstr):
-    """
-    From a headgroup string representation creates a Headgroup object.
+    """From a headgroup string representation creates a Headgroup object.
+
+    Parameters
+    ----------
+    hgstr :
+        
+
+    Returns
+    -------
+
     """
     
     pieces = hgstr.split('-')
@@ -197,8 +208,16 @@ def str2hg(hgstr):
 
 
 def sum_chains(chains):
-    """
-    From a list of chains creates a summary Chain object.
+    """From a list of chains creates a summary Chain object.
+
+    Parameters
+    ----------
+    chains :
+        
+
+    Returns
+    -------
+
     """
     
     return empty_chainsum() if not chains else (
@@ -212,16 +231,34 @@ def sum_chains(chains):
 
 
 def collapse_attrs(chains):
-    """
-    Combine the attributes of arbitrary number of chains.
+    """Combine the attributes of arbitrary number of chains.
+
+    Parameters
+    ----------
+    chains :
+        
+
+    Returns
+    -------
+
     """
     
     return functools.reduce(combine_attrs, (c.attr for c in chains))
 
 
 def combine_attrs(a1, a2):
-    """
-    Combines the attributes of 2 chains.
+    """Combines the attributes of 2 chains.
+
+    Parameters
+    ----------
+    a1 :
+        
+    a2 :
+        
+
+    Returns
+    -------
+
     """
     
     return ChainAttr(
@@ -231,9 +268,19 @@ def combine_attrs(a1, a2):
     )
 
 def summary_str(hg, chainsum):
-    """
-    Creates a summary string representation from the headgroup name and
+    """Creates a summary string representation from the headgroup name and
     a summary Chain object.
+
+    Parameters
+    ----------
+    hg :
+        
+    chainsum :
+        
+
+    Returns
+    -------
+
     """
     
     subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
@@ -255,8 +302,20 @@ def summary_str(hg, chainsum):
 
 
 def full_str(hg, chains, iso = False):
-    """
-    From a Headgroup and a tuple of Chain objects returns a 
+    """From a Headgroup and a tuple of Chain objects returns a
+
+    Parameters
+    ----------
+    hg :
+        
+    chains :
+        
+    iso :
+         (Default value = False)
+
+    Returns
+    -------
+
     """
     
     subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
@@ -277,9 +336,19 @@ def full_str(hg, chains, iso = False):
     )
 
 def subclass_str(hg, chainsum = None):
-    """
-    From Headgroup and summary Chain object creates a subclass level
+    """From Headgroup and summary Chain object creates a subclass level
     headgroup string.
+
+    Parameters
+    ----------
+    hg :
+        
+    chainsum :
+         (Default value = None)
+
+    Returns
+    -------
+
     """
     
     subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
@@ -302,16 +371,34 @@ def subclass_str(hg, chainsum = None):
     )
 
 def class_str(hg):
-    """
-    From Headgroup returns the main class as string.
+    """From Headgroup returns the main class as string.
+
+    Parameters
+    ----------
+    hg :
+        
+
+    Returns
+    -------
+
     """
     
     return hg.main
 
 def get_attributes(hg, chainsum = None):
-    """
-    Processes a Headgroup and a summary Chain object and returns the
+    """Processes a Headgroup and a summary Chain object and returns the
     name pre- and postfix string elements.
+
+    Parameters
+    ----------
+    hg :
+        
+    chainsum :
+         (Default value = None)
+
+    Returns
+    -------
+
     """
     
     chainsum = chainsum or empty_chainsum()
@@ -337,8 +424,7 @@ def get_attributes(hg, chainsum = None):
 
 
 def match_constraint(rec, constr):
-    """
-    Matches an MS2 fragment constraint (fragment.FragConstraint)
+    """Matches an MS2 fragment constraint (fragment.FragConstraint)
     against a lipid record lipproc.LipidRecord.
     
     Returns the indices of the chains as integers in a set.
@@ -349,10 +435,23 @@ def match_constraint(rec, constr):
     
     Args
     ----
-    :param LipidRecord rec:
+
+    Parameters
+    ----------
+    LipidRecord :
+        rec:
         A lipid database record object.
-    :param fragment.FragConstraint constr:
+    fragment :
+        FragConstraint constr:
         An MS2 fragment constraint object.
+    rec :
+        
+    constr :
+        
+
+    Returns
+    -------
+
     """
     
     match = False
@@ -403,8 +502,7 @@ def match_constraint(rec, constr):
 
 
 def match_constraints(rec, constraints):
-    """
-    Matches all fragment constraints in the iterable `constraints`
+    """Matches all fragment constraints in the iterable `constraints`
     against all chains in MS1 record `rec`.
     
     Returns a boolean (wether the fragment can possibly origin from the
@@ -414,10 +512,23 @@ def match_constraints(rec, constraints):
     
     Args
     ----
-    :param LipidRecord rec:
+
+    Parameters
+    ----------
+    LipidRecord :
+        rec:
         An MS1 database record object.
-    :param iterable constraints:
+    iterable :
+        constraints:
         A number of `fragment.FragConstraint` objects.
+    rec :
+        
+    constraints :
+        
+
+    Returns
+    -------
+
     """
     
     match = False
@@ -431,10 +542,34 @@ def match_constraints(rec, constraints):
     return match, chains
 
 def cu_str(c, u):
+    """
+
+    Parameters
+    ----------
+    c :
+        
+    u :
+        
+
+    Returns
+    -------
+
+    """
     
     return '%u:%u' % (c, u)
 
 def charge_str(charge):
+    """
+
+    Parameters
+    ----------
+    charge :
+        
+
+    Returns
+    -------
+
+    """
     
     return (
         '' if charge == 0 else

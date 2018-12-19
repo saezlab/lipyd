@@ -27,6 +27,7 @@ import lipyd.settings as settings
 
 
 class MgfReader(object):
+    """ """
     
     stRrtinseconds = 'RTINSECONDS'
     stRtitle = 'TITLE'
@@ -64,6 +65,7 @@ class MgfReader(object):
         )
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -72,8 +74,7 @@ class MgfReader(object):
         setattr(self, '__class__', new)
     
     def index(self):
-        """
-        Indexing offsets in one MS2 MGF file.
+        """Indexing offsets in one MS2 MGF file.
         
         Columns:
             -- pepmass
@@ -82,6 +83,13 @@ class MgfReader(object):
             -- scan num
             -- offset in file
             -- fraction num
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         features = []
@@ -174,12 +182,24 @@ class MgfReader(object):
         ))
     
     def lookup(self, mz, rt = None, tolerance = None):
-        """
-        Looks up an MS1 m/z and returns the indices of MS2 scans in the
+        """Looks up an MS1 m/z and returns the indices of MS2 scans in the
         MGF file.
         
         Returns 2 numpy arrays of the same length: first one with the indices,
         second one with the RT differences.
+
+        Parameters
+        ----------
+        mz :
+            
+        rt :
+             (Default value = None)
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if self.log.verbosity > 4:
@@ -242,8 +262,20 @@ class MgfReader(object):
         return idx, rtdiff
     
     def lookup_scan_ids(self, mz, rt = None, tolerance = None):
-        """
-        Same as `lookup` but returns scan ids instead of indices.
+        """Same as `lookup` but returns scan ids instead of indices.
+
+        Parameters
+        ----------
+        mz :
+            
+        rt :
+             (Default value = None)
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         idx, rtdiff = self.lookup(mz, rt, tolerance)
@@ -253,10 +285,18 @@ class MgfReader(object):
         return ids, rtdiff
     
     def get_scan(self, i):
-        """
-        Reads MS2 fragment peaks from one scan.
+        """Reads MS2 fragment peaks from one scan.
         
         Returns m/z's and intensities in 2 columns array.
+
+        Parameters
+        ----------
+        i :
+            
+
+        Returns
+        -------
+
         """
         
         scan = []
@@ -307,11 +347,21 @@ class MgfReader(object):
         return np.array(scan)
     
     def get_scans(self, mz, rt = None):
-        """
-        Looks up all scans for one precursor mass and RT, yields 2 column
+        """Looks up all scans for one precursor mass and RT, yields 2 column
         arrays of MS2 m/z's and intensities and delta RTs.
         
         Calls `get_scan` for all indices returned by `lookup`.
+
+        Parameters
+        ----------
+        mz :
+            
+        rt :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         idx, rtdiff = self.lookup(mz, rt = rt)
@@ -321,15 +371,31 @@ class MgfReader(object):
             yield self.get_scan(i), r
     
     def i_by_id(self, scan_id):
-        """
-        Returns the row number for one scan ID.
+        """Returns the row number for one scan ID.
+
+        Parameters
+        ----------
+        scan_id :
+            
+
+        Returns
+        -------
+
         """
         
         return self.scan_index.get(int(scan_id), None)
     
     def precursor_by_id(self, scan_id):
-        """
-        Returns the precursor ion mass by scan ID.
+        """Returns the precursor ion mass by scan ID.
+
+        Parameters
+        ----------
+        scan_id :
+            
+
+        Returns
+        -------
+
         """
         
         i = self.i_by_id(scan_id)
@@ -337,13 +403,21 @@ class MgfReader(object):
         return self.mgfindex[i,0] if i is not None else None
     
     def scan_by_id(self, scan_id):
-        """
-        Retrieves a scan by its ID as used in the MGF file.
+        """Retrieves a scan by its ID as used in the MGF file.
         Scan ID is an integer number, the number of the scan in the sequence
         of the whole experiment.
         
         Returns the scan as 2 columns array by `get_scan` or `None` if the
         scan ID could not be found.
+
+        Parameters
+        ----------
+        scan_id :
+            
+
+        Returns
+        -------
+
         """
         
         i = self.i_by_id(scan_id)
@@ -351,9 +425,7 @@ class MgfReader(object):
         return self.get_scan(i) if i is not None else None
     
     def get_file(self):
-        """
-        Returns the file pointer, opens the file if necessary.
-        """
+        """Returns the file pointer, opens the file if necessary."""
         
         if not hasattr(self, 'fp') or self.fp.closed:
             

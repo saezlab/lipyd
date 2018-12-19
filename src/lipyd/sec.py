@@ -40,6 +40,7 @@ Fraction.__new__.__defaults__ = (None,)
 
 
 class SECReader(object):
+    """ """
     
     def __init__(self, path):
         
@@ -47,6 +48,17 @@ class SECReader(object):
         self.read()
     
     def reload(self, children = False):
+        """
+
+        Parameters
+        ----------
+        children :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -55,6 +67,7 @@ class SECReader(object):
         setattr(self, '__class__', new)
     
     def read(self):
+        """ """
         
         self.guess_format()
         
@@ -67,9 +80,15 @@ class SECReader(object):
             self.read_xls()
     
     def read_asc(self):
-        """
-        Reads SEC UV absorbance profile from asc file output produced by
+        """Reads SEC UV absorbance profile from asc file output produced by
         the Unicorn software from GE Healthcare.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         start      = None
@@ -117,9 +136,15 @@ class SECReader(object):
         self.fractions = fractions
     
     def read_xls(self):
-        """
-        Reads SEC UV absorbance profile from MS Excel XLS file output
+        """Reads SEC UV absorbance profile from MS Excel XLS file output
         produced by ???.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         volume     = []
@@ -152,9 +177,25 @@ class SECReader(object):
             start_col = 5,
             length = 9,
         ):
-        """
-        Autogenerates fraction volume boundaries according to the parameters
+        """Autogenerates fraction volume boundaries according to the parameters
         provided.
+
+        Parameters
+        ----------
+        start_volume :
+             (Default value = .6)
+        size :
+             (Default value = .15)
+        start_row :
+             (Default value = 'A')
+        start_col :
+             (Default value = 5)
+        length :
+             (Default value = 9)
+
+        Returns
+        -------
+
         """
         
         fractions = []
@@ -172,6 +213,7 @@ class SECReader(object):
         return fractions
     
     def guess_format(self):
+        """ """
         
         mime = mimetypes.guess_type(self.path)[0]
         
@@ -180,8 +222,16 @@ class SECReader(object):
         )
     
     def get_fraction(self, frac):
-        """
-        Returns absorbances measured within a fraction.
+        """Returns absorbances measured within a fraction.
+
+        Parameters
+        ----------
+        frac :
+            
+
+        Returns
+        -------
+
         """
         
         return (
@@ -194,18 +244,31 @@ class SECReader(object):
         )
     
     def fraction_mean(self, frac):
-        """
-        Returns the mean absorbance from a fraction.
+        """Returns the mean absorbance from a fraction.
+
+        Parameters
+        ----------
+        frac :
+            
+
+        Returns
+        -------
+
         """
         
         return self.get_fraction(frac).mean()
     
     def profile(self, **kwargs):
-        """
-        Iterates fractions with their mean absorbance values.
-        
-        :param **kwargs:
-            Arguments passed to ``auto_fractions`` (if necessary).
+        """Iterates fractions with their mean absorbance values.
+
+        Parameters
+        ----------
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         fractions = (

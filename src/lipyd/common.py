@@ -43,11 +43,33 @@ except NameError:
 
 
 def random_string(length = 10):
+    """
+
+    Parameters
+    ----------
+    length :
+         (Default value = 10)
+
+    Returns
+    -------
+
+    """
     
     return ''.join(chr(i) for i in np.random.randint(97, 123, length))
 
 
 def uniqList(seq):
+    """
+
+    Parameters
+    ----------
+    seq :
+        
+
+    Returns
+    -------
+
+    """
     # Not order preserving
     # from http://www.peterbe.com/plog/uniqifiers-benchmark
     keys = {}
@@ -64,12 +86,47 @@ def uniqList(seq):
     return keys.keys()
 
 def flatList(lst):
+    """
+
+    Parameters
+    ----------
+    lst :
+        
+
+    Returns
+    -------
+
+    """
     return [it for sl in lst for it in sl]
 
 def delEmpty(lst):
+    """
+
+    Parameters
+    ----------
+    lst :
+        
+
+    Returns
+    -------
+
+    """
     return [i for i in lst if len(i) > 0]
 
 def uniqOrdList(seq, idfun = None): 
+    """
+
+    Parameters
+    ----------
+    seq :
+        
+    idfun :
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
     # Order preserving
     # from http://www.peterbe.com/plog/uniqifiers-benchmark
     if idfun is None:
@@ -77,6 +134,17 @@ def uniqOrdList(seq, idfun = None):
     seen = {}
     result = []
     for item in seq:
+            """
+
+            Parameters
+            ----------
+            x :
+                
+
+            Returns
+            -------
+
+            """
         marker = idfun(item)
         if marker in seen: continue
         seen[marker] = 1
@@ -84,6 +152,19 @@ def uniqOrdList(seq, idfun = None):
     return result
 
 def addToList(lst, toadd):
+    """
+
+    Parameters
+    ----------
+    lst :
+        
+    toadd :
+        
+
+    Returns
+    -------
+
+    """
     if isinstance(toadd, list):
         lst += toadd
     else:
@@ -96,9 +177,27 @@ def addToList(lst, toadd):
 def warn_with_traceback(
         message, category, filename, lineno, file=None, line=None
     ):
-    """
-    Prints warnings with traceback.
+    """Prints warnings with traceback.
     From https://stackoverflow.com/a/22376126/854988
+
+    Parameters
+    ----------
+    message :
+        
+    category :
+        
+    filename :
+        
+    lineno :
+        
+    file :
+         (Default value = None)
+    line :
+         (Default value = None)
+
+    Returns
+    -------
+
     """
     traceback.print_stack()
     log = file if hasattr(file,'write') else sys.stderr
@@ -108,8 +207,10 @@ def warn_with_traceback(
 
 
 class _const:
+    """ """
     
     class ConstError(TypeError):
+        """ """
         
         pass
 
@@ -274,8 +375,7 @@ ex2ad = {
 
 
 def iterator_insert(full_length, insert):
-    """
-    Yields indices from two iterators.
+    """Yields indices from two iterators.
     At the index `insert` it inserts a `None` instead of the second index.
     
     E.g. if full_length = 3 and insert = 1 it yields:
@@ -283,6 +383,17 @@ def iterator_insert(full_length, insert):
     
     If insert is None or greater or equal than full_length, it yields
     always tuples of the same indices.
+
+    Parameters
+    ----------
+    full_length :
+        
+    insert :
+        
+
+    Returns
+    -------
+
     """
     
     j = 0
@@ -312,6 +423,17 @@ except NameError:
     basestring = str
 
 def guess_ionmode(*args):
+    """
+
+    Parameters
+    ----------
+    *args :
+        
+
+    Returns
+    -------
+
+    """
     
     for a in args:
         
@@ -329,8 +451,16 @@ def guess_ionmode(*args):
 
 
 def to_float(num):
-    """
-    Extracts ``float`` from string, or returns ``numpy.nan``.
+    """Extracts ``float`` from string, or returns ``numpy.nan``.
+
+    Parameters
+    ----------
+    num :
+        
+
+    Returns
+    -------
+
     """
     
     if isinstance(num, float):
@@ -364,8 +494,16 @@ def to_float(num):
 
 
 def to_int(num):
-    """
-    Extracts ``int`` from string.
+    """Extracts ``int`` from string.
+
+    Parameters
+    ----------
+    num :
+        
+
+    Returns
+    -------
+
     """
     
     if isinstance(num, int):

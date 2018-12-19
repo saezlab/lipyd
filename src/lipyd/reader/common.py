@@ -30,6 +30,17 @@ except NameError:
     basestring = str
 
 def guess_ionmode(*args):
+    """
+
+    Parameters
+    ----------
+    *args :
+        
+
+    Returns
+    -------
+
+    """
     
     for a in args:
         
@@ -47,8 +58,16 @@ def guess_ionmode(*args):
 
 
 def to_float(num):
-    """
-    Extracts ``float`` from string, or returns ``numpy.nan``.
+    """Extracts ``float`` from string, or returns ``numpy.nan``.
+
+    Parameters
+    ----------
+    num :
+        
+
+    Returns
+    -------
+
     """
     
     if isinstance(num, float):
@@ -82,8 +101,16 @@ def to_float(num):
 
 
 def to_int(num):
-    """
-    Extracts ``int`` from string.
+    """Extracts ``int`` from string.
+
+    Parameters
+    ----------
+    num :
+        
+
+    Returns
+    -------
+
     """
     
     if isinstance(num, int):

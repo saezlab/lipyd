@@ -24,6 +24,7 @@ import itertools
 
 
 class MfqlReader(object):
+    """ """
     
     section_names = {
         'QUERYNAME',
@@ -59,6 +60,7 @@ class MfqlReader(object):
         self.fname = fname
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -67,6 +69,7 @@ class MfqlReader(object):
         setattr(self, '__class__', new)
     
     def read_raw(self):
+        """ """
         
         sections = {}
         
@@ -91,6 +94,7 @@ class MfqlReader(object):
         self.sections = sections
     
     def read_sections(self):
+        """ """
         
         result = {}
         
@@ -100,6 +104,17 @@ class MfqlReader(object):
     
     @classmethod
     def tokenize(cls, s):
+        """
+
+        Parameters
+        ----------
+        s :
+            
+
+        Returns
+        -------
+
+        """
         
         s = s.strip().strip(';')
         
@@ -150,5 +165,16 @@ class MfqlReader(object):
         return s
     
     def queryname(self, line):
+        """
+
+        Parameters
+        ----------
+        line :
+            
+
+        Returns
+        -------
+
+        """
         
         pass

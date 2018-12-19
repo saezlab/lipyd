@@ -22,8 +22,10 @@ import lipyd.sec as sec
 
 
 class TestSec(object):
+    """ """
     
     def test_sec_unicorn_asc(self):
+        """ """
         
         path = settings.get('sec_unicorn_example')
         reader = sec.SECReader(path)
@@ -37,6 +39,7 @@ class TestSec(object):
         assert highest.row == 'A' and highest.col == 10
     
     def test_sec_xls(self):
+        """ """
         
         path = settings.get('sec_xls_example')
         reader = sec.SECReader(path)

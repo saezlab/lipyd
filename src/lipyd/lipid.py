@@ -47,6 +47,7 @@ sphingolipids = []
 #
 
 class AbstractGlycerol(metabolite.AbstractMetabolite):
+    """ """
     
     def __init__(
             self,
@@ -92,6 +93,7 @@ class AbstractGlycerol(metabolite.AbstractMetabolite):
 #
 
 class AbstractGlycerolipid(AbstractGlycerol):
+    """ """
     
     def __init__(
             self,
@@ -165,10 +167,20 @@ class AbstractGlycerolipid(AbstractGlycerol):
         """
         
         def get_cls(fa, ether):
-            """
-            Returns `substituent.FattyAcyl` or `substituent.FattyAlkoxy`
+            """Returns `substituent.FattyAcyl` or `substituent.FattyAlkoxy`
             class for sn1 and sn2 positions and or `None` if the hydroxyl
             group is free.
+
+            Parameters
+            ----------
+            fa :
+                
+            ether :
+                
+
+            Returns
+            -------
+
             """
             
             return (
@@ -201,6 +213,19 @@ class AbstractGlycerolipid(AbstractGlycerol):
         self.sn3_cls = None if not sn3_fa else get_cls(True, self.sn3_ether)
         
         def _getname(parent, subs):
+            """
+
+            Parameters
+            ----------
+            parent :
+                
+            subs :
+                
+
+            Returns
+            -------
+
+            """
             
             return (
                 lipproc.summary_str(
@@ -254,6 +279,7 @@ class AbstractGlycerolipid(AbstractGlycerol):
 # just an exemple (or reference) how to create a specific
 # glycerolipid on top of the abstract one
 class Phosphatidylethanolamine(AbstractGlycerolipid):
+    """ """
     
     def __init__(self, **kwargs):
         
@@ -270,6 +296,7 @@ class Phosphatidylethanolamine(AbstractGlycerolipid):
 
 
 class GlycerolipidFactory(object):
+    """ """
     
     def __init__(
             self,
@@ -679,6 +706,21 @@ class GlycerolipidFactory(object):
     
     @staticmethod
     def gpl_class_name(name, lyso, ether):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+        lyso :
+            
+        ether :
+            
+
+        Returns
+        -------
+
+        """
         
         return '%s%s%s' % (
             'Lyso' if lyso else '',
@@ -688,6 +730,17 @@ class GlycerolipidFactory(object):
     
     @staticmethod
     def gl_class_name(faa):
+        """
+
+        Parameters
+        ----------
+        faa :
+            
+
+        Returns
+        -------
+
+        """
         
         cnt = collections.Counter(faa)
         
@@ -707,6 +760,7 @@ class GlycerolipidFactory(object):
 #
 
 class AbstractSphingolipid(metabolite.AbstractMetabolite):
+    """ """
     
     def __init__(
             self,
@@ -762,6 +816,19 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
             sph = substituent.Sphingosine(lcb_type = lcb_type, **sph_args)
         
         def _getname(parent, subs):
+            """
+
+            Parameters
+            ----------
+            parent :
+                
+            subs :
+                
+
+            Returns
+            -------
+
+            """
             
             return (
                 lipproc.summary_str(
@@ -805,6 +872,7 @@ class AbstractSphingolipid(metabolite.AbstractMetabolite):
 #
 
 class AbstractCeramide(AbstractSphingolipid):
+    """ """
     
     def __init__(
             self,
@@ -849,6 +917,7 @@ class AbstractCeramide(AbstractSphingolipid):
 
 
 class SphingolipidFactory(object):
+    """ """
     
     lcb_name = {
         'd':  'D',
@@ -1154,6 +1223,27 @@ class SphingolipidFactory(object):
         delattr(mod, '__init__')
     
     def class_name(self, name, subtype, lcb, hydroxyacyl, o, nacyl):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+        subtype :
+            
+        lcb :
+            
+        hydroxyacyl :
+            
+        o :
+            
+        nacyl :
+            
+
+        Returns
+        -------
+
+        """
         
         lcbtype = self.lcb_name[lcb] if lcb in self.lcb_name else ''
         
@@ -1192,6 +1282,7 @@ class SphingolipidFactory(object):
 #
 
 class FattyAcid(metabolite.AbstractMetabolite):
+    """ """
     
     def __init__(
             self,
@@ -1204,6 +1295,19 @@ class FattyAcid(metabolite.AbstractMetabolite):
         ):
         
         def _getname(parent, subs):
+            """
+
+            Parameters
+            ----------
+            parent :
+                
+            subs :
+                
+
+            Returns
+            -------
+
+            """
             
             return '%s(%u:%u)' % (parent.name, subs[0].c, subs[0].u)
         
@@ -1224,6 +1328,7 @@ class FattyAcid(metabolite.AbstractMetabolite):
 #
 
 class RetinoicAcid(metabolite.AbstractMetabolite):
+    """ """
     
     def __init__(
             self,
@@ -1236,6 +1341,19 @@ class RetinoicAcid(metabolite.AbstractMetabolite):
         ):
         
         def _getname(parent, subs):
+            """
+
+            Parameters
+            ----------
+            parent :
+                
+            subs :
+                
+
+            Returns
+            -------
+
+            """
             
             return 'Ret'
         
@@ -1257,6 +1375,7 @@ class RetinoicAcid(metabolite.AbstractMetabolite):
 
 
 class Retinol(metabolite.AbstractMetabolite):
+    """ """
     
     def __init__(
             self,
@@ -1269,6 +1388,19 @@ class Retinol(metabolite.AbstractMetabolite):
         ):
         
         def _getname(parent, subs):
+            """
+
+            Parameters
+            ----------
+            parent :
+                
+            subs :
+                
+
+            Returns
+            -------
+
+            """
             
             return 'Ret'
         

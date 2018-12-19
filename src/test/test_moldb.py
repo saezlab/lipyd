@@ -24,15 +24,18 @@ import lipyd.lipproc as lipproc
 
 
 class TestMoldb(object):
+    """ """
     
     lm = lipyd.moldb.LipidMaps()
     mda = lipyd.moldb.MoleculeDatabaseAggregator()
     
     def test_database_size(self):
+        """ """
         
         assert self.mda.data.shape[0] > 133000
     
     def test_chainlength_unsaturation(self):
+        """ """
         
         supposed_to_have = set(
             cu for cu in
@@ -53,6 +56,7 @@ class TestMoldb(object):
         assert supposed_to_have == actually_got
     
     def test_lipidmaps_record(self):
+        """ """
         
         gibberellin = list(
             self.lm.get_record('LMPR0104170034', typ = 'mainkey')
@@ -61,17 +65,20 @@ class TestMoldb(object):
         assert gibberellin['name']['COMMON_NAME'] == 'gibberellin A17'
     
     def test_lipidmaps_obmol(self):
+        """ """
         
         tag = list(self.lm.get_obmol('TAG(15:0_20:4_20:5)', 'synonym'))[0]
         
         assert abs(tag.exactmass - 886.7050407280012) < 0.000001
     
     def test_aggregator_build(self):
+        """ """
         
         assert len([i for i in self.mda.masses if i == 0 or np.isnan(i)]) == 0
         assert self.mda.masses.shape[0] == self.mda.data.shape[0]
     
     def test_aggregator_lookup(self):
+        """ """
         
         result = self.mda.lookup(808.634583)
         
@@ -84,6 +91,7 @@ class TestMoldb(object):
         assert 'SLM:000056288' in [i.lab.db_id for i in result[1]]
     
     def test_aggregator_adduct_lookup(self):
+        """ """
         
         result = self.mda.adduct_lookup(
             728.605042778354, ionmode = 'pos'

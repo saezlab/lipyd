@@ -102,6 +102,7 @@ show_cache = False
 
 
 class cache_on(object):
+    """ """
     
     def __init__(self):
         pass
@@ -120,6 +121,7 @@ class cache_on(object):
         CACHE = self._store_cache
 
 class cache_off(object):
+    """ """
     
     def __init__(self):
         pass
@@ -138,6 +140,7 @@ class cache_off(object):
         CACHE = self._store_cache
 
 class RemoteFile(object):
+    """ """
     
     def __init__(self, filename, user, host, passwd, port = 22, sep = '\t', 
         header = True, rownames = True):
@@ -149,6 +152,7 @@ class RemoteFile(object):
         # env.connection_attempts = 5
     
     def wcl(self):
+        """ """
         
         with closing(fabric.connection.Connection(
             self.host,
@@ -161,6 +165,7 @@ class RemoteFile(object):
             return int(stdout.readlines()[0].split()[0]) - (1 if self.header else 0)
     
     def rowns(self):
+        """ """
         
         with closing(fabric.connection.Connection(
             self.host,
@@ -175,6 +180,17 @@ class RemoteFile(object):
             return [x.strip() for x in stdout.readlines()]
     
     def open(self, return_header = True):
+        """
+
+        Parameters
+        ----------
+        return_header :
+             (Default value = True)
+
+        Returns
+        -------
+
+        """
         
         with closing(fabric.connection.Connection(
             self.host,
@@ -192,6 +208,7 @@ class RemoteFile(object):
 
 
 class Curl(object):
+    """ """
     
     def __init__(self,
         url, silent = True, post = None, req_headers = None, cache = True,
@@ -284,6 +301,7 @@ class Curl(object):
                     f.close()
     
     def reload(self):
+        """ """
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist = [modname.split('.')[0]])
         imp.reload(mod)
@@ -291,33 +309,72 @@ class Curl(object):
         setattr(self, '__class__', new)
     
     def print_debug_info(self, msg):
+        """
+
+        Parameters
+        ----------
+        msg :
+            
+
+        Returns
+        -------
+
+        """
         msg = self.bytes2unicode(msg)
         self.log.msg('\n\t%s\n' % msg)
         sys.stdout.flush()
     
     def process_url(self):
+        """ """
         self.domain = self.url.replace('https://', '').replace('http://', '').\
             replace('ftp://', '').split('/')[0]
         self.filename = self.url.split('/')[-1].split('?')[0]
     
     def is_quoted(self, string):
-        '''
-        From http://stackoverflow.com/questions/1637762/test-if-string-is-url-encoded-in-php
-        '''
+        """From http://stackoverflow.com/questions/1637762/test-if-string-is-url-encoded-in-php
+
+        Parameters
+        ----------
+        string :
+            
+
+        Returns
+        -------
+
+        """
         test = string
         while(urllib.unquote(test) != test):
             test = urllib.unquote(test)
         return urllib.quote(test, '/%') == string or urllib.quote(test) == string
 
     def is_quoted_plus(self, string):
+        """
+
+        Parameters
+        ----------
+        string :
+            
+
+        Returns
+        -------
+
+        """
         test = string
         while(urllib.unquote_plus(test) != test):
             test = urllib.unquote_plus(test)
         return urllib.quote_plus(test, '&=') == string or urllib.quote_plus(test) == string
 
     def url_fix(self, charset = 'utf-8'):
-        """
-        From http://stackoverflow.com/a/121017/854988
+        """From http://stackoverflow.com/a/121017/854988
+
+        Parameters
+        ----------
+        charset :
+             (Default value = 'utf-8')
+
+        Returns
+        -------
+
         """
         if type(self.url) is bytes:
             self.url = self.bytes2unicode(self.url, encoding = charset)
@@ -329,6 +386,7 @@ class Curl(object):
         self.url= urlparse.urlunsplit((scheme, netloc, path, qs, anchor))
     
     def get_type(self):
+        """ """
         self.multifile = False
         if self.filename[-3:].lower() == 'zip' or self.compr == 'zip':
             self.type = 'zip'
@@ -344,11 +402,13 @@ class Curl(object):
             self.type = 'plain'
     
     def set_title(self):
+        """ """
         if self.title is None:
             self.title = 'Downloading `%s` from %s' % \
                 (self.filename, self.domain)
     
     def set_post(self):
+        """ """
         if type(self.post) is dict:
             self.postfields = urllib.urlencode(self.post)
             self.curl.setopt(self.curl.POSTFIELDS, self.postfields)
@@ -357,6 +417,7 @@ class Curl(object):
             self.postfields = None
     
     def set_binary_data(self):
+        """ """
         if self.binary_data:
             self.binary_data_size = os.path.getsize(self.binary_data)
             self.binary_data_file = open(self.binary_data, 'rb')
@@ -368,33 +429,70 @@ class Curl(object):
             self.curl.setopt(pycurl.POSTREDIR, 3)
     
     def curl_init(self, url = False):
+        """
+
+        Parameters
+        ----------
+        url :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         self.curl = pycurl.Curl()
         self.set_url(url = url)
         self.curl.setopt(self.curl.FOLLOWLOCATION, self.follow_http_redirect)
         self.curl.setopt(self.curl.CONNECTTIMEOUT, self.timeout)
     
     def set_url(self, url = False):
+        """
+
+        Parameters
+        ----------
+        url :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         self.curl.setopt(self.curl.URL, url or self.url)
     
     def set_target(self):
+        """ """
         self.target = open(self.cache_file_name, 'wb')
         self.curl.setopt(self.curl.WRITEFUNCTION, self.target.write)
         
     def set_req_headers(self):
+        """ """
         if self.override_post:
             self.req_headers.append('X-HTTP-Method-Override: GET')
         self.curl.setopt(self.curl.HTTPHEADER, self.req_headers)
     
     def set_resp_headers(self):
+        """ """
         self.resp_headers = []
         self.curl.setopt(self.curl.HEADERFUNCTION, self.resp_headers.append)
     
     def set_debug(self):
+        """ """
         if self.debug:
             self.curl.setopt(pycurl.VERBOSE, 1)
             self.curl.setopt(pycurl.DEBUGFUNCTION, self.print_debug_info)
     
     def curl_setup(self, url = False):
+        """
+
+        Parameters
+        ----------
+        url :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         self.curl_init(url = url)
         self.curl_progress_setup()
         self.set_target()
@@ -405,6 +503,7 @@ class Curl(object):
         self.set_binary_data()
     
     def curl_call(self):
+        """ """
         for attempt in xrange(self.retries):
             try:
                 if self.debug:
@@ -437,11 +536,13 @@ class Curl(object):
         self.target.close()
     
     def progress_setup(self):
+        """ """
         if not self.silent and self.progress is None and not self.debug:
             self.progress = progress.Progress(name = self.title, interval = 1,
                 status = 'initializing curl', unit = 'B')
     
     def curl_progress_setup(self):
+        """ """
         if self.progress is not None:
             self.curl.setopt(pycurl.NOPROGRESS, 0)
             if hasattr(pycurl, 'XFERINFOFUNCTION'):
@@ -450,6 +551,19 @@ class Curl(object):
                 self.curl.setopt(pycurl.PROGRESSFUNCTION, self.update_progress)
     
     def bytes2unicode(self, string, encoding = None):
+        """
+
+        Parameters
+        ----------
+        string :
+            
+        encoding :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         if type(string) is unicode:
             return string
         if encoding is not None:
@@ -465,6 +579,19 @@ class Curl(object):
                     return u''
     
     def unicode2bytes(self, string, encoding = None):
+        """
+
+        Parameters
+        ----------
+        string :
+            
+        encoding :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         if type(string) is bytes:
             return string
         if encoding is not None:
@@ -480,6 +607,17 @@ class Curl(object):
                     return b''
     
     def bytes_prefix(self, b):
+        """
+
+        Parameters
+        ----------
+        b :
+            
+
+        Returns
+        -------
+
+        """
         if b > 1000000000:
             return (b / 1000000000.0, u'GB')
         elif b > 1000000:
@@ -490,6 +628,7 @@ class Curl(object):
             return (float(b), u'B')
     
     def get_headers(self):
+        """ """
         self.resp_headers_dict = {}
         for header_line in self.resp_headers:
             header_line = self.bytes2unicode(header_line)
@@ -502,6 +641,7 @@ class Curl(object):
             self.resp_headers_dict[name] = value
     
     def guess_encoding(self):
+        """ """
         if self.encoding is None:
             if not self.use_cache:
                 if 'content-type' in self.resp_headers:
@@ -511,6 +651,7 @@ class Curl(object):
                         self.encoding = match.group(1)
     
     def get_jsessionid(self):
+        """ """
         self.jsessionid = [u'']
         rejsess = re.compile(r'.*(JSESSIONID=[A-Z0-9]*)')
         for hdr in self.resp_headers_dict.values():
@@ -522,6 +663,23 @@ class Curl(object):
     def update_progress(self,
         download_total, downloaded,
         upload_total, uploaded):
+        """
+
+        Parameters
+        ----------
+        download_total :
+            
+        downloaded :
+            
+        upload_total :
+            
+        uploaded :
+            
+
+        Returns
+        -------
+
+        """
         if self.progress is not None:
             self.total = self.bytes_prefix(download_total)
             self.done = self.bytes_prefix(downloaded)
@@ -530,12 +688,14 @@ class Curl(object):
             self.progress.step(step = 0, status = 'downloading')
     
     def terminate_progress(self):
+        """ """
         if self.progress is not None:
             self.progress.terminate(status = '%.02f%s downloaded' % \
                 (self.total[0], self.total[1]))
             self.progress = None
     
     def init_request(self):
+        """ """
         if self.init_url is not None:
             if self.progress is not None:
                 self.progress.set_status('requesting cookie')
@@ -547,12 +707,14 @@ class Curl(object):
     # caching:
     
     def init_cache(self):
+        """ """
         self.get_hash()
         self.cache_dir_exists()
         self.get_cache_file_name()
         self.select_cache_file()
     
     def get_hash(self):
+        """ """
         self.post_str = '' if self.post is None else \
             '?' + '&'.join(sorted([i[0]+'='+i[1] \
             for i in iteritems(self.post)]))
@@ -562,10 +724,12 @@ class Curl(object):
         )).hexdigest()
     
     def cache_dir_exists(self):
+        """ """
         if not os.path.exists(os.path.join(os.getcwd(), self.cache_dir)):
             os.mkdir(os.path.join(os.getcwd(), self.cache_dir))
     
     def get_cache_file_name(self):
+        """ """
         self.cache_file_name = os.path.join(
             os.getcwd(),
             self.cache_dir,
@@ -573,10 +737,12 @@ class Curl(object):
         )
     
     def delete_cache_file(self):
+        """ """
         if os.path.exists(self.cache_file_name):
             os.remove(self.cache_file_name)
     
     def select_cache_file(self):
+        """ """
         self.use_cache = False
         if type(CACHE) is bool:
             self.cache = CACHE
@@ -584,6 +750,7 @@ class Curl(object):
             self.use_cache = True
     
     def show_cache(self):
+        """ """
         self.print_debug_info('URL = %s' % self.url)
         self.print_debug_info('CACHE FILE = %s' % self.cache_file_name)
         self.print_debug_info('Using cache: %s; cache file exists: %s' % \
@@ -592,6 +759,7 @@ class Curl(object):
     # open files:
     
     def transcode(self):
+        """ """
         if not self.use_cache and self.type == 'plain':
             self.guess_encoding()
             if self.encoding is not None and self.encoding != 'utf-8':
@@ -611,6 +779,7 @@ class Curl(object):
                 self.encoding = 'utf-8'
     
     def copy_file(self):
+        """ """
         self.transcode()
         if self.outfile is not None and self.outfile != self.cache_file_name:
             if self.write_cache:
@@ -621,6 +790,7 @@ class Curl(object):
             self.outfile = self.cache_file_name
     
     def process_file(self):
+        """ """
         self.copy_file()
         self.open_file()
         self.extract_file()
@@ -628,17 +798,13 @@ class Curl(object):
         self.report_ready()
     
     def open_file(self):
-        """
-        Calls opener method appropriate for file type.
-        """
+        """Calls opener method appropriate for file type."""
         if not self.silent:
             self.print_status('Opening file `%s`' % self.outfile)
         self.fileobj = open(self.outfile, 'rb')
     
     def close(self):
-        """
-        Closes all file objects.
-        """
+        """Closes all file objects."""
         if type(self.result) is dict:
             for fp in self.result.values():
                 if hasattr(fp, 'close'):
@@ -646,11 +812,13 @@ class Curl(object):
         self.fileobj.close()
     
     def extract_file(self):
+        """ """
         if not self.silent:
             self.print_status('Extracting %s data' % self.type)
         getattr(self, 'open_%s' % self.type)()
     
     def open_tgz(self):
+        """ """
         self.files_multipart = {}
         self.tarfile = tarfile.open(fileobj = self.fileobj, mode = 'r:gz')
         self.members = self.tarfile.getmembers()
@@ -669,6 +837,7 @@ class Curl(object):
         self.result = self.files_multipart
     
     def open_gz(self):
+        """ """
         self.gzfile = gzip.GzipFile(fileobj = self.fileobj, mode = 'rb')
         #try:
         if self.large:
@@ -680,6 +849,7 @@ class Curl(object):
         #    self.print_status('Error at extracting gzip file')
     
     def open_zip(self):
+        """ """
         self.files_multipart = {}
         self.zipfile = zipfile.ZipFile(self.fileobj, 'r')
         self.members = self.zipfile.namelist()
@@ -696,6 +866,7 @@ class Curl(object):
         self.result = self.files_multipart
     
     def open_plain(self):
+        """ """
         if self.large:
             self.result = self.fileobj
         else:
@@ -703,10 +874,22 @@ class Curl(object):
             self.fileobj.close()
     
     def decode_result(self):
+        """ """
         if self.progress is not None:
             self.print_status('Decoding %s encoded data' % \
                 (self.encoding or 'utf-8'))
         def _decode_result(content):
+            """
+
+            Parameters
+            ----------
+            content :
+                
+
+            Returns
+            -------
+
+            """
             try:
                 return content.decode(self.encoding or 'utf-8')
             except:
@@ -722,6 +905,7 @@ class Curl(object):
                 self.result = _decode_result(self.result)
     
     def get_result_type(self):
+        """ """
         if type(self.result) is dict:
             self.result_type = 'dict of %s' % (
                 'byte arrays' if type(next(iter(self.result.values()))) is bytes else \
@@ -736,6 +920,7 @@ class Curl(object):
             )
     
     def report_ready(self):
+        """ """
         self.get_result_type()
         if not self.silent:
             self.print_status(
@@ -752,6 +937,17 @@ class Curl(object):
             sys.stdout.flush()
     
     def print_status(self, status):
+        """
+
+        Parameters
+        ----------
+        status :
+            
+
+        Returns
+        -------
+
+        """
         if self.progress is not None:
             self.terminate_progress()
         if self.debug:
@@ -764,11 +960,13 @@ class Curl(object):
     # sftp part:
     
     def sftp_url(self):
+        """ """
         if sftp_host is not None:
             self.sftp_filename = self.url
             self.url = '%s%s' % (self.sftp_host, self.sftp_filename)
     
     def sftp_call(self):
+        """ """
         self.sftp_success = self.sftp_download()
         if sftp_success:
             self.status = 200
@@ -776,6 +974,21 @@ class Curl(object):
             self.status = 501
     
     def ask_passwd(ask, passwd_file, use_passwd_file = True):
+        """
+
+        Parameters
+        ----------
+        ask :
+            
+        passwd_file :
+            
+        use_passwd_file :
+             (Default value = True)
+
+        Returns
+        -------
+
+        """
         if use_passwd_file and os.path.exists(self.passwd_file):
             with open(passwd_file, 'r') as f:
                 self.sftp_user = f.readline().strip()
@@ -800,6 +1013,29 @@ class Curl(object):
 
     def sftp_download(localpath, host, user = None,
         passwd = None, passwd_file = None, ask = None, port = 22):
+        """
+
+        Parameters
+        ----------
+        localpath :
+            
+        host :
+            
+        user :
+             (Default value = None)
+        passwd :
+             (Default value = None)
+        passwd_file :
+             (Default value = None)
+        ask :
+             (Default value = None)
+        port :
+             (Default value = 22)
+
+        Returns
+        -------
+
+        """
         ask = 'Please enter your login details for %s\n' % host \
             if ask is None else ask
         self.sftp_passwd_file = os.path.join('cache', '%s.login' % self.sftp_host) \

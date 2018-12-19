@@ -30,6 +30,7 @@ import lipyd.lipproc as lipproc
 
 
 class LipidNameProcessor(object):
+    """ """
     
     def __init__(
             self,
@@ -55,6 +56,17 @@ class LipidNameProcessor(object):
         self.read_lipid_names()
     
     def reload(self, children = False):
+        """
+
+        Parameters
+        ----------
+        children :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -63,8 +75,7 @@ class LipidNameProcessor(object):
         setattr(self, '__class__', new)
     
     def read_lipid_names(self, add_fa = True):
-        """
-        Reads annotations for lipid classes:
+        """Reads annotations for lipid classes:
         - full names
         - short notations
         - database keywords
@@ -72,6 +83,15 @@ class LipidNameProcessor(object):
         - most abundant adducts
         
         The input file is given by the ``lipnamesf`` attribute.
+
+        Parameters
+        ----------
+        add_fa :
+             (Default value = True)
+
+        Returns
+        -------
+
         """
         result = {}
         
@@ -117,6 +137,17 @@ class LipidNameProcessor(object):
     
     @staticmethod
     def process_db_keywords(kwdstr):
+        """
+
+        Parameters
+        ----------
+        kwdstr :
+            
+
+        Returns
+        -------
+
+        """
         
         return \
             list(
@@ -153,16 +184,51 @@ class LipidNameProcessor(object):
     
     @staticmethod
     def has_sph_prefix(match):
+        """
+
+        Parameters
+        ----------
+        match :
+            
+
+        Returns
+        -------
+
+        """
         
         return match[0] in {'t', 'd', 'k', 'DH'}
     
     @staticmethod
     def is_ether(match):
+        """
+
+        Parameters
+        ----------
+        match :
+            
+
+        Returns
+        -------
+
+        """
         
         return match[0] in {'O', 'P'}
     
     @classmethod
     def attr_proc(cls, match, u = None):
+        """
+
+        Parameters
+        ----------
+        match :
+            
+        u :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         sph = match[0] if cls.has_sph_prefix(match) else ''
         
@@ -184,6 +250,25 @@ class LipidNameProcessor(object):
             types = None,
             chainsexp = None
         ):
+        """
+
+        Parameters
+        ----------
+        i :
+            
+        sphingo :
+             (Default value = False)
+        ether :
+             (Default value = False)
+        types :
+             (Default value = None)
+        chainsexp :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         # TODO: this does not feel perfect
         # some better heuristic should replace
@@ -200,6 +285,19 @@ class LipidNameProcessor(object):
         )
     
     def attrs_types(self, cc1, chainsexp):
+        """
+
+        Parameters
+        ----------
+        cc1 :
+            
+        chainsexp :
+            
+
+        Returns
+        -------
+
+        """
         
         sph    = cc1[0] if self.has_sph_prefix(cc1) else ''
         ether  = self.is_ether(cc1)
@@ -239,27 +337,51 @@ class LipidNameProcessor(object):
             iso = False,
             types = None
         ):
-        """
-        Processes carbon and unsaturation counts from name.
+        """Processes carbon and unsaturation counts from name.
         
         Args
         ----
-        :param str name:
+
+        Parameters
+        ----------
+        str :
+            name:
             Lipid name.
-        :param int ccexp:
+        int :
+            ccexp:
             Expected number of fatty acyl or other residues constaining
             aliphatic chain. E.g. for DAG this should be 2 and for TAG 3
             as the latter has 3 fatty acyls.
-        :param tuple chainsexp:
+        tuple :
+            chainsexp:
             The type of the expected chains, e.g. `('Sph', 'FA')` for one
             sphingosine and a fatty acyl. This matters only if the chain
             types can not be inferred from the processed names.
-        :param bool sphingo:
+        bool :
+            sphingo:
             Is this a sphingolipid, is the first chain a sphingosine base?
-        :param bool iso:
+        bool :
+            iso:
             Process conformation isomer details for example 18:2(9E,11Z).
-        :param tuple types:
+        tuple :
+            types:
             Explicit types for each chains.
+        name :
+            
+        ccexp :
+             (Default value = 2)
+        chainsexp :
+             (Default value = None)
+        sphingo :
+             (Default value = False)
+        iso :
+             (Default value = False)
+        types :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         # number of groups in one regex match unit
@@ -355,8 +477,22 @@ class LipidNameProcessor(object):
             sphingo = False,
             types = None
         ):
-        """
-        Calls `carbon_counts` with `iso=True`.
+        """Calls `carbon_counts` with `iso=True`.
+
+        Parameters
+        ----------
+        name :
+            
+        ccexp :
+             (Default value = 2)
+        sphingo :
+             (Default value = False)
+        types :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         return self.carbon_counts(
@@ -368,13 +504,23 @@ class LipidNameProcessor(object):
         )
     
     def headgroup_from_lipid_name(self, names, database = None):
-        """
-        For one database record attempts to identify the lipid class
+        """For one database record attempts to identify the lipid class
         by looking up keywords.
         Calls greek name identification, greek fatty acid names are
         identified as 'FA'.
         
         Returns tuple of `lipproc.Headgroup` object and expected chain types.
+
+        Parameters
+        ----------
+        names :
+            
+        database :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if database is not None:
@@ -413,8 +559,16 @@ class LipidNameProcessor(object):
         return None, None
     
     def process_fa_name(self, name):
-        """
-        Identifies fatty acids based on their greek name.
+        """Identifies fatty acids based on their greek name.
+
+        Parameters
+        ----------
+        name :
+            
+
+        Returns
+        -------
+
         """
         
         return (
@@ -437,6 +591,17 @@ class LipidNameProcessor(object):
         )
     
     def fa_greek_cc(self, name):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         chainsum, chains = None, None
         
@@ -468,24 +633,43 @@ class LipidNameProcessor(object):
         return chainsum, chains
     
     def test_branched(self, name):
-        """
-        Tells if a lipid might contain branched aliphatic chains.
+        """Tells if a lipid might contain branched aliphatic chains.
+
+        Parameters
+        ----------
+        name :
+            
+
+        Returns
+        -------
+
         """
         
         return bool(self.reme.search(name))
     
     def process(self, names, database = None):
-        """
-        The main method of this class. Processes a lipid name string
+        """The main method of this class. Processes a lipid name string
         and returns a standard name, prefix, carbon counts and
         unsaturations.
         
         Args
         ----
-        :param list names:
+
+        Parameters
+        ----------
+        list :
+            names:
             One or more names to process. Single result will be returned
             and names will be attempted to be processed one after the other
             until processing is successful.
+        names :
+            
+        database :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if hasattr(names, 'lower'):
@@ -573,9 +757,15 @@ class LipidNameProcessor(object):
         return hg, chainsum, chains
     
     def gen_fa_greek(self):
-        """
-        Generates a list of greek fatty acid names with their
+        """Generates a list of greek fatty acid names with their
         carbon counts and unsaturations.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         fa_greek_parts = {

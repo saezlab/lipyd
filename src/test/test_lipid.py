@@ -315,9 +315,27 @@ sl = [
 
 
 class TestLipid(object):
+    """ """
     
     @pytest.mark.parametrize('clsname, args, mass, name', gpl)
     def test_glycerophospholipids(self, clsname, args, mass, name):
+        """
+
+        Parameters
+        ----------
+        clsname :
+            
+        args :
+            
+        mass :
+            
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         cls = getattr(lipyd.lipid, clsname)
         lip = list(cls(**args))[0]
@@ -327,6 +345,23 @@ class TestLipid(object):
     
     @pytest.mark.parametrize('clsname, args, mass, name', gl)
     def test_glycerolipids(self, clsname, args, mass, name):
+        """
+
+        Parameters
+        ----------
+        clsname :
+            
+        args :
+            
+        mass :
+            
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         cls = getattr(lipyd.lipid, clsname)
         lip = list(cls(**args))[0]
@@ -336,6 +371,23 @@ class TestLipid(object):
     
     @pytest.mark.parametrize('clsname, args, mass, name', sl)
     def test_sphingolipids(self, clsname, args, mass, name):
+        """
+
+        Parameters
+        ----------
+        clsname :
+            
+        args :
+            
+        mass :
+            
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         cls = getattr(lipyd.lipid, clsname)
         lip = list(cls(**args))[0]

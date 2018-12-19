@@ -20,8 +20,20 @@ import os
 
 
 def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
-    """
-    Returns a new logger with default settings (can be customized).
+    """Returns a new logger with default settings (can be customized).
+
+    Parameters
+    ----------
+    name :
+         (Default value = 'lipyd')
+    logdir :
+         (Default value = 'lipyd_log')
+    verbosity :
+         (Default value = 0)
+
+    Returns
+    -------
+
     """
     
     return Logger(
@@ -35,6 +47,7 @@ def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
 
 
 class Logger(object):
+    """ """
     
     strftime = time.strftime
     
@@ -48,6 +61,19 @@ class Logger(object):
         self.msg('Logger started, logging into `%s`.' % self.fname)
     
     def msg(self, msg = '', level = 0):
+        """
+
+        Parameters
+        ----------
+        msg :
+             (Default value = '')
+        level :
+             (Default value = 0)
+
+        Returns
+        -------
+
+        """
         
         if level <= self.verbosity:
             
@@ -55,6 +81,7 @@ class Logger(object):
     
     @classmethod
     def timestamp(cls):
+        """ """
         
         return cls.strftime('%Y-%m-%d %H:%M:%S')
     
@@ -65,6 +92,17 @@ class Logger(object):
         self.close_logfile()
     
     def get_logdir(self, dirname = None):
+        """
+
+        Parameters
+        ----------
+        dirname :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         dirname = dirname or 'lipyd_log'
         
@@ -75,17 +113,20 @@ class Logger(object):
         return dirname
     
     def open_logfile(self):
+        """ """
         
         self.close_logfile()
         self.fp = open(self.fname, 'w')
     
     def close_logfile(self):
+        """ """
         
         if hasattr(self, 'fp') and not self.fp.closed:
             
             self.fp.close()
     
     def flush(self):
+        """ """
         
         if hasattr(self, 'fp') and not self.fp.closed:
             

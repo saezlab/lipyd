@@ -35,6 +35,7 @@ resecb  = re.compile(r'([^_]*)_?(?:ctrl)?_?sec_?buffer_([^_]*)_?(neg|pos).*')
 
 
 class PeaksReader(object):
+    """ """
     
     rehdr = re.compile(r'(.*)(m/z|RT mean|Normalized Area)')
     rertr = re.compile(r'([\d\.]+) - ([\d\.]+)')
@@ -95,6 +96,7 @@ class PeaksReader(object):
         self.read()
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist = [modname.split('.')[0]])
@@ -111,6 +113,7 @@ class PeaksReader(object):
         )
     
     def read(self):
+        """ """
         
         # feature data
         quality           = []
@@ -188,6 +191,7 @@ class PeaksReader(object):
         self.intensities       = np.array(intensities)
     
     def process_header(self):
+        """ """
         
         self.samples = []
         
@@ -254,6 +258,7 @@ class PeaksReader(object):
             self.rt_mean_idx = None
     
     def iterlines(self):
+        """ """
         
         if self.format == 'xls':
             
@@ -273,6 +278,17 @@ class PeaksReader(object):
                     yield line
     
     def guess_format(self, format):
+        """
+
+        Parameters
+        ----------
+        format :
+            
+
+        Returns
+        -------
+
+        """
         
         if hasattr(format, 'lower'):
             
@@ -287,6 +303,17 @@ class PeaksReader(object):
             )
     
     def set_file(self, fname):
+        """
+
+        Parameters
+        ----------
+        fname :
+            
+
+        Returns
+        -------
+
+        """
         
         if os.path.exists(fname):
             
@@ -297,6 +324,17 @@ class PeaksReader(object):
             raise FileNotFoundError(fname)
     
     def _column_label_warning(self, col_idx):
+        """
+
+        Parameters
+        ----------
+        col_idx :
+            
+
+        Returns
+        -------
+
+        """
         
         warnings.warn(
             'Could not recognize column label `%s`.\nIn PEAKS '
@@ -310,6 +348,17 @@ class PeaksReader(object):
     
     @staticmethod
     def default_label_processor(label):
+        """
+
+        Parameters
+        ----------
+        label :
+            
+
+        Returns
+        -------
+
+        """
         
         match = relabel.search(label)
         
@@ -344,8 +393,30 @@ class PeaksReader(object):
     
     @staticmethod
     def default_sample_sorter(samples):
+        """
+
+        Parameters
+        ----------
+        samples :
+            
+
+        Returns
+        -------
+
+        """
         
         def key_method(s):
+            """
+
+            Parameters
+            ----------
+            s :
+                
+
+            Returns
+            -------
+
+            """
             
             if (
                 'label' in s and
@@ -366,6 +437,7 @@ class PeaksReader(object):
         return sorted(samples, key = key_method)
     
     def skip_samples(self):
+        """ """
         
         if self.skip:
             
@@ -376,14 +448,20 @@ class PeaksReader(object):
             ]
     
     def get_attributes(self):
-        """
-        Returns ``dict`` which can serve as arguments for the
+        """Returns ``dict`` which can serve as arguments for the
         ``lipyd.sample.FeatureAttributes`` object.
         This object contains variables describing series of features
         across all samples. Quality, significance, mean RT, centroid m/z, etc
         
         To get actual ``FeatureAttributes`` object use the ``SampleReader``
         in the ``sample`` module.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         return {
@@ -397,8 +475,7 @@ class PeaksReader(object):
         }
     
     def get_samples(self):
-        """
-        For each sample read from the PEAKS output file yields ``dict``s
+        """For each sample read from the PEAKS output file yields ``dict``s
         which can serve as arguments for the ``lipyd.sample.Sample`` objects.
         
         To get actual ``Sample`` objects use the ``SampleReader`` in the
@@ -406,10 +483,17 @@ class PeaksReader(object):
         
         To extract all data from ``PeaksReader`` the ``get_sampleset`` method
         is more convenient.
-        
-        :param bool bind:
+
+        Parameters
+        ----------
+        bool :
+            bind:
             Bind samples to each other. This way they will sort together, i.e.
             if any of them is sorted all the others follow the same order.
+
+        Returns
+        -------
+
         """
         
         for i, sample_attrs in enumerate(self.samples):
@@ -423,13 +507,19 @@ class PeaksReader(object):
             }
     
     def get_sampleset(self):
-        """
-        Returns a ``dict`` which can serve as arguments for
+        """Returns a ``dict`` which can serve as arguments for
         ``lipyd.sample.SampleSet`` and  ``lipyd.sample.FeatureAttributes`
         objects.
         
         To get actual ``SampleSet`` object use the ``SampleReader`` in the
         ``sample`` module.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         return {
@@ -442,6 +532,17 @@ class PeaksReader(object):
 
 
 def peaks_sample_id_method(attrs):
+    """
+
+    Parameters
+    ----------
+    attrs :
+        
+
+    Returns
+    -------
+
+    """
         
         if (
             attrs is not None and

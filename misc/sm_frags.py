@@ -70,6 +70,17 @@ chain_frags = (
 )
 
 def check_sm_frags(scan):
+    """
+
+    Parameters
+    ----------
+    scan :
+        
+
+    Returns
+    -------
+
+    """
     
     for frag in sm_frags:
         
@@ -171,6 +182,21 @@ hdr.append('chain_comb')
 result = []
 
 def collect_scan_lines(mzs, rts, mgfs):
+    """
+
+    Parameters
+    ----------
+    mzs :
+        
+    rts :
+        
+    mgfs :
+        
+
+    Returns
+    -------
+
+    """
     
     result = []
     

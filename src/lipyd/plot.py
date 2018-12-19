@@ -30,15 +30,37 @@ from matplotlib import rcParams
 
 
 class SpectrumPlot(object):
+    """The summary line for a class docstring should fit on one line.
+
+
+    Attributes
+    ----------
+    mzs : str
+        Description of `attr1`.
+    intensities :
+        Description of `attr2`.
+    annotations:
+
+    xmin:
+
+    xmax:
+
+    title:
+
+
+    """
+
 
     filetype = "pdf" # "png" or "pdf"
     """str: Filetype of the outputfile
 
     Tested with "pdf" and "png"
+    
     """
 
     figdpi = 200
     """int: DPI of the image output file
+    
     """
 
 
@@ -86,7 +108,7 @@ class SpectrumPlot(object):
         self.title = title
     
     def reload(self):
-        
+
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
@@ -94,22 +116,24 @@ class SpectrumPlot(object):
         setattr(self, '__class__', new)
     
     def normalize_intensities(self):
+        """ """
         
         self.inorm = self.intensities /  np.max(self.intensities) * 100.0
     
     @staticmethod
     def __get_max_peak(x_value, raw_values):
-        """
-        Search for the local peak next to the x-value.
+        """Search for the local peak next to the x-value.
 
         The value searches in the near area of the given x-value for the maximum (local)
         peak, which correspondends to the data.
 
         Args:
+        -----
             x_value (float): m/z value (x-coordinate) of the point, to be annotated
             raw_values (Pandas.DataFrame): Data values, which should be annotated
 
         Returns:
+        --------
             y value of the peak, next to the given x value
 
         """
@@ -126,26 +150,26 @@ class SpectrumPlot(object):
 
 
     def annotate_point(x1, y_pos=0, text='', raw_values=None):
-        """
-        Annotate a specific point.
-
+        """Annotate a specific point.
+        
         Annotate a point with a label. The label will be placed vertically
         with an additional line.
-
+        
         The function uses the data values and searches for the peak of the
         value to be annotated. Therefore the ``raw_values`` parameter is used
 
-        Args:
-        -----
-        x1 (float):
+        Parameters
+        ----------
+        x1 : float
             m/z value (x-coordinate) of the point, to be annotated
-        y_pos (Optional[float]):
+        y_pos : `float`, optional
             Position of the label beginning (y-coordinate).
             The value uses the scale of the datapoints.
-        text (str):
+        text : str
             Label text
-        raw_values (Pandas.DataFrame):
+        raw_values : Pandas.DataFrame
             Data values, which should be annotated
+
         """
 
         delta_point_annotate_line_pixel = 1
@@ -164,27 +188,27 @@ class SpectrumPlot(object):
                 arrowprops=dict(arrowstyle='-', color="#808080", linewidth=0.4, shrinkA=0.05, shrinkB=1))
     
     def annotate_distance(x1=0, x2=0, y_pos=0, text='', raw_values=None, rotate_text=0):
-        """
-        Annotage the distance between two peaks
+        """Annotate the distance between two peaks
         
         Annotate the distance between two given peaks. The text can be placed with a
         given angle.
         
         Args
         ----
-        x1 (float):
+        x1 : float
             m/z value (x-coordinate) of the left point
-        x2 (float):
+        x2 : float
             m/z value (x-coordinate) of the right point
-        y_pos (Optional[float]):
+        y_pos : float, optional
             Position of the label beginning (y-coordinate).
             The value uses the scale of the datapoints.
-        text (str):
+        text : str
             Label text
-        raw_values (Pandas.DataFrame):
+        raw_values : Pandas.DataFrame
             Data values, which should be annotated
-        rotate_text (Optional[int]):
+        rotate_text : int, optional
             Rotation of the label, should be 0 or 90
+
         """
         
         delta_point_annotate_line_pixel = 1
@@ -224,16 +248,26 @@ class SpectrumPlot(object):
         """Determine figure size and margins from plot size and absolute margins
         
         Args:
-            plotsize: (width, height) of plot area in inch
-            subplots: (nrows, ncols) of subplots
-            left, right, top, bottom: absolute margins around plot area
-            wspace, hspace: width and height spacing between subplots
+        -----
+            plotsize: float
+                (width, height) of plot area in inch
+            subplots: int
+                (nrows, ncols) of subplots
+            left, right, top, bottom:
+                absolute margins around plot area
+            wspace, hspace:
+                width and height spacing between subplots
         
         Returns:
-            size: figure size for figsize argument of figure()
-            margins: relative margins dict suitable for subplots_adjust()
+        --------
+            size
+                figure size for figsize argument of figure()
+            margins
+                relative margins dict suitable for subplots_adjust()
         
-        Example: making 2x2 grid of 3" square plots with specific spacings:
+        Example:
+        --------
+            making 2x2 grid of 3" square plots with specific spacings:
         
         sz, rm = figsize_and_margins((3,3), (2,2), left=1, right=.5,
                                                     top=.5, bottom=1,
@@ -243,7 +277,7 @@ class SpectrumPlot(object):
         subplot(221); subplot(222)
         subplot(223); subplot(224)
         
-        Source: http://scipy-central.org/item/65/1/absolute-plot-size-and-margins-in-matplotlib
+
         """
         
         pw, ph = plotsize
@@ -314,6 +348,19 @@ class SpectrumPlot(object):
         return length_mm / 25.4
     
     def generate_massspectra_plot_automatic_labels(input_filename, output_filename):
+        """
+
+        Parameters
+        ----------
+        input_filename :
+            
+        output_filename :
+            
+
+        Returns
+        -------
+
+        """
         print("Generate {0} mass spectra plot ({1}.{2}) from {3}.[xy/txt]".format(filetype.upper(), output_filename,
                                                                                 filetype, input_filename))
 
@@ -494,6 +541,7 @@ class SpectrumPlot(object):
         plt.close()
     
     def annotate(self):
+        """ """
         
         if self.annotations is None:
             
@@ -515,6 +563,7 @@ class SpectrumPlot(object):
         annotate_distance(253, 349, 72, '$-96$', raw_values)
     
     def build(self):
+        """ """
         
         # dimensions of the single plot
         figwidth_mm = 141
@@ -594,6 +643,21 @@ class SpectrumPlot(object):
         plt.close()
     
     def generate_massspectra_two_plot_manual_annotation(input_filename1, input_filename2, output_filename):
+        """
+
+        Parameters
+        ----------
+        input_filename1 :
+            
+        input_filename2 :
+            
+        output_filename :
+            
+
+        Returns
+        -------
+
+        """
         print("Generate {0} mass spectra plot ({1}.{2}) from {3}.xy and {4}.xy".format(filetype.upper(), output_filename,
                                                                                     filetype, input_filename1,
                                                                                     input_filename2))

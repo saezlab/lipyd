@@ -21,8 +21,10 @@ import lipyd.reader.peaks
 import lipyd.settings
 
 class TestReaderPeaks(object):
+    """ """
     
     def test_reader_peaks(self):
+        """ """
         
         path = lipyd.settings.get('peaks_example')
         

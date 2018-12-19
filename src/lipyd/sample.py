@@ -46,6 +46,7 @@ remgf2 = re.compile(r'(\w+)_([A-Z])([0-9]{1,2})_(pos|neg)\.mgf')
 
 
 class SampleReader(object):
+    """ """
     
     reader_classes = {
         'peaks': reader.peaks.PeaksReader,
@@ -85,6 +86,7 @@ class SampleReader(object):
         self.read()
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist = [modname.split('.')[0]])
@@ -93,15 +95,22 @@ class SampleReader(object):
         setattr(self, '__class__', new)
     
     def read(self):
+        """ """
         
         self.reader = self.reader_class(**self.reader_args)
     
     def get_attributes(self):
-        """
-        Returns ``lipyd.sample.FeatureAttributes`` object.
+        """Returns ``lipyd.sample.FeatureAttributes`` object.
         This object contains variables describing series of features
         across all samples. E.g. Quality, significance, mean RT,
         centroid m/z, etc
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         attrs = self.reader.get_attributes()
@@ -110,15 +119,25 @@ class SampleReader(object):
         return FeatureAttributes(**attrs)
     
     def get_samples(self, bind = True, sample_args = None):
-        """
-        Yields ``lipyd.sample.Sample`` objects for each sample read.
+        """Yields ``lipyd.sample.Sample`` objects for each sample read.
         
         To extract all data from ``PeaksReader`` the ``get_sampleset`` method
         is more convenient.
-        
-        :param bool bind:
+
+        Parameters
+        ----------
+        bool :
+            bind:
             Bind samples to each other. This way they will sort together, i.e.
             if any of them is sorted all the others follow the same order.
+        bind :
+             (Default value = True)
+        sample_args :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         feature_attrs = self.get_attributes()
@@ -146,8 +165,16 @@ class SampleReader(object):
             yield Sample(**_sample_args)
     
     def get_sampleset(self, sampleset_args = None):
-        """
-        Returns a ``SampleSet`` and a ``FeatureAttributes`` object.
+        """Returns a ``SampleSet`` and a ``FeatureAttributes`` object.
+
+        Parameters
+        ----------
+        sampleset_args :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         _sampleset_args = self.reader.get_sampleset()
@@ -166,13 +193,19 @@ class SampleReader(object):
 class FeatureBase(object):
     
     def __init__(self, sorter = None, **kwargs):
-        """
-        Serves as a base class for various classes handling arrays of
+    """Serves as a base class for various classes handling arrays of
         features. Some of its predecessors represent one sample others
         more than one, or maybe data or annotations but all represent
         a series of features detected in one LC MS/MS run or more than
         one runs aligned with each other.
-        """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
         
         self.var = self.var if hasattr(self, 'var') else set()
         self.sorted_by = None
@@ -196,6 +229,7 @@ class FeatureBase(object):
             self.sorter.register(self)
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist = [modname.split('.')[0]])
@@ -204,12 +238,22 @@ class FeatureBase(object):
         setattr(self, '__class__', new)
     
     def _add_var(self, data, attr):
-        """
-        Registers a variable (array of data). If an array added this way
+        """Registers a variable (array of data). If an array added this way
         it will be always sorted the same way as all the other arrays in
         order to keep the data of features together.
         This method should not be called by users it is to be called
         automatically at creation of the object.
+
+        Parameters
+        ----------
+        data :
+            
+        attr :
+            
+
+        Returns
+        -------
+
         """
         
         setattr(self, attr, data)
@@ -231,19 +275,39 @@ class FeatureBase(object):
             return_isort = False,
             indices = (),
         ):
-        """
-        Sorts all data arrays according to an index array or values in one of
+        """Sorts all data arrays according to an index array or values in one of
         the data arrays.
-        
-        :param np.ndarray,str by:
+
+        Parameters
+        ----------
+        np :
+            ndarray,str by:
             Either an array of indices or the attribute name of any data
             array of the object.
-        :param bool propagate:
+        bool :
+            propagate:
             Whether to propagate the sorting to bound objects. This is to
             avoid loops of sorting.
-        :param bool return_isort:
+        bool :
+            return_isort:
             Return the argsort vector. A vector of indices which can be used
             to apply the same sorting on other arrays.
+        by :
+             (Default value = None)
+        desc :
+             (Default value = False)
+        resort :
+             (Default value = False)
+        propagate :
+             (Default value = True)
+        return_isort :
+             (Default value = False)
+        indices :
+             (Default value = ())
+
+        Returns
+        -------
+
         """
         
         isort = None
@@ -338,17 +402,31 @@ class FeatureBase(object):
         )
     
     def filter(self, idx, negative = False, propagate = True):
-        """
-        Filters features at indices in ``idx``.
-        
-        :param list,np.array idx:
+        """Filters features at indices in ``idx``.
+
+        Parameters
+        ----------
+        list :
+            np.array idx:
             A list or array of inidices along axis 0.
-        :param bool negative:
+        bool :
+            negative:
             Drop the features at indices instead of keeping them and removing
             all others.
-        :param bool propagate:
+        bool :
+            propagate:
             Perform filtering on all object bound to the same sorter.
             This is to avoid propagation in loops.
+        idx :
+            
+        negative :
+             (Default value = False)
+        propagate :
+             (Default value = True)
+
+        Returns
+        -------
+
         """
         
         selection = self._idx_to_selection(idx, negative = negative)
@@ -356,6 +434,19 @@ class FeatureBase(object):
         self._filter(selection, propagate = propagate)
     
     def _idx_to_selection(self, idx, negative = False):
+        """
+
+        Parameters
+        ----------
+        idx :
+            
+        negative :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         
         if isinstance(idx, list):
             
@@ -370,6 +461,19 @@ class FeatureBase(object):
         return selection
     
     def _filter(self, selection, propagate = True):
+        """
+
+        Parameters
+        ----------
+        selection :
+            
+        propagate :
+             (Default value = True)
+
+        Returns
+        -------
+
+        """
         
         for var in self.var:
             
@@ -380,9 +484,19 @@ class FeatureBase(object):
             self.sorter._filter(selection = selection, origin = id(self))
     
     def filter_selection(self, selection, negative = False):
-        """
-        Takes a ``FeatureSelection`` object and applies it as a filter i.e.
+        """Takes a ``FeatureSelection`` object and applies it as a filter i.e.
         removes features where it is ``False``.
+
+        Parameters
+        ----------
+        selection :
+            
+        negative :
+             (Default value = False)
+
+        Returns
+        -------
+
         """
         
         if negative:
@@ -394,18 +508,32 @@ class FeatureBase(object):
             self._filter(selection.selection)
     
     def threshold_filter(self, var, threshold, op = operator.gt):
-        """
-        Filters the features by any numeric attribute by simply applying
+        """Filters the features by any numeric attribute by simply applying
         a threshold. If the attribute does not exist silently does nothing.
-        
-        :param str var:
+
+        Parameters
+        ----------
+        str :
+            var:
             Name of the attribute.
-        :param float threshold:
+        float :
+            threshold:
             Value of the threshold.
-        :param operator op:
+        operator :
+            op:
             The operator to use. By default ``operator.gt`` (greater than),
             which means the features having attribute value greatre than
             the threshold will be kept and all others removed.
+        var :
+            
+        threshold :
+            
+        op :
+             (Default value = operator.gt)
+
+        Returns
+        -------
+
         """
         
         selection = self.threshold_select(var, threshold = threshold, op = op)
@@ -413,9 +541,21 @@ class FeatureBase(object):
         self._filter(selection)
     
     def threshold_select(self, var, threshold, op = operator.gt):
-        """
-        Returns boolean vector by applying an operator on a variable and
+        """Returns boolean vector by applying an operator on a variable and
         a threshold.
+
+        Parameters
+        ----------
+        var :
+            
+        threshold :
+            
+        op :
+             (Default value = operator.gt)
+
+        Returns
+        -------
+
         """
         
         if var not in self.var:
@@ -430,15 +570,40 @@ class FeatureBase(object):
     
     @staticmethod
     def _threshold_select(var, threshold, op = operator.gt):
+        """
+
+        Parameters
+        ----------
+        var :
+            
+        threshold :
+            
+        op :
+             (Default value = operator.gt)
+
+        Returns
+        -------
+
+        """
         
         return op(var, threshold)
     
     def feature_data(self, i, variables = None):
-        """
-        For a feature returns the requested attributes.
-        
-        :param list variables:
+        """For a feature returns the requested attributes.
+
+        Parameters
+        ----------
+        list :
+            variables:
             Names of the variables.
+        i :
+            
+        variables :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         result = {}
@@ -451,6 +616,7 @@ class FeatureBase(object):
 
 
 class FeatureAttributes(FeatureBase):
+    """ """
     
     def __init__(
             self,
@@ -478,14 +644,13 @@ class FeatureAttributes(FeatureBase):
         return len(getattr(obj, next(iter(obj.var))))
     
     def charges(self):
-        """
-        Returns a set of ion charges observed in the sample(set).
-        """
+        """Returns a set of ion charges observed in the sample(set)."""
         
         return sorted(set(self.charge))
 
 
 class Sample(FeatureBase):
+    """ """
     
     ms2_collection_methods = {
         'mgf':  'collect_mgf',
@@ -574,6 +739,7 @@ class Sample(FeatureBase):
         self._set_attrs(**attr_args)
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -582,10 +748,32 @@ class Sample(FeatureBase):
         setattr(self, '__class__', new)
     
     def _set_attrs(self, **kwargs):
+        """
+
+        Parameters
+        ----------
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         
         self.attrs = sampleattrs.SampleAttrs(**kwargs)
     
     def _set_feature_attrs(self, feature_attrs = None):
+        """
+
+        Parameters
+        ----------
+        feature_attrs :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         if feature_attrs is None:
             
@@ -594,6 +782,19 @@ class Sample(FeatureBase):
         self.feattrs = feature_attrs
     
     def _add_var(self, data, attr):
+        """
+
+        Parameters
+        ----------
+        data :
+            
+        attr :
+            
+
+        Returns
+        -------
+
+        """
         
         # mzs is the first variable so it is added without
         # checking its length. All others must be the same
@@ -617,25 +818,45 @@ class Sample(FeatureBase):
             propagate = True,
             return_isort = False,
         ):
-        """
-        Sorts all data arrays according to an index array or values in one of
+        """Sorts all data arrays according to an index array or values in one of
         the data arrays.
-        
-        :param np.ndarray,str by:
+
+        Parameters
+        ----------
+        np :
+            ndarray,str by:
             Either an array of indices or the attribute name of any data
             array of the object.
-        :param bool desc:
+        bool :
+            desc:
             Sort descending. Applies only if ``by`` is the attribute name
             of a data array.
-        :param bool resort:
+        bool :
+            resort:
             Sort even if the object is already sorted according to the
             value stored in ``sorted_by``.
-        :param bool propagate:
+        bool :
+            propagate:
             Whether to propagate the sorting to bound objects. This is to
             avoid loops of sorting.
-        :param bool return_isort:
+        bool :
+            return_isort:
             Return the argsort vector. A vector of indices which can be used
             to apply the same sorting on other arrays.
+        by :
+             (Default value = 'mzs')
+        desc :
+             (Default value = False)
+        resort :
+             (Default value = False)
+        propagate :
+             (Default value = True)
+        return_isort :
+             (Default value = False)
+
+        Returns
+        -------
+
         """
         
         isort = FeatureBase.sort_all(
@@ -666,20 +887,37 @@ class Sample(FeatureBase):
             feature_attrs = None,
             **kwargs
         ):
-        """
-        Applies a method on each of the features and creates a new variable
+        """Applies a method on each of the features and creates a new variable
         from the results.
-        
-        :param callable method:
+
+        Parameters
+        ----------
+        callable :
+            method:
             The method to apply.
-        :param str name:
+        str :
+            name:
             The name for the new variable.
-        :param list variables:
+        list :
+            variables:
             List of variables to be passed to the method.
-        :param list feature_attrs:
+        list :
+            feature_attrs:
             List of variables in the ``FeatureAttributes`` object.
-        :param **kwargs:
-            Passed to method.
+        method :
+            
+        name :
+            
+        variables :
+             (Default value = None)
+        feature_attrs :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         new = self._apply(
@@ -698,6 +936,23 @@ class Sample(FeatureBase):
             feature_attrs = None,
             **kwargs
         ):
+        """
+
+        Parameters
+        ----------
+        method :
+            
+        variables :
+             (Default value = None)
+        feature_attrs :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         
         result = []
         
@@ -725,31 +980,56 @@ class Sample(FeatureBase):
             op = operator.gt,
             **kwargs
         ):
-        """
-        Selects a subset of the features. Returns ``FeatureSelection`` object.
+        """Selects a subset of the features. Returns ``FeatureSelection`` object.
         
         If ``method`` is callable, applies it to the variables in
         ``variables`` and ``feature_attrs`` and selects based on ``threshold``
         and ``negative``. If ``method`` is ``None`` and a variable name
         provided in ``variables`` or ``feature_attrs`` then uses this
         variable to provide a selection.
-        
-        :param callable method:
+
+        Parameters
+        ----------
+        callable :
+            method:
             Method to be applied to obtain a new variable which will be the
             basis of the selection.
-        :param list,str variables:
+        list :
+            str variables:
             Eiter a list of variables (to be passed to ``method``) or one
             variable name which will be the basis of the selection.
-        :param list,str feature_attrs:
+        list :
+            str feature_attrs:
             Like ``variables`` but refers to variables in the
             ``FeatureAttributes`` object.
-        :param float threshold:
+        float :
+            threshold:
             A threshold value for the filter.
-        :param bool negative:
+        bool :
+            negative:
             Apply negative selection (selection vector is ``False`` where)
             ``method`` returns ``True``.
-        :param operator op:
+        operator :
+            op:
             Operator to apply between variable and threshold.
+        method :
+             (Default value = None)
+        variables :
+             (Default value = None)
+        feature_atts :
+             (Default value = None)
+        threshold :
+             (Default value = None)
+        negative :
+             (Default value = False)
+        op :
+             (Default value = operator.gt)
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         if callable(method):
@@ -778,13 +1058,26 @@ class Sample(FeatureBase):
         return FeatureSelection(self, selections)
     
     def feature_data(self, i, variables = None, feature_attrs = None):
-        """
-        For a feature returns the requested attributes.
-        
-        :param list variables:
+        """For a feature returns the requested attributes.
+
+        Parameters
+        ----------
+        list :
+            variables:
             Names of the variables.
-        :param list feature_attrs:
+        list :
+            feature_attrs:
             Names of variables in the ``FeatureAttributes`` object.
+        i :
+            
+        variables :
+             (Default value = None)
+        feature_attrs :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         result = {}
@@ -807,11 +1100,29 @@ class Sample(FeatureBase):
             database_lookup_args = None,
             ms2_analysis_args = None,
         ):
-        """
-        This method implements the workflow of processing the samples.
+        """This method implements the workflow of processing the samples.
         At the moment it does trivial filtering (see ``basic_filters``),
         performs database lookups (see ``database_lookup``) and analyses
         the MS2 data (see ``ms2_analysis``).
+
+        Parameters
+        ----------
+        basic_filters :
+             (Default value = True)
+        database_lookup :
+             (Default value = True)
+        ms2_analysis :
+             (Default value = True)
+        basic_filters_args :
+             (Default value = None)
+        database_lookup_args :
+             (Default value = None)
+        ms2_analysis_args :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if basic_filters:
@@ -824,26 +1135,49 @@ class Sample(FeatureBase):
             self.ms2_analysis(**(ms2_analysis_args or {}))
     
     def quality_filter(self, threshold = .2):
-        """
-        If the features has an attribute named `quality` it removes the
+        """If the features has an attribute named `quality` it removes the
         ones with quality below the threshold.
-        
+
+        Parameters
+        ----------
+        threshold :
+             (Default value = .2)
+
+        Returns
+        -------
+
         """
         
         self.feattrs.threshold_filter('quality', threshold = threshold)
     
     def rt_filter(self, threshold = 1.):
-        """
-        Removes the features with mean retention time below the threshold.
+        """Removes the features with mean retention time below the threshold.
         Works only if the features has an attribute named `rt_means`.
+
+        Parameters
+        ----------
+        threshold :
+             (Default value = 1.)
+
+        Returns
+        -------
+
         """
         
         self.feattrs.threshold_filter('rt_means', threshold = threshold)
     
     def charge_filter(self, charge = 1):
-        """
-        Keeps only the features with the preferred charge.
+        """Keeps only the features with the preferred charge.
         Does not care about sign.
+
+        Parameters
+        ----------
+        charge :
+             (Default value = 1)
+
+        Returns
+        -------
+
         """
         
         self.feattrs.threshold_filter(
@@ -853,11 +1187,19 @@ class Sample(FeatureBase):
         )
     
     def intensity_filter(self, threshold = 10000.):
-        """
-        Removes the features with total intensities across samples lower than
+        """Removes the features with total intensities across samples lower than
         the threshold.
         
         Works by the ``total_intensities`` attribute.
+
+        Parameters
+        ----------
+        threshold :
+             (Default value = 10000.)
+
+        Returns
+        -------
+
         """
         
         self.feattrs.threshold_filter(
@@ -872,12 +1214,26 @@ class Sample(FeatureBase):
             rt_min = 1.,
             intensity_min = 10000.
         ):
-        """
-        Performs 4 trivial filtering steps which discard a large number of
+        """Performs 4 trivial filtering steps which discard a large number of
         features at the beginning of the analysis. It removes the features
         with quality lower than 0.2, non single charge, retention time lower
         than 1 minute or total intensity lower than 10,000.
         Different threshold values can be provided to this method.
+
+        Parameters
+        ----------
+        quality_min :
+             (Default value = .2)
+        charge :
+             (Default value = 1)
+        rt_min :
+             (Default value = 1.)
+        intensity_min :
+             (Default value = 10000.)
+
+        Returns
+        -------
+
         """
         
         self.quality_filter(threshold = quality_min)
@@ -893,12 +1249,28 @@ class Sample(FeatureBase):
             charge = None,
             tolerance = None,
         ):
-        """
-        Performs database lookups of all m/z's.
+        """Performs database lookups of all m/z's.
         
         Creates an array variable named ``records`` in the
         ``FeatureAttributes`` object (``feattrs``) with the records retrieved
         from the database.
+
+        Parameters
+        ----------
+        database_args :
+             (Default value = None)
+        reinit_db :
+             (Default value = False)
+        adduct_constraints :
+             (Default value = True)
+        charge :
+             (Default value = None)
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if not hasattr(moldb, 'db') or reinit_db:
@@ -919,10 +1291,18 @@ class Sample(FeatureBase):
         )
     
     def set_ms2_sources(self, attrs = None):
-        """
-        Collects the MS2 scans belonging to this sample.
+        """Collects the MS2 scans belonging to this sample.
         
         The collected resources will be in the ``ms2_source`` attribute.
+
+        Parameters
+        ----------
+        attrs :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         self.ms2_source = []
@@ -934,11 +1314,21 @@ class Sample(FeatureBase):
             self.ms2_source = ms2_source[self.sample_id]
     
     def collect_ms2(self, sample_id = None, attrs = None):
-        """
-        Collects the MS2 scans belonging to this sample.
+        """Collects the MS2 scans belonging to this sample.
         
         The collected resources returned as ``dict`` which can be passed
         to ``ms2.MS2Feature``.
+
+        Parameters
+        ----------
+        sample_id :
+             (Default value = None)
+        attrs :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         attrs = attrs or self.attrs
@@ -960,12 +1350,22 @@ class Sample(FeatureBase):
             )
     
     def collect_mgf(self, sample_id = None, attrs = None):
-        """
-        Collects MGF files containing the MS2 spectra.
-        
-        :param dict attrs:
+        """Collects MGF files containing the MS2 spectra.
+
+        Parameters
+        ----------
+        dict :
+            attrs:
             A ``dict`` with attributes necessary to find the appropriate
             MGF files.
+        sample_id :
+             (Default value = None)
+        attrs :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         # if list of filenames provided we simply use those
@@ -1041,8 +1441,18 @@ class Sample(FeatureBase):
     
     @staticmethod
     def _default_mgf_match_method(path, attrs):
-        """
-        The default method for matching names of MGF files against attributes.
+        """The default method for matching names of MGF files against attributes.
+
+        Parameters
+        ----------
+        path :
+            
+        attrs :
+            
+
+        Returns
+        -------
+
         """
         
         match  = remgf.search(path)
@@ -1064,12 +1474,31 @@ class Sample(FeatureBase):
         )
     
     def collect_mzml(self, attrs = None):
+        """
+
+        Parameters
+        ----------
+        attrs :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         raise NotImplementedError
     
     def ms2_analysis(self, resources = None):
-        """
-        Runs MS2 identification methods on all features.
+        """Runs MS2 identification methods on all features.
+
+        Parameters
+        ----------
+        resources :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if resources is None:
@@ -1122,6 +1551,7 @@ class Sample(FeatureBase):
         self.feattrs._add_var(ms2_identities, 'ms2_identities')
     
     def ms2_identify(self):
+        """ """
         
         self.set_ms2_sources()
         self.ms2_analysis()
@@ -1131,9 +1561,21 @@ class Sample(FeatureBase):
     #
     
     def get_database_records(self, i, database = None, adduct = None):
-        """
-        Yields database records for one feature, optionally only records
+        """Yields database records for one feature, optionally only records
         of certain adduct or database.
+
+        Parameters
+        ----------
+        i :
+            
+        database :
+             (Default value = None)
+        adduct :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if adduct:
@@ -1157,8 +1599,18 @@ class Sample(FeatureBase):
             variables = None,
             headers = None,
         ):
-        """
-        Returns results as a header and a table as list of lists.
+        """Returns results as a header and a table as list of lists.
+
+        Parameters
+        ----------
+        variables :
+             (Default value = None)
+        headers :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         self.feattrs.sort_all('total_intensities', desc = True)
@@ -1236,6 +1688,19 @@ class Sample(FeatureBase):
             yield line
     
     def export_table(self, fname, **kwargs):
+        """
+
+        Parameters
+        ----------
+        fname :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         
         table = self.table(**kwargs)
         
@@ -1254,10 +1719,16 @@ class Sample(FeatureBase):
 class FeatureIdx(FeatureBase):
     
     def __init__(self, length):
-        """
-        Helps the sorting of features across multiple samples
+    """Helps the sorting of features across multiple samples
         with keeping track of feature IDs.
-        """
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
         
         FeatureBase.__init__(self)
         
@@ -1269,9 +1740,17 @@ class FeatureIdx(FeatureBase):
         self.clients = {}
     
     def _sort(self, argsort):
-        """
-        Sorts the two index arrays by an index array.
+        """Sorts the two index arrays by an index array.
         Do not call this because it does sync with clients.
+
+        Parameters
+        ----------
+        argsort :
+            
+
+        Returns
+        -------
+
         """
         
         if len(argsort) != len(self):
@@ -1284,21 +1763,37 @@ class FeatureIdx(FeatureBase):
         self._original = self._current.argsort()
     
     def current(self, o):
-        """
-        Tells the current index for the original index ``o``.
-        
-        :param int o:
+        """Tells the current index for the original index ``o``.
+
+        Parameters
+        ----------
+        int :
+            o:
             An original index.
+        o :
+            
+
+        Returns
+        -------
+
         """
         
         return self._original[o]
     
     def original(self, c):
-        """
-        Tells the original index for the current index ``c``.
-        
-        :param int c:
+        """Tells the original index for the current index ``c``.
+
+        Parameters
+        ----------
+        int :
+            c:
             An index in the current ordering.
+        c :
+            
+
+        Returns
+        -------
+
         """
         
         return self._current[c]
@@ -1308,41 +1803,73 @@ class FeatureIdx(FeatureBase):
         return len(self._original)
     
     def acurrent(self, ao):
-        """
-        For a vector of original indices ``ao`` returns a vector of
+        """For a vector of original indices ``ao`` returns a vector of
         corresponding current indices.
-        
-        :param int ao:
+
+        Parameters
+        ----------
+        int :
+            ao:
             Vector of original indices.
+        ao :
+            
+
+        Returns
+        -------
+
         """
         
         return self._original[ao]
     
     def aoriginal(self, co):
-        """
-        For a vector of current indices ``co`` returns a vector of
+        """For a vector of current indices ``co`` returns a vector of
         corresponding original indices.
-        
-        :param int co:
+
+        Parameters
+        ----------
+        int :
+            co:
             Vector of current indices.
+        co :
+            
+
+        Returns
+        -------
+
         """
         
         return self._current[ac]
     
     def convert(self, other):
-        """
-        Converts from the ordering of an other ``FeatureIdx`` instance
+        """Converts from the ordering of an other ``FeatureIdx`` instance
         to the ordering of this one.
+
+        Parameters
+        ----------
+        other :
+            
+
+        Returns
+        -------
+
         """
         
         raise NotImplementedError
     
     def register(self, sortable):
-        """
-        Binds a sortable object of the same length to this one hence all
+        """Binds a sortable object of the same length to this one hence all
         sorting operations will be applied also to this object.
         Sortables clients assumed to share the same original indices.
         It means should have the same ordering at time of registration.
+
+        Parameters
+        ----------
+        sortable :
+            
+
+        Returns
+        -------
+
         """
         
         if sortable.var and len(sortable) != len(self):
@@ -1354,13 +1881,21 @@ class FeatureIdx(FeatureBase):
         self.clients[id(sortable)] = sortable
     
     def unregister(self, id_sortable):
-        """
-        Removes an object from the list of clients and also makes it forget
+        """Removes an object from the list of clients and also makes it forget
         about this object to be its sorter. Simply it makes the this object
         and the client independent.
-        
-        :param int,sortable id_sortable:
+
+        Parameters
+        ----------
+        int :
+            sortable id_sortable:
             Either the ``id`` of a client or the object itself.
+        id_sortable :
+            
+
+        Returns
+        -------
+
         """
         
         if not isinstance(id_sortable, int):
@@ -1376,8 +1911,7 @@ class FeatureIdx(FeatureBase):
             by = None,
             origin = None,
         ):
-        """
-        Applies custom sort to the object if ``by`` is an index array.
+        """Applies custom sort to the object if ``by`` is an index array.
         If ``by`` is ``None``, it sorts by the original indices, which
         means the restoration of the original order.
         It calls ``sort_all`` by the same argsort on all registered clients
@@ -1390,6 +1924,17 @@ class FeatureIdx(FeatureBase):
         ``by`` restores the original order); or called by the ``sort_all``
         method of one of the clients propagating the sorting to this object
         and to all other clients.
+
+        Parameters
+        ----------
+        by :
+             (Default value = None)
+        origin :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         if by is None:
@@ -1405,8 +1950,18 @@ class FeatureIdx(FeatureBase):
                 client.sort_all(by = by, propagate = False)
     
     def _filter(self, selection, origin = None):
-        """
-        Applies filtering to all registered clients.
+        """Applies filtering to all registered clients.
+
+        Parameters
+        ----------
+        selection :
+            
+        origin :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         FeatureBase._filter(self, selection, propagate = False)
@@ -1419,6 +1974,7 @@ class FeatureIdx(FeatureBase):
 
 
 class SampleSet(Sample, sampleattrs.SampleSorter):
+    """ """
     
     def __init__(
             self,
@@ -1515,13 +2071,25 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
     
     @classmethod
     def combine_samples(cls, attrs, samples, **kwargs):
-        """
-        Initializes the object by combining a series of ``Sample`` objects.
+        """Initializes the object by combining a series of ``Sample`` objects.
         
         All samples must be of the same length and have the same ordering.
         It means the corresponding elements must belong to the same feature.
         The ``FeatureAttributes`` and the ``sorter`` (``FeatureIdx``) will
         be used from the first sample.
+
+        Parameters
+        ----------
+        attrs :
+            
+        samples :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         if len(set(len(s) for s in samples)) > 1:
@@ -1558,6 +2126,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
     
     @property
     def numof_samples(self):
+        """ """
         
         return self._guess_numof_samples(
             self.attrs,
@@ -1565,6 +2134,19 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         )
     
     def _guess_numof_samples(self, attrs = None, variables = None):
+        """
+
+        Parameters
+        ----------
+        attrs :
+             (Default value = None)
+        variables :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         
         if attrs:
             
@@ -1586,16 +2168,32 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
     _set_attrs = sampleattrs.SampleSorter._set_attrs
     
     def get_sample_attrs(self, i):
-        """
-        Returns the sample attributes (dict of metadata) of the ``i``th
+        """Returns the sample attributes (dict of metadata) of the ``i``th
         sample in the set.
+
+        Parameters
+        ----------
+        i :
+            
+
+        Returns
+        -------
+
         """
         
         return self.attrs[i]
     
     def get_sample(self, i):
-        """
-        Returns the ``i``th sample as a ``Sample`` object.
+        """Returns the ``i``th sample as a ``Sample`` object.
+
+        Parameters
+        ----------
+        i :
+            
+
+        Returns
+        -------
+
         """
         
         var = {}
@@ -1615,6 +2213,17 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         )
     
     def _get_sample_id(self, i):
+        """
+
+        Parameters
+        ----------
+        i :
+            
+
+        Returns
+        -------
+
+        """
         
         if callable(self.sample_ids):
             
@@ -1630,9 +2239,17 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         )
     
     def collect_ms2(self, attrs = None):
-        """
-        Collects the MS2 resources for each sample a similar way as the same
+        """Collects the MS2 resources for each sample a similar way as the same
         method does in ``Sample``.
+
+        Parameters
+        ----------
+        attrs :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         ms2_source = {}
@@ -1666,17 +2283,53 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         return ms2_source
     
     def set_ms2_sources(self, attrs = None):
-        """
-        Collects the MS2 scans for all samples.
+        """Collects the MS2 scans for all samples.
         
         The collected resources will be in the ``ms2_source`` attribute.
+
+        Parameters
+        ----------
+        attrs :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         self.ms2_source = self.collect_ms2(attrs = attrs)
     
     def peak_size_filter(self, backg, prot, threshold = 2):
+        """
+
+        Parameters
+        ----------
+        backg :
+            
+        prot :
+            
+        threshold :
+             (Default value = 2)
+
+        Returns
+        -------
+
+        """
         
         def ps(a0, a1):
+            """
+
+            Parameters
+            ----------
+            a0 :
+                
+            a1 :
+                
+
+            Returns
+            -------
+
+            """
             
             if np.all(np.isnan(a1)) or np.nanmax(a1) == 0:
                 
@@ -1715,13 +2368,21 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         self.feattrs.threshold_filter('peaksize', threshold = threshold)
     
     def get_selection(self, selection):
-        """
-        Returns a ``SampleSelection`` object which is a binary selection
+        """Returns a ``SampleSelection`` object which is a binary selection
         of some of the samples in the set.
-        
-        :param list,numpy.ndarray selection:
+
+        Parameters
+        ----------
+        list :
+            numpy.ndarray selection:
             Either a list of sample IDs to be selected or a boolean array
             with the length corresponding to the number of samples.
+        selection :
+            
+
+        Returns
+        -------
+
         """
         
         return sampleattrs.SampleSelection(
@@ -1730,13 +2391,21 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         )
     
     def get_sample_data(self, **kwargs):
-        """
-        Returns a ``SampleData`` object which stores any data about the
+        """Returns a ``SampleData`` object which stores any data about the
         samples.
-        
-        :param numpy.ndarray **kwargs:
+
+        Parameters
+        ----------
+        numpy :
+            ndarray **kwargs:
             One or more arrays with same their first dimension in
             agreement with the number of samples.
+        **kwargs :
+            
+
+        Returns
+        -------
+
         """
         
         return sampleattrs.SampleData(
@@ -1746,6 +2415,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
 
 
 class FeatureSelection(FeatureBase):
+    """ """
     
     def __init__(self, samples, selection):
         
@@ -1759,5 +2429,6 @@ class FeatureSelection(FeatureBase):
     
     @property
     def negative(self):
+        """ """
         
         return np.logical_not(self.selection)

@@ -33,6 +33,7 @@ import lipyd.lipproc as lipproc
 
 
 class AbstractMetaboliteComponent(formula.Formula):
+    """ """
     
     def __init__(self,
                  core = 0.0,
@@ -79,6 +80,7 @@ class AbstractMetaboliteComponent(formula.Formula):
 
 
 class AbstractMetabolite(AbstractMetaboliteComponent):
+    """ """
     
     def __init__(self,
             core = 0.0,
@@ -132,9 +134,17 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
     
     @staticmethod
     def get_substituent(sub):
-        """
-        Creates a `Formula` object if the substituent is not
+        """Creates a `Formula` object if the substituent is not
         already an instance of `Formula` or `Substituent`.
+
+        Parameters
+        ----------
+        sub :
+            
+
+        Returns
+        -------
+
         """
         
         return (
@@ -146,9 +156,15 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         )
     
     def itersubs(self):
-        """
-        Iterates all combinations of all substituents.
+        """Iterates all combinations of all substituents.
         Yields tuples of substituents.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         self._restore_sub0()
@@ -158,11 +174,17 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             yield subs
     
     def subsproduct(self):
-        """
-        Iterates instances and substituents in parallel.
+        """Iterates instances and substituents in parallel.
         Yields tuples of two elements.
         First element is a tuple of all molecule parts (substituents).
         Second element is the actual instance, i.e. the whole molecule.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         iterator = self.itersum() if self.sum_only else self.itersubs()
@@ -180,9 +202,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             yield subs, self.inst
     
     def iterlines(self):
-        """
-        Iterates standard lines.
-        """
+        """Iterates standard lines."""
         
         for subs, inst in self.subsproduct():
             
@@ -215,9 +235,15 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             yield inst.mass, rec
     
     def itersum(self):
-        """
-        Iterates by considering only the sum of chain lengths and
+        """Iterates by considering only the sum of chain lengths and
         unsaturations.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         self._restore_sub0()
@@ -268,8 +294,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         self._restore_sub0()
     
     def _restore_sub0(self):
-        """
-        For iterating with considering only total carbon count and
+        """For iterating with considering only total carbon count and
         unsaturation accross all aliphatic chains, we pretend that
         all extra carbons and unsaturations are added to the first
         substituent with variable aliphatic chain, e.g. it may
@@ -277,6 +302,13 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
         carbons are in the other chains. After setting these fake
         numbers on the first substituent we need to restore the
         real numbers otherwise it could mess up things later.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         if self.sub0:
@@ -285,9 +317,17 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
             self.subs[self.sub0[0]].unsats = self.sub0[2]
     
     def has_variable_aliphatic_chain(self, sub):
-        """
-        Tells if the substituent really has more than one possible
+        """Tells if the substituent really has more than one possible
         chain length or unsaturation variation.
+
+        Parameters
+        ----------
+        sub :
+            
+
+        Returns
+        -------
+
         """
         
         return (
@@ -297,6 +337,7 @@ class AbstractMetabolite(AbstractMetaboliteComponent):
 
 
 class AbstractSubstituent(AbstractMetaboliteComponent):
+    """ """
     
     def __init__(
             self,
@@ -469,6 +510,19 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
                     break
     
     def set_attr(self, val, name):
+        """
+
+        Parameters
+        ----------
+        val :
+            
+        name :
+            
+
+        Returns
+        -------
+
+        """
         
         setattr(
             self,
@@ -479,6 +533,17 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         )
     
     def set_chlens(self, c):
+        """
+
+        Parameters
+        ----------
+        c :
+            
+
+        Returns
+        -------
+
+        """
         
         if type(c) is int: c = [c]
         if type(c) is tuple and len(c) != 2: c = list(c)
@@ -493,6 +558,17 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         )
     
     def set_unsats(self, u):
+        """
+
+        Parameters
+        ----------
+        u :
+            
+
+        Returns
+        -------
+
+        """
         
         if type(u) is int: u = [u]
         if type(u) is tuple and len(u) != 2: u = list(u)
@@ -503,6 +579,17 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         )
     
     def update_core(self, i = 0):
+        """
+
+        Parameters
+        ----------
+        i :
+             (Default value = 0)
+
+        Returns
+        -------
+
+        """
         
         try:
             new = self.cores[i]
@@ -547,10 +634,12 @@ class AbstractSubstituent(AbstractMetaboliteComponent):
         self.calc_mass()
     
     def get_prefix(self):
+        """ """
         
         return self.prefix
     
     def get_chain(self):
+        """ """
         
         return lipproc.Chain(
             c = self.c,

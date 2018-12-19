@@ -27,8 +27,10 @@ from lipyd.common import basestring
 from lipyd.reader.peaks import peaks_sample_id_method
 
 class TestSampleId(object):
+    """ """
     
     def test_plate_sample_id_processor(self):
+        """ """
         
         sip = sampleattrs.plate_sample_id_processor()
         
@@ -39,8 +41,20 @@ class TestSampleId(object):
         assert a11_from_tuple  == ('A', 11)
     
     def test_generic_sample_id_processor(self):
+        """ """
         
         def _method(something):
+            """
+
+            Parameters
+            ----------
+            something :
+                
+
+            Returns
+            -------
+
+            """
             
             if isinstance(something, basestring):
                 
@@ -66,6 +80,7 @@ class TestSampleId(object):
         assert other == ('foobar', None)
     
     def test_passthrough_sample_id_processor(self):
+        """ """
         
         sip = sampleattrs.sample_id_processor()
         
@@ -76,8 +91,10 @@ class TestSampleId(object):
 
 
 class TestSampleAttrs(object):
+    """ """
     
     def test_sample_attrs_default(self):
+        """ """
         
         np.random.seed(123)
         sa = sampleattrs.SampleAttrs()
@@ -85,6 +102,7 @@ class TestSampleAttrs(object):
         assert sa.sample_id.sample_id == 'nccgrtkzwb'
     
     def test_sample_attrs_from_attrs(self):
+        """ """
         
         attrs = {
             'label': {
@@ -101,6 +119,7 @@ class TestSampleAttrs(object):
         assert sa.sample_id == ('A', 11)
     
     def test_sample_attrs_from_string(self):
+        """ """
         
         sa = sampleattrs.SampleAttrs(
             sample_id = ('A', 11),
@@ -110,6 +129,7 @@ class TestSampleAttrs(object):
         assert sa.sample_id == ('A', 11)
     
     def test_sampleset_attrs_default(self):
+        """ """
         
         np.random.seed(123)
         ssa = sampleattrs.SampleSetAttrs(length = 9)
@@ -118,6 +138,7 @@ class TestSampleAttrs(object):
         assert ssa.sample_id_to_index[('hlwhblfxzs',)] == 7
     
     def test_sampleset_from_sample_ids_proc(self):
+        """ """
         
         ssa = sampleattrs.SampleSetAttrs(
             sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
@@ -129,6 +150,7 @@ class TestSampleAttrs(object):
         assert len(ssa.sample_index_to_id) == 5
     
     def test_sampleset_from_attrs(self):
+        """ """
         
         ssa = sampleattrs.SampleSetAttrs(
             sample_ids = peaks_sample_id_method,
@@ -146,6 +168,7 @@ class TestSampleAttrs(object):
         assert ('G', 2) in ssa.sample_id_to_index
     
     def test_sampleset_attrs_argsort(self):
+        """ """
         
         ssa = sampleattrs.SampleSetAttrs(
             sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
@@ -157,6 +180,7 @@ class TestSampleAttrs(object):
         assert np.all(idx == np.array([1, 2, 3, 4, 0]))
     
     def test_sampleset_attrs_sort(self):
+        """ """
         
         ssa = sampleattrs.SampleSetAttrs(
             sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
@@ -179,6 +203,7 @@ class TestSampleAttrs(object):
         assert ssa.attrs[-1].attrs['fr'] == 'a9'
     
     def test_sampleset_attrs_sort_by_id(self):
+        """ """
         
         ssa = sampleattrs.SampleSetAttrs(
             sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
@@ -191,6 +216,7 @@ class TestSampleAttrs(object):
         assert ssa.sample_index_to_id[0] == ('A', 10)
     
     def test_sampleset_attrs_sort_by_other(self):
+        """ """
         
         ssa0 = sampleattrs.SampleSetAttrs(
             sample_ids = ['A9', 'A10', 'A11', 'A12', 'B1'],
@@ -215,6 +241,7 @@ class TestSampleAttrs(object):
         )
     
     def test_sec_profile_1(self):
+        """ """
         
         peakspath = settings.get('peaks_gltpd1_invitro')
         secpath = settings.get('sec_gltpd1_invitro')
@@ -245,6 +272,7 @@ class TestSampleAttrs(object):
         assert secprofile.profile.max() - 143.40397368421048 < 0.0001
     
     def test_sec_profile_2(self):
+        """ """
         
         peakspath = settings.get('peaks_gltpd1_invivo')
         secpath = settings.get('sec_gltpd1_invivo')
@@ -283,6 +311,7 @@ class TestSampleAttrs(object):
         assert secprofile.profiles == {'profile045', 'profile015'}
     
     def test_protein_containing_samples(self):
+        """ """
         
         peakspath = settings.get('peaks_gltpd1_invivo')
         secpath = settings.get('sec_gltpd1_invivo')
@@ -330,6 +359,7 @@ class TestSampleAttrs(object):
         )
     
     def test_selection_logical_not(self):
+        """ """
         
         sel = sampleattrs.SampleSelection(
             selection = [False, True, True, False, False],
@@ -345,6 +375,7 @@ class TestSampleAttrs(object):
         )
     
     def test_selection_logical_and(self):
+        """ """
         
         sel0 = sampleattrs.SampleSelection(
             selection = [False, True, True, False, False],
@@ -366,6 +397,7 @@ class TestSampleAttrs(object):
         )
     
     def test_selection_logical_or(self):
+        """ """
         
         sel0 = sampleattrs.SampleSelection(
             selection = [False, True, True, False, False],

@@ -2620,6 +2620,7 @@ specimens = [
 
 
 class TestScan(object):
+    """ """
     
     @pytest.mark.parametrize('mgfname, ionmode, scan_id, identity', specimens)
     def test_identification(
@@ -2629,6 +2630,23 @@ class TestScan(object):
             scan_id,
             identity
         ):
+        """
+
+        Parameters
+        ----------
+        mgfname :
+            
+        ionmode :
+            
+        scan_id :
+            
+        identity :
+            
+
+        Returns
+        -------
+
+        """
         
         std_key = (scan_id, ionmode)
         

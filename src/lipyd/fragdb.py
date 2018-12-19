@@ -34,6 +34,7 @@ import lipyd.session as session
 
 
 class FragmentDatabaseAggregator(object):
+    """ """
     
     default_args = {
         'Sph': 'sph_default',
@@ -118,6 +119,7 @@ class FragmentDatabaseAggregator(object):
             self.build()
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -126,11 +128,17 @@ class FragmentDatabaseAggregator(object):
         setattr(self, '__class__', new)
     
     def build(self):
-        """
-        Builds the fragment list.
+        """Builds the fragment list.
         
         Reads files and auto-generates programmatically calculated
         homolog series.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         self.fragments = []
@@ -155,10 +163,16 @@ class FragmentDatabaseAggregator(object):
         return self.fragments.__iter__()
     
     def set_filenames(self):
-        """
-        Sets the `files` attribute to be a list of filenames.
+        """Sets the `files` attribute to be a list of filenames.
         If no `files` argument provided the built in default
         fragment list files will be used.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         self.files = (
@@ -170,8 +184,7 @@ class FragmentDatabaseAggregator(object):
         )
     
     def get_default_file(self):
-        """
-        Returns the file name of the default fragment lists.
+        """Returns the file name of the default fragment lists.
         
         These are stored in the `pfragmentsfile` and `nfragmentsfile`
         settings for positive and negative ion modes, respectively.
@@ -186,6 +199,13 @@ class FragmentDatabaseAggregator(object):
         * headgroups (lipid classes), e.g.`PC;SM`
         
         See the built in fragment lists for examples.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         return settings.get('%sfragmentsfile' % (
@@ -193,9 +213,7 @@ class FragmentDatabaseAggregator(object):
         ))
     
     def read_files(self):
-        """
-        Returns the list of fragments read from all files.
-        """
+        """Returns the list of fragments read from all files."""
         
         return (
             list(
@@ -206,8 +224,7 @@ class FragmentDatabaseAggregator(object):
         )
     
     def read_file(self, fname = None):
-        """
-        Reads a list of MS2 fragments from a file.
+        """Reads a list of MS2 fragments from a file.
         Returns list of fragments.
         
         If no filename provided the default fragment lists will be read.
@@ -222,9 +239,29 @@ class FragmentDatabaseAggregator(object):
         * headgroups (lipid classes), e.g.`PC;SM`
         
         See the built in fragment lists for examples.
+
+        Parameters
+        ----------
+        fname :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         def get_charge(typ):
+            """
+
+            Parameters
+            ----------
+            typ :
+                
+
+            Returns
+            -------
+
+            """
             
             return (
                 0  if typ.startswith('NL') else
@@ -233,6 +270,17 @@ class FragmentDatabaseAggregator(object):
             )
         
         def process_line(l):
+            """
+
+            Parameters
+            ----------
+            l :
+                
+
+            Returns
+            -------
+
+            """
             
             l = l.split('\t')
             
@@ -285,13 +333,30 @@ class FragmentDatabaseAggregator(object):
             ]
     
     def set_series(self):
-        """
-        Selects the homolog series to be generated and their parameters.
+        """Selects the homolog series to be generated and their parameters.
         See details in docs of `exclude` and `include` arguments for
         `__init__()`.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         def get_class(name):
+            """
+
+            Parameters
+            ----------
+            name :
+                
+
+            Returns
+            -------
+
+            """
             
             # TODO be able to use classes defined elsewhere
             return getattr(fragment, name)
@@ -321,14 +386,21 @@ class FragmentDatabaseAggregator(object):
         ]
     
     def get_series_args(self, cls):
-        """
-        Provides a dict of arguments for fragment homolog series.
+        """Provides a dict of arguments for fragment homolog series.
         
         Args
         ----
-        :param class cls:
+
+        Parameters
+        ----------
+        class :
+            cls:
             Fragment homolog series class
             e.g. `fragment.FA_mH` -- fatty acid minus hydrogen.
+
+        Returns
+        -------
+
         """
         
         args = (
@@ -342,9 +414,7 @@ class FragmentDatabaseAggregator(object):
         return args
     
     def generate_series(self):
-        """
-        Generates homologous series fragments.
-        """
+        """Generates homologous series fragments."""
         
         result = []
         
@@ -361,10 +431,22 @@ class FragmentDatabaseAggregator(object):
         return result
     
     def add_constraints(self, cls):
+        """ """
         
         self.constraints[cls.name] = cls.constraints
     
     def get_constraints(self, fragtype):
+        """
+
+        Parameters
+        ----------
+        fragtype :
+            
+
+        Returns
+        -------
+
+        """
         
         return self.constraints.get(fragtype, ())
     
@@ -377,15 +459,28 @@ class FragmentDatabaseAggregator(object):
         return self.fragments.shape[0]
     
     def lookup(self, mz, nl = False, tolerance = None):
-        """
-        Searches for fragments in the database matching the `mz` within the
+        """Searches for fragments in the database matching the `mz` within the
         actual range of tolerance. To change the tolerance set the
         `tolerance` attribute to the desired ppm value.
         
         Args
         ----
-        :param bool nl:
+
+        Parameters
+        ----------
+        bool :
+            nl:
             The m/z is a neutral loss.
+        mz :
+            
+        nl :
+             (Default value = False)
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         idx = lookup_.findall(
@@ -406,9 +501,21 @@ class FragmentDatabaseAggregator(object):
         return self.fragments[idx,:]
     
     def lookup_nl(self, mz, precursor, tolerance = None):
-        """
-        Searches for neutral loss fragments in the database matching the
+        """Searches for neutral loss fragments in the database matching the
         m/z within the actual range of tolerance.
+
+        Parameters
+        ----------
+        mz :
+            
+        precursor :
+            
+        tolerance :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         
         nlmz = precursor - mz
@@ -417,14 +524,23 @@ class FragmentDatabaseAggregator(object):
         return self.lookup(nlmz, nl = True, tolerance = nl_tolerance)
     
     def by_name(self, name):
-        """
-        Returns fragment data by its name.
+        """Returns fragment data by its name.
         `None` if the name not in the database.
         
         Args
         ----
-        :param str name:
+
+        Parameters
+        ----------
+        str :
+            name:
             The full name of a fragment, e.g. `PE [P+E] (140.0118)`.
+        name :
+            
+
+        Returns
+        -------
+
         """
         
         i = self.frags_by_name.get(name, None)
@@ -432,14 +548,23 @@ class FragmentDatabaseAggregator(object):
         return self.fragments[i] if i is not None else None
     
     def mz_by_name(self, name):
-        """
-        Returns the m/z of a fragment by its name.
+        """Returns the m/z of a fragment by its name.
         `None` if the name not in the database.
         
         Args
         ----
-        :param str name:
+
+        Parameters
+        ----------
+        str :
+            name:
             The full name of a fragment, e.g. `PE [P+E] (140.0118)`.
+        name :
+            
+
+        Returns
+        -------
+
         """
         
         i = self.frags_by_name.get(name, None)
@@ -448,8 +573,18 @@ class FragmentDatabaseAggregator(object):
 
 
 def init_db(ionmode, **kwargs):
-    """
-    Creates a fragment database.
+    """Creates a fragment database.
+
+    Parameters
+    ----------
+    ionmode :
+        
+    **kwargs :
+        
+
+    Returns
+    -------
+
     """
     
     mod = sys.modules[__name__]
@@ -458,10 +593,20 @@ def init_db(ionmode, **kwargs):
     setattr(mod, attr, FragmentDatabaseAggregator(ionmode, **kwargs))
 
 def get_db(ionmode, **kwargs):
-    """
-    Returns fragment database for the ion mode requested.
+    """Returns fragment database for the ion mode requested.
     Creates a database with the keyword arguments provided if no database
     has been initialized yet.
+
+    Parameters
+    ----------
+    ionmode :
+        
+    **kwargs :
+        
+
+    Returns
+    -------
+
     """
     
     mod = sys.modules[__name__]
@@ -474,68 +619,183 @@ def get_db(ionmode, **kwargs):
     return getattr(mod, attr)
 
 def lookup(mz, ionmode, nl = False, tolerance = None):
-    """
-    Looks up an m/z in the fragment database, returns all fragment identities
+    """Looks up an m/z in the fragment database, returns all fragment identities
     within range of tolerance.
     
     Args
     ----
-    :param float mz:
+
+    Parameters
+    ----------
+    float :
+        mz:
         Measured MS2 fragment m/z value.
-    :param str ionmode:
+    str :
+        ionmode:
         MS ion mode; `pos` or `neg`.
-    :param bool nl:
+    bool :
+        nl:
         Look up charged ion or neutral loss m/z.
+    mz :
+        
+    ionmode :
+        
+    nl :
+         (Default value = False)
+    tolerance :
+         (Default value = None)
+
+    Returns
+    -------
+
     """
     
     db = get_db(ionmode)
     return db.lookup(mz, nl = nl, tolerance = tolerance)
 
 def lookup_nl(mz, precursor, ionmode, tolerance = None):
-    """
-    Looks up an MS2 neutral loss in the fragment database.
+    """Looks up an MS2 neutral loss in the fragment database.
+
+    Parameters
+    ----------
+    mz :
+        
+    precursor :
+        
+    ionmode :
+        
+    tolerance :
+         (Default value = None)
+
+    Returns
+    -------
+
     """
     
     db = get_db(ionmode)
     return db.lookup_nl(mz, precursor, tolerance = tolerance)
 
 def lookup_pos(mz, tolerance = None):
+    """
+
+    Parameters
+    ----------
+    mz :
+        
+    tolerance :
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
     
     return lookup(mz, 'pos', tolerance = tolerance)
 
 def lookup_neg(mz, tolerance = None):
+    """
+
+    Parameters
+    ----------
+    mz :
+        
+    tolerance :
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
     
     return lookup(mz, 'neg', tolerance = tolerance)
 
 def lookup_pos_nl(mz, precursor, tolerance = None):
+    """
+
+    Parameters
+    ----------
+    mz :
+        
+    precursor :
+        
+    tolerance :
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
     
     return lookup_nl(mz, precursor, 'pos', tolerance = tolerance)
 
 def lookup_neg_nl(mz, precursor):
+    """
+
+    Parameters
+    ----------
+    mz :
+        
+    precursor :
+        
+
+    Returns
+    -------
+
+    """
     
     return lookup_nl(mz, precursor, 'neg')
 
 def constraints(fragtype, ionmode):
-    """
-    Returns the constraints for a given fragment type.
+    """Returns the constraints for a given fragment type.
+
+    Parameters
+    ----------
+    fragtype :
+        
+    ionmode :
+        
+
+    Returns
+    -------
+
     """
     
     db = get_db(ionmode)
     return db.get_constraints(fragtype)
 
 def mz_by_name(name, ionmode):
-    """
-    Returns the m/z of a fragment by its name.
+    """Returns the m/z of a fragment by its name.
     `None` if name not in the database.
+
+    Parameters
+    ----------
+    name :
+        
+    ionmode :
+        
+
+    Returns
+    -------
+
     """
     
     db = get_db(ionmode)
     return db.mz_by_name(name)
 
 def by_name(name, ionmode):
-    """
-    Returns fragment data by its name.
+    """Returns fragment data by its name.
     `None` if name not in the database.
+
+    Parameters
+    ----------
+    name :
+        
+    ionmode :
+        
+
+    Returns
+    -------
+
     """
     
     db = get_db(ionmode)
@@ -550,6 +810,7 @@ FragmentAnnotation = collections.namedtuple(
 
 
 class FragmentAnnotator(object):
+    """ """
     
     def __init__(
             self,
@@ -578,6 +839,7 @@ class FragmentAnnotator(object):
         self.tolerance = tolerance or settings.get('ms2_tolerance')
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -592,9 +854,17 @@ class FragmentAnnotator(object):
             yield self.annotate(mz)
     
     def annotate(self, mz):
-        """
-        Annotates the fragments in MS2 scan with possible identities taken
+        """Annotates the fragments in MS2 scan with possible identities taken
         from the fragment database.
+
+        Parameters
+        ----------
+        mz :
+            
+
+        Returns
+        -------
+
         """
         
         result = []

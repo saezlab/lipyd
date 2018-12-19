@@ -23,12 +23,14 @@ except:
     pass
 
 class Reader(object):
+    """ """
     
     def __init__(self, fname):
         
         self.fname = fname
         
     def read_mzml(self):
+        """ """
         
         self.fil = pyopenms.MzMLFile()
         self.exp = pyopenms.MSExperiment()

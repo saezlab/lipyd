@@ -23,8 +23,30 @@ import pprint
 
 
 class PrettyPrinter(pprint.PrettyPrinter):
+    """ """
     
     def format_namedtuple(self, object, stream, indent, allowance, context, level):
+        """
+
+        Parameters
+        ----------
+        object :
+            
+        stream :
+            
+        indent :
+            
+        allowance :
+            
+        context :
+            
+        level :
+            
+
+        Returns
+        -------
+
+        """
         # Code almost equal to _format_dict, see pprint code
         write = stream.write
         write(object.__class__.__name__ + '(')
@@ -48,6 +70,29 @@ class PrettyPrinter(pprint.PrettyPrinter):
             write(')')
 
     def format_namedtuple_items(self, items, stream, indent, allowance, context, level, inline=False):
+        """
+
+        Parameters
+        ----------
+        items :
+            
+        stream :
+            
+        indent :
+            
+        allowance :
+            
+        context :
+            
+        level :
+            
+        inline :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         # Code almost equal to _format_dict_items, see pprint code
         #print(level, file = sys.stdout)
         indent += self._indent_per_level
@@ -68,6 +113,27 @@ class PrettyPrinter(pprint.PrettyPrinter):
                 write(delimnl)
     
     def _pprint_tuple(self, object, stream, indent, allowance, context, level):
+        """
+
+        Parameters
+        ----------
+        object :
+            
+        stream :
+            
+        indent :
+            
+        allowance :
+            
+        context :
+            
+        level :
+            
+
+        Returns
+        -------
+
+        """
         
         stream.write('(\n' + ' ' * (level * 2))
         endchar = ',\n)' if len(object) == 1 else '\n' + ' ' * (level  * 2) + ')'
@@ -81,6 +147,27 @@ class PrettyPrinter(pprint.PrettyPrinter):
     _dispatch[tuple.__repr__] = _pprint_tuple
     
     def _format(self, object, stream, indent, allowance, context, level):
+        """
+
+        Parameters
+        ----------
+        object :
+            
+        stream :
+            
+        indent :
+            
+        allowance :
+            
+        context :
+            
+        level :
+            
+
+        Returns
+        -------
+
+        """
         # We dynamically add the types of our namedtuple and namedtuple like 
         # classes to the _dispatch object of pprint that maps classes to
         # formatting methods

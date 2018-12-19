@@ -26,13 +26,22 @@ import lipyd.mz as mz
 
 
 def formula2atoms(formula):
-    """
-    Converts chemical formula string to dict of atom counts.
+    """Converts chemical formula string to dict of atom counts.
     
     Args
     ----
-    :param str formula:
+
+    Parameters
+    ----------
+    str :
+        formula:
         Chemical formula
+    formula :
+        
+
+    Returns
+    -------
+
     """
     
     atoms = defaultdict(lambda: 0)
@@ -45,6 +54,7 @@ def formula2atoms(formula):
 
 
 class Formula(mass.MassBase, mz.Mz):
+    """ """
     
     def __init__(
             self,
@@ -256,14 +266,27 @@ class Formula(mass.MassBase, mz.Mz):
         yield self
     
     def reset_atoms(self):
+        """ """
         
         self.atoms = defaultdict(int)
     
     def as_mass(self):
+        """ """
         
         return MassBase(self.formula, self.charge, self.isotope)
     
     def add(self, formula):
+        """
+
+        Parameters
+        ----------
+        formula :
+            
+
+        Returns
+        -------
+
+        """
         
         for elem, cnt in mass.reform.findall(formula):
             self.atoms[elem] += int(cnt or '1')
@@ -271,6 +294,17 @@ class Formula(mass.MassBase, mz.Mz):
         self.update()
     
     def sub(self, formula):
+        """
+
+        Parameters
+        ----------
+        formula :
+            
+
+        Returns
+        -------
+
+        """
         
         for elem, cnt in mass.reform.findall(formula):
             self.atoms[elem] -= int(cnt or '1')
@@ -283,6 +317,7 @@ class Formula(mass.MassBase, mz.Mz):
         self.update()
     
     def update(self):
+        """ """
         
         if len(self.atoms):
             
@@ -291,10 +326,36 @@ class Formula(mass.MassBase, mz.Mz):
             self.calc_mass()
     
     def bind(self, other, loss = 'H2O'):
+        """
+
+        Parameters
+        ----------
+        other :
+            
+        loss :
+             (Default value = 'H2O')
+
+        Returns
+        -------
+
+        """
         
         return self + other - loss
     
     def split(self, product1, add = 'H2O'):
+        """
+
+        Parameters
+        ----------
+        product1 :
+            
+        add :
+             (Default value = 'H2O')
+
+        Returns
+        -------
+
+        """
         
         product1 = Formula(product1)
         
@@ -302,6 +363,25 @@ class Formula(mass.MassBase, mz.Mz):
     
     def update_mz(self, mz = None, z = 1, sign = None, tolerance = .01,
                   overwrite = False):
+        """
+
+        Parameters
+        ----------
+        mz :
+             (Default value = None)
+        z :
+             (Default value = 1)
+        sign :
+             (Default value = None)
+        tolerance :
+             (Default value = .01)
+        overwrite :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         
         if not hasattr(self, 'z') or overwrite:
             self.z = z
@@ -315,6 +395,7 @@ class Formula(mass.MassBase, mz.Mz):
         self.mz = mz or self.mass / self.z
     
     def getname(self):
+        """ """
         
         return self.name if hasattr(self, 'name') else self.__str__()
     
@@ -323,6 +404,17 @@ class Formula(mass.MassBase, mz.Mz):
         return str(self.formula)
     
     def _set_attrs(self, attrs):
+        """
+
+        Parameters
+        ----------
+        attrs :
+            
+
+        Returns
+        -------
+
+        """
         
         attrs = attrs or {}
         self.attrs = (
@@ -333,6 +425,7 @@ class Formula(mass.MassBase, mz.Mz):
 
 
 class Mass(Formula):
+    """ """
     
     def __init__(self, formula_mass = None, charge = 0, isotope = 0, **kwargs):
         
@@ -351,6 +444,19 @@ class Mass(Formula):
                              **kwargs)
     
     def bind(self, other, loss = 'H2O'):
+        """
+
+        Parameters
+        ----------
+        other :
+            
+        loss :
+             (Default value = 'H2O')
+
+        Returns
+        -------
+
+        """
         
         if self.has_formula() and (type(other) is str):
             

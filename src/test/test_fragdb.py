@@ -27,11 +27,13 @@ import lipyd.settings as settings
 
 
 class TestFragdb(object):
+    """ """
     
     mgffile = settings.get('mgf_pos_examples')
     mgfreader = mgf.MgfReader(mgffile)
     
     def test_mgf_reader(self):
+        """ """
         
         precursor = 590.45536 # this is a Cer-1P
         idx, rtdiff = self.mgfreader.lookup(precursor)
@@ -47,6 +49,7 @@ class TestFragdb(object):
         )
     
     def test_annotate(self):
+        """ """
         
         precursor = 590.45536 # this is a Cer-1P(32:1)
         scan = self.mgfreader.scan_by_id(1941)

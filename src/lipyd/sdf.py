@@ -49,6 +49,7 @@ hgsyn = {
 }
 
 class SdfReader(object):
+    """ """
     
     names_default = {
         'PUBCHEM_CID': 'pubchem',
@@ -111,6 +112,7 @@ class SdfReader(object):
         self.index()
     
     def reload(self):
+        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -119,6 +121,7 @@ class SdfReader(object):
         setattr(self, '__class__', new)
     
     def _byte_mode(self):
+        """ """
         
         if hasattr(self.fp, 'mode'):
             
@@ -128,6 +131,7 @@ class SdfReader(object):
                 self.fp = open(self.name, 'rb')
     
     def _file_size(self):
+        """ """
         
         self.fp.seek(-1, 2)
         self.eof = self.fp.tell()
@@ -137,20 +141,35 @@ class SdfReader(object):
             one_record = False,
             go_to = 0
         ):
-        """
-        Performs all reading operations on the sdf file.
+        """Performs all reading operations on the sdf file.
         
         This method is able to read the entire file, scan the file and build
         an index of records, and retrieve one record.
         
         Args
         ----
-        :param bool index_only:
+
+        Parameters
+        ----------
+        bool :
+            index_only:
             Do not read the file but only build an index.
-        :param bool one_record:
+        bool :
+            one_record:
             Read only one record.
-        :param int go_to:
+        int :
+            go_to:
             Go to this byte offset in the file and start reading there.
+        index_only :
+             (Default value = True)
+        one_record :
+             (Default value = False)
+        go_to :
+             (Default value = 0)
+
+        Returns
+        -------
+
         """
         
         self.fp.seek(go_to)
@@ -340,25 +359,38 @@ class SdfReader(object):
             self.indexed = True
     
     def index(self):
+        """ """
         
         self.read(index_only = True)
         self.index_info()
     
     def get_record(self, name, typ):
-        """
-        Retrieves all records matching `name`.
+        """Retrieves all records matching `name`.
         
         Returns list of records or empty list if none found.
         Each record is a dict of processed values from the sdf file.
         
         Args
         ----
-        :param str name:
+
+        Parameters
+        ----------
+        str :
+            name:
             Molecule name or identifier.
-        :param str typ:
+        str :
+            typ:
             Type of name or identifier. These are the attribute names of the
             index dicts which are taken from the values in the `names`
             dict.
+        name :
+            
+        typ :
+            
+
+        Returns
+        -------
+
         """
         
         result = []
@@ -395,18 +427,33 @@ class SdfReader(object):
         return result
     
     def get_obmol(self, name, typ, use_mol = False):
-        """
-        Returns generator yielding `pybel.Molecule` instances for `name`.
+        """Returns generator yielding `pybel.Molecule` instances for `name`.
         
         Args
         ----
-        :param str name:
+
+        Parameters
+        ----------
+        str :
+            name:
             Molecule name or ID.
-        :param str typ:
+        str :
+            typ:
             Type of the name or identifier.
-        :param bool use_mol:
+        bool :
+            use_mol:
             Process structures from mol format.
             By default structures are processed from InChI.
+        name :
+            
+        typ :
+            
+        use_mol :
+             (Default value = False)
+
+        Returns
+        -------
+
         """
         
         records = self.get_record(name, typ)
@@ -443,8 +490,16 @@ class SdfReader(object):
             yield mol
     
     def record_to_obmol(self, record):
-        """
-        Processes a record to `pybel.Molecule` object.
+        """Processes a record to `pybel.Molecule` object.
+
+        Parameters
+        ----------
+        record :
+            
+
+        Returns
+        -------
+
         """
         
         if 'INCHI' in record['name']:
@@ -458,13 +513,32 @@ class SdfReader(object):
             )
     
     def record_to_obmol_mol(self, record):
+        """
+
+        Parameters
+        ----------
+        record :
+            
+
+        Returns
+        -------
+
+        """
         
         return pybel.readstring('mol', self.get_mol(record))
     
     @staticmethod
     def get_mol(record):
-        """
-        Returns structure as a string in mol format.
+        """Returns structure as a string in mol format.
+
+        Parameters
+        ----------
+        record :
+            
+
+        Returns
+        -------
+
         """
         
         return '%s\n  %s\n%s\n%s' % (
@@ -475,8 +549,22 @@ class SdfReader(object):
         )
     
     def write_mol(self, name, typ, outf = None, return_data = False):
-        """
-        Writes a record into file in mol format.
+        """Writes a record into file in mol format.
+
+        Parameters
+        ----------
+        name :
+            
+        typ :
+            
+        outf :
+             (Default value = None)
+        return_data :
+             (Default value = False)
+
+        Returns
+        -------
+
         """
         
         outf = outf or '%s_%s_%s.mol'
@@ -518,9 +606,7 @@ class SdfReader(object):
         return self.iter_records()
     
     def iter_records(self):
-        """
-        Iterates over all records in the sdf file.
-        """
+        """Iterates over all records in the sdf file."""
         
         for offset in self.mainkey.values():
             
@@ -531,9 +617,15 @@ class SdfReader(object):
             )
     
     def iter_obmol(self):
-        """
-        Iterates all structures in the file and yields `pybel.Molecule`
+        """Iterates all structures in the file and yields `pybel.Molecule`
         objects.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         
         for _id in self.mainkey.keys():
@@ -543,9 +635,7 @@ class SdfReader(object):
                 yield mol
     
     def index_info(self):
-        """
-        Prints number of records indexed and name of the source file.
-        """
+        """Prints number of records indexed and name of the source file."""
         
         if not self.silent:
             

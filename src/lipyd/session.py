@@ -23,6 +23,7 @@ import lipyd.log as log
 
 
 class Session(object):
+    """ """
     
     def __init__(self, label = None, log_verbosity = 0):
         
@@ -33,11 +34,23 @@ class Session(object):
     
     @staticmethod
     def gen_session_id(length = 5):
+        """
+
+        Parameters
+        ----------
+        length :
+             (Default value = 5)
+
+        Returns
+        -------
+
+        """
         
         abc = '0123456789abcdefghijklmnopqrstuvwxyz'
         return ''.join(random.choice(abc) for i in range(length))
     
     def start_logger(self):
+        """ """
         
         self.logfile = 'lipyd-%s.log' % self.label
         self.log = log.Logger(self.logfile, verbosity = self.log_verbosity)
@@ -48,6 +61,7 @@ class Session(object):
 
 
 def get_session():
+    """ """
     
     mod = sys.modules[__name__]
     
@@ -59,11 +73,25 @@ def get_session():
 
 
 def get_log():
+    """ """
     
     return get_session().log
 
 
 def new_session(label = None, log_verbosity = 0):
+    """
+
+    Parameters
+    ----------
+    label :
+         (Default value = None)
+    log_verbosity :
+         (Default value = 0)
+
+    Returns
+    -------
+
+    """
     
     mod = sys.modules[__name__]
     
