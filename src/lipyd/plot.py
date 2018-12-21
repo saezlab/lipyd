@@ -341,7 +341,7 @@ class Profiles(PlotBase):
         self.get_subplot(0, 0)
 
 
-class SpectrumPlot(object):
+class SpectrumPlotOld(object):
     """The summary line for a class docstring should fit on one line.
 
 
@@ -1116,7 +1116,7 @@ class SpectrumPlot(object):
         plt.close()
 
 
-class Drawer(object):
+class SpectrumPlot(object):
     """ Class for drawing a plot
         
         Arguments:
@@ -1133,34 +1133,32 @@ class Drawer(object):
             list of intensity values
         annotations : str
             annotations of peaks
-        
-        
         """
 
-    epsilon=1e-06
-    pdf_type="pdf"
-    screen_type="screen"
+    epsilon = 1e-06
+    pdf_type = "pdf"
+    screen_type = "screen"
 
     def __init__(self,
-                title="",
-                result_type="screen",
-                pdf_file_name="./result.pdf"
+                title = "",
+                result_type = "screen",
+                pdf_file_name = ". / result.pdf"
                 ):
         self.title = title
-        self.result_type=result_type
-        self.pdf_file_name=pdf_file_name
-        self.mzs=[]
-        self.intensities=[]
-        self.annotations=[]
+        self.result_type = result_type
+        self.pdf_file_name = pdf_file_name
+        self.mzs = []
+        self.intensities = []
+        self.annotations = []
 
         
     def build_plot(self,
-                    mzs=[],           # the list contains points X
-                    intensities=[],           # the list contains points Y
-                    annotations=[],        # annotX["X"] - contains annotated points X; annotX["caption"]contains caption of point;
-                    title="",
-                    result_type="screen",
-                    pdf_file_name="./result.pdf"):
+                    mzs = [],           # the list contains points X
+                    intensities = [],           # the list contains points Y
+                    annotations = [],        # annotX["X"] - contains annotated points X; annotX["caption"]contains caption of point;
+                    title = "",
+                    result_type = "screen",
+                    pdf_file_name = ". / result.pdf"):
         """ Main method for drawing a plot
         
         Arguments:
@@ -1176,39 +1174,39 @@ class Drawer(object):
         
         """
 
-        self.mzs=mzs
-        self.intensities=intensities
+        self.mzs = mzs
+        self.intensities = intensities
         max_x = np.max(self.mzs)
         max_y = np.max(self.intensities)
-        self.intensities=self.intensities/max_y*100 #normalize;
+        self.intensities = self.intensities / max_y * 100 #normalize;
         
-        self.annotations=annotations          # [(x1,a1),(x2,a2), ...]
+        self.annotations = annotations          # [(x1,a1),(x2,a2), ...]
         self.title = title
-        self.result_type=result_type
-        self.pdf_file_name=pdf_file_name
+        self.result_type = result_type
+        self.pdf_file_name = pdf_file_name
 
 
         #For saving plot in pdf format
         #pp = PdfPages(self.pdf_file_name)
         
-        fig, ax = plt.subplots(1,1,figsize=(17,9))
+        fig, ax = plt.subplots(1,1,figsize = (17,9))
 
         ax.plot(self.mzs, self.intensities, "k")
         ax.set_title(self.title)
 
-        plt.xlabel("m/z")
+        plt.xlabel("m / z")
         plt.ylabel("Relative intensity, %")
 
         trans = ax.get_xaxis_transform()
         
 
-        vertex_number=1
-        annotate_base_x=1.1*max_x  #6% more of max to right after max of X;
-        annotate_base_y=0.07
-        annotate_offset_x=0.
-        annotate_offset_y=.06
-        annotate_x=annotate_base_x
-        annotate_y=annotate_base_y
+        vertex_number = 1
+        annotate_base_x = 1.1 * max_x  #6% more of max to right after max of X;
+        annotate_base_y = 0.07
+        annotate_offset_x = 0.
+        annotate_offset_y = .06
+        annotate_x = annotate_base_x
+        annotate_y = annotate_base_y
 
         for x, c in self.annotations:
             index_x2 = self.BinSearch4Real(self.mzs, x)
@@ -1218,12 +1216,12 @@ class Drawer(object):
                 y = self.intensities[index_x2]  # get y - value in point x2;
                 ax.annotate("{}".format(vertex_number),
                     xy = (x,y),
-                    xycoords='data',
-                    xytext=(0, 0),
-                    textcoords='offset points', #"data" 
+                    xycoords = 'data',
+                    xytext = (0, 0),
+                    textcoords = 'offset points', #"data" 
                     ha = "center",
                     va = "center",
-                    bbox = dict(boxstyle="circle", fc="w")
+                    bbox = dict(boxstyle = "circle", fc = "w")
                     )
 
                 ax.annotate("{} - {}".format(vertex_number ,c),
@@ -1231,14 +1229,14 @@ class Drawer(object):
                     xycoords = trans,
                     ha = "center",
                     va = "top",
-                    bbox = dict(boxstyle="round", fc="w")
+                    bbox = dict(boxstyle = "round", fc = "w")
                     )
 
-                vertex_number+=1
-                annotate_x+=annotate_offset_x
-                annotate_y+=annotate_offset_y
+                vertex_number += 1
+                annotate_x += annotate_offset_x
+                annotate_y += annotate_offset_y
         
-        if (self.result_type==Drawer.screen_type):
+        if (self.result_type == Drawer.screen_type):
             plt.show()
         
         #for saving in pdf format
@@ -1263,14 +1261,14 @@ class Drawer(object):
 
         i = 0
         j = len(li)-1
-        m = int(j/2)
+        m = int(j / 2)
         # look over list while li[m] - real_x greater than Drawer.epsilon
         while abs(li[m] - real_x) > Drawer.epsilon and i <= j:
             if real_x > li[m]:
-                i = m+1
+                i = m + 1
             else:
                 j = m-1
-            m = int((i+j)/2)
+            m = int((i + j) / 2)
 
         if i > j:
             return None
