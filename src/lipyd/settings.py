@@ -474,7 +474,8 @@ _defaults = {
         },
         'neg': {
         }
-    }
+    },
+    'typeface': 'Helvetica Neue LT Std',
 }
 
 in_basedir = [

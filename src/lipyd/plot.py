@@ -51,7 +51,7 @@ class PlotBase(object):
             grid_cols = 1,
             grid_hratios = None,
             grid_wratios = None,
-            font_family = 'Helvetica Neue LT Std',
+            font_family = None,
             font_style = 'normal',
             font_weight = 'normal',
             font_variant = 'normal',
@@ -67,22 +67,114 @@ class PlotBase(object):
             title_font = {},
             uniform_ylim = False,
             palette = None,
-            context = 'poster',
             lab_size = (9, 9),
             axis_lab_size = 10.0,
             lab_angle = 0,
             rc = {},
             title = None,
             maketitle = False,
-            fp_title = None,
             title_halign = None,
+            do_plot = True,
         ):
+        """
+        Base class for various plotting classes. The ``plot`` method is the
+        main method in this class, it executes the entire workflow of
+        plotting. By default ``__init`` calls this method which means plot is
+        made upon instantiation of the class. Plotting consists of three major
+        phases done by methods ``pre_plot``, ``make_plot`` and ``post_plot``.
+        In this base class ``pre_plot`` does nothing, ``make_plot`` creates
+        a objects for figure, axes, grid, etc. It also does the plotting
+        itself and applies the additional options like typeface, labels,
+        sizes, etc. Then ``post_plot`` applies ``tight_layout`` and closes
+        the file.
+        
+        Arguments
+        ---------
+        fname : str
+            File name for the graphics, e.g. `boxplot01.pdf`.
+        xlab : str
+            Label for the x axis.
+        ylab : str
+            Label for the y axis.
+        width : float
+            Figure width in inches.
+        height : float
+            Figure height in inches.
+        grid_rows : int
+            Number of rows in the grid. We create a grid even for single plot,
+            hence the default is 1.
+        grid_cols : int
+            Number of columns in the grid. Just like ``grid_rows``.
+        grid_hratios : list
+            Height ratios of grid columns. List of floats.
+        grid_wratios : list
+            Width ratios of grid rows. List of floats.
+        font_family : str,list
+            Font family to use or list of families in order of preference.
+            Default is from ``settings.typeface``.
+        font_style : str
+            Font style, e.g. `bold` or `medium`.
+        font_variant : str
+            Font variant, e.g. `small-caps`.
+        font_stretch : str
+            Font stretch, e.g. `condensed` or `expanded`.
+        font_size : float
+            Base font size.
+        axis_lab_font : dict
+            Dict with the same font parameters as listed above, specific
+            for axis labels.
+        ticklabel_font : dict
+            Dict with the same font parameters as listed above, specific
+            for tick labels.
+        xticklabel_font : dict
+            Dict with the same font parameters as listed above, specific
+            for tick labels of x axis.
+        legend_font : dict
+            Dict with the same font parameters as listed above, specific
+            for the legend.
+        title_font : dict
+            Dict with the same font parameters as listed above, specific
+            for the main title.
+        bar_args : dict
+            Arguments for barplots ``bar`` method.
+        xticks : list
+            Locations of ticks on x axis. List of floats.
+        xticklabels : list
+            Tick labels on x axis. List of strings.
+        uniform_ylim : bool
+            In case of multiple plots on a grid, the y axis limits should be
+            uniform or different for each plot.
+        palette : list
+            Colours to use.
+        lab_size : tuple
+            Font size of the tick labels. Tuple of two numbers, for x and y
+            axes, respectively.
+        axis_lab_size : float
+            Font size of the axis labels.
+        lab_angle : float
+            Angle of the x axis labels.
+        rc : dict
+            Matplotlib rc params.
+        title : str
+            Main title of the plot.
+        maketitle : bool
+            Plot with or without main title.
+        title_halign : str
+            Horizontal alignement of the main title.
+        do_plot : bool
+            Execute the plotting workflow upon instatiation.
+            This is convenient by default but for resolving issues sometimes
+            beneficial to first create the object and call individual methods
+            afterwards.
+        """
         
         for k, v in iteritems(locals()):
             
             if not hasattr(self, k) or getattr(self, k) is None:
                 
                 setattr(self, k, v)
+        
+        self.font_family = self.font_family or settings.get('typeface')
         
         if type(self.lab_size) is not tuple:
             self.lab_size = (self.lab_size, ) * 2
@@ -100,23 +192,23 @@ class PlotBase(object):
         self.rc['font.stretch'] = self.font_stretch
         
         self.fp = mpl.font_manager.FontProperties(
-            family=self.font_family,
-            style=self.font_style,
-            variant=self.font_variant,
-            weight=self.font_weight,
-            stretch=self.font_stretch
+            family = self.font_family,
+            style = self.font_style,
+            variant = self.font_variant,
+            weight = self.font_weight,
+            stretch = self.font_stretch
         )
         
         self.grid_hratios = grid_hratios or [1.] * grid_rows
         self.grid_wratios = grid_wratios or [1.] * grid_cols
-        
     
     def reload(self):
         """
         Reloads the module and updates the class instance.
         """
+        
         modname = self.__class__.__module__
-        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
@@ -126,20 +218,27 @@ class PlotBase(object):
         The total workflow of this class.
         Calls all methods in the correct order.
         """
+        
         self.pre_plot()
-        self.do_plot()
+        self.make_plot()
         self.post_plot()
-
+    
+    # a synonym
+    main = plot
+    
     def pre_plot(self):
         """
         Executes all necessary tasks before plotting in the correct order.
+        Derived classes should override this if necessary.
         """
+        
         pass
 
-    def do_plot(self):
+    def make_plot(self):
         """
         Calls the plotting methods in the correct order.
         """
+        
         self.set_figsize()
         self.init_fig()
         self.set_fontproperties()
@@ -154,12 +253,14 @@ class PlotBase(object):
         """
         Saves the plot into file, and closes the figure.
         """
+        
         self.finish()
     
     def set_figsize(self):
         """
         Converts width and height to a tuple so can be used for figsize.
         """
+        
         if hasattr(self, 'width') and hasattr(self, 'height'):
             
             self.figsize = (self.width, self.height)
@@ -207,7 +308,9 @@ class PlotBase(object):
         """
         Sets the main title.
         """
+        
         if self.maketitle:
+            
             self.title_text = self.fig.suptitle(self.title)
             self.title_text.set_fontproperties(self.fp_title)
             self.title_text.set_horizontalalignment(self.title_halign)
@@ -216,6 +319,7 @@ class PlotBase(object):
         """
         Sets properties of axis labels and ticklabels.
         """
+        
         if self.xlab is not None:
             self._xlab = self.ax.set_xlabel(self.xlab)
         
@@ -279,6 +383,13 @@ class PlotBase(object):
             ) if self.ticklabel_font else
             self.fp_default
         )
+        
+        self.fp_title = (
+            mpl.font_manager.FontProperties(
+                **copy.deepcopy(self.title_font)
+            ) if self.title_font else
+            self.fp_default
+        )
     
     def set_ticklabels(self):
         
@@ -293,8 +404,6 @@ class PlotBase(object):
             for tl in self.ax.get_xticklabels()
         ]
         
-        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
-        
         if self.xticks:
             
             self.ax.xaxis.xticks(self.xticks)
@@ -303,20 +412,20 @@ class PlotBase(object):
         """
         Applies tight layout, draws the figure, writes the file and closes.
         """
-        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
+        
         self.fig.tight_layout()
         self.fig.subplots_adjust(top = .92)
         self.cvs.draw()
-        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
         self.cvs.print_figure(self.pdf)
-        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
         self.pdf.close()
-        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
         #self.fig.clf()
-        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
 
 
 class TestPlot(PlotBase):
+    """
+    Most minimal class to test the ``PlotBase`` class with plotting only
+    a sinus function.
+    """
     
     def __init__(self, **kwargs):
         
@@ -1116,34 +1225,40 @@ class SpectrumPlotOld(object):
         plt.close()
 
 
-class SpectrumPlot(object):
-    """ Class for drawing a plot
-        
-        Arguments:
-        ----------
-        title : str
-            title of a plot
-        result_type : str 
-            type of result plot - screen or pdf
-        pdf_file_name : str
-            filename of your downloading plot (pdf)
-        mzs : float
-             list of mzs values
-        intensities : float
-            list of intensity values
-        annotations : str
-            annotations of peaks
-        """
+class SpectrumPlot(PlotBase):
+    """
+    Class for plotting a mass spectrum with annotations and intensities.
+    
+    Arguments:
+    ----------
+    title : str
+        title of a plot
+    result_type : str 
+        type of result plot - screen or pdf
+    pdf_file_name : str
+        filename of your downloading plot (pdf)
+    mzs : float
+            list of mzs values
+    intensities : float
+        list of intensity values
+    annotations : str
+        annotations of peaks
+    """
 
     epsilon = 1e-06
     pdf_type = "pdf"
     screen_type = "screen"
 
-    def __init__(self,
-                title = "",
-                result_type = "screen",
-                pdf_file_name = ". / result.pdf"
-                ):
+    def __init__(
+            self,
+            title = "",
+            result_type = "screen",
+            pdf_file_name = ". / result.pdf",
+            **kwargs,
+        ):
+        
+        PlotBase.__init__(**kwargs)
+        
         self.title = title
         self.result_type = result_type
         self.pdf_file_name = pdf_file_name
@@ -1154,8 +1269,8 @@ class SpectrumPlot(object):
         
     def build_plot(self,
                     mzs = [],           # the list contains points X
-                    intensities = [],           # the list contains points Y
-                    annotations = [],        # annotX["X"] - contains annotated points X; annotX["caption"]contains caption of point;
+                    intensities = [],   # the list contains points Y
+                    annotations = [],   # annotX["X"] - contains annotated points X; annotX["caption"]contains caption of point;
                     title = "",
                     result_type = "screen",
                     pdf_file_name = ". / result.pdf"):
@@ -1174,16 +1289,20 @@ class SpectrumPlot(object):
         
         """
 
-        self.mzs = mzs
-        self.intensities = intensities
+        self.mzs = self.mzs if mzs is None else mzs
+        self.intensities = (
+            self.intensities if intensities is None else intensities
+        )
         max_x = np.max(self.mzs)
         max_y = np.max(self.intensities)
         self.intensities = self.intensities / max_y * 100 #normalize;
         
-        self.annotations = annotations          # [(x1,a1),(x2,a2), ...]
-        self.title = title
-        self.result_type = result_type
-        self.pdf_file_name = pdf_file_name
+        self.annotations = (
+            self.annotations if annotations is None else annotations
+        ) # [(x1,a1),(x2,a2), ...]
+        self.title = title or self.title
+        self.result_type = result_type or self.result_type
+        self.pdf_file_name = pdf_file_name or self.pdf_file_name
 
 
         #For saving plot in pdf format
@@ -1280,7 +1399,7 @@ if __name__ == "__main__":
     
 
     #Test data
-    a=Drawer()
+    a=SpectrumPlot()
     x=[10., 11.1, 12.2, 13.3, 14.4, 15.5, 16.6, 17.7, 18.8, 19.9, 20.2]
     y=[100., 101., 150., 102., 104., 101., 180., 105., 102., 107., 103.]
     
