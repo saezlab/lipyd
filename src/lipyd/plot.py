@@ -20,13 +20,325 @@
 # See original at https://github.com/matrixx567/MassSpectraPlot
 #
 
+from future.utils import iteritems
+from past.builtins import xrange, range
+
 import imp
+import copy
 import pandas as pd
 import numpy as np
 import math as mt
-import matplotlib.pyplot as plt
 
+import matplotlib as mpl
+import matplotlib.gridspec as gridspec
+import matplotlib.backends.backend_pdf
+from matplotlib import ticker
 from matplotlib import rcParams
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+
+
+class PlotBase(object):
+    
+    def __init__(
+            self,
+            fname = None,
+            xlab = None,
+            ylab = None,
+            width = 7,
+            height = 7,
+            grid_rows = 1,
+            grid_cols = 1,
+            grid_hratios = None,
+            grid_wratios = None,
+            font_family = 'Helvetica Neue LT Std',
+            font_style = 'normal',
+            font_weight = 'normal',
+            font_variant = 'normal',
+            font_stretch = 'normal',
+            font_size = None,
+            axis_lab_font = {},
+            bar_args = {},
+            ticklabel_font = {},
+            xticks = None,
+            xticklabels = None,
+            xticklabel_font = {},
+            legend_font = {},
+            title_font = {},
+            uniform_ylim = False,
+            palette = None,
+            context = 'poster',
+            lab_size = (9, 9),
+            axis_lab_size = 10.0,
+            lab_angle = 0,
+            rc = {},
+            title = None,
+            maketitle = False,
+            fp_title = None,
+            title_halign = None,
+        ):
+        
+        for k, v in iteritems(locals()):
+            
+            if not hasattr(self, k) or getattr(self, k) is None:
+                
+                setattr(self, k, v)
+        
+        if type(self.lab_size) is not tuple:
+            self.lab_size = (self.lab_size, ) * 2
+        if 'axes.labelsize' not in self.rc:
+            self.rc['axes.labelsize'] = self.axis_lab_size
+        if 'ytick.labelsize' not in self.rc:
+            self.rc['ytick.labelsize'] = self.lab_size[0]
+        if 'ytick.labelsize' not in self.rc:
+            self.rc['ytick.labelsize'] = self.lab_size[1]
+        
+        self.rc['font.family'] = self.font_family
+        self.rc['font.style'] = self.font_style
+        self.rc['font.variant'] = self.font_variant
+        self.rc['font.weight'] = self.font_weight
+        self.rc['font.stretch'] = self.font_stretch
+        
+        self.fp = mpl.font_manager.FontProperties(
+            family=self.font_family,
+            style=self.font_style,
+            variant=self.font_variant,
+            weight=self.font_weight,
+            stretch=self.font_stretch
+        )
+        
+        self.grid_hratios = grid_hratios or [1.] * grid_rows
+        self.grid_wratios = grid_wratios or [1.] * grid_cols
+        
+    
+    def reload(self):
+        """
+        Reloads the module and updates the class instance.
+        """
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+
+    def plot(self):
+        """
+        The total workflow of this class.
+        Calls all methods in the correct order.
+        """
+        self.pre_plot()
+        self.do_plot()
+        self.post_plot()
+
+    def pre_plot(self):
+        """
+        Executes all necessary tasks before plotting in the correct order.
+        """
+        pass
+
+    def do_plot(self):
+        """
+        Calls the plotting methods in the correct order.
+        """
+        self.set_figsize()
+        self.init_fig()
+        self.set_fontproperties()
+        self.set_grid()
+        self.make_plots()
+        self.labels()
+        self.set_ylims()
+        self.set_title()
+        self.set_ticklabels()
+
+    def post_plot(self):
+        """
+        Saves the plot into file, and closes the figure.
+        """
+        self.finish()
+    
+    def set_figsize(self):
+        """
+        Converts width and height to a tuple so can be used for figsize.
+        """
+        if hasattr(self, 'width') and hasattr(self, 'height'):
+            
+            self.figsize = (self.width, self.height)
+
+    def init_fig(self):
+        """
+        Creates a figure using the object oriented matplotlib interface.
+        """
+        self.pdf = mpl.backends.backend_pdf.PdfPages(self.fname)
+        self.fig = mpl.figure.Figure(figsize = self.figsize)
+        self.cvs = mpl.backends.backend_pdf.FigureCanvasPdf(self.fig)
+
+    def set_grid(self):
+        """
+        Sets up a grid according to the number of subplots,
+        with proportions according to the number of elements
+        in each subplot.
+        """
+        self.gs = mpl.gridspec.GridSpec(
+            self.grid_rows,
+            self.grid_cols,
+            height_ratios = self.grid_hratios,
+            width_ratios = self.grid_wratios,
+        )
+        self.axes = [[None] * self.grid_cols] * self.grid_rows
+
+    def get_subplot(self, i, j = 0):
+        
+        if self.axes[j][i] is None:
+            self.axes[j][i] = self.fig.add_subplot(self.gs[j, i])
+        self.ax = self.axes[j][i]
+    
+    def set_ylims(self):
+        
+        if self.uniform_ylim:
+            
+            maxy = max(
+                ax.get_ylim()[1]
+                for ax in self.axes[0][0:]
+            )
+            
+            _ = [None for _ in ax.set_ylim([0, maxy]) for ax in self.axes[0]]
+
+    def set_title(self):
+        """
+        Sets the main title.
+        """
+        if self.maketitle:
+            self.title_text = self.fig.suptitle(self.title)
+            self.title_text.set_fontproperties(self.fp_title)
+            self.title_text.set_horizontalalignment(self.title_halign)
+    
+    def labels(self):
+        """
+        Sets properties of axis labels and ticklabels.
+        """
+        if self.xlab is not None:
+            self._xlab = self.ax.set_xlabel(self.xlab)
+        
+        if self.ylab is not None:
+            self._ylab = self.ax.set_ylabel(self.ylab)
+        
+        _ = [
+            tick.label.set_fontproperties(self.fp_xticklabel) or (
+                self.lab_angle == 0 or self.lab_angle == 90
+            ) and (
+                tick.label.set_rotation(self.lab_angle) or
+                tick.label.set_horizontalalignment('center')
+            )
+            for tick in self.ax.xaxis.get_major_ticks()
+        ]
+        
+        _ = [
+            tick.label.set_fontproperties(self.fp_ticklabel)
+            for tick in self.ax.yaxis.get_major_ticks()
+        ]
+        
+        self.ax.set_ylabel(self.ylab, fontproperties = self.fp_axis_lab)
+        # self.ax.yaxis.label.set_fontproperties(self)
+    
+    def set_fontproperties(self):
+        
+        self.fp_default = (
+            mpl.font_manager.FontProperties(
+                family = self.font_family,
+                style = self.font_style,
+                weight = self.font_weight,
+                variant = self.font_variant,
+                stretch = self.font_stretch,
+                size = self.font_size,
+            )
+        )
+        
+        self.fp_axis_lab = (
+            mpl.font_manager.FontProperties(
+                **copy.deepcopy(self.axis_lab_font)
+            )
+            if self.axis_lab_font else
+            self.fp_default
+        )
+        
+        self.fp_xticklabel = (
+            mpl.font_manager.FontProperties(
+                **copy.deepcopy(
+                    self.xticklabel_font
+                        if self.xticklabel_font else
+                    self.ticklabel_font
+                )
+            )
+            if self.xticklabel_font or self.ticklabel_font else
+            self.fp_default
+        )
+        
+        self.fp_ticklabel = (
+            mpl.font_manager.FontProperties(
+                **copy.deepcopy(self.ticklabel_font)
+            ) if self.ticklabel_font else
+            self.fp_default
+        )
+    
+    def set_ticklabels(self):
+        
+        if self.xticklabels:
+            
+            self.ax.xaxis.set_ticklabels(
+                ('{:,g}'.format(x) for x in self.xticklabels),
+            )
+        
+        _ = [
+            tl.set_fontproperties(self.fp_ticklabel)
+            for tl in self.ax.get_xticklabels()
+        ]
+        
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
+        
+        if self.xticks:
+            
+            self.ax.xaxis.xticks(self.xticks)
+    
+    def finish(self):
+        """
+        Applies tight layout, draws the figure, writes the file and closes.
+        """
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
+        self.fig.tight_layout()
+        self.fig.subplots_adjust(top = .92)
+        self.cvs.draw()
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
+        self.cvs.print_figure(self.pdf)
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
+        self.pdf.close()
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
+        #self.fig.clf()
+        print(self.ax.get_xticklabels()[0].get_fontproperties().get_family())
+
+
+class TestPlot(PlotBase):
+    
+    def __init__(self, **kwargs):
+        
+        PlotBase.__init__(self, **kwargs)
+    
+    def make_plots(self):
+        
+        self.get_subplot(0, 0)
+        
+        x = np.linspace(0, 10, 1000)
+        self.ax.plot(x, np.sin(x))
+
+
+class Profiles(PlotBase):
+    
+    def __init__(self, **kwargs):
+        
+        PlotBase.__init__(self, **kwargs)
+    
+    def make_plots(self, profiles, xlabels):
+        
+        self.get_subplot(0, 0)
 
 
 class SpectrumPlot(object):
@@ -76,7 +388,7 @@ class SpectrumPlot(object):
             'legend.frameon': True,
             'xtick.labelsize': 8,
             'ytick.labelsize': 8,
-            'font.family': 'serif',
+            'font.family': 'Helvetica',
             'text.usetex': True,
             'text.latex.unicode': True,
             'axes.linewidth': 0.5,
@@ -802,3 +1114,183 @@ class SpectrumPlot(object):
 
         plt.savefig(output_filename + "." + filetype, dpi=fig.dpi, format=filetype)
         plt.close()
+
+
+class Drawer(object):
+    """ Class for drawing a plot
+        
+        Arguments:
+        ----------
+        title : str
+            title of a plot
+        result_type : str 
+            type of result plot - screen or pdf
+        pdf_file_name : str
+            filename of your downloading plot (pdf)
+        mzs : float
+             list of mzs values
+        intensities : float
+            list of intensity values
+        annotations : str
+            annotations of peaks
+        
+        
+        """
+
+    epsilon=1e-06
+    pdf_type="pdf"
+    screen_type="screen"
+
+    def __init__(self,
+                title="",
+                result_type="screen",
+                pdf_file_name="./result.pdf"
+                ):
+        self.title = title
+        self.result_type=result_type
+        self.pdf_file_name=pdf_file_name
+        self.mzs=[]
+        self.intensities=[]
+        self.annotations=[]
+
+        
+    def build_plot(self,
+                    mzs=[],           # the list contains points X
+                    intensities=[],           # the list contains points Y
+                    annotations=[],        # annotX["X"] - contains annotated points X; annotX["caption"]contains caption of point;
+                    title="",
+                    result_type="screen",
+                    pdf_file_name="./result.pdf"):
+        """ Main method for drawing a plot
+        
+        Arguments:
+        ----------
+        li : list
+            list of real number
+        real_x : float 
+            real number
+        
+        Return:
+        -------
+        index or None
+        
+        """
+
+        self.mzs=mzs
+        self.intensities=intensities
+        max_x = np.max(self.mzs)
+        max_y = np.max(self.intensities)
+        self.intensities=self.intensities/max_y*100 #normalize;
+        
+        self.annotations=annotations          # [(x1,a1),(x2,a2), ...]
+        self.title = title
+        self.result_type=result_type
+        self.pdf_file_name=pdf_file_name
+
+
+        #For saving plot in pdf format
+        #pp = PdfPages(self.pdf_file_name)
+        
+        fig, ax = plt.subplots(1,1,figsize=(17,9))
+
+        ax.plot(self.mzs, self.intensities, "k")
+        ax.set_title(self.title)
+
+        plt.xlabel("m/z")
+        plt.ylabel("Relative intensity, %")
+
+        trans = ax.get_xaxis_transform()
+        
+
+        vertex_number=1
+        annotate_base_x=1.1*max_x  #6% more of max to right after max of X;
+        annotate_base_y=0.07
+        annotate_offset_x=0.
+        annotate_offset_y=.06
+        annotate_x=annotate_base_x
+        annotate_y=annotate_base_y
+
+        for x, c in self.annotations:
+            index_x2 = self.BinSearch4Real(self.mzs, x)
+            if index_x2 is None:
+                print("Value {} not found in annotations.".format(x) )
+            else:
+                y = self.intensities[index_x2]  # get y - value in point x2;
+                ax.annotate("{}".format(vertex_number),
+                    xy = (x,y),
+                    xycoords='data',
+                    xytext=(0, 0),
+                    textcoords='offset points', #"data" 
+                    ha = "center",
+                    va = "center",
+                    bbox = dict(boxstyle="circle", fc="w")
+                    )
+
+                ax.annotate("{} - {}".format(vertex_number ,c),
+                    xy = (annotate_x, annotate_y),
+                    xycoords = trans,
+                    ha = "center",
+                    va = "top",
+                    bbox = dict(boxstyle="round", fc="w")
+                    )
+
+                vertex_number+=1
+                annotate_x+=annotate_offset_x
+                annotate_y+=annotate_offset_y
+        
+        if (self.result_type==Drawer.screen_type):
+            plt.show()
+        
+        #for saving in pdf format
+        #pp.savefig(fig)
+        #pp.close()
+
+    def BinSearch4Real(self, li, real_x):
+        """ Method for annotating peaks using binary search algorithm
+        
+        Arguments:
+        ----------
+        li : list
+            list of real number
+        real_x : float 
+            real number
+        
+        Return:
+        -------
+            None or value
+        
+        """
+
+        i = 0
+        j = len(li)-1
+        m = int(j/2)
+        # look over list while li[m] - real_x greater than Drawer.epsilon
+        while abs(li[m] - real_x) > Drawer.epsilon and i <= j:
+            if real_x > li[m]:
+                i = m+1
+            else:
+                j = m-1
+            m = int((i+j)/2)
+
+        if i > j:
+            return None
+        else:
+            return m
+        
+
+if __name__ == "__main__":
+    
+
+    #Test data
+    a=Drawer()
+    x=[10., 11.1, 12.2, 13.3, 14.4, 15.5, 16.6, 17.7, 18.8, 19.9, 20.2]
+    y=[100., 101., 150., 102., 104., 101., 180., 105., 102., 107., 103.]
+    
+    # Annotations done by use correlation between x coord and name of peak
+    xa=[(12.2, "the first peack"),(16.6, "the second peack")]
+    
+    a.build_plot(mzs=x,
+                intensities=y,
+                annotations=xa,
+                result_type="screen",
+                title="test")

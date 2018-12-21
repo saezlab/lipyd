@@ -38,6 +38,7 @@ import lipyd.lookup as lookup
 import lipyd.fragdb as fragdb
 import lipyd.moldb as moldb
 import lipyd.lipproc as lipproc
+import lipyd.plot as plot
 
 
 ChainFragment = collections.namedtuple(
@@ -620,28 +621,30 @@ class Scan(ScanBase):
         header = '%s\n%s%s\n' % (
             ''.join((
                 lindent,
-                'Frag. m/z'.ljust(12),
-                'Intensity'.ljust(12),
-                'Identity'.ljust(36),
+                'Rank'.ljust(6),
+                'Frag. m/z'.rjust(12),
+                'Intensity  '.rjust(14),
+                'Identity'.ljust(40),
                 'NL mass'.rjust(12)
             )),
             lindent,
-            '=' * 12 * 6
+            '=' * (12 * 7)
         )
         
         table = '\n'.join((
             ''.join((
                 lindent,
-                '%12.4f' % self.mz[i],
-                '%10u'   % self.intensities[i],
-                ann.name,
+                '%4u  ' % i,
+                '%12.4f' % self.mzs[i],
+                '%12u'   % self.intensities[i],
+                '  %s' % ann.name.ljust(40),
                 (
-                    '%12.4f' % self.nl(mz[i])
+                    '%12.4f' % self.nl(self.mzs[i])
                         if self.precursor else
                     'NA'.rjust(12)
                 )
             ))
-            for i in xrange(len(self.mz))
+            for i in xrange(len(self.mzs))
             for ann in (
                 self.annot[i]
                     if self.annot[i] else
@@ -649,10 +652,13 @@ class Scan(ScanBase):
             )
         ))
         
-        return '%s\n%s\n\n' % (
-            self.sample.__str__(),
+        return '\n%ssample=%s, file=%s, scan=%s\n\n%s\n%s\n\n' % (
+            lindent,
+            self.sample_id.__str__() if self.sample_id else '?',
+            self.source.__str__(),
+            self.sample_id.__str__() if self.sample_id else '?',
             header,
-            table
+            table,
         )
     
     def html_table(self):
@@ -5574,7 +5580,6 @@ class Cer_Positive(AbstractMS2Identifier):
     def cer(self):
         """ """
         
-        
         score = 0
         max_score = 0
         
@@ -6865,18 +6870,29 @@ class MS2Feature(object):
         self.build_scans()
         self.identify()
     
-    def iterscans(self):
-        """ """
+    def iterresources(self):
         
-        for sample_id, resource in iteritems(self.resources):
+        for sample_id, resources in iteritems(self.resources):
             
-            res_type = self.guess_resouce_type(resource)
-            
-            if res_type not in self.scan_methods:
+            if not isinstance(resources, (list, tuple, set)):
                 
-                raise ValueError(
-                    'Unknown MS2 resource type: %s' % str(resource)
-                )
+                resources = [resources]
+            
+            for resource in resources:
+                
+                res_type = self.guess_resouce_type(resource)
+                
+                if res_type not in self.scan_methods:
+                    
+                    raise ValueError(
+                        'Unknown MS2 resource type: %s' % str(resource)
+                    )
+                
+                yield resource, res_type, sample_id
+    
+    def iterscans(self):
+        
+        for resource, res_type, sample_id in self.iterresources():
             
             scan_method = getattr(self, self.scan_methods[res_type])
             
@@ -6884,15 +6900,12 @@ class MS2Feature(object):
                 
                 yield scan
     
-    def mgf_iterscans(self, mgf_resource, sample_id = None):
+    def get_mgf(self, mgf_resource):
         """
 
         Parameters
         ----------
         mgf_resource :
-            
-        sample_id :
-             (Default value = None)
 
         Returns
         -------
@@ -6901,7 +6914,7 @@ class MS2Feature(object):
         
         if isinstance(mgf_resource, basestring):
             
-            mgffile = mgf.MgfReader(mgfname, charge = None)
+            mgffile = mgf.MgfReader(mgf_resource, charge = None)
             
         elif isinstance(mgf_resource, mgf.MgfReader):
             
@@ -6914,6 +6927,20 @@ class MS2Feature(object):
                 'instances of file names.'
             )
         
+        return mgffile
+    
+    def mgf_iterscanidx(self):
+        
+        for resource, res_type, sample_id in self.iterresources():
+            
+            mgffile = self.get_mgf(resource)
+            idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
+            
+            yield resource, idx, rtdiff
+    
+    def mgf_iterscans(self, mgf_resource, sample_id = None):
+        
+        mgffile = self.get_mgf(mgf_resource)
         idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
         
         for i, rtd in zip(idx, rtdiff):
@@ -6928,19 +6955,73 @@ class MS2Feature(object):
             
             sc = mgffile.get_scan(i)
             
-            yield Scan(
-                mzs = sc[:,0],
-                intensities = sc[:,1],
-                ionmode = self.ionmode,
-                precursor = self.mz,
-                ms1_records = self.ms1_records,
-                add_precursor_details = self.add_precursor_details,
-                scan_id = mgffile.mgfindex[i,3],
-                sample_id = sample_id,
-                source = mgffile.fname,
-                deltart = rtd,
-                rt = mgffile.mgfindex[i,2],
+            yield self.get_scan(mgffile, i, sample_id = sample_id)
+    
+    def get_scan(self, mgffile, i, sample_id = None):
+        
+        sc = mgffile.get_scan(i)
+        
+        return Scan(
+            mzs = sc[:,0],
+            intensities = sc[:,1],
+            ionmode = self.ionmode,
+            precursor = self.mz,
+            ms1_records = self.ms1_records,
+            add_precursor_details = self.add_precursor_details,
+            scan_id = mgffile.mgfindex[i,3],
+            sample_id = sample_id,
+            source = mgffile.fname,
+            deltart = mgffile.mgfindex[i,2] - self.rtmean,
+            rt = mgffile.mgfindex[i,2],
+        )
+    
+    def closest_scan(self):
+        
+        closest_rtdiff  = np.inf
+        closest_mgffile = None
+        closest_i       = np.nan
+        
+        for resource, res_type, sample_id in self.iterresources():
+            
+            for mgffile, idx, rtdiff in \
+                getattr(self, '%s_iterscanidx' % res_type)():
+                
+                if not len(idx):
+                    
+                    continue
+                
+                if np.min(rtdiff) < closest_rtdiff:
+                    
+                    closest_rtdiff  = np.min(rtdiff)
+                    closest_i       = idx[np.argmin(rtdiff)]
+                    closest_mgffile = mgffile
+        
+        return (
+            None
+                if closest_mgffile is None else
+            self.get_scan(
+                closest_mgffile,
+                closest_i,
+                sample_id = sample_id
             )
+        )
+    
+    def has_scan_within_rt_range(self):
+        
+        for resource, res_type, sample_id in self.iterresources():
+            
+            for mgffile, idx, rtdiff in \
+                getattr(self, '%s_iterscanidx' % res_type)():
+                
+                if not len(idx):
+                    
+                    continue
+                
+                if np.any(np.abs(rtdiff) <= self.rt_range):
+                    
+                    return True
+        
+        return False
     
     def mzml_iterscans(self, mzml_resource, sample_id = None):
         """

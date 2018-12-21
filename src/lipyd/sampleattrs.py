@@ -307,6 +307,8 @@ class SampleSetAttrs(object):
 
         """
         
+        sample_id = self.proc(sample_id)
+        
         return self.sample_id_to_index[sample_id]
     
     def sort_by_index(self, idx):

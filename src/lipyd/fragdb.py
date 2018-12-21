@@ -820,7 +820,7 @@ class FragmentAnnotator(object):
             tolerance = None,
         ):
         """
-        Annotates all fragmenta in MS2 scan with possible identites.
+        Annotates all fragments in MS2 scan with possible identites.
         
         Args
         ----

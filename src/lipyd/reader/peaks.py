@@ -30,7 +30,7 @@ import lipyd.reader.xls
 import lipyd.common as common
 
 
-relabel = re.compile(r'(.*)_([A-z])([0-9]{1,2})_(neg|pos)')
+relabel = re.compile(r'(.*)[_\s]([A-z])([0-9]{1,2})[_\s]((?:neg|pos)?)')
 resecb  = re.compile(r'([^_]*)_?(?:ctrl)?_?sec_?buffer_([^_]*)_?(neg|pos).*')
 
 
@@ -503,7 +503,7 @@ class PeaksReader(object):
                 'intensities': self.intensities[:,i],
                 'rts': self.rt_means[:,i],
                 'attrs': sample_attrs,
-                'sample_id': self.sample_id_method,
+                'sample_id_proc_method': self.sample_id_method,
             }
     
     def get_sampleset(self):
