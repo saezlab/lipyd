@@ -134,21 +134,12 @@ def uniqOrdList(seq, idfun = None):
     seen = {}
     result = []
     for item in seq:
-            """
-
-            Parameters
-            ----------
-            x :
-                
-
-            Returns
-            -------
-
-            """
+        
         marker = idfun(item)
         if marker in seen: continue
         seen[marker] = 1
         result.append(item)
+    
     return result
 
 def addToList(lst, toadd):

@@ -25,6 +25,7 @@ from past.builtins import xrange, range
 
 import imp
 import copy
+import itertools
 import pandas as pd
 import numpy as np
 import math as mt
@@ -37,8 +38,16 @@ from matplotlib import rcParams
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
+import lipyd.settings as settings
+
 
 class PlotBase(object):
+    
+    text_elements = (
+        'axis_label', 'ticklabel', 'xticklabel',
+        'title', 'legend_title', 'legend_label',
+        'annotation',
+    )
     
     def __init__(
             self,
@@ -57,24 +66,31 @@ class PlotBase(object):
             font_variant = 'normal',
             font_stretch = 'normal',
             font_size = None,
-            axis_lab_font = {},
-            bar_args = {},
-            ticklabel_font = {},
+            font_sizes = None,
+            axis_label_font = None,
+            ticklabel_font = None,
+            xticklabel_font = None,
+            legend_label_font = None,
+            legend_title_font = None,
+            title_font = None,
+            annotation_font = None,
+            legend_loc = 2,
+            legend_title = None,
+            legend = True,
+            bar_args = None,
             xticks = None,
             xticklabels = None,
-            xticklabel_font = {},
-            legend_font = {},
-            title_font = {},
             uniform_ylim = False,
             palette = None,
             lab_size = (9, 9),
-            axis_lab_size = 10.0,
+            axis_label_size = 10.0,
             lab_angle = 0,
-            rc = {},
+            rc = None,
             title = None,
             maketitle = False,
             title_halign = None,
             do_plot = True,
+            **kwargs,
         ):
         """
         Base class for various plotting classes. The ``plot`` method is the
@@ -111,7 +127,7 @@ class PlotBase(object):
             Width ratios of grid rows. List of floats.
         font_family : str,list
             Font family to use or list of families in order of preference.
-            Default is from ``settings.typeface``.
+            Default is from ``settings.font_family``.
         font_style : str
             Font style, e.g. `bold` or `medium`.
         font_variant : str
@@ -120,7 +136,10 @@ class PlotBase(object):
             Font stretch, e.g. `condensed` or `expanded`.
         font_size : float
             Base font size.
-        axis_lab_font : dict
+        font_sizes : dict
+            Font size proportions. E.g. ``{'axis_label': 0.8}`` will
+            result the axis label to have size of <base size> * 0.8.
+        axis_label_font : dict
             Dict with the same font parameters as listed above, specific
             for axis labels.
         ticklabel_font : dict
@@ -129,12 +148,24 @@ class PlotBase(object):
         xticklabel_font : dict
             Dict with the same font parameters as listed above, specific
             for tick labels of x axis.
-        legend_font : dict
+        legend_title_font : dict
             Dict with the same font parameters as listed above, specific
-            for the legend.
+            for the legend title.
+        legend_label_font : dict
+            Dict with the same font parameters as listed above, specific
+            for the legend labels.
         title_font : dict
             Dict with the same font parameters as listed above, specific
             for the main title.
+        annotation_font : dict
+            Dict with the same font parameters as listed above, specific
+            for the annotations.
+        legend_loc : int
+            The location of the legend.
+        legend_title : str
+            Title for the legend.
+        legend : bool
+            Create legend for the plot.
         bar_args : dict
             Arguments for barplots ``bar`` method.
         xticks : list
@@ -149,7 +180,7 @@ class PlotBase(object):
         lab_size : tuple
             Font size of the tick labels. Tuple of two numbers, for x and y
             axes, respectively.
-        axis_lab_size : float
+        axis_label_size : float
             Font size of the axis labels.
         lab_angle : float
             Angle of the x axis labels.
@@ -168,39 +199,17 @@ class PlotBase(object):
             afterwards.
         """
         
-        for k, v in iteritems(locals()):
+        for k, v in itertools.chain(iteritems(locals()), iteritems(kwargs)):
             
+            # we check this because derived classes might have set
+            # already attributes
             if not hasattr(self, k) or getattr(self, k) is None:
                 
                 setattr(self, k, v)
         
-        self.font_family = self.font_family or settings.get('typeface')
-        
-        if type(self.lab_size) is not tuple:
-            self.lab_size = (self.lab_size, ) * 2
-        if 'axes.labelsize' not in self.rc:
-            self.rc['axes.labelsize'] = self.axis_lab_size
-        if 'ytick.labelsize' not in self.rc:
-            self.rc['ytick.labelsize'] = self.lab_size[0]
-        if 'ytick.labelsize' not in self.rc:
-            self.rc['ytick.labelsize'] = self.lab_size[1]
-        
-        self.rc['font.family'] = self.font_family
-        self.rc['font.style'] = self.font_style
-        self.rc['font.variant'] = self.font_variant
-        self.rc['font.weight'] = self.font_weight
-        self.rc['font.stretch'] = self.font_stretch
-        
-        self.fp = mpl.font_manager.FontProperties(
-            family = self.font_family,
-            style = self.font_style,
-            variant = self.font_variant,
-            weight = self.font_weight,
-            stretch = self.font_stretch
-        )
-        
-        self.grid_hratios = grid_hratios or [1.] * grid_rows
-        self.grid_wratios = grid_wratios or [1.] * grid_cols
+        if self.do_plot:
+            
+            self.main()
     
     def reload(self):
         """
@@ -232,22 +241,31 @@ class PlotBase(object):
         Derived classes should override this if necessary.
         """
         
-        pass
+        self.set_fonts()
+        self.set_bar_args()
+        self.set_figsize()
+        self.init_fig()
+        self.set_grid()
 
     def make_plot(self):
         """
         Calls the plotting methods in the correct order.
         """
         
-        self.set_figsize()
-        self.init_fig()
-        self.set_fontproperties()
-        self.set_grid()
-        self.make_plots()
+        self.make_plots() # this should call post_subplot_hook
+                          # after each subplot
+    
+    def post_subplot_hook(self):
+        """
+        A method executed each time after creating a subplot.
+        """
+        
         self.labels()
         self.set_ylims()
         self.set_title()
         self.set_ticklabels()
+        self.make_legend()
+        self.set_legend_font()
 
     def post_plot(self):
         """
@@ -255,6 +273,135 @@ class PlotBase(object):
         """
         
         self.finish()
+    
+    def set_bar_args(self):
+        
+        self.bar_args = self.bar_args or {}
+    
+    def set_fonts(self):
+        """
+        Sets up everything related to fonts.
+        """
+        
+        # if no font parameters provided by arguments or derived classes
+        # we get the defaults from settings
+        self.fonts_defaults_from_settings()
+        # we create a dict of default font parameters
+        self.fonts_default_dict()
+        # replace None defaults with dicts
+        self.fonts_init_dicts()
+        # set font parameters in rc (is this necessary at all?)
+        self.fonts_set_rc()
+        # create font properties objects from all parameters dicts
+        self.fonts_create_fontproperties()
+    
+    def fonts_init_dicts(self):
+        """
+        Initializes specific font argument dicts unless they are explicitely
+        provided.
+        """
+        
+        font_sizes = copy.deepcopy(settings.get('font_sizes'))
+        font_sizes.update(self.font_sizes or {})
+        
+        for text in self.text_elements:
+            
+            attr = '%s_font' % text
+            this_font = copy.deepcopy(self.font_default)
+            specific  = getattr(self, attr) or {}
+            
+            if 'size' not in specific:
+                
+                specific['size'] = self.font_size * (
+                    font_sizes[text] if text in font_sizes else 1.0
+                )
+            
+            this_font.update(specific)
+            
+            setattr(self, attr, this_font)
+    
+    def fonts_set_rc(self):
+        """
+        Sets up font related settings in matplotlib rc dict.
+        """
+        
+        self.rc = self.rc or {}
+        
+        if type(self.lab_size) is not tuple:
+            self.lab_size = (self.lab_size, ) * 2
+        if 'axes.labelsize' not in self.rc:
+            self.rc['axes.labelsize'] = self.axis_label_size
+        if 'ytick.labelsize' not in self.rc:
+            self.rc['ytick.labelsize'] = self.lab_size[0]
+        if 'ytick.labelsize' not in self.rc:
+            self.rc['ytick.labelsize'] = self.lab_size[1]
+        
+        self.rc['font.family'] = self.font_family
+        self.rc['font.style'] = self.font_style
+        self.rc['font.variant'] = self.font_variant
+        self.rc['font.weight'] = self.font_weight
+        self.rc['font.stretch'] = self.font_stretch
+    
+    def fonts_defaults_from_settings(self):
+        """
+        Sets default font options from ``settings`` unless they are
+        explicitely set already.
+        """
+        
+        self.font_family = self.font_family or settings.get('font_family')
+        self.font_style = self.font_style or settings.get('font_style')
+        self.font_variant = self.font_variant or settings.get('font_variant')
+        self.font_stretch = self.font_stretch or settings.get('font_stretch')
+        self.font_size = self.font_size or settings.get('font_size')
+    
+    def fonts_default_dict(self):
+        """
+        Creates a dict from default font parameters which can be passed later
+        as arguments for ``matplotlib.font_manager.FontProperties``.
+        """
+        
+        # dict for default font parameters
+        self.font_default = {
+            'family': self.font_family,
+            'style': self.font_style,
+            'variant': self.font_variant,
+            'stretch': self.font_stretch,
+            'size': self.font_size,
+        }
+    
+    def fonts_create_fontproperties(self):
+        """
+        Creates ``matplotlib.font_manager.FontProperties`` objects from
+        each font parameter dict.
+        """
+        
+        self.fp = mpl.font_manager.FontProperties(
+            **copy.deepcopy(self.font_default)
+        )
+        
+        self.fp_default = (
+            mpl.font_manager.FontProperties(
+                family = self.font_family,
+                style = self.font_style,
+                weight = self.font_weight,
+                variant = self.font_variant,
+                stretch = self.font_stretch,
+                size = self.font_size,
+            )
+        )
+        
+        for text in self.text_elements:
+            
+            dictattr = '%s_font' % text
+            fpattr   = 'fp_%s' % text
+            
+            setattr(
+                self,
+                fpattr,
+                mpl.font_manager.FontProperties(
+                    **copy.deepcopy(getattr(self, dictattr))
+                )
+            )
     
     def set_figsize(self):
         """
@@ -264,6 +411,10 @@ class PlotBase(object):
         if hasattr(self, 'width') and hasattr(self, 'height'):
             
             self.figsize = (self.width, self.height)
+            
+        else:
+            
+            self.figsize = settings.get('figsize')
 
     def init_fig(self):
         """
@@ -279,6 +430,10 @@ class PlotBase(object):
         with proportions according to the number of elements
         in each subplot.
         """
+        
+        self.grid_hratios = self.grid_hratios or [1.] * self.grid_rows
+        self.grid_wratios = self.grid_wratios or [1.] * self.grid_cols
+        
         self.gs = mpl.gridspec.GridSpec(
             self.grid_rows,
             self.grid_cols,
@@ -292,6 +447,18 @@ class PlotBase(object):
         if self.axes[j][i] is None:
             self.axes[j][i] = self.fig.add_subplot(self.gs[j, i])
         self.ax = self.axes[j][i]
+    
+    def make_plots(self):
+        """
+        By default this plots nothing here in the base class.
+        Derived classes should override.
+        """
+        
+        self.ax = get_subplot(0, 0)
+        
+        self.ax.plot(x = [], y = [])
+        
+        self.post_subplot_hook()
     
     def set_ylims(self):
         
@@ -341,55 +508,8 @@ class PlotBase(object):
             for tick in self.ax.yaxis.get_major_ticks()
         ]
         
-        self.ax.set_ylabel(self.ylab, fontproperties = self.fp_axis_lab)
+        self.ax.set_ylabel(self.ylab, fontproperties = self.fp_axis_label)
         # self.ax.yaxis.label.set_fontproperties(self)
-    
-    def set_fontproperties(self):
-        
-        self.fp_default = (
-            mpl.font_manager.FontProperties(
-                family = self.font_family,
-                style = self.font_style,
-                weight = self.font_weight,
-                variant = self.font_variant,
-                stretch = self.font_stretch,
-                size = self.font_size,
-            )
-        )
-        
-        self.fp_axis_lab = (
-            mpl.font_manager.FontProperties(
-                **copy.deepcopy(self.axis_lab_font)
-            )
-            if self.axis_lab_font else
-            self.fp_default
-        )
-        
-        self.fp_xticklabel = (
-            mpl.font_manager.FontProperties(
-                **copy.deepcopy(
-                    self.xticklabel_font
-                        if self.xticklabel_font else
-                    self.ticklabel_font
-                )
-            )
-            if self.xticklabel_font or self.ticklabel_font else
-            self.fp_default
-        )
-        
-        self.fp_ticklabel = (
-            mpl.font_manager.FontProperties(
-                **copy.deepcopy(self.ticklabel_font)
-            ) if self.ticklabel_font else
-            self.fp_default
-        )
-        
-        self.fp_title = (
-            mpl.font_manager.FontProperties(
-                **copy.deepcopy(self.title_font)
-            ) if self.title_font else
-            self.fp_default
-        )
     
     def set_ticklabels(self):
         
@@ -408,12 +528,33 @@ class PlotBase(object):
             
             self.ax.xaxis.xticks(self.xticks)
     
+    def make_legend(self):
+        
+        if self.legend:
+            
+            self.leg = self.ax.legend(
+                loc = self.legend_loc,
+                title = self.legend_title,
+            )
+    
+    def set_legend_font(self):
+        
+        if self.legend:
+            
+            _ = [
+                t.set_fontproperties(self.fp_legend_label)
+                for t in self.leg.get_texts()
+            ]
+            
+            self.leg.get_title().set_fontproperties(self.fp_legend_title)
+    
     def finish(self):
         """
         Applies tight layout, draws the figure, writes the file and closes.
         """
         
-        self.fig.tight_layout()
+        #self.fig.tight_layout()
+        self.fig.set_tight_layout(True)
         self.fig.subplots_adjust(top = .92)
         self.cvs.draw()
         self.cvs.print_figure(self.pdf)
@@ -437,6 +578,7 @@ class TestPlot(PlotBase):
         
         x = np.linspace(0, 10, 1000)
         self.ax.plot(x, np.sin(x))
+        self.post_subplot_hook()
 
 
 class Profiles(PlotBase):
@@ -509,7 +651,7 @@ class SpectrumPlotOld(object):
             'ytick.direction': 'out',
             }
     
-    plt.rcParams.update(params)
+    # plt.rcParams.update(params)
     
     def __init__(
             self,

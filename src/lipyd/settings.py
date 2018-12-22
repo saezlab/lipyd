@@ -475,7 +475,20 @@ _defaults = {
         'neg': {
         }
     },
-    'typeface': 'Helvetica Neue LT Std',
+    'font_family': ['Helvetica Neue LT Std', 'sans'],
+    'font_variant': None,
+    'font_style': None,
+    'font_stretch': None,
+    'font_size': 11,
+    'font_sizes': {
+        'axis_label': 1.,
+        'ticklabel': .8,
+        'legend_title': 1.,
+        'legend_label': .8,
+        'title': 1.2,
+        'annotation': .8,
+    },
+    'figsize': (3, 4),
 }
 
 in_basedir = [
