@@ -35,10 +35,39 @@ import matplotlib.gridspec as gridspec
 import matplotlib.backends.backend_pdf
 from matplotlib import ticker
 from matplotlib import rcParams
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 import lipyd.settings as settings
+
+
+def is_opentype_cff_font(filename):
+    """
+    This is necessary to fix a bug in matplotlib:
+    https://github.com/matplotlib/matplotlib/pull/6714
+    Returns True if the given font is a Postscript Compact Font Format
+    Font embedded in an OpenType wrapper.  Used by the PostScript and
+    PDF backends that can not subset these fonts.
+    """
+    
+    if os.path.splitext(filename)[1].lower() == '.otf':
+        
+        result = _is_opentype_cff_font_cache.get(filename)
+        
+        if result is None:
+            
+            with open(filename, 'rb') as fd:
+                
+                tag = fd.read(4)
+            
+            result = (tag == b'OTTO')
+            _is_opentype_cff_font_cache[filename] = result
+        
+        return result
+    
+    return False
+
+
+mpl.font_manager.is_opentype_cff_font = is_opentype_cff_font
 
 
 class PlotBase(object):
@@ -1511,7 +1540,7 @@ class SpectrumPlot(PlotBase):
         ----------
         li : list
             list of real number
-        real_x : float 
+        real_x : float
             real number
         
         Return:
