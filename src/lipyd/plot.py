@@ -38,6 +38,7 @@ from matplotlib import rcParams
 from matplotlib.backends.backend_pdf import PdfPages
 
 import lipyd.settings as settings
+import lipyd.session as session
 
 
 def is_opentype_cff_font(filename):
@@ -1420,7 +1421,7 @@ class SpectrumPlot(PlotBase):
         annotations of peaks
     """
 
-    epsilon = 1e-06
+    
     pdf_type = "pdf"
     screen_type = "screen"
 
@@ -1429,60 +1430,120 @@ class SpectrumPlot(PlotBase):
             mzs,
             intensities = None,
             annotations = None,
+            ionmode = None,
+            sample_name = None,
+            scan_id = None,
+            intensities_percentage = True,
+            annotate = False,
             **kwargs,
         ):
-        
-        PlotBase.__init__(**kwargs)
-        
-        #self.result_type = result_type
-        #self.pdf_file_name = pdf_file_name
-        self.mzs = mzs
-        self.intensities = (
-            np.array([.5] * len(self))
-                if intensities is None else
-            intensities
-        )
-        self.annotations = (
-            np.array([None] * len(self))
-                if annotations is None else
-            annotations
-        )
-    
-    
-    def __len__(self):
-        
-        return len(self.mzs)
-    
-    def build_plot(
-            self,
-            mzs = [],           # the list contains points X
-            intensities = [],   # the list contains points Y
-            annotations = [],   # annotX["X"] - contains annotated points X;
-                                # annotX["caption"]contains caption of point;
-            title = "",
-            result_type = "screen",
-            pdf_file_name = ". / result.pdf",
-            **kwargs,
-        ):
-        """ Main method for drawing a plot
+        """
+        Creates a plot of a mass spectrum optionally with annotations for
+        the peaks.
         
         Arguments:
         ----------
-        li : list
-            list of real number
-        real_x : float 
-            real number
+        mzs : list,numpy.array
+            m/z values of peaks in the spectrum.
+        intensities : list,numpy.array
+            Intensity values for each peak. If `None` all intensities
+            will be plotted as 50%%.
+        annotations : list,numpy.array
+            String annotations for each peak. `None` values for peaks without
+            annotation. If `None` no annotations will be plotted.
+        ionmode : str
+            
+        intensities_percentage : bool
+            Scale y-axis to 0-100%% or plot the intensity values as they are.
         
         Return:
         -------
         index or None
         
         """
-
-        self.mzs = self.mzs if mzs is None else mzs
+        
+        self.mzs = np.array(mzs)
         self.intensities = (
-            self.intensities if intensities is None else intensities
+            np.array([.5] * len(self))
+                if intensities is None else
+            np.array(intensities)
         )
+        self.annotations = annotations
+        self.annotate = annotate
+        self.set_annotations()
+        
+        
+        if intensities_percentage:
+            
+            self.intensities = (
+                self.intensities / np.max(self.intensities) * 100
+            )
+            self.ylim = (0, 100)
+        
+        PlotBase.__init__(**kwargs)
+    
+    def __len__(self):
+        
+        return len(self.mzs)
+    
+    def get_annotations(self):
+        
+        if self.ionmode is None:
+            
+            raise ValueError(
+                'SpectrumPlot: Ionmode is necessary for fragment lookup.'
+            )
+        
+        self.annotations = np.array([self.get_annot() for mz in self.mzs])
+    
+    def get_annot(self, mz):
+        """
+        Returns database annotations for a single fragment as string.
+        `None` if no fragments in the database matched.
+        """
+        
+        annots = fragdb.lookup(
+            mz,
+            ionmode = self.ionmode,
+            tolerance = self.tolerance
+        )
+        
+        if len(annots) == 0:
+            
+            return None
+        
+        # only a list of names
+        # maybe we should include the fragment m/z
+        return '\n'.join(annot[1] for annot in annots)
+    
+    def set_annotations(self):
+        
+        if self.annotate and self.annotations is None:
+            
+            try:
+                import lipyd.fragdb as fragdb
+                self.get_annotations()
+            except ImportError:
+                session.log.msg(
+                    'SpectrumPlot: Could not import `lipyd.fragdb`, '
+                    'unable to get peak annotations for MS2 spectrum.'
+                )
+            except ValueError:
+                session.log.msg(
+                    'SpectrumPlot: Ionmode is necessary for fragment lookup.'
+                )
+        
+        self.annotations = (
+            np.array([None] * len(self))
+                if self.annotations is None else
+            np.array(self.annotations)
+        )
+    
+    def make_plots(self):
+        """
+        Main method for drawing the plot.
+        """
+        
         max_x = np.max(self.mzs)
         max_y = np.max(self.intensities)
         self.intensities = self.intensities / max_y * 100 #normalize;
