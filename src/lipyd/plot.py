@@ -118,6 +118,7 @@ class PlotBase(object):
             title = None,
             maketitle = False,
             title_halign = None,
+            usetex = False,
             do_plot = True,
             **kwargs,
         ):
@@ -221,6 +222,8 @@ class PlotBase(object):
             Plot with or without main title.
         title_halign : str
             Horizontal alignement of the main title.
+        usetex : bool
+            Use LaTeX for rendering text elements.
         do_plot : bool
             Execute the plotting workflow upon instatiation.
             This is convenient by default but for resolving issues sometimes
@@ -370,6 +373,7 @@ class PlotBase(object):
         self.rc['font.variant'] = self.font_variant
         self.rc['font.weight'] = self.font_weight
         self.rc['font.stretch'] = self.font_stretch
+        self.rc['text.usetex'] = self.usetex
     
     def fonts_defaults_from_settings(self):
         """
@@ -1422,29 +1426,44 @@ class SpectrumPlot(PlotBase):
 
     def __init__(
             self,
-            title = "",
-            result_type = "screen",
-            pdf_file_name = ". / result.pdf",
+            mzs,
+            intensities = None,
+            annotations = None,
             **kwargs,
         ):
         
         PlotBase.__init__(**kwargs)
         
-        self.title = title
-        self.result_type = result_type
-        self.pdf_file_name = pdf_file_name
-        self.mzs = []
-        self.intensities = []
-        self.annotations = []
-
+        #self.result_type = result_type
+        #self.pdf_file_name = pdf_file_name
+        self.mzs = mzs
+        self.intensities = (
+            np.array([.5] * len(self))
+                if intensities is None else
+            intensities
+        )
+        self.annotations = (
+            np.array([None] * len(self))
+                if annotations is None else
+            annotations
+        )
+    
+    
+    def __len__(self):
         
-    def build_plot(self,
-                    mzs = [],           # the list contains points X
-                    intensities = [],   # the list contains points Y
-                    annotations = [],   # annotX["X"] - contains annotated points X; annotX["caption"]contains caption of point;
-                    title = "",
-                    result_type = "screen",
-                    pdf_file_name = ". / result.pdf"):
+        return len(self.mzs)
+    
+    def build_plot(
+            self,
+            mzs = [],           # the list contains points X
+            intensities = [],   # the list contains points Y
+            annotations = [],   # annotX["X"] - contains annotated points X;
+                                # annotX["caption"]contains caption of point;
+            title = "",
+            result_type = "screen",
+            pdf_file_name = ". / result.pdf",
+            **kwargs,
+        ):
         """ Main method for drawing a plot
         
         Arguments:
