@@ -1463,22 +1463,18 @@ class SpectrumPlot(PlotBase):
         """
         
         self.mzs = np.array(mzs)
-        self.intensities = (
-            np.array([.5] * len(self))
-                if intensities is None else
-            np.array(intensities)
-        )
+        self.xlab = 'm/z'
+        
+        self.intensities = intensities
+        self.intensities_percentage = intensities_percentage
+        
         self.annotations = annotations
         self.annotate = annotate
         self.set_annotations()
         
-        
-        if intensities_percentage:
+        if 'figsize' not in kwargs:
             
-            self.intensities = (
-                self.intensities / np.max(self.intensities) * 100
-            )
-            self.ylim = (0, 100)
+            kwargs['figsize'] = (17, 9)
         
         PlotBase.__init__(**kwargs)
     
@@ -1517,6 +1513,10 @@ class SpectrumPlot(PlotBase):
         return '\n'.join(annot[1] for annot in annots)
     
     def set_annotations(self):
+        """
+        Sets the annotations for each fragment, optionally attempting
+        database lookup.
+        """
         
         if self.annotate and self.annotations is None:
             
@@ -1539,6 +1539,28 @@ class SpectrumPlot(PlotBase):
             np.array(self.annotations)
         )
     
+    def set_intensities(self):
+        """
+        Sets the intensity vector: if no intensities provided all values
+        will be 50%%, if necessary converts the values to percentage.
+        """
+        
+        self.intensities = (
+            np.array([50] * len(self))
+                if self.intensities is None else
+            np.array(self.intensities)
+        )
+        self.ylim = None
+        self.ylab = 'Intensity'
+        
+        if intensities_percentage:
+            
+            self.intensities = (
+                self.intensities / np.max(self.intensities) * 100
+            )
+            self.ylim = (0, 100)
+            self.ylab = r'Relative intensity [%]'
+    
     def make_plots(self):
         """
         Main method for drawing the plot.
@@ -1546,30 +1568,20 @@ class SpectrumPlot(PlotBase):
         
         max_x = np.max(self.mzs)
         max_y = np.max(self.intensities)
-        self.intensities = self.intensities / max_y * 100 #normalize;
         
-        self.annotations = (
-            self.annotations if annotations is None else annotations
-        ) # [(x1,a1),(x2,a2), ...]
-        self.title = title or self.title
-        self.result_type = result_type or self.result_type
-        self.pdf_file_name = pdf_file_name or self.pdf_file_name
-
-
         #For saving plot in pdf format
         #pp = PdfPages(self.pdf_file_name)
         
-        fig, ax = plt.subplots(1,1,figsize = (17,9))
-
-        ax.plot(self.mzs, self.intensities, "k")
-        ax.set_title(self.title)
-
-        plt.xlabel("m / z")
-        plt.ylabel("Relative intensity, %")
-
+        self.get_subplot(0, 0)
+        
+        self.ax.vlines(
+            x = self.mzs,
+            ymin = np.array([0.0] * len(self)),
+            ymax = self.intensities,
+        )
+        
         trans = ax.get_xaxis_transform()
         
-
         vertex_number = 1
         annotate_base_x = 1.1 * max_x  #6% more of max to right after max of X;
         annotate_base_y = 0.07
@@ -1592,7 +1604,7 @@ class SpectrumPlot(PlotBase):
                     ha = "center",
                     va = "center",
                     bbox = dict(boxstyle = "circle", fc = "w")
-                    )
+                )
 
                 ax.annotate("{} - {}".format(vertex_number ,c),
                     xy = (annotate_x, annotate_y),
@@ -1600,18 +1612,13 @@ class SpectrumPlot(PlotBase):
                     ha = "center",
                     va = "top",
                     bbox = dict(boxstyle = "round", fc = "w")
-                    )
+                )
 
                 vertex_number += 1
                 annotate_x += annotate_offset_x
                 annotate_y += annotate_offset_y
         
-        if (self.result_type == Drawer.screen_type):
-            plt.show()
-        
-        #for saving in pdf format
-        #pp.savefig(fig)
-        #pp.close()
+        self.post_subplot_hook()
 
     def BinSearch4Real(self, li, real_x):
         """ Method for annotating peaks using binary search algorithm
