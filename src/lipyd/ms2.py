@@ -667,6 +667,22 @@ class Scan(ScanBase):
         # TODO
         pass
     
+    def plot(self, **kwargs):
+        
+        _ = plot.SpectrumPlot(
+            mzs = self.mzs,
+            intensities = self.intensities,
+            annotations = self.annot,
+            scan_id = self.scan_id,
+            sample_name = (
+                ''.join(map(str, self.sample_id))
+                    if self.sample_id is not None else
+                None
+            ),
+            ionmode = self.ionmode,
+            **kwargs,
+        )
+    
     def nl(self, mz, adduct = None):
         """For m/z returns the corresponding neutral loss m/z.
         If precursor ion mass is unknown returns `numpy.nan`.
