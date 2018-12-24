@@ -39,6 +39,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 import lipyd.settings as settings
 import lipyd.session as session
+import lipyd.common as common
 
 
 def is_opentype_cff_font(filename):
@@ -135,8 +136,8 @@ class PlotBase(object):
         sizes, etc. Then ``post_plot`` applies ``tight_layout`` and closes
         the file.
         
-        Arguments
-        ---------
+        Parameters
+        ----------
         fname : str
             File name for the graphics, e.g. `boxplot01.pdf`.
         xlab : str
@@ -147,6 +148,8 @@ class PlotBase(object):
             Figure width in inches.
         height : float
             Figure height in inches.
+        figsizes : tuple
+            Figure size as tuple of 2 numbers, in inches.
         grid_rows : int
             Number of rows in the grid. We create a grid even for single plot,
             hence the default is 1.
@@ -442,7 +445,11 @@ class PlotBase(object):
         Converts width and height to a tuple so can be used for figsize.
         """
         
-        if hasattr(self, 'width') and hasattr(self, 'height'):
+        if self.figsize is not None:
+            
+            return
+            
+        elif self.width and self.height:
             
             self.figsize = (self.width, self.height)
             
@@ -1405,11 +1412,11 @@ class SpectrumPlot(PlotBase):
     """
     Class for plotting a mass spectrum with annotations and intensities.
     
-    Arguments:
+    Parameters
     ----------
     title : str
         title of a plot
-    result_type : str 
+    result_type : str
         type of result plot - screen or pdf
     pdf_file_name : str
         filename of your downloading plot (pdf)
@@ -1420,11 +1427,7 @@ class SpectrumPlot(PlotBase):
     annotations : str
         annotations of peaks
     """
-
     
-    pdf_type = "pdf"
-    screen_type = "screen"
-
     def __init__(
             self,
             mzs,
@@ -1433,6 +1436,7 @@ class SpectrumPlot(PlotBase):
             ionmode = None,
             sample_name = None,
             scan_id = None,
+            precursor = None,
             intensities_percentage = True,
             annotate = False,
             **kwargs,
@@ -1441,7 +1445,7 @@ class SpectrumPlot(PlotBase):
         Creates a plot of a mass spectrum optionally with annotations for
         the peaks.
         
-        Arguments:
+        Parameters
         ----------
         mzs : list,numpy.array
             m/z values of peaks in the spectrum.
@@ -1452,37 +1456,91 @@ class SpectrumPlot(PlotBase):
             String annotations for each peak. `None` values for peaks without
             annotation. If `None` no annotations will be plotted.
         ionmode : str
-            
+            Ionmode used in output file name and at fragment database lookup.
+        sample_name : str
+            Used in output file name.
+        scan_id : int
+            Used in output file name.
+        precursor : float
+            Used for fragment database lookup.
         intensities_percentage : bool
             Scale y-axis to 0-100%% or plot the intensity values as they are.
+        annotate : bool
+            Get annotations by fragment database lookup.
+        kwargs
+            Passed to ``PlotBase``.
         
-        Return:
+        Returns
         -------
         index or None
         
         """
         
+        self.ionmode = ionmode
+        self.scan_id = scan_id
+        self.sample_name = sample_name
+        self.kwargs = kwargs
+        
+        self._set_fname()
+        self._set_title()
+        self._set_param('figsize')
+        self._set_param('xlab')
+        self._set_param('legend', False)
+        
         self.mzs = np.array(mzs)
-        self.xlab = 'm/z'
         
         self.intensities = intensities
         self.intensities_percentage = intensities_percentage
+        self.set_intensities()
         
         self.annotations = annotations
         self.annotate = annotate
         self.set_annotations()
         
-        if 'figsize' not in kwargs:
-            
-            kwargs['figsize'] = (17, 9)
-        
-        PlotBase.__init__(**kwargs)
+        PlotBase.__init__(self, **self.kwargs)
     
     def __len__(self):
         
         return len(self.mzs)
     
+    def _set_fname(self):
+        
+        if 'fname' not in self.kwargs:
+            
+            self.kwargs['fname'] = (
+                'ms2_spectrum%s%s%s.pdf' % (
+                    ('__%s' % self.sample_name) if self.sample_name else '',
+                    ('__%s' % self.ionmode) if self.ionmode else '',
+                    ('__scan_%u' % self.scan_id) if self.scan_id else '',
+                )
+            )
+    
+    def _set_title(self):
+        
+        if 'title' not in self.kwargs:
+            
+            self.kwargs['title'] = (
+                'Sample: %s, ionmode: %s, scan: %s' % (
+                    self.sample_name if self.sample_name else 'unknown',
+                    self.ionmode if self.ionmode else 'unknown',
+                    ('%u' % self.scan_id) if self.scan_id else '?',
+                )
+            )
+    
+    def _set_param(self, param, value = None):
+        
+        if param not in self.kwargs:
+            
+            self.kwargs[param] = (
+                settings.get('spectrum_plot_%s' % param)
+                    if value is None else
+                value
+            )
+    
     def get_annotations(self):
+        """
+        Queries the fragment database for fragment annotations.
+        """
         
         if self.ionmode is None:
             
@@ -1490,27 +1548,38 @@ class SpectrumPlot(PlotBase):
                 'SpectrumPlot: Ionmode is necessary for fragment lookup.'
             )
         
-        self.annotations = np.array([self.get_annot() for mz in self.mzs])
-    
-    def get_annot(self, mz):
-        """
-        Returns database annotations for a single fragment as string.
-        `None` if no fragments in the database matched.
-        """
-        
-        annots = fragdb.lookup(
-            mz,
+        self.annotations = list(fragdb.FragmentAnnotator(
+            self.mzs,
             ionmode = self.ionmode,
-            tolerance = self.tolerance
-        )
+            precursor = self.precursor,
+        ))
+    
+    @staticmethod
+    def _process_annotation(annots):
         
-        if len(annots) == 0:
+        if not annots:
             
             return None
+            
+        elif isinstance(annots, common.basestring):
+            
+            return annots
+            
+        else:
+            
+            # only a list of names
+            # maybe we should include the fragment m/z
+            return '\n'.join(annot.name for annot in annots)
+    
+    def process_annotations(self):
+        """
+        Creates strings from annotation arrays if necessary.
+        """
         
-        # only a list of names
-        # maybe we should include the fragment m/z
-        return '\n'.join(annot[1] for annot in annots)
+        self.annotations = np.array([
+            self._process_annotation(annots)
+            for annots in self.annotations
+        ])
     
     def set_annotations(self):
         """
@@ -1538,6 +1607,8 @@ class SpectrumPlot(PlotBase):
                 if self.annotations is None else
             np.array(self.annotations)
         )
+        
+        self.process_annotations()
     
     def set_intensities(self):
         """
@@ -1551,15 +1622,15 @@ class SpectrumPlot(PlotBase):
             np.array(self.intensities)
         )
         self.ylim = None
-        self.ylab = 'Intensity'
+        self._set_param('ylab', 'Intensity')
         
-        if intensities_percentage:
+        if self.intensities_percentage:
             
             self.intensities = (
                 self.intensities / np.max(self.intensities) * 100
             )
             self.ylim = (0, 100)
-            self.ylab = r'Relative intensity [%]'
+            self._set_param('ylab', r'Relative intensity [%]')
     
     def make_plots(self):
         """
@@ -1580,92 +1651,64 @@ class SpectrumPlot(PlotBase):
             ymax = self.intensities,
         )
         
-        trans = ax.get_xaxis_transform()
+        trans = self.ax.get_xaxis_transform()
         
         vertex_number = 1
-        annotate_base_x = 1.1 * max_x  #6% more of max to right after max of X;
+        annotate_base_x = 1.1 * max(self.mzs) # 10% more of max to right 
+                                              # after max of X;
         annotate_base_y = 0.07
         annotate_offset_x = 0.
-        annotate_offset_y = .06
+        annotate_lineheight = .06
         annotate_x = annotate_base_x
         annotate_y = annotate_base_y
 
-        for x, c in self.annotations:
-            index_x2 = self.BinSearch4Real(self.mzs, x)
-            if index_x2 is None:
-                print("Value {} not found in annotations.".format(x) )
-            else:
-                y = self.intensities[index_x2]  # get y - value in point x2;
-                ax.annotate("{}".format(vertex_number),
-                    xy = (x,y),
-                    xycoords = 'data',
-                    xytext = (0, 0),
-                    textcoords = 'offset points', #"data" 
-                    ha = "center",
-                    va = "center",
-                    bbox = dict(boxstyle = "circle", fc = "w")
-                )
-
-                ax.annotate("{} - {}".format(vertex_number ,c),
-                    xy = (annotate_x, annotate_y),
-                    xycoords = trans,
-                    ha = "center",
-                    va = "top",
-                    bbox = dict(boxstyle = "round", fc = "w")
-                )
-
-                vertex_number += 1
-                annotate_x += annotate_offset_x
-                annotate_y += annotate_offset_y
+        for mz, intens, annot in zip(
+            self.mzs, self.intensities, self.annotations
+        ):
+            
+            if not annot:
+                
+                continue
+            
+            self.ax.annotate('{}'.format(vertex_number),
+                xy = (mz, intens),
+                xycoords = 'data',
+                xytext = (0, 0),
+                textcoords = 'offset points', # "data"
+                ha = 'center',
+                va = 'center',
+                bbox = dict(boxstyle = 'circle', fc = 'w'),
+                fontproperties = self.fp_annotation,
+            )
+            
+            self.ax.annotate('{} - {}'.format(vertex_number, annot),
+                xy = (annotate_x, annotate_y),
+                xycoords = trans,
+                #va = 'top',
+                bbox = dict(boxstyle = 'round', fc = 'w'),
+                fontproperties = self.fp_annotation,
+                horizontalalignment = 'left',
+            )
+            
+            vertex_number += 1
+            annotate_x += annotate_offset_x
+            annotate_y += annotate_lineheight * annot.count('\n')
         
         self.post_subplot_hook()
 
-    def BinSearch4Real(self, li, real_x):
-        """ Method for annotating peaks using binary search algorithm
-        
-        Arguments:
-        ----------
-        li : list
-            list of real number
-        real_x : float
-            real number
-        
-        Return:
-        -------
-            None or value
-        
-        """
-
-        i = 0
-        j = len(li)-1
-        m = int(j / 2)
-        # look over list while li[m] - real_x greater than Drawer.epsilon
-        while abs(li[m] - real_x) > Drawer.epsilon and i <= j:
-            if real_x > li[m]:
-                i = m + 1
-            else:
-                j = m-1
-            m = int((i + j) / 2)
-
-        if i > j:
-            return None
-        else:
-            return m
-        
 
 if __name__ == "__main__":
     
-
     #Test data
-    a=SpectrumPlot()
-    x=[10., 11.1, 12.2, 13.3, 14.4, 15.5, 16.6, 17.7, 18.8, 19.9, 20.2]
-    y=[100., 101., 150., 102., 104., 101., 180., 105., 102., 107., 103.]
+    a = SpectrumPlot()
+    x = [10., 11.1, 12.2, 13.3, 14.4, 15.5, 16.6, 17.7, 18.8, 19.9, 20.2]
+    y = [100., 101., 150., 102., 104., 101., 180., 105., 102., 107., 103.]
     
     # Annotations done by use correlation between x coord and name of peak
-    xa=[(12.2, "the first peack"),(16.6, "the second peack")]
+    xa = ["the first peak", "the second peak"]
     
-    a.build_plot(mzs=x,
-                intensities=y,
-                annotations=xa,
-                result_type="screen",
-                title="test")
+    a.build_plot(mzs = x,
+                intensities = y,
+                annotations = xa,
+                result_type = "screen",
+                title = "test")

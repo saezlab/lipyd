@@ -489,6 +489,8 @@ _defaults = {
         'annotation': .8,
     },
     'figsize': (3, 4),
+    'spectrum_plot_figsize': (17, 9),
+    'spectrum_plot_xlab': 'm/z',
 }
 
 in_basedir = [
