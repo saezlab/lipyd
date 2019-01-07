@@ -2,7 +2,7 @@ import pyopenms as pms
 
 if __name__ == "__main__":
     
-    raw_file_name = ""
+    raw_file_name = "velos005614.mzML"
     in_map = pms.MSExperiment()
     out_map = pms.MSExperiment()
     pms.MzMLFile().load(raw_file_name, in_map)
