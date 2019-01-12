@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2014-2018 - EMBL
+#  Copyright (c) 2014-2019 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -14,8 +14,6 @@
 #
 #  Website: http://www.ebi.ac.uk/~denes
 #
-
-from __future__ import print_function
 
 import sys
 import imp

@@ -543,13 +543,13 @@ def peaks_sample_id_method(attrs):
     -------
 
     """
+    
+    if (
+        attrs is not None and
+        'label' in attrs and
+        'sample_id' in attrs['label']
+    ):
         
-        if (
-            attrs is not None and
-            'label' in attrs and
-            'sample_id' in attrs['label']
-        ):
-            
-            return attrs['label']['sample_id']
-        
-        return common.random_string()
+        return attrs['label']['sample_id']
+    
+    return common.random_string()

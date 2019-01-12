@@ -27,6 +27,31 @@ class FeatureAnalyzer(object):
     """ """
     
     def __init__(self, name, samples, method, **variables):
+        """
+        Serves for analysis of features using data in the feature vs. sample
+        data arrays in ``SampleSet`` objects and feature variables in
+        their ``FeatureAttrs`` object and various background variables
+        about samples in ``SampleData`` objects.
+        
+        ``SampleData`` variables can be provided as keyword arguments.
+        ``SampleSet`` object must be provided as well as the analysis method.
+        
+        name : str
+            A name for the feature variable created by this analysis object.
+        samples : sample.SampleSet
+            A ``lipyd.sample.SampleSet`` object.
+        method : callable
+            A method which accepts keyword arguments and explicitely
+            accepts keyword arguments necessary for its operation.
+            All feature variables, sampleset data and background variables
+            will be provided as keyword arguments. The method called
+            for each sample one by one. At the end the resulted array
+            will be registered as a new variable in the ``FeatureAttrs``
+            object of the ``SampleSet`` under the attribute name ``name``.
+        **variables :
+            Custom ``SampleData`` or derived objects. Will be provided to
+            ``method`` by their argument name.
+        """
         
         self.name = name
         self.samples = samples
@@ -37,7 +62,8 @@ class FeatureAnalyzer(object):
         self.samples.feattrs._add_var(result, self.name)
     
     def run(self):
-        """Applies the method for each feature and returns an array of the
+        """
+        Applies the method for each feature and returns an array of the
         results.
 
         Parameters
@@ -66,6 +92,126 @@ class FeatureAnalyzer(object):
             result.append(self.method(**featurevars, **self.variables))
         
         return np.array(result)
+
+
+class ProfileAnalyzer(FeatureAnalyzer):
+    
+    def __init__(
+            self,
+            samples,
+            protein = None,
+            condition = None,
+            profile_filter_args = (),
+        ):
+        
+        self.protein = protein
+        self.condition = condition
+        
+        feature.FeatureAnalyzer.__init__(
+            self,
+            name = 'profile',
+            samples = samples,
+            method = self.profile_method,
+            _samples = samples,
+            profile_filter_args = profile_filter_args,
+            protein = protein,
+            condition = condition,
+        )
+    
+    @staticmethod
+    def profile_method(
+            intens_norm,
+            _samples,
+            profile_filter_args = (),
+            protein = None,
+            condition = None,
+            **kwargs,
+        ):
+        
+        # intensities in fraction categories
+        
+        # intensities of fractions in peak
+        high_protein = [
+            intens_norm[_samples.attrs.get_sample_index(sample_id)]
+            for sample_id in profile_filter_args['peak'][0]
+        ]
+        
+        # intensities of fractions with small or tiny protein
+        some_protein = [
+            intens_norm[_samples.attrs.get_sample_index(sample_id)]
+            for sample_id in
+            itertools.chain(
+                profile_filter_args['small'][0],
+                profile_filter_args['tiny'][0],
+            )
+        ]
+        # intensities of fractions with no protein
+        no_protein = [
+            intens_norm[_samples.attrs.get_sample_index(sample_id)]
+            for sample_id in
+            profile_filter_args['none'][0]
+        ]
+        
+        # exclude those completely missing from the peak
+        
+        if np.all(np.isnan(high_protein)):
+            
+            return False
+        
+        # apply single fraction operators
+        
+        for (
+            label,
+            (sample_ids, threshold, op)
+        ) in iteritems(profile_filter_args):
+            
+            for sample_id in sample_ids:
+                
+                i = _samples.attrs.get_sample_index(sample_id)
+                
+                if not (
+                    op(intens_norm[i], threshold) or (
+                        op == operator.le and
+                        np.isnan(intens_norm[i])
+                    )
+                ):
+                    
+                    return False
+        
+        # additional constraints
+        
+        if not nanle(
+            np.nanmax(no_protein) * .6,
+            (
+                np.nanmin(some_protein)
+                    if not np.any(np.isnan(some_protein)) else
+                np.nan
+            )
+        ):
+            
+            return False
+        
+        # exclude hollow shape profiles
+        
+        peak_area = [
+            _samples.attrs.get_sample_index(sample_id)
+            for sample_id in
+            itertools.chain(
+                profile_filter_args['peak'][0],
+                profile_filter_args['small'][0]
+            )
+        ]
+        
+        for i in peak_area[1:-1]:
+            
+            if (
+                intens_norm[i] * 2 < intens_norm[i - 1] and
+                intens_norm[i] * 2 < intens_norm[i + 1]
+            ):
+                
+                return False
+        
+        return True
 
 
 class PeakSize(FeatureAnalyzer):

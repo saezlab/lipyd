@@ -316,7 +316,7 @@ class SampleSetAttrs(object):
 
         Parameters
         ----------
-        idx :
+        idx : numpz.array
             
 
         Returns
@@ -1117,7 +1117,9 @@ class SampleSelection(SampleData):
         self._add_var(sel, 'selection')
     
     def sample_ids_selected(self):
-        """Returns a list IDs of selected samples."""
+        """
+        Returns a list IDs of selected samples.
+        """
         
         return [
             sample_id
@@ -1126,7 +1128,9 @@ class SampleSelection(SampleData):
         ]
     
     def logical_not(self):
-        """Returns the inverse of the selection."""
+        """
+        Returns the inverse of the selection.
+        """
         
         return SampleSelection(
             selection = np.logical_not(self.selection),
@@ -1136,17 +1140,15 @@ class SampleSelection(SampleData):
         )
     
     def logical_and(self, other):
-        """Returns a ``SampleSelection`` object with samples selected in both
+        """
+        Returns a ``SampleSelection`` object with samples selected in both
         this object and the other.
 
         Parameters
         ----------
-        SampleSelection :
-            other:
+        other : lipyd.sampleattrs.SampleSelection
             An other ``SampleSelection`` object.
-        other :
-            
-
+        
         Returns
         -------
 
@@ -1160,17 +1162,15 @@ class SampleSelection(SampleData):
         )
     
     def logical_or(self, other):
-        """Returns a ``SampleSelection`` object with samples selected in either
+        """
+        Returns a ``SampleSelection`` object with samples selected in either
         this object or the other.
 
         Parameters
         ----------
-        SampleSelection :
-            other:
+        other : lipyd.sampleattrs.SampleSelection
             An other ``SampleSelection`` object.
-        other :
-            
-
+        
         Returns
         -------
 
@@ -1182,6 +1182,15 @@ class SampleSelection(SampleData):
             sample_data = list(self._sample_data.values()) + [self, other],
             proc = self.attrs.proc,
         )
+    
+    def __or__(self, other):
+        
+        return self.logical_or(other)
+    
+    def __and__(self, other):
+        
+        return self.logical_and(other)
+
 
 class SECProfile(SampleData):
     """ """

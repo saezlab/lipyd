@@ -445,7 +445,7 @@ class PlotBase(object):
         Converts width and height to a tuple so can be used for figsize.
         """
         
-        if self.figsize is not None:
+        if hasattr(self, 'figsize') and self.figsize is not None:
             
             return
             
@@ -488,6 +488,16 @@ class PlotBase(object):
         if self.axes[j][i] is None:
             self.axes[j][i] = self.fig.add_subplot(self.gs[j, i])
         self.ax = self.axes[j][i]
+    
+    def iter_subplots(self):
+        
+        for j in xrange(self.grid_rows):
+            
+            for i in xrange(self.grid_cols):
+                
+                self.get_subplot(i, j)
+                
+                yield self.ax
     
     def make_plots(self):
         """
@@ -550,14 +560,15 @@ class PlotBase(object):
         ]
         
         self.ax.set_ylabel(self.ylab, fontproperties = self.fp_axis_label)
+        self.ax.set_xlabel(self.xlab, fontproperties = self.fp_axis_label)
         # self.ax.yaxis.label.set_fontproperties(self)
     
     def set_ticklabels(self):
         
-        if self.xticklabels:
+        if self.xticklabels is not None:
             
-            self.ax.xaxis.set_ticklabels(
-                ('{:,g}'.format(x) for x in self.xticklabels),
+            self.ax.set_xticklabels(
+                ('{0}'.format(x) for x in self.xticklabels),
             )
         
         _ = [
@@ -565,9 +576,9 @@ class PlotBase(object):
             for tl in self.ax.get_xticklabels()
         ]
         
-        if self.xticks:
+        if self.xticks is not None:
             
-            self.ax.xaxis.xticks(self.xticks)
+            self.ax.set_xticks(self.xticks)
     
     def make_legend(self):
         
@@ -603,10 +614,11 @@ class PlotBase(object):
         #self.fig.clf()
 
 
-class TestPlot(PlotBase):
+class _TestPlot(PlotBase):
     """
     Most minimal class to test the ``PlotBase`` class with plotting only
-    a sinus function.
+    a sinus function. Also serves as an example how to build plot classes
+    on top of PlotBase.
     """
     
     def __init__(self, **kwargs):
@@ -618,19 +630,155 @@ class TestPlot(PlotBase):
         self.get_subplot(0, 0)
         
         x = np.linspace(0, 10, 1000)
-        self.ax.plot(x, np.sin(x))
+        #self.ax.plot(x, np.sin(x))
         self.post_subplot_hook()
 
 
 class Profiles(PlotBase):
     
-    def __init__(self, **kwargs):
+    
+    def __init__(
+            self,
+            profile_data,
+            **kwargs,
+        ):
+        """
+        Creates an optionally multi-faceted figure of intensity and
+        background variable profiles.
+        
+        profile_data : list
+            A list of ``ProfileData`` objects or one single object.
+        """
+        
+        if (
+            'grid_cols' not in kwargs and
+            'grid_rows' not in kwargs and
+            len(profile_data) > 1
+        ):
+            
+            size = int(np.ceil(np.sqrt(len(profile_data))) ** 2)
+            kwargs['grid_cols'] = size
+            kwargs['grid_rows'] = size
+        
+        self.profile_data = profile_data
         
         PlotBase.__init__(self, **kwargs)
     
-    def make_plots(self, profiles, xlabels):
+    
+    def make_plots(self):
         
-        self.get_subplot(0, 0)
+        for param, ax in zip(self.profile_data, self.iter_subplots()):
+            
+            self.param = param
+            self.plot_profiles()
+    
+    
+    def plot_profiles(self):
+        
+        self.var_barplots()
+        self.features()
+        self.var_lineplots()
+        self.var_ranges()
+        self.post_subplot_hook()
+    
+    
+    def features(self):
+        
+        for i in xrange(self.param.features.shape[0]):
+            
+            color = (
+                '#007B7F'
+                    if self.param.colors is None else
+                self.param.colors[i]
+                    if isinstance(self.param.colors, np.ndarray) else
+                self.param.colors
+            )
+            alpha = (
+                1.0
+                    if self.param.alphas is None else
+                self.param.alphas[i]
+                    if isinstance(self.param.alphas, np.ndarray) else
+                self.param.alphas
+            )
+            linewidth = (
+                .2
+                    if self.param.linewidths is None else
+                self.param.linewidths[i]
+                    if isinstance(self.param.linewidths, np.ndarray) else
+                self.param.linewidths
+            )
+            
+            self.ax.plot(
+                self.param.features_x,
+                self.param.features[i,:],
+                color = color ,
+                alpha = alpha,
+                linestyle = '-',
+                linewidth = linewidth,
+            )
+        
+        self.xticks = self.param.features_x
+        self.xticklabels = self.param.labels
+        self.title = self.param.title
+        self.xlab = self.param.xlab
+        self.ylab = self.param.ylab
+        self.ylim = [0, 1]
+    
+    
+    def var_barplots(self):
+        
+        if self.param.variables is None:
+            
+            return
+        
+        for var in self.param.variables:
+            
+            if var.typ != 'bar':
+                
+                continue
+            
+            self.ax.bar(
+                x = var.x,
+                height = var.y,
+                color = var.color,
+                alpha = var.alpha,
+                edgecolor = 'none',
+            )
+    
+    
+    def var_lineplots(self):
+        
+        if self.param.variables is None:
+            
+            return
+        
+        for var in self.param.variables:
+            
+            if var.typ != 'line':
+                
+                continue
+            
+            self.ax.plot(
+                x = var.x,
+                y = var.y,
+                color = var.color,
+                alpha = var.alpha,
+                linestyle = '-',
+                marker = var.shape,
+            )
+    
+    
+    def var_ranges(self):
+        
+        if self.param.variables is None:
+            
+            return
+        
+        for var in self.param.variables:
+            
+            if var.typ != 'range':
+                
+                continue
 
 
 class SpectrumPlotOld(object):
