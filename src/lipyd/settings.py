@@ -491,6 +491,7 @@ _defaults = {
     'figsize': (3, 4),
     'spectrum_plot_figsize': (9, 5),
     'spectrum_plot_xlab': 'm/z',
+    'cachedir': None,
 }
 
 in_basedir = [
