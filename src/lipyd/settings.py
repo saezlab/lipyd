@@ -489,7 +489,7 @@ _defaults = {
         'annotation': .8,
     },
     'figsize': (3, 4),
-    'spectrum_plot_figsize': (17, 9),
+    'spectrum_plot_figsize': (9, 5),
     'spectrum_plot_xlab': 'm/z',
 }
 
@@ -536,6 +536,7 @@ in_mgfdir = {
     'mgf_neg_examples', 'mgf_pos_examples',
 }
 
+
 def reset_all():
     """ """
     
@@ -553,7 +554,16 @@ def reset_all():
         
         setattr(settings, k, val)
     
+    if settings.cachedir is None:
+        
+        settings.cachedir = os.path.join(
+            os.path.expanduser('~'),
+            '.lipyd',
+            'cache',
+        )
+    
     globals()['settings'] = settings
+
 
 def setup(**kwargs):
     """

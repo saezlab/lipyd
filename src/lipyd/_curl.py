@@ -221,7 +221,7 @@ class Curl(object):
         sftp_user = None, sftp_passwd = None, sftp_passwd_file = None,
         sftp_port = 22, sftp_host = None, sftp_ask = None,
         setup = True, call = True, process = True,
-        retries = 3, cache_dir = 'cache'):
+        retries = 3, cache_dir = None):
         
         self.session = session.get_session()
         self.log = self.session.log
@@ -724,9 +724,14 @@ class Curl(object):
         )).hexdigest()
     
     def cache_dir_exists(self):
-        """ """
-        if not os.path.exists(os.path.join(os.getcwd(), self.cache_dir)):
-            os.mkdir(os.path.join(os.getcwd(), self.cache_dir))
+        
+        if self.cache_dir is None:
+            
+            self.cache_dir = settings.get('cachedir')
+        
+        if not os.path.exists(self.cache_dir):
+            
+            os.makedirs(self.cache_dir)
     
     def get_cache_file_name(self):
         """ """

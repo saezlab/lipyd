@@ -1843,7 +1843,7 @@ class SpectrumPlot(PlotBase):
             annotate_y += annotate_lineheight * annot.count('\n')
         
         self.post_subplot_hook()
-        self.ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(25))
+        self.ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(50))
         self.ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(5))
 
 
