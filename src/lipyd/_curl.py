@@ -585,7 +585,7 @@ class FileOpener(object):
         self.fileobj.seek(-4, 2)
         self.size = struct.unpack('I', self.fileobj.read(4))[0]
         self.fileobj.seek(0)
-        self.gzfile = gzip.GzipFile(fileobj=self.fileobj, mode='rb')
+        self.gzfile = gzip.GzipFile(fileobj = self.fileobj, mode = 'rb')
         # try:
         if self.large:
             self.result = self.iterfile(self.gzfile)
