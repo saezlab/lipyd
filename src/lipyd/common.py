@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2015-2018 - EMBL
+#  Copyright (c) 2015-2019 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -12,7 +12,7 @@
 #  See accompanying file LICENSE.txt or copy at
 #      http://www.gnu.org/licenses/gpl-3.0.html
 #
-#  Website: http://www.ebi.ac.uk/~denes
+#  Website: http://denes.omnipathdb.org/
 #
 
 from __future__ import print_function
@@ -134,21 +134,12 @@ def uniqOrdList(seq, idfun = None):
     seen = {}
     result = []
     for item in seq:
-            """
-
-            Parameters
-            ----------
-            x :
-                
-
-            Returns
-            -------
-
-            """
+        
         marker = idfun(item)
         if marker in seen: continue
         seen[marker] = 1
         result.append(item)
+    
     return result
 
 def addToList(lst, toadd):

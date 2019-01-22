@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2015-2018 - EMBL
+#  Copyright (c) 2015-2019 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -12,7 +12,7 @@
 #  See accompanying file LICENSE.txt or copy at
 #      http://www.gnu.org/licenses/gpl-3.0.html
 #
-#  Website: http://www.ebi.ac.uk/~denes
+#  Website: http://denes.omnipathdb.org/
 #
 
 from __future__ import print_function
@@ -666,6 +666,22 @@ class Scan(ScanBase):
         
         # TODO
         pass
+    
+    def plot(self, **kwargs):
+        
+        _ = plot.SpectrumPlot(
+            mzs = self.mzs,
+            intensities = self.intensities,
+            annotations = self.annot,
+            scan_id = self.scan_id,
+            sample_name = (
+                ''.join(map(str, self.sample_id))
+                    if self.sample_id is not None else
+                None
+            ),
+            ionmode = self.ionmode,
+            **kwargs,
+        )
     
     def nl(self, mz, adduct = None):
         """For m/z returns the corresponding neutral loss m/z.

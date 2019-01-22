@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2015-2018 - EMBL
+#  Copyright (c) 2015-2019 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -12,7 +12,7 @@
 #  See accompanying file LICENSE.txt or copy at
 #      http://www.gnu.org/licenses/gpl-3.0.html
 #
-#  Website: http://www.ebi.ac.uk/~denes
+#  Website: http://denes.omnipathdb.org/
 #
 
 from future.utils import iteritems
@@ -206,19 +206,20 @@ class SampleReader(object):
 class FeatureBase(object):
     
     def __init__(self, sorter = None, **kwargs):
-    """Serves as a base class for various classes handling arrays of
+        """
+        Serves as a base class for various classes handling arrays of
         features. Some of its predecessors represent one sample others
         more than one, or maybe data or annotations but all represent
         a series of features detected in one LC MS/MS run or more than
         one runs aligned with each other.
 
-    Parameters
-    ----------
+        Parameters
+        ----------
 
-    Returns
-    -------
+        Returns
+        -------
 
-    """
+        """
         
         self.var = self.var if hasattr(self, 'var') else set()
         self.sorted_by = None
@@ -288,8 +289,8 @@ class FeatureBase(object):
             return_isort = False,
             indices = (),
         ):
-        """Sorts all data arrays according to an index array or values in one of
-        the data arrays.
+        """Sorts all data arrays according to an index array or values in one
+        of the data arrays.
 
         Parameters
         ----------
@@ -1732,16 +1733,16 @@ class Sample(FeatureBase):
 class FeatureIdx(FeatureBase):
     
     def __init__(self, length):
-    """Helps the sorting of features across multiple samples
-        with keeping track of feature IDs.
+        """Helps the sorting of features across multiple samples
+            with keeping track of feature IDs.
 
-    Parameters
-    ----------
+        Parameters
+        ----------
 
-    Returns
-    -------
+        Returns
+        -------
 
-    """
+        """
         
         FeatureBase.__init__(self)
         
@@ -2445,9 +2446,16 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
 
 
 class FeatureSelection(FeatureBase):
-    """ """
     
     def __init__(self, samples, selection):
+        """
+        Represents a binary selection over all features in a ``SampleSet``.
+        
+        samples : sample.SampleSet
+            A ``lipyd.sample.SampleSet`` object.
+        selection : numpy.array
+            A boolean array.
+        """
         
         self.samples = samples
         
@@ -2459,6 +2467,8 @@ class FeatureSelection(FeatureBase):
     
     @property
     def negative(self):
-        """ """
+        """
+        The inversion of the selection.
+        """
         
         return np.logical_not(self.selection)

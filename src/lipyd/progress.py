@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2014-2018 - EMBL
+#  Copyright (c) 2014-2019 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -12,10 +12,8 @@
 #  See accompanying file LICENSE.txt or copy at
 #      http://www.gnu.org/licenses/gpl-3.0.html
 #
-#  Website: http://www.ebi.ac.uk/~denes
+#  Website: http://denes.omnipathdb.org/
 #
-
-from __future__ import print_function
 
 import sys
 import imp

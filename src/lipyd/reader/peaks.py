@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2015-2018 - EMBL
+#  Copyright (c) 2015-2019 - EMBL
 #
 #  File author(s): Dénes Türei (turei.denes@gmail.com)
 #
@@ -12,7 +12,7 @@
 #  Please do not redistribute.
 #  For permission please contact me.
 #
-#  Website: http://www.ebi.ac.uk/~denes
+#  Website: http://denes.omnipathdb.org/
 #
 
 from past.builtins import xrange
@@ -543,13 +543,13 @@ def peaks_sample_id_method(attrs):
     -------
 
     """
+    
+    if (
+        attrs is not None and
+        'label' in attrs and
+        'sample_id' in attrs['label']
+    ):
         
-        if (
-            attrs is not None and
-            'label' in attrs and
-            'sample_id' in attrs['label']
-        ):
-            
-            return attrs['label']['sample_id']
-        
-        return common.random_string()
+        return attrs['label']['sample_id']
+    
+    return common.random_string()

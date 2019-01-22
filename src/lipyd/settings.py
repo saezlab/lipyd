@@ -12,7 +12,7 @@
 #  See accompanying file LICENSE.txt or copy at
 #      http://www.gnu.org/licenses/gpl-3.0.html
 #
-#  Website: http://www.ebi.ac.uk/~denes
+#  Website: http://denes.omnipathdb.org/
 #
 
 from future.utils import iteritems
@@ -474,7 +474,24 @@ _defaults = {
         },
         'neg': {
         }
-    }
+    },
+    'font_family': ['Helvetica Neue LT Std', 'sans'],
+    'font_variant': None,
+    'font_style': None,
+    'font_stretch': None,
+    'font_size': 11,
+    'font_sizes': {
+        'axis_label': 1.,
+        'ticklabel': .8,
+        'legend_title': 1.,
+        'legend_label': .8,
+        'title': 1.2,
+        'annotation': .8,
+    },
+    'figsize': (3, 4),
+    'spectrum_plot_figsize': (9, 5),
+    'spectrum_plot_xlab': 'm/z',
+    'cachedir': None,
 }
 
 in_basedir = [
@@ -520,6 +537,7 @@ in_mgfdir = {
     'mgf_neg_examples', 'mgf_pos_examples',
 }
 
+
 def reset_all():
     """ """
     
@@ -537,7 +555,16 @@ def reset_all():
         
         setattr(settings, k, val)
     
+    if settings.cachedir is None:
+        
+        settings.cachedir = os.path.join(
+            os.path.expanduser('~'),
+            '.lipyd',
+            'cache',
+        )
+    
     globals()['settings'] = settings
+
 
 def setup(**kwargs):
     """
