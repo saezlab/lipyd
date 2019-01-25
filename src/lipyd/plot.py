@@ -6,7 +6,9 @@
 #
 #  Copyright (c) 2015-2019 - EMBL
 #
-#  File author(s): Dénes Türei (turei.denes@gmail.com)
+#  File author(s):
+#  Dénes Türei (turei.denes@gmail.com)
+#  Igor Bulanov
 #
 #  Distributed under the GNU GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
@@ -83,6 +85,7 @@ class PlotBase(object):
     def __init__(
             self,
             fname = None,
+            format = 'pdf',
             xlab = None,
             ylab = None,
             width = 7,
@@ -461,6 +464,7 @@ class PlotBase(object):
         """
         Creates a figure using the object oriented matplotlib interface.
         """
+        
         self.pdf = mpl.backends.backend_pdf.PdfPages(self.fname)
         self.fig = mpl.figure.Figure(figsize = self.figsize)
         self.cvs = mpl.backends.backend_pdf.FigureCanvasPdf(self.fig)
