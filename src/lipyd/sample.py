@@ -41,6 +41,7 @@ import lipyd.settings as settings
 import lipyd.progress as progress
 import lipyd.sampleattrs as sampleattrs
 import lipyd.feature as feature
+import lipyd.recalibration as recalibration
 
 
 remgf  = re.compile(r'(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
@@ -1114,6 +1115,43 @@ class Sample(FeatureBase):
     #
     # Methods for processing
     #
+    
+    def recalibrate(
+        first = None,
+        last = None,
+        by_sample = None,
+        **kwargs,
+    ):
+        """
+        Corrects m/z values according to the provided errors (in ppm).
+        Errors are positive if the measured values are higher than expected,
+        i.e. they need to be lowered in the correction.
+        
+        :arg float,numpy.ndarray first:
+            Error in ppm for the first sample. Either a single float or an
+            array of floats with the same length as number of features in
+            the sample or an array of 2 columns: first with m/z values,
+            second with errors in ppm above the corresponding m/z value.
+        :arg float,numpy.ndarray last:
+            Error in ppm for the last sample. Same as ``first``. If not
+            provided all samples will be corrected by ``first``.
+        :arg list,dict by_sample:
+            Errors for each sample. Either a list or dict, the former assumed
+            to have ppm values defined for each sample in the order of
+            samples. If dict, keys are sample IDs, values are as
+            detailed at argument ``first``: float or array with one or
+            two columns. ``**kwargs`` handled the same way as ``by_sample``
+            but the latter has priority.
+        """
+        
+        recalibrator = recalibration.Recalibration(
+            first = first,
+            last = last,
+            by_sample = by_sample,
+            **kwargs,
+        )
+        
+        recalibrator.recalibrate(self)
     
     def process(
             self,

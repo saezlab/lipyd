@@ -84,7 +84,7 @@ class Recalibration(object):
         self.samples.sort_all('mzs')
         self.sample_id_proc = samples.attrs.proc
         self.process_ppms()
-        self.by_feature_ppms()
+        self._by_feature_ppms()
         
         # keeping the original mzs
         self.samples._add_var(self.samples.mzs, 'mzs_original')
@@ -118,7 +118,7 @@ class Recalibration(object):
         
         if self.first is not None:
             
-            if isinstance(self.first, float):
+            if isinstance(self.first, (float, int, np.float64)):
                 
                 if self.last is None:
                     
@@ -193,7 +193,7 @@ class Recalibration(object):
             # we got ppms for each sample, iterate through the dict
             for sample_id, sample_ppm in iteritems(self.by_sample):
                 
-                if isinstance(sample_ppm, float):
+                if isinstance(sample_ppm, (float, int, np.float64)):
                     
                     self.ppms.append(sample_ppm)
                     
@@ -215,25 +215,32 @@ class Recalibration(object):
             
             if all(isinstance(ppms, np.ndarray) for ppms in self.ppms):
                 
+                # if above we produced ppms for each feature
+                # we create an array with dimensions features x samples
                 self.ppms = np.hstack(self.ppms)
                 
             if isinstance(self.ppms, list):
                 
+                # if we have one number for each sample, simply
+                # create a one dimensional array
                 self.ppms = np.array(self.ppms)
     
     
-    def by_feature_ppms(self):
+    def _by_feature_ppms(self):
         
-        if isinstance(self.ppms, float):
+        if isinstance(self.ppms, (float, int, np.float64)):
             
+            # if it's a single number
             self.ppms_by_feature = self.ppms
             
         elif isinstance(self.ppms, np.ndarray) and self.ppms.ndim == 1:
             
+            # if it's an array with one number for each sample
             self.ppms_by_feature = np.median(self.ppms)
             
         else:
             
+            # if it's an array with one line for each feature
             self.ppms_by_feature = np.median(self.ppms, 1)
     
     
