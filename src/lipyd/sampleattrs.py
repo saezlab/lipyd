@@ -1195,7 +1195,7 @@ class SampleSelection(SampleData):
 
 
 class SECProfile(SampleData):
-    """ """
+    
     
     def __init__(
             self,

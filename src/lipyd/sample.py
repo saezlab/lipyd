@@ -895,6 +895,14 @@ class Sample(FeatureBase):
         
         return len(self.mzs)
     
+    @property
+    def numof_samples(self):
+        """
+        Here we have a single sample, always returns 1.
+        """
+        
+        return 1
+    
     def apply(
             self,
             method,
