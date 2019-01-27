@@ -2363,9 +2363,25 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         
         self.ms2_source = self.collect_ms2(attrs = attrs)
     
-    def peak_size_filter(self, backg, prot, threshold = 2):
+    def peak_max_filter(self, backg, peak, threshold = 2):
         """
-
+        Peak size filter comparing the highest fraction in the peak to the
+        highest in background. Their ratio should be higher than threshold.
+        """
+        
+        self.peak_size_filter(
+            backg = backg,
+            peak = peak,
+            threshold = threshold,
+            min_max = 'max'
+        )
+    
+    
+    def peak_size_filter(self, backg, peak, threshold = 2, min_max = 'min'):
+        """
+        A filter looking at the ratio of fractions in a peak vs. the
+        background.
+        
         Parameters
         ----------
         backg :
@@ -2374,26 +2390,15 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             
         threshold :
              (Default value = 2)
-
+        
         Returns
         -------
-
+        
         """
         
         def ps(a0, a1):
-            """
-
-            Parameters
-            ----------
-            a0 :
-                
-            a1 :
-                
-
-            Returns
-            -------
-
-            """
+            
+            _method = np.nanmax if min_max == 'max' else np.nanmin
             
             if np.all(np.isnan(a1)) or np.nanmax(a1) == 0:
                 
@@ -2406,24 +2411,24 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
                 
                 return np.inf
             
-            return np.nanmin(a1) / np.nanmax(a0)
+            return _method(a1) / np.nanmax(a0)
         
         backg = set((f[0], int(f[1:])) for f in backg)
-        prot  = set((f[0], int(f[1:])) for f in prot)
+        peak  = set((f[0], int(f[1:])) for f in peak)
         
         ibackg = np.array([
             i
             for i, attr in enumerate(self.attrs)
             if attr['label']['fraction'] in backg
         ])
-        iprot = np.array([
+        ipeak = np.array([
             i
             for i, attr in enumerate(self.attrs)
-            if attr['label']['fraction'] in prot
+            if attr['label']['fraction'] in peak
         ])
         
         peaksize = np.array([
-            ps(self.intensities[i,ibackg], self.intensities[i,iprot])
+            ps(self.intensities[i,ibackg], self.intensities[i,ipeak])
             for i in xrange(len(self))
         ])
         
