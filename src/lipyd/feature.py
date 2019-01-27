@@ -23,12 +23,13 @@ from past.builtins import xrange, range
 import numpy as np
 
 import lipyd.sampleattrs as sampleattrs
+import lipyd.common as common
 
 
 class FeatureAnalyzer(object):
-    """ """
     
-    def __init__(self, name, samples, method, **variables):
+    
+    def __init__(self, names, samples, method, **variables):
         """
         Serves for analysis of features using data in the feature vs. sample
         data arrays in ``SampleSet`` objects and feature variables in
@@ -55,28 +56,29 @@ class FeatureAnalyzer(object):
             ``method`` by their argument name.
         """
         
-        self.name = name
+        self.names = (
+            (names,)
+                if isinstance(names, common.basestring) else
+            names
+        )
         self.samples = samples
         self.method = method
         self.variables = variables
         
         result = self.run()
-        self.samples.feattrs._add_var(result, self.name)
+        
+        for name, res in zip(self.names, result):
+            
+            self.samples.feattrs._add_var(res, name)
+    
     
     def run(self):
         """
         Applies the method for each feature and returns an array of the
         results.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-
         """
         
-        result = []
+        result = [[] for _ in xrange(len(self.names))]
         
         for i in xrange(len(self.samples)):
             
@@ -91,9 +93,15 @@ class FeatureAnalyzer(object):
                 # safe to do this as first axis is always the features
                 featurevars[var] = getattr(self.samples, var)[i]
             
-            result.append(self.method(**featurevars, **self.variables))
+            this_result = self.method(**featurevars, **self.variables)
+            
+            for i, value in enumerate(this_result):
+                
+                result[i].append(value)
         
-        return np.array(result)
+        result = tuple(np.array(r) for r in result)
+        
+        return result
 
 
 class ProfileAnalyzer(FeatureAnalyzer):
@@ -111,7 +119,7 @@ class ProfileAnalyzer(FeatureAnalyzer):
         
         feature.FeatureAnalyzer.__init__(
             self,
-            name = 'profile',
+            names = ('profile',),
             samples = samples,
             method = self.profile_method,
             _samples = samples,
@@ -224,14 +232,14 @@ class PeakSize(FeatureAnalyzer):
             samples,
             protein_samples,
             threshold = 2.0,
-            name = 'peaksize',
+            names = ('peaksize',),
         ):
         
         self.threshold = threshold
         
         FeatureAnalyzer.__init__(
             self,
-            name = name,
+            names = names,
             samples = samples,
             method = self.peak_size,
             protein_samples = protein_samples,
