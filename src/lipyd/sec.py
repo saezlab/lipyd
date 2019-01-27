@@ -339,7 +339,17 @@ class SECReader(object):
                 for j, io in enumerate(i_other)
             ])
             self.absorbance[i] = self.absorbance[i] - background
+    
+    
+    def normalize(self):
+        """
+        Simply subtracts the minimum and divides by the maximum across the
+        chromatogram.
+        """
         
+        self.absorbance = self.absorbance - self.absorbance.min()
+        self.absorbance = self.absorbance / self.absorbance.max()
+    
     
     def profile(self, **kwargs):
         """Iterates fractions with their mean absorbance values.
