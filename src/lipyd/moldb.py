@@ -27,7 +27,6 @@ import sys
 import imp
 import re
 import copy
-import struct
 import itertools
 import collections
 from argparse import Namespace
@@ -277,7 +276,7 @@ class SwissLipids(Reader):
         
         self._curl = _curl.Curl(self.url, silent = False,
                                 compr = 'gz', large = True)
-        self._gzfile = self._curl.result
+        self._gzfile = self._curl.gzfile
     
     def iterfile(self):
         """ """
@@ -341,24 +340,20 @@ class SwissLipids(Reader):
         
         if not self.silent:
             
-            self._gzfile.fileobj.seek(-4, 2)
-            ucsize = struct.unpack('I', self._gzfile.fileobj.read(4))[0]
-            self.prg = progress.Progress(ucsize, 'Indexing SwissLipids', 101)
-        
-        self._gzfile.fileobj.seek(0)
+            self.prg = progress.Progress(self._curl.size, 'Indexing SwissLipids', 101)
         
         self._plainfilename = '%s.extracted' % self._gzfile.name
         
         with open(self._plainfilename, 'wb') as fpp:
             
             offset = self._gzfile.tell()
-            
+
             for l in self._gzfile:
                 
                 if not self.silent:
                     self.prg.step(len(l))
                 
-                ll = l.decode('ascii').split('\t')
+                ll = l.decode('utf-8').split('\t')
                 
                 if ll[1] in self.levels:
                     
