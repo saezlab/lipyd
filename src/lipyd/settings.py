@@ -53,6 +53,8 @@ _defaults = {
     'ppfracf': 'fractions.csv',
     # Directory with the SEC absorbance profiles for each protein.
     'ppsecdir': 'SEC_profiles',
+    # background in SEC
+    'sec_background': 'ARHGAP1',
     # The first section in the SEC profile filenames is the protein
     # name or the second:
     'sec_filenames_protein_first': True,

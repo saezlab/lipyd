@@ -33,6 +33,7 @@ import scipy.spatial
 import lipyd.settings as settings
 import lipyd.common as common
 import lipyd.reader.xls as xls
+import lipyd.lookup as lookup
 
 
 refrac = re.compile(r'([A-Z])([0-9]{1,2})')
@@ -263,6 +264,53 @@ class SECReader(object):
         """
         
         return self.get_fraction(frac).mean()
+    
+    def background_correction_by_other_chromatograms(
+            self,
+            others,
+            start = None,
+            end = None,
+        ):
+        """
+        Subtracts corresponding values of other chromatograms.
+        
+        Parameters
+        ----------
+        other : list,SECReader
+            One or more instances of ``SECReader``.
+        start : float
+            Start at this volume. By default the beginning of the
+            chromatogram.
+        end : float
+            Do until this volume. By default the end of the chromatogram.
+        """
+        
+        def get_closest(vol):
+            
+            return lookup.find(self.volume, vol, np.inf)
+        
+        istart = 0 if start is None else get_closest(start)
+        iend = 0 if end is None else get_closest(end)
+        
+        others = (
+            (others,)
+                if not isinstance(others, (tuple, list, np.ndarray)) else
+            others
+        )
+        
+        for i in xrange(istart, iend + 1):
+            
+            vol = self.volume[i]
+            i_other = (
+                lookup.find(other.volume, vol, np.inf)
+                for other in others
+            )
+            background = np.median([
+                others[j].absorbance[io]
+                for j, io in enumerate(i_other)
+            ])
+            self.absorbance[i] = self.absorbance[i] - background
+        
     
     def profile(self, **kwargs):
         """Iterates fractions with their mean absorbance values.
