@@ -4,7 +4,7 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2014-2018 - EMBL
+#  Copyright (c) 2015-2019 - EMBL
 #
 #  File author(s):
 #  Dénes Türei (turei.denes@gmail.com)
