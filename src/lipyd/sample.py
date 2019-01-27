@@ -2384,15 +2384,19 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         
         Parameters
         ----------
-        backg :
-            
-        prot :
-            
-        threshold :
-             (Default value = 2)
+        backg : set
+            Set of sample IDs for background samples.
+        prot : set
+            Set of sample IDs for peak samples.
+        threshold : float
+            Ratio above the peak size accepted (default value = 2).
+        min_max : str
+            Either `min` or `max`; look at the lowest or the highest sample
+            in the peak.
         
         Returns
         -------
+        None
         
         """
         
@@ -2413,8 +2417,8 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             
             return _method(a1) / np.nanmax(a0)
         
-        backg = set((f[0], int(f[1:])) for f in backg)
-        peak  = set((f[0], int(f[1:])) for f in peak)
+        backg = set(self.attrs.proc(f) for f in backg)
+        peak  = set(self.attrs.proc(f) for f in peak)
         
         ibackg = np.array([
             i
