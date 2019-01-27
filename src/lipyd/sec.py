@@ -228,8 +228,22 @@ class SECReader(object):
             'xls' if 'excel' in mime or 'openxml' in mime else 'asc'
         )
     
-    def get_fraction(self, frac):
-        """Returns absorbances measured within a fraction.
+    def _fractions_dict(self):
+        
+        if hasattr(self, 'fractions'):
+            
+            self.fractions_by_well = dict(
+                ((fr.row, fr.col), fr)
+                for fr in self.fractions
+            )
+    
+    def get_fraction(self, row, col):
+        
+        return self._get_fraction(self.fraction_by_well(row, col))
+    
+    def _get_fraction(self, frac):
+        """
+        Returns absorbances measured within a fraction.
 
         Parameters
         ----------
@@ -250,8 +264,23 @@ class SECReader(object):
             ]
         )
     
-    def fraction_mean(self, frac):
-        """Returns the mean absorbance from a fraction.
+    def fraction_by_well(self, row, col):
+        """
+        Returns fraction data by plate row letter and column number.
+        """
+        
+        return self.fractions_by_well[(row, col)]
+    
+    def fraction_mean(self, row, col):
+        """
+        Returns the mean absorbance from a fraction.
+        """
+        
+        return self._fraction_mean(self.fraction_by_well(row, col))
+    
+    def _fraction_mean(self, frac):
+        """
+        Returns the mean absorbance from a fraction.
 
         Parameters
         ----------
@@ -263,7 +292,7 @@ class SECReader(object):
 
         """
         
-        return self.get_fraction(frac).mean()
+        return self._get_fraction(frac).mean()
     
     def background_correction_by_other_chromatograms(
             self,
@@ -333,7 +362,7 @@ class SECReader(object):
         
         for frac in fractions:
             
-            yield Fraction(*frac[:-1], self.fraction_mean(frac))
+            yield Fraction(*frac[:-1], self._fraction_mean(frac))
     
     def baseline_correction(self):
         """
