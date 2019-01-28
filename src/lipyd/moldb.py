@@ -234,24 +234,15 @@ class SwissLipids(Reader):
         self.make_index()
     
     def set_levels(self, levels):
-        """Sets the levels to be processed. Levels in SwissLipids are `Species`,
-        `Molecular subspecies`, `Structural subspecies` and
+        """
+        Sets the levels to be processed. Levels in SwissLipids are
+        `Species`, `Molecular subspecies`, `Structural subspecies` and
         `Isomeric subspecies`.
         
-        Args
-        ----
-
         Parameters
         ----------
-        set :
-            levels:
+        levels : set
             A set of one or more of the levels above.
-        levels :
-            
-
-        Returns
-        -------
-
         """
         
         if isinstance(levels, common.basestring):
@@ -262,15 +253,9 @@ class SwissLipids(Reader):
         self.init_name_processor()
     
     def init_name_processor(self):
-        """Creates a `LipidNameProcessor` instance to process lipid names
+        """
+        Creates a ``LipidNameProcessor`` instance to process lipid names
         at indexing.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-
         """
         
         self.nameproc = lipidname.LipidNameProcessor(
@@ -279,7 +264,6 @@ class SwissLipids(Reader):
         )
     
     def load(self):
-        """ """
         
         self.close_gzfile()
         
@@ -288,7 +272,6 @@ class SwissLipids(Reader):
         self._gzfile = self._curl.gzfile
     
     def iterfile(self):
-        """ """
         
         self._plainfile.seek(0)
         _ = self._plainfile.readline()
@@ -299,35 +282,12 @@ class SwissLipids(Reader):
     
     @staticmethod
     def names(line):
-        """
-
-        Parameters
-        ----------
-        line :
-            
-
-        Returns
-        -------
-
-        """
         
         return '|'.join(line[2:5])
     
     def make_index(self):
-        """ """
         
         def cc2str(cc):
-            """
-
-            Parameters
-            ----------
-            cc :
-                
-
-            Returns
-            -------
-
-            """
             
             return (
                 '%s%s%u:%u' % (
@@ -853,20 +813,14 @@ class MoleculeDatabaseAggregator(object):
         self._mass_data = []
     
     def build(self):
-        """Executes the workflow of the entire database building process.
+        """
+        Executes the workflow of the entire database building process.
         
         First loads the third party databases (SwissLipids and LipidMaps),
         then autogenerates glycerophospholipid, glycerolipid and sphingolipid
         series. At the end all data merged into common `masses` and `data`
         arrays and sorted by increasing mass. At this point the instance
         is able to do lookups.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-
         """
         
         self.init_rebuild()
