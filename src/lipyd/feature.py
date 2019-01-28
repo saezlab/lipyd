@@ -236,7 +236,7 @@ class PeakSize(FeatureAnalyzer):
             samples,
             sample_selection,
             threshold = 2.0,
-            names = ('peaksize',),
+            names = ('peaksize', 'peaksize_value'),
             min_max = 'min',
         ):
         """
@@ -286,7 +286,10 @@ class PeakSize(FeatureAnalyzer):
             
             return True
         
-        return ((_method(protein) > np.nanmax(noprotein) * self.threshold),)
+        return (
+            _method(protein) > np.nanmax(noprotein) * self.threshold,
+            _method(protein) / np.nanmax(noprotein),
+        )
 
 
 class Slope(FeatureAnalyzer):
