@@ -339,11 +339,9 @@ class LipidNameProcessor(object):
             iso = False,
             types = None
         ):
-        """Processes carbon and unsaturation counts from name.
+        """
+        Processes carbon and unsaturation counts from name.
         
-        Args
-        ----
-
         Parameters
         ----------
         str :
@@ -380,10 +378,6 @@ class LipidNameProcessor(object):
              (Default value = False)
         types :
              (Default value = None)
-
-        Returns
-        -------
-
         """
         
         # number of groups in one regex match unit
@@ -395,8 +389,17 @@ class LipidNameProcessor(object):
         cc1 = lipproc.rechainsum.search(name)
         cc1 = cc1.groups() if cc1 else cc1
         # regex finds 1-4 fatty acids
-        cc2 = rechain.search(name)
-        cc2 = cc2.groups() if cc2 else cc2
+        cc2 = rechain.findall(name)
+        
+        if not cc2:
+            
+            # if no result do an attempt with the isomeric regex
+            rechain = lipproc.rechainiso
+            cc2 = rechain.findall(name)
+            
+            if cc2:
+                
+                _g = 5
         
         chains = []
         
@@ -407,34 +410,43 @@ class LipidNameProcessor(object):
             #cc2[(ccexp - 1) * _g + 2]
         ):
             
-            for i in xrange(len(cc2) // _g):
+            # in case of e.g. cardiolipin we have multiple groups of 2 chains
+            for _cc2 in cc2:
                 
-                if cc2[i * _g + 1] and cc2[i * _g + 2]:
+                for i in xrange(len(_cc2) // _g):
                     
-                    c = int(cc2[i * _g + 1])
-                    u = int(cc2[i * _g + 2])
-                    attr = self.attr_proc(cc2[i * _g:i * _g + _g], u)
-                    
-                    # in lipidmaps one unsaturation
-                    # for plasmalogens is implicit
-                    if self.database == 'lipidmaps' and cc2[i * _g] == 'P':
-                        u += 1
-                    
-                    sphingo = sphingo or bool(attr.sph)
-                    
-                    chains.append(lipproc.Chain(
-                        c = c,
-                        u = u,
-                        attr = attr,
-                        typ = self.get_type(
-                            i, sphingo, attr.ether, types, chainsexp
-                        ),
-                        iso = (
-                            tuple(cc2[i * _g + _i].split(','))
-                                if iso and cc2[i * _g + _i] else
-                            ()
-                        )
-                    ))
+                    if _cc2[i * _g + 1] and _cc2[i * _g + 2]:
+                        
+                        c = int(_cc2[i * _g + 1])
+                        u = int(_cc2[i * _g + 2])
+                        attr = self.attr_proc(_cc2[i * _g:i * _g + _g], u)
+                        
+                        # in lipidmaps one unsaturation
+                        # for plasmalogens is implicit
+                        if (
+                            self.database == 'lipidmaps' and
+                            _cc2[i * _g] == 'P'
+                        ):
+                            u += 1
+                        
+                        sphingo = sphingo or bool(attr.sph)
+                        
+                        chains.append(lipproc.Chain(
+                            c = c,
+                            u = u,
+                            attr = attr,
+                            typ = self.get_type(
+                                i, sphingo, attr.ether, types, chainsexp
+                            ),
+                            # even if we used the isomeric regex
+                            # we include the conformational isomer
+                            # information only if requested
+                            iso = (
+                                tuple(_cc2[i * _g + _i].split(','))
+                                    if iso and _cc2[i * _g + _i] else
+                                ()
+                            ) if iso else None
+                        ))
             
             zerochains = sum(not c.c for c in chains)
             # ccexp = ccexp - zerochains
@@ -500,7 +512,7 @@ class LipidNameProcessor(object):
         return self.carbon_counts(
             name,
             ccexp = ccexp,
-            phingo = sphingo,
+            sphingo = sphingo,
             iso = True,
             types = types
         )
@@ -649,7 +661,7 @@ class LipidNameProcessor(object):
         
         return bool(self.reme.search(name))
     
-    def process(self, names, database = None):
+    def process(self, names, database = None, iso = None):
         """The main method of this class. Processes a lipid name string
         and returns a standard name, prefix, carbon counts and
         unsaturations.
@@ -674,6 +686,8 @@ class LipidNameProcessor(object):
 
         """
         
+        iso = iso if iso is not None else self.iso
+        
         if hasattr(names, 'lower'):
             # ok, if one passes a string let us still process it
             names = (names,)
@@ -689,7 +703,7 @@ class LipidNameProcessor(object):
         )
         
         # try greek fatty acyl carbon counts:
-        if not hg and self.iso and database == 'swisslipids':
+        if not hg and iso and database == 'swisslipids':
             
             try:
                 
@@ -723,11 +737,13 @@ class LipidNameProcessor(object):
                 if hg.main in {'FA', 'MAG'} or lyso else
                     3
                 if hg.main == 'TAG' else
+                    4
+                if hg.main == 'CL' else
                     2
             )
             
             _chainsum, _chains = self.carbon_counts(
-                n, ccexp = ccexp, chainsexp = chainsexp, iso = self.iso
+                n, ccexp = ccexp, chainsexp = chainsexp, iso = iso
             )
             
             chains = chains or _chains
@@ -739,7 +755,7 @@ class LipidNameProcessor(object):
             
             if (
                 chainsum and chains and (
-                    not self.iso or
+                    not iso or
                     any(c.iso for c in chains)
                 )
             ):
@@ -757,6 +773,7 @@ class LipidNameProcessor(object):
                     break
         
         return hg, chainsum, chains
+    
     
     def gen_fa_greek(self):
         """Generates a list of greek fatty acid names with their
