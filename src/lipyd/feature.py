@@ -95,6 +95,10 @@ class FeatureAnalyzer(object):
             
             this_result = self.method(**featurevars, **self.variables)
             
+            if not isinstance(this_result, tuple):
+                
+                this_result = (this_result,)
+            
             for i, value in enumerate(this_result):
                 
                 result[i].append(value)
@@ -225,15 +229,37 @@ class ProfileAnalyzer(FeatureAnalyzer):
 
 
 class PeakSize(FeatureAnalyzer):
-    """ """
+    
     
     def __init__(
             self,
             samples,
-            protein_samples,
+            sample_selection,
             threshold = 2.0,
             names = ('peaksize',),
+            min_max = 'min',
         ):
+        """
+
+        Parameters
+        ----------
+        samples : lipyd.sample.SampleSet
+            A ``SampleSet`` object.
+        sample_selection : numpy.ndarray
+            Boolean vector, True if the sample is selected, False if it's
+            part of the background.
+        threshold : float
+            The sample(s) in the selection should be at least this times
+            higher than any in the background.
+        names : tuple
+            The attribute names of the ``FeatureAttrs`` object the result
+            should be assigned to.
+        min_max : str
+            Either `min` or `max`. If `min` the lowest element in the
+            selection must be `threshold` times higher than the highest in
+            the background. If `max` the `highest` element in the selection
+            considered.
+        """
         
         self.threshold = threshold
         
@@ -242,28 +268,15 @@ class PeakSize(FeatureAnalyzer):
             names = names,
             samples = samples,
             method = self.peak_size,
-            protein_samples = protein_samples,
+            sample_selection = sample_selection,
+            min_max = min_max,
         )
     
-    def peak_size(self, intensities, protein_samples, **kwargs):
-        """
-
-        Parameters
-        ----------
-        intensities :
-            
-        protein_samples :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
+    def peak_size(self, intensities, sample_selection, min_max, **kwargs):
         
-        protein   = intensities[protein_samples]
-        noprotein = intensities[np.logical_not(protein_samples)]
+        _method = np.max if min_max == 'max' else np.min
+        protein   = intensities[sample_selection]
+        noprotein = intensities[np.logical_not(sample_selection)]
         
         if np.any(np.isnan(protein)):
             
@@ -273,7 +286,7 @@ class PeakSize(FeatureAnalyzer):
             
             return True
         
-        return np.min(protein) > np.nanmax(noprotein) * self.threshold
+        return ((_method(protein) > np.nanmax(noprotein) * self.threshold),)
 
 
 class Slope(FeatureAnalyzer):

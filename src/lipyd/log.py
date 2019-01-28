@@ -49,7 +49,7 @@ def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
 
 
 class Logger(object):
-    """ """
+    
     
     strftime = time.strftime
     

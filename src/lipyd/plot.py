@@ -35,6 +35,7 @@ import math as mt
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 import matplotlib.backends.backend_pdf
+import matplotlib.backends.backend_cairo
 from matplotlib import ticker
 from matplotlib import rcParams
 from matplotlib.backends.backend_pdf import PdfPages
@@ -465,9 +466,16 @@ class PlotBase(object):
         Creates a figure using the object oriented matplotlib interface.
         """
         
-        self.pdf = mpl.backends.backend_pdf.PdfPages(self.fname)
-        self.fig = mpl.figure.Figure(figsize = self.figsize)
-        self.cvs = mpl.backends.backend_pdf.FigureCanvasPdf(self.fig)
+        if self.format == 'pdf':
+            
+            self.pdf = mpl.backends.backend_pdf.PdfPages(self.fname)
+            self.fig = mpl.figure.Figure(figsize = self.figsize)
+            self.cvs = mpl.backends.backend_pdf.FigureCanvasPdf(self.fig)
+        
+        elif self.format == 'png':
+            
+            self.fig = mpl.figure.Figure(figsize = self.figsize)
+            self.cvs = mpl.backends.backend_cairo.FigureCanvasCairo(self.fig)
 
     def set_grid(self):
         """
@@ -613,8 +621,17 @@ class PlotBase(object):
         self.fig.set_tight_layout(True)
         self.fig.subplots_adjust(top = .92)
         self.cvs.draw()
-        self.cvs.print_figure(self.pdf)
-        self.pdf.close()
+        
+        if self.format == 'pdf':
+            
+            self.cvs.print_figure(self.pdf)
+            self.pdf.close()
+            
+        elif self.format == 'png':
+            
+            with open(self.fname, 'wb') as fp:
+                
+                self.cvs.print_png(fp)
         #self.fig.clf()
 
 

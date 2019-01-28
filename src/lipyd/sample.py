@@ -419,7 +419,8 @@ class FeatureBase(object):
         )
     
     def filter(self, idx, negative = False, propagate = True):
-        """Filters features at indices in ``idx``.
+        """
+        Filters features at indices in ``idx``.
 
         Parameters
         ----------
@@ -1117,6 +1118,7 @@ class Sample(FeatureBase):
     #
     
     def recalibrate(
+        self,
         first = None,
         last = None,
         by_sample = None,

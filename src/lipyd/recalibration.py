@@ -181,7 +181,7 @@ class Recalibration(object):
             # the same way as dicts
             self.by_sample = dict(
                 zip(
-                    self.samples.sample_index_to_id,
+                    self.samples.attrs.sample_index_to_id,
                     self.by_sample
                 )
             )

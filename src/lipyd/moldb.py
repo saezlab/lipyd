@@ -120,7 +120,10 @@ class LipidMaps(sdf.SdfReader):
         
         if extract_file:
             
-            self.efname = os.path.join('cache', self.fname.split('/')[-1])
+            self.efname = os.path.join(
+                settings.get('cachedir'),
+                self.fname.split('/')[-1]
+            )
             
             with open(self.efname, 'wb') as efp:
                 
@@ -128,7 +131,13 @@ class LipidMaps(sdf.SdfReader):
                     
                     efp.write(l)
             
-            efp = open(os.path.join('cache', self.fname.split('/')[-1]), 'rb')
+            efp = open(
+                os.path.join(
+                    settings.get('cachedir'),
+                    self.fname.split('/')[-1]
+                ),
+                'rb'
+            )
             sdf.SdfReader.__init__(self, efp)
         
         else:
