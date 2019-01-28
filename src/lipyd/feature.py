@@ -280,11 +280,11 @@ class PeakSize(FeatureAnalyzer):
         
         if np.any(np.isnan(protein)):
             
-            return False
+            return (False, 0.0)
         
         if np.all(np.isnan(noprotein)):
             
-            return True
+            return (True, 0.0)
         
         return (
             _method(protein) > np.nanmax(noprotein) * self.threshold,
