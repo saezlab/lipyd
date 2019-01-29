@@ -196,7 +196,7 @@ class LipidMaps(sdf.SdfReader):
 
 
 class SwissLipids(Reader):
-    """ """
+    
     
     def __init__(self, levels = set(['Species']), silent = False,
                  nameproc_args = None, branched = False,
