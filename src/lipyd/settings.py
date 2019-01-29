@@ -270,7 +270,7 @@ _defaults = {
     'basefrac': 'A5',
     # the tolerance when looking up MS1 m/z values in databases
     # ppm
-    'ms1_tolerance': 20,
+    'ms1_tolerance': 10,
     # the tolerance when looking up MS2 fragment masses ppm
     'ms2_tolerance': 100,
     # tolarance at matching MS1 peaks against precursors in
