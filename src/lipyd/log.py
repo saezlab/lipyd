@@ -6,7 +6,9 @@
 #
 #  Copyright (c) 2015-2019 - EMBL
 #
-#  File author(s): Dénes Türei (turei.denes@gmail.com)
+#  File author(s):
+#  Dénes Türei (turei.denes@gmail.com)
+#  Igor Bulanov
 #
 #  Distributed under the GNU GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
@@ -47,7 +49,7 @@ def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
 
 
 class Logger(object):
-    """ """
+    
     
     strftime = time.strftime
     

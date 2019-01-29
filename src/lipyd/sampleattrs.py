@@ -6,7 +6,9 @@
 #
 #  Copyright (c) 2015-2019 - EMBL
 #
-#  File author(s): Dénes Türei (turei.denes@gmail.com)
+#  File author(s):
+#  Dénes Türei (turei.denes@gmail.com)
+#  Igor Bulanov
 #
 #  Distributed under the GNU GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
@@ -1193,7 +1195,7 @@ class SampleSelection(SampleData):
 
 
 class SECProfile(SampleData):
-    """ """
+    
     
     def __init__(
             self,

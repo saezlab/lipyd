@@ -6,7 +6,9 @@
 #
 #  Copyright (c) 2015-2019 - EMBL
 #
-#  File author(s): Dénes Türei (turei.denes@gmail.com)
+#  File author(s):
+#  Dénes Türei (turei.denes@gmail.com)
+#  Igor Bulanov
 #
 #  Distributed under the GNU GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
@@ -41,7 +43,8 @@ def ppm_tolerance(ppm, m):
 
 
 def findall(a, m, t = 20):
-    """Finds all values within a given range of tolerance around a reference
+    """
+    Finds all values within a given range of tolerance around a reference
     value in a one dimensional sorted numpy array (-slice) of floats.
     Returns list of array indices.
 

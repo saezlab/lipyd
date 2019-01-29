@@ -94,6 +94,7 @@ setup(
         'matplotlib',
         'fastcluster',
         'pycurl',
+        'fabric3',
         'lxml',
         'xlrd',
         'httplib2',

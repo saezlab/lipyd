@@ -4,9 +4,11 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2014-2018 - EMBL
+#  Copyright (c) 2015-2019 - EMBL
 #
-#  File author(s): Dénes Türei (turei.denes@gmail.com)
+#  File author(s):
+#  Dénes Türei (turei.denes@gmail.com)
+#  Igor Bulanov
 #
 #  Distributed under the GNU GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at

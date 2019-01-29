@@ -6,7 +6,9 @@
 #
 #  Copyright (c) 2015-2019 - EMBL
 #
-#  File author(s): Dénes Türei (turei.denes@gmail.com)
+#  File author(s):
+#  Dénes Türei (turei.denes@gmail.com)
+#  Igor Bulanov
 #
 #  Distributed under the GNU GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
@@ -21,12 +23,13 @@ from past.builtins import xrange, range
 import numpy as np
 
 import lipyd.sampleattrs as sampleattrs
+import lipyd.common as common
 
 
 class FeatureAnalyzer(object):
-    """ """
     
-    def __init__(self, name, samples, method, **variables):
+    
+    def __init__(self, names, samples, method, **variables):
         """
         Serves for analysis of features using data in the feature vs. sample
         data arrays in ``SampleSet`` objects and feature variables in
@@ -53,28 +56,29 @@ class FeatureAnalyzer(object):
             ``method`` by their argument name.
         """
         
-        self.name = name
+        self.names = (
+            (names,)
+                if isinstance(names, common.basestring) else
+            names
+        )
         self.samples = samples
         self.method = method
         self.variables = variables
         
         result = self.run()
-        self.samples.feattrs._add_var(result, self.name)
+        
+        for name, res in zip(self.names, result):
+            
+            self.samples.feattrs._add_var(res, name)
+    
     
     def run(self):
         """
         Applies the method for each feature and returns an array of the
         results.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-
         """
         
-        result = []
+        result = [[] for _ in xrange(len(self.names))]
         
         for i in xrange(len(self.samples)):
             
@@ -89,9 +93,19 @@ class FeatureAnalyzer(object):
                 # safe to do this as first axis is always the features
                 featurevars[var] = getattr(self.samples, var)[i]
             
-            result.append(self.method(**featurevars, **self.variables))
+            this_result = self.method(**featurevars, **self.variables)
+            
+            if not isinstance(this_result, tuple):
+                
+                this_result = (this_result,)
+            
+            for i, value in enumerate(this_result):
+                
+                result[i].append(value)
         
-        return np.array(result)
+        result = tuple(np.array(r) for r in result)
+        
+        return result
 
 
 class ProfileAnalyzer(FeatureAnalyzer):
@@ -109,7 +123,7 @@ class ProfileAnalyzer(FeatureAnalyzer):
         
         feature.FeatureAnalyzer.__init__(
             self,
-            name = 'profile',
+            names = ('profile',),
             samples = samples,
             method = self.profile_method,
             _samples = samples,
@@ -215,55 +229,67 @@ class ProfileAnalyzer(FeatureAnalyzer):
 
 
 class PeakSize(FeatureAnalyzer):
-    """ """
+    
     
     def __init__(
             self,
             samples,
-            protein_samples,
+            sample_selection,
             threshold = 2.0,
-            name = 'peaksize',
+            names = ('peaksize', 'peaksize_value'),
+            min_max = 'min',
         ):
+        """
+
+        Parameters
+        ----------
+        samples : lipyd.sample.SampleSet
+            A ``SampleSet`` object.
+        sample_selection : numpy.ndarray
+            Boolean vector, True if the sample is selected, False if it's
+            part of the background.
+        threshold : float
+            The sample(s) in the selection should be at least this times
+            higher than any in the background.
+        names : tuple
+            The attribute names of the ``FeatureAttrs`` object the result
+            should be assigned to.
+        min_max : str
+            Either `min` or `max`. If `min` the lowest element in the
+            selection must be `threshold` times higher than the highest in
+            the background. If `max` the `highest` element in the selection
+            considered.
+        """
         
         self.threshold = threshold
         
         FeatureAnalyzer.__init__(
             self,
-            name = name,
+            names = names,
             samples = samples,
             method = self.peak_size,
-            protein_samples = protein_samples,
+            sample_selection = sample_selection,
+            min_max = min_max,
         )
     
-    def peak_size(self, intensities, protein_samples, **kwargs):
-        """
-
-        Parameters
-        ----------
-        intensities :
-            
-        protein_samples :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
+    def peak_size(self, intensities, sample_selection, min_max, **kwargs):
         
-        protein   = intensities[protein_samples]
-        noprotein = intensities[np.logical_not(protein_samples)]
+        _method = np.max if min_max == 'max' else np.min
+        protein   = intensities[sample_selection]
+        noprotein = intensities[np.logical_not(sample_selection)]
         
         if np.any(np.isnan(protein)):
             
-            return False
+            return (False, 0.0)
         
         if np.all(np.isnan(noprotein)):
             
-            return True
+            return (True, 0.0)
         
-        return np.min(protein) > np.nanmax(noprotein) * self.threshold
+        return (
+            _method(protein) > np.nanmax(noprotein) * self.threshold,
+            _method(protein) / np.nanmax(noprotein),
+        )
 
 
 class Slope(FeatureAnalyzer):
