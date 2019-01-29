@@ -6,7 +6,9 @@
 #
 #  Copyright (c) 2015-2019 - EMBL
 #
-#  File author(s): Dénes Türei (turei.denes@gmail.com)
+#  File author(s):
+#  Dénes Türei (turei.denes@gmail.com)
+#  Igor Bulanov
 #
 #  Distributed under the GNU GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
@@ -39,6 +41,7 @@ import lipyd.settings as settings
 import lipyd.progress as progress
 import lipyd.sampleattrs as sampleattrs
 import lipyd.feature as feature
+import lipyd.recalibration as recalibration
 
 
 remgf  = re.compile(r'(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
@@ -416,7 +419,8 @@ class FeatureBase(object):
         )
     
     def filter(self, idx, negative = False, propagate = True):
-        """Filters features at indices in ``idx``.
+        """
+        Filters features at indices in ``idx``.
 
         Parameters
         ----------
@@ -893,6 +897,14 @@ class Sample(FeatureBase):
         
         return len(self.mzs)
     
+    @property
+    def numof_samples(self):
+        """
+        Here we have a single sample, always returns 1.
+        """
+        
+        return 1
+    
     def apply(
             self,
             method,
@@ -1104,6 +1116,44 @@ class Sample(FeatureBase):
     #
     # Methods for processing
     #
+    
+    def recalibrate(
+        self,
+        first = None,
+        last = None,
+        by_sample = None,
+        **kwargs,
+    ):
+        """
+        Corrects m/z values according to the provided errors (in ppm).
+        Errors are positive if the measured values are higher than expected,
+        i.e. they need to be lowered in the correction.
+        
+        :arg float,numpy.ndarray first:
+            Error in ppm for the first sample. Either a single float or an
+            array of floats with the same length as number of features in
+            the sample or an array of 2 columns: first with m/z values,
+            second with errors in ppm above the corresponding m/z value.
+        :arg float,numpy.ndarray last:
+            Error in ppm for the last sample. Same as ``first``. If not
+            provided all samples will be corrected by ``first``.
+        :arg list,dict by_sample:
+            Errors for each sample. Either a list or dict, the former assumed
+            to have ppm values defined for each sample in the order of
+            samples. If dict, keys are sample IDs, values are as
+            detailed at argument ``first``: float or array with one or
+            two columns. ``**kwargs`` handled the same way as ``by_sample``
+            but the latter has priority.
+        """
+        
+        recalibrator = recalibration.Recalibration(
+            first = first,
+            last = last,
+            by_sample = by_sample,
+            **kwargs,
+        )
+        
+        recalibrator.recalibrate(self)
     
     def process(
             self,
@@ -2315,37 +2365,46 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         
         self.ms2_source = self.collect_ms2(attrs = attrs)
     
-    def peak_size_filter(self, backg, prot, threshold = 2):
+    def peak_max_filter(self, backg, peak, threshold = 2):
         """
-
+        Peak size filter comparing the highest fraction in the peak to the
+        highest in background. Their ratio should be higher than threshold.
+        """
+        
+        self.peak_size_filter(
+            backg = backg,
+            peak = peak,
+            threshold = threshold,
+            min_max = 'max'
+        )
+    
+    
+    def peak_size_filter(self, backg, peak, threshold = 2, min_max = 'min'):
+        """
+        A filter looking at the ratio of fractions in a peak vs. the
+        background.
+        
         Parameters
         ----------
-        backg :
-            
-        prot :
-            
-        threshold :
-             (Default value = 2)
-
+        backg : set
+            Set of sample IDs for background samples.
+        prot : set
+            Set of sample IDs for peak samples.
+        threshold : float
+            Ratio above the peak size accepted (default value = 2).
+        min_max : str
+            Either `min` or `max`; look at the lowest or the highest sample
+            in the peak.
+        
         Returns
         -------
-
+        None
+        
         """
         
         def ps(a0, a1):
-            """
-
-            Parameters
-            ----------
-            a0 :
-                
-            a1 :
-                
-
-            Returns
-            -------
-
-            """
+            
+            _method = np.nanmax if min_max == 'max' else np.nanmin
             
             if np.all(np.isnan(a1)) or np.nanmax(a1) == 0:
                 
@@ -2358,24 +2417,24 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
                 
                 return np.inf
             
-            return np.nanmin(a1) / np.nanmax(a0)
+            return _method(a1) / np.nanmax(a0)
         
-        backg = set((f[0], int(f[1:])) for f in backg)
-        prot  = set((f[0], int(f[1:])) for f in prot)
+        backg = set(self.attrs.proc(f) for f in backg)
+        peak  = set(self.attrs.proc(f) for f in peak)
         
         ibackg = np.array([
             i
             for i, attr in enumerate(self.attrs)
             if attr['label']['fraction'] in backg
         ])
-        iprot = np.array([
+        ipeak = np.array([
             i
             for i, attr in enumerate(self.attrs)
-            if attr['label']['fraction'] in prot
+            if attr['label']['fraction'] in peak
         ])
         
         peaksize = np.array([
-            ps(self.intensities[i,ibackg], self.intensities[i,iprot])
+            ps(self.intensities[i,ibackg], self.intensities[i,ipeak])
             for i in xrange(len(self))
         ])
         

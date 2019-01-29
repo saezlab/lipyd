@@ -4,9 +4,11 @@
 #
 #  This file is part of the `lipyd` python module
 #
-#  Copyright (c) 2014-2018 - EMBL
+#  Copyright (c) 2015-2019 - EMBL
 #
-#  File author(s): Dénes Türei (turei.denes@gmail.com)
+#  File author(s):
+#  Dénes Türei (turei.denes@gmail.com)
+#  Igor Bulanov
 #
 #  Distributed under the GNU GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
@@ -31,6 +33,7 @@ import scipy.spatial
 import lipyd.settings as settings
 import lipyd.common as common
 import lipyd.reader.xls as xls
+import lipyd.lookup as lookup
 
 
 refrac = re.compile(r'([A-Z])([0-9]{1,2})')
@@ -225,8 +228,22 @@ class SECReader(object):
             'xls' if 'excel' in mime or 'openxml' in mime else 'asc'
         )
     
-    def get_fraction(self, frac):
-        """Returns absorbances measured within a fraction.
+    def _fractions_dict(self):
+        
+        if hasattr(self, 'fractions'):
+            
+            self.fractions_by_well = dict(
+                ((fr.row, fr.col), fr)
+                for fr in self.fractions
+            )
+    
+    def get_fraction(self, row, col):
+        
+        return self._get_fraction(self.fraction_by_well(row, col))
+    
+    def _get_fraction(self, frac):
+        """
+        Returns absorbances measured within a fraction.
 
         Parameters
         ----------
@@ -247,8 +264,23 @@ class SECReader(object):
             ]
         )
     
-    def fraction_mean(self, frac):
-        """Returns the mean absorbance from a fraction.
+    def fraction_by_well(self, row, col):
+        """
+        Returns fraction data by plate row letter and column number.
+        """
+        
+        return self.fractions_by_well[(row, col)]
+    
+    def fraction_mean(self, row, col):
+        """
+        Returns the mean absorbance from a fraction.
+        """
+        
+        return self._fraction_mean(self.fraction_by_well(row, col))
+    
+    def _fraction_mean(self, frac):
+        """
+        Returns the mean absorbance from a fraction.
 
         Parameters
         ----------
@@ -260,7 +292,64 @@ class SECReader(object):
 
         """
         
-        return self.get_fraction(frac).mean()
+        return self._get_fraction(frac).mean()
+    
+    def background_correction_by_other_chromatograms(
+            self,
+            others,
+            start = None,
+            end = None,
+        ):
+        """
+        Subtracts corresponding values of other chromatograms.
+        
+        Parameters
+        ----------
+        other : list,SECReader
+            One or more instances of ``SECReader``.
+        start : float
+            Start at this volume. By default the beginning of the
+            chromatogram.
+        end : float
+            Do until this volume. By default the end of the chromatogram.
+        """
+        
+        def get_closest(vol):
+            
+            return lookup.find(self.volume, vol, np.inf)
+        
+        istart = 0 if start is None else get_closest(start)
+        iend = 0 if end is None else get_closest(end)
+        
+        others = (
+            (others,)
+                if not isinstance(others, (tuple, list, np.ndarray)) else
+            others
+        )
+        
+        for i in xrange(istart, iend + 1):
+            
+            vol = self.volume[i]
+            i_other = (
+                lookup.find(other.volume, vol, np.inf)
+                for other in others
+            )
+            background = np.median([
+                others[j].absorbance[io]
+                for j, io in enumerate(i_other)
+            ])
+            self.absorbance[i] = self.absorbance[i] - background
+    
+    
+    def normalize(self):
+        """
+        Simply subtracts the minimum and divides by the maximum across the
+        chromatogram.
+        """
+        
+        self.absorbance = self.absorbance - self.absorbance.min()
+        self.absorbance = self.absorbance / self.absorbance.max()
+    
     
     def profile(self, **kwargs):
         """Iterates fractions with their mean absorbance values.
@@ -283,7 +372,7 @@ class SECReader(object):
         
         for frac in fractions:
             
-            yield Fraction(*frac[:-1], self.fraction_mean(frac))
+            yield Fraction(*frac[:-1], self._fraction_mean(frac))
     
     def baseline_correction(self):
         """
