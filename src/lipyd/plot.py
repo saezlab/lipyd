@@ -1774,7 +1774,7 @@ class SpectrumPlot(PlotBase):
         self.annotations = (
             np.array([None] * len(self))
                 if self.annotations is None else
-            np.array(self.annotations)
+            np.array( self.annotations )
         )
         
         self.process_annotations()
@@ -1806,8 +1806,8 @@ class SpectrumPlot(PlotBase):
         Main method for drawing the plot.
         """
         
-        max_x = np.max(self.mzs)
-        max_y = np.max(self.intensities)
+        # max_x = np.max(self.mzs)
+        # max_y = np.max(self.intensities)
         
         #For saving plot in pdf format
         #pp = PdfPages(self.pdf_file_name)
@@ -1823,63 +1823,72 @@ class SpectrumPlot(PlotBase):
         trans = self.ax.get_xaxis_transform()
         
         vertex_number = 1
-        annotate_base_x = 1.1 * max(self.mzs) # 10% more of max to right 
+        max_mz = max(self.mzs)
+        annotate_base_x = 1.07 * max_mz # 10% more of max to right 
                                               # after max of X;
-        annotate_base_y = 0.07
-        annotate_offset_x = 0.
-        annotate_lineheight = .06
-        annotate_x = annotate_base_x
-        annotate_y = annotate_base_y
+        annotate_base_y = 0.
+        detail_annotation = ""
+        number_width = 3
+        number_separator = 4    #number of space char between: N) and annotation
 
+        annot_list = []
+        
         for mz, intens, annot in zip(
-            self.mzs, self.intensities, self.annotations
-        ):
-            
+                                    self.mzs,
+                                    self.intensities,
+                                    self.annotations
+                                ):
+                                    
             if not annot:
-                
                 continue
+            annot_list.append( (mz, intens, annot) )
+
+        #create layout list:
+        import lipyd.plot_layout as plout
+
+        layout_shape = plout.Layout_shape(plot_x_max = max_mz,
+                                        annot_list = annot_list
+                    )
+        
+        for mz, intens, annot in annot_list:
+            xx, yy = layout_shape.get_free_place(mz, intens)
             
-            self.ax.annotate('{}'.format(vertex_number),
-                xy = (mz, intens),
-                xycoords = 'data',
-                xytext = (0, 0),
-                textcoords = 'offset points', # "data"
+            self.ax.annotate('{}-{:.2f}'.format(vertex_number, mz),
+                xy = ( mz, intens ),    #mz, intens
+                #xycoords = 'data',
+                xytext = (xx, yy),
+                #textcoords = 'offset points',
                 ha = 'center',
                 va = 'center',
-                bbox = dict(boxstyle = 'circle', fc = 'w'),
+                bbox = dict(boxstyle = 'round', fc = 'w'), #circle
                 fontproperties = self.fp_annotation,
+                fontsize=6,
+                arrowprops=dict(arrowstyle="->"),
             )
-            
-            self.ax.annotate('{} - {}'.format(vertex_number, annot),
-                xy = (annotate_x, annotate_y),
-                xycoords = trans,
-                #va = 'top',
-                bbox = dict(boxstyle = 'round', fc = 'w'),
-                fontproperties = self.fp_annotation,
-                horizontalalignment = 'left',
-            )
+            # +1 for char ")"
+            # replace char new line on new line char 
+            # and serial of space char:
+            formated_annot = annot.replace("\n", \
+                "\n"+(number_width+number_separator+4)*" ")
+            #
+            detail_annotation += "{:3d}){}{}\n".format(vertex_number, \
+                (number_separator+1) * " ", formated_annot)
             
             vertex_number += 1
-            annotate_x += annotate_offset_x
-            annotate_y += annotate_lineheight * annot.count('\n')
+
+        detail_annotation=detail_annotation[:-1] #remove last new line char;
         
+        self.ax.annotate(detail_annotation,
+            xy = (annotate_base_x, annotate_base_y),
+            xycoords = trans,
+            bbox = dict(boxstyle = 'round', fc = 'w'),
+            fontproperties = self.fp_annotation,
+            horizontalalignment = 'left',
+            fontsize=6
+        )
+
         self.post_subplot_hook()
         self.ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(50))
         self.ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(5))
 
 
-if __name__ == "__main__":
-    
-    #Test data
-    a = SpectrumPlot()
-    x = [10., 11.1, 12.2, 13.3, 14.4, 15.5, 16.6, 17.7, 18.8, 19.9, 20.2]
-    y = [100., 101., 150., 102., 104., 101., 180., 105., 102., 107., 103.]
-    
-    # Annotations done by use correlation between x coord and name of peak
-    xa = ["the first peak", "the second peak"]
-    
-    a.build_plot(mzs = x,
-                intensities = y,
-                annotations = xa,
-                result_type = "screen",
-                title = "test")
