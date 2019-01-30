@@ -54,7 +54,7 @@ class SECReader(object):
         self.path = path
         self.read()
     
-    def reload(self, children = False):
+    def reload(self):
         """
 
         Parameters

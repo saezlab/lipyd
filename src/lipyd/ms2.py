@@ -7009,10 +7009,10 @@ class MS2Feature(object):
                     
                     continue
                 
-                if np.min(rtdiff) < closest_rtdiff:
+                if np.min(np.abs(rtdiff)) < closest_rtdiff:
                     
-                    closest_rtdiff  = np.min(rtdiff)
-                    closest_i       = idx[np.argmin(rtdiff)]
+                    closest_rtdiff  = np.min(np.abs(rtdiff))
+                    closest_i       = idx[np.argmin(np.abs(rtdiff))]
                     closest_mgffile = mgffile
         
         return (
