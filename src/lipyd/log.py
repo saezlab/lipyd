@@ -19,10 +19,12 @@
 
 import time
 import os
+import sys
 
 
 def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
-    """Returns a new logger with default settings (can be customized).
+    """
+    Returns a new logger with default settings (can be customized).
 
     Parameters
     ----------
@@ -35,7 +37,7 @@ def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
 
     Returns
     -------
-
+    ``lipyd.log.Logger`` instance.
     """
     
     return Logger(
@@ -53,7 +55,25 @@ class Logger(object):
     
     strftime = time.strftime
     
-    def __init__(self, fname, verbosity = 0, logdir = None):
+    def __init__(
+            self,
+            fname,
+            verbosity = 0,
+            console_level = -1,
+            logdir = None
+        ):
+        """
+        fname : str
+            Log file name.
+        logdir : name
+            Path to the directory containing the log files.
+        verbosity : int
+            Messages at and below this level will be written into the
+            logfile. All other messages will be dropped.
+        console_level : int
+            Messages below this log level will be printed not only into
+            logfile but also to the console.
+        """
         
         self.logdir = self.get_logdir(logdir)
         self.fname  = os.path.join(self.logdir, fname)
@@ -64,26 +84,40 @@ class Logger(object):
     
     def msg(self, msg = '', level = 0):
         """
+        Writes a message into the log file.
 
         Parameters
         ----------
-        msg :
-             (Default value = '')
-        level :
-             (Default value = 0)
-
-        Returns
-        -------
-
+        msg : str
+            Text of the message.
+        level : int
+            The loglevel. Decides if the message will be written or dropped.
         """
         
         if level <= self.verbosity:
             
             self.fp.write('[%s] %s\n' % (self.timestamp(), msg))
+        
+        if leven <= self.console_level:
+            
+            self.console(msg)
+    
+    def console(self, msg = ''):
+        """
+        Prints a message to the console.
+        
+        msg : str
+            Text of the message.
+        """
+        
+        sys.stdout.write('[%s] %s\n' % (self.timestamp(), msg))
+        sys.stdout.flush()
     
     @classmethod
     def timestamp(cls):
-        """ """
+        """
+        Returns a timestamp of the current time.
+        """
         
         return cls.strftime('%Y-%m-%d %H:%M:%S')
     
@@ -95,40 +129,37 @@ class Logger(object):
     
     def get_logdir(self, dirname = None):
         """
-
-        Parameters
-        ----------
-        dirname :
-             (Default value = None)
-
-        Returns
-        -------
-
+        Returns the path to log directory.
+        Also creates the directory if does not exist.
         """
         
         dirname = dirname or 'lipyd_log'
         
-        if not os.path.isdir(dirname):
-            
-            os.mkdir(dirname)
+        os.makedirs(dirname, exist_ok = True)
         
         return dirname
     
     def open_logfile(self):
-        """ """
+        """
+        Opens the log file.
+        """
         
         self.close_logfile()
         self.fp = open(self.fname, 'w')
     
     def close_logfile(self):
-        """ """
+        """
+        Closes the log file.
+        """
         
         if hasattr(self, 'fp') and not self.fp.closed:
             
             self.fp.close()
     
     def flush(self):
-        """ """
+        """
+        Flushes the log file.
+        """
         
         if hasattr(self, 'fp') and not self.fp.closed:
             

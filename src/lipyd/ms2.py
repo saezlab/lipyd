@@ -6889,9 +6889,22 @@ class MS2Feature(object):
         self.build_scans()
         self.identify()
     
-    def iterresources(self):
+    def iterresources(self, only_samples = None):
+        """
+        Iterates the MS2 resources for the feature.
+        Yields tuples of resource, type of the resource and the ID of
+        the sample it belongs to.
+        
+        only_samples : set
+            Set of sample IDs. Iterate over resources only for these samples.
+            If None iterates resources from all samples.
+        """
         
         for sample_id, resources in iteritems(self.resources):
+            
+            if only_samples and sample_id not in only_samples:
+                
+                continue
             
             if not isinstance(resources, (list, tuple, set)):
                 
@@ -6994,13 +7007,22 @@ class MS2Feature(object):
             rt = mgffile.mgfindex[i,2],
         )
     
-    def closest_scan(self):
+    def closest_scan(self, only_samples = None):
+        """
+        Retrieves the scan with the lowest retention time difference.
+        
+        only_samples : set
+            Set of sample IDs. Retrieve the closest scan only from these
+            samples. If None looks up scans from all samples.
+        """
         
         closest_rtdiff  = np.inf
         closest_mgffile = None
         closest_i       = np.nan
         
-        for resource, res_type, sample_id in self.iterresources():
+        for resource, res_type, sample_id in self.iterresources(
+            only_samples = only_samples
+        ):
             
             for mgffile, idx, rtdiff in \
                 getattr(self, '%s_iterscanidx' % res_type)():
