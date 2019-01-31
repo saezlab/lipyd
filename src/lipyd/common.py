@@ -512,3 +512,24 @@ def to_int(num):
     else:
         
         raise ValueError('Integer expected: %g' % num)
+
+
+def bool_array_dilation(array, extent = 1):
+    """
+    Applies dilation on a boolean array with a certain extent.
+    """
+    
+    if not isinstance(array, np.ndarray):
+        
+        array = np.array(array)
+    
+    indices = (
+        np.arange(extent + 2)[None, :] +
+        np.arange(len(array))[:,None] - 1
+    )
+    indices[indices < 0] = 0
+    indices[indices >= len(array)] = len(array) - 1
+    
+    dilated = np.array([np.any(array[win]) for win in indices])
+    
+    return np.array(dilated)

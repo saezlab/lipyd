@@ -196,7 +196,7 @@ class LipidMaps(sdf.SdfReader):
 
 
 class SwissLipids(Reader):
-    """ """
+    
     
     def __init__(self, levels = set(['Species']), silent = False,
                  nameproc_args = None, branched = False,
@@ -1385,6 +1385,7 @@ class MoleculeDatabaseAggregator(object):
             show_ppm = False,
             show_adduct = False,
             show_db = False,
+            use_db_names = False,
         ):
         """
 
@@ -1424,7 +1425,7 @@ class MoleculeDatabaseAggregator(object):
                 
                 name = (
                     lipproc.summary_str(rec.hg, rec.chainsum)
-                        if rec.hg else
+                        if not use_db_names and rec.hg else
                     rec.lab.names[0]
                         if rec.lab.names else
                     'Unknown'
@@ -1644,6 +1645,7 @@ def records_string(
         show_ppm = False,
         show_adduct = False,
         show_db = False,
+        use_db_names = False,
     ):
     """
 
@@ -1668,12 +1670,13 @@ def records_string(
     """
     
     return MoleculeDatabaseAggregator.records_string(
-        records     = records,
-        adducts     = adducts,
-        databases   = databases,
-        show_ppm    = show_ppm,
-        show_adduct = show_adduct,
-        show_db     = show_db,
+        records      = records,
+        adducts      = adducts,
+        databases    = databases,
+        show_ppm     = show_ppm,
+        show_adduct  = show_adduct,
+        show_db      = show_db,
+        use_db_names = use_db_names
     )
 
 def result_summary(result):
