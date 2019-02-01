@@ -427,7 +427,7 @@ class FeatureBase(object):
             
             result[var] = getattr(self, var)[key]
         
-        return result
+        return feature.Feature(ionmode = self.ionmode, **result)
     
     def filter(self, idx, negative = False, propagate = True):
         """
@@ -917,14 +917,16 @@ class Sample(FeatureBase):
         
         if isinstance(key, (float, np.float64)):
             
-            key = self.index_by_mz(key)
+            # here we use high tolerance as better to return the
+            # closest than returning nothing
+            key = self.index_by_mz(key, tolerance = 100)
         
-        result = {}
+        result = None
         
         if key is not None:
             
-            result.update(FeatureBase.__getitem__(self, key))
-            result.update(self.feattrs[key])
+            result = FeatureBase.__getitem__(self, key)
+            result += self.feattrs[key]
         
         return result
     

@@ -26,6 +26,51 @@ import lipyd.sampleattrs as sampleattrs
 import lipyd.common as common
 
 
+class Feature(object):
+    
+    
+    def __init__(self, ionmode, **kwargs):
+        
+        self.ionmode = ionmode
+        self.var = set(kwargs.keys())
+        
+        for k, v in iteritems(kwargs):
+            
+            setattr(self, k, v)
+    
+    
+    def __add__(self, other):
+        
+        new_args = {}
+        
+        for var in self.var:
+            
+            new_args[var] = getattr(self, var)
+        
+        for var in other.var:
+            
+            new_args[var] = getattr(other, var)
+        
+        return Feature(**args)
+    
+    
+    def __iadd__(self, other):
+        
+        for var in other.var:
+            
+            setattr(self, var, getattr(other, var))
+        
+        return self
+    
+    
+    def __repr__(self):
+        
+        return 'Feature m/z=%s [%s]' % (
+            ('%04f' % self.mzs) if hasattr(self, 'mzs') else '?',
+            '+' if self.ionmode == 'pos' else '-',
+        )
+
+
 class FeatureAnalyzer(object):
     
     
