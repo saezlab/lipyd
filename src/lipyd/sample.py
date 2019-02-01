@@ -42,6 +42,7 @@ import lipyd.progress as progress
 import lipyd.sampleattrs as sampleattrs
 import lipyd.feature as feature
 import lipyd.recalibration as recalibration
+import lipyd.lookup as lookup
 
 
 remgf  = re.compile(r'(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
@@ -417,6 +418,16 @@ class FeatureBase(object):
             if self.var else
             0
         )
+    
+    def __getitem__(self, key):
+        
+        result = {}
+        
+        for var in self.var:
+            
+            result[var] = getattr(self, var)[key]
+        
+        return result
     
     def filter(self, idx, negative = False, propagate = True):
         """
@@ -896,6 +907,26 @@ class Sample(FeatureBase):
         """
         
         return len(self.mzs)
+    
+    def index_by_mz(self, mz, tolerance = 10):
+        
+        self.sort_all('mzs')
+        return lookup.find(self.mzs, mz, t = tolerance)
+    
+    def __getitem__(self, key):
+        
+        if isinstance(key, (float, np.float64)):
+            
+            key = self.index_by_mz(key)
+        
+        result = {}
+        
+        if key is not None:
+            
+            result.update(FeatureBase.__getitem__(self, key))
+            result.update(self.feattrs[key])
+        
+        return result
     
     @property
     def numof_samples(self):
@@ -1804,19 +1835,17 @@ class FeatureIdx(FeatureBase):
         self.clients = {}
     
     def _sort(self, argsort):
-        """Sorts the two index arrays by an index array.
+        """
+        Sorts the two index arrays by an index array.
         Do not call this because it does sync with clients.
 
         Parameters
         ----------
-        argsort :
-            
-
-        Returns
-        -------
-
+        argsort : numpy.ndarray
+            Array with indices in the desired order.
         """
         
+        print('_sort')
         if len(argsort) != len(self):
             
             raise RuntimeError(
@@ -1845,7 +1874,8 @@ class FeatureIdx(FeatureBase):
         return self._original[o]
     
     def original(self, c):
-        """Tells the original index for the current index ``c``.
+        """
+        Tells the original index for the current index ``c``.
 
         Parameters
         ----------
