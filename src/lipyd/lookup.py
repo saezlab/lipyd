@@ -159,9 +159,6 @@ def find(a, m, t = 20):
     
     elif du <= t and iu < len(a):
         
-        print('heeey')
-        print(du)
-        print(t)
         return iu
 
 

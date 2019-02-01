@@ -1845,7 +1845,6 @@ class FeatureIdx(FeatureBase):
             Array with indices in the desired order.
         """
         
-        print('_sort')
         if len(argsort) != len(self):
             
             raise RuntimeError(
