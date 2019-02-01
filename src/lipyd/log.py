@@ -78,6 +78,7 @@ class Logger(object):
         self.logdir = self.get_logdir(logdir)
         self.fname  = os.path.join(self.logdir, fname)
         self.verbosity = verbosity
+        self.console_level = console_level
         self.open_logfile()
         self.msg('Welcome!')
         self.msg('Logger started, logging into `%s`.' % self.fname)
@@ -98,7 +99,7 @@ class Logger(object):
             
             self.fp.write('[%s] %s\n' % (self.timestamp(), msg))
         
-        if leven <= self.console_level:
+        if level <= self.console_level:
             
             self.console(msg)
     
