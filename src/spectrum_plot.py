@@ -9,7 +9,6 @@ import lipyd.common as common
 import lipyd.plot as plot
 import lipyd.settings as settings
 
-
 mgfname = 'pos_examples.mgf'
 ionmode = 'pos'
 scan_id = 2397
@@ -19,7 +18,9 @@ mgfpath = os.path.join(common.ROOT, 'data', 'ms2_examples', mgfname)
 scan = ms2.Scan.from_mgf(mgfpath, scan_id, ionmode, **scan_args)
 
 
-imp.reload(plot)
+importlib.reload(settings)
+importlib.reload(ms2)
+importlib.reload(plot)
 
 p = plot.SpectrumPlot(
     mzs = scan.mzs,
@@ -28,6 +29,7 @@ p = plot.SpectrumPlot(
     scan_id = scan.scan_id,
     ionmode = ionmode,
     sample_name = 'BPI_invivo',
-    grid_cols = 1
-)
+    grid_cols = 1,
+    format = "pdf"
+    )
 
