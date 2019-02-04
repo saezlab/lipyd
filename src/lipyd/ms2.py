@@ -7003,7 +7003,13 @@ class MS2Feature(object):
         returns arrays of scan indices and RT differences.
         """
         
-        idx, rtdiff = zip(*list(self.mgf_iterscanidx(mgf_resource)))
+        try:
+            
+            idx, rtdiff = zip(*list(self.mgf_iterscanidx(mgf_resource)))
+            
+        except ValueError:
+            
+            idx, rtdiff = [], []
         
         return np.array(idx), np.array(rtdiff)
     
