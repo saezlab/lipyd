@@ -6882,8 +6882,15 @@ class MS2Feature(object):
         self.rt_range = rt_range
         self.check_rt = check_rt
     
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+    
     def main(self):
-        """ """
         
         self.ms1_lookup()
         self.build_scans()
@@ -6956,7 +6963,7 @@ class MS2Feature(object):
             
             raise ValueError(
                 'Mgf files should be lipyd.mgf.MgfReader '
-                'instances of file names.'
+                'instances or file names.'
             )
         
         return mgffile

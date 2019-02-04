@@ -731,6 +731,10 @@ class Sample(FeatureBase):
             If a value provided here only the scans with this precursor
             charge will be processed from the MGF files. If ``None``, charge
             won't be considered.'
+            - ``check_rt``:
+            Use only the MS2 scans which are within the RT range of the
+            feature. You can set it to False if you want to check retention
+            times later.
         """
         
         self.var     = set()
@@ -750,11 +754,16 @@ class Sample(FeatureBase):
             **kwargs,
         )
         
-        self.silent     = silent
-        self.ionmode    = ionmode
+        self.silent       = silent
+        self.ionmode      = ionmode
         self._set_feature_attrs(feature_attrs)
-        self.ms2_format = ms2_format
-        self.ms2_param  = ms2_param or {}
+        self.ms2_format   = ms2_format
+        self.ms2_param    = ms2_param or {}
+        self.ms2_check_rt = (
+            ms2_param['check_rt']
+                if 'check_rt' in self.ms2_param else
+            settings.get('ms2_check_rt')
+        )
         
         attr_args = attr_args or {
             'sample_id': sample_id,
@@ -1633,6 +1642,7 @@ class Sample(FeatureBase):
                 resources = resources,
                 rt = tuple(self.feattrs.rt_ranges[i]),
                 ms1_records = self.feattrs.records[i],
+                check_rt = self.ms2_check_rt,
             )
             
             ms2_fe.main()
