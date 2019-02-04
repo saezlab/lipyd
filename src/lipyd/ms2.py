@@ -6968,16 +6968,11 @@ class MS2Feature(object):
         
         return mgffile
     
-    def mgf_iterscanidx(self):
-        
-        for resource, res_type, sample_id in self.iterresources():
-            
-            mgffile = self.get_mgf(resource)
-            idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
-            
-            yield resource, idx, rtdiff
-    
-    def mgf_iterscans(self, mgf_resource, sample_id = None):
+    def mgf_iterscanidx(self, mgf_resource):
+        """
+        Selects scans from each resurce and yields tuples of scan ID and
+        RT difference.
+        """
         
         mgffile = self.get_mgf(mgf_resource)
         idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
@@ -6992,13 +6987,62 @@ class MS2Feature(object):
                     
                     continue
             
+            yield i, rtd
+    
+    def mgf_iterscanidx_all(self):
+        
+        for resource, res_type, sample_id in self.iterresources():
+            
+            for i, rtd in self.mgf_iterscanidx(resource):
+                
+                yield resource, i, rtd
+    
+    def mgf_get_scans_summary(self, mgf_resource):
+        """
+        For a single MGF resource finds scans matching this feature and
+        returns arrays of scan indices and RT differences.
+        """
+        
+        idx, rtdiff = zip(*list(self.mgf_iterscanidx(mgf_resource)))
+        
+        return np.array(idx), np.array(rtdiff)
+    
+    def mgf_iter_scans_summaries(self):
+        """
+        Selects scans from each resurce and yields tuples of resource,
+        array of scan indices and array of RT differences for each resource.
+        """
+        
+        for resource, res_type, sample_id in self.iterresources():
+            
+            idx, rtdiff = self.mgf_get_scans_summary(resource)
+            
+            yield resource, idx, rtdiff
+    
+    def mgf_iterscans(self, mgf_resource, sample_id = None):
+        """
+        Iterates over scans from an MGF resource belonging to this feature.
+        """
+        
+        mgffile = self.get_mgf(mgf_resource)
+        
+        for i, rtd in self.mgf_iterscanidx(mgf_resource):
+            
             sc = mgffile.get_scan(i)
             
             yield self.get_scan(mgffile, i, sample_id = sample_id)
     
-    def get_scan(self, mgffile, i, sample_id = None):
+    def get_scan(self, ms2_resource, i, sample_id = None):
+        """
+        Retrieves a scan by its ID from an MS2 resource.
+        Creates ``Scan`` object.
         
-        sc = mgffile.get_scan(i)
+        Returns
+        -------
+        ``lipyd.ms2.Scan`` instance.
+        """
+        
+        sc = ms2_resource.get_scan(i)
         
         return Scan(
             mzs = sc[:,0],
@@ -7007,11 +7051,11 @@ class MS2Feature(object):
             precursor = self.mz,
             ms1_records = self.ms1_records,
             add_precursor_details = self.add_precursor_details,
-            scan_id = mgffile.mgfindex[i,3],
+            scan_id = ms2_resource.mgfindex[i,3],
             sample_id = sample_id,
-            source = mgffile.fname,
-            deltart = mgffile.mgfindex[i,2] - self.rtmean,
-            rt = mgffile.mgfindex[i,2],
+            source = ms2_resource.fname,
+            deltart = ms2_resource.mgfindex[i,2] - self.rtmean,
+            rt = ms2_resource.mgfindex[i,2],
         )
     
     def closest_scan(self, only_samples = None):
@@ -7031,24 +7075,25 @@ class MS2Feature(object):
             only_samples = only_samples
         ):
             
-            for mgffile, idx, rtdiff in \
-                getattr(self, '%s_iterscanidx' % res_type)():
+            idx, rtdiff = (
+                getattr(self, '%s_get_scans_summary' % res_type)(resource)
+            )
+            
+            if not len(idx):
                 
-                if not len(idx):
-                    
-                    continue
+                continue
+            
+            if np.min(np.abs(rtdiff)) < closest_rtdiff:
                 
-                if np.min(np.abs(rtdiff)) < closest_rtdiff:
-                    
-                    closest_rtdiff  = np.min(np.abs(rtdiff))
-                    closest_i       = idx[np.argmin(np.abs(rtdiff))]
-                    closest_mgffile = mgffile
+                closest_rtdiff  = np.min(np.abs(rtdiff))
+                closest_i       = idx[np.argmin(np.abs(rtdiff))]
+                closest_mgffile = resource
         
         return (
             None
                 if closest_mgffile is None else
             self.get_scan(
-                closest_mgffile,
+                self.get_mgf(closest_mgffile),
                 closest_i,
                 sample_id = sample_id
             )
