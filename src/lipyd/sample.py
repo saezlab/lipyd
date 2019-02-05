@@ -1640,7 +1640,7 @@ class Sample(FeatureBase):
                 mz = self.mzs[i],
                 ionmode = self.ionmode,
                 resources = resources,
-                rt = tuple(self.feattrs.rt_ranges[i]),
+                rt = self.feattrs.rt_means[i],
                 ms1_records = self.feattrs.records[i],
                 check_rt = self.ms2_check_rt,
             )

@@ -6825,7 +6825,7 @@ idmethods = {
 
 
 class MS2Feature(object):
-    """ """
+    
     
     scan_methods = {
         'mgf':  'mgf_iterscans',
@@ -6837,9 +6837,10 @@ class MS2Feature(object):
             mz,
             ionmode,
             resources,
-            rt,
             ms1_records = None,
-            rt_range = .5,
+            rt = None,
+            rt_range = None,
+            rt_range_width = .5,
             check_rt = True,
             add_precursor_details = False,
         ):
@@ -6847,25 +6848,28 @@ class MS2Feature(object):
         Collects the MS2 scans from the provided resources for a single
         feature. Calls identification methods on all scans collected.
         
-        :param float mz:
+        mz : float
             m/z value of the precursor ion.
-        :param str ionmode:
+        ionmode : str
             Ion mode of the experiment. Either ``pos`` or ``neg``.
-        :param dict resources:
+        resources : dict
             ``dict`` of MS2 scan resources. These are either ``mgf.MgfReader``
             objects or paths to MGF files. Later more resource types
             will be available, for example MzML format. Keys of the ``dict``
             are used as sample labels. Thes can be strings or tuples.
-        :param dict ms1_records:
+        ms1_records : dict
             A data structure resulted by ``moldb.adduct_lookup``. If ``None``
             the lookup will be done here.
-        :param float rt_range:
-            If a single retention time value provided this is the largest
-            accepted difference between an MS2 scan's RT and the precursor's
-            RT. E.g. if ``rt = 8.3`` and ``rt_range = 0.5``, scans between
-            7.8 and 8.8 will be considered. If a tuple of floats provided
-            for RT, scans between these two values will be considered.
-        :param bool check_rt:
+        rt : float
+            Retention time of the feature.
+        rt_range : tuple
+            Tuple of 2 floats, minimum and maximum retention time of the
+            feature. If ``rt`` not provided the mean of this range will
+            be used as ``rt``.
+        rt_range_width : float
+            If no ``rt_range`` but ``rt`` provided ``rt_range`` will be set
+            as ``rt +/- rt_range_width``.
+        check_rt : bool
             Check if the retention time of the scan is enough close to the
             precursor's RT. If ``False``, scans will be matched only by the
             m/z value of the precursor and scans with any large RT difference
@@ -6877,10 +6881,15 @@ class MS2Feature(object):
         self.ms1_records = ms1_records or moldb.adduct_lookup(mz, ionmode)
         self.add_precursor_details = add_precursor_details
         self.resources = resources
-        self.rt = (rt - rt_range, rt + rt_range) if type(rt) is float else rt
-        self.rtmean = sum(self.rt) / 2.0
+        self.rt = rt
+        self.rt_range = rt_range
+        self.rt_range_width = rt_range_width
         self.rt_range = rt_range
         self.check_rt = check_rt
+        
+        self._set_rt()
+        self._set_rt_range()
+    
     
     def reload(self):
         
@@ -6890,11 +6899,35 @@ class MS2Feature(object):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
+    
     def main(self):
         
         self.ms1_lookup()
         self.build_scans()
         self.identify()
+    
+    
+    def _set_rt(self):
+        
+        self.rt = (
+            self.rt
+                if self.rt else
+            sum(self.rt_range) / 2.
+                if self.rt_range is not None else
+            None
+        )
+    
+    
+    def _set_rt_range(self):
+        
+        self.rt_range = (
+            self.rt_range
+                if self.rt_range is not None else
+            (self.rt - self.rt_range_width, self.rt + self.rt_range_width)
+                if self.rt else
+            None
+        )
+    
     
     def iterresources(self, only_samples = None):
         """
@@ -6929,6 +6962,7 @@ class MS2Feature(object):
                 
                 yield resource, res_type, sample_id
     
+    
     def iterscans(self):
         
         for resource, res_type, sample_id in self.iterresources():
@@ -6938,6 +6972,7 @@ class MS2Feature(object):
             for scan in scan_method(resource, sample_id):
                 
                 yield scan
+    
     
     def get_mgf(self, mgf_resource):
         """
@@ -6968,6 +7003,7 @@ class MS2Feature(object):
         
         return mgffile
     
+    
     def mgf_iterscanidx(self, mgf_resource):
         """
         Selects scans from each resurce and yields tuples of scan ID and
@@ -6975,19 +7011,20 @@ class MS2Feature(object):
         """
         
         mgffile = self.get_mgf(mgf_resource)
-        idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
+        idx, rtdiff = mgffile.lookup(self.mz, rt = self.rt)
         
         for i, rtd in zip(idx, rtdiff):
             
             if self.check_rt:
                 
-                scan_rt = self.rtmean + rtd
+                scan_rt = self.rt + rtd
                 
-                if scan_rt < self.rt[0] or scan_rt > self.rt[1]:
+                if scan_rt < self.rt_range[0] or scan_rt > self.rt_range[1]:
                     
                     continue
             
             yield i, rtd
+    
     
     def mgf_iterscanidx_all(self):
         
@@ -6996,6 +7033,7 @@ class MS2Feature(object):
             for i, rtd in self.mgf_iterscanidx(resource):
                 
                 yield resource, i, rtd
+    
     
     def mgf_get_scans_summary(self, mgf_resource):
         """
@@ -7013,6 +7051,7 @@ class MS2Feature(object):
         
         return np.array(idx), np.array(rtdiff)
     
+    
     def mgf_iter_scans_summaries(self):
         """
         Selects scans from each resurce and yields tuples of resource,
@@ -7024,6 +7063,7 @@ class MS2Feature(object):
             idx, rtdiff = self.mgf_get_scans_summary(resource)
             
             yield resource, idx, rtdiff
+    
     
     def mgf_iterscans(self, mgf_resource, sample_id = None):
         """
@@ -7037,6 +7077,7 @@ class MS2Feature(object):
             sc = mgffile.get_scan(i)
             
             yield self.get_scan(mgffile, i, sample_id = sample_id)
+    
     
     def get_scan(self, ms2_resource, i, sample_id = None):
         """
@@ -7060,9 +7101,10 @@ class MS2Feature(object):
             scan_id = ms2_resource.mgfindex[i,3],
             sample_id = sample_id,
             source = ms2_resource.fname,
-            deltart = ms2_resource.mgfindex[i,2] - self.rtmean,
+            deltart = ms2_resource.mgfindex[i,2] - self.rt,
             rt = ms2_resource.mgfindex[i,2],
         )
+    
     
     def closest_scan(self, only_samples = None):
         """
@@ -7105,22 +7147,30 @@ class MS2Feature(object):
             )
         )
     
+    
     def has_scan_within_rt_range(self):
         
-        for resource, res_type, sample_id in self.iterresources():
+        itermethod = getattr(self, '%s_iterscanidx_all' % res_type)
+        
+        for resource, idx, rtdiff in itermethod():
             
-            for mgffile, idx, rtdiff in \
-                getattr(self, '%s_iterscanidx' % res_type)():
+            if not len(idx):
                 
-                if not len(idx):
-                    
-                    continue
+                continue
+            
+            scans_rts = self.rt - np.abs(rtdiff)
+            
+            if np.any(
+                np.logical_and(
+                    scans_rts > self.rt_range[0],
+                    scans_rts < self.rt_range[1],
+                )
+            ):
                 
-                if np.any(np.abs(rtdiff) <= self.rt_range):
-                    
-                    return True
+                return True
         
         return False
+    
     
     def mzml_iterscans(self, mzml_resource, sample_id = None):
         """
@@ -7138,6 +7188,7 @@ class MS2Feature(object):
         """
         
         raise NotImplementedError
+    
     
     @staticmethod
     def guess_resouce_type(res):
@@ -7163,11 +7214,12 @@ class MS2Feature(object):
             
             return 'mgf'
     
+    
     def build_scans(self):
         """ """
         
         self.scans = np.array(list(self.iterscans()))
-        self.deltart = np.array([sc.rt - self.rtmean for sc in self.scans])
+        self.deltart = np.array([sc.rt - self.rt for sc in self.scans])
         
         rtsort = [
             it[0]
@@ -7179,6 +7231,7 @@ class MS2Feature(object):
         
         self.scans = self.scans[rtsort]
         self.deltart = self.deltart[rtsort]
+    
     
     def identify(self):
         """ """
@@ -7192,6 +7245,7 @@ class MS2Feature(object):
             if identity:
                 
                 self.identities.append(identity)
+    
     
     @staticmethod
     def identities_sort(ids):
@@ -7216,6 +7270,7 @@ class MS2Feature(object):
                     abs(i.scan_details.deltart) if i.scan_details else 0,
                 )
         )
+    
     
     def identities_group_by(self, by = 'subspecies'):
         """
@@ -7261,25 +7316,30 @@ class MS2Feature(object):
         
         return identities
     
+    
     def identities_group_by_species(self):
         """ """
         
         return self.identities_group_by(by = 'species')
+    
     
     def identities_group_by_subspecies(self):
         """ """
         
         return self.identities_group_by(by = 'subspecies')
     
+    
     def identities_group_by_subclass(self):
         """ """
         
         return self.identities_group_by(by = 'subclass')
     
+    
     def identities_group_by_class(self):
         """ """
         
         return self.identities_group_by(by = 'class')
+    
     
     def identities_str(
             self,
@@ -7340,6 +7400,7 @@ class MS2Feature(object):
             )
         )
     
+    
     def identities_str_all(self):
         """ """
         
@@ -7348,6 +7409,7 @@ class MS2Feature(object):
             only_top  = False,
             group_by  = 'subspecies',
         )
+    
     
     def identities_str_best_sum(self):
         """ """
@@ -7358,6 +7420,7 @@ class MS2Feature(object):
             group_by  = 'species',
         )
     
+    
     def identities_str_full_toplist(self):
         """ """
         
@@ -7366,6 +7429,7 @@ class MS2Feature(object):
             only_top  = True,
             group_by  = 'subclass',
         )
+    
     
     def _identities_str(self, ids, sum_str = False):
         """
@@ -7387,6 +7451,7 @@ class MS2Feature(object):
                 sorted(self.format_ms2id(i, sum_str = sum_str) for i in ids)
             )
         )
+    
     
     def format_ms2id(self, i, sum_str = False):
         """
@@ -7429,6 +7494,7 @@ class MS2Feature(object):
             adduct,
             error,
         )
+    
     
     def identity_summary(
             self,
@@ -7503,6 +7569,7 @@ class MS2Feature(object):
                     identities[key].append(var)
         
         return identities
+    
     
     def ms1_lookup(self):
         """ """
