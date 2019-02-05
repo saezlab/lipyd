@@ -7287,9 +7287,7 @@ class MS2Feature(object):
                                            # goes to the end
                         )
                             if i.chain_details else
-                        9999 # ones with no chains detected
-                             # or no chain details at all
-                             # go to the end
+                        9999 # ones with no chain details at all go to the end
                     )
                 )
         )
