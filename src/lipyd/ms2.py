@@ -200,7 +200,7 @@ ScanDetails = collections.namedtuple(
     'ScanDetails',
     ['sample_id', 'scan_id', 'source', 'deltart']
 )
-ChainIdentificationDetails.__new__.__defaults__ = (None, None, None, None)
+ScanDetails.__new__.__defaults__ = (None, None, None, None)
 
 
 PrecursorDetails = collections.namedtuple(
@@ -7254,16 +7254,17 @@ class MS2Feature(object):
     
     @staticmethod
     def identities_sort(ids):
-        """Sorts identities by score and deltart.
+        """
+        Sorts identities by score, deltart, and rank of chain fragments.
 
         Parameters
         ----------
-        ids :
-            
-
+        ids : list
+            List of ``MS2Identity`` objects.
+        
         Returns
         -------
-
+        Sorted list of ``MS2Identity`` objects.
         """
         
         return sorted(
@@ -7273,6 +7274,13 @@ class MS2Feature(object):
                     100 - i.score_pct,
                     # if we don't have scan details don't consider
                     abs(i.scan_details.deltart) if i.scan_details else 0,
+                    # if we don't have chain details don't consider
+                    # otherwise sort by lowest rank among all chain fragments
+                    (
+                        min(i.chain_details.rank)
+                            if i.chain_details and i.chain_details.rank else
+                        9999 # ones with no chains detected go to the end
+                    )
                 )
         )
     
@@ -7422,35 +7430,40 @@ class MS2Feature(object):
         )
     
     
-    def identities_str_all(self):
-        """ """
-        
-        return self.identities_str(
-            only_best = False,
-            only_top  = False,
-            group_by  = 'subspecies',
-        )
-    
-    
-    def identities_str_best_sum(self):
+    def identities_str_all(self, repr_level = 'subspecies'):
         """
-        Returns the identification with the highest score as string.
+        Returns all identifications as string.
         """
         
         return self.identities_str(
-            only_best = True,
-            only_top  = True,
-            group_by  = 'species',
+            only_best  = False,
+            only_top   = False,
+            group_by   = 'subspecies',
+            repr_level = repr_level,
         )
     
     
-    def identities_str_full_toplist(self):
+    def identities_str_best(self, repr_level = 'subspecies'):
+        """
+        Returns the identifications with the highest score as string.
+        """
+        
+        return self.identities_str(
+            only_best  = True,
+            only_top   = True,
+            group_by   = 'species',
+            repr_level = repr_level,
+        )
+    
+    
+    def identities_str_full_toplist(self, repr_level = 'subspecies'):
         """ """
         
         return self.identities_str(
-            only_best = False,
-            only_top  = True,
-            group_by  = 'subclass',
+            only_best  = False,
+            only_top   = True,
+            group_by   = 'subclass',
+            repr_level = repr_level,
         )
     
     
