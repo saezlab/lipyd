@@ -270,19 +270,20 @@ def combine_attrs(a1, a2):
     )
 
 def summary_str(hg, chainsum):
-    """Creates a summary string representation from the headgroup name and
+    """
+    Creates a summary string representation from the headgroup name and
     a summary Chain object.
 
     Parameters
     ----------
-    hg :
-        
-    chainsum :
-        
-
+    hg : lipyd.lipproc.Headgroup
+        ``Headgroup`` object.
+    chainsum : lipyd.lipproc.ChainSummary
+        ``ChainSummary`` object
+    
     Returns
     -------
-
+    String representation with sum of chain lengths and unsaturations.
     """
     
     subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
@@ -304,20 +305,22 @@ def summary_str(hg, chainsum):
 
 
 def full_str(hg, chains, iso = False):
-    """From a Headgroup and a tuple of Chain objects returns a
+    """
+    From a Headgroup and a tuple of Chain objects returns a
 
     Parameters
     ----------
-    hg :
-        
-    chains :
-        
+    hg : Headgroup
+        ``Headgroup`` object.
+    chains : tuple
+        Tuple of ``Chain`` objects.
     iso :
-         (Default value = False)
+        Include isomer information.
 
     Returns
     -------
-
+    String representation with information about chain lengths and
+    unsaturation, optionally E/Z isomerism.
     """
     
     subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
@@ -338,7 +341,8 @@ def full_str(hg, chains, iso = False):
     )
 
 def subclass_str(hg, chainsum = None):
-    """From Headgroup and summary Chain object creates a subclass level
+    """
+    From Headgroup and summary Chain object creates a subclass level
     headgroup string.
 
     Parameters

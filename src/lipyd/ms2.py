@@ -116,6 +116,7 @@ class MS2Identity(collections.namedtuple(
             precursor_details = precursor_details,
         )
     
+    
     def __str__(self):
         
         return (
@@ -124,17 +125,9 @@ class MS2Identity(collections.namedtuple(
             lipproc.summary_str(self.hg, self.chainsum)
         )
     
+    
     def full_str(self):
-        """Methods for .
-
-        Extended description of function.
-
-
-        Returns
-        -------
-        str
-
-
+        """
         """
         
         details = []
@@ -158,18 +151,30 @@ class MS2Identity(collections.namedtuple(
             ','.join(details),
         )
     
+    
+    def subspecies_str(self):
+        
+        return self.__str__()
+    
+    
+    def species_str(self):
+        
+        return lipproc.summary_str(self.hg, self.chainsum)
+    
+    
+    def subclass_str(self):
+        
+        return lipproc.subclass_str(self.hg, self.chainsum)
+    
+    
+    def class_str(self):
+        
+        return lipproc.class_str(self.hg, self.chainsum)
+    
+    
     def summary(self):
-        """Method .
-
-        Extended description of function.
-
-        Returns
-        -------
-        __str__
-            Description of return value
-        score_pct
-            Description of return value
-
+        """
+        Returns a tuple of string representation and score.
         """
         
         return self.__str__(), self.score_pct
@@ -7330,13 +7335,28 @@ class MS2Feature(object):
     
     
     def identities_group_by_subclass(self):
-        """ """
+        """
+        Groups the identities by lipid subclass e.g. `PE`, `PE-O`, 'Lyso-PE`,
+        etc.
+        
+        Returns
+        -------
+        Dictionary of sorted lists of identifications.
+        Keys are subclass names.
+        """
         
         return self.identities_group_by(by = 'subclass')
     
     
     def identities_group_by_class(self):
-        """ """
+        """
+        Groups the identities by lipid class e.g. `PE`, `PC`, etc.
+        
+        Returns
+        -------
+        Dictionary of sorted lists of identifications.
+        Keys are class names.
+        """
         
         return self.identities_group_by(by = 'class')
     
@@ -7345,9 +7365,16 @@ class MS2Feature(object):
             self,
             only_best = True,
             only_top = True,
-            group_by = 'subspecies'
+            group_by = 'subspecies',
+            repr_level = 'subspecies',
         ):
-        """only_best : bool
+        """
+        Creates a string to represent the MS2 level identification of the
+        feature.
+        
+        Parameters
+        ----------
+        only_best : bool
             Only the ones with highest score.
         only_top : bool
             Only the first one for each group (the one with highest score
@@ -7355,19 +7382,13 @@ class MS2Feature(object):
         group_by : str
             Passed to ``identities_group_by``. Group by lipid identification
             level ``subspecies``, ``species``, ``subclass`` or ``class``.
-
-        Parameters
-        ----------
-        only_best :
-             (Default value = True)
-        only_top :
-             (Default value = True)
-        group_by :
-             (Default value = 'subspecies')
-
+        repr_level : str
+            The level of representation: if ``subspecies`` aliphatic chain
+            information will be shown if available.
+        
         Returns
         -------
-
+        String of identifications separated by semicolon.
         """
         
         identities = self.identities_group_by(by = group_by)
@@ -7387,7 +7408,7 @@ class MS2Feature(object):
             (
                 self._identities_str(
                     (ids[0],) if only_top else ids,
-                    sum_str = group_by != 'subspecies'
+                    repr_level = repr_level,
                 )
                 if ids else ''
             )
@@ -7395,7 +7416,7 @@ class MS2Feature(object):
             if (
                 not only_best or (
                     ids[0].score_pct > 0 and
-                    ids[0].score_pct == max_score
+                    ids[0].score_pct >= max_score
                 )
             )
         )
@@ -7412,7 +7433,9 @@ class MS2Feature(object):
     
     
     def identities_str_best_sum(self):
-        """ """
+        """
+        Returns the identification with the highest score as string.
+        """
         
         return self.identities_str(
             only_best = True,
@@ -7431,41 +7454,45 @@ class MS2Feature(object):
         )
     
     
-    def _identities_str(self, ids, sum_str = False):
+    def _identities_str(self, ids, repr_level = 'subspecies'):
         """
-
         Parameters
         ----------
-        ids :
-            
-        sum_str :
-             (Default value = False)
+        ids : list
+            List of identification results (``lipyd.ms2.MS2Identity``
+            instances).
+        repr_level : str
+            Level of representation: `subspecies` or `species`.
 
         Returns
         -------
-
+        String of list of identities separated by semicolon.
         """
         
         return (
             ';'.join(
-                sorted(self.format_ms2id(i, sum_str = sum_str) for i in ids)
+                sorted(
+                    self.format_ms2id(i, repr_level = repr_level)
+                    for i in ids
+                )
             )
         )
     
     
-    def format_ms2id(self, i, sum_str = False):
+    def format_ms2id(self, i, repr_level = 'subspecies'):
         """
 
         Parameters
         ----------
-        i :
-            
-        sum_str :
-             (Default value = False)
+        i : lipyd.ms2.MS2Identity
+            A single identification result object.
+        repr_level : str
+            Level of representation: `subspecies` or `species`.
 
         Returns
         -------
-
+        String representation of the identification object with details
+        about the score, delta RT, sample and scan.
         """
         # TODO: more generic handling of sample IDs!!!
         
@@ -7481,11 +7508,7 @@ class MS2Feature(object):
         )
         
         return '%s[score=%u,deltart=%.02f,fraction=%s%u,scan=%u%s%s]' % (
-            (
-                lipproc.summary_str(i.hg, i.chainsum)
-                if sum_str and i.chainsum else
-                i.__str__()
-            ),
+            getattr(i, '%s_str' % repr_level)(),
             i.score_pct,
             i.scan_details.deltart,
             i.scan_details.sample_id[0],

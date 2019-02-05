@@ -704,8 +704,8 @@ class FattyFragmentFactory(object):
             ), # 283.2643 Hsu 2016 a6
         'FA_mCOO':
             ChainFragParam(
-                plus = 'O2',
-                minus = 'COOH',
+                plus = '',
+                minus = 'CH',
                 charge = -1,
                 name = 'FA%s-COO',
                 constraints = (
