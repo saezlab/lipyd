@@ -7277,9 +7277,19 @@ class MS2Feature(object):
                     # if we don't have chain details don't consider
                     # otherwise sort by lowest rank among all chain fragments
                     (
-                        min(i.chain_details.rank)
-                            if i.chain_details and i.chain_details.rank else
-                        9999 # ones with no chains detected go to the end
+                        min(
+                            (
+                                # removing None's
+                                r for r in i.chain_details.rank
+                                if r is not None
+                            ),
+                            default = 9999 # if all chain fragments missing
+                                           # goes to the end
+                        )
+                            if i.chain_details else
+                        9999 # ones with no chains detected
+                             # or no chain details at all
+                             # go to the end
                     )
                 )
         )
