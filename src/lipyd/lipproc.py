@@ -552,14 +552,14 @@ def cu_str(c, u):
 
     Parameters
     ----------
-    c :
-        
-    u :
-        
+    c : int
+        Carbon count in aliphatic chain.
+    u : int
+        Unsaturations in aliphatic chain.
 
     Returns
     -------
-
+    String representation of aliphatic chain ``c:u``.
     """
     
     return '%u:%u' % (c, u)
@@ -569,12 +569,13 @@ def charge_str(charge):
 
     Parameters
     ----------
-    charge :
-        
+    charge : int
+        Electric charge.
 
     Returns
     -------
-
+    String representation of electric charge sign, either
+    ``-`` or ``+`` or empty string.
     """
     
     return (
@@ -582,6 +583,66 @@ def charge_str(charge):
         '-' if charge < 0 else
         '+'
     )
+
+
+def replace_sph_chainattr(chainattr, new):
+    
+    return ChainAttr(
+        sph = new if chainattr.sph else '',
+        ether = chainattr.ether,
+        oh = chainattr.oh
+    )
+
+
+def replace_sph_chainattrs(chainattrs, new):
+    
+    return tuple(
+        replace_sph_chainattr(chainattr, new)
+        for chainattr in chainattrs
+    )
+
+
+def replace_sph_chain(chain, new):
+    
+    attr_method = (
+        replace_sph_chainattrs
+            if isinstance(chain, ChainSummary) else
+        replace_sph_chainattr
+    )
+    
+    return chain.__class__(
+        c = chain.c,
+        u = chain.u,
+        attr = attr_method(chain.attr, new),
+        iso = chain.iso,
+    )
+
+
+def replace_sph_chains(chains, new):
+    
+    return tuple(replace_sph_chain(chain, new) for chain in chains)
+
+
+def replace_sph(obj, new):
+    
+    if isinstance(obj, (Chain, ChainSummary)):
+        
+        return replace_sph_chain(obj, new)
+        
+    elif isinstance(obj, ChainAttr):
+        
+        return replace_sph_chainattr(obj, new)
+        
+    elif isinstance(obj, tuple):
+        
+        t = tuple(replace_sph(o, new) for o in obj)
+        # sadly tuple can not be created with *args
+        return obj.__class__(*t) if obj.__class__.__name__ != 'tuple' else t
+        
+    else:
+        
+        return obj
+
 
 # regex captures the summary carbon count
 rechainsum = re.compile(
