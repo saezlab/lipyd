@@ -33,12 +33,13 @@ FAMILIES = {
     'GLGPL': {
         'MAG', 'DAG', 'TAG',
         'PC', 'PE', 'PE', 'PG', 'BMP',
-        'PA', 'PI', 'PIP', 'PIP2', 'PIP3'
-    }
+        'PA', 'PI', 'PIP', 'PIP2', 'PIP3',
+    },
 }
+PRE_SUBCLASS = {'Hex', 'Hex2', 'SHex', 'SHex2', 'Lyso'}
+PRE_CHAIN_ETHER = {'O', 'P'}
+PRE_CHAIN_SPHINGO = {'d', 't', 'k', 'DH'}
 
-
-SUBCLS_PRE = {'Hex', 'Hex2', 'SHex', 'SHex2', 'Lyso'}
 
 ChainAttr = collections.namedtuple(
     'ChainAttr',
@@ -53,7 +54,8 @@ class Chain(collections.namedtuple(
         'ChainBase',
         ['c', 'u', 'typ', 'attr', 'iso']
     )):
-    """ """
+    
+    
     
     def __new__(cls, c, u, typ = 'FA', attr = ChainAttr(), iso = ()):
         
@@ -64,6 +66,7 @@ class Chain(collections.namedtuple(
         return super(Chain, cls).__new__(
             cls, c, u, typ = typ, attr = attr, iso = iso
         )
+    
     
     def __str__(self, iso = False):
         
@@ -82,10 +85,11 @@ class Chain(collections.namedtuple(
             '-%s' % '-'.join(self.attr.oh) if self.attr.oh else ''
         )
     
+    
     def isomer_str(self):
-        """ """
         
         return self.__str__(iso = True)
+    
     
     def __add__(self, other):
         
@@ -93,7 +97,7 @@ class Chain(collections.namedtuple(
 
 
 class ChainSummary(Chain):
-    """ """
+    
     
     def __new__(cls, c, u, typ = (), attr = (), iso = None):
         
@@ -116,6 +120,7 @@ class ChainSummary(Chain):
             cls, c, u, typ = typ, attr = attr, iso = None
         )
     
+    
     def __str__(self):
         
         return '%s%s%u:%u%s' % (
@@ -132,6 +137,7 @@ class ChainSummary(Chain):
             '-%s' % '-'.join('-'.join(a.oh) for a in self.attr if a.oh)
                 if any(a.oh for a in self.attr) else ''
         )
+    
     
     def __len__(self):
         
@@ -157,21 +163,24 @@ class LipidRecord(collections.namedtuple(
         'LipidRecordBase',
         ['lab', 'hg', 'chainsum', 'chains']
     )):
-    """ """
+    
     
     def __new__(cls, lab, hg, chainsum, chains):
         
         return super(LipidRecord, cls).__new__(cls, lab, hg, chainsum, chains)
+    
     
     def full_str(self):
         """ """
         
         return full_str(self.hg, self.chains, iso = False)
     
+    
     def summary_str(self):
         """ """
         
         return summary_str(self.hg, self.chainsum)
+    
     
     def subclass_str(self):
         """ """
@@ -180,28 +189,37 @@ class LipidRecord(collections.namedtuple(
 
 
 def empty_chain():
-    """Returns an empty Chain object which might serve as a dummy object."""
+    """
+    Returns an empty Chain object which might serve as a dummy object.
+    """
     
     return Chain(c = 0, u = 0, attr = ChainAttr())
 
 
 def empty_chainsum():
-    """Returns an empty ChainSummary object."""
+    """
+    Returns an empty ChainSummary object.
+    
+    Returns
+    -------
+    ``ChainSummary`` object.
+    """
     
     return ChainSummary(c = 0, u = 0, attr = (), typ = ())
 
 
 def str2hg(hgstr):
-    """From a headgroup string representation creates a Headgroup object.
+    """
+    From a headgroup string representation creates a Headgroup object.
 
     Parameters
     ----------
-    hgstr :
-        
+    hgstr : str
+        String representation of a lipid class and optionally subclass.
 
     Returns
     -------
-
+    ``Headgroup`` object.
     """
     
     pieces = hgstr.split('-')
@@ -209,17 +227,90 @@ def str2hg(hgstr):
     return Headgroup(main = pieces[-1], sub = tuple(pieces[:-1]))
 
 
+def str2chain(chainstr, iso = False):
+    """
+    Converts a string representation of a chain to ``Chain`` object.
+    """
+    
+    m = resinglechain.search(chainstr)
+    
+    if not m:
+        
+        raise ValueError(
+            'Could not evaluate string `%s` as chain.' % chainstr
+        )
+    
+    m = m.groups()
+    
+    ether = m[0] in PRE_CHAIN_ETHER
+    sph = m[0] if m[0] in PRE_CHAIN_SPHINGO else ''
+    
+    return Chain(
+        c = int(m[1]),
+        u = int(m[2]),
+        attr = ChainAttr(
+            sph = sph,
+            ether = ether,
+            oh = (m[4],) if m[4] else (),
+        ),
+        typ = 'FAL' if ether else 'Sph' if sph else 'FA',
+        iso = tuple(m[3].split(',')) if m[3] and iso else (),
+    )
+
+
+def str2chains(chainsstr, iso = False):
+    """
+    Converts a string representation of one or more chains into a tuple
+    of ``Chain`` objects.
+    """
+    
+    return tuple(
+        str2chain(chainstr, iso = iso)
+        for chainstr in rechainsep.split(chainsstr)
+    )
+
+
+def str2lipid(lipidstr, iso = False):
+    """
+    Converts a string representation of a lipid into ``Headgroup`` and
+    ``Chain`` objects. This method serves for conversion of string
+    representations used in this module. To process database name
+    varieties use the ``lipyd.name.LipidNameProcessor`` class.
+    
+    Parameters
+    ----------
+    lipidstr : str
+        String representation of a lipid
+    """
+    
+    pieces = lipidstr.split('(', maxsplit = 1)
+    hg = str2hg(pieces[0])
+    
+    if len(pieces) > 1:
+        
+        chains = str2chains(pieces[1], iso = iso)
+        chainsum = sum_chains(chains)
+        
+    else:
+        
+        chains = ()
+        chainsum = empty_chainsum()
+    
+    return hg, chainsum, chains
+
+
 def sum_chains(chains):
-    """From a list of chains creates a summary Chain object.
+    """
+    From a list of chains creates a summary Chain object.
 
     Parameters
     ----------
-    chains :
-        
+    chains : list,tuple
+        List or tuple of ``Chain`` objects.
 
     Returns
     -------
-
+    ``ChainSummary`` object.
     """
     
     return empty_chainsum() if not chains else (
@@ -233,34 +324,36 @@ def sum_chains(chains):
 
 
 def collapse_attrs(chains):
-    """Combine the attributes of arbitrary number of chains.
+    """
+    Combines the attributes of arbitrary number of chains.
 
     Parameters
     ----------
-    chains :
-        
+    chains : list,tuple
+        List or tuple of ``Chain`` objects.
 
     Returns
     -------
-
+    ``ChainAttr`` object with attributes combined.
     """
     
     return functools.reduce(combine_attrs, (c.attr for c in chains))
 
 
 def combine_attrs(a1, a2):
-    """Combines the attributes of 2 chains.
+    """
+    Combines the attributes of 2 chains.
 
     Parameters
     ----------
-    a1 :
-        
-    a2 :
-        
+    a1 : Chain
+        ``Chain`` object.
+    a2 : Chain
+        ``Chain`` object.
 
     Returns
     -------
-
+    ``ChainAttr`` object.
     """
     
     return ChainAttr(
@@ -268,6 +361,7 @@ def combine_attrs(a1, a2):
         ether = a1.ether or a2.ether,
         oh = tuple(itertools.chain(a1.oh, a2.oh))
     )
+
 
 def summary_str(hg, chainsum):
     """
@@ -340,6 +434,7 @@ def full_str(hg, chains, iso = False):
         ''
     )
 
+
 def subclass_str(hg, chainsum = None):
     """
     From Headgroup and summary Chain object creates a subclass level
@@ -347,14 +442,14 @@ def subclass_str(hg, chainsum = None):
 
     Parameters
     ----------
-    hg :
-        
+    hg : Headgroup
+        ``Headgroup`` object.
     chainsum :
-         (Default value = None)
+        A ``ChainSum`` object (default value = ``None``).
 
     Returns
     -------
-
+    The string representation of the subclass of the headgroup.
     """
     
     subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
@@ -376,20 +471,24 @@ def subclass_str(hg, chainsum = None):
         hydroxy
     )
 
+
 def class_str(hg):
-    """From Headgroup returns the main class as string.
+    """
+    From Headgroup returns the main class as string.
 
     Parameters
     ----------
-    hg :
-        
+    hg : Headgroup
+        ``Headgroup`` object.
 
     Returns
     -------
-
+    The string representation of the lipid class of the headgroup
+    (``main`` attribute).
     """
     
     return hg.main
+
 
 def get_attributes(hg, chainsum = None):
     """Processes a Headgroup and a summary Chain object and returns the
@@ -412,9 +511,9 @@ def get_attributes(hg, chainsum = None):
     hydroxy = '-'.join('-'.join(c.oh) for c in chainsum.attr)
     hydroxy = '-%s' % hydroxy if hydroxy else ''
     
-    subcls_pre   = '-'.join(i for i in hg.sub if i in SUBCLS_PRE)
+    subcls_pre   = '-'.join(i for i in hg.sub if i in PRE_SUBCLASS)
     subcls_pre   = '%s-' % subcls_pre if subcls_pre else ''
-    subcls_post  = '-'.join(i for i in hg.sub if i not in SUBCLS_PRE)
+    subcls_post  = '-'.join(i for i in hg.sub if i not in PRE_SUBCLASS)
     subcls_post  = '-%s' % subcls_post if subcls_post else ''
     
     sphingo_prefix = ''.join(a.sph for a in chainsum.attr)
@@ -508,33 +607,26 @@ def match_constraint(rec, constr):
 
 
 def match_constraints(rec, constraints):
-    """Matches all fragment constraints in the iterable `constraints`
-    against all chains in MS1 record `rec`.
+    """
+    Matches all fragment constraints in the iterable ``constraints``
+    against all chains in MS1 record ``rec``.
     
     Returns a boolean (wether the fragment can possibly origin from the
     molecular species in the record) and a tuple of chain positions which
     can be the source of the fragment if the fragment is from an aliphatic
     chain moiety.
     
-    Args
-    ----
-
     Parameters
     ----------
-    LipidRecord :
+    rec : LipidRecord
         rec:
         An MS1 database record object.
-    iterable :
-        constraints:
-        A number of `fragment.FragConstraint` objects.
-    rec :
-        
-    constraints :
-        
+    constraints : iterable
+        A number of ``lipyd.fragment.FragConstraint`` objects.
 
     Returns
     -------
-
+    
     """
     
     match = False
@@ -547,9 +639,9 @@ def match_constraints(rec, constraints):
     
     return match, chains
 
+
 def cu_str(c, u):
     """
-
     Parameters
     ----------
     c : int
@@ -563,6 +655,7 @@ def cu_str(c, u):
     """
     
     return '%u:%u' % (c, u)
+
 
 def charge_str(charge):
     """
@@ -682,17 +775,31 @@ def replace_attrs(obj, sph = None, ether = None, oh = None, i = 0):
         return obj
 
 
-# regex captures the summary carbon count
+# regex captures a single chain carbon count
+resinglechain = re.compile(
+    # prefix (d, t, k, DH, O-, P-)
+    r'([POdtDHk]{0,2})-?'
+    # cc and unsat
+    r'([0-9]{1,2}):([0-9]{1,2})'
+    # isomeric information
+    r'(?:\(?([0-9EZ,]{2,})\)?)?'
+    # optional OH
+    r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
+)
+
+# captures chain summary
 rechainsum = re.compile(
-    r'\('
-    # prefix (d, t , DH, O-, P-)
-    r'([POdtDH]{0,2})-?'
+    r'\(?'
+    # prefix (d, t, k, DH, O-, P-)
+    r'([POdtDHk]{0,2})-?'
     # cc and unsat
     r'([0-9]{1,2}):([0-9]{1,2})'
     # optional OH
     r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
-    r'\)'
+    r'\)?'
 )
+
+rechainsep = re.compile('[/_]')
 
 # captures 1-4 aliphatic chains data
 rechain = re.compile(
@@ -725,28 +832,28 @@ rechainiso = re.compile(
     r'\(?'
     # 1
     r'((?:[0-9]+-)?'
-    r'[POdtDH]{0,2})-?'
+    r'[POdtDHk]{0,2})-?'
     r'([0-9]{1,2}):([0-9]{1,2})'
     r'(?:\(?([0-9EZ,]{2,})\)?)?'
     r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
     r'[/_]?'
     # 2
     r'((?:[0-9]+-)?'
-    r'[POdtDH]{0,2})-?'
+    r'[POdtDHk]{0,2})-?'
     r'([0-9]{0,2}):?([0-9]{0,2})'
     r'(?:\(?([0-9EZ,]{2,})\))?'
     r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
     r'[/_]?'
     # 3
     r'((?:[0-9]+-)?'
-    r'[POdtDH]{0,2})-?'
+    r'[POdtDHk]{0,2})-?'
     r'([0-9]{0,2}):?([0-9]{0,2})'
     r'(?:\(?([0-9EZ,]{2,})\))?'
     r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
     r'[/_]?'
     # 4
     r'((?:[0-9]+-)?'
-    r'[POdtDH]{0,2})-?'
+    r'[POdtDHk]{0,2})-?'
     r'([0-9]{0,2}):?([0-9]{0,2})'
     r'(?:\(?([0-9EZ,]*)\)?)?'
     r'(?:[-\(]([0-9]{0,2}OH)\)?)?'
