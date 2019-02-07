@@ -585,57 +585,95 @@ def charge_str(charge):
     )
 
 
-def replace_sph_chainattr(chainattr, new):
+def replace_attrs_chainattr(
+        chainattr,
+        sph = None,
+        ether = None,
+        oh = None,
+        i = 0,
+    ):
     
     return ChainAttr(
-        sph = new if chainattr.sph else '',
-        ether = chainattr.ether,
-        oh = chainattr.oh
+        sph = '' if not chainattr.sph or sph is None else sph,
+        ether = (
+            chainattr.ether
+                if ether is None or i not in ether else
+            ether[i]
+        ),
+        oh = (
+            chainattr.oh
+                if oh is None or i not in oh else
+            oh[i]
+        ),
     )
 
 
-def replace_sph_chainattrs(chainattrs, new):
+def replace_attrs_chainattrs(
+        chainattrs,
+        sph = None,
+        ether = None,
+        oh = None,
+        i = 0,
+    ):
     
     return tuple(
-        replace_sph_chainattr(chainattr, new)
-        for chainattr in chainattrs
+        replace_attrs_chainattr(chainattr, sph, ether, oh, i = i)
+        for i, chainattr in enumerate(chainattrs)
     )
 
 
-def replace_sph_chain(chain, new):
+def replace_attrs_chain(
+        chain,
+        sph = None,
+        ether = None,
+        oh = None,
+        i = 0,
+    ):
     
     attr_method = (
-        replace_sph_chainattrs
+        replace_attrs_chainattrs
             if isinstance(chain, ChainSummary) else
-        replace_sph_chainattr
+        replace_attrs_chainattr
     )
     
     return chain.__class__(
         c = chain.c,
         u = chain.u,
-        attr = attr_method(chain.attr, new),
+        attr = attr_method(chain.attr, sph, ether, oh, i = i),
         iso = chain.iso,
     )
 
 
-def replace_sph_chains(chains, new):
+def replace_attrs_chains(
+        chains,
+        sph = None,
+        ether = None,
+        oh = None,
+        i = 0,
+    ):
     
-    return tuple(replace_sph_chain(chain, new) for chain in chains)
+    return tuple(
+        replace_attrs_chain(chain, sph, ether, oh, i = i)
+        for i, chain in enumerate(chains)
+    )
 
 
-def replace_sph(obj, new):
+def replace_attrs(obj, sph = None, ether = None, oh = None, i = 0):
     
     if isinstance(obj, (Chain, ChainSummary)):
         
-        return replace_sph_chain(obj, new)
+        return replace_attrs_chain(obj, sph, ether, oh, i = i)
         
     elif isinstance(obj, ChainAttr):
         
-        return replace_sph_chainattr(obj, new)
+        return replace_attrs_chainattr(obj, sph, ether, oh, i = i)
         
     elif isinstance(obj, tuple):
         
-        t = tuple(replace_sph(o, new) for o in obj)
+        t = tuple(
+            replace_attrs(o, sph, ether, oh, i = i)
+            for i, o in enumerate(obj)
+        )
         # sadly tuple can not be created with *args
         return obj.__class__(*t) if obj.__class__.__name__ != 'tuple' else t
         

@@ -112,10 +112,13 @@ class LipidNameProcessor(object):
                 
                 l = l.strip().split('\t')
                 
+                chains = tuple(l[3].split(';')) if l[3] else ()
+                
                 lip = (
                     tuple(l[1].split(';')) if l[1] else (),
                     l[0],
-                    tuple(l[2].split(';')) if l[2] else ()
+                    tuple(l[2].split(';')) if l[2] else (),
+                    chains,
                 )
                 
                 result[lip] = {
@@ -132,7 +135,7 @@ class LipidNameProcessor(object):
                         if l[8] != 'ND' and self.adducts_constraints else
                             None
                         ),
-                    'chains': tuple(l[3].split(';')) if l[3] else ()
+                    'chains': chains,
                 }
         
         self.lipnames = result
