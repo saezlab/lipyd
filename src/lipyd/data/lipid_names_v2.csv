@@ -30,16 +30,24 @@ PI	Lyso		FA	Lysophosphatidylinositol		PI;/0:0;!PIP;!Manp;!PIM	ND	ND
 PI			FA;FA	Phosphatidylinositol	hosphatidylinositol	PI;!/0:0;!PIP;!Manp;!PIM	ND	ND
 BMP			FA;FA	lysobisphosphatidic acid, (LBPA) also termed bis(monoacylglyceryl)phosphate (	Bismonoacylglycerolphosphate	2-acyl;glycero;phosphate	ND	ND
 VE				Vitamin E=tocopherol		toco	ND	ND
-VA				Vitamin A=retinol, retinoic acid		retin;!hlo	ND	ND
+VA				Vitamin A=retinol, retinoic acid	Retinol	retin;!hlo	ND	ND
 VD				Vitamin D		vitamin D	ND	ND
 DAG			FAL;FA	Monoalkylmonoacylglycerol	onoalkyl;onoacyl;glycerol		ND	ND
 DAG			FA;FA	Diacylglycerol	Diacylglycerol	DG	[M+NH4]+	ND
 DAG	Hex		FA;FA	Monohexosyldiacylglycerol	onohexosyl;diacyl;glycerol		ND	ND
 DAG	Hex2		FA;FA	Dihexosyldiacylglycerol	Dihexosyl;diacyl;glycerol		ND	ND
+Cer	Hex	DH	Sph;FA	Hexosyl ceramide	Hexosyl ceramide;!ulfo;(DH		ND	ND
 Cer	Hex	d	Sph;FA	Hexosyl ceramide	Hexosyl ceramide;!ulfo;(d;!(t	GlcCer;(d;!(t|GalCer;(d;!(t	ND	ND
 Cer	Hex	t	Sph;FA	Hexosyl ceramide	Hexosyl ceramide;!ulfo;(t;!(d	GlcCer;(t;!(d|GalCer;(t;!(d	ND	ND
-Cer	SHex		Sph;FA	Sulfohexosyl ceramide	Sulfohexosyl ceramide		ND	ND
-Cer	Hex2		Sph;FA	Dihexosyl ceramide	Dihexosyl ceramide	LacCer|Lactosylceramide	ND	ND
+Cer	SHex	d	Sph;FA	Sulfohexosyl ceramide;(d	Sulfohexosyl ceramide		ND	ND
+Cer	Hex2	d	Sph;FA	Dihexosyl ceramide;(d	Dihexosyl ceramide	LacCer|Lactosylceramide	ND	ND
+Cer	SHex	t	Sph;FA	Sulfohexosyl ceramide;(t	Sulfohexosyl ceramide		ND	ND
+Cer	Hex2	t	Sph;FA	Dihexosyl ceramide;(t	Dihexosyl ceramide	LacCer|Lactosylceramide	ND	ND
+Cer	SHex	DH	Sph;FA	Sulfohexosyl ceramide;(DH	Sulfohexosyl ceramide		ND	ND
+Cer	Hex2	DH	Sph;FA	Dihexosyl ceramide;(DH	Dihexosyl ceramide	LacCer|Lactosylceramide	ND	ND
+Cer	SHex2	d	Sph;FA	Sulfodihexosyl ceramide	ulfodihexosyl;eramide;(d		ND	ND
+Cer	SHex2	t	Sph;FA	Sulfodihexosyl ceramide	ulfodihexosyl;eramide;(t		ND	ND
+Cer	SHex2	DH	Sph;FA	Sulfodihexosyl ceramide	ulfodihexosyl;eramide;(DH		ND	ND
 Sph		k	Sph	Ketosphingosine		eto;phingos	ND	ND
 Sph			Sph	Shingosine		phinganine;!manno;!inos|phingenine;!manno;!inos|phingosine;!manno;!inos|afingol;!manno;!inos	ND	ND
 PGP			FA;FA	Phosphatidylglycerophosphate	Phosphatidylglycerophosphate		ND	ND
@@ -50,3 +58,5 @@ FAHFA			FA;FA	Fatty acyl-OH-fatty acyl ester		FAHFA	ND	ND
 FA			FA	Fatty acid			ND	ND
 WE			FAL;FA	Wax ester		WE	ND	ND
 SE			FA	Sterol ester	Sterol ester		ND	ND
+GM3			Sph;FA	Gangliosid GM3	GM3		ND	ND
+GM4			Sph;FA	Gangliosid GM4	GM4		ND	ND
