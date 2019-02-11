@@ -2016,7 +2016,8 @@ class FeatureIdx(FeatureBase):
             by = None,
             origin = None,
         ):
-        """Applies custom sort to the object if ``by`` is an index array.
+        """
+        Applies custom sort to the object if ``by`` is an index array.
         If ``by`` is ``None``, it sorts by the original indices, which
         means the restoration of the original order.
         It calls ``sort_all`` by the same argsort on all registered clients
@@ -2275,17 +2276,18 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
     _set_attrs = sampleattrs.SampleSorter._set_attrs
     
     def get_sample_attrs(self, i):
-        """Returns the sample attributes (dict of metadata) of the ``i``th
+        """
+        Returns the sample attributes (dict of metadata) of the ``i``th
         sample in the set.
 
         Parameters
         ----------
-        i :
-            
+        i : int
+            Sample index.
 
         Returns
         -------
-
+        ``SampleAttrs`` object.
         """
         
         return self.attrs[i]
@@ -2295,12 +2297,12 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
 
         Parameters
         ----------
-        i :
-            
+        i : int
+            Sample index.
 
         Returns
         -------
-
+        ``Sample`` object.
         """
         
         var = {}
@@ -2321,15 +2323,14 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
     
     def _get_sample_id(self, i):
         """
-
         Parameters
         ----------
-        i :
-            
-
+        i : int
+            Sample index.
+        
         Returns
         -------
-
+        Identifier of a sample.
         """
         
         if callable(self.sample_ids):
@@ -2346,17 +2347,17 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         )
     
     def collect_ms2(self, attrs = None):
-        """Collects the MS2 resources for each sample a similar way as the same
+        """
+        Collects the MS2 resources for each sample a similar way as the same
         method does in ``Sample``.
-
+        
         Parameters
         ----------
-        attrs :
-             (Default value = None)
-
+        attrs : SampleAttrs
+        
         Returns
         -------
-
+        MS2 resource.
         """
         
         ms2_source = {}
@@ -2390,18 +2391,15 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         return ms2_source
     
     def set_ms2_sources(self, attrs = None):
-        """Collects the MS2 scans for all samples.
+        """
+        Collects the MS2 scans for all samples.
         
         The collected resources will be in the ``ms2_source`` attribute.
-
+        
         Parameters
         ----------
         attrs :
              (Default value = None)
-
-        Returns
-        -------
-
         """
         
         self.ms2_source = self.collect_ms2(attrs = attrs)
@@ -2436,10 +2434,6 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         min_max : str
             Either `min` or `max`; look at the lowest or the highest sample
             in the peak.
-        
-        Returns
-        -------
-        None
         
         """
         

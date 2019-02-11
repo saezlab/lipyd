@@ -170,17 +170,34 @@ class LipidRecord(collections.namedtuple(
         return super(LipidRecord, cls).__new__(cls, lab, hg, chainsum, chains)
     
     
-    def full_str(self):
-        """ """
+    def subspecies_str(self):
+        """
+        Returns a string representation of the lipid at subspecies level,
+        i.e. including chain details if available.
+        If no chains available the total carbon count and unsaturation
+        will be shown.
+        """
         
-        return full_str(self.hg, self.chains, iso = False)
+        return full_str(
+            self.hg,
+            self.chains if self.chains else self.chainsum,
+            iso = False
+        )
+    
+    # synonym for old name
+    full_str = subspecies_str
     
     
-    def summary_str(self):
-        """ """
+    def species_str(self):
+        """
+        Returns a string representation of the lipid at species level,
+        i.e. showing the total carbon count and unsaturation.
+        """
         
         return summary_str(self.hg, self.chainsum)
     
+    # synonym for old name
+    summary_str = species_str
     
     def subclass_str(self):
         """ """
@@ -363,7 +380,7 @@ def combine_attrs(a1, a2):
     )
 
 
-def summary_str(hg, chainsum):
+def species_str(hg, chainsum):
     """
     Creates a summary string representation from the headgroup name and
     a summary Chain object.
@@ -384,6 +401,10 @@ def summary_str(hg, chainsum):
         get_attributes(hg, chainsum)
     )
     
+    if not chainsum or chainsum.c == 0:
+        
+        return subclass_str(hg, chainsum = chainsum)
+    
     return '%s%s%s%s' % (
         # subclass attributes like *PE*-Cer, *Lyso*-PC
         subcls_pre,
@@ -397,8 +418,11 @@ def summary_str(hg, chainsum):
         ''
     )
 
+# synonym
+summary_str = species_str
 
-def full_str(hg, chains, iso = False):
+
+def subspecies_str(hg, chains, iso = False):
     """
     From a Headgroup and a tuple of Chain objects returns a
 
@@ -417,6 +441,10 @@ def full_str(hg, chains, iso = False):
     unsaturation, optionally E/Z isomerism.
     """
     
+    if isinstance(chains, ChainSummary):
+        
+        return summary_str(hg, chains)
+    
     subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
         get_attributes(hg, sum_chains(chains))
     )
@@ -433,6 +461,9 @@ def full_str(hg, chains, iso = False):
             if chains else
         ''
     )
+
+# synonym
+full_str = subspecies_str
 
 
 def subclass_str(hg, chainsum = None):
@@ -717,6 +748,7 @@ def replace_attrs_chainattrs(
 
 def replace_attrs_chain(
         chain,
+        typ = None,
         sph = None,
         ether = None,
         oh = None,
@@ -732,6 +764,7 @@ def replace_attrs_chain(
     return chain.__class__(
         c = chain.c,
         u = chain.u,
+        typ = typ or chain.typ,
         attr = attr_method(chain.attr, sph, ether, oh, i = i),
         iso = chain.iso,
     )
@@ -739,6 +772,7 @@ def replace_attrs_chain(
 
 def replace_attrs_chains(
         chains,
+        typ = None,
         sph = None,
         ether = None,
         oh = None,
@@ -746,25 +780,55 @@ def replace_attrs_chains(
     ):
     
     return tuple(
-        replace_attrs_chain(chain, sph, ether, oh, i = i)
+        replace_attrs_chain(
+            chain = chain,
+            typ = typ,
+            sph = sph,
+            ether = ether,
+            oh = oh,
+            i = i,
+        )
         for i, chain in enumerate(chains)
     )
 
 
-def replace_attrs(obj, sph = None, ether = None, oh = None, i = 0):
+def replace_attrs(
+        obj,
+        typ = None,
+        sph = None,
+        ether = None,
+        oh = None,
+        i = 0,
+    ):
     
     if isinstance(obj, (Chain, ChainSummary)):
         
-        return replace_attrs_chain(obj, sph, ether, oh, i = i)
+        return replace_attrs_chain(
+            chain = obj,
+            typ = typ,
+            sph = sph,
+            ether = ether,
+            oh = oh,
+            i = i
+        )
         
     elif isinstance(obj, ChainAttr):
         
-        return replace_attrs_chainattr(obj, sph, ether, oh, i = i)
+        return replace_attrs_chainattr(
+            obj, sph = sph, ether = ether, oh = oh, i = i,
+        )
         
     elif isinstance(obj, tuple):
         
         t = tuple(
-            replace_attrs(o, sph, ether, oh, i = i)
+            replace_attrs(
+                obj = o,
+                typ = typ,
+                sph = sph,
+                ether = ether,
+                oh = oh,
+                i = i,
+            )
             for i, o in enumerate(obj)
         )
         # sadly tuple can not be created with *args
