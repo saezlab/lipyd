@@ -537,24 +537,27 @@ def class_str(hg):
 
 
 def get_attributes(hg, chainsum = None):
-    """Processes a Headgroup and a summary Chain object and returns the
+    """
+    Processes a Headgroup and a summary Chain object and returns the
     name pre- and postfix string elements.
 
     Parameters
     ----------
-    hg :
-        
-    chainsum :
-         (Default value = None)
+    hg : Headgroup
+        ``Headgroup`` object.
+    chainsum : ChainSummary
+        ``ChainSummary`` object.
 
     Returns
     -------
-
+    Tuple of attributes: subclass prefix (e.g. Lyso-), sphingoid base
+    type (e.g. d, t, DH, k), ether linkage (True or False),
+    subclass postfix (e.g. -Hex, -PE) and hydroxyl postfix (e.g. -2OH).
     """
     
     chainsum = chainsum or empty_chainsum()
     
-    hydroxy = '-'.join('-'.join(c.oh) for c in chainsum.attr)
+    hydroxy = '-'.join(oh for c in chainsum.attr for oh in c.oh)
     hydroxy = '-%s' % hydroxy if hydroxy else ''
     
     subcls_pre   = '-'.join(i for i in hg.sub if i in PRE_SUBCLASS)
