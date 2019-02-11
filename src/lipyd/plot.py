@@ -1828,28 +1828,12 @@ class SpectrumPlot(PlotBase):
                     )
         
         for mz, intens, annot in annot_list:
-            """
-            str_counter = 0
-            #xdisplay, ydisplay = self.ax.transData.transform_point((mz, intens))
-            self.ax.annotate('{} {:.2f} {}'.format(vertex_number, mz, annot),
-                (mz, intens),
-                xycoords='data',
-                textcoords='data',           # 'offset points',
-                xytext=(annot_x, annot_y),  #annot_x, annot_y
-                bbox=bbox, arrowprops=arrowprops,
-                fontproperties = self.fp_annotation,
-                fontsize=6,
-                )
             
-            annot_y -= annot_step_y
-            """
             xx, yy = layout_shape.get_free_place(mz, intens)
 
             self.ax.annotate('{:.2f}'.format(mz),
-                xy = ( mz, intens ),    #mz, intens
-                #xycoords = 'data',
+                xy = ( mz, intens ),   
                 xytext = (xx, yy - 3),
-                #textcoords = 'offset points',
                 ha = 'center',
                 va = 'center',
                 color='r',
@@ -1861,9 +1845,8 @@ class SpectrumPlot(PlotBase):
                 
             )
             
-            #self.ax.annotate('{}-{:.2f}'.format(vertex_number, mz),
             self.ax.annotate('{}'.format(vertex_number),
-                xy = ( mz, intens ),    #mz, intens
+                xy = ( mz, intens ),  
                 #xycoords = 'data',
                 xytext = (xx, yy),
                 #textcoords = 'offset points',
@@ -1873,13 +1856,11 @@ class SpectrumPlot(PlotBase):
                 bbox = dict(boxstyle = 'circle', fc = 'w'), #circle round
                 fontproperties = self.fp_annotation,
                 fontsize=7,
-                #arrowprops=dict(arrowstyle="->",
-                                #color='blue'),
             )
 
             formated_annot = annot.replace("\n", \
                 "\n"+(number_width+number_separator+4)*" ")
-            #
+            
             detail_annotation += "{:3d}){}{}\n".format(vertex_number, \
                 (number_separator+1) * " ", formated_annot)
 
