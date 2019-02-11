@@ -183,7 +183,7 @@ class LipidRecord(collections.namedtuple(
         will be shown.
         """
         
-        return full_str(
+        return subspecies_str(
             self.hg,
             self.chains if self.chains else self.chainsum,
             iso = False
@@ -199,7 +199,7 @@ class LipidRecord(collections.namedtuple(
         i.e. showing the total carbon count and unsaturation.
         """
         
-        return summary_str(self.hg, self.chainsum)
+        return species_str(self.hg, self.chainsum)
     
     # synonym for old name
     summary_str = species_str
@@ -437,7 +437,7 @@ def species_str(hg, chainsum):
 summary_str = species_str
 
 
-def subspecies_str(hg, chains, iso = False):
+def subspecies_str(hg, chains, iso = False, sort_chains = True):
     """
     From a Headgroup and a tuple of Chain objects returns a
 
@@ -449,6 +449,12 @@ def subspecies_str(hg, chains, iso = False):
         Tuple of ``Chain`` objects.
     iso :
         Include isomer information.
+    sort_chains : bool
+        If the position of the chains on the glycerol (sn position)
+        not known the chains can be sorted so consistently the lower
+        length and unsaturation comes first. This results consistent
+        strings and makes easier to find unique species if chain
+        position information is not available or irrelevant.
 
     Returns
     -------
@@ -459,6 +465,12 @@ def subspecies_str(hg, chains, iso = False):
     if isinstance(chains, ChainSummary):
         
         return summary_str(hg, chains)
+    
+    chain_types = set(c.typ for c in chains)
+    
+    if chain_types == {'FA'}:
+        
+        chains = sorted(chains, key = lambda c: (c.c, c.u))
     
     subcls_pre, sphingo_prefix, ether_prefix, subcls_post, hydroxy = (
         get_attributes(hg, sum_chains(chains))
