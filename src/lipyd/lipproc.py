@@ -94,6 +94,11 @@ class Chain(collections.namedtuple(
     def __add__(self, other):
         
         return sum_chains((self, other))
+    
+    
+    def cu_str(self):
+        
+        return cu_str(self.c, self.u)
 
 
 class ChainSummary(Chain):
@@ -200,9 +205,19 @@ class LipidRecord(collections.namedtuple(
     summary_str = species_str
     
     def subclass_str(self):
-        """ """
+        """
+        Returns a string representation of the lipid subclass.
+        """
         
         return subclass_str(self.hg, self.chainsum)
+    
+    
+    def class_str(self):
+        """
+        Returns a string representation of the lipid class.
+        """
+        
+        return class_str(self.hg)
 
 
 def empty_chain():
