@@ -31,6 +31,7 @@ from past.builtins import xrange, range
 import imp
 import sys
 import os
+import re
 import shutil
 import struct
 
@@ -122,6 +123,12 @@ DEBUG = False
 LASTCURL = None
 
 show_cache = False
+
+_re_url = re.compile(r'^(?:http|https|ftp)://')
+
+
+def is_url(url):
+    return bool(_re_url.match(url))
 
 
 class _global_context(object):
@@ -558,7 +565,8 @@ class FileOpener(object):
 
     def open(self):
         if self.fileobj is None and os.path.exists(self.fname):
-            self.fileobj = open(self.fname, 'rb')
+            mode = 'r' if self.encoding else 'rb'
+            self.fileobj = open(self.fname, mode, encoding = self.encoding)
 
     def extract(self):
         getattr(self, 'open_%s' % self.type)()
@@ -1089,6 +1097,7 @@ class Curl(FileOpener):
             self.resp_headers_dict[name] = value
 
     def guess_encoding(self):
+        
         if self.encoding is None:
             if not self.use_cache:
                 if 'content-type' in self.resp_headers:
@@ -1096,6 +1105,10 @@ class Curl(FileOpener):
                     match = re.search(r'charset=(\S+)', content_type)
                     if match:
                         self.encoding = match.group(1)
+        
+        if self.encoding is None:
+            
+            self.encoding = 'utf-8'
 
     def get_type(self):
         self.multifile = False
@@ -1242,6 +1255,7 @@ class Curl(FileOpener):
             self.outfile = self.cache_file_name
 
     def process_file(self):
+        self.guess_encoding()
         self.get_type()
         self.copy_file()
         self.open_file()
