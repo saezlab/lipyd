@@ -116,6 +116,7 @@ class MS2Identity(collections.namedtuple(
             precursor_details = precursor_details,
         )
     
+    
     def __str__(self):
         
         return (
@@ -124,17 +125,9 @@ class MS2Identity(collections.namedtuple(
             lipproc.summary_str(self.hg, self.chainsum)
         )
     
+    
     def full_str(self):
-        """Methods for .
-
-        Extended description of function.
-
-
-        Returns
-        -------
-        str
-
-
+        """
         """
         
         details = []
@@ -158,18 +151,30 @@ class MS2Identity(collections.namedtuple(
             ','.join(details),
         )
     
+    
+    def subspecies_str(self):
+        
+        return self.__str__()
+    
+    
+    def species_str(self):
+        
+        return lipproc.summary_str(self.hg, self.chainsum)
+    
+    
+    def subclass_str(self):
+        
+        return lipproc.subclass_str(self.hg, self.chainsum)
+    
+    
+    def class_str(self):
+        
+        return lipproc.class_str(self.hg, self.chainsum)
+    
+    
     def summary(self):
-        """Method .
-
-        Extended description of function.
-
-        Returns
-        -------
-        __str__
-            Description of return value
-        score_pct
-            Description of return value
-
+        """
+        Returns a tuple of string representation and score.
         """
         
         return self.__str__(), self.score_pct
@@ -195,7 +200,7 @@ ScanDetails = collections.namedtuple(
     'ScanDetails',
     ['sample_id', 'scan_id', 'source', 'deltart']
 )
-ChainIdentificationDetails.__new__.__defaults__ = (None, None, None, None)
+ScanDetails.__new__.__defaults__ = (None, None, None, None)
 
 
 PrecursorDetails = collections.namedtuple(
@@ -6825,7 +6830,7 @@ idmethods = {
 
 
 class MS2Feature(object):
-    """ """
+    
     
     scan_methods = {
         'mgf':  'mgf_iterscans',
@@ -6837,9 +6842,10 @@ class MS2Feature(object):
             mz,
             ionmode,
             resources,
-            rt,
             ms1_records = None,
-            rt_range = .5,
+            rt = None,
+            rt_range = None,
+            rt_range_width = .5,
             check_rt = True,
             add_precursor_details = False,
         ):
@@ -6847,25 +6853,28 @@ class MS2Feature(object):
         Collects the MS2 scans from the provided resources for a single
         feature. Calls identification methods on all scans collected.
         
-        :param float mz:
+        mz : float
             m/z value of the precursor ion.
-        :param str ionmode:
+        ionmode : str
             Ion mode of the experiment. Either ``pos`` or ``neg``.
-        :param dict resources:
+        resources : dict
             ``dict`` of MS2 scan resources. These are either ``mgf.MgfReader``
             objects or paths to MGF files. Later more resource types
             will be available, for example MzML format. Keys of the ``dict``
             are used as sample labels. Thes can be strings or tuples.
-        :param dict ms1_records:
+        ms1_records : dict
             A data structure resulted by ``moldb.adduct_lookup``. If ``None``
             the lookup will be done here.
-        :param float rt_range:
-            If a single retention time value provided this is the largest
-            accepted difference between an MS2 scan's RT and the precursor's
-            RT. E.g. if ``rt = 8.3`` and ``rt_range = 0.5``, scans between
-            7.8 and 8.8 will be considered. If a tuple of floats provided
-            for RT, scans between these two values will be considered.
-        :param bool check_rt:
+        rt : float
+            Retention time of the feature.
+        rt_range : tuple
+            Tuple of 2 floats, minimum and maximum retention time of the
+            feature. If ``rt`` not provided the mean of this range will
+            be used as ``rt``.
+        rt_range_width : float
+            If no ``rt_range`` but ``rt`` provided ``rt_range`` will be set
+            as ``rt +/- rt_range_width``.
+        check_rt : bool
             Check if the retention time of the scan is enough close to the
             precursor's RT. If ``False``, scans will be matched only by the
             m/z value of the precursor and scans with any large RT difference
@@ -6877,17 +6886,53 @@ class MS2Feature(object):
         self.ms1_records = ms1_records or moldb.adduct_lookup(mz, ionmode)
         self.add_precursor_details = add_precursor_details
         self.resources = resources
-        self.rt = (rt - rt_range, rt + rt_range) if type(rt) is float else rt
-        self.rtmean = sum(self.rt) / 2.0
+        self.rt = rt
+        self.rt_range = rt_range
+        self.rt_range_width = rt_range_width
         self.rt_range = rt_range
         self.check_rt = check_rt
+        
+        self._set_rt()
+        self._set_rt_range()
+    
+    
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+    
     
     def main(self):
-        """ """
         
         self.ms1_lookup()
         self.build_scans()
         self.identify()
+    
+    
+    def _set_rt(self):
+        
+        self.rt = (
+            self.rt
+                if self.rt else
+            sum(self.rt_range) / 2.
+                if self.rt_range is not None else
+            None
+        )
+    
+    
+    def _set_rt_range(self):
+        
+        self.rt_range = (
+            self.rt_range
+                if self.rt_range is not None else
+            (self.rt - self.rt_range_width, self.rt + self.rt_range_width)
+                if self.rt else
+            None
+        )
+    
     
     def iterresources(self, only_samples = None):
         """
@@ -6922,6 +6967,7 @@ class MS2Feature(object):
                 
                 yield resource, res_type, sample_id
     
+    
     def iterscans(self):
         
         for resource, res_type, sample_id in self.iterresources():
@@ -6931,6 +6977,7 @@ class MS2Feature(object):
             for scan in scan_method(resource, sample_id):
                 
                 yield scan
+    
     
     def get_mgf(self, mgf_resource):
         """
@@ -6956,42 +7003,98 @@ class MS2Feature(object):
             
             raise ValueError(
                 'Mgf files should be lipyd.mgf.MgfReader '
-                'instances of file names.'
+                'instances or file names.'
             )
         
         return mgffile
     
-    def mgf_iterscanidx(self):
-        
-        for resource, res_type, sample_id in self.iterresources():
-            
-            mgffile = self.get_mgf(resource)
-            idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
-            
-            yield resource, idx, rtdiff
     
-    def mgf_iterscans(self, mgf_resource, sample_id = None):
+    def mgf_iterscanidx(self, mgf_resource):
+        """
+        Selects scans from each resurce and yields tuples of scan ID and
+        RT difference.
+        """
         
         mgffile = self.get_mgf(mgf_resource)
-        idx, rtdiff = mgffile.lookup(self.mz, rt = self.rtmean)
+        idx, rtdiff = mgffile.lookup(self.mz, rt = self.rt)
         
         for i, rtd in zip(idx, rtdiff):
             
             if self.check_rt:
                 
-                scan_rt = self.rtmean + rtd
+                scan_rt = self.rt + rtd
                 
-                if scan_rt < self.rt[0] or scan_rt > self.rt[1]:
+                if scan_rt < self.rt_range[0] or scan_rt > self.rt_range[1]:
                     
                     continue
+            
+            yield i, rtd
+    
+    
+    def mgf_iterscanidx_all(self):
+        
+        for resource, res_type, sample_id in self.iterresources():
+            
+            for i, rtd in self.mgf_iterscanidx(resource):
+                
+                yield resource, i, rtd
+    
+    
+    def mgf_get_scans_summary(self, mgf_resource):
+        """
+        For a single MGF resource finds scans matching this feature and
+        returns arrays of scan indices and RT differences.
+        """
+        
+        try:
+            
+            idx, rtdiff = zip(*list(self.mgf_iterscanidx(mgf_resource)))
+            
+        except ValueError:
+            
+            idx, rtdiff = [], []
+        
+        return np.array(idx), np.array(rtdiff)
+    
+    
+    def mgf_iter_scans_summaries(self):
+        """
+        Selects scans from each resurce and yields tuples of resource,
+        array of scan indices and array of RT differences for each resource.
+        """
+        
+        for resource, res_type, sample_id in self.iterresources():
+            
+            idx, rtdiff = self.mgf_get_scans_summary(resource)
+            
+            yield resource, idx, rtdiff
+    
+    
+    def mgf_iterscans(self, mgf_resource, sample_id = None):
+        """
+        Iterates over scans from an MGF resource belonging to this feature.
+        """
+        
+        mgffile = self.get_mgf(mgf_resource)
+        
+        for i, rtd in self.mgf_iterscanidx(mgf_resource):
             
             sc = mgffile.get_scan(i)
             
             yield self.get_scan(mgffile, i, sample_id = sample_id)
     
-    def get_scan(self, mgffile, i, sample_id = None):
+    
+    def get_scan(self, ms2_resource, i, sample_id = None):
+        """
+        Retrieves a scan by its ID from an MS2 resource.
+        Creates ``Scan`` object.
         
-        sc = mgffile.get_scan(i)
+        Returns
+        -------
+        ``lipyd.ms2.Scan`` instance.
+        """
+        
+        sc = ms2_resource.get_scan(i)
         
         return Scan(
             mzs = sc[:,0],
@@ -7000,12 +7103,13 @@ class MS2Feature(object):
             precursor = self.mz,
             ms1_records = self.ms1_records,
             add_precursor_details = self.add_precursor_details,
-            scan_id = mgffile.mgfindex[i,3],
+            scan_id = ms2_resource.mgfindex[i,3],
             sample_id = sample_id,
-            source = mgffile.fname,
-            deltart = mgffile.mgfindex[i,2] - self.rtmean,
-            rt = mgffile.mgfindex[i,2],
+            source = ms2_resource.fname,
+            deltart = ms2_resource.mgfindex[i,2] - self.rt,
+            rt = ms2_resource.mgfindex[i,2],
         )
+    
     
     def closest_scan(self, only_samples = None):
         """
@@ -7024,45 +7128,54 @@ class MS2Feature(object):
             only_samples = only_samples
         ):
             
-            for mgffile, idx, rtdiff in \
-                getattr(self, '%s_iterscanidx' % res_type)():
+            idx, rtdiff = (
+                getattr(self, '%s_get_scans_summary' % res_type)(resource)
+            )
+            
+            if not len(idx):
                 
-                if not len(idx):
-                    
-                    continue
+                continue
+            
+            if np.min(np.abs(rtdiff)) < closest_rtdiff:
                 
-                if np.min(np.abs(rtdiff)) < closest_rtdiff:
-                    
-                    closest_rtdiff  = np.min(np.abs(rtdiff))
-                    closest_i       = idx[np.argmin(np.abs(rtdiff))]
-                    closest_mgffile = mgffile
+                closest_rtdiff  = np.min(np.abs(rtdiff))
+                closest_i       = idx[np.argmin(np.abs(rtdiff))]
+                closest_mgffile = resource
         
         return (
             None
                 if closest_mgffile is None else
             self.get_scan(
-                closest_mgffile,
+                self.get_mgf(closest_mgffile),
                 closest_i,
                 sample_id = sample_id
             )
         )
     
+    
     def has_scan_within_rt_range(self):
         
-        for resource, res_type, sample_id in self.iterresources():
+        itermethod = getattr(self, '%s_iterscanidx_all' % res_type)
+        
+        for resource, idx, rtdiff in itermethod():
             
-            for mgffile, idx, rtdiff in \
-                getattr(self, '%s_iterscanidx' % res_type)():
+            if not len(idx):
                 
-                if not len(idx):
-                    
-                    continue
+                continue
+            
+            scans_rts = self.rt - np.abs(rtdiff)
+            
+            if np.any(
+                np.logical_and(
+                    scans_rts > self.rt_range[0],
+                    scans_rts < self.rt_range[1],
+                )
+            ):
                 
-                if np.any(np.abs(rtdiff) <= self.rt_range):
-                    
-                    return True
+                return True
         
         return False
+    
     
     def mzml_iterscans(self, mzml_resource, sample_id = None):
         """
@@ -7080,6 +7193,7 @@ class MS2Feature(object):
         """
         
         raise NotImplementedError
+    
     
     @staticmethod
     def guess_resouce_type(res):
@@ -7105,11 +7219,12 @@ class MS2Feature(object):
             
             return 'mgf'
     
+    
     def build_scans(self):
         """ """
         
         self.scans = np.array(list(self.iterscans()))
-        self.deltart = np.array([sc.rt - self.rtmean for sc in self.scans])
+        self.deltart = np.array([sc.rt - self.rt for sc in self.scans])
         
         rtsort = [
             it[0]
@@ -7121,6 +7236,7 @@ class MS2Feature(object):
         
         self.scans = self.scans[rtsort]
         self.deltart = self.deltart[rtsort]
+    
     
     def identify(self):
         """ """
@@ -7135,18 +7251,20 @@ class MS2Feature(object):
                 
                 self.identities.append(identity)
     
+    
     @staticmethod
     def identities_sort(ids):
-        """Sorts identities by score and deltart.
+        """
+        Sorts identities by score, deltart, and rank of chain fragments.
 
         Parameters
         ----------
-        ids :
-            
-
+        ids : list
+            List of ``MS2Identity`` objects.
+        
         Returns
         -------
-
+        Sorted list of ``MS2Identity`` objects.
         """
         
         return sorted(
@@ -7156,8 +7274,24 @@ class MS2Feature(object):
                     100 - i.score_pct,
                     # if we don't have scan details don't consider
                     abs(i.scan_details.deltart) if i.scan_details else 0,
+                    # if we don't have chain details don't consider
+                    # otherwise sort by lowest rank among all chain fragments
+                    (
+                        min(
+                            (
+                                # removing None's
+                                r for r in i.chain_details.rank
+                                if r is not None
+                            ),
+                            default = 9999 # if all chain fragments missing
+                                           # goes to the end
+                        )
+                            if i.chain_details else
+                        9999 # ones with no chain details at all go to the end
+                    )
                 )
         )
+    
     
     def identities_group_by(self, by = 'subspecies'):
         """
@@ -7203,33 +7337,60 @@ class MS2Feature(object):
         
         return identities
     
+    
     def identities_group_by_species(self):
         """ """
         
         return self.identities_group_by(by = 'species')
+    
     
     def identities_group_by_subspecies(self):
         """ """
         
         return self.identities_group_by(by = 'subspecies')
     
+    
     def identities_group_by_subclass(self):
-        """ """
+        """
+        Groups the identities by lipid subclass e.g. `PE`, `PE-O`, 'Lyso-PE`,
+        etc.
+        
+        Returns
+        -------
+        Dictionary of sorted lists of identifications.
+        Keys are subclass names.
+        """
         
         return self.identities_group_by(by = 'subclass')
     
+    
     def identities_group_by_class(self):
-        """ """
+        """
+        Groups the identities by lipid class e.g. `PE`, `PC`, etc.
+        
+        Returns
+        -------
+        Dictionary of sorted lists of identifications.
+        Keys are class names.
+        """
         
         return self.identities_group_by(by = 'class')
+    
     
     def identities_str(
             self,
             only_best = True,
             only_top = True,
-            group_by = 'subspecies'
+            group_by = 'subspecies',
+            repr_level = 'subspecies',
         ):
-        """only_best : bool
+        """
+        Creates a string to represent the MS2 level identification of the
+        feature.
+        
+        Parameters
+        ----------
+        only_best : bool
             Only the ones with highest score.
         only_top : bool
             Only the first one for each group (the one with highest score
@@ -7237,19 +7398,13 @@ class MS2Feature(object):
         group_by : str
             Passed to ``identities_group_by``. Group by lipid identification
             level ``subspecies``, ``species``, ``subclass`` or ``class``.
-
-        Parameters
-        ----------
-        only_best :
-             (Default value = True)
-        only_top :
-             (Default value = True)
-        group_by :
-             (Default value = 'subspecies')
-
+        repr_level : str
+            The level of representation: if ``subspecies`` aliphatic chain
+            information will be shown if available.
+        
         Returns
         -------
-
+        String of identifications separated by semicolon.
         """
         
         identities = self.identities_group_by(by = group_by)
@@ -7269,7 +7424,7 @@ class MS2Feature(object):
             (
                 self._identities_str(
                     (ids[0],) if only_top else ids,
-                    sum_str = group_by != 'subspecies'
+                    repr_level = repr_level,
                 )
                 if ids else ''
             )
@@ -7277,72 +7432,88 @@ class MS2Feature(object):
             if (
                 not only_best or (
                     ids[0].score_pct > 0 and
-                    ids[0].score_pct == max_score
+                    ids[0].score_pct >= max_score
                 )
             )
         )
     
-    def identities_str_all(self):
-        """ """
-        
-        return self.identities_str(
-            only_best = False,
-            only_top  = False,
-            group_by  = 'subspecies',
-        )
     
-    def identities_str_best_sum(self):
-        """ """
-        
-        return self.identities_str(
-            only_best = True,
-            only_top  = True,
-            group_by  = 'species',
-        )
-    
-    def identities_str_full_toplist(self):
-        """ """
-        
-        return self.identities_str(
-            only_best = False,
-            only_top  = True,
-            group_by  = 'subclass',
-        )
-    
-    def _identities_str(self, ids, sum_str = False):
+    def identities_str_all(self, repr_level = 'subspecies'):
         """
-
+        Returns all identifications as string.
+        """
+        
+        return self.identities_str(
+            only_best  = False,
+            only_top   = False,
+            group_by   = 'subspecies',
+            repr_level = repr_level,
+        )
+    
+    
+    def identities_str_best(self, repr_level = 'subspecies'):
+        """
+        Returns the identifications with the highest score as string.
+        """
+        
+        return self.identities_str(
+            only_best  = True,
+            only_top   = True,
+            group_by   = 'species',
+            repr_level = repr_level,
+        )
+    
+    
+    def identities_str_full_toplist(self, repr_level = 'subspecies'):
+        """ """
+        
+        return self.identities_str(
+            only_best  = False,
+            only_top   = True,
+            group_by   = 'subclass',
+            repr_level = repr_level,
+        )
+    
+    
+    def _identities_str(self, ids, repr_level = 'subspecies'):
+        """
         Parameters
         ----------
-        ids :
-            
-        sum_str :
-             (Default value = False)
+        ids : list
+            List of identification results (``lipyd.ms2.MS2Identity``
+            instances).
+        repr_level : str
+            Level of representation: `subspecies` or `species`.
 
         Returns
         -------
-
+        String of list of identities separated by semicolon.
         """
         
         return (
             ';'.join(
-                sorted(self.format_ms2id(i, sum_str = sum_str) for i in ids)
+                sorted(
+                    self.format_ms2id(i, repr_level = repr_level)
+                    for i in ids
+                )
             )
         )
     
-    def format_ms2id(self, i, sum_str = False):
+    
+    def format_ms2id(self, i, repr_level = 'subspecies'):
         """
 
         Parameters
         ----------
-        i :
-            
-        sum_str :
-             (Default value = False)
+        i : lipyd.ms2.MS2Identity
+            A single identification result object.
+        repr_level : str
+            Level of representation: `subspecies` or `species`.
 
         Returns
         -------
-
+        String representation of the identification object with details
+        about the score, delta RT, sample and scan.
         """
         # TODO: more generic handling of sample IDs!!!
         
@@ -7358,11 +7529,7 @@ class MS2Feature(object):
         )
         
         return '%s[score=%u,deltart=%.02f,fraction=%s%u,scan=%u%s%s]' % (
-            (
-                lipproc.summary_str(i.hg, i.chainsum)
-                if sum_str and i.chainsum else
-                i.__str__()
-            ),
+            getattr(i, '%s_str' % repr_level)(),
             i.score_pct,
             i.scan_details.deltart,
             i.scan_details.sample_id[0],
@@ -7371,6 +7538,7 @@ class MS2Feature(object):
             adduct,
             error,
         )
+    
     
     def identity_summary(
             self,
@@ -7445,6 +7613,7 @@ class MS2Feature(object):
                     identities[key].append(var)
         
         return identities
+    
     
     def ms1_lookup(self):
         """ """

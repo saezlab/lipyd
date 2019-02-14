@@ -112,10 +112,13 @@ class LipidNameProcessor(object):
                 
                 l = l.strip().split('\t')
                 
+                chains = tuple(l[3].split(';')) if l[3] else ()
+                
                 lip = (
                     tuple(l[1].split(';')) if l[1] else (),
                     l[0],
-                    tuple(l[2].split(';')) if l[2] else ()
+                    tuple(l[2].split(';')) if l[2] else (),
+                    chains,
                 )
                 
                 result[lip] = {
@@ -132,7 +135,7 @@ class LipidNameProcessor(object):
                         if l[8] != 'ND' and self.adducts_constraints else
                             None
                         ),
-                    'chains': tuple(l[3].split(';')) if l[3] else ()
+                    'chains': chains,
                 }
         
         self.lipnames = result
@@ -776,15 +779,9 @@ class LipidNameProcessor(object):
     
     
     def gen_fa_greek(self):
-        """Generates a list of greek fatty acid names with their
-        carbon counts and unsaturations.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-
+        """
+        Generates a list of greek fatty acid, fatty alcohol and fatty acyl
+        CoA names with their carbon counts and unsaturations.
         """
         
         fa_greek_parts = {
@@ -794,27 +791,19 @@ class LipidNameProcessor(object):
                 'oct': 8,
                 'non': 9,
                 'dec': 10,
+                'hendec': 11,
                 'undec': 11,
-                'dodec': 12,
-                'tridec': 13,
-                'tetradec': 14,
-                'pentadec': 15,
-                'hexadec': 16,
-                'heptadec': 17,
-                'octadec': 18,
-                'nonadec': 19,
                 'eicos': 20,
                 'icos': 20,
+                'uneicos': 21,
                 'heneicos': 21,
-                'docos': 22,
-                'tricos': 23,
-                'tetracos': 24,
-                'pentacos': 25,
-                'hexacos': 26,
-                'heptacos': 27,
-                'octacos': 28,
-                'nonacos': 29,
-                'triacont': 30
+                'unicos': 21,
+                'doeicos': 22,
+                'triacont': 30,
+                'hentriacont': 31,
+                'untriacont': 31,
+                'tetracont': 40,
+                'hentetracont': 41,
             },
             'uns': {
                 '': 1,
@@ -824,15 +813,29 @@ class LipidNameProcessor(object):
                 'apenta': 5,
                 'ahexa': 6,
                 'ahepta': 7,
-                'aocta': 8
+                'aocta': 8,
             },
             'end': {
                 'enoate': 1,
                 'anoate': 0,
                 'enoic acid': 1,
-                'anoic acid': 0
+                'anoic acid': 0,
             }
         }
+        
+        for ndec, dec in enumerate(('dec', 'cos', 'triacont', 'tetracont')):
+            
+            for nnum, num in enumerate(
+                (
+                    'do', 'tri', 'tetra', 'penta',
+                    'hexa', 'hepta', 'octa', 'nona',
+                )
+            ):
+                
+                fa_greek_parts['cc']['%s%s' % (num, dec)] = (
+                    (ndec + 1) * 10 +
+                    (nnum + 2)
+                )
         
         fal_greek_end = {}
         fal_greek_end['anol'] = 0
@@ -854,7 +857,9 @@ class LipidNameProcessor(object):
             if len(uns[0]) and end[1] == 0:
                 continue
             
-            self.fa_greek['%s%s%s' % (cc[0], uns[0], end[0])] = (cc[1], uns[1] * end[1])
+            self.fa_greek[
+                '%s%s%s' % (cc[0], uns[0], end[0])
+            ] = (cc[1], uns[1] * end[1])
         
         for cc, uns, end in itertools.product(
             fa_greek_parts['cc'].items(),
@@ -864,7 +869,9 @@ class LipidNameProcessor(object):
             if len(uns[0]) and end[1] == 0:
                 continue
             
-            self.fal_greek['%s%s%s' % (cc[0], uns[0], end[0])] = (cc[1], uns[1] * end[1])
+            self.fal_greek[
+                '%s%s%s' % (cc[0], uns[0], end[0])
+            ] = (cc[1], uns[1] * end[1])
         
         for cc, uns, end in itertools.product(
             fa_greek_parts['cc'].items(),
@@ -874,4 +881,6 @@ class LipidNameProcessor(object):
             if len(uns[0]) and end[1] == 0:
                 continue
             
-            self.facoa_greek['%s%s%s' % (cc[0], uns[0], end[0])] = (cc[1], uns[1] * end[1])
+            self.facoa_greek[
+                '%s%s%s' % (cc[0], uns[0], end[0])
+            ] = (cc[1], uns[1] * end[1])

@@ -496,6 +496,8 @@ _defaults = {
     'spectrum_plot_figsize': (9, 5),
     'spectrum_plot_xlab': 'm/z',
     'cachedir': None,
+    # use only MS2 scans within the RT range of the feature
+    'ms2_check_rt': True,
 }
 
 in_basedir = [

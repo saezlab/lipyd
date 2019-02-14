@@ -157,7 +157,7 @@ def find(a, m, t = 20):
             
             return iu - 1
     
-    elif du <= t:
+    elif du <= t and iu < len(a):
         
         return iu
 

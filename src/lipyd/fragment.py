@@ -702,6 +702,17 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'FA'
             ), # 283.2643 Hsu 2016 a6
+        'FA_mCOO':
+            ChainFragParam(
+                plus = '',
+                minus = 'CH',
+                charge = -1,
+                name = 'FA%s-COO',
+                constraints = (
+                    FragConstraint(hg = 'FA', chaintype = 'FA'),
+                ),
+                chaintype = 'FA'
+            ),
         # former FAAlkylminusH
         'FAL_mH':
             ChainFragParam(

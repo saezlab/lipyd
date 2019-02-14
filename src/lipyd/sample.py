@@ -42,6 +42,7 @@ import lipyd.progress as progress
 import lipyd.sampleattrs as sampleattrs
 import lipyd.feature as feature
 import lipyd.recalibration as recalibration
+import lipyd.lookup as lookup
 
 
 remgf  = re.compile(r'(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
@@ -418,6 +419,16 @@ class FeatureBase(object):
             0
         )
     
+    def __getitem__(self, key):
+        
+        result = {}
+        
+        for var in self.var:
+            
+            result[var] = getattr(self, var)[key]
+        
+        return feature.Feature(ionmode = self.ionmode, **result)
+    
     def filter(self, idx, negative = False, propagate = True):
         """
         Filters features at indices in ``idx``.
@@ -720,6 +731,10 @@ class Sample(FeatureBase):
             If a value provided here only the scans with this precursor
             charge will be processed from the MGF files. If ``None``, charge
             won't be considered.'
+            - ``check_rt``:
+            Use only the MS2 scans which are within the RT range of the
+            feature. You can set it to False if you want to check retention
+            times later.
         """
         
         self.var     = set()
@@ -739,11 +754,16 @@ class Sample(FeatureBase):
             **kwargs,
         )
         
-        self.silent     = silent
-        self.ionmode    = ionmode
+        self.silent       = silent
+        self.ionmode      = ionmode
         self._set_feature_attrs(feature_attrs)
-        self.ms2_format = ms2_format
-        self.ms2_param  = ms2_param or {}
+        self.ms2_format   = ms2_format
+        self.ms2_param    = ms2_param or {}
+        self.ms2_check_rt = (
+            ms2_param['check_rt']
+                if 'check_rt' in self.ms2_param else
+            settings.get('ms2_check_rt')
+        )
         
         attr_args = attr_args or {
             'sample_id': sample_id,
@@ -896,6 +916,28 @@ class Sample(FeatureBase):
         """
         
         return len(self.mzs)
+    
+    def index_by_mz(self, mz, tolerance = 10):
+        
+        self.sort_all('mzs')
+        return lookup.find(self.mzs, mz, t = tolerance)
+    
+    def __getitem__(self, key):
+        
+        if isinstance(key, (float, np.float64)):
+            
+            # here we use high tolerance as better to return the
+            # closest than returning nothing
+            key = self.index_by_mz(key, tolerance = 100)
+        
+        result = None
+        
+        if key is not None:
+            
+            result = FeatureBase.__getitem__(self, key)
+            result += self.feattrs[key]
+        
+        return result
     
     @property
     def numof_samples(self):
@@ -1598,8 +1640,9 @@ class Sample(FeatureBase):
                 mz = self.mzs[i],
                 ionmode = self.ionmode,
                 resources = resources,
-                rt = tuple(self.feattrs.rt_ranges[i]),
+                rt = self.feattrs.rt_means[i],
                 ms1_records = self.feattrs.records[i],
+                check_rt = self.ms2_check_rt,
             )
             
             ms2_fe.main()
@@ -1804,17 +1847,14 @@ class FeatureIdx(FeatureBase):
         self.clients = {}
     
     def _sort(self, argsort):
-        """Sorts the two index arrays by an index array.
+        """
+        Sorts the two index arrays by an index array.
         Do not call this because it does sync with clients.
 
         Parameters
         ----------
-        argsort :
-            
-
-        Returns
-        -------
-
+        argsort : numpy.ndarray
+            Array with indices in the desired order.
         """
         
         if len(argsort) != len(self):
@@ -1845,7 +1885,8 @@ class FeatureIdx(FeatureBase):
         return self._original[o]
     
     def original(self, c):
-        """Tells the original index for the current index ``c``.
+        """
+        Tells the original index for the current index ``c``.
 
         Parameters
         ----------
