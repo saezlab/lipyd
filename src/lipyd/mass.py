@@ -56,6 +56,29 @@ replmi  = re.compile(r'([-+])')
 refloat = re.compile(r'[0-9\.]+')
 
 
+def formula_to_atoms(formula):
+    """
+    Converts chemical formula string to dict of atom counts.
+    
+    Parameters
+    ----------
+    formula : str
+        Chemical formula, e.g. ``CH3COOH``.
+
+    Returns
+    -------
+    ``dict`` with elements as keys and counts as values.
+    """
+    
+    atoms = defaultdict(int)
+    
+    for elem, cnt in reform.findall(formula):
+        
+        atoms[elem] += int(cnt or '1')
+    
+    return atoms
+
+
 def getMasses(url):
     
     """Downloads an HTML table from CIAAW webpage
@@ -349,7 +372,10 @@ iso_freq = {
 
 
 class MassBase(object):
-    """ """
+    """
+    Represents a mass as a floating point number optionally with a chemical
+    formula.
+    """
     
     def __init__(
             self,
@@ -359,28 +385,31 @@ class MassBase(object):
             **kwargs
         ):
         """
-        This class is very similar to `Formula`. Actually it can be
+        This class is very similar to ``Formula``. Actually it can be
         initialized either with providing a formula or a mass or
         even element counts as keyword arguments.
-        The key difference compared to `Formula` is that it behaves
-        as a `float` i.e. indeed represents a molecular mass, while
-        `Formula` behaves as a chemical formula i.e. representing
+        The key difference compared to ``Formula`` is that it behaves
+        as a ``float`` i.e. indeed represents a molecular mass, while
+        ``Formula`` behaves as a chemical formula i.e. representing
         the counts of elements. If you add two `MassBase` instances
-        (or a float) you get a `float` while if you add two
-        `Formula` instances (or a string) you get a new `Formula`.
-        Finally `Mass` is able to provide both behaviours but
-        adding two `Mass` instances will result a new `Mass`.
+        (or a float) you get a ``float`` while if you add two
+        ``Formula`` instances (or a string) you get a new ``Formula``.
+        Finally ``Mass`` is able to provide both behaviours but
+        adding two ``Mass`` instances will result a new ``Mass``.
         
-        Args
-        ----
-        :param str,float,NoneType formula_mass: Either a string
-            expressing a chemical formula (e.g. H2O) or a molecular
-            mass (e.g. 237.1567) or `None` if you provide the
+        Parameters
+        ----------
+        formula_mass : str,float,NoneType
+            Either a string expressing a chemical formula (e.g. H2O) or
+            a molecular mass (e.g. 237.1567) or `None` if you provide the
             formula as keyword arguments.
-        **kwargs: elements & counts, e.g. c = 6, h = 12, o = 6...
+        **kwargs :
+            Elements & counts, e.g. ``c = 6, h = 12, o = 6``.
         
-        Thanks for
-        https://github.com/bsimas/molecular-weight/blob/master/chemweight.py
+        References
+        ----------
+        Atomic and isotopic mass data obtained from the Commission of
+        Isotopic Abundances and Atomic Weights (CIAAW), http://www.ciaaw.org/
         """
         
         if 'massFirstIso' not in globals():
@@ -529,6 +558,99 @@ class MassBase(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+
+
+class ElementComposition(object):
+    """
+    Represents the element composition of a certain compound or a group of
+    compounds. Can be used to calculate isotopic masses.
+    """
+    
+    def __init__(**kwargs):
+        """
+        Parameters
+        ----------
+        **kwargs :
+            Elements and their relative proportions.
+            E.g. ``C = 1, H = 2.05`` or ``c = 10, h = 22, o = 1``.
+        """
+        
+        self.composition = {}
+        
+        total = sum(v for v in kwargs.values())
+        
+        for elem, proportion in iteritems(kwargs):
+            
+            self.composition[elem.capitalize()] = proportion / total
+    
+    
+    def __getattr__(self, elem):
+        
+        elem = elem.capitalize()
+        
+        if elem in self.composition:
+            
+            return composition[elem]
+    
+    
+    def __getitem__(self, elem):
+        
+        return self.__getattr__(elem)
+    
+    
+    def __iter__(self):
+        
+        return iteritems(self.composition)
+
+
+class IsotopeModel(MassBase,ElementComposition):
+    """
+    Provides estimates about the mass and abundance of the isotopic variants
+    of compounds. If the formula of the compound is known the isotopic
+    abundances and masses will be accurate. Otherwise the approximate element
+    composition can be provided or a defaul average composition will be used.
+    """
+    
+    
+    def __init__(self, formula_mass = None, **kwargs):
+        
+        if isinstance(formula_mass, common.basestring):
+            
+            # we got a formula, MassBase can be initialized
+            MassBase.__init__(self, formula_mass = formula_mass)
+            # and ElementComposition from the atoms dict
+            ElementComposition.__init__(self, **self.atoms)
+            
+        elif kwargs:
+            
+            if (
+                any(
+                    isinstance(i, (float, np.float64))
+                    for i in kwargs.values()
+                )
+            ):
+                
+                ElementComposition.__init__(self, **kwargs)
+                
+                if isinstance(formula_mass, (float, np.float64)):
+                    
+                    MassBase.__init__(formula_mass = formula_mass)
+                    
+                else:
+                    
+                    self.update_mass(.0)
+                
+            elif isinstance(formula_mass):
+                
+                MassBase.__init__(self)
+    
+    
+    def update_mass(self, mass):
+        
+        self.mass = mass
+        
+        self.mass_calculated = False
+        self.atoms = {}
 
 
 parts = {

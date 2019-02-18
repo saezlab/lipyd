@@ -27,34 +27,6 @@ import lipyd.mass as mass
 import lipyd.mz as mz
 
 
-def formula2atoms(formula):
-    """Converts chemical formula string to dict of atom counts.
-    
-    Args
-    ----
-
-    Parameters
-    ----------
-    str :
-        formula:
-        Chemical formula
-    formula :
-        
-
-    Returns
-    -------
-
-    """
-    
-    atoms = defaultdict(lambda: 0)
-    
-    for elem, cnt in mass.reform.findall(formula):
-        
-        atoms[elem] += int(cnt or '1')
-    
-    return atoms
-
-
 class Formula(mass.MassBase, mz.Mz):
     """ """
     
@@ -268,26 +240,29 @@ class Formula(mass.MassBase, mz.Mz):
         yield self
     
     def reset_atoms(self):
-        """ """
+        """
+        Creates an empty ``atoms`` dict (this means empty formula and
+        zero mass).
+        """
         
         self.atoms = defaultdict(int)
     
     def as_mass(self):
-        """ """
+        """
+        Returns this ``Formula`` instance as ``mass.MassBase`` object.
+        """
         
         return MassBase(self.formula, self.charge, self.isotope)
     
+    
     def add(self, formula):
         """
-
+        Adds the ``formula`` to this one.
+        
         Parameters
         ----------
-        formula :
-            
-
-        Returns
-        -------
-
+        formula : str
+            Chemical formula.
         """
         
         for elem, cnt in mass.reform.findall(formula):
@@ -295,17 +270,15 @@ class Formula(mass.MassBase, mz.Mz):
         
         self.update()
     
+    
     def sub(self, formula):
         """
+        Subtracts the ``formula`` from this one.
 
         Parameters
         ----------
-        formula :
-            
-
-        Returns
-        -------
-
+        formula : str
+            Chemical formula.
         """
         
         for elem, cnt in mass.reform.findall(formula):
@@ -318,8 +291,12 @@ class Formula(mass.MassBase, mz.Mz):
         
         self.update()
     
+    
     def update(self):
-        """ """
+        """
+        Updates the ``formula`` (string) from the ``atoms`` dict and
+        re-calculates the mass.
+        """
         
         if len(self.atoms):
             
@@ -327,22 +304,27 @@ class Formula(mass.MassBase, mz.Mz):
                                     for elem in sorted(self.atoms.keys()))
             self.calc_mass()
     
+    
     def bind(self, other, loss = 'H2O'):
         """
-
+        Binds a substituent to the current compound with optional loss of
+        certain group.
+        
         Parameters
         ----------
-        other :
-            
-        loss :
-             (Default value = 'H2O')
-
+        other : str
+            Chemical formula.
+        loss : str
+            A molecule lost in the reaction, e.g. if an ester bond forms
+            the water loss is more convenient and clear to show this way.
+        
         Returns
         -------
-
+        New ``Formula`` object.
         """
         
         return self + other - loss
+    
     
     def split(self, product1, add = 'H2O'):
         """
@@ -362,6 +344,7 @@ class Formula(mass.MassBase, mz.Mz):
         product1 = Formula(product1)
         
         return product1, self - product1 + add
+    
     
     def update_mz(self, mz = None, z = 1, sign = None, tolerance = .01,
                   overwrite = False):
