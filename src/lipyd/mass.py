@@ -29,12 +29,6 @@ from collections import defaultdict
 
 import lipyd._curl as _curl
 
-#: URL for atomic masses
-urlMasses = 'http://www.ciaaw.org/atomic-masses.htm'
-#: URL for atomic weights
-urlWeights = 'http://www.ciaaw.org/atomic-weights.htm'
-#: URL for isotopic abundances
-urlAbundances = 'http://www.ciaaw.org/isotopic-abundances.htm'
 
 #: Mass of a proton
 proton = 1.00727646677
@@ -50,7 +44,7 @@ e = electron
 #: Mass of a neutron
 n = neutron
 
-reNonDigit = re.compile(r'[^\d.]+')
+_re_nondigit = re.compile(r'[^\d.]+')
 reform  = re.compile(r'([A-Za-z][a-z]*)([0-9]*)')
 replmi  = re.compile(r'([-+])')
 refloat = re.compile(r'[0-9\.]+')
@@ -79,156 +73,191 @@ def formula_to_atoms(formula):
     return atoms
 
 
-def getMasses(url):
+class MassData(object):
+    """
+    Downloads, processes and serves data for atomic and isotopic masses
+    and weights.
+    """
     
-    """Downloads an HTML table from CIAAW webpage
-    and extracts the atomic mass or weight information.
-
-    Parameters
-    ----------
-    url :
+    #: URL for atomic masses
+    url_masses = 'http://www.ciaaw.org/atomic-masses.htm'
+    #: URL for atomic weights
+    url_weights = 'http://www.ciaaw.org/atomic-weights.htm'
+    #: URL for isotopic abundances
+    url_abundances = 'http://www.ciaaw.org/isotopic-abundances.htm'
+    
+    
+    def __init__(self):
         
-
-    Returns
-    -------
-
-    """
+        self.setup()
     
-    c = _curl.Curl(url, silent = False)
-    reqMasses = c.result
-    with warnings.catch_warnings():
-        # there is a deprecated call in lxml
-        warnings.simplefilter('ignore', DeprecationWarning)
-        soupMasses = bs4.BeautifulSoup(reqMasses, 'lxml')
-
-    mass = {}
-    symbol = None
-    a = None
-
-    for tr in soupMasses.find_all('tr'):
-        tr = [td for td in tr.find_all('td')]
-        if not len(tr):
-            continue
-        elif len(tr) == 5:
-            symbol = tr[1].text.strip()
-            mass[symbol] = {}
-        a = int(reNonDigit.sub('', tr[-2].text.strip()))
-        m = [float(reNonDigit.sub('', i)) for i in tr[-1].text.split(',')]
-        m = sum(m) / len(m)
-        mass[symbol][a] = m
     
-    mass['proton']   = 1.00727646677
-    mass['electron'] = 0.00054857990924
-    mass['neutron']  = 1.00866491588
+    def setup(self):
+        
+        self.get_mass_monoiso()
+        self.get_freq_iso()
+        self.get_mass_first_iso()
+        self.get_weights()
     
-    return mass
-
-def getMassMonoIso():
-    """Obtains monoisotopic masses from CIAAW webpage.
-    Stores the result in `massMonoIso` module level variable.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-    globals()['massMonoIso'] = getMasses(urlMasses)
-
-
-def getMassFirstIso():
-    """Obtains the masses of the most abundant isotope for each element.
-    The result stored in the :py:attr:`.massFirstIso` module attribute.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
     
-    if 'massMonoIso' not in globals():
-        getMassMonoIso()
-    if 'freqIso' not in globals():
-        getFreqIso()
-    firstIso = {}
-    for symbol, isos in iteritems(massMonoIso):
-        if symbol in freqIso:
-            try:
-                firstIso[symbol] = \
-                    isos[max(freqIso[symbol].items(), key = lambda i: i[1])[0]]
-            except:
+    @staticmethod
+    def get_masses(url):
+        """
+        Downloads an HTML table from CIAAW webpage
+        and extracts the atomic mass or weight information.
+
+        Parameters
+        ----------
+        url : str
+            URL for the table an HTML table of masses on CIAAW webpage.
+
+        Returns
+        -------
+        Dict of masses or weights.
+        """
+        
+        c = _curl.Curl(url, silent = False)
+        reqMasses = c.result
+        
+        with warnings.catch_warnings():
+            # there is a deprecated call in lxml
+            warnings.simplefilter('ignore', DeprecationWarning)
+            soupMasses = bs4.BeautifulSoup(reqMasses, 'lxml')
+
+        mass = {}
+        symbol = None
+        a = None
+
+        for tr in soupMasses.find_all('tr'):
+            tr = [td for td in tr.find_all('td')]
+            if not len(tr):
                 continue
-    
-    firstIso['proton']   = proton
-    firstIso['electron'] = electron
-    firstIso['neutron']  = neutron
-    globals()['massFirstIso'] = firstIso
-    globals()['massdb'] = firstIso
-
-
-def getWeightStd():
-    """Obtains atomic waights from CIAAW webpage.
-    Stores the result in :py:attr:`.weightStd` attribute of the module.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-    globals()['weightStd'] = getMasses(urlWeights)
-
-
-def getFreqIso():
-    """Obtains isotope abundances from CIAAW webpage.
-    Stores the result in :py:attr:`.freqIso` attribute of the module.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
-    c = _curl.Curl(urlAbundances, silent = False)
-    reqAbundances = c.result.split('\n')
-    
-    # fixing erroneous HTML from CIAAW:
-    for i, l in enumerate(reqAbundances[:-1]):
+            elif len(tr) == 5:
+                symbol = tr[1].text.strip()
+                mass[symbol] = {}
+            a = int(_re_nondigit.sub('', tr[-2].text.strip()))
+            m = [float(_re_nondigit.sub('', i)) for i in tr[-1].text.split(',')]
+            m = sum(m) / len(m)
+            mass[symbol][a] = m
         
-        l = l.strip()
-        # print('..%s.. ..%s..' % (l[-5:], reqAbundances[i + 1][:3]))
-        if l[-5:] == '</tr>' and reqAbundances[i + 1][:3] == '<td':
-            # print('ermfeoirm')
-            reqAbundances[i + 1] = '<tr>%s' % reqAbundances[i + 1]
+        mass['proton']   = 1.00727646677
+        mass['electron'] = 0.00054857990924
+        mass['neutron']  = 1.00866491588
+        
+        return mass
     
-    with warnings.catch_warnings():
-        # there is a deprecated call in lxml
-        warnings.simplefilter('ignore', DeprecationWarning)
-        soupAbundances = bs4.BeautifulSoup('\n'.join(reqAbundances), 'lxml')
+
+    def get_mass_monoiso(self):
+        """
+        Obtains monoisotopic masses from CIAAW webpage.
+        Stores the result in ``massMonoIso`` module level variable.
+        """
+        
+        self.mass_monoiso = self.get_masses(self.url_masses)
     
-    freqIso = {}
-    symbol = None
-    a = None
     
-    for tr in soupAbundances.find_all('tr'):
-        tr = [td for td in tr.find_all('td')]
-        if len(tr) == 6:
-            symbol = tr[1].text.strip()
-            freqIso[symbol] = {}
-        ai = -3 if len(tr) == 6 else -2
-        try:
-            a = int(tr[ai].text.strip())
-            p = [float(reNonDigit.sub('', i)) for i in tr[ai + 1].text.split(',')]
-            p = sum(p) / len(p)
-            freqIso[symbol][a] = p
-        except (ValueError, IndexError, KeyError):
-            continue
-    globals()['freqIso'] = freqIso
+    def get_freq_iso(self):
+        """
+        Obtains isotope abundances from CIAAW webpage.
+        Stores the result in :py:attr:`.freqIso` attribute of the module.
+        """
+        
+        c = _curl.Curl(self.url_abundances, silent = False)
+        req_abundances = c.result.split('\n')
+        
+        # fixing erroneous HTML from CIAAW:
+        for i, l in enumerate(req_abundances[:-1]):
+            
+            l = l.strip()
+            
+            if l[-5:] == '</tr>' and req_abundances[i + 1][:3] == '<td':
+                
+                req_abundances[i + 1] = '<tr>%s' % req_abundances[i + 1]
+        
+        with warnings.catch_warnings():
+            # there is a deprecated call in lxml
+            warnings.simplefilter('ignore', DeprecationWarning)
+            soup_abundances = bs4.BeautifulSoup(
+                '\n'.join(req_abundances),
+                'lxml'
+            )
+        
+        freq_iso = {}
+        symbol = None
+        a = None
+        
+        for tr in soup_abundances.find_all('tr'):
+            
+            tr = [td for td in tr.find_all('td')]
+            
+            if len(tr) == 6:
+                
+                symbol = tr[1].text.strip()
+                freq_iso[symbol] = {}
+            
+            ai = -3 if len(tr) == 6 else -2
+            
+            try:
+                
+                a = int(tr[ai].text.strip())
+                p = [
+                    float(_re_nondigit.sub('', i))
+                    for i in tr[ai + 1].text.split(',')
+                ]
+                p = sum(p) / len(p)
+                freq_iso[symbol][a] = p
+                
+            except (ValueError, IndexError, KeyError):
+                
+                continue
+        
+        self.freq_iso = freq_iso
+
+
+    def get_mass_first_iso(self):
+        """
+        Obtains the masses of the most abundant isotope for each element.
+        The result stored in the :py:attr:``mass_first_iso`` attribute.
+        """
+        
+        first_iso = {}
+        
+        for symbol, isos in iteritems(self.mass_monoiso):
+            
+            if symbol in self.freq_iso:
+                
+                try:
+                    first_iso[symbol] = (
+                        isos[
+                            max(
+                                iteritems(freq_iso[symbol]),
+                                key = lambda i: i[1]
+                            )[0]
+                        ]
+                    )
+                    
+                except:
+                    
+                    continue
+        
+        self.mass_first_iso = first_iso
+
+
+    def get_weights():
+        """
+        Obtains atomic weights from CIAAW webpage.
+        """
+        
+        self.weights = self.get_masses(self.url_weights)
+    
+    
+    def get_isotopes():
+        """
+        Builds a dict of isotopes with their mass and abundance.
+        Result stored in :py:attr:``isotopes`` attribute.
+        """
+        
+        
 
 
 weight_builtin = {
@@ -346,7 +375,7 @@ weight_builtin = {
     "Mt": 266,
 }
 
-isotopes = {
+isotopes_builtin = {
     "H2": 2.01410178,
     "H3": 3.0160492,
     "C13": 13.003355,
@@ -358,7 +387,7 @@ isotopes = {
     "S35": 35.967081
 }
 
-iso_freq = {
+iso_freq_builtin = {
     "H2": 0.000115,
     "H3": 0.0,
     "C13": 0.0107,
@@ -536,22 +565,32 @@ class MassBase(object):
     
     def formula_from_dict(self, atoms):
         """
-
+        Creates a formula from a dict of atom counts.
+        
         Parameters
         ----------
-        atoms :
-            
-
-        Returns
-        -------
-
+        atoms : dict
+            Dict of atoms i.e. elements as keys and counts as values.
         """
         
         self.formula = ''.join('%s%u'%(elem.capitalize(), num) \
             for elem, num in iteritems(atoms))
     
+    def update_atoms(self):
+        """
+        Sets the atoms dict by processing the ``formula`` attribute.
+        """
+        
+        if self.formula:
+            
+            self._atoms = formula_to_atoms(self.formula)
+    
+    @property
+    def atoms(self):
+        
+        return self._atoms if hasattr(self, '_atoms') else {}
+    
     def reload(self):
-        """ """
         
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
@@ -632,25 +671,22 @@ class IsotopeModel(MassBase,ElementComposition):
                 
                 ElementComposition.__init__(self, **kwargs)
                 
-                if isinstance(formula_mass, (float, np.float64)):
-                    
-                    MassBase.__init__(formula_mass = formula_mass)
-                    
-                else:
-                    
-                    self.update_mass(.0)
-                
-            elif isinstance(formula_mass):
-                
-                MassBase.__init__(self)
+                MassBase.__init__(formula_mass = formula_mass or 0.0)
     
     
     def update_mass(self, mass):
         
         self.mass = mass
-        
         self.mass_calculated = False
-        self.atoms = {}
+    
+    
+    def get_isotopes(self, levels = 4, mass = None):
+        
+        if mass:
+            
+            self.update_mass(mass)
+        
+        
 
 
 parts = {
