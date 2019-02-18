@@ -1575,7 +1575,8 @@ class SpectrumPlot(PlotBase):
     annotations : str
         annotations of peaks
     """
-    
+
+
     def __init__(
             self,
             mzs,
