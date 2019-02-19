@@ -245,7 +245,7 @@ class Formula(mass.MassBase, mz.Mz):
         zero mass).
         """
         
-        self.atoms = defaultdict(int)
+        self._atoms = defaultdict(int)
     
     def as_mass(self):
         """
@@ -265,7 +265,7 @@ class Formula(mass.MassBase, mz.Mz):
             Chemical formula.
         """
         
-        for elem, cnt in mass.reform.findall(formula):
+        for elem, cnt in mass._re_form.findall(formula):
             self.atoms[elem] += int(cnt or '1')
         
         self.update()
@@ -281,7 +281,7 @@ class Formula(mass.MassBase, mz.Mz):
             Chemical formula.
         """
         
-        for elem, cnt in mass.reform.findall(formula):
+        for elem, cnt in mass._re_form.findall(formula):
             self.atoms[elem] -= int(cnt or '1')
             
             if self.atoms[elem] < 0:

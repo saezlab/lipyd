@@ -580,7 +580,6 @@ class MassBase(object):
                     m = this_isotope
                     
                 m -= self.charge * electron
-                # m += self.isotope * neutron # TODO: include isotope model
                 self.mass = m
                 
                 self.mass_calculated = self.has_mass()
