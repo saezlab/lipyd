@@ -17,6 +17,7 @@
 #  Website: http://denes.omnipathdb.org/
 #
 
+from past.builtins import xrange, range
 from future.utils import iteritems
 
 import bs4
@@ -25,7 +26,15 @@ import warnings
 import imp
 import sys
 import copy
-from collections import defaultdict
+import functools
+import operator
+import itertools
+import collections
+
+try:
+    import pyopenms as oms
+except:
+    pass
 
 import lipyd._curl as _curl
 
@@ -64,7 +73,7 @@ def formula_to_atoms(formula):
     ``dict`` with elements as keys and counts as values.
     """
     
-    atoms = defaultdict(int)
+    atoms = collections.defaultdict(int)
     
     for elem, cnt in _re_form.findall(formula):
         
@@ -102,16 +111,19 @@ class MassDatabase(object):
     
     
     def setup(self):
+        """
+        Populates the mass database.
+        """
         
-        self.get_mass_monoiso()
-        self.get_freq_iso()
+        self.load_mass_monoiso()
+        self.load_freq_iso()
         self.setup_mass_first_iso()
-        # self.get_weights()
+        # self.get_weights() # this does not work at the moment
         self.setup_isotopes()
     
     
     @staticmethod
-    def get_masses(url):
+    def load_masses(url):
         """
         Downloads an HTML table from CIAAW webpage
         and extracts the atomic mass or weight information.
@@ -166,16 +178,16 @@ class MassDatabase(object):
         return masses
     
 
-    def get_mass_monoiso(self):
+    def load_mass_monoiso(self):
         """
         Obtains monoisotopic masses from CIAAW webpage.
         Stores the result in ``massMonoIso`` module level variable.
         """
         
-        self.mass_monoiso = self.get_masses(self.url_masses)
+        self.mass_monoiso = self.load_masses(self.url_masses)
     
     
-    def get_freq_iso(self):
+    def load_freq_iso(self):
         """
         Obtains isotope abundances from CIAAW webpage.
         Stores the result in :py:attr:`.freqIso` attribute of the module.
@@ -268,7 +280,7 @@ class MassDatabase(object):
         Obtains atomic weights from CIAAW webpage.
         """
         
-        self.weights = self.get_masses(self.url_weights)
+        self.weights = self.load_masses(self.url_weights)
     
     
     def setup_isotopes(self):
@@ -277,7 +289,22 @@ class MassDatabase(object):
         Result stored in :py:attr:``isotopes`` attribute.
         """
         
-        pass
+        isotopes = {}
+        
+        for elem, isos in iteritems(self.freq_iso):
+            
+            isotopes[elem] = {}
+            
+            min_nominal = min(isos.keys(), default = 0)
+            
+            for nominal, freq in iteritems(isos):
+                
+                isotopes[elem][nominal - min_nominal] = (
+                    self.mass_monoiso[elem][nominal],
+                    freq
+                )
+        
+        self.isotopes = isotopes
     
     
     def first_isotope_mass(self, elem):
@@ -539,8 +566,21 @@ class MassBase(object):
                 for element, count in atoms:
                     count = int(count or '1')
                     m += self.exmass[element] * count
+                
+                if self.isotope:
+                    
+                    oms_formula = oms.EmpiricalFormula(self.formula)
+                    iso_pattern_gen = oms.CoarseIsotopePatternGenerator(
+                        self.isotope + 1
+                    )
+                    isotopes = oms_formula.getIsotopeDistribution(
+                        iso_pattern_gen
+                    )
+                    this_isotope = list(isotopes.getContainer())[-1].getMZ()
+                    m = this_isotope
+                    
                 m -= self.charge * electron
-                m += self.isotope * neutron # TODO: include isotope model
+                # m += self.isotope * neutron # TODO: include isotope model
                 self.mass = m
                 
                 self.mass_calculated = self.has_mass()
@@ -639,53 +679,6 @@ class ElementComposition(object):
     def __iter__(self):
         
         return iteritems(self.composition)
-
-
-class IsotopeModel(MassBase,ElementComposition):
-    """
-    Provides estimates about the mass and abundance of the isotopic variants
-    of compounds. If the formula of the compound is known the isotopic
-    abundances and masses will be accurate. Otherwise the approximate element
-    composition can be provided or a defaul average composition will be used.
-    """
-    
-    
-    def __init__(self, formula_mass = None, **kwargs):
-        
-        if isinstance(formula_mass, common.basestring):
-            
-            # we got a formula, MassBase can be initialized
-            MassBase.__init__(self, formula_mass = formula_mass)
-            # and ElementComposition from the atoms dict
-            ElementComposition.__init__(self, **self.atoms)
-            
-        elif kwargs:
-            
-            if (
-                any(
-                    isinstance(i, (float, np.float64))
-                    for i in kwargs.values()
-                )
-            ):
-                
-                ElementComposition.__init__(self, **kwargs)
-                
-                MassBase.__init__(formula_mass = formula_mass or 0.0)
-    
-    
-    def update_mass(self, mass):
-        
-        self.mass = mass
-        self.mass_calculated = False
-    
-    
-    def get_isotopes(self, levels = 4, mass = None):
-        
-        if mass:
-            
-            self.update_mass(mass)
-        
-        
 
 
 parts = {
