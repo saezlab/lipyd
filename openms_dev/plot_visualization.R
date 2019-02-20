@@ -1,6 +1,8 @@
 require(ggplot2)
 require(viridis)
 require(dplyr)
+require(readr)
+
 
 reqplot1 <- ggplot(df %>% filter(V2 > 1 & V5 > 1), aes(x = V2, y = V5))+
   geom_hex() +
@@ -51,54 +53,57 @@ ggsave('Density-ppm-openms_STARD10_A10_pos', device = "jpeg", height = 4, width 
 
 print(log10(82900000))
 
-require(readr)
-require(dplyr)
 
-help(read_table)
+teo <- suppressWarnings(suppressMessages(
+    read_table2('teo.txt', col_names = c('rt', 'mz_measured', 'nothing'))
+)) %>%
+    filter(!is.na(rt)) %>%
+    mutate(
+        isotope = ifelse(
+        mz_measured < 786.7,
+        0,
+        ifelse(
+            mz_measured < 787.7,
+            1,
+            ifelse(
+            mz_measured < 788.7,
+            2,
+            3
+            )
+        )
+        ),
+        mz_theoretical = ifelse(
+        mz_measured < 786.7,
+        786.60073213211,
+        ifelse(
+            mz_measured < 787.7,
+            787.60939704799,
+            ifelse(
+            mz_measured < 788.7,
+            788.61806196387,
+            789.62672687975
+            )
+        )
+        ),
+        ppm = (mz_measured - mz_theoretical) / mz_theoretical * 1e06
+    )
 
-teo <- suppressWarnings(suppressMessages(read_table2(
-  "/home/igor/Documents/Black_scripts/Comparison/teo.txt",
-  col_names = c('rt', 'mz_measured', 'nothing')
-))) %>%
-  mutate(
-    isotope = ifelse(
-      mz_measured < 786.7,
-      0,
-      ifelse(
-        mz_measured < 787.7,
-        1,
-        ifelse(
-          mz_measured < 788.7,
-          2,
-          3
-        )
-      )
-    ),
-    mz_theoretical = ifelse(
-      mz_measured < 786.7,
-      786.60073213211,
-      ifelse(
-        mz_measured < 787.7,
-        787.60939704799,
-        ifelse(
-          mz_measured < 788.7,
-          788.61806196387,
-          789.62672687975
-        )
-      )
-    ),
-    ppm = (mz_measured - mz_theoretical) / mz_theoretical * 1e06
-  )
-help(facet_grid)
 facet_plot <- ggplot(teo, aes(rt, ppm)) +
-  geom_line(color = 'black') +
-  geom_point(size = .3) +
-  facet_grid(rows = vars(isotope)) +
-  theme_minimal()
+    geom_line(color = '#EF3A43', lwd = .3) +
+    geom_point(size = .3, color = '#EF3A43') +
+    # PEAKS A10
+    geom_hline(yintercept = -1.6935, color = '#B7CA54', lwd = .1) +
+    # instrument error
+    geom_hline(yintercept = -1.778, color = '#529986', lwd = .1) +
+    facet_grid(rows = vars(isotope)) +
+    xlab('RT [s]') +
+    ylim(c(NA, 0)) +
+    ylab('Error (measured vs. theoretical) [ppm]') +
+    theme_linedraw()
 
-facet_plot + facet_grid(rows = vars('RT'))
-facet_plot + facet_grid(cols = vars('ppm'))
-facet_plot + facet_grid(vars('RT'), vars('ppm'))
-
-head(teo)
-ggsave('Facet_plot_STARD10_A10_pos', device = "jpeg", height = 4, width = 5)
+ggsave(
+    'STARD10_A10_pos_786.5_ppms.pdf',
+    device = cairo_pdf,
+    height = 4,
+    width = 5
+)
