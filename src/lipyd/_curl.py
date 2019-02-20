@@ -1096,6 +1096,10 @@ class Curl(FileOpener):
                     match = re.search(r'charset=(\S+)', content_type)
                     if match:
                         self.encoding = match.group(1)
+        
+        if self.encoding is None:
+            
+            self.encoding = 'utf-8'
 
     def get_type(self):
         self.multifile = False
