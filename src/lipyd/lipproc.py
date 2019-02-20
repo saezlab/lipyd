@@ -466,6 +466,10 @@ def subspecies_str(hg, chains, iso = False, sort_chains = True):
         
         return summary_str(hg, chains)
     
+    if not chains:
+        
+        return subclass_str(hg)
+    
     chain_types = set(c.typ for c in chains)
     
     if chain_types == {'FA'}:
