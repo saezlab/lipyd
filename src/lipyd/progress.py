@@ -8,7 +8,6 @@
 #
 #  File author(s):
 #  Dénes Türei (turei.denes@gmail.com)
-#  Igor Bulanov
 #
 #  Distributed under the GNU GPLv3 License.
 #  See accompanying file LICENSE.txt or copy at
@@ -24,26 +23,31 @@ import tqdm
 
 __all__ = ['Progress']
 
+
 class Progress(object):
     
-    """Before I had my custom progressbar here.
+    """
+    Before I had my custom progressbar here.
     Now it is a wrapper around the great progressbar `tqdm`.
     Old implementation moved to `OldProgress` class.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
     """
     
-    def __init__(self, total = None, name = "Progress",
-             interval = None, percent = True, status = 'initializing',
-             done = 0, init = True, unit = 'it'):
+    def __init__(
+            self,
+            total = None,
+            name = "Progress",
+            interval = None,
+            percent = True,
+            status = 'initializing',
+            done = 0,
+            init = True,
+            unit = 'it',
+        ):
         
         self.name = name
-        self.interval = max(int(total / 100), 1) if interval is None else interval
+        self.interval = (
+            max(int(total / 100), 1) if interval is None else interval
+        )
         self.total = total
         self.done = done
         self.status = status
@@ -56,7 +60,7 @@ class Progress(object):
             self.init_tqdm()
     
     def reload(self):
-        """ """
+        
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist=[modname.split('.')[0]])
         imp.reload(mod)
@@ -64,7 +68,7 @@ class Progress(object):
         setattr(self, '__class__', new)
     
     def init_tqdm(self):
-        """ """
+        
         self.tqdm = tqdm.tqdm(total = self.total,
                               desc = '%s: %s' % (self.name, self.status),
                               unit_scale = True,
@@ -72,25 +76,22 @@ class Progress(object):
         self.last_updated = time.time()
     
     def step(self, step = 1, msg = None, status = 'busy', force = False):
-        """Updates the progressbar by the desired number of steps.
+        """
+        Updates the progressbar by the desired number of steps.
 
         Parameters
         ----------
-        int :
-            step: Number of steps or items.
-        step :
-             (Default value = 1)
-        msg :
-             (Default value = None)
-        status :
-             (Default value = 'busy')
-        force :
-             (Default value = False)
-
-        Returns
-        -------
-
+        step : int
+            Number of steps or items.
+        msg : str
+            Message to be shown on the progress bar.
+        status : str
+            Status label (e.g. initializing, busy, finished, etc).
+        force : bool
+            Force update right now (normally update performed only in
+            specified intervals).
         """
+        
         self.done += step
         
         if force or (self.done % self.interval < 1.0 and \
@@ -110,85 +111,52 @@ class Progress(object):
             self.last_updated = time.time()
     
     def terminate(self, status = 'finished'):
-        """Terminates the progressbar and destroys the tqdm object.
-
-        Parameters
-        ----------
-        status :
-             (Default value = 'finished')
-
-        Returns
-        -------
-
         """
+        Terminates the progressbar and destroys the tqdm object.
+        """
+        
         self.step(self.total - self.done, force = True, status = status)
         self.tqdm.close()
     
     def set_total(self, total):
-        """Changes the total value of the progress bar.
-
-        Parameters
-        ----------
-        total :
-            
-
-        Returns
-        -------
-
         """
+        Changes the total value of the progress bar.
+        """
+        
         self.total = total
         self.tqdm.total = total
         self.step(0)
     
     def set_done(self, done):
-        """Sets the position of the progress bar.
-
-        Parameters
-        ----------
-        done :
-            
-
-        Returns
-        -------
-
         """
+        Sets the position of the progress bar.
+        """
+        
         self.done = done
         self.tqdm.n = self.done
         self.tqdm.last_print_n = self.done
         self.step(0)
     
     def set_status(self, status):
-        """Changes the prefix of the progressbar.
-
-        Parameters
-        ----------
-        status :
-            
-
-        Returns
-        -------
-
         """
+        Changes the prefix of the progressbar.
+        """
+        
         if status != self.status:
+            
             self.status = status
             self.tqdm.set_description(self.get_desc())
             self.tqdm.refresh()
     
     def get_desc(self):
-        """Returns a formatted string of the description, consisted of
+        """
+        Returns a formatted string of the description, consisted of
         the name and the status. The name supposed something constant
         within the life of the progressbar, while the status is there
         to give information about the current stage of the task.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-
         """
+        
         return '%s%s%s%s' % (' ' * 8,
                              self.name,
                              ' -- ' if len(self.name) else '',
                              self.status)
-

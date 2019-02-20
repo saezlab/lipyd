@@ -174,7 +174,7 @@ class FattyFragment(metabolite.AbstractSubstituent):
         
         cminus = dict(
             (elem, -cnt) for elem, cnt in
-            iteritems(metabolite.formula.formula2atoms(minus))
+            iteritems(metabolite.mass.formula_to_atoms(minus))
         )
         
         cminus['H'] = cminus['H'] - 2 if 'H' in cminus else -2
