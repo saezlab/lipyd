@@ -564,14 +564,32 @@ class FileOpener(object):
             self.extract()
 
     def open(self):
+        """
+        Opens the file if exists.
+        """
+        
         if self.fileobj is None and os.path.exists(self.fname):
-            mode = 'r' if self.encoding else 'rb'
-            self.fileobj = open(self.fname, mode, encoding = self.encoding)
+            
+            if self.encoding and self.type == 'plain':
+                
+                self.fileobj = open(self.fname, 'r', encoding = self.encoding)
+                
+            else:
+                
+                self.fileobj = open(self.fname, 'rb')
 
     def extract(self):
+        """
+        Calls the extracting method for compressed files.
+        """
+        
         getattr(self, 'open_%s' % self.type)()
 
     def open_tgz(self):
+        """
+        Extracts files from tar gz.
+        """
+        
         self.files_multipart = {}
         self.sizes = {}
         self.tarfile = tarfile.open(fileobj=self.fileobj, mode='r:gz')
@@ -595,7 +613,7 @@ class FileOpener(object):
         self.fileobj.seek(-4, 2)
         self.size = struct.unpack('I', self.fileobj.read(4))[0]
         self.fileobj.seek(0)
-        self.gzfile = gzip.GzipFile(fileobj = self.fileobj, mode = 'rb')
+        self.gzfile = gzip.GzipFile(fileobj=self.fileobj, mode='rb')
         # try:
         if self.large:
             self.result = self.iterfile(self.gzfile)
@@ -705,7 +723,7 @@ class Curl(FileOpener):
                  process=True,
                  retries=3,
                  cache_dir=None):
-        
+
         self.result = None
         self.download_failed = False
         self.status = 0
@@ -717,6 +735,7 @@ class Curl(FileOpener):
         self.local_file = os.path.exists(self.url)
         self.get = get
         self.force_quote = force_quote
+        
         if not self.local_file:
             
             self.process_url()
@@ -754,7 +773,7 @@ class Curl(FileOpener):
         
         self.write_cache = write_cache
         self.outfile = outf
-        
+
         self.init_url = init_url
         self.init_fun = init_fun
         self.init_use_cache = init_use_cache
@@ -799,7 +818,7 @@ class Curl(FileOpener):
                     '\t:: Loading data from cache '
                     'previously downloaded from %s\n' % self.domain
                 )
-                
+            
             sys.stdout.flush()
         if process and not self.download_failed and not DRYRUN:
             self.process_file()
@@ -809,7 +828,7 @@ class Curl(FileOpener):
 
         if PRESERVE:
             self.print_debug_info('INFO', 'PRESERVING Curl() INSTANCE '
-                                  'IN lipyd._curl.LASTCURL')
+                                  'IN pypath.curl.LASTCURL')
             setattr(sys.modules[__name__], 'LASTCURL', self)
     
     def __del__(self):
@@ -995,7 +1014,7 @@ class Curl(FileOpener):
             try:
                 if self.debug:
                     self.print_debug_info(
-                        'INFO', 'lipyd._curl.Curl().curl_call() :: attempt #%u'
+                        'INFO', 'pypath.curl.Curl().curl_call() :: attempt #%u'
                         % attempt)
                 self.curl.perform()
                 
@@ -1041,23 +1060,21 @@ class Curl(FileOpener):
                 self.curl.setopt(pycurl.PROGRESSFUNCTION, self.update_progress)
 
     def bytes2unicode(self, string, encoding=None):
+        
         if type(string) is unicode:
             return string
         if encoding is not None:
             return string.decode(encoding)
         else:
             try:
-                return string.decode('ascii')
+                return string.decode('utf-8')
+                
             except UnicodeDecodeError:
                 try:
-                    return string.decode('utf-8')
-                
-                except UnicodeDecodeError:
-                    try:
-                        return string.decode('iso-8859-1')
-                    except:
-                        self.print_debug_info('ERROR', 'String decoding error')
-                        return u''
+                    return string.decode('iso-8859-1')
+                except:
+                    self.print_debug_info('ERROR', 'String decoding error')
+                    return u''
 
     def unicode2bytes(self, string, encoding=None):
         if type(string) is bytes:
@@ -1099,23 +1116,20 @@ class Curl(FileOpener):
     def guess_encoding(self):
         
         if self.encoding is None:
+            
             if not self.use_cache:
+                
                 if 'content-type' in self.resp_headers:
+                    
                     content_type = self.resp_headers['content-type'].lower()
                     match = re.search(r'charset=(\S+)', content_type)
                     if match:
                         self.encoding = match.group(1)
         
-<<<<<<< HEAD
-        #if self.encoding is None:
-            
-            #self.encoding = 'utf-8'
-=======
         if self.encoding is None:
             
             self.encoding = 'utf-8'
->>>>>>> igor1
-
+    
     def get_type(self):
         self.multifile = False
         if self.filename[-3:].lower() == 'zip' or self.compr == 'zip':
@@ -1289,28 +1303,49 @@ class Curl(FileOpener):
             self.print_status('Extracting %s data' % self.type)
         self.extract()
     
+    
     def decode_result(self):
+        
         if self.progress is not None:
-            self.print_status('Decoding %s encoded data' %
-                              (self.encoding or 'utf-8'))
+            
+            self.print_status(
+                'Decoding %s encoded data' % (self.encoding or 'utf-8')
+            )
     
         def _decode_result(content):
+            
             try:
-                return content.decode(self.encoding or 'utf-8')
+                if isinstance(content, common.basestring):
+                    
+                    return content
+                    
+                else:
+                    
+                    return content.decode(self.encoding or 'utf-8')
+                
             except:
-                self.print_debug_info('WARNING',
+                
+                self.print_debug_info(
+                    'WARNING',
                     'Failed '
                     'decoding downloaded bytes content with encoding %s. '
                     'Result might be of type bytes' %
-                    (self.encoding or 'utf-8'))
+                    (self.encoding or 'utf-8')
+                )
                 return content
     
         if not self.large:
+            
             if type(self.result) is dict:
+                
                 for name, content in iteritems(self.result):
+                    
                     self.result[name] = _decode_result(content)
+                
             else:
+                
                 self.result = _decode_result(self.result)
+    
     
     def get_result_type(self):
         if type(self.result) is dict:
