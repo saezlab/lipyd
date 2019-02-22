@@ -1334,6 +1334,14 @@ class MoleculeDatabaseAggregator(object):
             
             for mass, data in zip(self.masses, self.data):
                 
+                try:
+                    
+                    std_name = '%s;' % data.subspecies_str()
+                    
+                except AttributeError:
+                    
+                    std_name = ''
+                
                 _ = fp.write(
                     '%s\n' % ','.join((
                         '', # we don't know RT, leaving it empty
@@ -1343,8 +1351,8 @@ class MoleculeDatabaseAggregator(object):
                                 if data.lab.db == 'lipyd.lipid' else
                             data.lab.db_id
                         ),
-                        '"%s;%s"' % (
-                            data.subspecies_str(),
+                        '"%s%s"' % (
+                            std_name,
                             data.lab.names[0],
                         ),
                         data.lab.formula,
