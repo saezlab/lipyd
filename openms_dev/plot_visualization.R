@@ -102,8 +102,27 @@ facet_plot <- ggplot(teo, aes(rt, ppm)) +
     theme_linedraw()
 
 ggsave(
-    'STARD10_A10_pos_786.5_ppms.pdf',
+    'STARD10_A10_pos_786.5_isotopes_ppms.pdf',
     device = cairo_pdf,
     height = 4,
+    width = 5
+)
+
+facet_plot <- ggplot(teo %>% filter(isotope == 0), aes(rt, ppm)) +
+    geom_line(color = '#EF3A43', lwd = .3) +
+    geom_point(size = .3, color = '#EF3A43') +
+    # PEAKS A10
+    geom_hline(yintercept = -1.6935, color = '#B7CA54', lwd = .2) +
+    # instrument error
+    geom_hline(yintercept = -1.778, color = '#529986', lwd = .2) +
+    xlab('RT [s]') +
+    ylim(c(NA, 0)) +
+    ylab('Error [ppm]') +
+    theme_linedraw()
+
+ggsave(
+    'STARD10_A10_pos_786.5_ppms.pdf',
+    device = cairo_pdf,
+    height = 2,
     width = 5
 )
