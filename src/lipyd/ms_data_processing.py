@@ -28,20 +28,22 @@ class Data_Processing(object):
     ----------
     
     """
-    def __init__(self,
-                raw_data_file = None,
-                peaked_file = None,
-                feature_file = None,
-                seeds = None,
-                fh = None,
-                options = None,
-                picked_input_map = None,
-                ff = None,
-                features = None,
-                name = None,
-                params = None,
-                featureXML_file_name=None,
-                raw_map = None):
+    def __init__(
+            self,
+            raw_data_file = None,
+            peaked_file = None,
+            feature_file = None,
+            seeds = None,
+            fh = None,
+            options = None,
+            picked_input_map = None,
+            ff = None,
+            features = None,
+            name = None,
+            params = None,
+            featureXML_file_name=None,
+            raw_map = None
+        ):
         
         self.featureXML_file_name = featureXML_file_name
         self.raw_data_file = raw_data_file
