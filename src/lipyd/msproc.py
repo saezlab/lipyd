@@ -59,11 +59,11 @@ class MSPreprocess(object):
             features = None,
             name = None,
             params = None,
-            raw_map = None,
+            profile_map = None,
             smooth_profile_data = False,
             peak_picking_iterative = True,
             feature_min_spectra = 5,
-            feature_min_rt_span = .9,
+            feature_min_rt_span = .09,
             feature_max_rt_span = 4.5,
             feature_finder_param = None,
             gaussian_smoothing_param = None,
@@ -180,26 +180,46 @@ class MSPreprocess(object):
         self.log.msg(
             'Performing peak picking on experiment `%s`.' % self.name
         )
-        self.log.msg('Using profile data from `%s`.' % self.profile_mzml)
+        
+        self.open_profile_mzml()
+        self.smoothing()
+        self.run_peak_picker()
+        self.export_centroid_mzml()
+        
+        
         self.log.msg(
-            'Centroid data will be written to `%s`.' % self.centroid_mzml
+            'Peak picking finished. Centroid data has been '
+            'written to `%s`.' % self.centroid_mzml
         )
+    
+    
+    def open_profile_mzml(self):
+        
+        self.log.msg('Loading profile data from `%s`.' % self.profile_mzml)
         
         # As I understand this belongs to the peak picking
         # hence I moved here, we don't need these attributes in __init__
-        self.raw_map = oms.MSExperiment()
-        self.picked_out_map = oms.MSExperiment()
+        self.profile_map = oms.MSExperiment()
+        self.centroid_out_map = oms.MSExperiment()
         
-        oms.MzMLFile().load(self.profile_mzml, self.raw_map)
-        
-        if self.smooth_profile_data:
+        oms.MzMLFile().load(self.profile_mzml, self.profile_map)
+    
+    
+    def smoothing(self):
+    
+        if not self.smooth_profile_data:
             
-            self.log.msg('Smoothing profile data by Gaussian filter.')
-            
-            gs = oms.GaussFilter()
-            gs.filterExperiment(self.raw_map)
+            return
         
-        self.log.msg('Starging peak picking.')
+        self.log.msg('Smoothing profile data by Gaussian filter.')
+        
+        gs = oms.GaussFilter()
+        gs.filterExperiment(self.profile_map)
+    
+    
+    def run_peak_picker(self):
+        
+        self.log.msg('Starting peak picking.')
         
         if self.peak_picking_iterative:
             
@@ -209,17 +229,25 @@ class MSPreprocess(object):
             
             self.pp = oms.PeakPickerHiRes()
         
-        self.pp.pickExperiment(self.raw_map, self.picked_out_map)
-        self.picked_out_map.updateRanges()
-        oms.MzMLFile().store(self.centroid_mzml, self.picked_out_map)
+        self.pp.pickExperiment(self.profile_map, self.centroid_out_map)
+        self.centroid_out_map.updateRanges()
+    
+    
+    def export_centroid_mzml(self):
         
-        self.log.msg(
-            'Peak picking finished. Centroid data has been '
-            'written to `%s`.' % self.centroid_mzml
-        )
+        oms.MzMLFile().store(self.centroid_mzml, self.centroid_out_map)
     
     
     def feature_detection(self):
+        
+        if not self.centroid_mzml:
+            
+            self.log.msg(
+                'No centroid data available, '
+                'unable to run feature detection.'
+            )
+            
+            return
         
         self.log.msg('Starting feature detection.')
         
@@ -229,7 +257,7 @@ class MSPreprocess(object):
         self.setup_feature_finder()
         
         self.run_feature_finder()
-        self.save_features()
+        self.export_features()
         
         self.log.msg('Feature detection finished.')
     
@@ -277,7 +305,7 @@ class MSPreprocess(object):
         # saving features into featureXML
         self.features.setUniqueIds()
     
-    def save_features(self):
+    def export_features(self):
         
         self.log.msg('Saving features into `%s`.' % self.features_file)
         
