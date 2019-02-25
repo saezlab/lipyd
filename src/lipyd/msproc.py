@@ -58,7 +58,11 @@ class MSPreprocess(object):
             name = None,
             params = None,
             raw_map = None,
+            smooth_profile_data = False,
             peak_picking_iterative = True,
+            feature_min_spectra = 5,
+            feature_min_rt_span = .15,
+            feature_max_rt_span = 4.5,
         ):
         
         # filenames and paths
@@ -66,7 +70,11 @@ class MSPreprocess(object):
         self.peaks_file = peaks_file
         self.features_file = features_file
         self.wd = wd
+        self.smooth_profile_data = smooth_profile_data
         self.peak_picking_iterative = peak_picking_iterative
+        self.feature_min_spectra = feature_min_spectra
+        self.feature_min_rt_span = feature_min_rt_span
+        self.feature_max_rt_span = feature_max_rt_span
         
         self.set_paths()
     
@@ -108,6 +116,11 @@ class MSPreprocess(object):
         
         oms.MzMLFile().load(self.profile_mzml, self.raw_map)
         
+        if self.smooth_profile_data:
+            
+            gs = oms.GaussFilter()
+            gs.filterExperiment(self.raw_map)
+        
         if self.peak_picking_iterative:
             
             self.pp = oms.PeakPickerIterative()
@@ -128,11 +141,24 @@ class MSPreprocess(object):
         self.seeds = oms.FeatureMap()
         self.fh = oms.MzMLFile()
         self.options = oms.PeakFileOptions()
+        self.options.setMaxDataPoolSize(10000)
         self.picked_input_map = oms.MSExperiment()
         self.ff = oms.FeatureFinder()
         self.features = oms.FeatureMap()
         self.name = oms.FeatureFinderAlgorithmPicked().getProductName()
         self.params = oms.FeatureFinder().getParameters(self.name)
+        self.params.setValue(
+            b'mass_trace:min_spectra',
+            self.feature_min_spectra
+        )
+        self.params.setValue(
+            b'feature:min_rt_span',
+            self.feature_min_rt_span
+        )
+        self.params.setValue(
+            b'feature:max_rt_span',
+            self.feature_max_rt_span
+        )
         
         self.options.setMSLevels([1,1])
         self.fh.setOptions(self.options)
