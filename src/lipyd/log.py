@@ -170,7 +170,7 @@ class Logger(object):
     
     def flush_hook(self):
         
-        if self.last_flush - time.time() > self.max_flush_interval:
+        if time.time() - self.last_flush > self.max_flush_interval:
             
             self.flush()
     
