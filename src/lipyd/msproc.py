@@ -17,6 +17,8 @@
 #  Website: http://denes.omnipathdb.org/
 #
 
+from future.utils import iteritems
+
 import os
 import imp
 
@@ -61,9 +63,20 @@ class MSPreprocess(object):
             smooth_profile_data = False,
             peak_picking_iterative = True,
             feature_min_spectra = 5,
-            feature_min_rt_span = .15,
+            feature_min_rt_span = .9,
             feature_max_rt_span = 4.5,
+            feature_finder_param = None,
+            gaussian_smoothing_param = None,
+            logger = None,
         ):
+        
+        self.log = (
+            logger or
+            log.new_logger(
+                'lipyd.msproc',
+                logdir = 'lipyd_log',
+            )
+        )
         
         # filenames and paths
         self.profile_mzml = profile_mzml
@@ -75,36 +88,85 @@ class MSPreprocess(object):
         self.feature_min_spectra = feature_min_spectra
         self.feature_min_rt_span = feature_min_rt_span
         self.feature_max_rt_span = feature_max_rt_span
+        self.ff_param = feature_finder_param
+        self.gs_param = gaussian_smoothing_param
+    
+    
+    def main(self):
+        
+        self.setup()
+        self.peak_picking()
+        self.feature_detection()
+    
+    
+    def setup(self):
         
         self.set_paths()
+        self.set_feature_finder_param()
     
     
     def set_paths(self):
         
         # default name for all files:
         # name of the input mzML with the path and extension removed
-        self._name = '.'.join(
-            os.path.split(self.profile_mzml)[-1].split('.')[:-1]
-        )
+        if not hasattr(self, 'name'):
+            
+            self.name = '.'.join(
+                os.path.splitext(os.path.split(self.profile_mzml)[-1])[0]
+            )
         
         # the working directory
         self.wd = self.wd or settings.get('ms_preproc_wd')
-        self.wd = os.path.join(self.wd, self._name)
+        self.wd = os.path.join(self.wd, self.name)
         os.makedirs(self.wd, exist_ok = True)
         
-        self.peaks_file = self.peaks_file or '%s__peaks.mzML' % self._name
+        self.peaks_file = self.peaks_file or '%s__peaks.mzML' % self.name
         self.peaks_file = os.path.join(self.wd, self.peaks_file)
         
         self.features_file = (
-            self.features_file or '%s__features.featureXML' % self._name
+            self.features_file or '%s__features.featureXML' % self.name
         )
         self.features_file = os.path.join(self.wd, self.features_file)
     
     
-    def main(self):
+    def set_feature_finder_param(self):
         
-        self.peak_picking()
-        self.feature_detection()
+        self.ff_param = self.ff_param or {}
+        
+        self.ff_param = dict(
+            (
+                param.encode('ascii') if hasattr(param, 'encode') else param,
+                value,
+            )
+            for param, value in iteritems(self.ff_param)
+        )
+        
+        extra_param = dict((
+            (b'mass_trace:min_spectra', self.feature_min_spectra),
+            (b'feature:min_rt_span', self.feature_min_rt_span),
+            (b'feature:max_rt_span', self.feature_max_rt_span),
+        ))
+        
+        extra_param.update(self.ff_param)
+        
+        self.ff_param = extra_param
+        
+        self.ff_type = oms.FeatureFinderAlgorithmPicked().getProductName()
+        self.ff_param_oms = oms.FeatureFinder().getParameters(self.ff_type)
+        all_param = self.ff_param_oms.keys()
+        
+        for param, value in iteritems(self.ff_param):
+            
+            if param not in all_param:
+                
+                self.log.msg(
+                    'Warning: unknown parameter for '
+                    'pyopenms.FeatureFinder: `%s`' % param.decode('ascii')
+                )
+                
+                continue
+            
+            self.ff_param_oms.setValue(param, value)
     
     
     def peak_picking(self):
@@ -138,45 +200,39 @@ class MSPreprocess(object):
         
         # As I understand this belongs to the feature detection
         # hence I moved here, we don't need these attributes in __init__
+        
+        # opening and reading centroided data from mzML
+        self.peaks_mzml_fh = oms.MzMLFile()
+        self.peaks_mzml_options = oms.PeakFileOptions()
+        self.peaks_mzml_options.setMaxDataPoolSize(10000)
+        self.peaks_mzml_options.setMSLevels([1,1])
+        self.fh.setOptions(self.peaks_mzml_options)
+        self.peaks_mzml_fh.load(self.peaks_file, self.picked_input_map)
+        self.picked_input_map.updateRanges()
+        
+        # setting up the FeatureFinder
         self.seeds = oms.FeatureMap()
-        self.fh = oms.MzMLFile()
-        self.options = oms.PeakFileOptions()
-        self.options.setMaxDataPoolSize(10000)
         self.picked_input_map = oms.MSExperiment()
         self.ff = oms.FeatureFinder()
         self.features = oms.FeatureMap()
-        self.name = oms.FeatureFinderAlgorithmPicked().getProductName()
-        self.params = oms.FeatureFinder().getParameters(self.name)
-        self.params.setValue(
-            b'mass_trace:min_spectra',
-            self.feature_min_spectra
-        )
-        self.params.setValue(
-            b'feature:min_rt_span',
-            self.feature_min_rt_span
-        )
-        self.params.setValue(
-            b'feature:max_rt_span',
-            self.feature_max_rt_span
-        )
-        
-        self.options.setMSLevels([1,1])
-        self.fh.setOptions(self.options)
-        self.fh.load(self.peaks_file, self.picked_input_map)
-        self.picked_input_map.updateRanges()
         self.ff.setLogType(oms.LogType.CMD)
         
-        # Run the feature finder
+        # running the feature finder
         self.ff.run(
-            self.name,
+            self.ff_type,
             self.picked_input_map,
             self.features,
-            self.params,
+            self.ff_param_oms,
             self.seeds,
         )
+        
+        # saving features into featureXML
         self.features.setUniqueIds()
-        self.fh = oms.FeatureXMLFile()
-        self.fh.store(self.features_file, self.features)
+        # Igor, here you had self.fh, file handler for the featureXML
+        # 10 lines above same variable name was the mzML file
+        # very confusing to use the same name for different things! :)
+        self.features_xml_fh = oms.FeatureXMLFile()
+        self.features_xml_fh.store(self.features_file, self.features)
     
     
     def reload(self):
