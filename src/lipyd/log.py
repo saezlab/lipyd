@@ -59,7 +59,8 @@ class Logger(object):
             fname,
             verbosity = 0,
             console_level = -1,
-            logdir = None
+            logdir = None,
+            max_flush_interval = 2,
         ):
         """
         fname : str
@@ -74,6 +75,8 @@ class Logger(object):
             logfile but also to the console.
         """
         
+        self.last_flush = time.time()
+        self.max_flush_interval = max_flush_interval
         self.logdir = self.get_logdir(logdir)
         self.fname  = os.path.join(self.logdir, fname)
         self.verbosity = verbosity
@@ -81,6 +84,7 @@ class Logger(object):
         self.open_logfile()
         self.msg('Welcome!')
         self.msg('Logger started, logging into `%s`.' % self.fname)
+    
     
     def msg(self, msg = '', level = 0):
         """
@@ -97,10 +101,12 @@ class Logger(object):
         if level <= self.verbosity:
             
             self.fp.write('[%s] %s\n' % (self.timestamp(), msg))
+            self.flush_hook()
         
         if level <= self.console_level:
             
             self.console(msg)
+    
     
     def console(self, msg = ''):
         """
@@ -113,6 +119,7 @@ class Logger(object):
         sys.stdout.write('[%s] %s\n' % (self.timestamp(), msg))
         sys.stdout.flush()
     
+    
     @classmethod
     def timestamp(cls):
         """
@@ -121,11 +128,13 @@ class Logger(object):
         
         return cls.strftime('%Y-%m-%d %H:%M:%S')
     
+    
     def __del__(self):
         
         self.msg('Logger shut down, logfile `%s` closed.' % self.fname)
         self.msg('Bye.')
         self.close_logfile()
+    
     
     def get_logdir(self, dirname = None):
         """
@@ -139,6 +148,7 @@ class Logger(object):
         
         return dirname
     
+    
     def open_logfile(self):
         """
         Opens the log file.
@@ -146,6 +156,7 @@ class Logger(object):
         
         self.close_logfile()
         self.fp = open(self.fname, 'w')
+    
     
     def close_logfile(self):
         """
@@ -156,6 +167,14 @@ class Logger(object):
             
             self.fp.close()
     
+    
+    def flush_hook(self):
+        
+        if self.last_flush - time.time() > self.max_flush_interval:
+            
+            self.flush()
+    
+    
     def flush(self):
         """
         Flushes the log file.
@@ -164,3 +183,4 @@ class Logger(object):
         if hasattr(self, 'fp') and not self.fp.closed:
             
             self.fp.flush()
+            self.last_flush = time.time()

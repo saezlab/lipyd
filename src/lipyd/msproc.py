@@ -54,7 +54,7 @@ class MSPreprocess(object):
             seeds = None,
             fh = None,
             options = None,
-            picked_input_map = None,
+            centroid_input_map = None,
             ff = None,
             features = None,
             name = None,
@@ -113,9 +113,7 @@ class MSPreprocess(object):
             
             input_file = self.profile_mzml or self.centroid_mzml
             
-            self.name = '.'.join(
-                os.path.splitext(os.path.basename(input_file))[0]
-            )
+            self.name = os.path.splitext(os.path.basename(input_file))[0]
         
         # the working directory
         self.wd = self.wd or settings.get('ms_preproc_wd')
@@ -242,19 +240,22 @@ class MSPreprocess(object):
         
         # opening and reading centroided data from mzML
         self.centroid_mzml_fh = oms.MzMLFile()
+        self.centroid_input_map = oms.MSExperiment()
         self.centroid_mzml_options = oms.PeakFileOptions()
         self.centroid_mzml_options.setMaxDataPoolSize(10000)
         self.centroid_mzml_options.setMSLevels([1,1])
-        self.fh.setOptions(self.centroid_mzml_options)
-        self.centroid_mzml_fh.load(self.centroid_mzml, self.picked_input_map)
-        self.picked_input_map.updateRanges()
+        self.centroid_mzml_fh.setOptions(self.centroid_mzml_options)
+        self.centroid_mzml_fh.load(
+            self.centroid_mzml,
+            self.centroid_input_map,
+        )
+        self.centroid_input_map.updateRanges()
     
     
     def setup_feature_finder(self):
         
         # setting up the FeatureFinder
         self.seeds = oms.FeatureMap()
-        self.picked_input_map = oms.MSExperiment()
         self.ff = oms.FeatureFinder()
         self.features = oms.FeatureMap()
         self.ff.setLogType(oms.LogType.CMD)
@@ -267,7 +268,7 @@ class MSPreprocess(object):
         # running the feature finder
         self.ff.run(
             self.ff_type,
-            self.picked_input_map,
+            self.centroid_input_map,
             self.features,
             self.ff_param_oms,
             self.seeds,
