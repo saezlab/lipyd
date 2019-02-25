@@ -47,8 +47,8 @@ class MSPreprocess(object):
     
     def __init__(
             self,
-            profile_mzml,
-            peaks_file = None,
+            profile_mzml = None,
+            centroid_mzml = None,
             features_file = None,
             wd = None,
             seeds = None,
@@ -80,7 +80,7 @@ class MSPreprocess(object):
         
         # filenames and paths
         self.profile_mzml = profile_mzml
-        self.peaks_file = peaks_file
+        self.centroid_mzml = centroid_mzml
         self.features_file = features_file
         self.wd = wd
         self.smooth_profile_data = smooth_profile_data
@@ -111,8 +111,10 @@ class MSPreprocess(object):
         # name of the input mzML with the path and extension removed
         if not hasattr(self, 'name'):
             
+            input_file = self.profile_mzml or self.centroid_mzml
+            
             self.name = '.'.join(
-                os.path.splitext(os.path.split(self.profile_mzml)[-1])[0]
+                os.path.splitext(os.path.basename(input_file))[0]
             )
         
         # the working directory
@@ -120,8 +122,8 @@ class MSPreprocess(object):
         self.wd = os.path.join(self.wd, self.name)
         os.makedirs(self.wd, exist_ok = True)
         
-        self.peaks_file = self.peaks_file or '%s__peaks.mzML' % self.name
-        self.peaks_file = os.path.join(self.wd, self.peaks_file)
+        self.centroid_mzml = self.centroid_mzml or '%s__peaks.mzML' % self.name
+        self.centroid_mzml = os.path.join(self.wd, self.centroid_mzml)
         
         self.features_file = (
             self.features_file or '%s__features.featureXML' % self.name
@@ -171,6 +173,20 @@ class MSPreprocess(object):
     
     def peak_picking(self):
         
+        if not self.profile_mzml:
+            
+            self.log.msg('No profile data provided, not doing peak picking.')
+            
+            return
+        
+        self.log.msg(
+            'Performing peak picking on experiment `%s`.' % self.name
+        )
+        self.log.msg('Using profile data from `%s`.' % self.profile_mzml)
+        self.log.msg(
+            'Centroid data will be written to `%s`.' % self.centroid_mzml
+        )
+        
         # As I understand this belongs to the peak picking
         # hence I moved here, we don't need these attributes in __init__
         self.raw_map = oms.MSExperiment()
@@ -180,8 +196,12 @@ class MSPreprocess(object):
         
         if self.smooth_profile_data:
             
+            self.log.msg('Smoothing profile data by Gaussian filter.')
+            
             gs = oms.GaussFilter()
             gs.filterExperiment(self.raw_map)
+        
+        self.log.msg('Starging peak picking.')
         
         if self.peak_picking_iterative:
             
@@ -193,22 +213,44 @@ class MSPreprocess(object):
         
         self.pp.pickExperiment(self.raw_map, self.picked_out_map)
         self.picked_out_map.updateRanges()
-        oms.MzMLFile().store(self.peaks_file, self.picked_out_map)
+        oms.MzMLFile().store(self.centroid_mzml, self.picked_out_map)
+        
+        self.log.msg(
+            'Peak picking finished. Centroid data has been '
+            'written to `%s`.' % self.centroid_mzml
+        )
     
     
     def feature_detection(self):
         
+        self.log.msg('Starting feature detection.')
+        
         # As I understand this belongs to the feature detection
         # hence I moved here, we don't need these attributes in __init__
+        self.open_centroid_mzml()
+        self.setup_feature_finder()
+        
+        self.run_feature_finder()
+        self.save_features()
+        
+        self.log.msg('Feature detection finished.')
+    
+    
+    def open_centroid_mzml(self):
+        
+        self.log.msg('Loading centroid data from `%s`.' % self.centroid_mzml)
         
         # opening and reading centroided data from mzML
-        self.peaks_mzml_fh = oms.MzMLFile()
-        self.peaks_mzml_options = oms.PeakFileOptions()
-        self.peaks_mzml_options.setMaxDataPoolSize(10000)
-        self.peaks_mzml_options.setMSLevels([1,1])
-        self.fh.setOptions(self.peaks_mzml_options)
-        self.peaks_mzml_fh.load(self.peaks_file, self.picked_input_map)
+        self.centroid_mzml_fh = oms.MzMLFile()
+        self.centroid_mzml_options = oms.PeakFileOptions()
+        self.centroid_mzml_options.setMaxDataPoolSize(10000)
+        self.centroid_mzml_options.setMSLevels([1,1])
+        self.fh.setOptions(self.centroid_mzml_options)
+        self.centroid_mzml_fh.load(self.centroid_mzml, self.picked_input_map)
         self.picked_input_map.updateRanges()
+    
+    
+    def setup_feature_finder(self):
         
         # setting up the FeatureFinder
         self.seeds = oms.FeatureMap()
@@ -216,6 +258,11 @@ class MSPreprocess(object):
         self.ff = oms.FeatureFinder()
         self.features = oms.FeatureMap()
         self.ff.setLogType(oms.LogType.CMD)
+    
+    
+    def run_feature_finder(self):
+        
+        self.log.msg('Running the feature finder.')
         
         # running the feature finder
         self.ff.run(
@@ -228,6 +275,11 @@ class MSPreprocess(object):
         
         # saving features into featureXML
         self.features.setUniqueIds()
+    
+    def save_features(self):
+        
+        self.log.msg('Saving features into `%s`.' % self.features_file)
+        
         # Igor, here you had self.fh, file handler for the featureXML
         # 10 lines above same variable name was the mzML file
         # very confusing to use the same name for different things! :)
@@ -252,7 +304,7 @@ if __name__ == "__main__":
             "STARD10_invivo_raw/mzml/"
             "150310_Popeye_MLH_AC_STARD10_A10_pos.mzML"
         ),
-        peaks_file = "Test_STARD10_A10_pos_picked_HiRes.mzML",
+        centroid_mzml = "Test_STARD10_A10_pos_picked_HiRes.mzML",
         features_file = "Test_featureXMLmap.featureXML "
     )
     
