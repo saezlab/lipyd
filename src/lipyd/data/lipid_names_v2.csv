@@ -2,6 +2,7 @@
 # A name identified by the first match and the remaining entries won't be considered.
 Class		Subclass	Chainattr	Chains	Name	SwissLipids_keywords	LipidMaps_keywords	Positive_adduct	Negative_adduct
 CL			FA;FA;FA;FA	Cardiolipin	Cardiolipin	CL	ND	ND
+PA	Lyso		FA	Lysophosphatidic acid	yso;hosphatidate		[M+NH4]+	[M-H]-
 PA			FA;FA	Phosphatidic acid	hosphatidate		[M+NH4]+	[M-H]-
 PC	Lyso		FA	Lysophosphatidylcholine	ysophosphatidylcholine	lysophosphocholine;!phing;!manno|PC;/0:0;!MI;!IPC;!inosi|PC;yso;!IPC;!(d|PC;(0:0/;!IPC	[M+H]+	[M+HCOO]-
 PC			FA;FA	Phosphatidylcholine	hosphatidylcholine;!yso	PC;!0:0;!IPC|phosphocholine;!phing;!yso;!/0:0;!gluc;!manno	[M+H]+	[M+HCOO]-
@@ -11,6 +12,7 @@ PE	LGHL		FA;FA	Phosphatidylethanolamine-isolevuglandin-hydroxylactam		PE;isoLG;h
 PE	NA		FA;FA;FA	N-acyl-phosphatidylethanolamine		NAPE|phosphoethanolamine;N-;!eramide;!sphing	ND	ND
 Cer	PE		Sph;FA	Ceramide-phosphoethanolamine	PE-Cer|eramide;phosphoethanolamine	PE-Cer	ND	ND
 Cer	PI		Sph;FA	Ceramide-phosphoinositol		PI-Cer	ND	ND
+PG	Lyso		FA	Lysophosphatidylglycerol	ysophosphatidylglycerol	ysophosphatidylglycerol|PG;/0:0;!PGE;!PGA;!PGD;!PGC;!PGF	ND	ND
 PG			FA;FA	Phosphoglycerol	hosphatidylglycerol	PG;!PGF;!PGC;!PGA;!PGD;!PGE	[M+NH4]+	[M-H]-
 PS	Lyso		FA	Lysophosphatidylserine	ysophosphatidylserine	LPS|phosphoserine;/0:0	ND	ND
 PS			FA;FA	Phosphatidylserine	hosphatidylserine	PS;!LPS;!NAc|phosphoserine;!yso;!/0:0;!NAc;!N-	[M+H]+	[M-H]-
@@ -26,7 +28,7 @@ TAG			FA;FA;FA	Triacylglycerol	Triacylglycerol	TG	[M+NH4]+	ND
 PIP3			FA;FA	Phosphatidylinositol trisphosphate	PIP3|osphatidylinositol;trisphosphate	PIP3|lycero;phospho;inositol;trisphosphate	ND	ND
 PIP2			FA;FA	Phosphatidylinositol bisphosphate	PIP2|osphatidylinositol;bisphosphate	PIP3|lycero;phospho;inositol;bisphosphate	ND	ND
 PIP			FA;FA	Phosphatidylinositol monophosphate	PIP|osphatidylinositol;monophosphate	PIP3|lycero;phospho;inositol;monophosphate	ND	ND
-PI	Lyso		FA	Lysophosphatidylinositol		PI;/0:0;!PIP;!Manp;!PIM	ND	ND
+PI	Lyso		FA	Lysophosphatidylinositol	ysophosphatidylinosit	PI;/0:0;!PIP;!Manp;!PIM	ND	ND
 PI			FA;FA	Phosphatidylinositol	hosphatidylinositol	PI;!/0:0;!PIP;!Manp;!PIM	ND	ND
 BMP			FA;FA	lysobisphosphatidic acid, (LBPA) also termed bis(monoacylglyceryl)phosphate (	Bismonoacylglycerolphosphate	2-acyl;glycero;phosphate	ND	ND
 VE				Vitamin E=tocopherol		toco	ND	ND

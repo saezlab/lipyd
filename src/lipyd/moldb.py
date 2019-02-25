@@ -1312,17 +1312,15 @@ class MoleculeDatabaseAggregator(object):
                     '\t'.join(str(f) for f in data)
                 ))
     
+    
     def export_db_lipidblast(self, fname = 'molecule_database.csv'):
         """
-
+        Exports the lipid metabolite database in LipidBlast format.
+        
         Parameters
         ----------
-        fname :
-             (Default value = 'molecule_database.csv')
-
-        Returns
-        -------
-
+        fname : str
+            File name to export the database to.
         """
         
         hdr = [
@@ -1336,24 +1334,36 @@ class MoleculeDatabaseAggregator(object):
             
             for mass, data in zip(self.masses, self.data):
                 
+                try:
+                    
+                    std_name = '%s;' % data.subspecies_str()
+                    
+                except AttributeError:
+                    
+                    std_name = ''
+                
                 _ = fp.write(
                     '%s\n' % ','.join((
-                        '',
+                        '', # we don't know RT, leaving it empty
                         '%.012f' % mass,
                         (
                             'lipyd.lipid'
                                 if data.lab.db == 'lipyd.lipid' else
                             data.lab.db_id
                         ),
-                        '"%s"' % data.lab.names[0],
+                        '"%s%s"' % (
+                            std_name,
+                            data.lab.names[0],
+                        ),
                         data.lab.formula,
                         (
-                            'lipyd.lipid'
+                            'http://saezlab.github.io/lipyd'
                                 if data.lab.db == 'lipyd.lipid' else
                             self.get_url(data.lab.db_id)
                         ),
                     ))
                 )
+    
     
     @staticmethod
     def get_url(db_id):

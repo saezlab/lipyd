@@ -612,6 +612,16 @@ class MassBase(object):
         self.formula = ''.join('%s%u'%(elem.capitalize(), num) \
             for elem, num in iteritems(atoms))
     
+    @staticmethod
+    def formula_to_atoms(formula):
+        
+        return formula_to_atoms(formula)
+    
+    
+    # synonym for old name
+    formula2atoms = formula_to_atoms
+    
+    
     def update_atoms(self):
         """
         Sets the atoms dict by processing the ``formula`` attribute.
