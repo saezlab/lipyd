@@ -90,8 +90,6 @@ class MSPreprocess(object):
         self.feature_max_rt_span = feature_max_rt_span
         self.ff_param = feature_finder_param
         self.gs_param = gaussian_smoothing_param
-        
-        self.set_paths()
     
     
     def main(self):
@@ -111,20 +109,22 @@ class MSPreprocess(object):
         
         # default name for all files:
         # name of the input mzML with the path and extension removed
-        self._name = '.'.join(
-            os.path.split(self.profile_mzml)[-1].split('.')[:-1]
-        )
+        if not hasattr(self, 'name'):
+            
+            self.name = '.'.join(
+                os.path.splitext(os.path.split(self.profile_mzml)[-1])[0]
+            )
         
         # the working directory
         self.wd = self.wd or settings.get('ms_preproc_wd')
-        self.wd = os.path.join(self.wd, self._name)
+        self.wd = os.path.join(self.wd, self.name)
         os.makedirs(self.wd, exist_ok = True)
         
-        self.peaks_file = self.peaks_file or '%s__peaks.mzML' % self._name
+        self.peaks_file = self.peaks_file or '%s__peaks.mzML' % self.name
         self.peaks_file = os.path.join(self.wd, self.peaks_file)
         
         self.features_file = (
-            self.features_file or '%s__features.featureXML' % self._name
+            self.features_file or '%s__features.featureXML' % self.name
         )
         self.features_file = os.path.join(self.wd, self.features_file)
     
