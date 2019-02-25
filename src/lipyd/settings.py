@@ -498,6 +498,7 @@ _defaults = {
     'cachedir': None,
     # use only MS2 scans within the RT range of the feature
     'ms2_check_rt': True,
+    'ms_preproc_wd': 'ms_preproc',
 }
 
 in_basedir = [
@@ -522,6 +523,7 @@ in_basedir = [
     'flimcache',
     'ppsecdir',
     'gelprofdir',
+    'ms_preproc_wd',
 ]
 
 in_datadir = {
