@@ -29,6 +29,7 @@ import pyopenms as oms
 # As an example see
 # https://git.embl.de/grp-gavin/ltp_ms/blob/ltp/ltp/featureproc.py
 import lipyd.log as log
+import lipyd.common as common
 import lipyd.settings as settings
 
 
@@ -67,7 +68,9 @@ class MSPreprocess(object):
             feature_max_rt_span = 4.5,
             feature_finder_param = None,
             gaussian_smoothing_param = None,
+            export_smoothed_profile = False,
             logger = None,
+            console = False,
         ):
         
         self.log = (
@@ -82,7 +85,7 @@ class MSPreprocess(object):
         self.profile_mzml = profile_mzml
         self.centroid_mzml = centroid_mzml
         self.features_file = features_file
-        self.wd = wd
+        self.wd_root = wd
         self.smooth_profile_data = smooth_profile_data
         self.peak_picking_iterative = peak_picking_iterative
         self.feature_min_spectra = feature_min_spectra
@@ -90,6 +93,8 @@ class MSPreprocess(object):
         self.feature_max_rt_span = feature_max_rt_span
         self.ff_param = feature_finder_param
         self.gs_param = gaussian_smoothing_param
+        self.export_smoothed_profile = export_smoothed_profile
+        self.console = console
     
     
     def main(self):
@@ -116,8 +121,8 @@ class MSPreprocess(object):
             self.name = os.path.splitext(os.path.basename(input_file))[0]
         
         # the working directory
-        self.wd = self.wd or settings.get('ms_preproc_wd')
-        self.wd = os.path.join(self.wd, self.name)
+        self.wd_root = self.wd_root or settings.get('ms_preproc_wd')
+        self.wd = os.path.join(self.wd_root, self.name)
         os.makedirs(self.wd, exist_ok = True)
         
         self.centroid_mzml = self.centroid_mzml or '%s__peaks.mzML' % self.name
@@ -200,8 +205,6 @@ class MSPreprocess(object):
         # As I understand this belongs to the peak picking
         # hence I moved here, we don't need these attributes in __init__
         self.profile_map = oms.MSExperiment()
-        self.centroid_out_map = oms.MSExperiment()
-        
         oms.MzMLFile().load(self.profile_mzml, self.profile_map)
     
     
@@ -214,7 +217,23 @@ class MSPreprocess(object):
         self.log.msg('Smoothing profile data by Gaussian filter.')
         
         gs = oms.GaussFilter()
+        param = gs.getDefaults()
+        self._oms_set_param(self.gs_param, param)
+        gs.setParameters(param)
+        
         gs.filterExperiment(self.profile_map)
+        
+        if self.export_smoothed_profile:
+            
+            self.smoothed_profile_mzml = os.path.join(
+                self.wd,
+                '%s__smoothed.mzML' % self.name,
+            )
+            self.log.msg(
+                'Exporting smoothed profile '
+                'data into `%s`.' % self.smoothed_profile_mzml
+            )
+            oms.MzMLFile().store(self.smoothed_profile_mzml, self.profile_map)
     
     
     def run_peak_picker(self):
@@ -229,7 +248,10 @@ class MSPreprocess(object):
             
             self.pp = oms.PeakPickerHiRes()
         
+        self.centroid_out_map = oms.MSExperiment()
+        
         self.pp.pickExperiment(self.profile_map, self.centroid_out_map)
+        
         self.centroid_out_map.updateRanges()
     
     
@@ -314,6 +336,23 @@ class MSPreprocess(object):
         # very confusing to use the same name for different things! :)
         self.features_xml_fh = oms.FeatureXMLFile()
         self.features_xml_fh.store(self.features_file, self.features)
+    
+    
+    @staticmethod
+    def _dict_ensure_bytes(d):
+        
+        return common.dict_ensure_bytes(d)
+    
+    
+    @staticmethod
+    def _oms_set_param(param, target):
+        
+        param = common.dict_ensure_bytes(param)
+        all_param = target.keys()
+        
+        for par, value in iteritems(param):
+            
+            target.setValue(par, value)
     
     
     def reload(self):

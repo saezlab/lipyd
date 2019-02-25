@@ -18,6 +18,7 @@
 #
 
 from __future__ import print_function
+from future.utils import iteritems
 from past.builtins import xrange, range, reduce
 
 import sys
@@ -27,6 +28,10 @@ import warnings
 import traceback
 import itertools
 import numpy as np
+try:
+    from cStringIO import StringIO
+except ModuleNotFoundError:
+    from io import StringIO
 
 
 ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -42,6 +47,26 @@ try:
     basestring
 except NameError:
     basestring = str
+
+
+class CaptureStdout(list):
+    """
+    Context capturing stdout.
+    From https://stackoverflow.com/a/16571630/854988.
+    """
+    
+    def __enter__(self):
+        
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = StringIO()
+        return self
+    
+    
+    def __exit__(self, *args):
+        
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio    # free up some memory
+        sys.stdout = self._stdout
 
 
 def random_string(length = 10):
@@ -533,3 +558,22 @@ def bool_array_dilation(array, extent = 1):
     dilated = np.array([np.any(array[win]) for win in indices])
     
     return np.array(dilated)
+
+
+def to_bytes(s, encoding = 'ascii'):
+    """
+    If a string is not bytes type encodes it.
+    """
+    
+    return s.encode(encoding) if hasattr(s, 'encode') else s
+
+
+def dict_ensure_bytes(d):
+    
+    return dict(
+        (
+            to_bytes(key),
+            to_bytes(val),
+        )
+        for key, val in iteritems(d)
+    )

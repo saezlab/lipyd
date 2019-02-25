@@ -18,5 +18,10 @@ profile_mzml = (
 p = msproc.MSPreprocess(
     profile_mzml = profile_mzml,
     smooth_profile_data = True,
+    gaussian_smoothing_param = {
+        'gaussian_width': .7,
+    },
+    export_smoothed_profile = True,
+    console = False,
 )
 p.main()
