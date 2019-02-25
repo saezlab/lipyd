@@ -57,7 +57,8 @@ class MSPreprocess(object):
             features = None,
             name = None,
             params = None,
-            raw_map = None
+            raw_map = None,
+            peak_picking_iterative = True,
         ):
         
         # filenames and paths
@@ -65,6 +66,7 @@ class MSPreprocess(object):
         self.peaks_file = peaks_file
         self.features_file = features_file
         self.wd = wd
+        self.peak_picking_iterative = peak_picking_iterative
         
         self.set_paths()
     
@@ -83,11 +85,12 @@ class MSPreprocess(object):
         os.makedirs(self.wd, exist_ok = True)
         
         self.peaks_file = self.peaks_file or '%s__peaks.mzML' % self._name
-        self.peaks_file = os.path.join(wd)
+        self.peaks_file = os.path.join(self.wd, self.peaks_file)
         
         self.features_file = (
             self.features_file or '%s__features.featureXML' % self._name
         )
+        self.features_file = os.path.join(self.wd, self.features_file)
     
     
     def main(self):
@@ -104,8 +107,16 @@ class MSPreprocess(object):
         self.picked_out_map = oms.MSExperiment()
         
         oms.MzMLFile().load(self.profile_mzml, self.raw_map)
-        pp = oms.PeakPickerHiRes()
-        pp.pickExperiment(self.raw_map, self.picked_out_map)
+        
+        if self.peak_picking_iterative:
+            
+            self.pp = oms.PeakPickerIterative()
+            
+        else:
+            
+            self.pp = oms.PeakPickerHiRes()
+        
+        self.pp.pickExperiment(self.raw_map, self.picked_out_map)
         self.picked_out_map.updateRanges()
         oms.MzMLFile().store(self.peaks_file, self.picked_out_map)
     

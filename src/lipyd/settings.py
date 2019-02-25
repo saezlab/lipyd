@@ -498,7 +498,7 @@ _defaults = {
     'cachedir': None,
     # use only MS2 scans within the RT range of the feature
     'ms2_check_rt': True,
-    'ms_preproc_wd': 'ms_preproc',
+    'ms_preproc_wd': 'lipyd_ms_preproc',
 }
 
 in_basedir = [
