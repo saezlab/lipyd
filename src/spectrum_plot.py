@@ -34,19 +34,3 @@ p = plot.SpectrumPlot(
     figsize = (10, 6),
     format = "pdf",
     )
-
-
-
-p = plot.SpectrumPlot(
-    fname = 'spectrum_plot_test_1.pdf',
-    mzs = scan.mzs,
-    intensities = scan.intensities,
-    annotations = scan.annot,
-    scan_id = scan.scan_id,
-    ionmode = ionmode,
-    sample_name = 'BPI_invivo',
-    grid_cols = 1,
-    format = "pdf",
-    figsize = (5, 3),
-    )
-
