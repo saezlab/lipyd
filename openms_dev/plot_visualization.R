@@ -126,16 +126,15 @@ ggsave(
     height = 2,
     width = 5
 )
+
 #28.02.2019
-PPIterative <-read.table('/home/igor/Documents/Lipyd/openms_dev/A10_pos_best_samples.txt',
-                         col.names = c('RT', 'mz_measured', 'mz_theoretical', 'Lipid name', 'ppm'))
+PPIterative <- read.table(
+    'A10_pos_best_samples.txt',
+    col.names = c('RT', 'mz_measured', 'mz_theoretical', 'Lipid name', 'ppm')
+)
 
 
-
-mz_database <- read.table ('/home/igor/Documents/Lipyd/openms_dev/pc_best_samples_A10_pos.txt', 
-                           sep = ',', col.names = c('name', 'isotope', 'mz_theoretical'))
-
-PPIterative$V3 = ifelse(mz_measured < 786.7, 0, ifelse(mz_measured < 787.7, 1, ifelse(mz_measured < 788.7, 2, 3)))
+PPIterative$V3 <- ifelse(mz_measured < 786.7, 0, ifelse(mz_measured < 787.7, 1, ifelse(mz_measured < 788.7, 2, 3)))
 delta <- 0.01
 
 PPIterative$V3 = ifelse(
