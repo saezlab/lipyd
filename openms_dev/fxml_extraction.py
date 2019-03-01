@@ -8,6 +8,7 @@ def extract_data(in_file_name, mz_search):
     #print( "FeatureMap size=", fmap.size() )
     for n in fmap:
         
+        #if mz_search == n.getMZ():
         if abs(mz_search - n.getMZ()) < delta:
             """
             print( "mz=", n.getMZ(),
@@ -39,4 +40,16 @@ def extract_data(in_file_name, mz_search):
             continue
 
 if __name__ == "__main__":
-    extract_data()
+    in_file_name = "/home/igor/Documents/Lipyd/src/lipyd_ms_preproc/150310_Popeye_MLH_AC_STARD10_A10_pos/STARD10_A10_pos_IterativePP.featureXML "
+    extract_data(in_file_name, 704.52)
+    
+    """
+    760.5822
+    732.5533
+    730.538
+    784.5838
+    746.6045
+    772.6186
+    718.5742
+    704.5206
+    """
