@@ -14,13 +14,14 @@
 #  Website: http://saezlab.github.io/lipyd
 #
 
+import imp
 import csv
 import itertools
 import copy
 
 from lxml import etree
 import numpy as np
-import openms as oms
+import pyopenms as oms
 
 from lipyd import lipid
 from lipyd import settings
@@ -39,7 +40,6 @@ class PeakPickingEvaluation(object):
             outfile,
             progenesis_fname = None,
             sample_id = ('A', 10),
-            delta = None,
         ):
         
         self.peaks_fname = peaks_fname
@@ -48,16 +48,18 @@ class PeakPickingEvaluation(object):
         self.examples_fname = examples_fname
         self.outfile = outfile
         self.sample_id = sample_id
-        self.delta = delta or settings.get('ms1_tolerance')
     
     
     def main(self):
         
         self.pc_masses()
+        self.read_examples()
         self.read_peaks()
+        self.lookup_peaks()
         self.read_progenesis()
-        self.lookup_examples()
+        self.lookup_progenesis()
         self.collect_convex_hulls()
+        self.export()
     
     
     def read_examples(self):
@@ -90,6 +92,10 @@ class PeakPickingEvaluation(object):
         idx = self.sample_selected.argsort()
         
         self.samples.sort_all(by = idx)
+        
+        self.sample_selected = self.samples.mzs_by_sample[
+            :,self.samples.attrs.sample_id_to_index[self.sample_id]
+        ]
     
     
     def read_progenesis(self):
@@ -121,16 +127,13 @@ class PeakPickingEvaluation(object):
             # removing used elements to keep memory low
             if len(used_elements) > 1000:
                 
-                for _ in xrange(500):
+                for _ in range(500):
                     
                     e = used_elements.pop(0)
                     e.clear()
         
-        # closing the XML
-        c.fileobj.close()
-        del c
-        
         self.progenesis_mzs = np.array(mzs)
+        self.progenesis_mzs.sort()
     
     
     def lookup_progenesis(self):
@@ -156,9 +159,9 @@ class PeakPickingEvaluation(object):
                 self.progenesis_peaks[ex] = self.progenesis_mzs[i]
     
     
-    def lookup_examples(self):
+    def lookup_peaks(self):
         
-        self.examples_mzs = {}
+        self.peaks_peaks = {}
         
         for ex in self.examples:
             
@@ -170,9 +173,9 @@ class PeakPickingEvaluation(object):
                 t = 10, # tolerance in ppm
             )
             
-            if i:
+            if i is not None:
                 
-                self.examples_mzs[ex] = (
+                self.peaks_peaks[ex] = (
                     mz_theoretical,
                     self.sample_selected[i],
                 )
@@ -192,42 +195,42 @@ class PeakPickingEvaluation(object):
             )
             for isotope in range(5)
             for pc in lipid.PC(
-                fa_args = {'c': (15, 20), 'u': (1, 3)},
+                fa_args = {'c': (15, 20), 'u': (0, 4)},
                 isotope = isotope, sum_only = True
             )
         )
     
     
-    def collect_convex_hulls(in_file_name, mz_search):
+    def collect_convex_hulls(self):
         
         self.convex_hulls = []
         
         # opening featureXML
         xml_file = oms.FeatureXMLFile()
-        fmap = oms.FeatureMap()
-        xml_file.load(self.feature_xml_fname, fmap)
+        self.fmap = oms.FeatureMap()
+        xml_file.load(self.feature_xml_fname, self.fmap)
         feature_mzs = []
         
-        for i, fe in enumerate(fmap):
+        for i, fe in enumerate(self.fmap):
             
-            feature_mzs.append([i, fe.getMz()])
+            feature_mzs.append([i, fe.getMZ()])
         
         feature_mzs = np.array(feature_mzs)
-        self.oms_feature_mzs = feature_mzs[:,feature_mzs[:,1].argsort()]
+        feature_mzs = feature_mzs[feature_mzs[:,1].argsort(),:]
         
         # looking up the example features in the featureXML
         self.examples_oms_features = dict(
             (
-                lookup.find(self.oms_feature_mzs[:,1], mz_m, t = 10),
+                feature_mzs[lookup.find(feature_mzs[:,1], mz_m, t = 10), 0],
                 ex,
             )
-            for ex, (mz_t, mz_m) in self.examples_mzs.items()
+            for ex, (mz_t, mz_m) in self.peaks_peaks.items()
         )
         
         # collecting convex hulls
-        for ife, fe in enumerate(fmap):
+        for ife, fe in enumerate(self.fmap):
             
-            if ife in features_needed:
+            if ife in self.examples_oms_features:
                 
                 hull_list = fe.getConvexHulls()
                 
@@ -244,7 +247,8 @@ class PeakPickingEvaluation(object):
                         self.extend_hulls(hull_list, ife, 1)
         
         # columns: rt, mz, feature index, hull index, is sub-feature
-        self.convex_hulls = np.vstack(convex_hulls)
+        self.convex_hulls = np.vstack(self.convex_hulls)
+        self.oms_feature_mzs = feature_mzs[feature_mzs[:,0].argsort(),:]
     
     
     def extend_hulls(self, hull_list, ife, sub):
@@ -253,12 +257,12 @@ class PeakPickingEvaluation(object):
             
             hull_points = hull.getHullPoints() # hull_points is numpy.ndarray
             hull_points = copy.copy(hull_points)
-            hull_points = np.hstack(
+            hull_points = np.hstack((
                 hull_points,
-                np.fill((hull_points.shape[0], 1), ife),
-                np.fill((hull_points.shape[0], 1), ihull),
-                np.fill((hull_points.shape[0], 1), sub),
-            )
+                np.full((hull_points.shape[0], 1), ife),
+                np.full((hull_points.shape[0], 1), ihull),
+                np.full((hull_points.shape[0], 1), sub),
+            ))
             self.convex_hulls.append(hull_points)
     
     
@@ -291,10 +295,10 @@ class PeakPickingEvaluation(object):
                 ex = self.examples_oms_features[ife]
                 
                 mz_theoretical, mz_feature_peaks = (
-                    self.examples_mzs[ex]
-                        if ex in self.example_peaks else
+                    self.peaks_peaks[ex]
+                        if ex in self.peaks_peaks else
                     (
-                        self.pc_masses[(ex, int(ihull))],
+                        self.pc_adduct_masses[(ex, int(ihull))],
                         np.nan,
                     )
                 )
@@ -307,10 +311,10 @@ class PeakPickingEvaluation(object):
                         ) else
                     np.nan
                 )
-                        
-                mz_feature_oms = self.oms_feature_mzs[int(ife)]
                 
-                _ fp.write('\t'.join([
+                mz_feature_oms = self.oms_feature_mzs[int(ife)][1]
+                
+                _ = fp.write('\t'.join([
                     ex,
                     num_str(mz_theoretical),
                     num_str(mz_feature_peaks),
@@ -322,3 +326,13 @@ class PeakPickingEvaluation(object):
                     '%u' % int(ife),
                     str(is_sub > 0),
                 ]))
+                
+                _ = fp.write('\n')
+    
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist=[modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
