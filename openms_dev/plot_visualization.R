@@ -95,7 +95,7 @@ facet_plot <- ggplot(PPIter3, aes(V5, V6)) +
     geom_hline(yintercept = -1.6935, color = '#B7CA54', lwd = .1) +
     # instrument error
     geom_hline(yintercept = -1.778, color = '#529986', lwd = .1) +
-    facet_grid(rows = vars(isotope)) +
+    facet_grid(rows = vars(V2)) +
     xlab('RT [s]') +
     ylim(c(NA, 0)) +
     ylab('Error (measured vs. theoretical) [ppm]') +
@@ -153,13 +153,6 @@ PPIterative2 <- suppressWarnings(suppressMessages(
       abs(PPIterative$mz_measured - mz_database$mz_theoretical < 0.01),
       PPIterative$V4 <-  mz_database$isotope))
     
-"""
-    PPIterative$V3 = ifelse(
-      abs(PPIterative$mz_measured - mz_database$mz_theoretical) < 0.01,
-      PPIterative$V3 <-  mz_database$mz_theoretical,
-    ),
-    ppm = (mz_measured - mz_theoretical) / mz_theoretical * 1e06
-"""
  
 apply(PPIterative, MARGIN = 2, FUN = ifelse(abs(PPIterative - mz_database$mz_theoretical < 0.01, PPIterative$V3 == mz_database$mz_theoretical )))
 
@@ -172,5 +165,19 @@ for (i in PPIterative$mz_measured)
   
 PPIter3 <- read.table('/home/igor/Documents/Lipyd/openms_dev/result_iterative.txt', sep = " ")
 PPIter3$V6 = (PPIter3$V4 - PPIter3$V3) / PPIter3$V3 * 1e06
+
+
+facet_plot <- ggplot(PPIter3, aes(V5, V6)) +
+  geom_line(color = '#EF3A43', lwd = .3) +
+  geom_point(size = .3, color = '#EF3A43') +
+  # PEAKS A10
+  geom_hline(yintercept = -1.6935, color = '#B7CA54', lwd = .1) +
+  # instrument error
+  geom_hline(yintercept = -1.778, color = '#529986', lwd = .1) +
+  facet_grid(rows = vars(V2)) +
+  xlab('RT [s]') +
+  ylim(c(NA, 0)) +
+  ylab('Error (measured vs. theoretical) [ppm]') +
+  theme_linedraw()
 
 
