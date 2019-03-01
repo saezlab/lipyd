@@ -88,7 +88,7 @@ teo <- suppressWarnings(suppressMessages(
         ppm = (mz_measured - mz_theoretical) / mz_theoretical * 1e06
     )
 
-facet_plot <- ggplot(teo, aes(rt, ppm)) +
+facet_plot <- ggplot(PPIter3, aes(V5, V6)) +
     geom_line(color = '#EF3A43', lwd = .3) +
     geom_point(size = .3, color = '#EF3A43') +
     # PEAKS A10
@@ -126,3 +126,51 @@ ggsave(
     height = 2,
     width = 5
 )
+#28.02.2019
+PPIterative <-read.table('/home/igor/Documents/Lipyd/openms_dev/A10_pos_best_samples.txt',
+                         col.names = c('RT', 'mz_measured', 'mz_theoretical', 'Lipid name', 'ppm'))
+
+
+
+mz_database <- read.table ('/home/igor/Documents/Lipyd/openms_dev/pc_best_samples_A10_pos.txt', 
+                           sep = ',', col.names = c('name', 'isotope', 'mz_theoretical'))
+
+PPIterative$V3 = ifelse(mz_measured < 786.7, 0, ifelse(mz_measured < 787.7, 1, ifelse(mz_measured < 788.7, 2, 3)))
+delta <- 0.01
+
+PPIterative$V3 = ifelse(
+  abs(PPIterative$mz_measured - mz_database$mz_theoretical) < 0.01,
+  mz_database$mz_theoretical)
+
+PPIterative$V3 <- mz_database$mz_theoretical
+
+
+PPIterative2 <- suppressWarnings(suppressMessages(
+  read_table2('/home/igor/Documents/Lipyd/openms_dev/pc_best_samples_A10_pos.txt')
+)) %>%
+  mutate(
+    PPIterative$V4 <- ifelse(
+      abs(PPIterative$mz_measured - mz_database$mz_theoretical < 0.01),
+      PPIterative$V4 <-  mz_database$isotope))
+    
+"""
+    PPIterative$V3 = ifelse(
+      abs(PPIterative$mz_measured - mz_database$mz_theoretical) < 0.01,
+      PPIterative$V3 <-  mz_database$mz_theoretical,
+    ),
+    ppm = (mz_measured - mz_theoretical) / mz_theoretical * 1e06
+"""
+ 
+apply(PPIterative, MARGIN = 2, FUN = ifelse(abs(PPIterative - mz_database$mz_theoretical < 0.01, PPIterative$V3 == mz_database$mz_theoretical )))
+
+  
+PPIterative$V3 <- PPIterative %>% mutate(ifelse(mz_measured < 704.7, 0))
+
+for (i in PPIterative$mz_measured)
+  for (k in mz_database$mz_theoretical)
+    ifelse (abs(i - k) < 0.01, PPIterative$V3 == mz_database$mz_theoretical, no = NA)
+  
+PPIter3 <- read.table('/home/igor/Documents/Lipyd/openms_dev/result_iterative.txt', sep = " ")
+PPIter3$V6 = (PPIter3$V4 - PPIter3$V3) / PPIter3$V3 * 1e06
+
+
