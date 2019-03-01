@@ -19,6 +19,9 @@
 import time
 import os
 import sys
+import textwrap
+
+import lipyd.common as common
 
 
 def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
@@ -61,6 +64,7 @@ class Logger(object):
             console_level = -1,
             logdir = None,
             max_flush_interval = 2,
+            max_width = 79,
         ):
         """
         fname : str
@@ -76,6 +80,11 @@ class Logger(object):
         """
         
         self.last_flush = time.time()
+        self.wrapper = textwrap.TextWrapper(
+            width = max_width,
+            subsequent_indent = ' ' * 22,
+            break_long_words = False,
+        )
         self.max_flush_interval = max_flush_interval
         self.logdir = self.get_logdir(logdir)
         self.fname  = os.path.join(self.logdir, fname)
@@ -100,12 +109,19 @@ class Logger(object):
         
         if level <= self.verbosity:
             
-            self.fp.write('[%s] %s\n' % (self.timestamp(), msg))
+            msg = self.wrapper.fill(msg)
+            msg = self.timestamp_message(msg)
+            self.fp.write(msg)
             self.flush_hook()
         
         if level <= self.console_level:
             
             self.console(msg)
+    
+    
+    def timestamp_message(self, msg):
+        
+        return '[%s] %s\n' % (self.timestamp(), msg)
     
     
     def console(self, msg = ''):
