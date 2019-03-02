@@ -219,13 +219,15 @@ class PeakPickingEvaluation(object):
         feature_mzs = feature_mzs[feature_mzs[:,1].argsort(),:]
         
         # looking up the example features in the featureXML
-        self.examples_oms_features = dict(
-            (
-                feature_mzs[lookup.find(feature_mzs[:,1], mz_m, t = 10), 0],
-                ex,
-            )
-            for ex, (mz_t, mz_m) in self.peaks_peaks.items()
-        )
+        self.examples_oms_features = {}
+        
+        for ex, (mz_t, mz_m) in self.peaks_peaks.items():
+            
+            i_mz_fe = lookup.find(feature_mzs[:,1], mz_m, t = 10)
+            
+            if i_mz_fe:
+                
+                self.examples_oms_features[feature_mzs[i_mz_fe, 0]] = ex
         
         # collecting convex hulls
         for ife, fe in enumerate(self.fmap):
@@ -278,13 +280,12 @@ class PeakPickingEvaluation(object):
                 'lipid_species',
                 'mz_theoretical',
                 'mz_feature_peaks',
-                'mz_feature_progensis',
+                'mz_feature_progenesis',
                 'mz_feature_oms',
                 'mz_scan_oms',
                 'rt_scan_oms',
                 'isotope',
                 'feature_id_oms',
-                'convex_hull_id_oms',
                 'is_sub_feature',
             ]))
             
