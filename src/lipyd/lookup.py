@@ -119,22 +119,17 @@ def find(a, m, t = 20):
 
     Parameters
     ----------
-    numpy :
-        array a: Sorted one dimensional float array (-slice).
-    float :
-        m: Value to lookup.
-    float :
-        t: Range of tolerance (highest accepted difference) in ppm.
-    a :
-        
-    m :
-        
-    t :
-         (Default value = 20)
+    a : numpy.array
+        Sorted one dimensional float array (-slice).
+    m : float
+        Value to lookup.
+    t : float
+        Range of tolerance (highest accepted difference) in ppm.
+
 
     Returns
     -------
-
+    Index of the closest value, None if no value found in within tolerance.
     """
     
     t = ppm_tolerance(t, m)

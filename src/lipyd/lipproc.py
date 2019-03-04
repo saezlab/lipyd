@@ -17,6 +17,8 @@
 #  Website: http://denes.omnipathdb.org/
 #
 
+from past.builtins import xrange, range
+
 import re
 import collections
 import itertools
@@ -189,6 +191,7 @@ class LipidRecord(collections.namedtuple(
             iso = False
         )
     
+    
     # synonym for old name
     full_str = subspecies_str
     
@@ -221,11 +224,8 @@ class LipidRecord(collections.namedtuple(
     
     
     def __contains__(self, other):
-        """
         
-        """
-        
-        pass
+        return self.is_subset_of(other)
     
     def is_subset_of(self, other):
         """
@@ -236,81 +236,38 @@ class LipidRecord(collections.namedtuple(
         ``False``.
         """
         
+        diff = LipidRecordDiff(self, other)
+        
         return (
             self != other and
-            self.hg.main == other.hg.main and
-            self.hg.sub == other.hg.sub
-        )
-
-
-class LipidRecordDiff(collections.namedtuple(
-        'LipidRecordDiffBase',
-        [
-            'hg_main', 'hg_sub',
-            'c', 'u', 'typ',
-            'sph', 'ether', 'oh', 'iso',
-            'chains',
-        ]
-    )):
-    
-    
-    def __new__(cls, rec1, rec2):
-        
-        chains = None
-        
-        return super(LipidRecordDiff, cls).__new__(
-            hg_main = cls._diff(rec1.hg, rec2.hg, 'main'),
-            hg_sub = cls._diff(rec1.hg, rec2.hg, 'sub'),
-            c = cls._diff(rec1.chainsum, rec2.chainsum, 'c'),
-            u = cls._diff(rec1.chainsum, rec2.chainsum, 'u'),
-            typ = cls._diff(rec1.chainsum, rec2.chainsum, 'typ'),
-            sph = cls._diff(rec1.chainsum.attr, rec2.chainsum.attr, 'sph'),
-            ether = cls._diff(
-                rec1.chainsum.attr,
-                rec2.chainsum.attr,
-                'ether',
-            ),
-            oh = cls._diff(rec1.chainsum.attr, rec2.chainsum.attr, 'oh'),
-            chains = rec1.chains == rec2.chains,
-        )
-    
-    
-    @classmethod
-    def _diff(cls, obj1, obj2, attr):
-        
-        value1 = getattr(obj1, attr) if hasattr(obj1, attr) else None
-        value2 = getattr(obj2, attr) if hasattr(obj2, attr) else None
-        
-        if value1 == value2:
-            
-            return False
-            
-        else:
-            
-            return (value1, value2)
-    
-    
-    @classmethod
-    def _chains_diff(cls, chains1, chains2):
-        
-        if chains1 == chains2:
-            
-            return False
-            
-        else:
-            
-            nchains = max(
-                chains1.__len__() if chains1 is not None else 0,
-                chains2.__len__() if chains2 is not None else 0,
+            not diff.hg.main and
+            not diff.hg.sub and
+            (
+                all(
+                    getattr(diff.chainsum, attr) == False
+                    or getattr(diff.chainsum, attr)[0] is None
+                    for attr in ('c', 'u', 'typ', 'iso')
+                ) and
+                all(
+                    a == False or a[0] is None
+                    for a in diff.chainsum.attr
+                )
             )
-            
-            for i in xrange(nchains):
-                
-                return 
+        )
+    
+    
+    def is_parent_of(self, other):
+        
+        return other.is_subset_of(self)
 
+
+#
+# Diff classes
+#
 
 class DiffBase(object):
     
+    
     @classmethod
     def _diff(cls, obj1, obj2, attr):
         
@@ -326,10 +283,14 @@ class DiffBase(object):
             return (value1, value2)
 
 
-class HeadgroupDiff(DiffBase, collections.namedtuple(
-        'HeadgroupDiff',
-        ['main', 'sub'],
-    )):
+class HeadgroupDiff(
+        collections.namedtuple(
+            'HeadgroupDiffBase',
+            ['main', 'sub'],
+        ),
+        DiffBase,
+    ):
+    
     
     def __new__(cls, hg1, hg2):
         
@@ -340,29 +301,95 @@ class HeadgroupDiff(DiffBase, collections.namedtuple(
         )
 
 
-ChainAttrDiff = collections.namedtuple(
-    'ChainAttrDiff',
-    ['sph', 'ether', 'oh'],
-)
-ChainAttrDiff.__new__.__defaults__ = (False, False, False)
+class ChainAttrDiff(
+        collections.namedtuple(
+            'ChainAttrDiffBase',
+            ['sph', 'ether', 'oh'],
+        ),
+        DiffBase,
+    ):
+    
+    
+    def __new__(cls, chainattr1, chainattr2):
+        
+        return super(ChainAttrDiff, cls).__new__(
+            cls,
+            sph = cls._diff(chainattr1, chainattr2, 'sph'),
+            ether = cls._diff(chainattr1, chainattr2, 'ether'),
+            oh = cls._diff(chainattr1, chainattr2, 'oh'),
+        )
 
 
-ChainSumDiff = collections.namedtuple(
-    'ChainSumDiff',
-    ['c', 'u', 'typ', 'attr', 'iso'],
-)
-ChainSumDiff.__new__.__defaults__ = (
-    False, False, False, ChainAttrDiff(), False,
-)
+class ChainDiff(
+        collections.namedtuple(
+            'ChainDiffBase',
+            ['c', 'u', 'typ', 'attr', 'iso'],
+        ),
+        DiffBase,
+    ):
+    
+    
+    def __new__(cls, chainsum1, chainsum2):
+        
+        return super(ChainDiff, cls).__new__(
+            cls,
+            c = cls._diff(chainsum1, chainsum2, 'c'),
+            u = cls._diff(chainsum1, chainsum2, 'u'),
+            typ = cls._diff(chainsum1, chainsum2, 'typ'),
+            attr = ChainAttrDiff(
+                chainsum1.attr if hasattr(chainsum1, 'attr') else None,
+                chainsum2.attr if hasattr(chainsum2, 'attr') else None,
+            ),
+            iso = cls._diff(chainsum1, chainsum2, 'iso'),
+        )
 
-ChainDiff = collections.namedtuple(
-    'ChainDiff',
-    ['c', 'u', 'typ', 'attr', 'iso'],
-)
-ChainDiff.__new__.__defaults__ = (
-    False, False, False, ChainAttrDiff(), False,
-)
 
+# these should work just the same way
+ChainSumDiff = ChainDiff
+
+
+class LipidRecordDiff(
+        collections.namedtuple(
+            'LipidRecordDiffBase',
+            [
+                'hg', 'chainsum', 'chains',
+            ],
+        ),
+        DiffBase,
+    ):
+    
+    
+    def __new__(cls, rec1, rec2):
+        
+        return super(LipidRecordDiff, cls).__new__(
+            cls,
+            hg = HeadgroupDiff(rec1.hg, rec2.hg),
+            chainsum = ChainSumDiff(rec1.chainsum, rec2.chainsum),
+            chains = cls._chains_diff(
+                rec1.chains, rec2.chains,
+            ),
+        )
+    
+    @classmethod
+    def _chains_diff(cls, chains1, chains2):
+        
+        nchains = max(
+            chains1.__len__() if chains1 is not None else 0,
+            chains2.__len__() if chains2 is not None else 0,
+        )
+        
+        return tuple(
+            ChainDiff(
+                chains1[i] if len(chains1) > i else None,
+                chains2[i] if len(chains2) > i else None,
+            )
+            for i in xrange(nchains)
+        )
+
+
+#
+# Useful methods :)
+#
 
 def empty_chain():
     """
