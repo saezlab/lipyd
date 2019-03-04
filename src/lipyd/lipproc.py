@@ -238,20 +238,23 @@ class LipidRecord(collections.namedtuple(
         
         diff = LipidRecordDiff(self, other)
         
+        #TODO: make it a bit smarter...
         return (
             self != other and
             not diff.hg.main and
             not diff.hg.sub and
             (
                 all(
-                    getattr(diff.chainsum, attr) == False
-                    or getattr(diff.chainsum, attr)[0] is None
+                    getattr(diff.chainsum, attr) == False or
+                    getattr(diff.chainsum, attr)[0] is None
                     for attr in ('c', 'u', 'typ', 'iso')
                 ) and
                 all(
-                    a == False or a[0] is None
-                    for a in diff.chainsum.attr
+                    attr == False or attr[0] is None
+                    for attrs in diff.chainsum.attr
+                    for attr in attrs
                 )
+                and not self.chains
             )
         )
     
@@ -329,23 +332,62 @@ class ChainDiff(
     ):
     
     
-    def __new__(cls, chainsum1, chainsum2):
+    def __new__(cls, chain1, chain2):
         
         return super(ChainDiff, cls).__new__(
+            cls,
+            c = cls._diff(chain1, chain2, 'c'),
+            u = cls._diff(chain1, chain2, 'u'),
+            typ = cls._diff(chain1, chain2, 'typ'),
+            attr = ChainAttrDiff(
+                chain1.attr if hasattr(chain1, 'attr') else None,
+                chain2.attr if hasattr(chain2, 'attr') else None,
+            ),
+            iso = cls._diff(chain1, chain2, 'iso'),
+        )
+
+
+class ChainSumDiff(
+        collections.namedtuple(
+            'ChainSumDiffBase',
+            ['c', 'u', 'typ', 'attr', 'iso'],
+        ),
+        DiffBase,
+    ):
+    
+    
+    def __new__(cls, chainsum1, chainsum2):
+        
+        nchains = max(
+            len(chainsum1.attr) if hasattr(chainsum1, 'attr') else 0,
+            len(chainsum2.attr) if hasattr(chainsum2, 'attr') else 0,
+        )
+        
+        return super(ChainSumDiff, cls).__new__(
             cls,
             c = cls._diff(chainsum1, chainsum2, 'c'),
             u = cls._diff(chainsum1, chainsum2, 'u'),
             typ = cls._diff(chainsum1, chainsum2, 'typ'),
-            attr = ChainAttrDiff(
-                chainsum1.attr if hasattr(chainsum1, 'attr') else None,
-                chainsum2.attr if hasattr(chainsum2, 'attr') else None,
+            attr = tuple(
+                ChainAttrDiff(
+                    chainsum1.attr[i]
+                        if (
+                            hasattr(chainsum1, 'attr') and
+                            len(chainsum1.attr) > i
+                        ) else
+                    None,
+                    chainsum2.attr[i]
+                        if (
+                            hasattr(chainsum2, 'attr') and
+                            len(chainsum2.attr) > i
+                        ) else
+                    None,
+                )
+                for i in xrange(nchains)
             ),
             iso = cls._diff(chainsum1, chainsum2, 'iso'),
         )
 
-
-# these should work just the same way
-ChainSumDiff = ChainDiff
 
 
 class LipidRecordDiff(

@@ -55,3 +55,21 @@ class TestLipproc(object):
         assert pe_361 in pe
         assert pe_180181 in pe_361
         assert pe_180181 in pe
+        
+        cer_d_361 = lnp.process('Phosphatidylethanolamine(d36:1)')
+        cer_dh_361 = lnp.process('Phosphatidylethanolamine(DH36:1)')
+        cer_d_361 = lipproc.LipidRecord(
+            lab = empty_lab,
+            hg = cer_d_361[0],
+            chainsum = cer_d_361[1],
+            chains = (),
+        )
+        cer_dh_361 = lipproc.LipidRecord(
+            lab = empty_lab,
+            hg = cer_dh_361[0],
+            chainsum = cer_dh_361[1],
+            chains = (),
+        )
+        
+        assert cer_d_361 not in cer_dh_361
+        assert cer_dh_361 not in cer_d_361
