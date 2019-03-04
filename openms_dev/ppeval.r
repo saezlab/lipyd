@@ -10,12 +10,6 @@ infiles <- c(
 )
 
 
-for(infile in infiles){
-    
-    all_plots(infile)
-    
-}
-
 ppm <- function(theoretical, measured){
     
     (measured - theoretical) / theoretical * 1e6
