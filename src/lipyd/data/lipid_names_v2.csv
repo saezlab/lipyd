@@ -60,5 +60,11 @@ FAHFA			FA;FA	Fatty acyl-OH-fatty acyl ester		FAHFA	ND	ND
 FA			FA	Fatty acid			ND	ND
 WE			FAL;FA	Wax ester		WE	ND	ND
 SE			FA	Sterol ester	Sterol ester		ND	ND
-GM3			Sph;FA	Gangliosid GM3	GM3		ND	ND
-GM4			Sph;FA	Gangliosid GM4	GM4		ND	ND
+GM1			Sph;FA	Ganglioside GM1	GM1		ND	ND
+GM2			Sph;FA	Ganglioside GM2	GM2		ND	ND
+GM3			Sph;FA	Ganglioside GM3	GM3		ND	ND
+GM4			Sph;FA	Ganglioside GM4	GM4		ND	ND
+GA1			Sph;FA	Ganglioside GA1	GA1		ND	ND
+GA2			Sph;FA	Ganglioside GA2	GA2		ND	ND
+GD2			Sph;FA	Ganglioside GD2	GD2		ND	ND
+GD3			Sph;FA	Ganglioside GD3	GD3		ND	ND
