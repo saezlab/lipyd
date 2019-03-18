@@ -39,6 +39,8 @@ misc = [
     'Retinol',
     'SterolEster',
     'Cardiolipin',
+    'LysoCardiolipin',
+    'MonolysoCardiolipin',
 ]
 
 # will be populated by the factory
@@ -1337,6 +1339,7 @@ class Cardiolipin(metabolite.AbstractMetabolite):
             ncharge = 0,
             name = 'CL',
             typ  = 'CL',
+            sub = (),
             **kwargs
         ):
         """
@@ -1358,11 +1361,11 @@ class Cardiolipin(metabolite.AbstractMetabolite):
             self.pcharge - self.ncharge
         )
         self.typ = typ
-        hg = lipproc.Headgroup(main = name)
+        hg = lipproc.Headgroup(main = name, sub = sub)
         
         metabolite.AbstractMetabolite.__init__(
             self,
-            core = 'C9H18O13P2',
+            core = 'C9H17O13P2',
             subs = [
                 self._get_substituent(sn1_1, args = sn1_1_fa_args),
                 self._get_substituent(sn1_2, args = sn1_2_fa_args),
@@ -1383,9 +1386,34 @@ class Cardiolipin(metabolite.AbstractMetabolite):
         return (
             substituent.FattyAcyl(**args)
                 if not sub else
-            self.get_substituent(sn1_1)
+            self.get_substituent(sub)
         )
 
+
+class LysoCardiolipin(Cardiolipin):
+    
+    
+    def __init__(self, **kwargs):
+        
+        Cardiolipin.__init__(
+            self,
+            sn2_1 = 'H',
+            sn2_2 = 'H',
+            sub = ('Lyso',),
+            **kwargs,
+        )
+
+class MonolysoCardiolipin(Cardiolipin):
+    
+    
+    def __init__(self, **kwargs):
+        
+        Cardiolipin.__init__(
+            self,
+            sn2_1 = 'H',
+            sub = ('Monolyso',),
+            **kwargs,
+        )
 
 #
 # Fatty acids
