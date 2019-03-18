@@ -121,6 +121,22 @@ class Mz():
         m = mass.MassBase('HCO2')
         return self.adduct(m + mass.electron)
     
+    def add_h_fo(self):
+        """
+        This is a positive mode adduct [M+HCOOH]+
+        """
+        
+        m = mass.MassBase('H2CO2')
+        return self.adduct(m - mass.electron)
+    
+    def remove_h_fo(self):
+        """
+        This is a positive mode adduct [M+HCOOH]+
+        """
+        
+        m = mass.MassBase('H2CO2')
+        return self.adduct(-m + mass.electron)
+    
     def add_fo_nafo(self):
         """ """
         m = mass.MassBase('HCO2NaHCO2')

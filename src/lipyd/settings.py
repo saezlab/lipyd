@@ -369,6 +369,8 @@ _defaults = {
                 '[M+NH4]+': 'remove_nh4',
                 '[M+Na]+': 'remove_na',
                 '[M-H2O+H]+': 'add_oh',
+                '[M+H-H2O]+': 'add_oh',
+                '[M+HCOOH]+': 'remove_h_fo',
             },
             'neg': {
                 '[M-H]-': 'add_h',
@@ -410,6 +412,7 @@ _defaults = {
                 '[M+Na]+': 'add_na',
                 '[M-H2O+H]+': 'remove_oh',
                 '[M+H-H2O]+': 'remove_oh',
+                '[M+HCOOH]+': 'add_h_fo',
             },
             'neg': {
                 '[M-H]-': 'remove_h',
@@ -448,6 +451,7 @@ _defaults = {
         '[M+Na]+': 'add_na',
         '[M-H2O+H]+': 'remove_oh',
         '[M+H-H2O]+': 'remove_oh',
+        '[M+HCOOH]+': 'add_h_fo',
         '[M-H]-': 'remove_h',
         '[M+HCOO]-': 'add_fo',
         '[M+HCOO+1x(HCOONa)]-': 'add_fo_nafo',
