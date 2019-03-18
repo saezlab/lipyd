@@ -37,6 +37,7 @@ fattyacids = [
 misc = [
     'RetinoicAcid',
     'Retinol',
+    'SterolEster',
 ]
 
 # will be populated by the factory
@@ -1278,6 +1279,38 @@ class SphingolipidFactory(object):
             )
         
         return parent, child
+
+#
+# Sterol ester
+#
+
+class SterolEster(metabolite.AbstractMetabolite):
+    
+    def __init__(
+            self,
+            c = None,
+            u = None,
+            fa_counts = None,
+            getname = None,
+            sub = (),
+            **kwargs
+        ):
+        
+        def _getname(parent, subs):
+            
+            return '%s(%u:%u)' % (parent.name, subs[0].c, subs[0].u)
+        
+        metabolite.AbstractMetabolite.__init__(
+            self,
+            core = 'C19OH31',
+            subs = [
+                substituent.FattyAcyl(c = c, u = u, counts = fa_counts)
+            ],
+            name = 'SE',
+            hg = lipproc.Headgroup(main = 'SE', sub = ()),
+            getname = getname or _getname,
+            **kwargs,
+        )
 
 #
 # Fatty acids

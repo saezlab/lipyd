@@ -373,6 +373,19 @@ _defaults = {
             'neg': {
                 '[M-H]-': 'add_h',
                 '[M+HCOO]-': 'remove_fo',
+                '[M+HCOO+1x(HCOONa)]-': 'remove_fo_nafo',
+                '[M+HCOO+2x(HCOONa)]-': 'remove_fo_2nafo',
+                '[M+HCOO+3x(HCOONa)]-': 'remove_fo_3nafo',
+                '[M+HCOO+4x(HCOONa)]-': 'remove_fo_4nafo',
+                '[M+HCOO+5x(HCOONa)]-': 'remove_fo_5nafo',
+                '[M-H+1x(HCOONa)]-': 'add_h_remove_nafo',
+                '[M-H+2x(HCOONa)]-': 'add_h_remove_2nafo',
+                '[M-H+3x(HCOONa)]-': 'add_h_remove_3nafo',
+                '[M-H+Na+3x(HCOONa)]-': 'add_h_remove_na_3nafo',
+                '[M-H+Na+4x(HCOONa)]-': 'add_h_remove_na_4nafo',
+                '[M-H+Na+5x(HCOONa)]-': 'add_h_remove_na_5nafo',
+                '[M-H+Na+6x(HCOONa)]-': 'add_h_remove_na_6nafo',
+                '[M-H+Na+7x(HCOONa)]-': 'add_h_remove_na_7nafo',
             }
         },
         2: {

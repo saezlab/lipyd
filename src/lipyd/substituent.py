@@ -57,7 +57,7 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
         c = c or (2, 24)
         u = u if u is not None else (0, 6)
         
-        chain_attr = lipproc.ChainAttr(oh = ('2OH',))
+        chain_attr = lipproc.ChainAttr(oh = ('OH',))
         
         metabolite.AbstractSubstituent.__init__(
             self,
@@ -65,7 +65,7 @@ class HydroxyFattyAcyl(metabolite.AbstractSubstituent):
             counts = counts or {'H': -2, 'O': 1},
             c = c,
             u = u,
-            prefix = '2OH',
+            prefix = 'OH',
             chain_attr = chain_attr,
             chain_type = 'FAOH',
             **kwargs
