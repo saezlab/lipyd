@@ -38,7 +38,7 @@ FAMILIES = {
         'PA', 'PI', 'PIP', 'PIP2', 'PIP3',
     },
 }
-PRE_SUBCLASS = {'Hex', 'Hex2', 'SHex', 'SHex2', 'Lyso'}
+PRE_SUBCLASS = {'Hex', 'Hex2', 'SHex', 'SHex2', 'Lyso', 'Monolyso'}
 PRE_CHAIN_ETHER = {'O', 'P'}
 PRE_CHAIN_SPHINGO = {'d', 't', 'k', 'DH'}
 
