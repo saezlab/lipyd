@@ -173,12 +173,12 @@ class Mz():
     
     def remove_h_add_nafo(self):
         
-        m = mass.MassBase('Na3CO2')
+        m = mass.MassBase('NaCO2')
         return self.adduct(m + mass.electron)
     
     def add_h_remove_nafo(self):
         
-        m = mass.MassBase('Na3CO2')
+        m = mass.MassBase('NaCO2')
         return self.adduct(-m - mass.electron)
     
     def remove_h_add_2nafo(self):
@@ -203,52 +203,52 @@ class Mz():
     
     def remove_h_add_na_3nafo(self):
         
-        m = mass.MassBase('Na4H2C3O6')
+        m = mass.MassBase('Na4C3O6')
         return self.adduct(m + mass.electron)
     
     def add_h_remove_na_3nafo(self):
         
-        m = mass.MassBase('Na4H2C3O6')
+        m = mass.MassBase('Na4C3O6')
         return self.adduct(-m - mass.electron)
     
     def remove_h_add_na_4nafo(self):
         
-        m = mass.MassBase('Na5H3C4O8')
+        m = mass.MassBase('Na5HC4O8')
         return self.adduct(m + mass.electron)
     
     def add_h_remove_na_4nafo(self):
         
-        m = mass.MassBase('Na5H3C4O8')
+        m = mass.MassBase('Na5HC4O8')
         return self.adduct(-m - mass.electron)
     
     def remove_h_add_na_5nafo(self):
         
-        m = mass.MassBase('Na6H4C5O10')
+        m = mass.MassBase('Na6H2C5O10')
         return self.adduct(m + mass.electron)
     
     def add_h_remove_na_5nafo(self):
         
-        m = mass.MassBase('Na6H4C5O10')
+        m = mass.MassBase('Na6H2C5O10')
         return self.adduct(-m - mass.electron)
     
     def remove_h_add_na_6nafo(self):
         
-        m = mass.MassBase('Na7H5C6O12')
+        m = mass.MassBase('Na7H3C6O12')
         return self.adduct(m + mass.electron)
     
     def add_h_remove_na_6nafo(self):
         
-        m = mass.MassBase('Na7H5C6O12')
+        m = mass.MassBase('Na7H3C6O12')
         return self.adduct(-m - mass.electron)
     
     def remove_h_add_na_7nafo(self):
         
-        m = mass.MassBase('Na8H6C7O14')
+        m = mass.MassBase('Na8H4C7O14')
         return self.adduct(m + mass.electron)
     
     def add_h_remove_na_7nafo(self):
         
-        m = mass.MassBase('Na8H6C7O14')
+        m = mass.MassBase('Na8H4C7O14')
         return self.adduct(-m - mass.electron)
     
     def add_ac(self):
