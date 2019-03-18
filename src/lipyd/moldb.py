@@ -1877,3 +1877,43 @@ def result_summary(result):
         for adduct, res in result.items()
         for lip in res[1]
     )
+
+
+def mass_from_name(
+        name = None,
+        database_preference = None,
+        hg = None,
+        chainsum = None,
+        chains = (),
+    ):
+    
+    db = get_db()
+    
+    return db.mass_from_name(
+        name = name,
+        database_preference = database_preference,
+        hg = hg,
+        chainsum = chainsum,
+        chains = chains,
+    )
+
+
+def mz_from_name(
+        adduct,
+        name = None,
+        database_preference = None,
+        hg = None,
+        chainsum = None,
+        chains = (),
+    ):
+    
+    db = get_db()
+    
+    return db.mz_from_name(
+        adduct = adduct,
+        name = name,
+        database_preference = database_preference,
+        hg = hg,
+        chainsum = chainsum,
+        chains = chains,
+    )
