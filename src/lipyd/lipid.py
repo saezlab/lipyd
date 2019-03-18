@@ -38,6 +38,7 @@ misc = [
     'RetinoicAcid',
     'Retinol',
     'SterolEster',
+    'Cardiolipin',
 ]
 
 # will be populated by the factory
@@ -1311,6 +1312,80 @@ class SterolEster(metabolite.AbstractMetabolite):
             getname = getname or _getname,
             **kwargs,
         )
+
+#
+# Cardiolipin
+#
+
+
+class Cardiolipin(metabolite.AbstractMetabolite):
+    """ """
+    
+    def __init__(
+            self,
+            sn1_1 = None,
+            sn2_1 = None,
+            sn1_2 = None,
+            sn2_2 = None,
+            sn1_1_fa_args = None,
+            sn1_2_fa_args = None,
+            sn2_1_fa_args = None,
+            sn2_2_fa_args = None,
+            fa_args = None,
+            charge = None,
+            pcharge = 0,
+            ncharge = 0,
+            name = 'CL',
+            typ  = 'CL',
+            **kwargs
+        ):
+        """
+        Example: http://swisslipids.org/#/entity/SLM:000528939/
+        >>> list(lipid.Cardiolipin(fa_args = {'c': 19, 'u': 2}))[0].mass
+        Exact mass: 1505.0348
+        """
+        
+        self.fa_args = fa_args or {}
+        sn1_1_fa_args = self.fa_args or {}
+        sn1_2_fa_args = self.fa_args or {}
+        sn2_1_fa_args = self.fa_args or {}
+        sn2_2_fa_args = self.fa_args or {}
+        self.pcharge = pcharge
+        self.ncharge = ncharge
+        self.netcharge = (
+            charge
+                if charge is not None else
+            self.pcharge - self.ncharge
+        )
+        self.typ = typ
+        hg = lipproc.Headgroup(main = name)
+        
+        metabolite.AbstractMetabolite.__init__(
+            self,
+            core = 'C9H18O13P2',
+            subs = [
+                self._get_substituent(sn1_1, args = sn1_1_fa_args),
+                self._get_substituent(sn1_2, args = sn1_2_fa_args),
+                self._get_substituent(sn2_1, args = sn2_1_fa_args),
+                self._get_substituent(sn2_2, args = sn2_2_fa_args),
+            ],
+            charge = self.netcharge,
+            name = name,
+            hg = hg,
+            **kwargs,
+        )
+    
+    
+    def _get_substituent(self, sub, args = None):
+        
+        args = args or {}
+        
+        return (
+            substituent.FattyAcyl(**args)
+                if not sub else
+            self.get_substituent(sn1_1)
+        )
+
 
 #
 # Fatty acids
