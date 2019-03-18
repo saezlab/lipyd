@@ -121,6 +121,71 @@ class Mz():
         m = mass.MassBase('HCO2')
         return self.adduct(m + mass.electron)
     
+    def add_fo_na_fo(self):
+        """ """
+        m = mass.MassBase('HCO2NaHCO2')
+        return self.adduct(m + mass.electron)
+    
+    def add_fo_2nafo(self):
+        
+        m = mass.MassBase('HCO2Na2H2C2O4')
+        return self.adduct(m + mass.electron)
+    
+    def add_fo_3nafo(self):
+        
+        m = mass.MassBase('HCO2Na3H3C3O6')
+        return self.adduct(m + mass.electron)
+    
+    def add_fo_4nafo(self):
+        
+        m = mass.MassBase('HCO2Na4H4C4O8')
+        return self.adduct(m + mass.electron)
+    
+    def add_fo_5nafo(self):
+        
+        m = mass.MassBase('HCO2Na5H5C5O10')
+        return self.adduct(m + mass.electron)
+    
+    def remove_h_add_nafo(self):
+        
+        m = mass.MassBase('Na3CO2')
+        return self.adduct(m + mass.electron)
+    
+    def remove_h_add_2nafo(self):
+        
+        m = mass.MassBase('Na2HC2O4')
+        return self.adduct(m + mass.electron)
+    
+    def remove_h_add_3nafo(self):
+        
+        m = mass.MassBase('Na3H2C3O6')
+        return self.adduct(m + mass.electron)
+    
+    def remove_h_add_na_3nafo(self):
+        
+        m = mass.MassBase('Na4H2C3O6')
+        return self.adduct(m + mass.electron)
+    
+    def remove_h_add_na_4nafo(self):
+        
+        m = mass.MassBase('Na5H3C4O8')
+        return self.adduct(m + mass.electron)
+    
+    def remove_h_add_na_5nafo(self):
+        
+        m = mass.MassBase('Na6H4C5O10')
+        return self.adduct(m + mass.electron)
+    
+    def remove_h_add_na_6nafo(self):
+        
+        m = mass.MassBase('Na7H5C6O12')
+        return self.adduct(m + mass.electron)
+    
+    def remove_h_add_na_7nafo(self):
+        
+        m = mass.MassBase('Na8H6C7O14')
+        return self.adduct(m + mass.electron)
+    
     def add_ac(self):
         """ """
         m = mass.MassBase('H3C2O2')
