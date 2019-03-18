@@ -577,3 +577,17 @@ def dict_ensure_bytes(d):
         )
         for key, val in iteritems(d)
     )
+
+
+def ppm(reference, other):
+    """
+    Returns the difference in PPM between a reference mass or m/z
+    and an other value.
+    
+    PPM values are negative if the other value is lower than the reference.
+    """
+    
+    reference = reference.mass if hasattr(reference, 'mass') else reference
+    other = other.mass if hasattr(other, 'mass') else other
+    
+    return (other - reference) / reference * 1e6

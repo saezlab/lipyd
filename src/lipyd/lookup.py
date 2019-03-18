@@ -19,24 +19,19 @@
 
 
 def ppm_tolerance(ppm, m):
-    """Converts ppm value to plus/minus range.
+    """
+    Converts ppm value to plus/minus range.
 
     Parameters
     ----------
-    int :
-        ppm:
+    int : ppm
         Tolerance in ppm.
-    float :
-        m:
+    float : m
         The m/z value.
-    ppm :
-        
-    m :
-        
 
     Returns
     -------
-
+    The m/z difference corresponding to the ppm value at this particular m/z.
     """
     
     return m * ppm * 1e-6

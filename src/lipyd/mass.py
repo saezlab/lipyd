@@ -633,12 +633,14 @@ class MassBase(object):
             
             self._atoms = formula_to_atoms(self.formula)
     
+    
     @property
     def atoms(self):
         
         self.update_atoms()
         
         return self._atoms if hasattr(self, '_atoms') else {}
+    
     
     def reload(self):
         
@@ -647,6 +649,13 @@ class MassBase(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
+    
+    def ppm(self, other):
+        
+        other = other.mass if hasattr(other, 'mass') else other
+        
+        return common.ppm(other, self.mass)
 
 
 class ElementComposition(object):
