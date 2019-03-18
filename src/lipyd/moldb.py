@@ -1589,6 +1589,39 @@ class MoleculeDatabaseAggregator(object):
             return getattr(formula.Formula(exmass), adduct_method)()
     
     
+    def mz_lowest_error_from_name(
+            self,
+            measured_mz,
+            adduct,
+            name = None,
+            **kwargs,
+        ):
+        """
+        Regarding a measured m/z and an assumed adduct type and name
+        returns the m/z of the record with matching name and lowest error.
+        """
+        
+        exmasses = self.masses_from_name(name = name, **kwargs)
+        
+        if exmasses is not None:
+            
+            adduct_method = (
+                settings.get('ex2ad_all')[adduct]
+            )
+            
+            addmasses = np.array([
+                getattr(formula.Formula(exmass), adduct_method)()
+                for exmass in exmasses
+            ])
+            
+            ppms = np.array([
+                common.ppm(addmass, measured_mz)
+                for addmass in addmasses
+            ])
+            
+            return addmasses[np.argmin(np.abs(ppms))]
+    
+    
     def name_inconsistent(self, name = None, **kwargs):
         """
         Tells if a name has different corresponding masses in the names
@@ -1916,4 +1949,25 @@ def mz_from_name(
         hg = hg,
         chainsum = chainsum,
         chains = chains,
+    )
+
+
+def mz_lowest_error_from_name(
+        measured_mz,
+        adduct,
+        name = None,
+        **kwargs,
+    ):
+    """
+    Regarding a measured m/z and an assumed adduct type and name
+    returns the m/z of the record with matching name and lowest error.
+    """
+    
+    db = get_db()
+    
+    return db.mz_lowest_error_from_name(
+        measured_mz = measured_mz,
+        adduct = adduct,
+        name = name,
+        **kwargs,
     )
