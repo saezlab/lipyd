@@ -733,7 +733,7 @@ class SwissLipids(Reader):
 
 
 class MoleculeDatabaseAggregator(object):
-    """ """
+    
     
     def __init__(
             self,
@@ -832,6 +832,7 @@ class MoleculeDatabaseAggregator(object):
         self.auto_misc()
         self.mass_data_arrays()
         self.sort()
+        self.build_names()
     
     def load_databases(self):
         """Loads all databases and generates main array."""
@@ -1460,6 +1461,97 @@ class MoleculeDatabaseAggregator(object):
                 ))
         
         return ';'.join(result)
+    
+    
+    def build_names(self):
+        """
+        Builds a dictionary for names to index or mass lookup.
+        """
+        
+        names = collections.defaultdict(set)
+        
+        for i, rec in enumerate(self.data):
+            
+            if not rec.hg:
+                
+                continue
+            
+            name = rec.summary_str()
+            
+            names[name].add(i)
+        
+        self.names = dict(
+            (
+                name,
+                np.array(sorted(idx))
+            )
+            for name, idx in iteritems(names)
+        )
+    
+    
+    def idx_from_name(
+            self,
+            name = None,
+            hg = None,
+            chainsum = None,
+            chains = (),
+        ):
+        """
+        For a lipid name returns the indices of the matching records.
+        
+        Returns
+        -------
+        Set of indices. If name not in the database returns None.
+        """
+        
+        if name is None and hg is not None:
+            
+            if chainsum is None:
+                
+                chainsum = lipproc.sum_chains(chains)
+            
+            name = lipproc.summary_str(hg = hg, chainsum = chainsum)
+        
+        if name in self.names:
+            
+            return self.names[name]
+    
+    
+    def masses_from_name(self, name = None, **kwargs):
+        
+        idx = self.idx_from_name(name = name, **kwargs)
+        
+        if idx is not None:
+            
+            return self.masses[idx]
+    
+    
+    def name_inconsistent(self, name = None, **kwargs):
+        """
+        Tells if a name has different corresponding masses in the names
+        dictionary. If a name not in the database still returns False.
+        If the name inconsistent returns True.
+        """
+        
+        masses = self.masses_from_name(name = name, **kwargs)
+        
+        return masses is not None and max(masses) - min(masses) > 1e-6
+    
+    
+    def get_inconsistent_names(self):
+        """
+        Collects all inconsistent names.
+        """
+        
+        inconsistent = []
+        
+        for name in self.names.keys():
+            
+            if self.name_inconsistent(name = name):
+                
+                inconsistent.append(name)
+        
+        return inconsistent
 
 
 def init_db(**kwargs):
@@ -1648,6 +1740,7 @@ def possible_classes(
         if r.hg is not None
     )
 
+
 def records_string(
         records,
         adducts = None,
@@ -1689,17 +1782,20 @@ def records_string(
         use_db_names = use_db_names
     )
 
+
 def result_summary(result):
     """
-
+    Provides a concise summary of the lookup results.
+    
     Parameters
     ----------
-    result :
-        
+    result : dict
+        A result dictionary returned by a lookup.
 
     Returns
     -------
-
+    A set of tuples with adduct type, database name, database ID and the
+    string representation of the lipid.
     """
     
     return set(

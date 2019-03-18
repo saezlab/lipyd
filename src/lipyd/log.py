@@ -22,9 +22,10 @@ import sys
 import textwrap
 
 import lipyd.common as common
+import lipyd.settings as settings
 
 
-def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
+def new_logger(name = None, logdir = None, verbosity = 0):
     """
     Returns a new logger with default settings (can be customized).
 
@@ -41,6 +42,9 @@ def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
     -------
     ``lipyd.log.Logger`` instance.
     """
+    
+    name = name or settings.get('module_name')
+    logdir = logdir or '%s_log' % name
     
     return Logger(
         fname = '%s__%s.log' % (

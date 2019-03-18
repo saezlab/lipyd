@@ -27,6 +27,8 @@ import lipyd.common as common
 import lipyd.lipproc as lipproc
 
 _defaults = {
+    # name of the module
+    'module_name': 'lipyd',
     # The absolute root directory.
     # This should not be necessary, why is it here?
     'path_root': '/',
@@ -499,6 +501,8 @@ _defaults = {
     # use only MS2 scans within the RT range of the feature
     'ms2_check_rt': True,
     'ms_preproc_wd': 'lipyd_ms_preproc',
+    # priority of databases at name to mass lookups in moldb
+    'database_preference': ('lipyd.lipid', 'SwissLipids', 'LipidMaps'),
 }
 
 in_basedir = [

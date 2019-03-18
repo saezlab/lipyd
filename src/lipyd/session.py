@@ -25,7 +25,6 @@ import lipyd.log as log
 
 
 class Session(object):
-    """ """
     
     def __init__(self, label = None, log_verbosity = 0):
         
@@ -37,15 +36,7 @@ class Session(object):
     @staticmethod
     def gen_session_id(length = 5):
         """
-
-        Parameters
-        ----------
-        length :
-             (Default value = 5)
-
-        Returns
-        -------
-
+        Returns a 5 alphanumeric characters random identifier.
         """
         
         abc = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -63,7 +54,9 @@ class Session(object):
 
 
 def get_session():
-    """ """
+    """
+    Creates new session or returns the one already created.
+    """
     
     mod = sys.modules[__name__]
     
@@ -75,24 +68,24 @@ def get_session():
 
 
 def get_log():
-    """ """
+    """
+    
+    Returns the ``log.Logger`` instance belonging to the session.
+    """
     
     return get_session().log
 
 
 def new_session(label = None, log_verbosity = 0):
     """
-
+    Creates a new session. In case one already exists it will be deleted.
+    
     Parameters
     ----------
-    label :
-         (Default value = None)
-    log_verbosity :
-         (Default value = 0)
-
-    Returns
-    -------
-
+    label : str
+        A custom name for the session.
+    log_verbosity : int
+        Verbositiy level passed to the logger.
     """
     
     mod = sys.modules[__name__]
