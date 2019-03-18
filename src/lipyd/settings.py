@@ -415,6 +415,16 @@ _defaults = {
             }
         }
     },
+    'ex2ad_all': {
+        '[M+H]+': 'add_h',
+        '[M+NH4]+': 'add_nh4',
+        '[M+Na]+': 'add_na',
+        '[M-H2O+H]+': 'remove_oh',
+        '[M-H]-': 'remove_h',
+        '[M+HCOO]-': 'add_fo',
+        '[M-2H]2-': 'remove_2h',
+        '[M-3H]3-': 'remove_3h',
+    },
     # metrics to use for determining similarity of protein
     # and intensity profiles; these were attempts, and not
     # used any more, are "deprecated"

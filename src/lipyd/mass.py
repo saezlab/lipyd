@@ -31,6 +31,8 @@ import operator
 import itertools
 import collections
 
+import numpy as np
+
 try:
     import pyopenms as oms
 except:
@@ -462,7 +464,7 @@ class MassBase(object):
             
             self.formula = None
         
-        if type(formula_mass) is float:
+        if isinstance(formula_mass, (float, np.float64)):
             self.mass = formula_mass
         
         self.calc_mass()

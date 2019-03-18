@@ -743,6 +743,7 @@ class MoleculeDatabaseAggregator(object):
             sph_args = None,
             build = True,
             verbose = False,
+            database_preference = None,
         ):
         """
         Builds a database of molecules and provides methods for look up by
@@ -773,6 +774,10 @@ class MoleculeDatabaseAggregator(object):
         
         self.fa_args  = fa_args or {'c': (4, 36), 'u': (0, 10)}
         self.sph_args = sph_args or {'c': (16, 22), 'u': (0, 1)}
+        
+        self.database_preference = (
+            database_preference or settings.get('database_preference')
+        )
         
         if build:
             
@@ -1518,12 +1523,70 @@ class MoleculeDatabaseAggregator(object):
     
     
     def masses_from_name(self, name = None, **kwargs):
+        """
+        For a lipid name looks up the corresponding exact masses.
+        
+        Returns
+        -------
+        Array of masses.
+        """
         
         idx = self.idx_from_name(name = name, **kwargs)
         
         if idx is not None:
             
             return self.masses[idx]
+    
+    
+    def mass_from_name(
+            self,
+            name = None,
+            database_preference = None,
+            **kwargs,
+        ):
+        """
+        For a lipid name returns one exact mass, preferably the one from
+        the database in front of the ``database_preference`` list.
+        """
+        
+        database_preference = database_preference or self.database_preference
+        
+        idx = self.idx_from_name(name = name, **kwargs)
+        
+        if idx is not None:
+            
+            for db in database_preference:
+                
+                for i in idx:
+                    
+                    rec = self.data[i]
+                    
+                    if rec.lab.db == db:
+                        
+                        return self.masses[i]
+    
+    
+    def mz_from_name(
+            self,
+            adduct,
+            name = None,
+            database_preference = None,
+            **kwargs,
+        ):
+        
+        exmass = self.mass_from_name(
+            name = name,
+            database_preference = database_preference,
+            **kwargs,
+        )
+        
+        if exmass is not None:
+            
+            adduct_method = (
+                settings.get('ex2ad_all')[adduct]
+            )
+            
+            return getattr(formula.Formula(exmass), adduct_method)()
     
     
     def name_inconsistent(self, name = None, **kwargs):
