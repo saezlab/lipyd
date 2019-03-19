@@ -71,6 +71,26 @@ class MSPreprocess(object):
             export_smoothed_profile = False,
             logger = None,
             console = False,
+            mass_traces = None,
+            mtd_process = None,
+            mtd_params = None,
+            splitted_mt = None,
+            epdet_process = None,
+            epdet_params = None,
+            chromatograms = None,
+            ffm_process = None,
+            ffm_params = None,
+            feature_map = None,
+            reference = None,
+            toAlign = None,
+            xml_file = None, 
+            ma_algorithm = None,
+            ma_params = None,
+            transformation = None,
+            aligned_fm_1 = None,
+            aligned_fm_2 = None,
+            input_fm_1 = None,
+            input_fm_2 = None
         ):
         
         self.log = (
@@ -95,13 +115,33 @@ class MSPreprocess(object):
         self.gs_param = gaussian_smoothing_param
         self.export_smoothed_profile = export_smoothed_profile
         self.console = console
-    
-    
+        self.mass_traces = mass_traces
+        self.mtd_process = mtd_process
+        self.mtd_params = mtd_params
+        self.splitted_mt = splitted_mt,
+        self.epdet_process = epdet_process,
+        self.epdet_params = epdet_params
+        self.chromatograms = chromatograms,
+        self.ffm_process = ffm_process,
+        self.ffm_params = ffm_params,
+        self.feature_map = feature_map
+
+        self.reference = reference
+        self.toAlign = toAlign
+        self.xml_file = xml_file
+        self.ma_algorithm = ma_algorithm
+        self.ma_params = ma_params
+        self.transformation = transformation
+        self.aligned_fm_1 = aligned_fm_1
+        self.aligned_fm_2 = aligned_fm_2
+        self.input_fm_1 = input_fm_1
+        self.input_fm_2 = input_fm_2
+
     def main(self):
         
         self.setup()
         self.peak_picking()
-        self.feature_detection()
+        self.feature_finding_metabo()
     
     
     def setup(self):
@@ -330,13 +370,16 @@ class MSPreprocess(object):
     def export_features(self):
         
         self.log.msg('Saving features into `%s`.' % self.features_file)
-        
-        # Igor, here you had self.fh, file handler for the featureXML
-        # 10 lines above same variable name was the mzML file
-        # very confusing to use the same name for different things! :)
-        self.features_xml_fh = oms.FeatureXMLFile()
-        self.features_xml_fh.store(self.features_file, self.features)
+        self.features_xml = oms.FeatureXMLFile()
+        self.features_xml.store(self.features_file, self.feature_map)
     
+    def export_chromatograms_data(self):
+
+        self.log.msg('Saving chromatograms into `%s`.' % self.features_file)
+        self.chromatogram_mzml = oms.FeatureXMLFile()
+        self.chromatogram_mzml.store(self.chromatograms, self.feature_map)
+
+
     
     @staticmethod
     def _dict_ensure_bytes(d):
@@ -354,7 +397,147 @@ class MSPreprocess(object):
             
             target.setValue(par, value)
     
+
+    def map_alignment(self, **kwargs):
+        
+        self.load_feature_maps()
+
+        self.choose_ma_algorithm()
+
+        self.set_ma_parameters()
+
+        self.run_ma()
+
+        self.store_aligned_maps()
+
+
+    def load_feature_maps(self, **kwargs):
+
+        self.reference = oms.FeatureMap()
+        self.toAlign = oms.FeatureMap()
+        self.xml_file = oms.FeatureXMLFile()
+        self.xml_file.load(self.input_fm_1, self.reference)
+        self.xml_file.load(self.input_fm_2, self.toAlign)
+        
+
+    def choose_ma_algorithm(self, **kwargs):
+
+        #create map alignment algorithm
+        self.ma_algorithm = oms.MapAlignmentAlgorithmPoseClustering()
+
     
+    def set_ma_parameters(self, **kwargs):
+        
+        #set parameters
+        self.ma_params = self.ma_algorithm.getParameters()    # oms.Param()
+        self.ma_params.setValue('superimposer:scaling_bucket_size', 0.01)
+        self.ma_params.setValue('superimposer:shift_bucket_size', 0.1)
+        #p.setValue('superimposer:num_used_points', 3) #only use first three points -> different results as before expected
+        self.ma_params.setValue('superimposer:max_shift', 2000.0 )
+        self.ma_params.setValue('superimposer:max_scaling', 2. )
+        self.ma_params.setValue('max_num_peaks_considered', -1 ) # -1 is all;
+        self.ma_algorithm.setParameters(self.ma_params)
+        self.ma_algorithm.setReference(self.reference)
+    
+
+    def run_ma(self, **kwargs):
+
+        #create object for the computed transformation
+        self.transformation = oms.TransformationDescription()
+        #align
+        self.ma_algorithm.align(self.toAlign, self.transformation)
+
+
+    def store_aligned_maps(self, **kwargs):
+
+        #store results
+        #self.xml_file.store(self.aligned_fm_1, self.reference)
+        self.xml_file.store(self.aligned_fm_2, self.toAlign)
+
+
+    def feature_finding_metabo(self, export_chromatograms=False):
+        
+        self.load_centroid_mzml()
+
+        self.mt_detection()
+
+        self.elution_prof_detection()
+
+        self.ff_metabo()
+
+        self.export_features()
+
+        if export_chromatograms is True:
+
+            self.export_chromatograms_data()
+
+    def load_centroid_mzml(self):
+        
+        self.centroid_input_map = oms.PeakMap()
+        oms.MzMLFile().load(self.centroid_mzml, self.centroid_input_map)
+        self.feature_map = oms.FeatureMap()
+
+    def mt_detection(self):
+
+        self.mass_traces = []
+
+        self.mtd_process = oms.MassTraceDetection()
+        
+        self.mtd_params = self.mtd_process.getDefaults()
+        
+        self.mtd_params.setValue('noise_threshold_int', 10.0 )  
+        self.mtd_params.setValue('chrom_peak_snr', 3.0 )
+        self.mtd_params.setValue('mass_error_ppm', 20.0 )
+        self.mtd_params.setValue('reestimate_mt_sd', b'true' )
+        self.mtd_params.setValue('quant_method', b'area')
+        
+        self.mtd_process.setParameters(self.mtd_params)
+        
+        self.mtd_process.run(self.centroid_input_map, self.mass_traces)
+
+
+    def elution_prof_detection(self, **kwargs):
+
+        self.splitted_mt = []
+        
+        self.epdet_process = oms.ElutionPeakDetection()
+        
+        self.epdet_params = self.epdet_process.getDefaults()
+        
+        self.epdet_params.setValue('chrom_peak_snr', 3.0 )
+        self.epdet_params.setValue('chrom_fwhm', 5.0 )
+        self.epdet_params.setValue('width_filetering', b'fixed')
+        
+        self.epdet_process.setParameters(self.epdet_params)
+        
+        self.epdet_process.detectPeaks(self.mass_traces, self.splitted_mt)
+
+        
+    def ff_metabo(self):
+
+        self.chromatograms = [[]]
+        
+        self.ffm_process = oms.FeatureFindingMetabo()
+        
+        self.ffm_params = self.ffm_process.getDefaults()
+        
+        self.ffm_params.setValue('charge_lower_bound', 1 )
+        self.ffm_params.setValue('charge_upper_bound', 1 )        
+        self.ffm_params.setValue('enable_RT_filtering', b'true') 
+        self.ffm_params.setValue('isotope_filtering_model', b'metabolites (5% RMS)') 
+        self.ffm_params.setValue('mz_scoring_13C', b'true') 
+        self.ffm_params.setValue('report_convex_hulls', b'true') 
+        self.ffm_params.setValue('remove_single_traces', b'true') 
+        
+        self.ffm_process.setParameters(self.ffm_params)
+        
+        self.ffm_process.run(self.splitted_mt, self.feature_map, self.chromatograms)
+
+
+    def convert_utf8_binary(par_str = "my_string"):
+        bin_string = par_str.encode("utf-8")
+        return bin_string     
+        
     def reload(self):
 
         modname = self.__class__.__module__
@@ -366,15 +549,17 @@ class MSPreprocess(object):
 
 if __name__ == "__main__":
     
-    a = Data_Processing(
+    a = MSPreprocess(
         profile_mzml = (
-            "/home/igor/Documents/Black_scripts/Raw__data/"
-            "STARD10_invivo_raw/mzml/"
-            "150310_Popeye_MLH_AC_STARD10_A10_pos.mzML"
-        ),
-        centroid_mzml = "Test_STARD10_A10_pos_picked_HiRes.mzML",
-        features_file = "Test_featureXMLmap.featureXML "
+            "/home/igor/Documents/Scripts/Raw_data_STARD10/"
+           "150310_Popeye_MLH_AC_STARD10_A10_pos.mzML"),
+        centroid_mzml = "/home/igor/Documents/lipyd/src/lipyd_ms_preproc/150310_Popeye_MLH_AC_STARD10_A09_pos/150310_Popeye_MLH_AC_STARD10_A10_pos__peaks.mzML",
+        input_fm_1 = "/home/igor/Documents/lipyd/src/lipyd_ms_preproc/150310_Popeye_MLH_AC_STARD10_A09_pos/150310_Popeye_MLH_AC_STARD10_A09_pos__features.featureXML", 
+        input_fm_2 = "/home/igor/Documents/lipyd/src/lipyd_ms_preproc/150310_Popeye_MLH_AC_STARD10_A09_pos/150310_Popeye_MLH_AC_STARD10_A10_pos__features.featureXML",
+        aligned_fm_1 = "/home/igor/Documents/lipyd/src/lipyd_ms_preproc/150310_Popeye_MLH_AC_STARD10_A09_pos/test_aligned_map_A09.featureXML",
+        aligned_fm_2 = "/home/igor/Documents/lipyd/src/lipyd_ms_preproc/150310_Popeye_MLH_AC_STARD10_A10_pos/test_aligned_map_A10.featureXML" 
     )
-    
+    a.setup()
     a.peak_picking()
-    a.feature_detection()
+    a.feature_finding_metabo()
+    a.map_alignment()
