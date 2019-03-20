@@ -1365,7 +1365,7 @@ class Cardiolipin(metabolite.AbstractMetabolite):
         
         metabolite.AbstractMetabolite.__init__(
             self,
-            core = 'C9H17O13P2',
+            core = 'C9H18O13P2',
             subs = [
                 self._get_substituent(sn1_1, args = sn1_1_fa_args),
                 self._get_substituent(sn1_2, args = sn1_2_fa_args),

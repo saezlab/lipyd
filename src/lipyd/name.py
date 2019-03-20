@@ -711,6 +711,7 @@ class LipidNameProcessor(object):
         hg, chainsexp = self.headgroup_from_lipid_name(
             names, database = database
         )
+        hg_modified = None
         
         # try greek fatty acyl carbon counts:
         if not hg and iso and database == 'swisslipids':
@@ -754,7 +755,7 @@ class LipidNameProcessor(object):
                     2
             )
             
-            accept_less_chains = hg.main in {'CL'}
+            accept_less_chains = hg and hg.main in {'CL'}
             
             _chainsum, _chains = self.carbon_counts(
                 n,
@@ -770,6 +771,22 @@ class LipidNameProcessor(object):
             if self.iso and _chains and any(c.iso for c in _chains):
                 
                 chains = _chains
+            
+            if hg and hg.main == 'CL':
+                
+                if _chains and len(_chains) == 2:
+                    
+                    hg_modified = lipproc.Headgroup(
+                        main = 'CL',
+                        sub = ('Lyso',),
+                    )
+                    
+                elif len(_chains) == 3:
+                    
+                    hg_modified = lipproc.Headgroup(
+                        main = 'CL',
+                        sub = ('Monolyso',),
+                    )
             
             if (
                 chainsum and chains and (
@@ -790,7 +807,7 @@ class LipidNameProcessor(object):
                     
                     break
         
-        return hg, chainsum, chains
+        return hg_modified or hg, chainsum, chains
     
     
     def gen_fa_greek(self):
