@@ -31,7 +31,7 @@ def utf8_to_bin(s):
     return s.encode("utf-8")
 
 
-class Base_Entity(object):
+class BaseEntity(object):
     """
     Base class for setup and check parameter for all derived classes
     """
@@ -59,7 +59,7 @@ class Base_Entity(object):
         self.entity.setParameters(param)
 
 
-class Map_alignment(object):
+class MapAlignment(object):
 
     def __init__(self,
                 input_file1 = None,  #
@@ -179,8 +179,13 @@ if __name__ == "__main__":
 
     in_file_name = "150310_Popeye_MLH_AC_STARD10_A09_pos_picked.mzML"
     out_file_name = "150310_feature_finding.featureXML"
-    ffm = Feature_finding_metabo(in_file_name = in_file_name,
-                                out_file_name = out_file_name)
+    ffm = Feature_finding_metabo(
+        in_file_name = in_file_name,
+        out_file_name = out_file_name,
+        mtd_param = param,
+        ....
+    )
+    ffm.main()
     
     param = {"noise_threshold_int":10.0,
             "chrom_peak_snr":3.0
