@@ -340,7 +340,8 @@ class LipidNameProcessor(object):
             chainsexp = None,
             sphingo = False,
             iso = False,
-            types = None
+            types = None,
+            accept_less_chains = False,
         ):
         """
         Processes carbon and unsaturation counts from name.
@@ -454,7 +455,11 @@ class LipidNameProcessor(object):
             zerochains = sum(not c.c for c in chains)
             # ccexp = ccexp - zerochains
             chains = tuple(c for c in chains if c.c)
-            chains = [] if len(chains) != ccexp else tuple(chains)
+            chains = (
+                ()
+                    if not accept_less_chains and len(chains) != ccexp else
+                tuple(chains)
+            )
         
         # the total carbon count
         if chains:
@@ -492,7 +497,8 @@ class LipidNameProcessor(object):
             name,
             ccexp = 2,
             sphingo = False,
-            types = None
+            types = None,
+            accept_less_chains = False,
         ):
         """Calls `carbon_counts` with `iso=True`.
 
@@ -517,7 +523,8 @@ class LipidNameProcessor(object):
             ccexp = ccexp,
             sphingo = sphingo,
             iso = True,
-            types = types
+            types = types,
+            accept_less_chains = accept_less_chains,
         )
     
     def headgroup_from_lipid_name(self, names, database = None):
@@ -740,13 +747,21 @@ class LipidNameProcessor(object):
                 if hg.main in {'FA', 'MAG'} or lyso else
                     3
                 if hg.main == 'TAG' else
-                    4
+                    4 # cardiolipin has 4 aliphatic chains,
+                      # but lyso or monolyso have 2 or 3,
+                      # respectively
                 if hg.main == 'CL' else
                     2
             )
             
+            accept_less_chains = hg.main in {'CL'}
+            
             _chainsum, _chains = self.carbon_counts(
-                n, ccexp = ccexp, chainsexp = chainsexp, iso = iso
+                n,
+                ccexp = ccexp,
+                chainsexp = chainsexp,
+                iso = iso,
+                accept_less_chains = accept_less_chains,
             )
             
             chains = chains or _chains
