@@ -31,7 +31,7 @@ def utf8_to_bin(s):
     return s.encode("utf-8")
 
 
-class Base_Entity(object):
+class BaseEntity(object):
     """
     Base class for setup and check parameter for all derived classes
     """
@@ -41,7 +41,7 @@ class Base_Entity(object):
                 ):
         
         if not hasattr(entity, "getDefaults"):
-            raise RuntimeError( "Base_Entity: the entity has no getDefaults attr" )
+            raise RuntimeError( "BaseEntity: the entity has no getDefaults attr" )
         
         self.entity = entity
 
@@ -59,7 +59,7 @@ class Base_Entity(object):
         self.entity.setParameters(param)
 
 
-class Map_alignment(object):
+class MapAlignment(object):
 
     def __init__(self,
                 input_file1 = None,  #
@@ -90,7 +90,7 @@ class Map_alignment(object):
         
    
     def set_algorithm(self): 
-        self.algorithm = Base_Entity(oms.MapAlignmentAlgorithmPoseClustering())
+        self.algorithm = BaseEntity(oms.MapAlignmentAlgorithmPoseClustering())
 
     def apply_align(self, **kwargs):
         self.load_maps()
@@ -115,25 +115,25 @@ we can do that way. It`s removes repetitive methods.
 """
 
 
-class MTD_Entity(Base_Entity):
+class MtdEntity(BaseEntity):
     """ oms.MassTraceDetection() """
     def __init__(self, **kwargs):
-        super(MTD_Entity, self).__init__(oms.MassTraceDetection(),
+        super(MtdEntity, self).__init__(oms.MassTraceDetection(),
                                                 **kwargs)
 
-class EPD_Entity(Base_Entity):
+class EpdEntity(BaseEntity):
     """ oms.ElutionPeakDetection() """
     def __init__(self, **kwargs):
-        super(EPD_Entity, self).__init__(oms.ElutionPeakDetection(),
+        super(EpdEntity, self).__init__(oms.ElutionPeakDetection(),
                                                 **kwargs)
 
-class FFM_Entity(Base_Entity):
+class FfmEntity(BaseEntity):
     """ oms.FeatureFindingMetabo() """
     def __init__(self, **kwargs):
-        super(FFM_Entity, self).__init__(oms.FeatureFindingMetabo(),
+        super(FfmEntity, self).__init__(oms.FeatureFindingMetabo(),
                                                 **kwargs)
 
-class Feature_finding_metabo(object):
+class FeatureFindingMetabo(object):
     
     def __init__(self,
                 in_file_name = None,
@@ -151,9 +151,9 @@ class Feature_finding_metabo(object):
         self.filtered_mt = []
         self.chromatograms = [[]]
 
-        self.mtd = MTD_Entity()
-        self.epd = EPD_Entity()
-        self.ffm = FFM_Entity()
+        self.mtd = MtdEntity()
+        self.epd = EpdEntity()
+        self.ffm = FfmEntity()
                 
 
     def load_map(self):
@@ -164,40 +164,87 @@ class Feature_finding_metabo(object):
 
     def apply_ffm(self):
 
-        self.load_map()
         self.mtd.entity.run(self.input_map, self.output_mt)
         self.epd.entity.detectPeaks(self.output_mt, self.splitted_mt)
         self.ffm.entity.run(self.splitted_mt, self.fm, self.chromatograms)
 
     def store(self):
         oms.FeatureXMLFile().store(self.out_file_name, self.fm)
+    
+    def main(self):
 
+        self.load_map()  
+        self.mtd.set_parameters(**param)
+        self.epd.set_parameters(**param)
+        self.ffm.set_parameters(**param)
+        self.apply_ffm()
+        self.store()
 
+class Convert2mgf():
+
+    def __init__(self,
+                mzml_file = None,
+                mgf_file = None,
+
+                ):
+        
+        self.mzml_file = mzml_file
+        self.mgf_file = mgf_file
+
+    def convert(self):
+
+        file = pyopenms.MzMLFile()
+        msdata = pyopenms.MSExperiment()
+        file.load(self.mzml_file, msdata)
+
+        outfile = open(self.mgf_file, "w")
+
+        # Create header
+        outfile.write("COM=Testfile\n")
+        outfile.write("ITOL=1\n")
+        outfile.write("ITOLU=Da\n")
+        outfile.write("CLE=Trypsin\n")
+        outfile.write("CHARGE=1,2,3\n")
+
+        # Iterate through all spectra, skip all MS1 spectra and then write mgf format
+        nr_ms2_spectra = 0
+        for spectrum in msdata:
+            if spectrum.getMSLevel() == 2:
+                continue
+            nr_ms2_spectra += 1
+            outfile.write("\nBEGIN IONS\n")
+            outfile.write("TITLE=%s\n" % spectrum.getNativeID())
+            outfile.write("RTINSECONDS=%s\n" % spectrum.getRT())
+            try:
+                outfile.write("PEPMASS=%s\n" % spectrum.getPrecursors()[0].getMZ())
+                ch = spectrum.getPrecursors()[0].getCharge()
+                if ch > 0:
+                    outfile.write("CHARGE=%s\n" % ch)
+            except IndexError:
+                outfile.write("PEPMASS=unknown\n")
+            for peak in spectrum:
+                outfile.write("%s %s\n" % (peak.getMZ(), peak.getIntensity() ))
+            outfile.write("END IONS\n")
+
+        if nr_ms2_spectra == 0:
+            print("Did not find any MS2 spectra in your input, thus the output file is empty!")
+
+        outfile.close()
     
 if __name__ == "__main__":
 
 
-    in_file_name = "150310_Popeye_MLH_AC_STARD10_A09_pos_picked.mzML"
-    out_file_name = "150310_feature_finding.featureXML"
-    ffm = Feature_finding_metabo(in_file_name = in_file_name,
+    in_file_name = "/home/igor/Documents/lipyd/src/lipyd_ms_preproc/150310_Popeye_MLH_AC_STARD10_A09_pos/150310_Popeye_MLH_AC_STARD10_A09_pos__peaks.mzML"
+    out_file_name = "150310_Popeye_MLH_AC_STARD10_A09_pos.featureXML"
+    ffm = FeatureFindingMetabo(in_file_name = in_file_name,
                                 out_file_name = out_file_name)
     
     param = {"noise_threshold_int":10.0,
-            "chrom_peak_snr":3.0
-            }
-    ffm.mtd.set_parameters(**param) #set param;
-
-    param = {"chrom_peak_snr":3.0,
-            "chrom_fwhm":5.0
-            }
-    ffm.epd.set_parameters(**param) #set param;
-    
-    param = {"mz_scoring_13C":      "true",
+            "chrom_peak_snr":3.0,
+            "chrom_fwhm":5.0,
+            "mz_scoring_13C":      "true",
             "report_convex_hulls":  "true",
             "remove_single_traces": "true"
             }
-    ffm.ffm.set_parameters(**param) #set param;
-    
-    ffm.apply_ffm()
-    ffm.store()
-    
+
+    ffm.main()
