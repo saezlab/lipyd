@@ -21,6 +21,7 @@ from future.utils import iteritems
 
 import os
 import imp
+import re
 
 import pyopenms as oms
 
@@ -44,6 +45,7 @@ class BaseEntity(object):
             raise RuntimeError( "BaseEntity: the entity has no getDefaults attr" )
         
         self.entity = entity
+        self.set_parameters(**kwargs)
 
     def set_parameters(self, **kwargs):
         """
@@ -57,6 +59,119 @@ class BaseEntity(object):
                 param.setValue(k, v)               
         
         self.entity.setParameters(param)
+
+
+class MtdEntity(BaseEntity):
+    """ oms.MassTraceDetection() """
+    def __init__(self, **kwargs):
+        super(MtdEntity, self).__init__(oms.MassTraceDetection(),
+                                                **kwargs)
+
+class EpdEntity(BaseEntity):
+    """ oms.ElutionPeakDetection() """
+    def __init__(self, **kwargs):
+        super(EpdEntity, self).__init__(oms.ElutionPeakDetection(),
+                                                **kwargs)
+
+class FfmEntity(BaseEntity):
+    """ oms.FeatureFindingMetabo() """
+    def __init__(self, **kwargs):
+        super(FfmEntity, self).__init__(oms.FeatureFindingMetabo(),
+                                                **kwargs)
+
+class FeatureFindingMetabo(object):
+    
+    def __init__(self,
+                src = ".+\.mzML$",               #"/path/to/src/.+\.mzML"
+                dst = None,                     #/path/to/dst
+                suffix_dst_files = "_feature",          #for example : "_feature"
+                ext_dst_files = "featureXML",#the string may begin with a dot
+                **kwargs
+                ):
+        
+                                                
+        if not src:
+            raise RuntimeError( "You don`t specify all necessary files" )
+
+        self.src = src
+        self.dst = dst
+        self.suffix_dst_files = suffix_dst_files
+        self.ext_dst_files = ext_dst_files
+        self.kw = kwargs
+        self.init_entity(**self.kw)
+        self.path_parsing()
+
+    
+    def init_entity(self, **kwargs):
+        self.mtd = MtdEntity(**kwargs)
+        self.epd = EpdEntity(**kwargs)
+        self.ffm = FfmEntity(**kwargs)
+        self.output_mt = []
+        self.splitted_mt = []
+        self.filtered_mt = []
+        self.chromatograms = [[]]       
+
+
+    def convert_src_to_dst_file_name(self, src):
+        file_name = os.path.splitext( os.path.basename(src) )[0] # get file name only;
+        file_name += self.suffix_dst_files # add suffix;
+        if self.ext_dst_files:
+            #add dot in front of ext if dot is not present:
+            self.ext_dst_files = ("."+self.ext_dst_files) \
+                if self.ext_dst_files[0] != "." else self.ext_dst_files
+        else:
+            self.ext_dst_files = "" #empty ext;
+        dst_file_name = file_name + self.ext_dst_files
+        
+        return dst_file_name    #dst file name without dst dir name;
+
+    def path_parsing(self):
+        self.src_full_name_list = []                #list of src full file name;
+        src_dir = os.path.dirname(self.src)         #get dir name from src file name;
+        src_dir = src_dir if src_dir else os.getcwd() #if src dir name is empty get current dir name;
+        self.dst = src_dir if not self.dst else self.dst #if dst dir name is empty get src dir name or dst dir name;
+        pattern = os.path.basename(self.src)        #get file name as pattern;
+        pattern = pattern if pattern != "" else ".*" #if pattern is empty set any char pattern;
+        #print("src_dir=", src_dir)
+        #print("pattern=", pattern)
+        
+        for file_name in os.listdir(src_dir): #for all file name in src dir:
+            full_file_name = os.path.join(src_dir, file_name) #to build full file name;
+            if os.path.isfile( full_file_name ): #only for files, except dir name;
+                #print("file_name=", file_name)
+                match = None    # result re match
+                try:            # try to compile patetrn:
+                    rec = re.compile(pattern)
+                    match = rec.match(file_name)    # apply pattern to file name
+                except re.error as e:
+                    raise RuntimeError("Match pattern error.") # raise exept if pattern error compile;
+                
+                if match: # if result of re match is ok
+                    self.src_full_name_list.append(full_file_name) #take file name anf put into result list
+                    #print("full_file_name=", full_file_name) #debug only;
+
+    def main(self): #the 3 step in one;
+        #after path_parsing method we have self.src_full_name_list
+        for f in self.src_full_name_list:
+
+            # to prepare(init) empty list and entity;
+            self.init_entity(**self.kw)
+
+            print("source file=", f)
+            self.input_map = None
+            self.input_map = oms.PeakMap() # the 1st step: load map;
+            self.fm = None
+            self.fm = oms.FeatureMap()
+            oms.MzMLFile().load(f, self.input_map)
+            # the 2nd step: apply_ffm;
+            self.mtd.entity.run(self.input_map, self.output_mt)
+            self.epd.entity.detectPeaks(self.output_mt, self.splitted_mt)
+            self.ffm.entity.run(self.splitted_mt, self.fm, self.chromatograms)
+            # the 3d step: is store result into file;
+            dst_full_file_name = os.path.join(self.dst,\
+                self.convert_src_to_dst_file_name(f) )
+            #print("dst=",dst_full_file_name)
+            oms.FeatureXMLFile().store(dst_full_file_name, self.fm)
 
 
 class MapAlignment(object):
@@ -114,72 +229,6 @@ Since I think the good way to overload all parameters of every process,
 we can do that way. It`s removes repetitive methods.
 """
 
-
-class MtdEntity(BaseEntity):
-    """ oms.MassTraceDetection() """
-    def __init__(self, **kwargs):
-        super(MtdEntity, self).__init__(oms.MassTraceDetection(),
-                                                **kwargs)
-
-class EpdEntity(BaseEntity):
-    """ oms.ElutionPeakDetection() """
-    def __init__(self, **kwargs):
-        super(EpdEntity, self).__init__(oms.ElutionPeakDetection(),
-                                                **kwargs)
-
-class FfmEntity(BaseEntity):
-    """ oms.FeatureFindingMetabo() """
-    def __init__(self, **kwargs):
-        super(FfmEntity, self).__init__(oms.FeatureFindingMetabo(),
-                                                **kwargs)
-
-class FeatureFindingMetabo(object):
-    
-    def __init__(self,
-                in_file_name = None,
-                out_file_name = None,
-                ):
-        
-                                                
-        if not in_file_name:
-            raise RuntimeError( "You don`t specify all necessary files" )
-
-        self.in_file_name = in_file_name
-        self.out_file_name = out_file_name
-        self.output_mt = []
-        self.splitted_mt = []
-        self.filtered_mt = []
-        self.chromatograms = [[]]
-
-        self.mtd = MtdEntity()
-        self.epd = EpdEntity()
-        self.ffm = FfmEntity()
-                
-
-    def load_map(self):
-        self.input_map = oms.PeakMap()
-        self.fm = oms.FeatureMap()
-        oms.MzMLFile().load(self.in_file_name, self.input_map)
-
-
-    def apply_ffm(self):
-
-        self.mtd.entity.run(self.input_map, self.output_mt)
-        self.epd.entity.detectPeaks(self.output_mt, self.splitted_mt)
-        self.ffm.entity.run(self.splitted_mt, self.fm, self.chromatograms)
-
-    def store(self):
-        oms.FeatureXMLFile().store(self.out_file_name, self.fm)
-    
-    def main(self):
-
-        self.load_map()  
-        self.mtd.set_parameters(**param)
-        self.epd.set_parameters(**param)
-        self.ffm.set_parameters(**param)
-        self.apply_ffm()
-        self.store()
-
 class Convert2mgf():
 
     def __init__(self,
@@ -234,17 +283,19 @@ class Convert2mgf():
 if __name__ == "__main__":
 
 
-    in_file_name = "/home/igor/Documents/lipyd/src/lipyd_ms_preproc/150310_Popeye_MLH_AC_STARD10_A09_pos/150310_Popeye_MLH_AC_STARD10_A09_pos__peaks.mzML"
-    out_file_name = "150310_Popeye_MLH_AC_STARD10_A09_pos.featureXML"
-    ffm = FeatureFindingMetabo(in_file_name = in_file_name,
-                                out_file_name = out_file_name)
-    
     param = {"noise_threshold_int":10.0,
             "chrom_peak_snr":3.0,
             "chrom_fwhm":5.0,
-            "mz_scoring_13C":      "true",
-            "report_convex_hulls":  "true",
-            "remove_single_traces": "true"
+            "mz_scoring_13C":"true",
+            "report_convex_hulls":"true",
+            "remove_single_traces":"true"
             }
-
+ 
+    ffm = FeatureFindingMetabo(
+                src = "/home/igor/Documents/Scripts/Data/Picked_data/.+\.mzML$",
+                dst = "/home/igor/Documents/Scripts/Data/Picked_data/",
+                suffix_dst_files = "_feature",          #for example : "_feature"
+                ext_dst_files = "featureXML",           #the string may begin with a dot
+                **param)
+    
     ffm.main()
