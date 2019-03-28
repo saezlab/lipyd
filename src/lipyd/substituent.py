@@ -39,7 +39,7 @@ class FattyAcyl(metabolite.AbstractSubstituent):
             u = u,
             chain_attr = chain_attr,
             chain_type = 'FA',
-            **kwargs
+            **kwargs,
         )
 
 
@@ -171,4 +171,24 @@ class HydroxySphingosine(Sphingosine):
             counts = counts or {'O': 1},
             prefix = 't',
             **kwargs
+        )
+
+
+class Sterol(metabolite.AbstractSubstituent):
+    
+    
+    def __init__(self, c = None, u = None, counts = None, **kwargs):
+        
+        c = c or 0
+        u = u or 0
+        
+        metabolite.AbstractSubstituent.__init__(
+            self,
+            cores = ['O'],
+            counts = counts or {'H': -2},
+            c = c,
+            u = u,
+            chain_attr = chain_attr,
+            chain_type = 'St',
+            **kwargs,
         )
