@@ -500,6 +500,9 @@ _defaults = {
     # use only MS2 scans within the RT range of the feature
     'ms2_check_rt': True,
     'ms_preproc_wd': 'lipyd_ms_preproc',
+    'log_flush_interval': 2,
+    'console_verbosity': -1,
+    'log_verbosity': 0,
 }
 
 in_basedir = [

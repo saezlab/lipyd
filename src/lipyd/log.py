@@ -27,7 +27,7 @@ import timeloop
 # and don't want engage another logger
 timeloop.app.logging.disable(level = 9999)
 
-import pypath.settings as settings
+import lipyd.settings as settings
 
 
 __all__ = ['new_logger', 'Logger']
