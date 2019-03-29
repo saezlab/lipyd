@@ -16,31 +16,47 @@
 #  Website: http://denes.omnipathdb.org/
 #
 
-import time
 import os
 import sys
 import textwrap
+import time
+import datetime
 
-import lipyd.common as common
+import timeloop
+# we use this for simple little tasks only
+# and don't want engage another logger
+timeloop.app.logging.disable(level = 9999)
+
+import pypath.settings as settings
 
 
-def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
+__all__ = ['new_logger', 'Logger']
+
+
+_log_flush_timeloop = timeloop.Timeloop()
+
+
+def new_logger(name = None, logdir = None, verbosity = None, **kwargs):
     """
     Returns a new logger with default settings (can be customized).
 
     Parameters
     ----------
-    name :
-         (Default value = 'lipyd')
-    logdir :
-         (Default value = 'lipyd_log')
-    verbosity :
-         (Default value = 0)
+    name : str
+        Custom name for the log.
+    logdir : str
+        Path to the directoty to store log files.
+    verbosity : int
+        Verbosity level, lowest is 0. Messages from levels above this
+        won't be written to the log..
 
     Returns
     -------
-    ``lipyd.log.Logger`` instance.
+    ``log.Logger`` instance.
     """
+    
+    name = name or settings.get('module_name')
+    logdir = logdir or '%s_log' % name
     
     return Logger(
         fname = '%s__%s.log' % (
@@ -49,6 +65,7 @@ def new_logger(name = 'lipyd', logdir = 'lipyd_log', verbosity = 0):
         ),
         verbosity = 0,
         logdir = logdir,
+        **kwargs,
     )
 
 
@@ -60,11 +77,10 @@ class Logger(object):
     def __init__(
             self,
             fname,
-            verbosity = 0,
-            console_level = -1,
+            verbosity = None,
+            console_level = None,
             logdir = None,
-            max_flush_interval = 2,
-            max_width = 79,
+            max_width = 200,
         ):
         """
         fname : str
@@ -79,23 +95,42 @@ class Logger(object):
             logfile but also to the console.
         """
         
-        self.last_flush = time.time()
+        @_log_flush_timeloop.job(
+            interval = datetime.timedelta(
+                seconds = settings.get('log_flush_interval')
+            )
+        )
+        def _flush():
+            
+            self.flush()
+        
+        _log_flush_timeloop.start(block = False)
+        
         self.wrapper = textwrap.TextWrapper(
             width = max_width,
             subsequent_indent = ' ' * 22,
             break_long_words = False,
         )
-        self.max_flush_interval = max_flush_interval
         self.logdir = self.get_logdir(logdir)
         self.fname  = os.path.join(self.logdir, fname)
-        self.verbosity = verbosity
-        self.console_level = console_level
+        self.verbosity = (
+            verbosity
+                if verbosity is not None else
+            settings.get('log_verbosity')
+        )
+        self.console_level = (
+            console_level
+                if console_level is not None else
+            settings.get('console_verbosity')
+        )
         self.open_logfile()
+        
+        # sending some greetings
         self.msg('Welcome!')
         self.msg('Logger started, logging into `%s`.' % self.fname)
     
     
-    def msg(self, msg = '', level = 0):
+    def msg(self, msg = '', label = None, level = 0):
         """
         Writes a message into the log file.
 
@@ -109,31 +144,49 @@ class Logger(object):
         
         if level <= self.verbosity:
             
+            msg = self.label_message(msg, label = label)
             msg = self.wrapper.fill(msg)
             msg = self.timestamp_message(msg)
             self.fp.write(msg)
-            self.flush_hook()
         
         if level <= self.console_level:
             
-            self.console(msg)
+            self._console(msg)
+    
+    
+    def label_message(self, msg, label = None):
+        """
+        Adds a label in front of the message.
+        """
+        
+        label = '[%s] ' % label if label else ''
+        
+        return '%s%s' % (label, msg)
     
     
     def timestamp_message(self, msg):
+        """
+        Adds a timestamp in front of the message.
+        """
         
         return '[%s] %s\n' % (self.timestamp(), msg)
     
     
-    def console(self, msg = ''):
+    def _console(self, msg):
+        
+        sys.stdout.write('%s\n' % msg)
+        sys.stdout.flush()
+    
+    
+    def console(self, msg = '', label = None):
         """
-        Prints a message to the console.
+        Prints a message to the console and also to the logfile.
         
         msg : str
             Text of the message.
         """
         
-        sys.stdout.write('[%s] %s\n' % (self.timestamp(), msg))
-        sys.stdout.flush()
+        self.msg(msg = msg, label = label, level = self.console_level)
     
     
     @classmethod
@@ -147,6 +200,10 @@ class Logger(object):
     
     def __del__(self):
         
+        if hasattr(_log_flush_timeloop, 'stop'):
+            
+            _log_flush_timeloop.stop()
+        
         self.msg('Logger shut down, logfile `%s` closed.' % self.fname)
         self.msg('Bye.')
         self.close_logfile()
@@ -158,7 +215,7 @@ class Logger(object):
         Also creates the directory if does not exist.
         """
         
-        dirname = dirname or 'lipyd_log'
+        dirname = dirname or '%s_log' % settings.get('module_name')
         
         os.makedirs(dirname, exist_ok = True)
         
@@ -184,13 +241,6 @@ class Logger(object):
             self.fp.close()
     
     
-    def flush_hook(self):
-        
-        if time.time() - self.last_flush > self.max_flush_interval:
-            
-            self.flush()
-    
-    
     def flush(self):
         """
         Flushes the log file.
@@ -199,4 +249,3 @@ class Logger(object):
         if hasattr(self, 'fp') and not self.fp.closed:
             
             self.fp.flush()
-            self.last_flush = time.time()
