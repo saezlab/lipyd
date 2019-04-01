@@ -21,7 +21,7 @@
 def ppm_tolerance(ppm, m):
     """
     Converts ppm value to plus/minus range.
-
+    
     Parameters
     ----------
     int : ppm
@@ -35,6 +35,14 @@ def ppm_tolerance(ppm, m):
     """
     
     return m * ppm * 1e-6
+
+
+def absolute_tolerance(da, m):
+    """
+    Converts an absolute tolerance to ppm.
+    """
+    
+    return da / m * 1e6
 
 
 def findall(a, m, t = 20):
