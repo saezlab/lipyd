@@ -29,6 +29,7 @@ import re
 import copy
 import itertools
 import collections
+import functools
 from argparse import Namespace
 
 import numpy as np
@@ -1648,6 +1649,15 @@ class MoleculeDatabaseAggregator(object):
                 inconsistent.append(name)
         
         return inconsistent
+    
+    
+    def _dec_lookup_daltons_tolerance(self, func):
+        """
+        Calls a lookup method with tolerance given in Daltons instead of
+        ppms.
+        """
+        
+        
 
 
 def init_db(**kwargs):
@@ -1971,3 +1981,5 @@ def mz_lowest_error_from_name(
         name = name,
         **kwargs,
     )
+
+

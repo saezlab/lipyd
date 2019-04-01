@@ -45,27 +45,27 @@ def findall(a, m, t = 20):
 
     Parameters
     ----------
-    numpy :
-        array a: Sorted one dimensional float array.
-    float :
-        m: Value to lookup.
-    float :
-        t: Range of tolerance (highest accepted difference) in ppm.
-    a :
-        
-    m :
-        
-    t :
-         (Default value = 20)
+    a : numpy
+        Sorted one dimensional float array.
+    m : float
+        Value to lookup.
+    t : float
+        Range of tolerance (highest accepted difference) in ppm.
+        (Default value = 20)
 
     Returns
     -------
-
+    A list of array indices.
     """
     
-    result = []
+    t_abs = ppm_tolerance(t, m)
     
-    t = ppm_tolerance(t, m)
+    return _findall(a, m, t_abs)
+
+
+def _findall(a, m, t):
+    
+    result = []
     
     # the upper closest index
     iu = a.searchsorted(m)
@@ -127,7 +127,12 @@ def find(a, m, t = 20):
     Index of the closest value, None if no value found in within tolerance.
     """
     
-    t = ppm_tolerance(t, m)
+    t_abs = ppm_tolerance(t, m)
+    
+    return _find(a, m, t_abs)
+
+
+def _find(a, m, t):
     
     iu = a.searchsorted(m)
     
@@ -166,9 +171,14 @@ def match(observed, theoretical, tolerance = 20):
 
     Returns
     -------
-
+    Boolean.
     """
     
-    tolerance = ppm_tolerance(tolerance, theoretical)
+    tolerance_abs = ppm_tolerance(tolerance, theoretical)
+    
+    return _match(observed, theoretical, tolerance_abs)
+
+
+def _match(observed, theoretical, tolerance):
     
     return abs(theoretical - observed) <= tolerance
