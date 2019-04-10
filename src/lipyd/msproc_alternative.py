@@ -25,7 +25,47 @@ import re
 
 import pyopenms as oms
 
+import lipyd.log as log
+import lipyd.common as common
+import lipyd.settings as settings
 
+
+def convert_src_to_dst_file_name(src, dst, suffix_dst_files, ext_dst_files):
+    file_name = os.path.splitext( os.path.basename(src) )[0] # get file name only;
+    file_name += suffix_dst_files # add suffix;
+    if ext_dst_files:
+        #add dot in front of ext if dot is not present:
+        ext_dst_files = ("."+ext_dst_files) \
+            if ext_dst_files[0] != "." else ext_dst_files
+    else:
+        ext_dst_files = "" #empty ext;
+    dst_file_name = file_name + ext_dst_files
+    
+    return dst_file_name    #dst file name without dst dir name;
+
+
+def get_list_full_names(src):
+    src_full_name_list = []                #list of src full file name;
+    src_dir = os.path.dirname(src)         #get dir name from src file name;
+    src_dir = src_dir if src_dir else os.getcwd() #if src dir name is empty get current dir name;
+    pattern = os.path.basename(src)        #get file name as pattern;
+    pattern = pattern if pattern != "" else ".*" #if pattern is empty set any char pattern;
+    
+    for file_name in os.listdir(src_dir): #for all file name in src dir:
+        full_file_name = os.path.join(src_dir, file_name) #to build full file name;
+        if os.path.isfile( full_file_name ): #only for files, except dir name;
+            match = None    # result re match
+
+            try:            # try to compile patetrn:
+                rec = re.compile(pattern)
+                match = rec.match(file_name)    # apply pattern to file name
+            except re.error as e:
+                raise RuntimeError("Match pattern error.") # raise exept if pattern error compile;
+            
+            if match:       # if result of re match is ok
+                src_full_name_list.append(full_file_name)
+
+    return src_full_name_list
 
 
 def utf8_to_bin(s):
@@ -62,7 +102,7 @@ class BaseEntity(object):
 
 
 class PPEntity(BaseEntity):
-    #oms.PeakPickingHiRes()
+    """oms.PeakPickingHiRes()"""
     def __init__(self, **kwargs):
         super(PPEntity, self).__init__(oms.PeakPickerHiRes(),
                                                 **kwargs)
@@ -100,14 +140,29 @@ class PeakPicking(object):
                 ext_dst_files = "mzML",#the string may begin with a dot
                 centroid_out_map = None,
                 input_map = None,
+                logger = None,
                 **kwargs
-                ):
+            ):
+
+        self.log = (
+            logger or
+            log.new_logger(
+                'lipyd.msproc',
+                logdir = 'lipyd_log',
+            )
+        )
 
         if not src:
             raise RuntimeError( "You don`t specify all necessary files" )
 
         self.src = src
         self.dst = dst
+        #-- to create dst dir, if dst dir is empty get src dir:
+        self.dst = src_dir if not self.dst else self.dst
+        src_dir = os.path.dirname(self.src) #get dir name from self.src
+        src_dir = src_dir if src_dir else os.getcwd() #if dir empty get curr dir;
+        self.dst = src_dir if not self.dst else self.dst #if dst dir name is empty get src dir name or dst dir name;        
+        #-- 
         self.suffix_dst_files = suffix_dst_files
         self.ext_dst_files = ext_dst_files
         self.kw = kwargs
@@ -115,55 +170,22 @@ class PeakPicking(object):
         self.centroid_out_map = centroid_out_map
 
         self.init_entity(**self.kw)
-        self.path_parsing()
+        #self.path_parsing()
 
     def init_entity(self, **kwargs):
 
         self.pp = PPEntity(**kwargs)
 
-    def convert_src_to_dst_file_name(self, src):
-        file_name = os.path.splitext( os.path.basename(src) )[0] # get file name only;
-        file_name += self.suffix_dst_files # add suffix;
-        if self.ext_dst_files:
-            #add dot in front of ext if dot is not present:
-            self.ext_dst_files = ("."+self.ext_dst_files) \
-                if self.ext_dst_files[0] != "." else self.ext_dst_files
-        else:
-            self.ext_dst_files = "" #empty ext;
-        dst_file_name = file_name + self.ext_dst_files
-        
-        return dst_file_name    #dst file name without dst dir name;
-
-
-    def path_parsing(self):
-        self.src_full_name_list = []                #list of src full file name;
-        src_dir = os.path.dirname(self.src)         #get dir name from src file name;
-        src_dir = src_dir if src_dir else os.getcwd() #if src dir name is empty get current dir name;
-        self.dst = src_dir if not self.dst else self.dst #if dst dir name is empty get src dir name or dst dir name;
-        pattern = os.path.basename(self.src)        #get file name as pattern;
-        pattern = pattern if pattern != "" else ".*" #if pattern is empty set any char pattern;
-        #print("src_dir=", src_dir)
-        #print("pattern=", pattern)
-        
-        for file_name in os.listdir(src_dir): #for all file name in src dir:
-            full_file_name = os.path.join(src_dir, file_name) #to build full file name;
-            if os.path.isfile( full_file_name ): #only for files, except dir name;
-                #print("file_name=", file_name)
-                match = None    # result re match
-                try:            # try to compile patetrn:
-                    rec = re.compile(pattern)
-                    match = rec.match(file_name)    # apply pattern to file name
-                except re.error as e:
-                    raise RuntimeError("Match pattern error.") # raise exept if pattern error compile;
-                
-                if match: # if result of re match is ok
-                    self.src_full_name_list.append(full_file_name)
-
 
     def main(self): #the 3 step in one;
         #after path_parsing method we have self.src_full_name_list
-        for f in self.src_full_name_list:
+        #for f in self.src_full_name_list:
+        for f in get_list_full_names(self.src):   #call 'global' function;
 
+            self.log.msg(
+            'Performing peak picking on experiment `%s`.' % self.src
+        )
+        
             # to prepare(init) empty list and entity;
             self.init_entity(**self.kw)
 
@@ -180,12 +202,21 @@ class PeakPicking(object):
             
             self.centroid_out_map.updateRanges()
 
-            # the 3d step: is store result into file;
+            # the 3d step: is store result into file:
+            #convert_src_to_dst_file_name(src, dst, suffix_dst_files, ext_dst_files)
             dst_full_file_name = os.path.join(self.dst,\
-                self.convert_src_to_dst_file_name(f) )
+                convert_src_to_dst_file_name(f,
+                                            self.dst,
+                                            self.suffix_dst_files,
+                                            self.ext_dst_files
+                                            ) )   #call 'global' function;
             #print("dst=",dst_full_file_name)
             oms.MzMLFile().store(dst_full_file_name, self.centroid_out_map)
 
+            self.log.msg(
+            'Peak picking finished. Centroid data has been '
+            'written to `%s`.' % self.dst
+        )
 
 class FeatureFindingMetabo(object):
     
@@ -198,7 +229,14 @@ class FeatureFindingMetabo(object):
                 fm = None,
                 **kwargs
                 ):
-        
+            
+        self.log = (
+            logger or
+            log.new_logger(
+                'lipyd.msproc',
+                logdir = 'lipyd_log',
+            )
+        )
                                                 
         if not src:
             raise RuntimeError( "You don`t specify all necessary files" )
@@ -223,57 +261,18 @@ class FeatureFindingMetabo(object):
         self.filtered_mt = []
         self.chromatograms = [[]]       
 
-
-    def convert_src_to_dst_file_name(self, src):
-        file_name = os.path.splitext( os.path.basename(src) )[0] # get file name only;
-        file_name += self.suffix_dst_files # add suffix;
-        if self.ext_dst_files:
-            #add dot in front of ext if dot is not present:
-            self.ext_dst_files = ("."+self.ext_dst_files) \
-                if self.ext_dst_files[0] != "." else self.ext_dst_files
-        else:
-            self.ext_dst_files = "" #empty ext;
-        dst_file_name = file_name + self.ext_dst_files
-        
-        return dst_file_name    #dst file name without dst dir name;
-
-    def path_parsing(self):
-        self.src_full_name_list = []                #list of src full file name;
-        src_dir = os.path.dirname(self.src)         #get dir name from src file name;
-        src_dir = src_dir if src_dir else os.getcwd() #if src dir name is empty get current dir name;
-        self.dst = src_dir if not self.dst else self.dst #if dst dir name is empty get src dir name or dst dir name;
-        pattern = os.path.basename(self.src)        #get file name as pattern;
-        pattern = pattern if pattern != "" else ".*" #if pattern is empty set any char pattern;
-        #print("src_dir=", src_dir)
-        #print("pattern=", pattern)
-        
-        for file_name in os.listdir(src_dir): #for all file name in src dir:
-            full_file_name = os.path.join(src_dir, file_name) #to build full file name;
-            if os.path.isfile( full_file_name ): #only for files, except dir name;
-                #print("file_name=", file_name)
-                match = None    # result re match
-                try:            # try to compile patetrn:
-                    rec = re.compile(pattern)
-                    match = rec.match(file_name)    # apply pattern to file name
-                except re.error as e:
-                    raise RuntimeError("Match pattern error.") # raise exept if pattern error compile;
-                
-                if match: # if result of re match is ok
-                    self.src_full_name_list.append(full_file_name) #take file name anf put into result list
-                    #print("full_file_name=", full_file_name) 
-
-
     def main(self): #the 3 step in one;
         #after path_parsing method we have self.src_full_name_list
-        for f in self.src_full_name_list:
+        for f in get_list_full_names(self.src):
 
+            self.log.msg(
+            'Performing feature finding metabo on experiment `%s`.' % self.src
+            )
+        
             # to prepare(init) empty list and entity;
             self.init_entity(**self.kw)
-
-            #print("source file=", f)
             
             self.input_map = oms.PeakMap() # the 1st step: load map;
-            
             self.fm = oms.FeatureMap()
             oms.MzMLFile().load(f, self.input_map)
             # the 2nd step: apply_ffm;
@@ -282,12 +281,22 @@ class FeatureFindingMetabo(object):
             self.ffm.entity.run(self.splitted_mt, self.fm, self.chromatograms)
             # the 3d step: is store result into file;
             dst_full_file_name = os.path.join(self.dst,\
-                self.convert_src_to_dst_file_name(f) )
+                self.convert_src_to_dst_file_name(f,
+                                            self.dst,
+                                            self.suffix_dst_files,
+                                            self.ext_dst_files) )
             #print("dst=",dst_full_file_name)
             oms.FeatureXMLFile().store(dst_full_file_name, self.fm)
 
+            self.log.msg(
+            'Feature finding finished. Centroided data has been '
+            'written to `%s`.' % self.dst
+            )
 
 class MapAlignment(object):
+    """
+    Class for map alignment process
+    """
 
     def __init__(self,
                 src = ".+\.featureXML$",               #"/path/to/src/.+\.mzML"
@@ -300,6 +309,14 @@ class MapAlignment(object):
                 **kwargs
                 ):
         
+        self.log = (
+            logger or
+            log.new_logger(
+                'lipyd.msproc',
+                logdir = 'lipyd_log',
+            )
+        )
+
         if not (src and reference_file):
            raise RuntimeError( "You don`t specify all necessary files" )
         
@@ -321,52 +338,18 @@ class MapAlignment(object):
 
         self.ma = MAEntity(**kwargs)
 
-    def convert_src_to_dst_file_name(self, src):
-    
-        file_name = os.path.splitext( os.path.basename(src) )[0] # get file name only;
-        file_name += self.suffix_dst_files # add suffix;
-        if self.ext_dst_files:
-            #add dot in front of ext if dot is not present:
-            self.ext_dst_files = ("."+self.ext_dst_files) \
-                if self.ext_dst_files[0] != "." else self.ext_dst_files
-        else:
-            self.ext_dst_files = "" #empty ext;
-        dst_file_name = file_name + self.ext_dst_files
-        
-        return dst_file_name    #dst file name without dst dir name;
-
-
-    def path_parsing(self):
-    
-        self.src_full_name_list = []                #list of src full file name;
-        src_dir = os.path.dirname(self.src)         #get dir name from src file name;
-        src_dir = src_dir if src_dir else os.getcwd() #if src dir name is empty get current dir name;
-        self.dst = src_dir if not self.dst else self.dst #if dst dir name is empty get src dir name or dst dir name;
-        pattern = os.path.basename(self.src)        #get file name as pattern;
-        pattern = pattern if pattern != "" else ".*" #if pattern is empty set any char pattern;
-        #print("src_dir=", src_dir)
-        #print("pattern=", pattern)
-        
-        for file_name in os.listdir(src_dir): #for all file name in src dir:
-            full_file_name = os.path.join(src_dir, file_name) #to build full file name;
-            if os.path.isfile( full_file_name ): #only for files, except dir name;
-                #print("file_name=", file_name)
-                match = None    # result re match
-                try:            # try to compile patetrn:
-                    rec = re.compile(pattern)
-                    match = rec.match(file_name)    # apply pattern to file name
-                except re.error as e:
-                    raise RuntimeError("Match pattern error.") # raise exept if pattern error compile;
-                
-                if match: # if result of re match is ok
-                    self.src_full_name_list.append(full_file_name) #take file name anf put into result list
-                    #print("full_file_name=", full_file_name) #debug only;
-    
 
     def main(self): #the 3 step in one;
         #after path_parsing method we have self.src_full_name_list
         
-        for f in self.src_full_name_list:
+        for f in get_list_full_names(self.src):
+
+            self.log.msg(
+            'Performing feature finding metabo on experiment `%s`.' % self.src
+            )
+            
+            # to prepare(init) empty list and entity;
+            self.init_entity(**self.kw)
 
             self.reference_map = oms.FeatureMap()
             self.toAlign_map = oms.FeatureMap()
@@ -389,13 +372,17 @@ class MapAlignment(object):
             #print("dst=",dst_full_file_name)
             oms.FeatureXMLFile().store(dst_full_file_name, self.toAlign_map)
 
-"""
-Since I think the good way to overload all parameters of every process,
-we can do that way. It`s removes repetitive methods.
-"""
+            self.log.msg(
+            'Map alignmnet finished. Identification data has been '
+            'written to `%s`.' % self.dst
+            )
 
 class Convert2mgf():
+    """
+    
+    Class for convertation mzml data to MGF format (MS2 data)
 
+    """
     def __init__(self,
                 mzml_file = None,
                 mgf_file = None,
@@ -423,7 +410,7 @@ class Convert2mgf():
         # Iterate through all spectra, skip all MS1 spectra and then write mgf format
         nr_ms2_spectra = 0
         for spectrum in msdata:
-            if spectrum.getMSLevel() == 2:
+            if spectrum.getMSLevel() == 1:
                 continue
             nr_ms2_spectra += 1
             outfile.write("\nBEGIN IONS\n")
@@ -447,7 +434,7 @@ class Convert2mgf():
     
 if __name__ == "__main__":
 
-    
+       
     param = {"signal_to_noise": 1.0 }
     
     a = PeakPicking(
@@ -458,3 +445,15 @@ if __name__ == "__main__":
                 ext_dst_files = "mzML",           #the string may begin with a dot
                 **param)
     a.main()
+    """
+    get_list_full_names(src = "/home/igor/Documents/Scripts/Data/Test/.+\.featureXML$")
+        #dst = "/home/igor/Documents/Scripts/Data/Test/Glob")
+    
+    
+    convert_src_to_dst_file_name(
+        src = "/home/igor/Documents/Scripts/Data/Test/.+\.featureXML$",
+        dst = "/home/igor/Documents/Scripts/Data/Test/Glob",
+        suffix_dst_files = "_glob",
+        ext_dst_files = "featureXML"
+        )
+    """
