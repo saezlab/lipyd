@@ -31,6 +31,10 @@ import lipyd.settings as settings
 
 
 def convert_src_to_dst_file_name(src, dst, suffix_dst_files, ext_dst_files):
+    """
+    Global function to transform source directory to destination directory
+
+    """
     file_name = os.path.splitext( os.path.basename(src) )[0] # get file name only;
     file_name += suffix_dst_files # add suffix;
     if ext_dst_files:
@@ -45,6 +49,9 @@ def convert_src_to_dst_file_name(src, dst, suffix_dst_files, ext_dst_files):
 
 
 def get_list_full_names(src):
+    """
+    Global function for getting full names from list
+    """
     src_full_name_list = []                #list of src full file name;
     src_dir = os.path.dirname(src)         #get dir name from src file name;
     src_dir = src_dir if src_dir else os.getcwd() #if src dir name is empty get current dir name;
@@ -56,7 +63,7 @@ def get_list_full_names(src):
         if os.path.isfile( full_file_name ): #only for files, except dir name;
             match = None    # result re match
 
-            try:            # try to compile patetrn:
+            try:            # try to compile patern:
                 rec = re.compile(pattern)
                 match = rec.match(file_name)    # apply pattern to file name
             except re.error as e:
@@ -75,6 +82,17 @@ def utf8_to_bin(s):
 class BaseEntity(object):
     """
     Base class for setup and check parameter for all derived classes
+    
+    Parameters
+    ----------
+    entity : :obj:
+        Variable takes parameters from class which has method setParameters (pyyopenms)
+
+    Attributes
+    ----------
+    entity : obj
+        Variable takes parameters from class which has method setParameters (pyyopenms)
+
     """
     def __init__(self,
                 entity,
@@ -132,14 +150,58 @@ class MAEntity(BaseEntity):
                                                 **kwargs)
 
 class PeakPicking(object):
+    """
+    Class for peak picking implementation.
+    
+    This class implements a fast peak-picking algorithm best suited for high resolution MS data
+    (FT-ICR-MS, Orbitrap). In high resolution data, the signals of ions with similar
+    mass-to-charge ratios (m/z) exhibit little or no overlapping and therefore allow 
+    for a clear separation. Furthermore, ion signals tend to show well-defined peak shapes
+    with narrow peak width.
+
+    This peak-picking algorithm detects ion signals in profile data and reconstructs
+    the corresponding peak shape by cubic spline interpolation. Signal detection depends
+    on the signal-to-noise ratio which is adjustable by the user (see parameter signal_to_noise).
+    A picked peak's m/z and intensity value is given by the maximum of the underlying peak spline.
+
+    So far, this peak picker was mainly tested on high resolution data. 
+    With appropriate preprocessing steps (e.g. noise reduction and baseline subtraction),
+    it might be also applied to low resolution data.
+
+    Parameters
+    ----------
+    src : str
+        Source directory consists source file(s)
+    dst :  str, optional
+        Destination directory
+    suffix_dst_files : str, optional
+        Additional part of result file name
+    ext_dst_files: str, optional
+        Extension of resulting files
+    logger:   
+        System variable for tracking
+
+    Attributes
+    ----------
+    src : str
+        Source directory consists source file(s)  
+    dst :  str, optional
+        Destination directory
+    suffix_dst_files : str, optional
+        Additional part of result file name
+    ext_dst_files: str, optional
+        Extension of resulting files
+    kw : obj
+        Additional arguments
+
+
+    """
 
     def __init__(self,
                 src = ".+\.mzML$",               #"/path/to/src/.+\.mzML"
                 dst = None,                     #/path/to/dst
                 suffix_dst_files = "_centroided",          #for example : "_feature"
                 ext_dst_files = "mzML",#the string may begin with a dot
-                centroid_out_map = None,
-                input_map = None,
                 logger = None,
                 **kwargs
             ):
@@ -157,29 +219,21 @@ class PeakPicking(object):
 
         self.src = src
         self.dst = dst
-        #-- to create dst dir, if dst dir is empty get src dir:
-        self.dst = src_dir if not self.dst else self.dst
-        src_dir = os.path.dirname(self.src) #get dir name from self.src
-        src_dir = src_dir if src_dir else os.getcwd() #if dir empty get curr dir;
-        self.dst = src_dir if not self.dst else self.dst #if dst dir name is empty get src dir name or dst dir name;        
-        #-- 
+        
         self.suffix_dst_files = suffix_dst_files
         self.ext_dst_files = ext_dst_files
         self.kw = kwargs
-        self.input_map = input_map
-        self.centroid_out_map = centroid_out_map
 
         self.init_entity(**self.kw)
-        #self.path_parsing()
+  
 
     def init_entity(self, **kwargs):
 
         self.pp = PPEntity(**kwargs)
 
 
-    def main(self): #the 3 step in one;
+    def main(self):
         #after path_parsing method we have self.src_full_name_list
-        #for f in self.src_full_name_list:
         for f in get_list_full_names(self.src):   #call 'global' function;
 
             self.log.msg(
@@ -191,16 +245,16 @@ class PeakPicking(object):
 
             print("source file=", f)
             
-            self.input_map = oms.MSExperiment() # the 1st step: load map;
+            input_map = oms.MSExperiment() # the 1st step: load map;
 
-            oms.MzMLFile().load(f, self.input_map)
+            oms.MzMLFile().load(f, input_map)
 
-            self.centroid_out_map = oms.MSExperiment()
+            centroid_out_map = oms.MSExperiment()
 
             # the 2nd step: apply_ffm;
-            self.pp.entity.pickExperiment(self.input_map, self.centroid_out_map)
+            self.pp.entity.pickExperiment(input_map, centroid_out_map)
             
-            self.centroid_out_map.updateRanges()
+            centroid_out_map.updateRanges()
 
             # the 3d step: is store result into file:
             #convert_src_to_dst_file_name(src, dst, suffix_dst_files, ext_dst_files)
@@ -211,7 +265,7 @@ class PeakPicking(object):
                                             self.ext_dst_files
                                             ) )   #call 'global' function;
             #print("dst=",dst_full_file_name)
-            oms.MzMLFile().store(dst_full_file_name, self.centroid_out_map)
+            oms.MzMLFile().store(dst_full_file_name, centroid_out_map)
 
             self.log.msg(
             'Peak picking finished. Centroid data has been '
@@ -379,7 +433,6 @@ class MapAlignment(object):
 
 class Convert2mgf():
     """
-    
     Class for convertation mzml data to MGF format (MS2 data)
 
     """
@@ -435,7 +488,7 @@ class Convert2mgf():
 if __name__ == "__main__":
 
        
-    param = {"signal_to_noise": 1.0 }
+    param = {}
     
     a = PeakPicking(
                 src = "/home/igor/Documents/Scripts/Data/Raw_data_STARD10/.+\.mzML$",
