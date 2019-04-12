@@ -558,6 +558,7 @@ _defaults = {
     'ms_preproc_wd': 'lipyd_ms_preproc',
     # priority of databases at name to mass lookups in moldb
     'database_preference': ('lipyd.lipid', 'SwissLipids', 'LipidMaps'),
+    'map_aligner_param': None,
 }
 
 in_basedir = [

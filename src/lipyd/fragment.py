@@ -40,7 +40,8 @@ fattyfragments = set([])
 
 ChainFragParam = collections.namedtuple(
     'ChainFragParam',
-    ['plus', 'minus', 'charge', 'name', 'chaintype', 'constraints'] )
+    ['plus', 'minus', 'charge', 'name', 'chaintype', 'constraints']
+)
 ChainFragParam.__new__.__defaults__ = ((),)
 
 
@@ -1342,6 +1343,18 @@ class FattyFragmentFactory(object):
                 ),
                 chaintype = 'FA'
             ), # 341.3050
+        # FA2_pGlycerol_mOH
+        'FA2_pGlycerol_mOH':
+            ChainFragParam(
+                plus = 'C3H3O4',
+                minus = '',
+                charge = 1,
+                name = 'FA2%s+Glycerol-OH',
+                constraints = (
+                    FragConstraint(hg = 'CL', chaintype = 'FA'),
+                ),
+                chaintype = 'FA'
+            ),
         # SphingosineBase
         'Sph_pH':
             ChainFragParam(

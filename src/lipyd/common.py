@@ -528,11 +528,15 @@ def to_int(num):
         
         return num
     
+    if isinstance(num, (float, np.float64)):
+        
+        return int(np.round(num))
+    
     match = reint.match(num.strip())
     
     if match:
         
-        return int(match.groups(0)[0])
+        return int(np.round(float(match.groups(0)[0])))
         
     else:
         

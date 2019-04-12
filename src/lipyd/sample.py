@@ -60,7 +60,7 @@ class SampleReader(object):
             self,
             input_type,
             ionmode = None,
-            **kwargs
+            **kwargs,
         ):
         """
         Reads data from files and creates ``Sample``, ``SampleSet`` and
