@@ -772,7 +772,10 @@ class LipidNameProcessor(object):
                 
                 chains = _chains
             
-            if hg and hg.main == 'CL':
+            # TODO:
+            # this part I turned off, CL name processing should be
+            # imporoved later
+            if False and hg and hg.main == 'CL':
                 
                 if _chains and len(_chains) == 2:
                     
