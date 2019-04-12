@@ -512,16 +512,19 @@ def to_float(num):
 
 
 def to_int(num):
-    """Extracts ``int`` from string.
+    """
+    Attempts to make sure ``num`` is ``int``. Tries to convert from string,
+    round from float, integers returns unchanged, raises error if could not
+    convert ``num`` to ``int``.
 
     Parameters
     ----------
-    num :
-        
+    num : str,float,int
+        A number.
 
     Returns
     -------
-
+    Integer.
     """
     
     if isinstance(num, int):
