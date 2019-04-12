@@ -198,10 +198,10 @@ class PeakPicking(object):
     """
 
     def __init__(self,
-                src = ".+\.mzML$",               #"/path/to/src/.+\.mzML"
-                dst = None,                     #/path/to/dst
-                suffix_dst_files = "_centroided",          #for example : "_feature"
-                ext_dst_files = "mzML",#the string may begin with a dot
+                src = ".+\.mzML$",               
+                dst = None,                     
+                suffix_dst_files = "_centroided",        
+                ext_dst_files = "mzML",
                 logger = None,
                 **kwargs
             ):
@@ -273,14 +273,45 @@ class PeakPicking(object):
         )
 
 class FeatureFindingMetabo(object):
+    """
+    Class for feature detection implementation.
     
+    Method for the assembly of mass traces belonging to the same isotope pattern, i.e.,
+    that are compatible in retention times, mass-to-charge ratios, and isotope abundances.
+
+    Parameters
+    ----------
+    src : str
+        Source directory consists source file(s)
+    dst :  str, optional
+        Destination directory
+    suffix_dst_files : str, optional
+        Additional part of result file name
+    ext_dst_files: str, optional
+        Extension of resulting files
+    logger:   
+        System variable for tracking
+
+    Attributes
+    ----------
+    src : str
+        Source directory consists source file(s)  
+    dst :  str, optional
+        Destination directory
+    suffix_dst_files : str, optional
+        Additional part of result file name
+    ext_dst_files: str, optional
+        Extension of resulting files
+    kw : obj
+        Additional arguments
+
+    """
     def __init__(self,
-                src = ".+\.mzML$",               #"/path/to/src/.+\.mzML"
-                dst = None,                     #/path/to/dst
-                suffix_dst_files = "_feature",          #for example : "_feature"
-                ext_dst_files = "featureXML",#the string may begin with a dot
-                input_map = None,
-                fm = None,
+                src = ".+\.mzML$",               
+                dst = None,                     
+                suffix_dst_files = "_feature",  
+                ext_dst_files = "featureXML",
+                logger = None,
                 **kwargs
                 ):
             
@@ -300,11 +331,9 @@ class FeatureFindingMetabo(object):
         self.suffix_dst_files = suffix_dst_files
         self.ext_dst_files = ext_dst_files
         self.kw = kwargs
-        self.input_map = input_map
-        self.fm = fm
         
         self.init_entity(**self.kw)
-        self.path_parsing()
+        
 
     def init_entity(self, **kwargs):
         self.mtd = MtdEntity(**kwargs)
@@ -327,12 +356,12 @@ class FeatureFindingMetabo(object):
             self.init_entity(**self.kw)
             
             self.input_map = oms.PeakMap() # the 1st step: load map;
-            self.fm = oms.FeatureMap()
+            fm = oms.FeatureMap()
             oms.MzMLFile().load(f, self.input_map)
             # the 2nd step: apply_ffm;
             self.mtd.entity.run(self.input_map, self.output_mt)
             self.epd.entity.detectPeaks(self.output_mt, self.splitted_mt)
-            self.ffm.entity.run(self.splitted_mt, self.fm, self.chromatograms)
+            self.ffm.entity.run(self.splitted_mt, fm, self.chromatograms)
             # the 3d step: is store result into file;
             dst_full_file_name = os.path.join(self.dst,\
                 self.convert_src_to_dst_file_name(f,
@@ -340,7 +369,7 @@ class FeatureFindingMetabo(object):
                                             self.suffix_dst_files,
                                             self.ext_dst_files) )
             #print("dst=",dst_full_file_name)
-            oms.FeatureXMLFile().store(dst_full_file_name, self.fm)
+            oms.FeatureXMLFile().store(dst_full_file_name, fm)
 
             self.log.msg(
             'Feature finding finished. Centroided data has been '
@@ -349,7 +378,48 @@ class FeatureFindingMetabo(object):
 
 class MapAlignment(object):
     """
-    Class for map alignment process
+    Class for map alignment process.
+
+    A map alignment algorithm based on pose clustering.
+
+    Pose clustering analyzes pair distances to find the most probable
+    transformation of retention times.
+    The algorithm chooses the x most intensity peaks/features per map. 
+    This is modeled via the parameter 'max_num_peaks_considered',
+    which in turn influences the runtime and stability of the results. 
+    Bigger values prolong computation, smaller values might lead to no or
+    unstable trafos. Set to -1 to use all features (might take very long for large maps).
+
+    Parameters
+    ----------
+    src : str
+        Source directory consists source file(s)
+    dst :  str, optional
+        Destination directory
+    suffix_dst_files : str, optional
+        Additional part of result file name
+    ext_dst_files: str, optional
+        Extension of resulting files
+    logger:   
+        System variable for tracking
+    reference_file: obj
+        The file by which other files will be aligned
+
+
+    Attributes
+    ----------
+    src : str
+        Source directory consists source file(s)  
+    dst :  str, optional
+        Destination directory
+    suffix_dst_files : str, optional
+        Additional part of result file name
+    ext_dst_files: str, optional
+        Extension of resulting files
+    kw : obj
+        Additional arguments
+    reference_file: obj
+        The file by which other files will be aligned
     """
 
     def __init__(self,
@@ -358,8 +428,7 @@ class MapAlignment(object):
                 suffix_dst_files = "_aligned",          
                 ext_dst_files = "featureXML",
                 reference_file = None,
-                reference_map = None,
-                toAlign_map = None,
+                logger = None,
                 **kwargs
                 ):
         
@@ -381,12 +450,6 @@ class MapAlignment(object):
         self.kw = kwargs
         
         self.init_entity(**self.kw)
-        self.path_parsing()
-
-        self.reference_file = reference_file
-        self.reference_map = reference_map
-        self.toAlign_map = toAlign_map
-
 
     def init_entity(self, **kwargs):
 
@@ -405,26 +468,26 @@ class MapAlignment(object):
             # to prepare(init) empty list and entity;
             self.init_entity(**self.kw)
 
-            self.reference_map = oms.FeatureMap()
-            self.toAlign_map = oms.FeatureMap()
+            reference_map = oms.FeatureMap()
+            toAlign_map = oms.FeatureMap()
             
-            oms.FeatureXMLFile().load(self.reference_file, self.reference_map)
-            oms.FeatureXMLFile().load(f, self.toAlign_map)
+            oms.FeatureXMLFile().load(self.reference_file, reference_map)
+            oms.FeatureXMLFile().load(f, toAlign_map)
             
             #Set reference_map file
-            self.ma.entity.setReference(self.reference_map)
+            self.ma.entity.setReference(reference_map)
             
             #3rd step create object for the computed transformation
             transformation = oms.TransformationDescription()
 
             # the 4rd step:
-            self.ma.entity.align(self.toAlign_map, transformation)
+            self.ma.entity.align(toAlign_map, transformation)
             # the 5th step: is store result into file;
             dst_full_file_name = os.path.join(self.dst,\
                 self.convert_src_to_dst_file_name(f) )
             
             #print("dst=",dst_full_file_name)
-            oms.FeatureXMLFile().store(dst_full_file_name, self.toAlign_map)
+            oms.FeatureXMLFile().store(dst_full_file_name, toAlign_map)
 
             self.log.msg(
             'Map alignmnet finished. Identification data has been '
@@ -434,7 +497,20 @@ class MapAlignment(object):
 class Convert2mgf():
     """
     Class for convertation mzml data to MGF format (MS2 data)
-
+    
+    Parameters
+    ----------
+    mzml_file : obj
+        File with mzml extension
+    mgf_file : obj
+        File with mgf extension
+    
+    Attributes
+    ----------
+    mzml_file : obj
+        File with mzml extension
+    mgf_file : obj
+        File with mgf extension
     """
     def __init__(self,
                 mzml_file = None,
