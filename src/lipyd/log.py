@@ -29,7 +29,6 @@ timeloop.app.logging.disable(level = 9999)
 
 import lipyd.settings as settings
 
-
 __all__ = ['new_logger', 'Logger']
 
 

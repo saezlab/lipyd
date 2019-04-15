@@ -28,6 +28,8 @@ import lipyd.lipproc as lipproc
 
 
 _defaults = {
+    # name of the module
+    'module_name': 'lipyd',
     # The absolute root directory.
     # This should not be necessary, why is it here?
     'path_root': '/',
@@ -368,10 +370,25 @@ _defaults = {
                 '[M+NH4]+': 'remove_nh4',
                 '[M+Na]+': 'remove_na',
                 '[M-H2O+H]+': 'add_oh',
+                '[M+H-H2O]+': 'add_oh',
+                '[M+HCOOH]+': 'remove_h_fo',
             },
             'neg': {
                 '[M-H]-': 'add_h',
                 '[M+HCOO]-': 'remove_fo',
+                '[M+HCOO+1x(HCOONa)]-': 'remove_fo_nafo',
+                '[M+HCOO+2x(HCOONa)]-': 'remove_fo_2nafo',
+                '[M+HCOO+3x(HCOONa)]-': 'remove_fo_3nafo',
+                '[M+HCOO+4x(HCOONa)]-': 'remove_fo_4nafo',
+                '[M+HCOO+5x(HCOONa)]-': 'remove_fo_5nafo',
+                '[M-H+1x(HCOONa)]-': 'add_h_remove_nafo',
+                '[M-H+2x(HCOONa)]-': 'add_h_remove_2nafo',
+                '[M-H+3x(HCOONa)]-': 'add_h_remove_3nafo',
+                '[M-2H+Na+3x(HCOONa)]-': 'add_2h_remove_na_3nafo',
+                '[M-2H+Na+4x(HCOONa)]-': 'add_2h_remove_na_4nafo',
+                '[M-2H+Na+5x(HCOONa)]-': 'add_2h_remove_na_5nafo',
+                '[M-2H+Na+6x(HCOONa)]-': 'add_2h_remove_na_6nafo',
+                '[M-2H+Na+7x(HCOONa)]-': 'add_2h_remove_na_7nafo',
             }
         },
         2: {
@@ -395,10 +412,25 @@ _defaults = {
                 '[M+NH4]+': 'add_nh4',
                 '[M+Na]+': 'add_na',
                 '[M-H2O+H]+': 'remove_oh',
+                '[M+H-H2O]+': 'remove_oh',
+                '[M+HCOOH]+': 'add_h_fo',
             },
             'neg': {
                 '[M-H]-': 'remove_h',
                 '[M+HCOO]-': 'add_fo',
+                '[M+HCOO+1x(HCOONa)]-': 'add_fo_nafo',
+                '[M+HCOO+2x(HCOONa)]-': 'add_fo_2nafo',
+                '[M+HCOO+3x(HCOONa)]-': 'add_fo_3nafo',
+                '[M+HCOO+4x(HCOONa)]-': 'add_fo_4nafo',
+                '[M+HCOO+5x(HCOONa)]-': 'add_fo_5nafo',
+                '[M-H+1x(HCOONa)]-': 'remove_h_add_nafo',
+                '[M-H+2x(HCOONa)]-': 'remove_h_add_2nafo',
+                '[M-H+3x(HCOONa)]-': 'remove_h_add_3nafo',
+                '[M-2H+Na+3x(HCOONa)]-': 'remove_2h_add_na_3nafo',
+                '[M-2H+Na+4x(HCOONa)]-': 'remove_2h_add_na_4nafo',
+                '[M-2H+Na+5x(HCOONa)]-': 'remove_2h_add_na_5nafo',
+                '[M-2H+Na+6x(HCOONa)]-': 'remove_2h_add_na_6nafo',
+                '[M-2H+Na+7x(HCOONa)]-': 'remove_2h_add_na_7nafo',
             }
         },
         2: {
@@ -413,6 +445,31 @@ _defaults = {
                 '[M-3H]3-': 'remove_3h'
             }
         }
+    },
+    'ex2ad_all': {
+        '[M+H]+': 'add_h',
+        '[M+NH4]+': 'add_nh4',
+        '[M+Na]+': 'add_na',
+        '[M-H2O+H]+': 'remove_oh',
+        '[M+H-H2O]+': 'remove_oh',
+        '[M+HCOOH]+': 'add_h_fo',
+        '[M-H]-': 'remove_h',
+        '[M+HCOO]-': 'add_fo',
+        '[M+HCOO+1x(HCOONa)]-': 'add_fo_nafo',
+        '[M+HCOO+2x(HCOONa)]-': 'add_fo_2nafo',
+        '[M+HCOO+3x(HCOONa)]-': 'add_fo_3nafo',
+        '[M+HCOO+4x(HCOONa)]-': 'add_fo_4nafo',
+        '[M+HCOO+5x(HCOONa)]-': 'add_fo_5nafo',
+        '[M-H+1x(HCOONa)]-': 'remove_h_add_nafo',
+        '[M-H+2x(HCOONa)]-': 'remove_h_add_2nafo',
+        '[M-H+3x(HCOONa)]-': 'remove_h_add_3nafo',
+        '[M-2H+Na+3x(HCOONa)]-': 'remove_2h_add_na_3nafo',
+        '[M-2H+Na+4x(HCOONa)]-': 'remove_2h_add_na_4nafo',
+        '[M-2H+Na+5x(HCOONa)]-': 'remove_2h_add_na_5nafo',
+        '[M-2H+Na+6x(HCOONa)]-': 'remove_2h_add_na_6nafo',
+        '[M-2H+Na+7x(HCOONa)]-': 'remove_2h_add_na_7nafo',
+        '[M-2H]2-': 'remove_2h',
+        '[M-3H]3-': 'remove_3h',
     },
     # metrics to use for determining similarity of protein
     # and intensity profiles; these were attempts, and not
@@ -503,6 +560,9 @@ _defaults = {
     'log_flush_interval': 2,
     'console_verbosity': -1,
     'log_verbosity': 0,
+    # priority of databases at name to mass lookups in moldb
+    'database_preference': ('lipyd.lipid', 'SwissLipids', 'LipidMaps'),
+    'map_aligner_param': None,
 }
 
 in_basedir = [

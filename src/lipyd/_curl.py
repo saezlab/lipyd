@@ -624,6 +624,7 @@ class FileOpener(object):
         #    self.print_status('Error at extracting gzip file')
 
     def open_zip(self):
+        
         self.files_multipart = {}
         self.sizes = {}
         self.fileobj.seek(0)

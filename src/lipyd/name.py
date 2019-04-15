@@ -340,7 +340,8 @@ class LipidNameProcessor(object):
             chainsexp = None,
             sphingo = False,
             iso = False,
-            types = None
+            types = None,
+            accept_less_chains = False,
         ):
         """
         Processes carbon and unsaturation counts from name.
@@ -454,7 +455,16 @@ class LipidNameProcessor(object):
             zerochains = sum(not c.c for c in chains)
             # ccexp = ccexp - zerochains
             chains = tuple(c for c in chains if c.c)
-            chains = [] if len(chains) != ccexp else tuple(chains)
+            chains = (
+                ()
+                    if (
+                        len(chains) != ccexp and (
+                            not accept_less_chains or
+                            len(chains) < accept_less_chains
+                        )
+                    ) else
+                tuple(chains)
+            )
         
         # the total carbon count
         if chains:
@@ -492,7 +502,8 @@ class LipidNameProcessor(object):
             name,
             ccexp = 2,
             sphingo = False,
-            types = None
+            types = None,
+            accept_less_chains = False,
         ):
         """Calls `carbon_counts` with `iso=True`.
 
@@ -517,7 +528,8 @@ class LipidNameProcessor(object):
             ccexp = ccexp,
             sphingo = sphingo,
             iso = True,
-            types = types
+            types = types,
+            accept_less_chains = accept_less_chains,
         )
     
     def headgroup_from_lipid_name(self, names, database = None):
@@ -576,7 +588,8 @@ class LipidNameProcessor(object):
         return None, None
     
     def process_fa_name(self, name):
-        """Identifies fatty acids based on their greek name.
+        """
+        Identifies fatty acids based on their greek name.
 
         Parameters
         ----------
@@ -609,15 +622,18 @@ class LipidNameProcessor(object):
     
     def fa_greek_cc(self, name):
         """
-
+        From the greek name of a fatty acyl, fatty alcohol or fatty acyl CoA
+        returns its carbon and unsaturation count.
+        
         Parameters
         ----------
-        name :
-            
-
+        name : str
+            A greek name.
+        
         Returns
         -------
-
+        ``ChainSummary`` and ``Chain`` objects with the carbon and
+        unsaturation counts.
         """
         
         chainsum, chains = None, None
@@ -650,19 +666,21 @@ class LipidNameProcessor(object):
         return chainsum, chains
     
     def test_branched(self, name):
-        """Tells if a lipid might contain branched aliphatic chains.
-
+        """
+        Tells if a lipid might contain branched aliphatic chains simply by
+        searching for `methyl` and `ethyl` in the name.
+        
         Parameters
         ----------
-        name :
-            
-
+        name : str
+            A lipid name.
+        
         Returns
         -------
-
+        Bool.
         """
         
-        return bool(self.reme.search(name))
+        return bool(lipproc.reme.search(name))
     
     def process(self, names, database = None, iso = None):
         """The main method of this class. Processes a lipid name string
@@ -704,6 +722,7 @@ class LipidNameProcessor(object):
         hg, chainsexp = self.headgroup_from_lipid_name(
             names, database = database
         )
+        hg_modified = None
         
         # try greek fatty acyl carbon counts:
         if not hg and iso and database == 'swisslipids':
@@ -740,13 +759,22 @@ class LipidNameProcessor(object):
                 if hg.main in {'FA', 'MAG'} or lyso else
                     3
                 if hg.main == 'TAG' else
-                    4
+                    4 # cardiolipin has 4 aliphatic chains,
+                      # but lyso or monolyso have 2 or 3,
+                      # respectively
                 if hg.main == 'CL' else
                     2
             )
             
+            # for CL accept also 2 or 3 chains
+            accept_less_chains = 2 if hg and hg.main in {'CL'} else False
+            
             _chainsum, _chains = self.carbon_counts(
-                n, ccexp = ccexp, chainsexp = chainsexp, iso = iso
+                n,
+                ccexp = ccexp,
+                chainsexp = chainsexp,
+                iso = iso,
+                accept_less_chains = accept_less_chains,
             )
             
             chains = chains or _chains
@@ -755,6 +783,25 @@ class LipidNameProcessor(object):
             if self.iso and _chains and any(c.iso for c in _chains):
                 
                 chains = _chains
+            
+            # TODO:
+            # this part I turned off, CL name processing should be
+            # imporoved later
+            if False and hg and hg.main == 'CL':
+                
+                if _chains and len(_chains) == 2:
+                    
+                    hg_modified = lipproc.Headgroup(
+                        main = 'CL',
+                        sub = ('Lyso',),
+                    )
+                    
+                elif len(_chains) == 3:
+                    
+                    hg_modified = lipproc.Headgroup(
+                        main = 'CL',
+                        sub = ('Monolyso',),
+                    )
             
             if (
                 chainsum and chains and (
@@ -775,7 +822,7 @@ class LipidNameProcessor(object):
                     
                     break
         
-        return hg, chainsum, chains
+        return hg_modified or hg, chainsum, chains
     
     
     def gen_fa_greek(self):

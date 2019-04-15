@@ -23,6 +23,8 @@ from collections import defaultdict
 from argparse import Namespace
 import copy
 
+import numpy as np
+
 import lipyd.mass as mass
 import lipyd.mz as mz
 
@@ -415,7 +417,7 @@ class Mass(Formula):
     def __init__(self, formula_mass = None, charge = 0, isotope = 0, **kwargs):
         
         if ((formula_mass is None and not kwargs) and
-            type(formula_mass) is float):
+            isinstance(formula_mass, (float, np.float64))):
             
             # unknown formula, initializing an empty Formula:
             Formula.__init__(self, '', charge = charge, isotope = isotope)
