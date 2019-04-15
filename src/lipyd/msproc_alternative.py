@@ -53,22 +53,28 @@ def get_list_full_names(src):
     Global function for getting full names from list
     """
     
-    src_full_name_list = []                #list of src full file name;
-    src_dir = os.path.dirname(src)         #get dir name from src file name;
-    src_dir = src_dir if src_dir else os.getcwd() #if src dir name is empty get current dir name;
-    pattern = os.path.basename(src)        #get file name as pattern;
-    pattern = pattern if pattern != "" else ".*" #if pattern is empty set any char pattern;
+    src_full_name_list = []                # list of src full file name;
+    src_dir = os.path.dirname(src)         # get dir name from src file name;
+    src_dir = src_dir if src_dir else os.getcwd() # if src dir name is empty
+                                                  # get current dir name;
+    pattern = os.path.basename(src)        # get file name as pattern;
+    pattern = pattern if pattern != "" else ".*" # if pattern is empty
+                                                 # set any char pattern;
     
-    for file_name in os.listdir(src_dir): #for all file name in src dir:
-        full_file_name = os.path.join(src_dir, file_name) #to build full file name;
-        if os.path.isfile( full_file_name ): #only for files, except dir name;
-            match = None    # result re match
+    for file_name in os.listdir(src_dir): # for all file name in src dir:
+        full_file_name = os.path.join(src_dir, file_name) # to build full
+                                                          # file name;
+        if os.path.isfile( full_file_name ): # only for files,
+                                             # except dir name;
+            match = None    # results re match
 
             try:            # try to compile patern:
                 rec = re.compile(pattern)
                 match = rec.match(file_name)    # apply pattern to file name
             except re.error as e:
-                raise RuntimeError("Match pattern error.") # raise exept if pattern error compile;
+                raise RuntimeError("Match pattern error.") # raise exeption
+                                                           # if regex does
+                                                           # not match
             
             if match:       # if result of re match is ok
                 src_full_name_list.append(full_file_name)
@@ -209,20 +215,21 @@ class PeakPicking(session.Logger):
     """
     Class for peak picking implementation.
     
-    This class implements a fast peak-picking algorithm best suited for high resolution MS data
-    (FT-ICR-MS, Orbitrap). In high resolution data, the signals of ions with similar
-    mass-to-charge ratios (m/z) exhibit little or no overlapping and therefore allow 
-    for a clear separation. Furthermore, ion signals tend to show well-defined peak shapes
-    with narrow peak width.
+    This class implements a fast peak-picking algorithm best suited for high
+    resolution MS data (FT-ICR-MS, Orbitrap). In high resolution data, the
+    signals of ions with similar mass-to-charge ratios (m/z) exhibit little
+    or no overlapping and therefore allow for a clear separation. Furthermore,
+    ion signals tend to show well-defined peak shapes with narrow peak width.
 
-    This peak-picking algorithm detects ion signals in profile data and reconstructs
-    the corresponding peak shape by cubic spline interpolation. Signal detection depends
-    on the signal-to-noise ratio which is adjustable by the user (see parameter signal_to_noise).
-    A picked peak's m/z and intensity value is given by the maximum of the underlying peak spline.
+    This peak-picking algorithm detects ion signals in profile data and
+    reconstructs the corresponding peak shape by cubic spline interpolation.
+    Signal detection depends on the signal-to-noise ratio which is adjustable
+    by the user (see parameter signal_to_noise). A picked peak's m/z and
+    intensity value is given by the maximum of the underlying peak spline.
 
-    So far, this peak picker was mainly tested on high resolution data. 
-    With appropriate preprocessing steps (e.g. noise reduction and baseline subtraction),
-    it might be also applied to low resolution data.
+    So far, this peak picker was mainly tested on high resolution data. With
+    appropriate preprocessing steps (e.g. noise reduction and baseline
+    subtraction), it might be also applied to low resolution data.
 
     Parameters
     ----------
@@ -345,7 +352,7 @@ class FeatureFindingMetabo(session.Logger):
     Attributes
     ----------
     src : str
-        Source directory consists source file(s)  
+        Source directory consists source file(s)
     dst :  str, optional
         Destination directory
     suffix_dst_files : str, optional
@@ -433,11 +440,12 @@ class MapAlignment(session.Logger):
 
     Pose clustering analyzes pair distances to find the most probable
     transformation of retention times.
-    The algorithm chooses the x most intensity peaks/features per map. 
+    The algorithm chooses the x most intensity peaks/features per map.
     This is modeled via the parameter 'max_num_peaks_considered',
-    which in turn influences the runtime and stability of the results. 
+    which in turn influences the runtime and stability of the results.
     Bigger values prolong computation, smaller values might lead to no or
-    unstable trafos. Set to -1 to use all features (might take very long for large maps).
+    unstable trafos. Set to -1 to use all features (might take very long for
+    large maps).
 
     Parameters
     ----------
@@ -572,6 +580,9 @@ class Convert2mgf(session.Logger):
     
     
     def convert(self):
+        """
+        Generates MGF format MS2 spectra and writes them into the output file.
+        """
         
         file = pyopenms.MzMLFile()
         msdata = pyopenms.MSExperiment()
@@ -586,28 +597,42 @@ class Convert2mgf(session.Logger):
         outfile.write("CLE=Trypsin\n")
         outfile.write("CHARGE=1,2,3\n")
         
-        # Iterate through all spectra, skip all MS1 spectra and then write mgf format
+        # Iterate through all spectra,
+        # skip all MS1 spectra and then write mgf format
         nr_ms2_spectra = 0
+        
         for spectrum in msdata:
+            
             if spectrum.getMSLevel() == 1:
                 continue
+            
             nr_ms2_spectra += 1
             outfile.write("\nBEGIN IONS\n")
             outfile.write("TITLE=%s\n" % spectrum.getNativeID())
             outfile.write("RTINSECONDS=%s\n" % spectrum.getRT())
+            
             try:
                 outfile.write("PEPMASS=%s\n" % spectrum.getPrecursors()[0].getMZ())
                 ch = spectrum.getPrecursors()[0].getCharge()
+                
                 if ch > 0:
                     outfile.write("CHARGE=%s\n" % ch)
+                
             except IndexError:
                 outfile.write("PEPMASS=unknown\n")
+            
             for peak in spectrum:
                 outfile.write("%s %s\n" % (peak.getMZ(), peak.getIntensity() ))
+            
             outfile.write("END IONS\n")
         
         if nr_ms2_spectra == 0:
-            print("Did not find any MS2 spectra in your input, thus the output file is empty!")
+            
+            self._log(
+                'Could not find any MS2 spectra in the input, '
+                'thus the output MFF file is empty!',
+                -1,
+            )
         
         outfile.close()
 
