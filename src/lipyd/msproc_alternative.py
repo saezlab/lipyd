@@ -99,8 +99,11 @@ class BaseEntity(session.Logger):
         
         session.Logger.__init__(self, name = 'msproc')
         
-        if not hasattr(entity, "getDefaults"):
-            raise RuntimeError( "BaseEntity: the entity has no getDefaults attr" )
+        if not hasattr(entity, 'getDefaults'):
+            
+            raise RuntimeError(
+                'BaseEntity: the entity has no getDefaults attr'
+            )
         
         self.entity = entity
         #TODO: get default parameters from settings
@@ -202,7 +205,7 @@ class MAEntity(BaseEntity):
             **kwargs,
         )
 
-class PeakPicking(object):
+class PeakPicking(session.Logger):
     """
     Class for peak picking implementation.
     
@@ -259,13 +262,7 @@ class PeakPicking(object):
                 **kwargs
             ):
 
-        self.log = (
-            logger or
-            log.new_logger(
-                'lipyd.msproc',
-                logdir = 'lipyd_log',
-            )
-        )
+        session.Logger.__init__(self, name = 'peak_picking')
 
         if not src:
             raise RuntimeError( "You don`t specify all necessary files" )
@@ -325,7 +322,7 @@ class PeakPicking(object):
             'written to `%s`.' % self.dst
         )
 
-class FeatureFindingMetabo(object):
+class FeatureFindingMetabo(session.Logger):
     """
     Class for feature detection implementation.
     
@@ -357,25 +354,21 @@ class FeatureFindingMetabo(object):
         Extension of resulting files
     kw : obj
         Additional arguments
-
     """
-    def __init__(self,
-                src = ".+\.mzML$",               
-                dst = None,                     
-                suffix_dst_files = "_feature",  
-                ext_dst_files = "featureXML",
-                logger = None,
-                **kwargs
-                ):
-            
-        self.log = (
-            logger or
-            log.new_logger(
-                'lipyd.msproc',
-                logdir = 'lipyd_log',
-            )
-        )
-                                                
+    
+    
+    def __init__(
+            self,
+            src = ".+\.mzML$",
+            dst = None,
+            suffix_dst_files = "_feature",
+            ext_dst_files = "featureXML",
+            logger = None,
+            **kwargs,
+        ):
+        
+        session.Logger.__init__(self, name = 'feature_finder_metabo')
+        
         if not src:
             raise RuntimeError( "You don`t specify all necessary files" )
 
@@ -386,7 +379,7 @@ class FeatureFindingMetabo(object):
         self.kw = kwargs
         
         self.init_entity(**self.kw)
-        
+    
 
     def init_entity(self, **kwargs):
         self.mtd = MtdEntity(**kwargs)
@@ -396,15 +389,18 @@ class FeatureFindingMetabo(object):
         self.splitted_mt = []
         self.filtered_mt = []
         self.chromatograms = [[]]       
-
-    def main(self): #the 3 step in one;
+    
+    
+    def main(self):
+        # the 3 steps in one;
         #after path_parsing method we have self.src_full_name_list
+        
         for f in get_list_full_names(self.src):
 
             self.log.msg(
             'Performing feature finding metabo on experiment `%s`.' % self.src
             )
-        
+            
             # to prepare(init) empty list and entity;
             self.init_entity(**self.kw)
             
@@ -423,13 +419,13 @@ class FeatureFindingMetabo(object):
                                             self.ext_dst_files) )
             #print("dst=",dst_full_file_name)
             oms.FeatureXMLFile().store(dst_full_file_name, fm)
-
+            
             self.log.msg(
             'Feature finding finished. Centroided data has been '
             'written to `%s`.' % self.dst
             )
 
-class MapAlignment(object):
+class MapAlignment(session.Logger):
     """
     Class for map alignment process.
 
@@ -485,16 +481,11 @@ class MapAlignment(object):
                 **kwargs
                 ):
         
-        self.log = (
-            logger or
-            log.new_logger(
-                'lipyd.msproc',
-                logdir = 'lipyd_log',
-            )
-        )
+        session.Logger.__init__(self, name = 'map_alignment')
 
         if not (src and reference_file):
-           raise RuntimeError( "You don`t specify all necessary files" )
+            
+            raise RuntimeError( "You don`t specify all necessary files" )
         
         self.src = src
         self.dst = dst
@@ -547,7 +538,8 @@ class MapAlignment(object):
             'written to `%s`.' % self.dst
             )
 
-class Convert2mgf():
+
+class Convert2mgf(session.Logger):
     """
     Class for convertation mzml data to MGF format (MS2 data)
     
@@ -565,30 +557,35 @@ class Convert2mgf():
     mgf_file : obj
         File with mgf extension
     """
-    def __init__(self,
-                mzml_file = None,
-                mgf_file = None,
-
-                ):
+    
+    
+    def __init__(
+            self,
+            mzml_file = None,
+            mgf_file = None,
+        ):
+        
+        session.Logger.__init__(self, name = 'mgf_export')
         
         self.mzml_file = mzml_file
         self.mgf_file = mgf_file
-
+    
+    
     def convert(self):
-
+        
         file = pyopenms.MzMLFile()
         msdata = pyopenms.MSExperiment()
         file.load(self.mzml_file, msdata)
-
+        
         outfile = open(self.mgf_file, "w")
-
+        
         # Create header
         outfile.write("COM=Testfile\n")
         outfile.write("ITOL=1\n")
         outfile.write("ITOLU=Da\n")
         outfile.write("CLE=Trypsin\n")
         outfile.write("CHARGE=1,2,3\n")
-
+        
         # Iterate through all spectra, skip all MS1 spectra and then write mgf format
         nr_ms2_spectra = 0
         for spectrum in msdata:
@@ -608,15 +605,15 @@ class Convert2mgf():
             for peak in spectrum:
                 outfile.write("%s %s\n" % (peak.getMZ(), peak.getIntensity() ))
             outfile.write("END IONS\n")
-
+        
         if nr_ms2_spectra == 0:
             print("Did not find any MS2 spectra in your input, thus the output file is empty!")
-
+        
         outfile.close()
-    
-if __name__ == "__main__":
 
-       
+
+if __name__ == "__main__":
+    
     param = {}
     
     a = PeakPicking(
