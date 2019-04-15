@@ -567,7 +567,7 @@ def bool_array_dilation(array, extent = 1):
     return np.array(dilated)
 
 
-def to_bytes(s, encoding = 'ascii'):
+def to_bytes(s, encoding = 'utf8'):
     """
     If a string is not bytes type encodes it.
     """
@@ -575,12 +575,43 @@ def to_bytes(s, encoding = 'ascii'):
     return s.encode(encoding) if hasattr(s, 'encode') else s
 
 
+def ensure_bytes(value):
+    """
+    Makes sure that ``value`` is a string type it is a bytes string.
+    Other types it returns unchanged.
+    """
+    
+    return to_bytes(value) if hasattr(value, 'encode') else value
+
+
+def ensure_unicode(value):
+    """
+    Makes sure that ``value`` is a unicode string. Other types it converts
+    to string by their default method. Note, in Python2 it does not
+    definitely converts to unicode type, its main purpose to prepare fields
+    for insertion into messages.
+    """
+    
+    return (
+        value
+            if hasattr(value, 'encode') else
+        value.decode('utf8')
+            if hasattr(value, 'decode') else
+        '%.08f' % value
+            if isinstance(value, (float, np.float64)) else
+        str(value)
+    )
+
+
 def dict_ensure_bytes(d):
+    """
+    Makes sure both keys and values in a dict are bytes strings.
+    """
     
     return dict(
         (
-            to_bytes(key),
-            to_bytes(val),
+            ensure_bytes(key),
+            ensure_bytes(val),
         )
         for key, val in iteritems(d)
     )

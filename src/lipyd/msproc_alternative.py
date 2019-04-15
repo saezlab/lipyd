@@ -25,7 +25,7 @@ import re
 
 import pyopenms as oms
 
-import lipyd.log as log
+import lipyd.session as session
 import lipyd.common as common
 import lipyd.settings as settings
 
@@ -33,8 +33,8 @@ import lipyd.settings as settings
 def convert_src_to_dst_file_name(src, dst, suffix_dst_files, ext_dst_files):
     """
     Global function to transform source directory to destination directory
-
     """
+    
     file_name = os.path.splitext( os.path.basename(src) )[0] # get file name only;
     file_name += suffix_dst_files # add suffix;
     if ext_dst_files:
@@ -52,6 +52,7 @@ def get_list_full_names(src):
     """
     Global function for getting full names from list
     """
+    
     src_full_name_list = []                #list of src full file name;
     src_dir = os.path.dirname(src)         #get dir name from src file name;
     src_dir = src_dir if src_dir else os.getcwd() #if src dir name is empty get current dir name;
@@ -75,46 +76,57 @@ def get_list_full_names(src):
     return src_full_name_list
 
 
-def utf8_to_bin(s):
-    return s.encode("utf-8")
-
-
-class BaseEntity(object):
+class BaseEntity(session.Logger):
     """
-    Base class for setup and check parameter for all derived classes
+    Base class for setup and check parameters for all derived classes.
     
     Parameters
     ----------
-    entity : :obj:
-        Variable takes parameters from class which has method setParameters (pyyopenms)
+    entity : object
+        Pyopenms object having setParameters method.
 
     Attributes
     ----------
-    entity : obj
-        Variable takes parameters from class which has method setParameters (pyyopenms)
-
+    entity : object
+        Pyopenms object having setParameters method.
     """
+    
+    
     def __init__(self,
                 entity,
                 **kwargs
                 ):
+        
+        session.Logger.__init__(self, name = 'msproc')
         
         if not hasattr(entity, "getDefaults"):
             raise RuntimeError( "BaseEntity: the entity has no getDefaults attr" )
         
         self.entity = entity
         self.set_parameters(**kwargs)
-
+    
+    
     def set_parameters(self, **kwargs):
         """
         Check type of value: if it`s str - convert to binary string
         """
-        param = self.entity.getDefaults()   #get default param;
-        for k, v in kwargs.items():
-            if isinstance(v, str):              
-                param.setValue(k, utf8_to_bin(v))   
-            else:
-                param.setValue(k, v)               
+        
+        param = self.entity.getDefaults() # get default param;
+        
+        kwargs = common.dict_ensure_bytes(kwargs)
+        
+        for name, value in iteritems(kwargs):
+            
+            param.setValue(name, value)
+            
+            self._log(
+                'Parameter `{}` of `{}` set to `{}`.'.format(
+                    common.ensure_unicode(name),
+                    self.entity.__class__.__name__,
+                    common.ensure_unicode(value),
+                ),
+                1,
+            )
         
         self.entity.setParameters(param)
 
@@ -124,6 +136,7 @@ class PPEntity(BaseEntity):
     def __init__(self, **kwargs):
         super(PPEntity, self).__init__(oms.PeakPickerHiRes(),
                                                 **kwargs)
+
 
 class MtdEntity(BaseEntity):
     """ oms.MassTraceDetection() """
