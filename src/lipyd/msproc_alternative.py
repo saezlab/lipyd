@@ -103,7 +103,9 @@ class BaseEntity(session.Logger):
             raise RuntimeError( "BaseEntity: the entity has no getDefaults attr" )
         
         self.entity = entity
+        #TODO: get default parameters from settings
         self.set_parameters(**kwargs)
+        #TODO: check if no parameter is out of acceptable range
     
     
     def set_parameters(self, **kwargs):
@@ -132,35 +134,73 @@ class BaseEntity(session.Logger):
 
 
 class PPEntity(BaseEntity):
-    """oms.PeakPickingHiRes()"""
+    """
+    Wrapper around ``oms.PeakPickingHiRes``.
+    """
+    
+    
     def __init__(self, **kwargs):
-        super(PPEntity, self).__init__(oms.PeakPickerHiRes(),
-                                                **kwargs)
+        
+        super(PPEntity, self).__init__(
+            oms.PeakPickerHiRes(),
+            **kwargs,
+        )
 
 
 class MtdEntity(BaseEntity):
-    """ oms.MassTraceDetection() """
+    """
+    Wrapper around ``oms.MassTraceDetection``.
+    """
+    
+    
     def __init__(self, **kwargs):
-        super(MtdEntity, self).__init__(oms.MassTraceDetection(),
-                                                **kwargs)
+        
+        super(MtdEntity, self).__init__(
+            oms.MassTraceDetection(),
+            **kwargs,
+        )
+
 
 class EpdEntity(BaseEntity):
-    """ oms.ElutionPeakDetection() """
+    """
+    Wrapper around ``oms.ElutionPeakDetection``.
+    """
+    
+    
     def __init__(self, **kwargs):
-        super(EpdEntity, self).__init__(oms.ElutionPeakDetection(),
-                                                **kwargs)
+        
+        super(EpdEntity, self).__init__(
+            oms.ElutionPeakDetection(),
+            **kwargs,
+        )
+
 
 class FfmEntity(BaseEntity):
-    """ oms.FeatureFindingMetabo() """
+    """
+    Wrapper around ``oms.FeatureFindingMetabo()``.
+    """
+    
+    
     def __init__(self, **kwargs):
-        super(FfmEntity, self).__init__(oms.FeatureFindingMetabo(),
-                                                **kwargs)
+        
+        super(FfmEntity, self).__init__(
+            oms.FeatureFindingMetabo(),
+            **kwargs,
+        )
+
 
 class MAEntity(BaseEntity):
-    """oms.MapAlignmentAlgorithmPoseClustering"""
+    """
+    Wrapper around ``oms.MapAlignmentAlgorithmPoseClustering``.
+    """
+    
+    
     def __init__(self, **kwargs):
-        super(MAEntity, self).__init__(oms.MapAlignmentAlgorithmPoseClustering(),
-                                                **kwargs)
+        
+        super(MAEntity, self).__init__(
+            oms.MapAlignmentAlgorithmPoseClustering(),
+            **kwargs,
+        )
 
 class PeakPicking(object):
     """
