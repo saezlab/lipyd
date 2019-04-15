@@ -457,7 +457,12 @@ class LipidNameProcessor(object):
             chains = tuple(c for c in chains if c.c)
             chains = (
                 ()
-                    if not accept_less_chains and len(chains) != ccexp else
+                    if (
+                        len(chains) != ccexp and (
+                            not accept_less_chains or
+                            len(chains) < accept_less_chains
+                        )
+                    ) else
                 tuple(chains)
             )
         
@@ -583,7 +588,8 @@ class LipidNameProcessor(object):
         return None, None
     
     def process_fa_name(self, name):
-        """Identifies fatty acids based on their greek name.
+        """
+        Identifies fatty acids based on their greek name.
 
         Parameters
         ----------
@@ -616,15 +622,18 @@ class LipidNameProcessor(object):
     
     def fa_greek_cc(self, name):
         """
-
+        From the greek name of a fatty acyl, fatty alcohol or fatty acyl CoA
+        returns its carbon and unsaturation count.
+        
         Parameters
         ----------
-        name :
-            
-
+        name : str
+            A greek name.
+        
         Returns
         -------
-
+        ``ChainSummary`` and ``Chain`` objects with the carbon and
+        unsaturation counts.
         """
         
         chainsum, chains = None, None
@@ -657,19 +666,21 @@ class LipidNameProcessor(object):
         return chainsum, chains
     
     def test_branched(self, name):
-        """Tells if a lipid might contain branched aliphatic chains.
-
+        """
+        Tells if a lipid might contain branched aliphatic chains simply by
+        searching for `methyl` and `ethyl` in the name.
+        
         Parameters
         ----------
-        name :
-            
-
+        name : str
+            A lipid name.
+        
         Returns
         -------
-
+        Bool.
         """
         
-        return bool(self.reme.search(name))
+        return bool(lipproc.reme.search(name))
     
     def process(self, names, database = None, iso = None):
         """The main method of this class. Processes a lipid name string
@@ -755,7 +766,8 @@ class LipidNameProcessor(object):
                     2
             )
             
-            accept_less_chains = hg and hg.main in {'CL'}
+            # for CL accept also 2 or 3 chains
+            accept_less_chains = 2 if hg and hg.main in {'CL'} else False
             
             _chainsum, _chains = self.carbon_counts(
                 n,
