@@ -28,12 +28,12 @@ import pyopenms as oms
 # At each major step send messages to the logger
 # As an example see
 # https://git.embl.de/grp-gavin/ltp_ms/blob/ltp/ltp/featureproc.py
-import lipyd.log as log
+import lipyd.session as session
 import lipyd.common as common
 import lipyd.settings as settings
 
 
-class MSPreprocess(object):
+class MSPreprocess(session.Logger):
     #TODO: Igor, please describe the parameters, I don't understand half
     # of them :)
     # Also for many I don't see where we use them.
@@ -93,13 +93,7 @@ class MSPreprocess(object):
             input_fm_2 = None
         ):
         
-        self.log = (
-            logger or
-            log.new_logger(
-                'lipyd.msproc',
-                logdir = 'lipyd_log',
-            )
-        )
+        session.Logger.__init__(self, name = 'ms_preprocess')
         
         # filenames and paths
         self.profile_mzml = profile_mzml
@@ -136,7 +130,8 @@ class MSPreprocess(object):
         self.aligned_fm_2 = aligned_fm_2
         self.input_fm_1 = input_fm_1
         self.input_fm_2 = input_fm_2
-
+    
+    
     def main(self):
         
         self.setup()
@@ -204,7 +199,7 @@ class MSPreprocess(object):
             
             if param not in all_param:
                 
-                self.log.msg(
+                self._log(
                     'Warning: unknown parameter for '
                     'pyopenms.FeatureFinder: `%s`' % param.decode('ascii')
                 )
@@ -218,11 +213,11 @@ class MSPreprocess(object):
         
         if not self.profile_mzml:
             
-            self.log.msg('No profile data provided, not doing peak picking.')
+            self._log('No profile data provided, not doing peak picking.')
             
             return
         
-        self.log.msg(
+        self._log(
             'Performing peak picking on experiment `%s`.' % self.name
         )
         
@@ -232,7 +227,7 @@ class MSPreprocess(object):
         self.export_centroid_mzml()
         
         
-        self.log.msg(
+        self._log(
             'Peak picking finished. Centroid data has been '
             'written to `%s`.' % self.centroid_mzml
         )
@@ -240,7 +235,7 @@ class MSPreprocess(object):
     
     def open_profile_mzml(self):
         
-        self.log.msg('Loading profile data from `%s`.' % self.profile_mzml)
+        self._log('Loading profile data from `%s`.' % self.profile_mzml)
         
         # As I understand this belongs to the peak picking
         # hence I moved here, we don't need these attributes in __init__
@@ -254,7 +249,7 @@ class MSPreprocess(object):
             
             return
         
-        self.log.msg('Smoothing profile data by Gaussian filter.')
+        self._log('Smoothing profile data by Gaussian filter.')
         
         gs = oms.GaussFilter()
         param = gs.getDefaults()
@@ -269,7 +264,7 @@ class MSPreprocess(object):
                 self.wd,
                 '%s__smoothed.mzML' % self.name,
             )
-            self.log.msg(
+            self._log(
                 'Exporting smoothed profile '
                 'data into `%s`.' % self.smoothed_profile_mzml
             )
@@ -278,7 +273,7 @@ class MSPreprocess(object):
     
     def run_peak_picker(self):
         
-        self.log.msg('Starting peak picking.')
+        self._log('Starting peak picking.')
         
         if self.peak_picking_iterative:
             
@@ -304,14 +299,14 @@ class MSPreprocess(object):
         
         if not self.centroid_mzml:
             
-            self.log.msg(
+            self._log(
                 'No centroid data available, '
                 'unable to run feature detection.'
             )
             
             return
         
-        self.log.msg('Starting feature detection.')
+        self._log('Starting feature detection.')
         
         # As I understand this belongs to the feature detection
         # hence I moved here, we don't need these attributes in __init__
@@ -321,12 +316,12 @@ class MSPreprocess(object):
         self.run_feature_finder()
         self.export_features()
         
-        self.log.msg('Feature detection finished.')
+        self._log('Feature detection finished.')
     
     
     def open_centroid_mzml(self):
         
-        self.log.msg('Loading centroid data from `%s`.' % self.centroid_mzml)
+        self._log('Loading centroid data from `%s`.' % self.centroid_mzml)
         
         # opening and reading centroided data from mzML
         self.centroid_mzml_fh = oms.MzMLFile()
@@ -353,7 +348,7 @@ class MSPreprocess(object):
     
     def run_feature_finder(self):
         
-        self.log.msg('Running the feature finder.')
+        self._log('Running the feature finder.')
         
         # running the feature finder
         self.ff.run(
@@ -369,13 +364,13 @@ class MSPreprocess(object):
     
     def export_features(self):
         
-        self.log.msg('Saving features into `%s`.' % self.features_file)
+        self._log('Saving features into `%s`.' % self.features_file)
         self.features_xml = oms.FeatureXMLFile()
         self.features_xml.store(self.features_file, self.feature_map)
     
     def export_chromatograms_data(self):
 
-        self.log.msg('Saving chromatograms into `%s`.' % self.features_file)
+        self._log('Saving chromatograms into `%s`.' % self.features_file)
         self.chromatogram_mzml = oms.FeatureXMLFile()
         self.chromatogram_mzml.store(self.chromatograms, self.feature_map)
 
@@ -409,10 +404,10 @@ class MSPreprocess(object):
         self.run_ma()
 
         self.store_aligned_maps()
-
-
+    
+    
     def load_feature_maps(self, **kwargs):
-
+        
         self.reference = oms.FeatureMap()
         self.toAlign = oms.FeatureMap()
         self.xml_file = oms.FeatureXMLFile()
@@ -439,22 +434,22 @@ class MSPreprocess(object):
         self.ma_algorithm.setParameters(self.ma_params)
         self.ma_algorithm.setReference(self.reference)
     
-
+    
     def run_ma(self, **kwargs):
-
+        
         #create object for the computed transformation
         self.transformation = oms.TransformationDescription()
         #align
         self.ma_algorithm.align(self.toAlign, self.transformation)
-
-
+    
+    
     def store_aligned_maps(self, **kwargs):
-
+        
         #store results
         #self.xml_file.store(self.aligned_fm_1, self.reference)
         self.xml_file.store(self.aligned_fm_2, self.toAlign)
-
-
+    
+    
     def feature_finding_metabo(self, export_chromatograms=False):
         
         self.load_centroid_mzml()
@@ -494,10 +489,10 @@ class MSPreprocess(object):
         self.mtd_process.setParameters(self.mtd_params)
         
         self.mtd_process.run(self.centroid_input_map, self.mass_traces)
-
-
+    
+    
     def elution_prof_detection(self, **kwargs):
-
+        
         self.splitted_mt = []
         
         self.epdet_process = oms.ElutionPeakDetection()
@@ -511,10 +506,10 @@ class MSPreprocess(object):
         self.epdet_process.setParameters(self.epdet_params)
         
         self.epdet_process.detectPeaks(self.mass_traces, self.splitted_mt)
-
+        
         
     def ff_metabo(self):
-
+        
         self.chromatograms = [[]]
         
         self.ffm_process = oms.FeatureFindingMetabo()
@@ -532,12 +527,8 @@ class MSPreprocess(object):
         self.ffm_process.setParameters(self.ffm_params)
         
         self.ffm_process.run(self.splitted_mt, self.feature_map, self.chromatograms)
-
-
-    def convert_utf8_binary(par_str = "my_string"):
-        bin_string = par_str.encode("utf-8")
-        return bin_string     
-        
+    
+    
     def reload(self):
 
         modname = self.__class__.__module__
