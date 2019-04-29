@@ -265,7 +265,6 @@ class PeakPicking(session.Logger):
                 dst = None,                     
                 suffix_dst_files = "_centroided",        
                 ext_dst_files = "mzML",
-                logger = None,
                 **kwargs
             ):
 
@@ -276,7 +275,8 @@ class PeakPicking(session.Logger):
 
         self.src = src
         self.dst = dst
-        
+        #self.log = log
+
         self.suffix_dst_files = suffix_dst_files
         self.ext_dst_files = ext_dst_files
         self.kw = kwargs
@@ -291,16 +291,14 @@ class PeakPicking(session.Logger):
 
     def main(self):
         #after path_parsing method we have self.src_full_name_list
-        for f in get_list_full_names(self.src):   #call 'global' function;
+        print("Peak Picking implementation")
 
-            self.log.msg(
-            'Performing peak picking on experiment `%s`.' % self.src
-        )
-        
+        for f in get_list_full_names(self.src):
+
             # to prepare(init) empty list and entity;
             self.init_entity(**self.kw)
 
-            print("source file=", f)
+            print("source file:", f)
             
             input_map = oms.MSExperiment() # the 1st step: load map;
 
@@ -323,11 +321,9 @@ class PeakPicking(session.Logger):
                                             ) )   #call 'global' function;
             #print("dst=",dst_full_file_name)
             oms.MzMLFile().store(dst_full_file_name, centroid_out_map)
+            
+            print("Picked data stored into:", dst_full_file_name)
 
-            self.log.msg(
-            'Peak picking finished. Centroid data has been '
-            'written to `%s`.' % self.dst
-        )
 
 class FeatureFindingMetabo(session.Logger):
     """
@@ -370,7 +366,6 @@ class FeatureFindingMetabo(session.Logger):
             dst = None,
             suffix_dst_files = "_feature",
             ext_dst_files = "featureXML",
-            logger = None,
             **kwargs,
         ):
         
@@ -399,38 +394,33 @@ class FeatureFindingMetabo(session.Logger):
     
     
     def main(self):
-        # the 3 steps in one;
         #after path_parsing method we have self.src_full_name_list
+        print("FeatureFindingMetabo implementation")
         
         for f in get_list_full_names(self.src):
 
-            self.log.msg(
-            'Performing feature finding metabo on experiment `%s`.' % self.src
-            )
-            
+            print("Source file:", f)
             # to prepare(init) empty list and entity;
             self.init_entity(**self.kw)
             
-            self.input_map = oms.PeakMap() # the 1st step: load map;
+            input_map = oms.PeakMap() # the 1st step: load map;
             fm = oms.FeatureMap()
-            oms.MzMLFile().load(f, self.input_map)
+            oms.MzMLFile().load(f, input_map)
             # the 2nd step: apply_ffm;
-            self.mtd.entity.run(self.input_map, self.output_mt)
+            self.mtd.entity.run(input_map, self.output_mt)
             self.epd.entity.detectPeaks(self.output_mt, self.splitted_mt)
-            self.ffm.entity.run(self.splitted_mt, fm, self.chromatograms)
+            self.ffm.entity.run(self.splitted_mt, fm, self.filtered_mt)
             # the 3d step: is store result into file;
             dst_full_file_name = os.path.join(self.dst,\
-                self.convert_src_to_dst_file_name(f,
+                convert_src_to_dst_file_name(f,
                                             self.dst,
                                             self.suffix_dst_files,
                                             self.ext_dst_files) )
-            #print("dst=",dst_full_file_name)
+           
             oms.FeatureXMLFile().store(dst_full_file_name, fm)
             
-            self.log.msg(
-            'Feature finding finished. Centroided data has been '
-            'written to `%s`.' % self.dst
-            )
+            print("Centroided data stored into:", dst_full_file_name)
+
 
 class MapAlignment(session.Logger):
     """
@@ -457,8 +447,6 @@ class MapAlignment(session.Logger):
         Additional part of result file name
     ext_dst_files: str, optional
         Extension of resulting files
-    logger:   
-        System variable for tracking
     reference_file: obj
         The file by which other files will be aligned
 
@@ -485,7 +473,6 @@ class MapAlignment(session.Logger):
                 suffix_dst_files = "_aligned",          
                 ext_dst_files = "featureXML",
                 reference_file = None,
-                logger = None,
                 **kwargs
                 ):
         
@@ -500,7 +487,7 @@ class MapAlignment(session.Logger):
         self.suffix_dst_files = suffix_dst_files
         self.ext_dst_files = ext_dst_files
         self.kw = kwargs
-        
+        self.reference_file = reference_file
         self.init_entity(**self.kw)
 
     def init_entity(self, **kwargs):
@@ -508,15 +495,12 @@ class MapAlignment(session.Logger):
         self.ma = MAEntity(**kwargs)
 
 
-    def main(self): #the 3 step in one;
+    def main(self): 
         #after path_parsing method we have self.src_full_name_list
-        
+        print("Map Alignment implementation")
         for f in get_list_full_names(self.src):
-
-            self.log.msg(
-            'Performing feature finding metabo on experiment `%s`.' % self.src
-            )
             
+            print("Source file:", f)
             # to prepare(init) empty list and entity;
             self.init_entity(**self.kw)
 
@@ -536,15 +520,15 @@ class MapAlignment(session.Logger):
             self.ma.entity.align(toAlign_map, transformation)
             # the 5th step: is store result into file;
             dst_full_file_name = os.path.join(self.dst,\
-                self.convert_src_to_dst_file_name(f) )
+                convert_src_to_dst_file_name(f,
+                                            self.dst,
+                                            self.suffix_dst_files,
+                                            self.ext_dst_files) )
             
             #print("dst=",dst_full_file_name)
             oms.FeatureXMLFile().store(dst_full_file_name, toAlign_map)
 
-            self.log.msg(
-            'Map alignmnet finished. Identification data has been '
-            'written to `%s`.' % self.dst
-            )
+            print("Aligned data stored into:", dst_full_file_name)
 
 
 class Convert2mgf(session.Logger):
@@ -584,8 +568,8 @@ class Convert2mgf(session.Logger):
         Generates MGF format MS2 spectra and writes them into the output file.
         """
         
-        file = pyopenms.MzMLFile()
-        msdata = pyopenms.MSExperiment()
+        file = oms.MzMLFile()
+        msdata = oms.MSExperiment()
         file.load(self.mzml_file, msdata)
         
         outfile = open(self.mgf_file, "w")
@@ -637,27 +621,120 @@ class Convert2mgf(session.Logger):
         outfile.close()
 
 
-if __name__ == "__main__":
+class Preprocessing(object):
+    """
     
-    param = {}
+    Constructor class for all preprocessing stages implementation
     
-    a = PeakPicking(
-                src = "/home/igor/Documents/Scripts/Data/Raw_data_STARD10/.+\.mzML$",
-                dst = "/home/igor/Documents/Scripts/Data/Picked_STARD10/",
-                #reference_file = "/home/igor/Documents/Scripts/Data/feature_STARD10/A09_pos_picked_feature.featureXML",
+    Usage:
+
+    Firstly, you need to specify desirable parameters of pyopnems
+    library in vocabulary format, e.g. param = {"signal_to_noise": 1.0}
+    Secondly, you have to call this class and methods above, in parameters
+    of which specify source directory(obligatory), destination directory, 
+    additional suffix in future file names and desirable extension (optional).
+    Thirdly you have to set parameters, using set_parameters method, e.g.
+    x.pp.pp.set_parameters(**param).
+    """
+
+    def __init__(
+            self,
+            src = None,
+            dst = None
+        ):
+
+        self.pp = None
+        self.ff = None
+        self.ma = None
+        
+
+    def peak_picking(self,
+                src = None,
+                dst = None,
+                suffix_dst_files = "_picked",
+                ext_dst_files = "mzML",
+                **param):
+        
+        self.pp = PeakPicking(
+                src = src,
+                dst = dst,
                 suffix_dst_files = "_picked",          #for example : "_feature"
                 ext_dst_files = "mzML",           #the string may begin with a dot
                 **param)
-    a.main()
-    """
-    get_list_full_names(src = "/home/igor/Documents/Scripts/Data/Test/.+\.featureXML$")
-        #dst = "/home/igor/Documents/Scripts/Data/Test/Glob")
+
+    def feature_finding_metabo(self,
+                src = None,
+                dst = None,
+                suffix_dst_files = "_feature",
+                ext_dst_files = "featureXML",
+                **param):
+        
+        self.ff = FeatureFindingMetabo(
+                src = src,
+                dst = dst,
+                suffix_dst_files = suffix_dst_files, #for example : "_feature"
+                ext_dst_files = ext_dst_files,       #the string may begin with a dot
+                **param)
+
+    def map_alignment(self,
+                src = None,
+                dst = None,
+                suffix_dst_files = "",
+                ext_dst_files = "featureXML",
+                reference_file = None,
+                **param):
+        
+        self.ma = MapAlignment(
+                src = src,
+                dst = dst,
+                reference_file = reference_file,
+                suffix_dst_files = suffix_dst_files, #for example : "_feature"
+                ext_dst_files = ext_dst_files,       #the string may begin with a dot
+                **param)
+
+    def run(self):
+        
+        #if not self.pp or not self.ff or self.ma:
+         #    raise RuntimeError("Some proc was not created.")
+        
+        self.pp.main()
+        self.ff.main()
+        self.ma.main()
+
+if __name__ == "__main__":
     
     
-    convert_src_to_dst_file_name(
-        src = "/home/igor/Documents/Scripts/Data/Test/.+\.featureXML$",
-        dst = "/home/igor/Documents/Scripts/Data/Test/Glob",
-        suffix_dst_files = "_glob",
-        ext_dst_files = "featureXML"
-        )
-    """
+    param = {"signal_to_noise": 1.0}
+    
+    p2 = Preprocessing()
+    p2.peak_picking(src = "/home/igor/Documents/Scripts/Data/Raw_data_STARD10/.+\.mzML$",
+                                dst = "/home/igor/Documents/Scripts/Data/Picked_STARD10",
+                                suffix_dst_files = "_picked",
+                                ext_dst_files = "mzML")
+    p2.pp.pp.set_parameters(**param)
+    
+    param_ff = {"mz_scoring_13C": "true",
+                "report_convex_hulls": "true",
+                "remove_single_traces": "true"}
+
+    p2.feature_finding_metabo(
+                                src = "/home/igor/Documents/Scripts/Data/Picked_STARD10/.+\_picked\.mzML$",
+                                dst = "/home/igor/Documents/Scripts/Data/feature_STARD10/",
+                                suffix_dst_files = "_feature",
+                                ext_dst_files = "featureXML"
+                                )
+    p2.ff.mtd.set_parameters(**param_ff)
+    p2.ff.epd.set_parameters(**param_ff)
+    p2.ff.ffm.set_parameters(**param_ff)
+    
+    param_ma = {"max_num_peaks_considered": 990}
+
+    p2.map_alignment(src = "/home/igor/Documents/Scripts/Data/feature_STARD10/.+\_feature\.mzML$",
+                                dst = "/home/igor/Documents/Scripts/Data/Aligned_STARD10/",
+                                suffix_dst_files = "_aligned",
+                                ext_dst_files = "featureXML",
+                                reference_file = "/home/igor/Documents/Scripts/Data/feature_STARD10/150310_Popeye_MLH_AC_STARD10_A09_pos_picked.featureXML"
+                                )    
+    p2.ma.ma.set_parameters(**param_ma)
+    
+    p2.run()
