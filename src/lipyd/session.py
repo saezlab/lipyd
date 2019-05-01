@@ -51,7 +51,7 @@ class Session(object):
         all modules.
         """
         
-        self.logfile = 'pypath-%s.log' % self.label
+        self.logfile = 'lipyd-%s.log' % self.label
         self.log = log.Logger(self.logfile, verbosity = self.log_verbosity)
     
     
