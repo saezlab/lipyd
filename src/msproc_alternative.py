@@ -628,13 +628,39 @@ class Preprocessing(session.Logger):
     
     Usage:
 
-    Firstly, you need to specify desirable parameters of pyopnems
-    library in vocabulary format, e.g. param = {"signal_to_noise": 1.0}
-    Secondly, you have to call this class and methods above, in parameters
-    of which specify source directory(obligatory), destination directory, 
-    additional suffix in future file names and desirable extension (optional).
-    Thirdly you have to set parameters, using set_parameters method, e.g.
-    x.pp.pp.set_parameters(**param).
+    Firstly, you need to define variable as preproc = Preprocessing()
+    Secondly, you have to specify desirable parameters according to pyopenms
+    library. All parameters you can see on https://abibuilder.informatik.uni-tuebingen.de/
+    /archive/openms/Documentation/release/2.4.0/html/index.html or TOPP application
+    in vocabulary view, e.g param_pp = {"signal_to_noise": 1.0}
+    Note: Boolean value should be in quoted, e.g. param_epd = {"enabled": "true"}
+    
+    param_pp - variable for Peak Picking parameters
+    param_ff_com - variable for common Feature Finding Metabo parameters
+    param_mtd - variable for Mass Trace Detection (1st step of FFM) parameters
+    param_epd - variable for Elution Peak Detection (2nd step) parameters
+    param_ffm - variable for Feature Finder (3rd step) parameters
+    param_ma - variable for Map Alignment process
+    Thirdly you have to call next methods consistently:
+    preproc.peak_picking(src = "/your source directory/",
+                          dst = "/destination direct",
+                          suffix_dst_files = "",
+                          ext_dst_files = "mzML" or "featureXML")
+    prerpoc.feature_finding_metabo (the same arguments)
+    preproc.map_alignment (the same srguments)
+    preproc.run()
+    
+    Parameters
+    ----------
+    src : str
+        Source directory consists source file(s)
+    dst :  str, optional
+        Destination directory
+    suffix_dst_files : str, optional
+        Additional part of result file name
+    ext_dst_files: str, optional
+        Extension of resulting files
+    
     """
 
     def __init__(
@@ -696,14 +722,19 @@ class Preprocessing(session.Logger):
     def run(self):
         
         #if not self.pp or not self.ff or self.ma:
-         #    raise RuntimeError("Some proc was not created.")
+        #     raise RuntimeError("Some proc was not created.")
+        
+        #Set parameters for peak picking
         preproc.pp.pp.set_parameters(**param_pp)
-        preproc.ff.mtd.set_parameters(**param_com)
-        preproc.ff.epd.set_parameters(**param_com)
-        preproc.ff.ffm.set_parameters(**param_com)
+        #Set common parameters parameters for 3 stages in Feature Finding
+        preproc.ff.mtd.set_parameters(**param_ff_com)
+        preproc.ff.epd.set_parameters(**param_ff_com)
+        preproc.ff.ffm.set_parameters(**param_ff_com)
+        #Set specific parameters for each stages in Feature Finding
         preproc.ff.mtd.set_parameters(**param_mtd)
         preproc.ff.epd.set_parameters(**param_epd)
         preproc.ff.ffm.set_parameters(**param_ffm)
+        #Set specific parameters in Map Alignment process
         preproc.ma.ma.set_parameters(**param_ma)
 
         self.pp.main()
@@ -714,21 +745,25 @@ class Preprocessing(session.Logger):
 if __name__ == "__main__":
     
     
+    preproc = Preprocessing()
+
     param_pp = {"signal_to_noise": 1.0}
     
-    preproc = Preprocessing()
     preproc.peak_picking(src = "/home/igor/Documents/Scripts/Data/Raw_data_STARD10/.+\.mzML$",
                                 dst = "/home/igor/Documents/Scripts/Data/Picked_STARD10",
                                 suffix_dst_files = "_picked",
                                 ext_dst_files = "mzML")
     
-    param_com = {"noise_threshold_int": 9.0,
+    param_ff_com = {"noise_threshold_int": 9.0,
                 "chrom_peak_snr": 2.0,
                 "chrom_fwhm": 4.0}
+    
     param_mtd = {"mass_error_ppm" : 19.0,
                 "reestimate_mt_sd": "true",
                 "quant_method": "area"}
+    
     param_epd = {"enabled": "true"}
+    
     param_ffm = {"mz_scoring_13C": "true",
                 "report_convex_hulls": "true",
                 "remove_single_traces": "true"}
