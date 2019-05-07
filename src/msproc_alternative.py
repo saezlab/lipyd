@@ -744,7 +744,7 @@ class Preprocessing(session.Logger):
         
         #if not self.pp or not self.ff or self.ma:
         #     raise RuntimeError("Some proc was not created.")
-        """
+        
         #Set parameters for peak picking
         preproc.pp.pp.set_parameters(**param_pp)
         #Set common parameters parameters for 3 stages in Feature Finding Metabo
@@ -757,9 +757,9 @@ class Preprocessing(session.Logger):
         preproc.ff.ffm.set_parameters(**param_ffm)
         #Set specific parameters in Map Alignment process
         preproc.ma.ma.set_parameters(**param_ma)
-        """
-        #self.pp.main()
-        #self.ff.main()
+        
+        self.pp.main()
+        self.ff.main()
         self.ma.main()
 
     def get_data(self):
@@ -801,7 +801,7 @@ if __name__ == "__main__":
     
     preproc = Preprocessing()
 
-    """
+    
     param_pp = {"signal_to_noise": 1.0}
     
     preproc.peak_picking(src = "/home/igor/Documents/Scripts/Data/Raw_data_STARD10/.+\.mzML$",
@@ -831,8 +831,8 @@ if __name__ == "__main__":
                                 )
     
         
-    #param_ma = {"max_num_peaks_considered": 990}
-    """
+    param_ma = {"max_num_peaks_considered": 990}
+    
     
     
     preproc.map_alignment(src = "/home/igor/Documents/Scripts/Data/feature_STARD10/.+\.featureXML$",
@@ -841,7 +841,6 @@ if __name__ == "__main__":
                                 ext_dst_files = "featureXML",
                                 reference_file = "/home/igor/Documents/Scripts/Data/feature_STARD10/150310_Popeye_MLH_AC_STARD10_A09_pos_picked.featureXML"
                                 )    
-    #preproc.ma.ma.set_parameters(**param_ma)
     
     preproc.run()
     
