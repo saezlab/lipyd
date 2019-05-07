@@ -4,6 +4,8 @@
 # Denes Turei
 # turei.denes@gmail.com
 
+data_dir = ''
+
 preproc = Preprocessing()
 
 

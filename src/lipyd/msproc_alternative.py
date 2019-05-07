@@ -831,11 +831,6 @@ if __name__ == "__main__":
                                 ext_dst_files = "featureXML"
                                 )
     
-        
-    
-    
-    
-    
     preproc.map_alignment(src = "/home/igor/Documents/Scripts/Data/feature_STARD10/.+\.featureXML$",
                                 dst = "/home/igor/Documents/Scripts/Data/Aligned_STARD10/",
                                 suffix_dst_files = "_aligned",
