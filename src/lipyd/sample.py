@@ -50,7 +50,7 @@ remgf2 = re.compile(r'(\w+)_([A-Z])([0-9]{1,2})_(pos|neg)\.mgf')
 
 
 class SampleReader(object):
-    """ """
+    
     
     reader_classes = {
         'peaks': reader.peaks.PeaksReader,
@@ -66,15 +66,18 @@ class SampleReader(object):
         Reads data from files and creates ``Sample``, ``SampleSet`` and
         ``FeatureAttributes`` objects.
         
-        :param str input_type:
+        Parameters
+        ----------
+
+        input_type : str 
             Format of the input files. Possible values: ``peaks``, ``mzml``.
             Reader for ``mzml`` not yet available.
-        :param str ionmode:
+        ionmode : str 
             Ion mode of the experiment: ``pos`` or ``neg``.
             By deafult is ``None`` because the reading is possible without
             the reader being aware of the ion mode. However it is most
             convenient to provide it here.
-        :param **kwargs:
+        **kwargs:
             Arguments for the reader. Depends on the input format, please
             refer to classes in ``lipyd.reader`` modules.
         """
@@ -103,6 +106,7 @@ class SampleReader(object):
         
         self.reader = self.reader_class(**self.reader_args)
     
+
     def get_attributes(self):
         """Returns ``lipyd.sample.FeatureAttributes`` object.
         This object contains variables describing series of features
@@ -114,7 +118,8 @@ class SampleReader(object):
 
         Returns
         -------
-
+		
+		FeatureAttributes(**attrs)
         """
         
         attrs = self.reader.get_attributes()
@@ -2114,7 +2119,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         or ``None`` will be passed as second. It should return ``bool``.
         By deafult MS2 scans from all samples are used.
         
-        :param list,callable sample_ids:
+        :param list.callable sample_ids:
             Either a list of sample identifiers with the same length as
             number of samples or a method which generates sample identifiers
             from sample attributes.

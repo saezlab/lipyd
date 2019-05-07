@@ -456,12 +456,6 @@ class PeaksReader(object):
         To get actual ``FeatureAttributes`` object use the ``SampleReader``
         in the ``sample`` module.
 
-        Parameters
-        ----------
-
-        Returns
-        -------
-
         """
         
         return {
@@ -513,13 +507,6 @@ class PeaksReader(object):
         
         To get actual ``SampleSet`` object use the ``SampleReader`` in the
         ``sample`` module.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-
         """
         
         return {

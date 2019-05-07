@@ -822,6 +822,7 @@ if __name__ == "__main__":
     param_ffm = {"mz_scoring_13C": "true",
                 "report_convex_hulls": "true",
                 "remove_single_traces": "true"}
+    param_ma = {"max_num_peaks_considered": 990}
 
     preproc.feature_finding_metabo(
                                 src = "/home/igor/Documents/Scripts/Data/Picked_STARD10/.+\_picked\.mzML$",
@@ -831,7 +832,7 @@ if __name__ == "__main__":
                                 )
     
         
-    param_ma = {"max_num_peaks_considered": 990}
+    
     
     
     

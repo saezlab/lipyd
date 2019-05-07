@@ -22,6 +22,7 @@ from future.utils import iteritems
 import os
 import imp
 import re
+import numpy as np
 
 import pyopenms as oms
 
@@ -473,6 +474,12 @@ class MapAlignment(session.Logger):
                 suffix_dst_files = "_aligned",          
                 ext_dst_files = "featureXML",
                 reference_file = None,
+                dst_full_file_name = None,
+                reference_map = None,
+                toAlign_map = None,
+                mzs = None,
+                rts = None,
+                intensities = None,
                 **kwargs
                 ):
         
@@ -486,9 +493,17 @@ class MapAlignment(session.Logger):
         self.dst = dst
         self.suffix_dst_files = suffix_dst_files
         self.ext_dst_files = ext_dst_files
+        self.dst_full_file_name = dst_full_file_name
         self.kw = kwargs
+
+        self.reference_map = reference_map
+        self.toAlign_map = toAlign_map
         self.reference_file = reference_file
         self.init_entity(**self.kw)
+        
+        self.mzs = np.array(mzs)
+        self.rt_means = np.array(rts)
+        self.intensities = np.array(intensities)
 
     def init_entity(self, **kwargs):
 
@@ -497,39 +512,42 @@ class MapAlignment(session.Logger):
 
     def main(self): 
         #after path_parsing method we have self.src_full_name_list
-        print("Map Alignment implementation")
+        
         for f in get_list_full_names(self.src):
-            
+            print("Map Alignment implementation")
             print("Source file:", f)
             # to prepare(init) empty list and entity;
             self.init_entity(**self.kw)
 
-            reference_map = oms.FeatureMap()
-            toAlign_map = oms.FeatureMap()
+            self.reference_map = oms.FeatureMap()
+            self.toAlign_map = oms.FeatureMap()
             
-            oms.FeatureXMLFile().load(self.reference_file, reference_map)
-            oms.FeatureXMLFile().load(f, toAlign_map)
+            oms.FeatureXMLFile().load(self.reference_file, self.reference_map)
+            oms.FeatureXMLFile().load(f, self.toAlign_map)
             
             #Set reference_map file
-            self.ma.entity.setReference(reference_map)
+            self.ma.entity.setReference(self.reference_map)
             
             #3rd step create object for the computed transformation
             transformation = oms.TransformationDescription()
 
             # the 4rd step:
-            self.ma.entity.align(toAlign_map, transformation)
+            self.ma.entity.align(self.toAlign_map, transformation)
             # the 5th step: is store result into file;
-            dst_full_file_name = os.path.join(self.dst,\
+            self.dst_full_file_name = os.path.join(self.dst,\
                 convert_src_to_dst_file_name(f,
                                             self.dst,
                                             self.suffix_dst_files,
                                             self.ext_dst_files) )
             
             #print("dst=",dst_full_file_name)
-            oms.FeatureXMLFile().store(dst_full_file_name, toAlign_map)
+            oms.FeatureXMLFile().store(self.dst_full_file_name, self.toAlign_map)
+            oms.FeatureXMLFile().store(self.dst_full_file_name, self.reference_map)
 
-            print("Aligned data stored into:", dst_full_file_name)
+            print("Aligned data stored into:", self.dst_full_file_name)
+        
 
+    
 
 class Convert2mgf(session.Logger):
     """
@@ -614,27 +632,53 @@ class Convert2mgf(session.Logger):
             
             self._log(
                 'Could not find any MS2 spectra in the input, '
-                'thus the output MFF file is empty!',
+                'thus the output MGF file is empty!',
                 -1,
             )
         
         outfile.close()
 
 
-class Preprocessing(object):
+class Preprocessing(session.Logger):
     """
     
     Constructor class for all preprocessing stages implementation
     
     Usage:
 
-    Firstly, you need to specify desirable parameters of pyopnems
-    library in vocabulary format, e.g. param = {"signal_to_noise": 1.0}
-    Secondly, you have to call this class and methods above, in parameters
-    of which specify source directory(obligatory), destination directory, 
-    additional suffix in future file names and desirable extension (optional).
-    Thirdly you have to set parameters, using set_parameters method, e.g.
-    x.pp.pp.set_parameters(**param).
+    Firstly, you need to define variable as preproc = Preprocessing()
+    Secondly, you have to specify desirable parameters according to pyopenms
+    library. All parameters you can see on https://abibuilder.informatik.uni-tuebingen.de/
+    /archive/openms/Documentation/release/2.4.0/html/index.html or TOPP application
+    in vocabulary view, e.g param_pp = {"signal_to_noise": 1.0}
+    Note: Boolean value should be in quoted, e.g. param_epd = {"enabled": "true"}
+    
+    param_pp - variable for Peak Picking parameters
+    param_ff_com - variable for common Feature Finding Metabo parameters
+    param_mtd - variable for Mass Trace Detection (1st step of FFM) parameters
+    param_epd - variable for Elution Peak Detection (2nd step) parameters
+    param_ffm - variable for Feature Finder (3rd step) parameters
+    param_ma - variable for Map Alignment process
+    Thirdly you have to call next methods consistently:
+    preproc.peak_picking(src = "/your source directory/",
+                          dst = "/destination directory",
+                          suffix_dst_files = "",
+                          ext_dst_files = "mzML" or "featureXML")
+    prerpoc.feature_finding_metabo (the same arguments)
+    preproc.map_alignment (the same srguments)
+    preproc.run()
+    
+    Parameters
+    ----------
+    src : str
+        Source directory consists source file(s)
+    dst :  str, optional
+        Destination directory
+    suffix_dst_files : str, optional
+        Additional part of result file name
+    ext_dst_files: str, optional
+        Extension of resulting files
+    
     """
 
     def __init__(
@@ -643,11 +687,15 @@ class Preprocessing(object):
             dst = None
         ):
 
+        session.Logger.__init__(self, name = 'Preprocessing')
+
         self.pp = None
         self.ff = None
         self.ma = None
-        
 
+        self.src = src
+        self.dst = dst
+        
     def peak_picking(self,
                 src = None,
                 dst = None,
@@ -695,46 +743,112 @@ class Preprocessing(object):
     def run(self):
         
         #if not self.pp or not self.ff or self.ma:
-         #    raise RuntimeError("Some proc was not created.")
+        #     raise RuntimeError("Some proc was not created.")
+        
+        #Set parameters for peak picking
+        preproc.pp.pp.set_parameters(**param_pp)
+        #Set common parameters parameters for 3 stages in Feature Finding Metabo
+        preproc.ff.mtd.set_parameters(**param_ff_com)
+        preproc.ff.epd.set_parameters(**param_ff_com)
+        preproc.ff.ffm.set_parameters(**param_ff_com)
+        #Set specific parameters for each stages in Feature Finding
+        preproc.ff.mtd.set_parameters(**param_mtd)
+        preproc.ff.epd.set_parameters(**param_epd)
+        preproc.ff.ffm.set_parameters(**param_ffm)
+        #Set specific parameters in Map Alignment process
+        preproc.ma.ma.set_parameters(**param_ma)
         
         self.pp.main()
         self.ff.main()
         self.ma.main()
 
+    def get_data(self):
+
+        for file in self.ma.dst_full_file_name:
+            list_of_dicts = []
+            for i in self.ma.toAlign_map:
+                self.ma.mzs = i.getMZ()
+                self.ma.intensities = i.getIntensity()
+                self.ma.rt_means = i.getRT()
+                list_of_dicts.append(
+                        {
+                        'mzs': self.ma.mzs,
+                        'rt_means': self.ma.rt_means, 
+                        'intensities': self.ma.intensities, 
+                        }
+                    ) 
+        print(list_of_dicts)
+
+    def get_sampleset(self):
+        """Returns a ``dict`` which can serve as arguments for
+        ``lipyd.sample.SampleSet`` and  ``lipyd.sample.FeatureAttributes`
+        objects.
+        
+        To get actual ``SampleSet`` object use the ``SampleReader`` in the
+        ``sample`` module.
+
+        """
+        
+        return {
+            'mzs': self.ma.mzs,
+            'rt_means': self.ma.rt_means,
+            'intensities': self.ma.intensities
+        }            
+
+
 if __name__ == "__main__":
     
     
-    param = {"signal_to_noise": 1.0}
+    preproc = Preprocessing()
+
     
-    p2 = Preprocessing()
-    p2.peak_picking(src = "/home/igor/Documents/Scripts/Data/Raw_data_STARD10/.+\.mzML$",
+    param_pp = {"signal_to_noise": 1.0}
+    
+    preproc.peak_picking(src = "/home/igor/Documents/Scripts/Data/Raw_data_STARD10/.+\.mzML$",
                                 dst = "/home/igor/Documents/Scripts/Data/Picked_STARD10",
                                 suffix_dst_files = "_picked",
                                 ext_dst_files = "mzML")
-    p2.pp.pp.set_parameters(**param)
     
-    param_ff = {"mz_scoring_13C": "true",
+    param_ff_com = {"noise_threshold_int": 9.0,
+                "chrom_peak_snr": 2.0,
+                "chrom_fwhm": 4.0}
+    
+    param_mtd = {"mass_error_ppm" : 19.0,
+                "reestimate_mt_sd": "true",
+                "quant_method": "area"}
+    
+    param_epd = {"enabled": "true"}
+    
+    param_ffm = {"mz_scoring_13C": "true",
                 "report_convex_hulls": "true",
                 "remove_single_traces": "true"}
+    param_ma = {"max_num_peaks_considered": 990}
 
-    p2.feature_finding_metabo(
+    preproc.feature_finding_metabo(
                                 src = "/home/igor/Documents/Scripts/Data/Picked_STARD10/.+\_picked\.mzML$",
                                 dst = "/home/igor/Documents/Scripts/Data/feature_STARD10/",
                                 suffix_dst_files = "_feature",
                                 ext_dst_files = "featureXML"
                                 )
-    p2.ff.mtd.set_parameters(**param_ff)
-    p2.ff.epd.set_parameters(**param_ff)
-    p2.ff.ffm.set_parameters(**param_ff)
     
-    param_ma = {"max_num_peaks_considered": 990}
-
-    p2.map_alignment(src = "/home/igor/Documents/Scripts/Data/feature_STARD10/.+\_feature\.mzML$",
+        
+    
+    
+    
+    
+    preproc.map_alignment(src = "/home/igor/Documents/Scripts/Data/feature_STARD10/.+\.featureXML$",
                                 dst = "/home/igor/Documents/Scripts/Data/Aligned_STARD10/",
                                 suffix_dst_files = "_aligned",
                                 ext_dst_files = "featureXML",
                                 reference_file = "/home/igor/Documents/Scripts/Data/feature_STARD10/150310_Popeye_MLH_AC_STARD10_A09_pos_picked.featureXML"
                                 )    
-    p2.ma.ma.set_parameters(**param_ma)
     
-    p2.run()
+    preproc.run()
+    
+    """
+    convert = Convert2mgf(mzml_file = "/home/igor/Documents/Scripts/Data/Picked_STARD10/150310_Popeye_MLH_AC_STARD10_A11_pos_picked.mzML",
+                    mgf_file = "/home/igor/Documents/Scripts/Data/Picked_STARD10/150310_Popeye_MLH_AC_STARD10_A11_pos_picked.mgf")
+
+    convert.convert()
+    """
+    preproc.get_data()
