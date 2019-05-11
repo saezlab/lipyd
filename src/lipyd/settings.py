@@ -563,6 +563,11 @@ _defaults = {
     # priority of databases at name to mass lookups in moldb
     'database_preference': ('lipyd.lipid', 'SwissLipids', 'LipidMaps'),
     'map_aligner_param': None,
+    'param_ffm': {
+        "mz_scoring_13C": "true",
+        "report_convex_hulls": "true",
+        "remove_single_traces": "true",
+    },
 }
 
 in_basedir = [

@@ -4,17 +4,22 @@
 # Denes Turei
 # turei.denes@gmail.com
 
-data_dir = ''
+import lipyd.msproc_alternative as msprc
 
-preproc = Preprocessing()
+
+preproc = msprc.Preprocessing()
 
 
 param_pp = {"signal_to_noise": 1.0}
 
-preproc.peak_picking(src = "/home/igor/Documents/Scripts/Data/Raw_data_STARD10/.+\.mzML$",
-                            dst = "/home/igor/Documents/Scripts/Data/Picked_STARD10",
-                            suffix_dst_files = "_picked",
-                            ext_dst_files = "mzML")
+pp_src_dir = ""
+pp_dst_dir = ""
+
+preproc.peak_picking(
+                src = pp_src_dir,
+                dst = pp_dst_dir,
+                suffix_dst_files = "_picked",
+                ext_dst_files = "mzML")
 
 param_ff_com = {"noise_threshold_int": 9.0,
             "chrom_peak_snr": 2.0,
@@ -29,29 +34,40 @@ param_epd = {"enabled": "true"}
 param_ffm = {"mz_scoring_13C": "true",
             "report_convex_hulls": "true",
             "remove_single_traces": "true"}
+
 param_ma = {"max_num_peaks_considered": 990}
 
+ff_src_dir = "" 
+ff_dst_dir = ""
+
 preproc.feature_finding_metabo(
-                            src = "/home/igor/Documents/Scripts/Data/Picked_STARD10/.+\_picked\.mzML$",
-                            dst = "/home/igor/Documents/Scripts/Data/feature_STARD10/",
+                            src = ff_src_dir,
+                            dst = ff_dst_dir,
                             suffix_dst_files = "_feature",
                             ext_dst_files = "featureXML"
                             )
 
-preproc.map_alignment(src = "/home/igor/Documents/Scripts/Data/feature_STARD10/.+\.featureXML$",
-                            dst = "/home/igor/Documents/Scripts/Data/Aligned_STARD10/",
+ma_src_dir = ""
+ma_dst_dir = ""
+reference_file = ""
+
+preproc.map_alignment(src = ma_src_dir,
+                            dst = ma_dst_dir,
                             suffix_dst_files = "_aligned",
                             ext_dst_files = "featureXML",
-                            reference_file = "/home/igor/Documents/Scripts/Data/feature_STARD10/150310_Popeye_MLH_AC_STARD10_A09_pos_picked.featureXML"
+                            reference_file = reference_file
                             )    
 
 preproc.run()
 
 """
-convert = Convert2mgf(mzml_file = "/home/igor/Documents/Scripts/Data/Picked_STARD10/150310_Popeye_MLH_AC_STARD10_A11_pos_picked.mzML",
-                mgf_file = "/home/igor/Documents/Scripts/Data/Picked_STARD10/150310_Popeye_MLH_AC_STARD10_A11_pos_picked.mgf")
+Converation to MGF format
+
+mzml_file = ""
+mgf_file = ""
+
+convert = msprc.Convert2mgf(mzml_file = mzml_file,
+                mgf_file = mgf_file)
 
 convert.convert()
 """
-preproc.get_data()
-p2.run()
