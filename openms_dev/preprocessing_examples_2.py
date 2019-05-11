@@ -38,6 +38,12 @@ param_ffm = {"mz_scoring_13C": "true",
             "report_convex_hulls": "true",
             "remove_single_traces": "true"}
 
+#We need to apply and update common parameters for each 3 process in Feature Finding
+param_mtd.update(param_ff_com)
+param_epd.update(param_ff_com)
+param_ffm.update(param_ff_com)
+
+
 param_ma = {"max_num_peaks_considered": 990}
 
 ff_src_dir = "" 
@@ -61,6 +67,16 @@ preproc.map_alignment(src = ma_src_dir,
                             reference_file = reference_file
                             )    
 
+
+preproc.setup_pp_params(**param_pp)
+
+preproc.setup_feature_finding_metabo( **param_ff_com )
+preproc.setup_ff_mtd_params(**param_mtd)
+preproc.setup_ff_epd_params(**param_epd)
+preproc.setup_ff_ffm_params(**param_ffm)
+preproc.setup_ma_params()
+
+
 preproc.run()
 
 """
@@ -75,3 +91,7 @@ convert = Convert2mgf(mzml_file = mzml_file,
 convert.convert()
 """
 
+
+src_set = ""
+
+preproc.get_sampleset(src = src_set)
