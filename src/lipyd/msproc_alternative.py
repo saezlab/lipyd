@@ -697,7 +697,10 @@ class Preprocessing(session.Logger):
     def __init__(
             self,
             src = None,
-            dst = None
+            dst = None,
+            mzs = None,
+            intensities = None,
+            rts = None
         ):
 
         session.Logger.__init__(self, name = 'Preprocessing')
@@ -708,6 +711,10 @@ class Preprocessing(session.Logger):
 
         self.src = src
         self.dst = dst
+
+        self.mzs = mzs
+        self.intensities = intensities
+        self.rts = rts
         
     def peak_picking(self,
                 src = None,
@@ -776,7 +783,57 @@ class Preprocessing(session.Logger):
         self.ff.main()
         self.ma.main()
 
-    def get_sampleset(self, src):    
+
+    def get_sampleset(self, src):
+    """
+    Methods for extracting mzs, rts, intensities from all files
+    as 2 dimensional arrays
+
+    """
+
+        if not(src or self.src):
+            raise RuntimeError("you have to point src pattern.")
+        
+        src_pattern = src if src else self.src
+        
+        self.mzs = []
+        self.intensities = []
+        self.rts = []
+        
+        for f in get_list_full_names(src_pattern):
+            
+            xml_file = oms.FeatureXMLFile()
+            fmap = oms.FeatureMap()
+            xml_file.load(f, fmap)
+            
+            print("get_xml_data f=", f)
+            
+            rts_tmp = []
+            mzs_tmp = []
+            intensities_tmp = []
+            
+            for n in fmap:
+                _rt = n.getRT()
+                _mz = n.getMZ()
+                _intensities = n.getIntensity()
+                rts_tmp.append(_rt)
+                mzs_tmp.append(_mz)
+                intensities_tmp.append(_intensities)
+            
+            self.mzs.append(mzs_tmp)
+            self.intensities.append(intensities_tmp)
+            self.rts.append(rts_tmp)
+
+        #print(rts. mzs. intensities)
+
+        return {
+            'mzs': self.mzs,
+            'rt_means': self.rts,
+            'intensities': self.intensities
+        }  
+
+    def get_sampleset_2(self, src):  
+    """Another methods for extracting data"""  
         
         if not (src or self.src):
             raise RuntimeError("you have to point src pattern.")
@@ -789,24 +846,37 @@ class Preprocessing(session.Logger):
         rts = []
         
         for f in get_list_full_names(src_pattern):
+            
+            #print("get_data.f = ", f)
             mzml_file = oms.MzMLFile()
             exp = oms.MSExperiment()
-            mzml_file.load(f, exp)
-            rt_for_file = []   
-            mzs_for_rt = []  
-            ints_for_rt = []   
-            for spec in exp:       
+            mzml_file.load(f, exp)  # f is current file name from list of names;
+            
+            rt_for_file = []        # rt list for this file;
+            mzs_for_rt = []         # mz list of list for this rt;
+            ints_for_rt = []        # ints list of list for this rt;
+            
+            for spec in exp:        # spec is MSSpectrum type object;
+                
                 mzs_tmp = []
                 intensities_tmp = []
-                rt_for_file.append(spec.getRT())
+                
+                _rt = spec.getRT()
+                rt_for_file.append(_rt)
+                
                 for p in spec:
-                    mzs_tmp.append(p.getMZ())
-                    intensities_tmp.append(p.getIntensity())
+                    _mz = p.getMZ()
+                    _ints = p.getIntensity()
+                    mzs_tmp.append(_mz)
+                    intensities_tmp.append(_ints)
+                    #print("get_data: _rt={}, _mz={}, _ints={} ".format(_rt, _mz, _ints) )
+
                 mzs_for_rt.append(mzs_tmp)
                 ints_for_rt.append(intensities_tmp)
-            rts.append(rt_for_file) 
-            mzs.append(mzs_for_rt)  
-            ints.append(ints_for_rt)
+            
+            rts.append(rt_for_file) # add rt list for current file to global rt list;
+            mzs.append(mzs_for_rt)  # same for mz;
+            ints.append(ints_for_rt)# same for ints;
         
         return  {
             'mzs': mzs,
