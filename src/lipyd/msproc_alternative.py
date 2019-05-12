@@ -785,11 +785,11 @@ class Preprocessing(session.Logger):
 
 
     def get_sampleset(self, src):
-    """
-    Methods for extracting mzs, rts, intensities from all files
-    as 2 dimensional arrays
+        """
+        Methods for extracting mzs, rts, intensities from all files
+        as 2 dimensional arrays
 
-    """
+        """
 
         if not(src or self.src):
             raise RuntimeError("you have to point src pattern.")
@@ -833,7 +833,7 @@ class Preprocessing(session.Logger):
         }  
 
     def get_sampleset_2(self, src):  
-    """Another methods for extracting data"""  
+        """Another methods for extracting data"""  
         
         if not (src or self.src):
             raise RuntimeError("you have to point src pattern.")
@@ -841,9 +841,9 @@ class Preprocessing(session.Logger):
         #override path pattern name to src;
         src_pattern = src if src else self.src
 
-        mzs = []
-        ints = []
-        rts = []
+        self.mzs = []
+        self.intensities = []
+        self.rts = []
         
         for f in get_list_full_names(src_pattern):
             
@@ -854,7 +854,7 @@ class Preprocessing(session.Logger):
             
             rt_for_file = []        # rt list for this file;
             mzs_for_rt = []         # mz list of list for this rt;
-            ints_for_rt = []        # ints list of list for this rt;
+            intensities_for_rt = []        # ints list of list for this rt;
             
             for spec in exp:        # spec is MSSpectrum type object;
                 
@@ -874,14 +874,14 @@ class Preprocessing(session.Logger):
                 mzs_for_rt.append(mzs_tmp)
                 ints_for_rt.append(intensities_tmp)
             
-            rts.append(rt_for_file) # add rt list for current file to global rt list;
-            mzs.append(mzs_for_rt)  # same for mz;
-            ints.append(ints_for_rt)# same for ints;
+            self.rts.append(rt_for_file) # add rt list for current file to global rt list;
+            self.mzs.append(mzs_for_rt)  # same for mz;
+            self.ints.append(ints_for_rt)# same for ints;
         
         return  {
-            'mzs': mzs,
-            'rt_means': rts,
-            'intensities': ints
+            'mzs': self.mzs,
+            'rt_means': self.rts,
+            'intensities': self.intensities
         } 
 
 
@@ -909,7 +909,7 @@ if __name__ == "__main__":
                 "report_convex_hulls": "true",
                 "remove_single_traces": "true"}
     
-    #We need to apply and update common parameters for each 3 process in Feature Finding
+    #We need to apply and update common parameters for each 3 processes in Feature Finding
     param_mtd.update(param_ff_com)
     param_epd.update(param_ff_com)
     param_ffm.update(param_ff_com)
@@ -954,4 +954,6 @@ if __name__ == "__main__":
     
     a.run()
     
-
+    p = "/home/igor/Documents/Black_scripts/Src_data/aligned/.+\.featureXML$"
+    #a.get_data( p )
+    a.get_sampleset(p)
