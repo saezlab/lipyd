@@ -380,6 +380,11 @@ class FeatureFindingMetabo(session.Logger):
         self.suffix_dst_files = suffix_dst_files
         self.ext_dst_files = ext_dst_files
         self.kw = kwargs
+        # set default value to self.param_*
+        # if user will not call set_param_*
+        self.param_mtd = self.kw
+        self.param_epd = self.kw
+        self.param_ffm = self.kw
         
         self.init_entity(**self.kw)
     
@@ -391,7 +396,16 @@ class FeatureFindingMetabo(session.Logger):
         self.output_mt = []
         self.splitted_mt = []
         self.filtered_mt = []
-        self.chromatograms = [[]]       
+        self.chromatograms = [[]]   
+
+    def set_param_mtd(self, **kwargs):
+        self.param_mtd = kwargs
+
+    def set_param_epd(self, **kwargs):
+        self.param_epd = kwargs
+    
+    def set_param_ffm(self, **kwargs):
+        self.param_ffm = kwargs   
     
     
     def main(self):
@@ -407,6 +421,11 @@ class FeatureFindingMetabo(session.Logger):
             input_map = oms.PeakMap() # the 1st step: load map;
             fm = oms.FeatureMap()
             oms.MzMLFile().load(f, input_map)
+
+            self.mtd.set_parameters( **self.param_mtd )
+            self.epd.set_parameters( **self.param_epd )
+            self.ffm.set_parameters( **self.param_ffm )
+
             # the 2nd step: apply_ffm;
             self.mtd.entity.run(input_map, self.output_mt)
             self.epd.entity.detectPeaks(self.output_mt, self.splitted_mt)
@@ -477,9 +496,6 @@ class MapAlignment(session.Logger):
                 dst_full_file_name = None,
                 reference_map = None,
                 toAlign_map = None,
-                mzs = None,
-                rts = None,
-                intensities = None,
                 **kwargs
                 ):
         
@@ -501,9 +517,6 @@ class MapAlignment(session.Logger):
         self.reference_file = reference_file
         self.init_entity(**self.kw)
         
-        self.mzs = np.array(mzs)
-        self.rt_means = np.array(rts)
-        self.intensities = np.array(intensities)
 
     def init_entity(self, **kwargs):
 
@@ -684,7 +697,10 @@ class Preprocessing(session.Logger):
     def __init__(
             self,
             src = None,
-            dst = None
+            dst = None,
+            mzs = None,
+            intensities = None,
+            rts = None
         ):
 
         session.Logger.__init__(self, name = 'Preprocessing')
@@ -695,6 +711,10 @@ class Preprocessing(session.Logger):
 
         self.src = src
         self.dst = dst
+
+        self.mzs = mzs
+        self.intensities = intensities
+        self.rts = rts
         
     def peak_picking(self,
                 src = None,
@@ -740,75 +760,139 @@ class Preprocessing(session.Logger):
                 ext_dst_files = ext_dst_files,       #the string may begin with a dot
                 **param)
 
+
+    def setup_pp_params(self, **param):
+        self.pp.pp.set_parameters(**param)
+
+
+    def setup_ff_mtd_params(self, **param):
+        self.ff.set_param_mtd(**param)
+
+    def setup_ff_epd_params(self, **param):
+        self.ff.set_param_epd(**param)
+
+    def setup_ff_ffm_params(self, **param):
+        self.ff.set_param_ffm(**param)
+
+    def setup_ma_params(self, **param ):
+        self.ma.ma.set_parameters(**param)
+
     def run(self):
-        
-        #if not self.pp or not self.ff or self.ma:
-        #     raise RuntimeError("Some proc was not created.")
-        
-        #Set parameters for peak picking
-        preproc.pp.pp.set_parameters(**param_pp)
-        #Set common parameters parameters for 3 stages in Feature Finding Metabo
-        preproc.ff.mtd.set_parameters(**param_ff_com)
-        preproc.ff.epd.set_parameters(**param_ff_com)
-        preproc.ff.ffm.set_parameters(**param_ff_com)
-        #Set specific parameters for each stages in Feature Finding
-        preproc.ff.mtd.set_parameters(**param_mtd)
-        preproc.ff.epd.set_parameters(**param_epd)
-        preproc.ff.ffm.set_parameters(**param_ffm)
-        #Set specific parameters in Map Alignment process
-        preproc.ma.ma.set_parameters(**param_ma)
         
         self.pp.main()
         self.ff.main()
         self.ma.main()
 
-    def get_data(self):
 
-        for file in self.ma.dst_full_file_name:
-            list_of_dicts = []
-            for i in self.ma.toAlign_map:
-                self.ma.mzs = i.getMZ()
-                self.ma.intensities = i.getIntensity()
-                self.ma.rt_means = i.getRT()
-                list_of_dicts.append(
-                        {
-                        'mzs': self.ma.mzs,
-                        'rt_means': self.ma.rt_means, 
-                        'intensities': self.ma.intensities, 
-                        }
-                    ) 
-        print(list_of_dicts)
-
-    def get_sampleset(self):
-        """Returns a ``dict`` which can serve as arguments for
-        ``lipyd.sample.SampleSet`` and  ``lipyd.sample.FeatureAttributes`
-        objects.
-        
-        To get actual ``SampleSet`` object use the ``SampleReader`` in the
-        ``sample`` module.
+    def get_sampleset(self, src):
+        """
+        Methods for extracting mzs, rts, intensities from all files
+        as 2 dimensional arrays
 
         """
+
+        if not(src or self.src):
+            raise RuntimeError("you have to point src pattern.")
         
+        src_pattern = src if src else self.src
+        
+        self.mzs = []
+        self.intensities = []
+        self.rts = []
+        
+        for f in get_list_full_names(src_pattern):
+            
+            xml_file = oms.FeatureXMLFile()
+            fmap = oms.FeatureMap()
+            xml_file.load(f, fmap)
+            
+            print("get_xml_data f=", f)
+            
+            rts_tmp = []
+            mzs_tmp = []
+            intensities_tmp = []
+            
+            for n in fmap:
+                _rt = n.getRT()
+                _mz = n.getMZ()
+                _intensities = n.getIntensity()
+                rts_tmp.append(_rt)
+                mzs_tmp.append(_mz)
+                intensities_tmp.append(_intensities)
+            
+            self.mzs.append(mzs_tmp)
+            self.intensities.append(intensities_tmp)
+            self.rts.append(rts_tmp)
+
+        #print(rts. mzs. intensities)
+
         return {
-            'mzs': self.ma.mzs,
-            'rt_means': self.ma.rt_means,
-            'intensities': self.ma.intensities
-        }            
+            'mzs': self.mzs,
+            'rt_means': self.rts,
+            'intensities': self.intensities
+        }  
+
+    def get_sampleset_2(self, src):  
+        """Another methods for extracting data"""  
+        
+        if not (src or self.src):
+            raise RuntimeError("you have to point src pattern.")
+        
+        #override path pattern name to src;
+        src_pattern = src if src else self.src
+
+        self.mzs = []
+        self.intensities = []
+        self.rts = []
+        
+        for f in get_list_full_names(src_pattern):
+            
+            #print("get_data.f = ", f)
+            mzml_file = oms.MzMLFile()
+            exp = oms.MSExperiment()
+            mzml_file.load(f, exp)  # f is current file name from list of names;
+            
+            rt_for_file = []        # rt list for this file;
+            mzs_for_rt = []         # mz list of list for this rt;
+            intensities_for_rt = []        # ints list of list for this rt;
+            
+            for spec in exp:        # spec is MSSpectrum type object;
+                
+                mzs_tmp = []
+                intensities_tmp = []
+                
+                _rt = spec.getRT()
+                rt_for_file.append(_rt)
+                
+                for p in spec:
+                    _mz = p.getMZ()
+                    _ints = p.getIntensity()
+                    mzs_tmp.append(_mz)
+                    intensities_tmp.append(_ints)
+                    #print("get_data: _rt={}, _mz={}, _ints={} ".format(_rt, _mz, _ints) )
+
+                mzs_for_rt.append(mzs_tmp)
+                ints_for_rt.append(intensities_tmp)
+            
+            self.rts.append(rt_for_file) # add rt list for current file to global rt list;
+            self.mzs.append(mzs_for_rt)  # same for mz;
+            self.ints.append(ints_for_rt)# same for ints;
+        
+        return  {
+            'mzs': self.mzs,
+            'rt_means': self.rts,
+            'intensities': self.intensities
+        } 
+
 
 
 if __name__ == "__main__":
     
     
-    preproc = Preprocessing()
+    a = Preprocessing() 
 
-    
     param_pp = {"signal_to_noise": 1.0}
-    
-    preproc.peak_picking(src = "/home/igor/Documents/Scripts/Data/Raw_data_STARD10/.+\.mzML$",
-                                dst = "/home/igor/Documents/Scripts/Data/Picked_STARD10",
-                                suffix_dst_files = "_picked",
-                                ext_dst_files = "mzML")
-    
+
     param_ff_com = {"noise_threshold_int": 9.0,
                 "chrom_peak_snr": 2.0,
                 "chrom_fwhm": 4.0}
@@ -817,35 +901,57 @@ if __name__ == "__main__":
                 "reestimate_mt_sd": "true",
                 "quant_method": "area"}
     
+    
     param_epd = {"enabled": "true"}
+    
     
     param_ffm = {"mz_scoring_13C": "true",
                 "report_convex_hulls": "true",
                 "remove_single_traces": "true"}
-    param_ma = {"max_num_peaks_considered": 990}
+    
+    #We need to apply and update common parameters for each 3 processes in Feature Finding
+    param_mtd.update(param_ff_com)
+    param_epd.update(param_ff_com)
+    param_ffm.update(param_ff_com)
 
-    preproc.feature_finding_metabo(
-                                src = "/home/igor/Documents/Scripts/Data/Picked_STARD10/.+\_picked\.mzML$",
-                                dst = "/home/igor/Documents/Scripts/Data/feature_STARD10/",
-                                suffix_dst_files = "_feature",
-                                ext_dst_files = "featureXML"
+    param_ma = {"max_num_peaks_considered": 990}
+    
+    
+    a.peak_picking(src = "/home/igor/Documents/Black_scripts/Src_data/.+\.mzML$",
+                                dst = "/home/igor/Documents/Black_scripts/Src_data/picked/",
+                                suffix_dst_files = "_picked",
+                                ext_dst_files = "mzML",
                                 )
     
-    preproc.map_alignment(src = "/home/igor/Documents/Scripts/Data/feature_STARD10/.+\.featureXML$",
-                                dst = "/home/igor/Documents/Scripts/Data/Aligned_STARD10/",
+
+    a.feature_finding_metabo(
+                                src = "/home/igor/Documents/Black_scripts/Src_data/picked/.+\.mzML$",
+                                dst = "/home/igor/Documents/Black_scripts/Src_data/featured/",
+                                suffix_dst_files = "_feature",
+>>>>>>> 3096b0cbf61c140290233c85b3345a7e90e93f2b
+                                ext_dst_files = "featureXML",
+                                )
+    
+    
+    a.map_alignment(src = "/home/igor/Documents/Black_scripts/Src_data/featured/.+\.featureXML$",
+                                dst = "/home/igor/Documents/Black_scripts/Src_data/aligned",
                                 suffix_dst_files = "_aligned",
                                 ext_dst_files = "featureXML",
-                                reference_file = "/home/igor/Documents/Scripts/Data/feature_STARD10/150310_Popeye_MLH_AC_STARD10_A09_pos_picked.featureXML"
-                                )    
+                                reference_file = "/home/igor/Documents/Black_scripts/Src_data/featured/150310_Popeye_MLH_AC_STARD10_A09_pos_picked_feature.featureXML",
+                                ) 
     
-    preproc.run()
+
+    a.setup_pp_params(**param_pp)
     
-    """
-    convert = Convert2mgf(mzml_file = "/home/igor/Documents/Scripts/Data/Picked_STARD10/150310_Popeye_MLH_AC_STARD10_A11_pos_picked.mzML",
-                    mgf_file = "/home/igor/Documents/Scripts/Data/Picked_STARD10/150310_Popeye_MLH_AC_STARD10_A11_pos_picked.mgf")
-
-    convert.convert()
-    """
-    preproc.get_data()
-    p2.run()
-
+    a.setup_ff_mtd_params(**param_mtd)
+    a.setup_ff_epd_params(**param_epd)
+    a.setup_ff_ffm_params(**param_ffm)
+    a.setup_ma_params()
+    
+  
+    
+    a.run()
+    
+    p = "/home/igor/Documents/Black_scripts/Src_data/aligned/.+\.featureXML$"
+    #a.get_data( p )
+    a.get_sampleset(p)
