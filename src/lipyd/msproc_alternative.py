@@ -90,12 +90,12 @@ class MethodParamHandler(session.Logger):
     Parameters
     ----------
     openms_method : object
-        Pyopenms object having setParameters method.
+        Pyopenms object having `setParameters` method.
 
     Attributes
     ----------
     openms_method : object
-        Pyopenms object having setParameters method.
+        Pyopenms object having `setParameters` method.
     """
     
     
@@ -135,6 +135,9 @@ class MethodParamHandler(session.Logger):
     
     
     def setup(self):
+        """
+        Collects and updates parameters according to the OpenMS object type.
+        """
         
         self.get_openms_object_type()
         self.collect_param()
@@ -142,6 +145,9 @@ class MethodParamHandler(session.Logger):
     
     
     def get_openms_object_type(self):
+        """
+        Creates a string representation of the OpenMS object type.
+        """
         
         self.openms_object_type = '%s.%s' % (
             self.openms_method.__class__.__module__,
@@ -240,6 +246,10 @@ class MethodParamHandler(session.Logger):
     
     
     def get_openms_defaults(self):
+        """
+        Queries the default parameter values from the OpenMS object and
+        converts them to a `dict`.
+        """
         
         # get the defaults from openms
         self._openms_defaults = dict(self.openms_method.getDefaults())
