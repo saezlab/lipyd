@@ -22,8 +22,8 @@ from future.utils import iteritems
 import os
 import imp
 import re
-import numpy as np
 
+import numpy as np
 import pyopenms as oms
 
 import lipyd.session as session
@@ -99,6 +99,24 @@ class MethodParamHandler(session.Logger):
     """
     
     
+    _module_param_keys = {
+        oms.PeakPickerHiRes: 'peak_picking_param',
+        oms.ElutionPeakDetection: (
+            'feature_finding_common_param',
+            'elution_peak_detection_param',
+        ),
+        oms.MassTraceDetection: (
+            'feature_finding_common_param',
+            'mass_trace_detection_param',
+        ),
+        oms.FeatureFindingMetabo: (
+            'feature_finding_common_param',
+            'feature_finding_metabo_param',
+        ),
+        oms.MapAlignmentAlgorithmPoseClustering: 'map_alignment_param',
+    }
+    
+    
     def __init__(
             self,
             openms_method,
@@ -108,13 +126,74 @@ class MethodParamHandler(session.Logger):
         session.Logger.__init__(self, name = 'param_handler')
         
         self.openms_method = openms_method
-        #TODO: get default parameters from settings
-        self.set_parameters(**kwargs)
-        #TODO: check if no parameter is out of acceptable range
+        self._kwargs_param = kwargs
+    
+    
+    def main(self):
+        
+        self.setup()
+    
+    
+    def setup(self):
+        
+        self.get_openms_object_type()
+        self.collect_param()
+        self.set_param()
+    
+    
+    def get_openms_object_type(self):
+        
+        self.openms_object_type = '%s.%s' % (
+            self.openms_method.__class__.__module__,
+            self.openms_method.__class__.__name__,
+        )
+    
+    
+    def collect_param(self):
+        """
+        Collects parameters from (1) keyword arguments for this class,
+        (2) settings of the `lipyd` module and (3) OpenMS defaults in this
+        order of priority.
+        """
+        
+        self.get_openms_defaults()
+        self.get_module_param()
+        
+        _kwargs_param = self.process_param_dict(self._kwargs_param)
+        _module_param = self.process_param_dict(self._module_param)
+        self.param = {}
+        
+        self.param.update(self._openms_defaults)
+        self.param.update(_module_param)
+        self.param.update(_kwarg_param)
+    
+    
+    def set_param(self):
+        """
+        Sets the parameters of the OpenMS object according to the current
+        `param` dictionary.
+        """
+        
+        self.openms_param = self.openms_method.getDefaults()
+        
+        for key, value in iteritems(self.param):
+            
+            self.openms_param.setValue(key, value)
+            
+            self._log(
+                'Parameter `{}` of `{}` set to `{}`.'.format(
+                    common.ensure_unicode(name),
+                    self.openms_object_type,
+                    common.ensure_unicode(value),
+                ),
+                1,
+            )
+        
+        self.openms_method.setParameters(self.openms_param)
     
     
     @staticmethod
-    def bytes_or_numeric(value):
+    def bytes_or_numeric(value, float_ok = True):
         """
         Returns the `value` in a bytes string or a numeric representation.
         """
@@ -131,13 +210,17 @@ class MethodParamHandler(session.Logger):
             
             return value
             
-        elif value.isdigit()
+        elif (common.is_numeric(value) and float_ok) or common.is_int(value):
+            
+            return common.to_number(value)
             
         elif hasattr(value, 'encode'):
             
             return value.encode()
             
+        else:
             
+            return value
     
     
     @staticmethod
@@ -147,40 +230,41 @@ class MethodParamHandler(session.Logger):
         numeric.
         """
         
-        
-    
-    
-    def set_parameters(self, **kwargs):
-        """
-        Check type of value: if it`s str - convert to binary string
-        """
-        
-        if not hasattr(openms_method, 'getDefaults'):
-            
-            raise RuntimeError(
-                'MethodParamHandler: the openms_method has no getDefaults attr.'
+        return dict(
+            (
+                self.bytes_or_numeric(k, float_ok = False),
+                self.bytes_or_numeric(v)
             )
+            for k, v in iteritems(param)
+        )
+    
+    
+    def get_openms_defaults(self):
         
         # get the defaults from openms
-        openms_defaults = self.openms_method.getDefaults()
+        self._openms_defaults = dict(self.openms_method.getDefaults())
+    
+    
+    def get_module_param(self):
+        """
+        Queries the current module level settings of `lipyd` for the
+        particular OpenMS class.
+        """
         
+        self._module_param = {}
         
-        kwargs = common.dict_ensure_bytes(kwargs)
-        
-        for name, value in iteritems(kwargs):
-            
-            param.setValue(name, value)
+        if self.openms_method.__class__ in self._module_param_keys:
             
             self._log(
-                'Parameter `{}` of `{}` set to `{}`.'.format(
-                    common.ensure_unicode(name),
-                    self.openms_method.__class__.__name__,
-                    common.ensure_unicode(value),
-                ),
-                1,
+                'Could not find settings key for OpenMS '
+                'object type `%s`.' % self.openms_object_type
             )
-        
-        self.openms_method.setParameters(param)
+            
+        else:
+            
+            for key in self._module_param_keys[self.openms_method.__class__]:
+                
+                self._module_param.update(settings.get(key))
 
 
 class PPEntity(MethodParamHandler):

@@ -579,7 +579,7 @@ _defaults = {
     'elution_peak_detection_param': {
         'enabled': 'true',
     },
-    'feature_finding_param': {
+    'feature_finding_metabo_param': {
         'mz_scoring_13C': 'true',
         'report_convex_hulls': 'true',
         'remove_single_traces': 'true',
