@@ -83,39 +83,71 @@ def get_list_full_names(src):
     return src_full_name_list
 
 
-class BaseEntity(session.Logger):
+class MethodParamHandler(session.Logger):
     """
     Base class for setup and check parameters for all derived classes.
     
     Parameters
     ----------
-    entity : object
+    openms_method : object
         Pyopenms object having setParameters method.
 
     Attributes
     ----------
-    entity : object
+    openms_method : object
         Pyopenms object having setParameters method.
     """
     
     
-    def __init__(self,
-                entity,
-                **kwargs
-                ):
+    def __init__(
+            self,
+            openms_method,
+            **kwargs,
+        ):
         
-        session.Logger.__init__(self, name = 'msproc')
+        session.Logger.__init__(self, name = 'param_handler')
         
-        if not hasattr(entity, 'getDefaults'):
-            
-            raise RuntimeError(
-                'BaseEntity: the entity has no getDefaults attr'
-            )
-        
-        self.entity = entity
+        self.openms_method = openms_method
         #TODO: get default parameters from settings
         self.set_parameters(**kwargs)
         #TODO: check if no parameter is out of acceptable range
+    
+    
+    @staticmethod
+    def bytes_or_numeric(value):
+        """
+        Returns the `value` in a bytes string or a numeric representation.
+        """
+        
+        if isinstance(value, bool):
+            
+            return value.__str__().lower().encode()
+            
+        elif isinstance(value, np.float64):
+            
+            return float(value)
+            
+        elif isinstance(value, (int, float)):
+            
+            return value
+            
+        elif value.isdigit()
+            
+        elif hasattr(value, 'encode'):
+            
+            return value.encode()
+            
+            
+    
+    
+    @staticmethod
+    def process_param_dict(param):
+        """
+        Makes sure all keys and values in the dict are byte strings or
+        numeric.
+        """
+        
+        
     
     
     def set_parameters(self, **kwargs):
@@ -123,7 +155,15 @@ class BaseEntity(session.Logger):
         Check type of value: if it`s str - convert to binary string
         """
         
-        param = self.entity.getDefaults() # get default param;
+        if not hasattr(openms_method, 'getDefaults'):
+            
+            raise RuntimeError(
+                'MethodParamHandler: the openms_method has no getDefaults attr.'
+            )
+        
+        # get the defaults from openms
+        openms_defaults = self.openms_method.getDefaults()
+        
         
         kwargs = common.dict_ensure_bytes(kwargs)
         
@@ -134,16 +174,16 @@ class BaseEntity(session.Logger):
             self._log(
                 'Parameter `{}` of `{}` set to `{}`.'.format(
                     common.ensure_unicode(name),
-                    self.entity.__class__.__name__,
+                    self.openms_method.__class__.__name__,
                     common.ensure_unicode(value),
                 ),
                 1,
             )
         
-        self.entity.setParameters(param)
+        self.openms_method.setParameters(param)
 
 
-class PPEntity(BaseEntity):
+class PPEntity(MethodParamHandler):
     """
     Wrapper around ``oms.PeakPickingHiRes``.
     """
@@ -157,7 +197,7 @@ class PPEntity(BaseEntity):
         )
 
 
-class MtdEntity(BaseEntity):
+class MtdEntity(MethodParamHandler):
     """
     Wrapper around ``oms.MassTraceDetection``.
     """
@@ -171,7 +211,7 @@ class MtdEntity(BaseEntity):
         )
 
 
-class EpdEntity(BaseEntity):
+class EpdEntity(MethodParamHandler):
     """
     Wrapper around ``oms.ElutionPeakDetection``.
     """
@@ -185,7 +225,7 @@ class EpdEntity(BaseEntity):
         )
 
 
-class FfmEntity(BaseEntity):
+class FfmEntity(MethodParamHandler):
     """
     Wrapper around ``oms.FeatureFindingMetabo()``.
     """
@@ -199,7 +239,7 @@ class FfmEntity(BaseEntity):
         )
 
 
-class MAEntity(BaseEntity):
+class MAEntity(MethodParamHandler):
     """
     Wrapper around ``oms.MapAlignmentAlgorithmPoseClustering``.
     """

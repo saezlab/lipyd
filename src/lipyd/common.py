@@ -49,6 +49,11 @@ except NameError:
     basestring = str
 
 
+renumeric = re.compile(r'[-\.\d]+')
+reint = re.compile(r'[-\d]+')
+refloat = re.compile(r'-?\d*\.\d+')
+
+
 class CaptureStdout(list):
     """
     Context capturing stdout.
@@ -641,3 +646,79 @@ def ensure_array(arr):
         arr = np.array(arr)
     
     return arr
+
+
+def _is_numeric(value, regex):
+    
+    if hasattr(value, decode):
+        
+        value = value.decode()
+    
+    return regex.fullmatch(value) is not None
+
+
+def is_int(value):
+    """
+    Tells if `value` is a string representation of an integer.
+    
+    Returns
+    -------
+        `bool`.
+    """
+    
+    return _is_numeric(value, reint)
+
+
+def is_float(value):
+    """
+    Tells if `value` is a string representation of a floating point number.
+    
+    Returns
+    -------
+        `bool`.
+    """
+    
+    return _is_numeric(value, refloat)
+
+
+def is_numeric(value):
+    """
+    Tells if `value` is a string representation of a number (either float
+    or int).
+    
+    Returns
+    -------
+        `bool`.
+    """
+    
+    return _is_numeric(value, renumeric)
+
+
+def to_number(value):
+    """
+    Returns `float` if `value` is a string representation of a floating point
+    number, otherwise `int` if `value` is a string representation of an
+    integer, otherwise `None`.
+    
+    Returns
+    -------
+        `float`, `int` or `None`.
+    """
+    
+    if hasattr(value, decode):
+        
+        value = value.decode()
+    
+    try:
+        
+        return int(value)
+        
+    except ValueError:
+        
+        try:
+            
+            return float(value)
+            
+        except:
+            
+            pass
