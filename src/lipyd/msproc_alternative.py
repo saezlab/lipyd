@@ -928,7 +928,6 @@ if __name__ == "__main__":
                                 src = "/home/igor/Documents/Black_scripts/Src_data/picked/.+\.mzML$",
                                 dst = "/home/igor/Documents/Black_scripts/Src_data/featured/",
                                 suffix_dst_files = "_feature",
->>>>>>> 3096b0cbf61c140290233c85b3345a7e90e93f2b
                                 ext_dst_files = "featureXML",
                                 )
     

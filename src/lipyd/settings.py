@@ -665,49 +665,64 @@ def get(param):
 
     Parameters
     ----------
-    param :
-        
+    param : str
+        Name of a parameter in the settings.
 
     Returns
     -------
-
+    The current value of the parameter.
     """
     
     if hasattr(settings, param):
         
-        return getattr(settings, param)
+        value = getattr(settings, param)
+        
+        if isinstance(value, (set, dict, list)):
+            
+            value = copy.deepcopy(value)
+        
+        return value
+
 
 def get_default(param):
     """
 
     Parameters
     ----------
-    param :
-        
+    param : str
+        Name of a parameter in the settings.
 
     Returns
     -------
-
+    The default value of the parameter.
     """
     
     if hasattr(defaults, param):
         
-        return getattr(defaults, param)
+        value = getattr(defaults, param)
+        
+        if isinstance(value, (set, dict, list)):
+            
+            value = copy.deepcopy(value)
+        
+        return value
+
 
 def reset(param):
     """
 
     Parameters
     ----------
-    param :
-        
+    param : str
+        Name of a parameter in the settings.
 
     Returns
     -------
-
+    Resets the value of the parameter to its default.
     """
     
     setup(param, get_default(param))
+
 
 defaults = common._const()
 
