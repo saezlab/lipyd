@@ -43,6 +43,7 @@ import lipyd.sampleattrs as sampleattrs
 import lipyd.feature as feature
 import lipyd.recalibration as recalibration
 import lipyd.lookup as lookup
+import lipyd.common as common
 
 
 remgf  = re.compile(r'(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
@@ -2129,6 +2130,10 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             Other ``SampleSet`` or ``feature.SampleData`` objects which
             should be co-sorted with this object.
         """
+        
+        mzs = common.ensure_array(mzs)
+        intensities  = common.ensure_array(intensities)
+        rts = common.ensure_array(rts)
         
         centr_mzs = (
             feature_attrs.centr_mzs.copy()

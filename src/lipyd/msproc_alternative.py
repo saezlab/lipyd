@@ -828,7 +828,7 @@ class Preprocessing(session.Logger):
 
         return {
             'mzs': self.mzs,
-            'rt_means': self.rts,
+            'rts': self.rts,
             'intensities': self.intensities
         }  
 

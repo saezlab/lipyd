@@ -629,3 +629,15 @@ def ppm(reference, other):
     other = other.mass if hasattr(other, 'mass') else other
     
     return (other - reference) / reference * 1e6
+
+
+def ensure_array(arr):
+    """
+    If `arr` is not a `numpy.ndarray` instance attempts to convert it.
+    """
+    
+    if not isinstance(arr, np.ndarray):
+        
+        arr = np.array(arr)
+    
+    return arr

@@ -563,10 +563,29 @@ _defaults = {
     # priority of databases at name to mass lookups in moldb
     'database_preference': ('lipyd.lipid', 'SwissLipids', 'LipidMaps'),
     'map_aligner_param': None,
-    'param_ffm': {
-        "mz_scoring_13C": "true",
-        "report_convex_hulls": "true",
-        "remove_single_traces": "true",
+    'peak_picking_param': {
+        'signal_to_noise': 1.0,
+    },
+    'feature_finding_common_param': {
+        'noise_threshold_int': 9.0,
+        'chrom_peak_snr': 2.0,
+        'chrom_fwhm': 4.0,
+    },
+    'mass_trace_detection_param': {
+        'mass_error_ppm' : 19.0,
+        'reestimate_mt_sd': 'true',
+        'quant_method': 'area',
+    },
+    'elution_peak_detection_param': {
+        'enabled': 'true',
+    },
+    'feature_finding_param': {
+        'mz_scoring_13C': 'true',
+        'report_convex_hulls': 'true',
+        'remove_single_traces': 'true',
+    },
+    'map_alignement_param': {
+        'max_num_peaks_considered': 990,
     },
 }
 
