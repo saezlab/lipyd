@@ -90,12 +90,14 @@ class MethodParamHandler(session.Logger):
     Parameters
     ----------
     openms_method : object
-        Pyopenms object having `setParameters` method.
+        OpenMS object having `setParameters` method.
+    **kwargs
+        Parameters for the OpenMS object as keyword arguments.
 
     Attributes
     ----------
     openms_method : object
-        Pyopenms object having `setParameters` method.
+        OpenMS object having `setParameters` method.
     """
     
     
@@ -277,78 +279,9 @@ class MethodParamHandler(session.Logger):
                 self._module_param.update(settings.get(key))
 
 
-class PPEntity(MethodParamHandler):
+class PeakPickerHiRes(MethodParamHandler):
     """
-    Wrapper around ``oms.PeakPickingHiRes``.
-    """
-    
-    
-    def __init__(self, **kwargs):
-        
-        super(PPEntity, self).__init__(
-            oms.PeakPickerHiRes(),
-            **kwargs,
-        )
-
-
-class MtdEntity(MethodParamHandler):
-    """
-    Wrapper around ``oms.MassTraceDetection``.
-    """
-    
-    
-    def __init__(self, **kwargs):
-        
-        super(MtdEntity, self).__init__(
-            oms.MassTraceDetection(),
-            **kwargs,
-        )
-
-
-class EpdEntity(MethodParamHandler):
-    """
-    Wrapper around ``oms.ElutionPeakDetection``.
-    """
-    
-    
-    def __init__(self, **kwargs):
-        
-        super(EpdEntity, self).__init__(
-            oms.ElutionPeakDetection(),
-            **kwargs,
-        )
-
-
-class FfmEntity(MethodParamHandler):
-    """
-    Wrapper around ``oms.FeatureFindingMetabo()``.
-    """
-    
-    
-    def __init__(self, **kwargs):
-        
-        super(FfmEntity, self).__init__(
-            oms.FeatureFindingMetabo(),
-            **kwargs,
-        )
-
-
-class MAEntity(MethodParamHandler):
-    """
-    Wrapper around ``oms.MapAlignmentAlgorithmPoseClustering``.
-    """
-    
-    
-    def __init__(self, **kwargs):
-        
-        super(MAEntity, self).__init__(
-            oms.MapAlignmentAlgorithmPoseClustering(),
-            **kwargs,
-        )
-
-class PeakPicking(session.Logger):
-    """
-    Class for peak picking implementation.
+    Wrapper around ``pyopenms.PeakPickerHiRes``.
     
     This class implements a fast peak-picking algorithm best suited for high
     resolution MS data (FT-ICR-MS, Orbitrap). In high resolution data, the
@@ -394,19 +327,27 @@ class PeakPicking(session.Logger):
 
 
     """
-
+    
+    
+    def __init__(self, **kwargs):
+        
+        MethodParamHandler.__init__(
+            openms_method = oms.PeakPickerHiRes(),
+            **kwargs,
+        )
+        self.setup()
+        self._log_name = 'peak_picker'
+    
+    
     def __init__(self,
-                src = ".+\.mzML$",               
-                dst = None,                     
-                suffix_dst_files = "_centroided",        
+                src = ".+\.mzML$",
+                dst = None,
+                suffix_dst_files = "_centroided",
                 ext_dst_files = "mzML",
                 **kwargs
             ):
 
         session.Logger.__init__(self, name = 'peak_picking')
-
-        if not src:
-            raise RuntimeError( "You don`t specify all necessary files" )
 
         self.src = src
         self.dst = dst
@@ -458,6 +399,64 @@ class PeakPicking(session.Logger):
             oms.MzMLFile().store(dst_full_file_name, centroid_out_map)
             
             print("Picked data stored into:", dst_full_file_name)
+
+
+class MassTraceDetection(MethodParamHandler):
+    """
+    Wrapper around ``pyopenms.MassTraceDetection``.
+    """
+    
+    
+    def __init__(self, **kwargs):
+        
+        MethodParamHandler.__init__(
+            openms_method = oms.MassTraceDetection(),
+            **kwargs,
+        )
+        self.setup()
+        self._log_name = 'mass_trace_detection'
+
+
+class EpdEntity(MethodParamHandler):
+    """
+    Wrapper around ``oms.ElutionPeakDetection``.
+    """
+    
+    
+    def __init__(self, **kwargs):
+        
+        super(EpdEntity, self).__init__(
+            oms.ElutionPeakDetection(),
+            **kwargs,
+        )
+
+
+class FfmEntity(MethodParamHandler):
+    """
+    Wrapper around ``oms.FeatureFindingMetabo()``.
+    """
+    
+    
+    def __init__(self, **kwargs):
+        
+        super(FfmEntity, self).__init__(
+            oms.FeatureFindingMetabo(),
+            **kwargs,
+        )
+
+
+class MAEntity(MethodParamHandler):
+    """
+    Wrapper around ``oms.MapAlignmentAlgorithmPoseClustering``.
+    """
+    
+    
+    def __init__(self, **kwargs):
+        
+        super(MAEntity, self).__init__(
+            oms.MapAlignmentAlgorithmPoseClustering(),
+            **kwargs,
+        )
 
 
 class FeatureFindingMetabo(session.Logger):
