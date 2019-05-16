@@ -755,7 +755,7 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         
         self.input_map = oms.PeakMap()
         oms.MzMLFile().load(self.input_path, self.input_map)
-        self._log('Read centroided data from `%s`.' % self.input_path)
+        self._log('Reading centroided data from `%s`.' % self.input_path)
     
     
     def find_features(self):
@@ -823,6 +823,7 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
 class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     """
     Wrapper around ``pyopenms.MapAlignmentAlgorithmPoseClustering``.
+    
     """
     
     
@@ -832,119 +833,6 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
             oms.MapAlignmentAlgorithmPoseClustering(),
             **kwargs,
         )
-
-
-class FeatureFindingMetabo(session.Logger):
-    """
-    Assembles mass traces showing similar isotope- and elution patterns.
-
-    Parameters
-    ----------
-    src : str
-        Source directory consists source file(s)
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    logger:   
-        System variable for tracking
-
-    Attributes
-    ----------
-    src : str
-        Source directory consists source file(s)
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    kw : obj
-        Additional arguments
-    """
-    
-    
-    def __init__(
-            self,
-            src = ".+\.mzML$",
-            dst = None,
-            suffix_dst_files = "_feature",
-            ext_dst_files = "featureXML",
-            **kwargs,
-        ):
-        
-        session.Logger.__init__(self, name = 'feature_finder_metabo')
-        
-        if not src:
-            raise RuntimeError( "You don`t specify all necessary files" )
-
-        self.src = src
-        self.dst = dst
-        self.suffix_dst_files = suffix_dst_files
-        self.ext_dst_files = ext_dst_files
-        self.kw = kwargs
-        # set default value to self.param_*
-        # if user will not call set_param_*
-        self.param_mtd = self.kw
-        self.param_epd = self.kw
-        self.param_ffm = self.kw
-        
-        self.init_entity(**self.kw)
-    
-
-    def init_entity(self, **kwargs):
-        self.mtd = MtdEntity(**kwargs)
-        self.epd = EpdEntity(**kwargs)
-        self.ffm = FfmEntity(**kwargs)
-        self.output_mt = []
-        self.splitted_mt = []
-        self.filtered_mt = []
-        self.chromatograms = [[]]   
-
-    def set_param_mtd(self, **kwargs):
-        self.param_mtd = kwargs
-
-    def set_param_epd(self, **kwargs):
-        self.param_epd = kwargs
-    
-    def set_param_ffm(self, **kwargs):
-        self.param_ffm = kwargs   
-    
-    
-    def main(self):
-        #after path_parsing method we have self.src_full_name_list
-        print("FeatureFindingMetabo implementation")
-        
-        for f in get_list_full_names(self.src):
-
-            print("Source file:", f)
-            # to prepare(init) empty list and entity;
-            self.init_entity(**self.kw)
-            
-            input_map = oms.PeakMap() # the 1st step: load map;
-            fm = oms.FeatureMap()
-            oms.MzMLFile().load(f, input_map)
-
-            self.mtd.set_parameters( **self.param_mtd )
-            self.epd.set_parameters( **self.param_epd )
-            self.ffm.set_parameters( **self.param_ffm )
-
-            # the 2nd step: apply_ffm;
-            self.mtd.entity.run(input_map, self.output_mt)
-            self.epd.entity.detectPeaks(self.output_mt, self.splitted_mt)
-            self.ffm.entity.run(self.splitted_mt, fm, self.filtered_mt)
-            # the 3d step: is store result into file;
-            dst_full_file_name = os.path.join(self.dst,\
-                convert_src_to_dst_file_name(f,
-                                            self.dst,
-                                            self.suffix_dst_files,
-                                            self.ext_dst_files) )
-           
-            oms.FeatureXMLFile().store(dst_full_file_name, fm)
-            
-            print("Centroided data stored into:", dst_full_file_name)
 
 
 class MapAlignment(session.Logger):
