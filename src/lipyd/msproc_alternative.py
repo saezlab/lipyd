@@ -688,6 +688,7 @@ class ElutionPeakDetection(OpenmsMethodWrapper):
 class FeatureFindingMetabo(OpenmsMethodWrapper):
     """
     Wrapper around ``pyopenms.FeatureFindingMetabo()``.
+    Assembles mass traces showing similar isotope- and elution patterns.
     
     Parameters
     ----------
@@ -740,6 +741,76 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         )
     
     
+    def run(self):
+        
+        self.read()
+        self.find_features()
+        self.write()
+    
+    
+    def read(self):
+        """
+        Reads the centroided data.
+        """
+        
+        self.input_map = oms.PeakMap()
+        oms.MzMLFile().load(self.input_path, self.input_map)
+        self._log('Read centroided data from `%s`.' % self.input_path)
+    
+    
+    def find_features(self):
+        
+        self.do_mass_trace_detection()
+        self.do_elution_peak_detection()
+        self.do_feature_finding()
+        self._log('Feature finding ready.')
+    
+    
+    def do_mass_trace_detection(self):
+        
+        self._log('Performing mass trace detection.')
+        self.mass_traces = []
+        self.mass_trace_detection = MassTraceDetection(
+            **self.mass_trace_detection_param
+        )
+        self.mass_trace_detection.run(self.input_map, self.mass_traces)
+    
+    
+    def do_elution_peak_detection(self):
+        
+        self._log('Performing elution peak detection.')
+        self.mass_traces_split = []
+        self.elution_peak_detection = ElutionPeakDetection(
+            **self.elution_peak_detection_param
+        )
+        self.elution_peak_detection.detectPeaks(
+            self.mass_traces,
+            self.mass_traces_split,
+        )
+    
+    
+    def do_feature_finding(self):
+        
+        self._log('Creating features by `FeatureFinderMetabo`.')
+        self.feature_map = oms.FeatureMap()
+        self.mass_traces_filtered = []
+        self.feature_finder_metabo = self.openms_obj
+        self.feature_finder_metabo.run(
+            self.mass_traces_split,
+            self.feature_map,
+            self.mass_traces_filtered,
+        )
+    
+    
+    def write(self):
+        """
+        Writes the feature map into a ``featureXML`` file.
+        """
+        
+        oms.FeatureXMLFile().store(self.output_path, self.feature_map)
+        self._log('Features have been written to `%s`.' % self.output_path)
+    
+    
     @staticmethod
     def _combine_param(common_param, param):
         
@@ -765,10 +836,7 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
 
 class FeatureFindingMetabo(session.Logger):
     """
-    Class for feature detection implementation.
-    
-    Method for the assembly of mass traces belonging to the same isotope pattern, i.e.,
-    that are compatible in retention times, mass-to-charge ratios, and isotope abundances.
+    Assembles mass traces showing similar isotope- and elution patterns.
 
     Parameters
     ----------
