@@ -495,59 +495,31 @@ class PeakPickerHiRes(OpenmsMethodWrapper):
             **kwargs,
         ):
         
-        MethodParamHandler.__init__(
-            openms_method = oms.PeakPickerHiRes(),
-            **kwargs,
+        OpenmsMethodWrapper.__init__(
+            self,
+            infile = infile,
+            outfile = outfile,
+            name = 'peak_picker',
+            **kwargs
         )
-        self.setup()
-        MethodPathHandler.__init__(
-            input_path = infile,
-            method = self.openms_method.__class__,
-            output_path = outfile,
-        )
-        self.set_paths()
-        self._log_name = 'peak_picker'
     
     
     def run(self):
         
-        pass
-    
-    
-    def main(self):
-        #after path_parsing method we have self.src_full_name_list
-        print("Peak Picking implementation")
-
-        for f in get_list_full_names(self.src):
-
-            # to prepare(init) empty list and entity;
-            self.init_entity(**self.kw)
-
-            print("source file:", f)
-            
-            input_map = oms.MSExperiment() # the 1st step: load map;
-
-            oms.MzMLFile().load(f, input_map)
-
-            centroid_out_map = oms.MSExperiment()
-
-            # the 2nd step: apply_ffm;
-            self.pp.entity.pickExperiment(input_map, centroid_out_map)
-            
-            centroid_out_map.updateRanges()
-
-            # the 3d step: is store result into file:
-            #convert_src_to_dst_file_name(src, dst, suffix_dst_files, ext_dst_files)
-            dst_full_file_name = os.path.join(self.dst,\
-                convert_src_to_dst_file_name(f,
-                                            self.dst,
-                                            self.suffix_dst_files,
-                                            self.ext_dst_files
-                                            ) )   #call 'global' function;
-            #print("dst=",dst_full_file_name)
-            oms.MzMLFile().store(dst_full_file_name, centroid_out_map)
-            
-            print("Picked data stored into:", dst_full_file_name)
+        self.input_map = oms.MSExperiment()
+        oms.MzMLFile().load(self.input_path, self.input_map)
+        self._log('Input map created from `%s`.' % self.input_path)
+        
+        self._log('Starting peak picking.')
+        self.output_map = oms.MSExperiment()
+        self.openms_obj.pickExperiment(self.input_map, self.output_map)
+        self._log('Peak picking ready.')
+        
+        self.output_map.updateRanges()
+        oms.MzMLFile().store(self.output_path, self.output_map)
+        self._log(
+            'Centroided data has been written to `%s`.' % self.output_path
+        )
 
 
 class MassTraceDetection(MethodParamHandler):
