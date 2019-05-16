@@ -692,10 +692,14 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
     
     Parameters
     ----------
-    input_dir : str,list
-        Path to the directory with the centroided data. In this case all
-        mzML files in this directory will be used. Alternatively a list
-        of file paths, e.g. ``['a.mzML', 'b.mzML', 'c.mzML']``.
+    input_file : str
+        Path to an mzML file with centroided data.
+    input_map : pyopenms.PeakMap
+        A``pyopenms.PeakMap`` object. If provided, the data will be used
+        from this instead of reading from ``input_file``. In this case
+        ``input_file`` can be even ``None`` if ``output_file`` provided.
+        Otherwise ``input_file`` will be used to create the ``output_file``
+        path and name.
     output_file : str
         The output file where the features will be saved in ``featureXML``
         format. If not provided it will be set according to the current
@@ -713,7 +717,8 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
     
     def __init__(
         self,
-        input_dir,
+        input_file = None,
+        input_map = None,
         output_file = None,
         mass_trace_detection_param = None,
         elution_peak_detection_param = None,
@@ -731,10 +736,17 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
             self._combine_param(kwargs, feature_finding_metabo_param)
         )
         
+        if isinstance(input_map, oms.PeakMap):
+            
+            self.input_map = input_map
+            self._log(
+                'Centroided data provided as `pyopenms.PeakMap` object.'
+            )
+        
         OpenmsMethodWrapper.__init__(
             self,
             method = oms.FeatureFindingMetabo,
-            infile = input_dir,
+            infile = input_file,
             outfile = output_file,
             name = 'feature_finding_metabo',
             **self.feature_finding_metabo_param,
@@ -753,9 +765,11 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         Reads the centroided data.
         """
         
-        self.input_map = oms.PeakMap()
-        oms.MzMLFile().load(self.input_path, self.input_map)
-        self._log('Reading centroided data from `%s`.' % self.input_path)
+        if not hasattr(self, 'input_map'):
+            
+            self.input_map = oms.PeakMap()
+            oms.MzMLFile().load(self.input_path, self.input_map)
+            self._log('Reading centroided data from `%s`.' % self.input_path)
     
     
     def find_features(self):
@@ -822,17 +836,27 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
 
 class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     """
+    Applies a transformation on a feature map along its RT and m/z dimensions
+    in order to remove noise and align traces from identical metabolites.
+    
     Wrapper around ``pyopenms.MapAlignmentAlgorithmPoseClustering``.
     
+    A map alignment algorithm based on pose clustering.
+
+    Pose clustering analyzes pair distances to find the most probable
+    transformation of retention times.
+    The algorithm chooses the x most intensive peaks/features per map.
+    This is modeled via the parameter ``max_num_peaks_considered``,
+    which in turn influences the runtime and stability of the results.
+    Bigger values prolong computation, smaller values might lead to no or
+    unstable trafos. Set to -1 to use all features (might take very long for
+    large maps).
     """
     
     
     def __init__(self, **kwargs):
         
-        super(MAEntity, self).__init__(
-            oms.MapAlignmentAlgorithmPoseClustering(),
-            **kwargs,
-        )
+        OpenmsMethodWrapper.__init__(self)
 
 
 class MapAlignment(session.Logger):
