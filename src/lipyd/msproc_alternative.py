@@ -942,6 +942,7 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     
     def align(self):
         
+        self._log('Aligning the input map to the reference map.')
         # set reference_map file
         self.openms_obj.setReference(self.reference_map)
         # create object for the computed transformation
@@ -957,126 +958,6 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
             'Aligned features have been written to `%s`.' % self.output_path
         )
 
-
-class MapAlignment(session.Logger):
-    """
-    Class for map alignment process.
-
-    A map alignment algorithm based on pose clustering.
-
-    Pose clustering analyzes pair distances to find the most probable
-    transformation of retention times.
-    The algorithm chooses the x most intensity peaks/features per map.
-    This is modeled via the parameter 'max_num_peaks_considered',
-    which in turn influences the runtime and stability of the results.
-    Bigger values prolong computation, smaller values might lead to no or
-    unstable trafos. Set to -1 to use all features (might take very long for
-    large maps).
-
-    Parameters
-    ----------
-    src : str
-        Source directory consists source file(s)
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    reference_file: obj
-        The file by which other files will be aligned
-
-
-    Attributes
-    ----------
-    src : str
-        Source directory consists source file(s)  
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    kw : obj
-        Additional arguments
-    reference_file: obj
-        The file by which other files will be aligned
-    """
-
-    def __init__(self,
-                src = ".+\.featureXML$",               #"/path/to/src/.+\.mzML"
-                dst = None,                     #/path/to/dst
-                suffix_dst_files = "_aligned",          
-                ext_dst_files = "featureXML",
-                reference_file = None,
-                dst_full_file_name = None,
-                reference_map = None,
-                toAlign_map = None,
-                **kwargs
-                ):
-        
-        session.Logger.__init__(self, name = 'map_alignment')
-
-        if not (src and reference_file):
-            
-            raise RuntimeError( "You don`t specify all necessary files" )
-        
-        self.src = src
-        self.dst = dst
-        self.suffix_dst_files = suffix_dst_files
-        self.ext_dst_files = ext_dst_files
-        self.dst_full_file_name = dst_full_file_name
-        self.kw = kwargs
-
-        self.reference_map = reference_map
-        self.toAlign_map = toAlign_map
-        self.reference_file = reference_file
-        self.init_entity(**self.kw)
-        
-
-    def init_entity(self, **kwargs):
-
-        self.ma = MAEntity(**kwargs)
-
-
-    def main(self): 
-        #after path_parsing method we have self.src_full_name_list
-        
-        for f in get_list_full_names(self.src):
-            print("Map Alignment implementation")
-            print("Source file:", f)
-            # to prepare(init) empty list and entity;
-            self.init_entity(**self.kw)
-
-            self.reference_map = oms.FeatureMap()
-            self.toAlign_map = oms.FeatureMap()
-            
-            oms.FeatureXMLFile().load(self.reference_file, self.reference_map)
-            oms.FeatureXMLFile().load(f, self.toAlign_map)
-            
-            #Set reference_map file
-            self.ma.entity.setReference(self.reference_map)
-            
-            #3rd step create object for the computed transformation
-            transformation = oms.TransformationDescription()
-
-            # the 4rd step:
-            self.ma.entity.align(self.toAlign_map, transformation)
-            # the 5th step: is store result into file;
-            self.dst_full_file_name = os.path.join(self.dst,\
-                convert_src_to_dst_file_name(f,
-                                            self.dst,
-                                            self.suffix_dst_files,
-                                            self.ext_dst_files) )
-            
-            #print("dst=",dst_full_file_name)
-            oms.FeatureXMLFile().store(self.dst_full_file_name, self.toAlign_map)
-            oms.FeatureXMLFile().store(self.dst_full_file_name, self.reference_map)
-
-            print("Aligned data stored into:", self.dst_full_file_name)
-        
-
-    
 
 class Convert2mgf(session.Logger):
     """
