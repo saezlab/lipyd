@@ -89,15 +89,15 @@ class MethodParamHandler(session.Logger):
     
     Parameters
     ----------
-    openms_method : object
-        OpenMS object having `setParameters` method.
     **kwargs
         Parameters for the OpenMS object as keyword arguments.
 
     Attributes
     ----------
-    openms_method : object
-        OpenMS object having `setParameters` method.
+    openms_method : class
+        OpenMS class having ``setParameters`` method.
+    openms_obj : object
+        OpenMS object having ``setParameters`` method.
     """
     
     
@@ -119,13 +119,7 @@ class MethodParamHandler(session.Logger):
     }
     
     
-    def __init__(
-            self,
-            openms_method,
-            **kwargs,
-        ):
-        
-        session.Logger.__init__(self, name = 'param_handler')
+    def __init__(self, **kwargs):
         
         self.openms_method = openms_method
         self._kwargs_param = kwargs
@@ -141,19 +135,19 @@ class MethodParamHandler(session.Logger):
         Collects and updates parameters according to the OpenMS object type.
         """
         
-        self.get_openms_object_type()
+        self.get_openms_object_name()
         self.collect_param()
         self.set_param()
     
     
-    def get_openms_object_type(self):
+    def get_openms_object_name(self):
         """
         Creates a string representation of the OpenMS object type.
         """
         
         self.openms_object_type = '%s.%s' % (
-            self.openms_method.__class__.__module__,
-            self.openms_method.__class__.__name__,
+            self.openms_method.__module__,
+            self.openms_method.__name__,
         )
     
     
@@ -182,7 +176,7 @@ class MethodParamHandler(session.Logger):
         `param` dictionary.
         """
         
-        self.openms_param = self.openms_method.getDefaults()
+        self.openms_param = self.openms_obj.getDefaults()
         
         for key, value in iteritems(self.param):
             
@@ -191,13 +185,13 @@ class MethodParamHandler(session.Logger):
             self._log(
                 'Parameter `{}` of `{}` set to `{}`.'.format(
                     common.ensure_unicode(name),
-                    self.openms_object_type,
+                    self.openms_obj_name,
                     common.ensure_unicode(value),
                 ),
                 1,
             )
         
-        self.openms_method.setParameters(self.openms_param)
+        self.openms_obj.setParameters(self.openms_param)
     
     
     @staticmethod
@@ -254,7 +248,7 @@ class MethodParamHandler(session.Logger):
         """
         
         # get the defaults from openms
-        self._openms_defaults = dict(self.openms_method.getDefaults())
+        self._openms_defaults = dict(self.openms_obj.getDefaults())
     
     
     def get_module_param(self):
@@ -265,24 +259,31 @@ class MethodParamHandler(session.Logger):
         
         self._module_param = {}
         
-        if self.openms_method.__class__ in self._module_param_keys:
+        if self.openms_method in self._module_param_keys:
             
             self._log(
                 'Could not find settings key for OpenMS '
-                'object type `%s`.' % self.openms_object_type
+                'object type `%s`.' % self.openms_obj_name
             )
             
         else:
             
-            for key in self._module_param_keys[self.openms_method.__class__]:
+            for key in self._module_param_keys[self.openms_method]:
                 
                 self._module_param.update(settings.get(key))
 
 
 class MethodPathHandler(session.Logger):
+    """
+    Parameters
+    ----------
+    input_path : str
+        The path to the input file must be provided.
+    method_key : str,class
+        Either 
+    """
     
-    
-    _methods = {
+    _method_keys = {
         oms.PeakPickerHiRes: 'centroided',
         oms.FeatureFindingMetabo: 'feature',
         oms.MapAlignmentAlgorithmPoseClustering: 'aligned',
@@ -297,13 +298,21 @@ class MethodPathHandler(session.Logger):
     def __init__(
             self,
             input_path,
-            method = None,
+            method_key = None,
             output_path = None,
         ):
         
         self.input_path = input_path
         self.output_path = output_path
-        self.method = method
+        self.method_key = method_key
+    
+    
+    def main(self):
+        
+        self.set_paths()
+    
+    
+    def set_paths(self):
         
         if not self.output_path:
             
@@ -341,7 +350,7 @@ class MethodPathHandler(session.Logger):
     
     def _set_output_path(self):
         
-        suffix = settings.get('%s_suffix' % self.method_key)
+        suffix = settings.get('%s_suffix' % self.method_key) or ''
         
         basename, ext = os.path.splitext(os.path.basename(self.input_path))
         
@@ -357,11 +366,9 @@ class MethodPathHandler(session.Logger):
     
     def _set_method_key(self):
         
-        self.method_key = (
-            self._methods[self.method]
-                if self.method in self._methods else
-            self.method
-        )
+        if not self.method_key and self.openms_method in self._method_keys:
+            
+            self.method_key = self._method_keys[self.openms_method]
     
     
     def _tell_paths(self):
@@ -374,6 +381,9 @@ class MethodPathHandler(session.Logger):
     
     
     def _check_paths(self):
+        """
+        Raising exception if input and output paths are identical.
+        """
         
         if self.input_path == self.output_path:
             
@@ -389,7 +399,64 @@ class MethodPathHandler(session.Logger):
             raise RuntimeError('Identical in/out path, please check the log.')
 
 
-class PeakPickerHiRes(MethodParamHandler, MethodPathHandler):
+class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
+    """
+    Generic base class for OpenMS method wrappers.
+    
+    Parameters
+    ----------
+    method : class
+        The OpenMS class.
+    """
+    
+    def __init__(
+            self,
+            method,
+            infile,
+            name = None,
+            outfile = None,
+            method_key = None,
+            **kwargs
+        ):
+        
+        session.Logger.__init__(self, name = name or 'openms_wrapper')
+        
+        self.openms_method = method
+        
+        MethodParamHandler.__init__(**kwargs)
+        
+        MethodPathHandler.__init__(
+            input_path = infile,
+            method = method_key,
+            output_path = outfile,
+        )
+    
+    
+    def main(self):
+        
+        self.create_instance()
+        self.setup()
+        self.set_paths()
+        self.run()
+    
+    
+    def create_instance(self):
+        
+        self.openms_obj = self.openms_method()
+        self._log(
+            '`%s.%s` instance created.' % (
+                self.openms_method.__module__,
+                self.openms_method.__name__
+            )
+        )
+    
+    
+    def run(self):
+        
+        pass
+
+
+class PeakPickerHiRes(OpenmsMethodWrapper):
     """
     Wrapper around ``pyopenms.PeakPickerHiRes``.
     
@@ -433,34 +500,20 @@ class PeakPickerHiRes(MethodParamHandler, MethodPathHandler):
             **kwargs,
         )
         self.setup()
+        MethodPathHandler.__init__(
+            input_path = infile,
+            method = self.openms_method.__class__,
+            output_path = outfile,
+        )
+        self.set_paths()
         self._log_name = 'peak_picker'
     
     
-    def __init__(self,
-                src = ".+\.mzML$",
-                dst = None,
-                suffix_dst_files = "_centroided",
-                ext_dst_files = "mzML",
-                **kwargs
-            ):
-
-        session.Logger.__init__(self, name = 'peak_picking')
-
-        self.src = src
-        self.dst = dst
-
-        self.suffix_dst_files = suffix_dst_files
-        self.ext_dst_files = ext_dst_files
-        self.kw = kwargs
-
-        self.init_entity(**self.kw)
-  
-
-    def init_entity(self, **kwargs):
-
-        self.pp = PPEntity(**kwargs)
-
-
+    def run(self):
+        
+        pass
+    
+    
     def main(self):
         #after path_parsing method we have self.src_full_name_list
         print("Peak Picking implementation")
