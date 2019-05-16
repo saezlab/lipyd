@@ -279,10 +279,26 @@ class MethodPathHandler(session.Logger):
     ----------
     input_path : str
         The path of the input file must be provided, otherwise this class
-        will do nothing.
+        will do nothing. In case of multiple input files you can provide
+        a list of paths or the directory containing the files.
     method_key : str,class
         Either an OpenMS class or a string label. Used to identify the
         method and look up the corresponding settings.
+    sample_id_method : callable
+        A method which generates sample identifier(s) from the input path(s).
+        If not provided, the file name without the extension will be used.
+    input_ext : str
+        In case of multiple input files only the files with this extension
+        (type) will be used.
+    input_filter : callable,str
+        A method which decides if an input file should be used. Should return
+        ``True`` if the file is to be used. Alternatively a regex as a string
+        which matches the desired input files.
+    
+    Attributes
+    ----------
+    multi_file_input : bool
+        Tells if the object has single or multiple input paths.
     """
     
     _method_keys = {
@@ -303,9 +319,13 @@ class MethodPathHandler(session.Logger):
             method_key = None,
             output_path = None,
             sample_id_method = None,
+            input_ext = None,
+            input_filter = None,
         ):
         
-        self.input_path = input_path
+        self._input_path = input_path
+        self._input_ext = input_ext
+        self._input_filter = input_filter
         self.output_path = output_path
         self.method_key = method_key
         self._sample_id_method = _sample_id_method
@@ -318,7 +338,7 @@ class MethodPathHandler(session.Logger):
     
     def set_paths(self):
         
-        if self.input_path:
+        if self._input_path:
             
             self._set_input_path()
             
@@ -335,7 +355,60 @@ class MethodPathHandler(session.Logger):
     
     def _set_input_path(self):
         
+        if isinstance(self._input_path, common.basestring):
+            
+            # check if this is a directory
+            if os.path.isdir(self._input_path):
+                
+                # look up all files in the directory
+                self._input_path = [
+                    os.path.join(self._input_path, fname)
+                    for fname in os.listdir(self._input_path)
+                ]
         
+        # if we have something else than a single existing file path
+        self.multi_file_input = not (
+            isinstance(self._input_path, common.basestring) and
+            os.path.exists(self._input_path)
+        )
+        
+        if self.multi_file_input:
+            
+            self._filter_input_paths()
+            # the `input_path` will be just the first file
+            # just to make it easier for the downstream methods
+            self.input_path = self._input_path[0]
+            
+        else:
+            
+            # the simple case when we have only one file
+            self.input_path = self._input_path
+    
+    
+    def _filter_input_paths(self):
+        
+        if isinstance(self._input_filter, common.basestring):
+            
+            refname = re.compile(self._input_filter)
+            
+            def _input_filter(path):
+                
+                return bool(refname.fullmatch(path))
+            
+            self._input_filter = _input_filter
+        
+        self._input_path = [
+            path
+            for path in self._input_path
+            if (
+                self._input_ext is None or
+                os.path.splitext()[1] == self._input_ext
+            ) and (
+                self._input_filter is None or
+                # this method recieves only the file name
+                self._input_filter(os.path.basename(path))
+            )
+        ]
     
     
     def _set_output_dir(self):
@@ -417,19 +490,35 @@ class MethodPathHandler(session.Logger):
     
     def _set_sample_id(self):
         
-        name = os.path.splitext(os.path.basename())
-        
-        if self._sample_id_method is None:
+        if self.multi_file_input:
             
-            self.sample_id = name
-            
-        elif callable(self._sample_id_method):
-            
-            self.sample_id = self._sample_id_method(name)
+            self.sample_id = [
+                self._get_sample_id(path)
+                for path in self.input_path
+            ]
             
         else:
             
-            self.sample_id = self._sample_id_method
+            self.sample_id = self._get_sample_id(self.input_path)
+    
+    
+    def _get_sample_id(self, path):
+        
+        name = os.path.splitext(os.path.basename(path))[0]
+        
+        if self._sample_id_method is None:
+            
+            sample_id = name
+            
+        elif callable(self._sample_id_method):
+            
+            sample_id = self._sample_id_method(name)
+            
+        else:
+            
+            sample_id = self._sample_id_method
+        
+        return sample_id
 
 
 class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
@@ -527,7 +616,7 @@ class PeakPickerHiRes(OpenmsMethodWrapper):
         The output file can be set directly this way. Alternatively see
         the built in path handling parameters in `settings`.
     **kwargs
-        Settings passed to OpenMS (`pyopenms.PeakPickerHiRes`).
+        Settings passed directly to ``pyopenms.PeakPickerHiRes``.
     """
     
     
