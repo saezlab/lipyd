@@ -593,27 +593,27 @@ _defaults = {
     # input directory; otherwise it goes to the
     # working directory; but only if `output_path_root`
     # is None;
-    'output_to_data_dir': True,
+    'output_to_input_dir': True,
     # create a separate directory for all output from
     # this software (if None or empty, no directory created)
     'lipyd_wd': 'lipyd_data',
     # create a separate directory for the centroided data
     # if None or empty, no such directory created but
     # the files will be saved directly into the output path
-    'centroided_data_dir': 'centroided',
+    'centroided_dir': 'centroided',
     # insert a suffix into the file names of the centroided
     # data; warning: with no suffix and no separate output
     # directory you might overwrite the input data, but
     # this will halt the processing with error
-    'centroided_data_suffix': '__centroided',
+    'centroided_suffix': '__centroided',
     # same as above but for assembled features data
-    'feature_data_dir': 'features',
+    'feature_dir': 'features',
     # similarly as above
-    'feature_data_suffix': '__features',
+    'feature_suffix': '__features',
     # same as above but for aligned map data
-    'aligned_data_dir': 'aligned',
+    'aligned_dir': 'aligned',
     # same as above
-    'aligned_data_suffix': '__aligned',
+    'aligned_suffix': '__aligned',
 }
 
 in_basedir = [

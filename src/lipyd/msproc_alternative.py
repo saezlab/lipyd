@@ -279,7 +279,117 @@ class MethodParamHandler(session.Logger):
                 self._module_param.update(settings.get(key))
 
 
-class PeakPickerHiRes(MethodParamHandler):
+class MethodPathHandler(session.Logger):
+    
+    
+    _methods = {
+        oms.PeakPickerHiRes: 'centroided',
+        oms.FeatureFindingMetabo: 'feature',
+        oms.MapAlignmentAlgorithmPoseClustering: 'aligned',
+    }
+    _outexts = {
+        'centroided': 'mzML',
+        'feature': 'featureXML',
+        'aligned': 'featureXML',
+    }
+    
+    
+    def __init__(
+            self,
+            input_path,
+            method = None,
+            output_path = None,
+        ):
+        
+        self.input_path = input_path
+        self.output_path = output_path
+        self.method = method
+        
+        if not self.output_path:
+            
+            self._set_method_key()
+            self._set_output_dir()
+            self._set_output_path()
+        
+        self._tell_paths()
+        self._check_paths()
+    
+    
+    def _set_output_dir(self):
+        
+        output_root = (
+            # 1: output path explicitely set
+            settings.get('output_path_root') or (
+                # 2: it's set to be in the input dir
+                os.path.dirname(self.input_path)
+                    if settings.get('') else
+                # 3: by default in current wd
+                os.getcwd('output_to_input_dir')
+            )
+        )
+        
+        lipyd_wd = settings.get('lipyd_wd') or ''
+        
+        method_wd = settings.get('%s_dir' % self.method_key)
+        
+        self.output_dir = os.path.join(
+            output_root,
+            lipyd_wd,
+            method_wd,
+        )
+    
+    
+    def _set_output_path(self):
+        
+        suffix = settings.get('%s_suffix' % self.method_key)
+        
+        basename, ext = os.path.splitext(os.path.basename(self.input_path))
+        
+        outext = (
+            self._outexts[self.method_key]
+                if self.method_key in self._outexts else
+            'mzML'
+        )
+        self.outfile = '%s%s.%s' % (basename, suffix, outext)
+        
+        self.output_path = os.path.join(self.output_dir, self.outfile)
+    
+    
+    def _set_method_key(self):
+        
+        self.method_key = (
+            self._methods[self.method]
+                if self.method in self._methods else
+            self.method
+        )
+    
+    
+    def _tell_paths(self):
+        """
+        Writes the paths to the log.
+        """
+        
+        self._log('Reading input from `%s`.' % self.input_path)
+        self._log('Writing output to `%s`.' % self.output_path)
+    
+    
+    def _check_paths(self):
+        
+        if self.input_path == self.output_path:
+            
+            self._log(
+                'The input and output files are identical: `%s`. '
+                'You can set different output path either directly '
+                'providing the `output_path` argument or changing '
+                'parameters by the `lipyd.settings` module.' % (
+                    self.output_path
+                )
+            )
+            
+            raise RuntimeError('Identical in/out path, please check the log.')
+
+
+class PeakPickerHiRes(MethodParamHandler, MethodPathHandler):
     """
     Wrapper around ``pyopenms.PeakPickerHiRes``.
     
@@ -301,31 +411,13 @@ class PeakPickerHiRes(MethodParamHandler):
 
     Parameters
     ----------
-    src : str
-        Source directory consists source file(s)
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    logger:   
-        System variable for tracking
-
-    Attributes
-    ----------
-    src : str
-        Source directory consists source file(s)  
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    kw : obj
-        Additional arguments
-
-
+    infile : str
+        Input file mzML with profile data.
+    outfile : str
+        The output file can be set directly this way. Alternatively see
+        the built in path handling parameters in `settings`.
+    **kwargs
+        Settings passed to OpenMS (`pyopenms.PeakPickerHiRes`).
     """
     
     
