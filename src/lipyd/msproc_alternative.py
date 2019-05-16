@@ -278,9 +278,11 @@ class MethodPathHandler(session.Logger):
     Parameters
     ----------
     input_path : str
-        The path to the input file must be provided.
+        The path of the input file must be provided, otherwise this class
+        will do nothing.
     method_key : str,class
-        Either 
+        Either an OpenMS class or a string label. Used to identify the
+        method and look up the corresponding settings.
     """
     
     _method_keys = {
@@ -297,7 +299,7 @@ class MethodPathHandler(session.Logger):
     
     def __init__(
             self,
-            input_path,
+            input_path = None,
             method_key = None,
             output_path = None,
             sample_id_method = None,
@@ -316,15 +318,24 @@ class MethodPathHandler(session.Logger):
     
     def set_paths(self):
         
-        if not self.output_path:
+        if self.input_path:
             
-            self._set_method_key()
-            self._set_output_dir()
-            self._set_output_path()
+            self._set_input_path()
+            
+            if not self.output_path:
+                
+                self._set_method_key()
+                self._set_output_dir()
+                self._set_output_path()
+            
+            self._tell_paths()
+            self._check_paths()
+            self._set_sample_id()
+    
+    
+    def _set_input_path(self):
         
-        self._tell_paths()
-        self._check_paths()
-        self._set_sample_id()
+        
     
     
     def _set_output_dir(self):
@@ -429,12 +440,22 @@ class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
     ----------
     method : class
         The OpenMS class.
+    infile : str
+        The input file must be provided, otherwise no input and output
+        assumed and only the parameters will be set.
+    name : str
+        A name for this method, will appear in the log.
+    outfile : str
+        Output path provided directly. Otherwise will be set according to
+        the current settings.
+    method_key : str
+        
     """
     
     def __init__(
             self,
             method,
-            infile,
+            infile = None,
             name = None,
             outfile = None,
             method_key = None,
@@ -468,7 +489,7 @@ class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
         self._log(
             '`%s.%s` instance created.' % (
                 self.openms_method.__module__,
-                self.openms_method.__name__
+                self.openms_method.__name__,
             )
         )
     
@@ -519,6 +540,7 @@ class PeakPickerHiRes(OpenmsMethodWrapper):
         
         OpenmsMethodWrapper.__init__(
             self,
+            method = oms.PeakPickerHiRes,
             infile = infile,
             outfile = outfile,
             name = 'peak_picker',
@@ -544,7 +566,7 @@ class PeakPickerHiRes(OpenmsMethodWrapper):
         )
 
 
-class MassTraceDetection(MethodParamHandler):
+class MassTraceDetection(OpenmsMethodWrapper):
     """
     Wrapper around ``pyopenms.MassTraceDetection``.
     """
@@ -552,45 +574,95 @@ class MassTraceDetection(MethodParamHandler):
     
     def __init__(self, **kwargs):
         
-        MethodParamHandler.__init__(
-            openms_method = oms.MassTraceDetection(),
-            **kwargs,
+        OpenmsMethodWrapper.__init__(
+            self,
+            method = oms.MassTraceDetection,
+            name = 'mass_trace_detection',
         )
-        self.setup()
-        self._log_name = 'mass_trace_detection'
 
 
-class EpdEntity(MethodParamHandler):
+class ElutionPeakDetection(OpenmsMethodWrapper):
     """
-    Wrapper around ``oms.ElutionPeakDetection``.
+    Wrapper around ``pyopenms.ElutionPeakDetection``.
     """
     
     
     def __init__(self, **kwargs):
         
-        super(EpdEntity, self).__init__(
-            oms.ElutionPeakDetection(),
-            **kwargs,
+        OpenmsMethodWrapper.__init__(
+            self,
+            method = oms.ElutionPeakDetection,
+            name = 'elution_peak_detection',
         )
 
 
-class FfmEntity(MethodParamHandler):
+class FeatureFindingMetabo(OpenmsMethodWrapper):
     """
-    Wrapper around ``oms.FeatureFindingMetabo()``.
+    Wrapper around ``pyopenms.FeatureFindingMetabo()``.
+    
+    Parameters
+    ----------
+    input_dir : str,list
+        Path to the directory with the centroided data. In this case all
+        mzML files in this directory will be used. Alternatively a list
+        of file paths, e.g. ``['a.mzML', 'b.mzML', 'c.mzML']``.
+    output_file : str
+        The output file where the features will be saved in ``featureXML``
+        format. If not provided it will be set according to the current
+        settings.
+    mass_trace_detection_param : dict
+        Parameters directly for the ``pyopenms.MassTraceDetection`` class.
+    elution_peak_detection_param : dict
+        Parameters directly for the ``pyopenms.ElutionPeakDetection`` class.
+    feature_finding_metabo_param : dict
+        Parameters directly for the ``pyopenms.FeatureFindingMetabo`` class.
+    **kwargs
+        Common parameters will be passed to all of the OpenMS methods above.
     """
     
     
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        input_dir,
+        output_file = None,
+        mass_trace_detection_param = None,
+        elution_peak_detection_param = None,
+        feature_finding_metabo_param = None,
+        **kwargs
+    ):
         
-        super(FfmEntity, self).__init__(
-            oms.FeatureFindingMetabo(),
-            **kwargs,
+        self.mass_trace_detection_param = (
+            self._combine_param(kwargs, mass_trace_detection_param)
         )
+        self.elution_peak_detection_param = (
+            self._combine_param(kwargs, elution_peak_detection_param)
+        )
+        self.feature_finding_metabo_param = (
+            self._combine_param(kwargs, feature_finding_metabo_param)
+        )
+        
+        OpenmsMethodWrapper.__init__(
+            self,
+            method = oms.FeatureFindingMetabo,
+            infile = input_dir,
+            outfile = output_file,
+            name = 'feature_finding_metabo',
+            **self.feature_finding_metabo_param,
+        )
+    
+    
+    @staticmethod
+    def _combine_param(common_param, param):
+        
+        combined_param = copy.deepcopy(kwargs) or {}
+        combined_param.update(param or {})
+        
+        return combined_param
 
 
-class MAEntity(MethodParamHandler):
+class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     """
-    Wrapper around ``oms.MapAlignmentAlgorithmPoseClustering``.
+    Wrapper around ``pyopenms.MapAlignmentAlgorithmPoseClustering``.
     """
     
     
