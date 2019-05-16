@@ -14,7 +14,7 @@
 #  See accompanying file LICENSE.txt or copy at
 #      http://www.gnu.org/licenses/gpl-3.0.html
 #
-#  Website: http://denes.omnipathdb.org/
+#  Website: https://saezlab.github.io/lipyd
 #
 
 from future.utils import iteritems
@@ -29,58 +29,6 @@ import pyopenms as oms
 import lipyd.session as session
 import lipyd.common as common
 import lipyd.settings as settings
-
-
-def convert_src_to_dst_file_name(src, dst, suffix_dst_files, ext_dst_files):
-    """
-    Global function to transform source directory to destination directory
-    """
-    
-    file_name = os.path.splitext( os.path.basename(src) )[0] # get file name only;
-    file_name += suffix_dst_files # add suffix;
-    if ext_dst_files:
-        #add dot in front of ext if dot is not present:
-        ext_dst_files = ("."+ext_dst_files) \
-            if ext_dst_files[0] != "." else ext_dst_files
-    else:
-        ext_dst_files = "" #empty ext;
-    dst_file_name = file_name + ext_dst_files
-    
-    return dst_file_name    #dst file name without dst dir name;
-
-
-def get_list_full_names(src):
-    """
-    Global function for getting full names from list
-    """
-    
-    src_full_name_list = []                # list of src full file name;
-    src_dir = os.path.dirname(src)         # get dir name from src file name;
-    src_dir = src_dir if src_dir else os.getcwd() # if src dir name is empty
-                                                  # get current dir name;
-    pattern = os.path.basename(src)        # get file name as pattern;
-    pattern = pattern if pattern != "" else ".*" # if pattern is empty
-                                                 # set any char pattern;
-    
-    for file_name in os.listdir(src_dir): # for all file name in src dir:
-        full_file_name = os.path.join(src_dir, file_name) # to build full
-                                                          # file name;
-        if os.path.isfile( full_file_name ): # only for files,
-                                             # except dir name;
-            match = None    # results re match
-
-            try:            # try to compile patern:
-                rec = re.compile(pattern)
-                match = rec.match(file_name)    # apply pattern to file name
-            except re.error as e:
-                raise RuntimeError("Match pattern error.") # raise exeption
-                                                           # if regex does
-                                                           # not match
-            
-            if match:       # if result of re match is ok
-                src_full_name_list.append(full_file_name)
-
-    return src_full_name_list
 
 
 class MethodParamHandler(session.Logger):
