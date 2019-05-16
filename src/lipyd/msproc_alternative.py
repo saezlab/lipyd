@@ -300,11 +300,13 @@ class MethodPathHandler(session.Logger):
             input_path,
             method_key = None,
             output_path = None,
+            sample_id_method = None,
         ):
         
         self.input_path = input_path
         self.output_path = output_path
         self.method_key = method_key
+        self._sample_id_method = _sample_id_method
     
     
     def main(self):
@@ -322,6 +324,7 @@ class MethodPathHandler(session.Logger):
         
         self._tell_paths()
         self._check_paths()
+        self._set_sample_id()
     
     
     def _set_output_dir(self):
@@ -352,14 +355,16 @@ class MethodPathHandler(session.Logger):
         
         suffix = settings.get('%s_suffix' % self.method_key) or ''
         
-        basename, ext = os.path.splitext(os.path.basename(self.input_path))
+        self._input_basename, ext = (
+            os.path.splitext(os.path.basename(self.input_path))
+        )
         
         outext = (
             self._outexts[self.method_key]
                 if self.method_key in self._outexts else
             'mzML'
         )
-        self.outfile = '%s%s.%s' % (basename, suffix, outext)
+        self.outfile = '%s%s.%s' % (self._input_basename, suffix, outext)
         
         self.output_path = os.path.join(self.output_dir, self.outfile)
     
@@ -397,6 +402,23 @@ class MethodPathHandler(session.Logger):
             )
             
             raise RuntimeError('Identical in/out path, please check the log.')
+    
+    
+    def _set_sample_id(self):
+        
+        name = os.path.splitext(os.path.basename())
+        
+        if self._sample_id_method is None:
+            
+            self.sample_id = name
+            
+        elif callable(self._sample_id_method):
+            
+            self.sample_id = self._sample_id_method(name)
+            
+        else:
+            
+            self.sample_id = self._sample_id_method
 
 
 class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
