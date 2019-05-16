@@ -556,13 +556,12 @@ _defaults = {
     'cachedir': None,
     # use only MS2 scans within the RT range of the feature
     'ms2_check_rt': True,
-    'ms_preproc_wd': 'lipyd_ms_preproc',
     'log_flush_interval': 2,
     'console_verbosity': -1,
     'log_verbosity': 0,
     # priority of databases at name to mass lookups in moldb
     'database_preference': ('lipyd.lipid', 'SwissLipids', 'LipidMaps'),
-    'map_aligner_param': None,
+    # lipyd specific defaults for OpenMS methods
     'peak_picking_param': {
         'signal_to_noise': 1.0,
     },
@@ -587,6 +586,34 @@ _defaults = {
     'map_alignement_param': {
         'max_num_peaks_considered': 990,
     },
+    # where to save intermediary and result files:
+    # the root directory for all the output
+    'output_path_root': None,
+    # if True, the output will be written to the
+    # input directory; otherwise it goes to the
+    # working directory; but only if `output_path_root`
+    # is None;
+    'output_to_data_dir': True,
+    # create a separate directory for all output from
+    # this software (if None or empty, no directory created)
+    'lipyd_wd': 'lipyd_data',
+    # create a separate directory for the centroided data
+    # if None or empty, no such directory created but
+    # the files will be saved directly into the output path
+    'centroided_data_dir': 'centroided',
+    # insert a suffix into the file names of the centroided
+    # data; warning: with no suffix and no separate output
+    # directory you might overwrite the input data, but
+    # this will halt the processing with error
+    'centroided_data_suffix': '__centroided',
+    # same as above but for assembled features data
+    'feature_data_dir': 'features',
+    # similarly as above
+    'feature_data_suffix': '__features',
+    # same as above but for aligned map data
+    'aligned_data_dir': 'aligned',
+    # same as above
+    'aligned_data_suffix': '__aligned',
 }
 
 in_basedir = [

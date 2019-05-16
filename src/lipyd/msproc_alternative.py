@@ -329,7 +329,12 @@ class PeakPickerHiRes(MethodParamHandler):
     """
     
     
-    def __init__(self, **kwargs):
+    def __init__(
+            self,
+            infile,
+            outfile = None,
+            **kwargs,
+        ):
         
         MethodParamHandler.__init__(
             openms_method = oms.PeakPickerHiRes(),
@@ -351,7 +356,6 @@ class PeakPickerHiRes(MethodParamHandler):
 
         self.src = src
         self.dst = dst
-        #self.log = log
 
         self.suffix_dst_files = suffix_dst_files
         self.ext_dst_files = ext_dst_files
