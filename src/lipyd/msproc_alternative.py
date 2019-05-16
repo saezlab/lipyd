@@ -851,12 +851,111 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     Bigger values prolong computation, smaller values might lead to no or
     unstable trafos. Set to -1 to use all features (might take very long for
     large maps).
+    
+    Parameters
+    ----------
+    input_file : str
+        Path to a featureXML file.
+    input_map : pyopenms.FeatureMap
+        A``pyopenms.FeatureMap`` object. If provided, the data will be used
+        from this instead of reading from ``input_file``. In this case
+        ``input_file`` can be even ``None`` if ``output_file`` provided.
+        Otherwise ``input_file`` will be used to create the ``output_file``
+        path and name.
+    output_file : str
+        The output featureCML file where the aligned features will be saved
+        If not provided it will be set according to the current settings.
+    reference_file : str
+        Path to the reference featureXML. The features will be aligned to
+        this map.
+    reference_map : pyopenms.FeatureMap
+        A ``FeatureMap`` object instead of the file above. This way the
+        reference features do not need to be read again.
+    **kwargs
+        Passed directly to ``pyopenms.MapAlignmentAlgorithmPoseClustering``.
     """
     
     
-    def __init__(self, **kwargs):
+    def __init__(
+            self,
+            input_file = None,
+            input_map = None,
+            output_file = None,
+            reference_file = None,
+            reference_map = None,
+            **kwargs
+        ):
         
-        OpenmsMethodWrapper.__init__(self)
+        OpenmsMethodWrapper.__init__(
+            self,
+            input_file = input_file,
+            output_file = output_file,
+            **kwargs,
+        )
+        
+        self.input_map = input_map
+        self.reference_map = reference_map
+    
+    
+    def run(self):
+        
+        self.read_input()
+        self.read_reference()
+        self.align()
+        self.write()
+    
+    
+    def read_input(self):
+        
+        self._log('Obtaining input feature map.')
+        
+        self.input_map = self.read(
+            path = self.input_path,
+            mapobject = self.input_map,
+        )
+    
+    
+    def read_reference(self):
+        
+        self._log('Obtaining reference feature map.')
+        
+        self.reference_map = self.read(
+            path = self.reference_path,
+            mapobject = self.reference_map,
+        )
+    
+    
+    def read(self, path, mapobject):
+        
+        if not isinstance(mapobject, oms.FeatureMap):
+            
+            mapobject = oms.FeatureMap()
+            oms.FeatureXMLFile().load(path, mapobject)
+            self._log('Feature map has been read from `%s`.' % path)
+            
+        else:
+            
+            self._log('Using the provided `pyopenms.FeatureMap` object.')
+        
+        return mapobject
+    
+    
+    def align(self):
+        
+        # set reference_map file
+        self.openms_obj.setReference(self.reference_map)
+        # create object for the computed transformation
+        self.transformation = oms.TransformationDescription()
+        # do the alignment
+        self.openms_obj.align(self.input_map, self.transformation)
+    
+    
+    def write(self):
+        
+        oms.FeatureXMLFile().store(self.output_path, self.output_map)
+        self._log(
+            'Aligned features have been written to `%s`.' % self.output_path
+        )
 
 
 class MapAlignment(session.Logger):
