@@ -50,7 +50,9 @@ class MethodParamHandler(session.Logger):
     
     
     _module_param_keys = {
-        oms.PeakPickerHiRes: 'peak_picking_param',
+        oms.PeakPickerHiRes: (
+            'peak_picking_param',
+        ),
         oms.ElutionPeakDetection: (
             'feature_finding_common_param',
             'elution_peak_detection_param',
@@ -63,11 +65,18 @@ class MethodParamHandler(session.Logger):
             'feature_finding_common_param',
             'feature_finding_metabo_param',
         ),
-        oms.MapAlignmentAlgorithmPoseClustering: 'map_alignment_param',
+        oms.MapAlignmentAlgorithmPoseClustering: (
+            'map_alignment_param',
+        ),
     }
     
     
-    def __init__(self, name = 'param_handler', **kwargs):
+    def __init__(
+            self,
+            openms_method,
+            name = 'param_handler',
+            **kwargs
+        ):
         
         # most of the times log initialized in the OpenmsMethodWrapper
         if not hasattr(self, '_log_name'):
@@ -120,7 +129,7 @@ class MethodParamHandler(session.Logger):
         
         self.param.update(self._openms_defaults)
         self.param.update(_module_param)
-        self.param.update(_kwarg_param)
+        self.param.update(_kwargs_param)
     
     
     def set_param(self):
@@ -137,8 +146,8 @@ class MethodParamHandler(session.Logger):
             
             self._log(
                 'Parameter `{}` of `{}` set to `{}`.'.format(
-                    common.ensure_unicode(name),
-                    self.openms_obj_name,
+                    common.ensure_unicode(key),
+                    self.openms_object_type,
                     common.ensure_unicode(value),
                 ),
                 1,
@@ -178,8 +187,7 @@ class MethodParamHandler(session.Logger):
             return value
     
     
-    @staticmethod
-    def process_param_dict(param):
+    def process_param_dict(self, param):
         """
         Makes sure all keys and values in the dict are byte strings or
         numeric.
@@ -214,16 +222,16 @@ class MethodParamHandler(session.Logger):
         
         if self.openms_method in self._module_param_keys:
             
-            self._log(
-                'Could not find settings key for OpenMS '
-                'object type `%s`.' % self.openms_obj_name
-            )
-            
-        else:
-            
             for key in self._module_param_keys[self.openms_method]:
                 
                 self._module_param.update(settings.get(key))
+            
+        else:
+            
+            self._log(
+                'Could not find settings key for OpenMS '
+                'object type `%s`.' % self.openms_object_type
+            )
 
 
 class MethodPathHandler(session.Logger):
@@ -291,7 +299,7 @@ class MethodPathHandler(session.Logger):
         self._input_filter = input_filter
         self.output_path = output_path
         self.method_key = method_key
-        self._sample_id_method = _sample_id_method
+        self._sample_id_method = sample_id_method
         self.sample_id = sample_id
     
     
@@ -538,12 +546,17 @@ class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
         
         self.openms_method = method
         
-        MethodParamHandler.__init__(**kwargs)
+        MethodParamHandler.__init__(
+            self,
+            openms_method = method,
+            **kwargs
+        )
         
         MethodPathHandler.__init__(
+            self,
             input_path = input_path,
             input_obj = input_obj,
-            method = method_key,
+            method_key = method_key,
             output_path = output_path,
             sample_id = sample_id,
             sample_id_method = sample_id_method,
@@ -1152,7 +1165,7 @@ class MSPreprocess(MethodPathHandler):
     )
     _classes = {
         'peak_picking': PeakPickerHiRes,
-        'feature_finding': FeatureFinderMetabo,
+        'feature_finding': FeatureFindingMetabo,
         'map_alignment': MapAlignmentAlgorithmPoseClustering,
         'feature_grouping': FeatureGroupingAlgorithmKD,
     }

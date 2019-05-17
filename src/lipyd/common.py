@@ -650,11 +650,14 @@ def ensure_array(arr):
 
 def _is_numeric(value, regex):
     
-    if hasattr(value, decode):
+    if hasattr(value, 'decode'):
         
         value = value.decode()
     
-    return regex.fullmatch(value) is not None
+    return (
+        isinstance(value, basestring) and
+        regex.fullmatch(value) is not None
+    )
 
 
 def is_int(value):

@@ -564,6 +564,7 @@ _defaults = {
     # lipyd specific defaults for OpenMS methods
     'peak_picking_param': {
         'signal_to_noise': 1.0,
+        'ms_levels': [1, 2],
     },
     'feature_finding_common_param': {
         'noise_threshold_int': 9.0,
