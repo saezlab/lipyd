@@ -273,6 +273,7 @@ class MethodPathHandler(session.Logger):
             input_obj = None,
             method_key = None,
             output_path = None,
+            sample_id = None,
             sample_id_method = None,
             input_ext = None,
             input_filter = None,
@@ -291,6 +292,7 @@ class MethodPathHandler(session.Logger):
         self.output_path = output_path
         self.method_key = method_key
         self._sample_id_method = _sample_id_method
+        self.sample_id = sample_id
     
     
     def main(self):
@@ -303,6 +305,7 @@ class MethodPathHandler(session.Logger):
         if self._input_path:
             
             self._set_input_path()
+            self._set_sample_id()
             
             if not self.output_path:
                 
@@ -313,7 +316,6 @@ class MethodPathHandler(session.Logger):
             self._create_output_dir()
             self._tell_paths()
             self._check_paths()
-            self._set_sample_id()
     
     
     def _set_input_path(self):
@@ -381,7 +383,7 @@ class MethodPathHandler(session.Logger):
             settings.get('output_path_root') or (
                 # 2: it's set to be in the input dir
                 os.path.dirname(self.input_path)
-                    if settings.get('') else
+                    if settings.get('output_to_input_dir') else
                 # 3: by default in current wd
                 os.getcwd('output_to_input_dir')
             )
@@ -389,7 +391,7 @@ class MethodPathHandler(session.Logger):
         
         lipyd_wd = settings.get('lipyd_wd') or ''
         
-        method_wd = settings.get('%s_dir' % self.method_key)
+        method_wd = settings.get('%s_dir' % self.method_key) or ''
         
         self.output_dir = os.path.join(
             output_root,
@@ -407,9 +409,15 @@ class MethodPathHandler(session.Logger):
         
         suffix = settings.get('%s_suffix' % self.method_key) or ''
         
-        self._input_basename, ext = (
-            os.path.splitext(os.path.basename(self.input_path))
-        )
+        if isinstance(self.input_path, common.basestring):
+            
+            self._input_basename, ext = (
+                os.path.splitext(os.path.basename(self.input_path))
+            )
+            
+        else:
+            
+            self._input_basename = self.sample_id
         
         outext = (
             self._outexts[self.method_key]
@@ -458,21 +466,25 @@ class MethodPathHandler(session.Logger):
     
     def _set_sample_id(self):
         
-        if self.multi_file_input:
+        if not self.sample_id:
             
-            self.sample_id = [
-                self._get_sample_id(path)
-                for path in self.input_path
-            ]
-            
-        else:
-            
-            self.sample_id = self._get_sample_id(self.input_path)
+            if self.multi_file_input:
+                
+                self.sample_id = [
+                    self._get_sample_id(path)
+                    for path in self.input_path
+                ]
+                
+            else:
+                
+                self.sample_id = self._get_sample_id(self.input_path)
     
     
     def _get_sample_id(self, path):
         
-        name = os.path.splitext(os.path.basename(path))[0]
+        if path:
+            
+            name = os.path.splitext(os.path.basename(path))[0]
         
         if self._sample_id_method is None:
             
@@ -517,6 +529,8 @@ class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
             name = None,
             output_path = None,
             method_key = None,
+            sample_id = None,
+            sample_id_method = None,
             **kwargs
         ):
         
@@ -531,6 +545,8 @@ class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
             input_obj = input_obj,
             method = method_key,
             output_path = output_path,
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
         )
     
     
@@ -600,6 +616,8 @@ class PeakPickerHiRes(OpenmsMethodWrapper):
             input_path = None,
             input_obj = None,
             output_path = None,
+            sample_id = None,
+            sample_id_method = None,
             **kwargs,
         ):
         
@@ -610,6 +628,8 @@ class PeakPickerHiRes(OpenmsMethodWrapper):
             input_obj = input_obj,
             output_path = output_path,
             name = 'peak_picker',
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
             **kwargs
         )
     
@@ -717,6 +737,8 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         input_file = None,
         input_map = None,
         output_file = None,
+        sample_id = None,
+        sample_id_method = None,
         mass_trace_detection_param = None,
         elution_peak_detection_param = None,
         feature_finding_metabo_param = None,
@@ -746,6 +768,8 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
             infile = input_file,
             outfile = output_file,
             name = 'feature_finding_metabo',
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
             **self.feature_finding_metabo_param,
         )
     
@@ -880,6 +904,8 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
             output_file = None,
             reference_file = None,
             reference_map = None,
+            sample_id = None,
+            sample_id_method = None,
             **kwargs
         ):
         
@@ -887,6 +913,9 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
             self,
             input_file = input_file,
             output_file = output_file,
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
+            name = 'map_aligner',
             **kwargs,
         )
         
@@ -971,6 +1000,8 @@ class MgfExport(MethodPathHandler):
         input_file = None,
         input_data = None,
         output_file = None,
+        sample_id = None,
+        sample_id_method = None,
     ):
         
         MethodPathHandler.__init__(
@@ -978,6 +1009,8 @@ class MgfExport(MethodPathHandler):
             output_file = output_file,
             name = 'mgf_export',
             method_key = 'mgf_export',
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
         )
         
         self.data = input_data
@@ -1086,22 +1119,19 @@ class MSPreprocess(MethodPathHandler):
     ----------
     force : set
         A set of steps which must be done no matter if the output of a later
-        stage is available.
+        stage is available. E.g. ``{'peak_picking'}``.
+    stop : str
+        A step where the workflow has to stop. E.g. if it's
+        ``feature_finding``, the last step executed will be
+        ``feature_finding``.
     """
     
     _steps = (
-        'profile',
-        'centroided',
-        'features',
-        'features_aligned',
-        'features_grouped',
+        ('profile', 'centroided', 'peak_picking'),
+        ('centroided', 'features', 'feature_finding'),
+        ('features', 'features_aligned', 'map_alignment'),
+        ('features_aligned', 'features_grouped', 'feature_grouping'),
     )
-    _provides = {
-        'centroided': 'peak_picking',
-        'features': 'feature_finding',
-        'features_aligned': 'map_alignment',
-        'features_grouped': 'feature_grouping',
-    }
     
     
     def __init__(
@@ -1111,6 +1141,7 @@ class MSPreprocess(MethodPathHandler):
         centroided = None,
         features = None,
         features_aligned = None,
+        features_grouped = None,
         # further parameters for input/output
         output_path = None,
         sample_id_method = None,
@@ -1127,6 +1158,7 @@ class MSPreprocess(MethodPathHandler):
         feature_grouping_param = None,
         # workflow parameters
         force = None,
+        stop = None,
         # nothing
         **kwargs
     ):
@@ -1138,11 +1170,17 @@ class MSPreprocess(MethodPathHandler):
         self.elution_peak_detection_param = elution_peak_detection_param or {}
         self.feature_finding_metabo_param = feature_finding_metabo_param or {}
         self.feature_finding_common_param = feature_finding_common_param or {}
+        self.feature_finding_
         self.map_alignment_param = map_alignment_param or {}
         self.feature_grouping_param = feature_grouping_param or {}
         
         self.sample_ids = sample_ids
         self.force = force or set()
+        self.profile = profile
+        self.centroided = centroided
+        self.features = features
+        self.features_aligned = features_aligned
+        self.features_grouped = features_grouped
         
         self.MethodPathHandler.__init__(
             self,
@@ -1169,31 +1207,40 @@ class MSPreprocess(MethodPathHandler):
     
     def main(self):
         
-        if not hasattr(self, 'centroided') or 'peak_picking' in self.force:
-            
-            self.peak_picking()
+        self.workflow()
+    
+    
+    def workflow(self):
         
-        if not hasattr(self, 'features0') or 'feature_finding' in self.force:
+        for source, result, method in self._steps:
             
-            self.feature_finding()
+            if not getattr(self, result) or method in self.force:
+                
+                self._log('Next step in workflow: `%s`.' % method)
+                getattr(self, method)()
+            
+            if method == self.stop:
+                
+                break
     
     
     def peak_picking(self):
         
         self.centroided = []
         
-        for resource in self._input:
+        for resource in self.profile:
             
             self.peak_picking_param[self._input_arg] = resource
             
             peak_picker = PeakPickerHiRes(**self.peak_picking_param)
             peak_picker.main()
             self.centroided.append(peak_picker.output_map)
+            del self.peak_picking_param[self._input_arg]
     
     
     def feature_finding(self):
         
-        self.features0 = []
+        self.features = []
         
         for resource in self.
 
