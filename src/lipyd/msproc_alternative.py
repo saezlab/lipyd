@@ -1108,6 +1108,17 @@ class MgfExport(MethodPathHandler):
                 )
 
 
+class FeatureGroupingAlgorithmKD(OpenmsMethodWrapper):
+    """
+    Wrapper around ``pyopenms.FeatureGroupingAlgorithmKD``.
+    """
+    
+    
+    def __init__(self):
+        
+        pass
+
+
 class MSPreprocess(MethodPathHandler):
     """
     
@@ -1132,6 +1143,19 @@ class MSPreprocess(MethodPathHandler):
         ('features', 'features_aligned', 'map_alignment'),
         ('features_aligned', 'features_grouped', 'feature_grouping'),
     )
+    _step_data = dict(
+        (
+            method,
+            (source, target)
+        )
+        for source, target, method in _steps
+    )
+    _classes = {
+        'peak_picking': PeakPickerHiRes,
+        'feature_finding': FeatureFinderMetabo,
+        'map_alignment': MapAlignmentAlgorithmPoseClustering,
+        'feature_grouping': FeatureGroupingAlgorithmKD,
+    }
     
     
     def __init__(
@@ -1144,8 +1168,8 @@ class MSPreprocess(MethodPathHandler):
         features_grouped = None,
         # further parameters for input/output
         output_path = None,
-        sample_id_method = None,
         sample_ids = None,
+        sample_id_method = None,
         input_ext = None,
         input_filter = None,
         # parameters for each step
@@ -1221,28 +1245,62 @@ class MSPreprocess(MethodPathHandler):
             
             if method == self.stop:
                 
+                self._log('Stopping after step `%s`.' % method)
                 break
+    
+    
+    def _step_base(self, method):
+        
+        source_name, target_name = self._step_data[method]
+        source = getattr(self, source_name)
+        target = []
+        _class = self._classes[method]
+        param = getattr(self, '%s_param' % method)
+        
+        sample_ids_in = self.sample_ids or [None] * len(source)
+        sample_ids_out = []
+        
+        for resource, sample_id in zip(source, sample_ids_in):
+            
+            param = copy.deepcopy(param)
+            param[self._input_arg] = resource
+            param['sample_id'] = sample_id
+            
+            worker = _class(**param)
+            worker.main()
+            target.append(worker.output_map)
+            sample_ids_out.append(worker.sample_id)
+        
+        self.result = target
+        setattr(self, target_name, target)
+        # if we already had sample IDs in the previous step
+        # they will just pass through
+        self.sample_ids = sample_ids_out
     
     
     def peak_picking(self):
         
-        self.centroided = []
-        
-        for resource in self.profile:
-            
-            self.peak_picking_param[self._input_arg] = resource
-            
-            peak_picker = PeakPickerHiRes(**self.peak_picking_param)
-            peak_picker.main()
-            self.centroided.append(peak_picker.output_map)
-            del self.peak_picking_param[self._input_arg]
+        self._step_base(method = 'peak_picking')
     
     
     def feature_finding(self):
         
-        self.features = []
+        self._step_base(method = 'feature_finding')
+    
+    
+    def map_alignment(self):
         
-        for resource in self.
+        self._step_base(method = 'map_alignment')
+    
+    
+    def feature_grouping(self):
+        
+        self._step_base(method = 'feature_grouping')
+    
+    
+    def get_sampleset(self):
+        
+        return {}
 
 
 class MSPreprocess(session.Logger):
