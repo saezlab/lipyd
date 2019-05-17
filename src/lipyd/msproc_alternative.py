@@ -263,12 +263,14 @@ class MethodPathHandler(session.Logger):
         'centroided': 'mzML',
         'feature': 'featureXML',
         'aligned': 'featureXML',
+        'msproc': 'featureXML',
     }
     
     
     def __init__(
             self,
             input_path = None,
+            input_obj = None,
             method_key = None,
             output_path = None,
             sample_id_method = None,
@@ -283,6 +285,7 @@ class MethodPathHandler(session.Logger):
             session.Logger.__init__(self, name = name)
         
         self._input_path = input_path
+        self.input_obj = input_obj
         self._input_ext = input_ext
         self._input_filter = input_filter
         self.output_path = output_path
@@ -509,9 +512,10 @@ class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
     def __init__(
             self,
             method,
-            infile = None,
+            input_path = None,
+            input_obj = None,
             name = None,
-            outfile = None,
+            output_path = None,
             method_key = None,
             **kwargs
         ):
@@ -523,18 +527,24 @@ class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
         MethodParamHandler.__init__(**kwargs)
         
         MethodPathHandler.__init__(
-            input_path = infile,
+            input_path = input_path,
+            input_obj = input_obj,
             method = method_key,
-            output_path = outfile,
+            output_path = output_path,
         )
     
     
     def main(self):
         
+        self.openms_wrapper_setup()
+        self.run()
+    
+    
+    def openms_wrapper_setup(self):
+        
         self.create_instance()
         self.setup()
         self.set_paths()
-        self.run()
     
     
     def create_instance(self):
@@ -587,16 +597,18 @@ class PeakPickerHiRes(OpenmsMethodWrapper):
     
     def __init__(
             self,
-            infile,
-            outfile = None,
+            input_path = None,
+            input_obj = None,
+            output_path = None,
             **kwargs,
         ):
         
         OpenmsMethodWrapper.__init__(
             self,
             method = oms.PeakPickerHiRes,
-            infile = infile,
-            outfile = outfile,
+            input_path = input_path,
+            input_obj = input_obj,
+            output_path = output_path,
             name = 'peak_picker',
             **kwargs
         )
@@ -604,14 +616,34 @@ class PeakPickerHiRes(OpenmsMethodWrapper):
     
     def run(self):
         
-        self.input_map = oms.MSExperiment()
-        oms.MzMLFile().load(self.input_path, self.input_map)
-        self._log('Input map created from `%s`.' % self.input_path)
+        self.read()
+        self.pick()
+        self.write()
+    
+    
+    def read(self):
+        
+        if isinstance(self.input_obj, oms.MSExperiment):
+            
+            self.input_map = self.input_obj
+            self._log('Input map provided as `pyopenms.MSExperiment` object.')
+            
+        else:
+            
+            self.input_map = oms.MSExperiment()
+            oms.MzMLFile().load(self.input_path, self.input_map)
+            self._log('Input map created from `%s`.' % self.input_path)
+    
+    
+    def pick(self):
         
         self._log('Starting peak picking.')
         self.output_map = oms.MSExperiment()
         self.openms_obj.pickExperiment(self.input_map, self.output_map)
         self._log('Peak picking ready.')
+    
+    
+    def write(self):
         
         self.output_map.updateRanges()
         oms.MzMLFile().store(self.output_path, self.output_map)
@@ -1043,19 +1075,146 @@ class MgfExport(MethodPathHandler):
                 )
 
 
-class Preprocessing(session.Logger):
+class MSPreprocess(MethodPathHandler):
     """
     
-    Constructor class for all preprocessing stages implementation
+    Workflow covering all MS preprocessing steps: peak picking, feature
+    construction, map alignment and feature grouping. Also exports MS2
+    spectra in MGF format.
+    
+    Parameters
+    ----------
+    force : set
+        A set of steps which must be done no matter if the output of a later
+        stage is available.
+    """
+    
+    _steps = (
+        'profile',
+        'centroided',
+        'features',
+        'features_aligned',
+        'features_grouped',
+    )
+    _provides = {
+        'centroided': 'peak_picking',
+        'features': 'feature_finding',
+        'features_aligned': 'map_alignment',
+        'features_grouped': 'feature_grouping',
+    }
+    
+    
+    def __init__(
+        self,
+        # stages
+        profile = None,
+        centroided = None,
+        features = None,
+        features_aligned = None,
+        # further parameters for input/output
+        output_path = None,
+        sample_id_method = None,
+        sample_ids = None,
+        input_ext = None,
+        input_filter = None,
+        # parameters for each step
+        peak_picking_param = None,
+        mass_trace_detection_param = None,
+        elution_peak_detection_param = None,
+        feature_finding_metabo_param = None,
+        feature_finding_common_param = None,
+        map_alignment_param = None,
+        feature_grouping_param = None,
+        # workflow parameters
+        force = None,
+        # nothing
+        **kwargs
+    ):
+        
+        session.Logger.__init__(self, name = 'msproc')
+        
+        self.peak_picking_param = peak_picking_param or {}
+        self.mass_trace_detection_param = mass_trace_detection_param or {}
+        self.elution_peak_detection_param = elution_peak_detection_param or {}
+        self.feature_finding_metabo_param = feature_finding_metabo_param or {}
+        self.feature_finding_common_param = feature_finding_common_param or {}
+        self.map_alignment_param = map_alignment_param or {}
+        self.feature_grouping_param = feature_grouping_param or {}
+        
+        self.sample_ids = sample_ids
+        self.force = force or set()
+        
+        self.MethodPathHandler.__init__(
+            self,
+            input_path = input_path,
+            input_obj = input_obj,
+            output_path = output_path,
+            sample_id_method = sample_id_method,
+            input_ext = input_ext,
+            input_filter = input_filter,
+        )
+        
+        self._input = (
+            self.input_obj if self.input_obj is not None else self.input_path
+        )
+        self._input = (
+            self._input
+                if isinstance(self._input, (tuple, list, np.ndarray)) else
+            (self._input,)
+        )
+        self._input_arg = (
+            'input_obj' if self.input_obj is not None else 'input_path'
+        )
+    
+    
+    def main(self):
+        
+        if not hasattr(self, 'centroided') or 'peak_picking' in self.force:
+            
+            self.peak_picking()
+        
+        if not hasattr(self, 'features0') or 'feature_finding' in self.force:
+            
+            self.feature_finding()
+    
+    
+    def peak_picking(self):
+        
+        self.centroided = []
+        
+        for resource in self._input:
+            
+            self.peak_picking_param[self._input_arg] = resource
+            
+            peak_picker = PeakPickerHiRes(**self.peak_picking_param)
+            peak_picker.main()
+            self.centroided.append(peak_picker.output_map)
+    
+    
+    def feature_finding(self):
+        
+        self.features0 = []
+        
+        for resource in self.
+
+
+class MSPreprocess(session.Logger):
+    """
+    
+    Workflow covering all MS preprocessing steps: peak picking, feature
+    construction, map alignment and feature grouping. Also exports MS2
+    spectra in MGF format.
     
     Usage:
-
+    
     Firstly, you need to define variable as preproc = Preprocessing()
     Secondly, you have to specify desirable parameters according to pyopenms
-    library. All parameters you can see on https://abibuilder.informatik.uni-tuebingen.de/
-    /archive/openms/Documentation/release/2.4.0/html/index.html or TOPP application
-    in vocabulary view, e.g param_pp = {"signal_to_noise": 1.0}
-    Note: Boolean value should be in quoted, e.g. param_epd = {"enabled": "true"}
+    library. You can see all parameters at
+    https://abibuilder.informatik.uni-tuebingen.de/
+    /archive/openms/Documentation/release/2.4.0/html/index.html or in the
+    TOPP application in vocabulary view, e.g ``param_pp = {"signal_to_noise": 1.0}``.
+    Note: Boolean values should be strings, e.g.
+    ``param_epd = {"enabled": "true"}``.
     
     param_pp - variable for Peak Picking parameters
     param_ff_com - variable for common Feature Finding Metabo parameters
