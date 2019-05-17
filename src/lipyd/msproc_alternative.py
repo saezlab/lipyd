@@ -67,7 +67,12 @@ class MethodParamHandler(session.Logger):
     }
     
     
-    def __init__(self, **kwargs):
+    def __init__(self, name = 'param_handler', **kwargs):
+        
+        # most of the times log initialized in the OpenmsMethodWrapper
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger.__init__(self, name = name)
         
         self.openms_method = openms_method
         self._kwargs_param = kwargs
@@ -269,7 +274,13 @@ class MethodPathHandler(session.Logger):
             sample_id_method = None,
             input_ext = None,
             input_filter = None,
+            name = 'path_handler',
         ):
+        
+        # most of the times log initialized in the OpenmsMethodWrapper
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger.__init__(self, name = name)
         
         self._input_path = input_path
         self._input_ext = input_ext
@@ -296,6 +307,7 @@ class MethodPathHandler(session.Logger):
                 self._set_output_dir()
                 self._set_output_path()
             
+            self._create_output_dir()
             self._tell_paths()
             self._check_paths()
             self._set_sample_id()
@@ -381,6 +393,11 @@ class MethodPathHandler(session.Logger):
             lipyd_wd,
             method_wd,
         )
+    
+    
+    def _create_output_dir(self):
+        
+        os.makedirs(self.output_dir, exist_ok = True)
     
     
     def _set_output_path(self):
@@ -905,6 +922,125 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
         self._log(
             'Aligned features have been written to `%s`.' % self.output_path
         )
+
+
+class MgfExport(MethodPathHandler):
+    """
+    Exports the MS2 spectra in mascot generic format (MGF).
+    
+    Parameters
+    ----------
+    input_file : str
+        Path to the mz
+    """
+    
+    def __init__(
+        self,
+        input_file = None,
+        input_data = None,
+        output_file = None,
+    ):
+        
+        MethodPathHandler.__init__(
+            input_file = input_file,
+            output_file = output_file,
+            name = 'mgf_export',
+            method_key = 'mgf_export',
+        )
+        
+        self.data = input_data
+    
+    
+    def main(self):
+        
+        self.set_paths()
+        self.read()
+        self.write()
+    
+    
+    def read(self):
+        
+        if not isinstance(self.data, oms.MSExperiment):
+            
+            mzml_file = oms.MzMLFile()
+            self.data = oms.MSExperiment()
+            mzml_file.load(self.input_path, self.data)
+            self._log('Reading MS2 spectra from `%s`.' % self.input_path)
+            
+        else:
+            
+            self._log(
+                'Using MS2 spectra from `pyopenms.MSExperiment` object.'
+            )
+    
+    
+    def write(self):
+        
+        with open(self.output_path, 'w') as fp:
+            
+            self._log('Exporting MS2 spectra to `%s`.' % self.output_path)
+            # I commented this out at the moment,
+            # I am not sure we need it:
+            # Create header
+            #outfile.write("COM=Testfile\n")
+            #outfile.write("ITOL=1\n")
+            #outfile.write("ITOLU=Da\n")
+            #outfile.write("CLE=Trypsin\n")
+            #outfile.write("CHARGE=1,2,3\n")
+            
+            # Iterate through all spectra,
+            # skip all MS1 spectra and then write mgf format
+            nr_ms2_spectra = 0
+            
+            for spectrum in self.data:
+                
+                if spectrum.getMSLevel() == 1:
+                    continue
+                
+                nr_ms2_spectra += 1
+                _ = fp.write("BEGIN IONS\n")
+                _ = fp.write("TITLE=%s\n" % spectrum.getNativeID())
+                _ = fp.write("RTINSECONDS=%.09f\n" % spectrum.getRT())
+                
+                try:
+                    _ = fp.write(
+                        "PEPMASS=%.018f %.09f\n" % (
+                            spectrum.getPrecursors()[0].getMZ(),
+                            spectrum.getPrecursors()[0].getIntensity(),
+                        )
+                    )
+                    ch = spectrum.getPrecursors()[0].getCharge()
+                    
+                    if ch > 0:
+                        _ = fp.write("CHARGE=%u%s\n" % (
+                                abs(ch),
+                                '-' if ch < 0 else ''
+                            )
+                        )
+                    
+                except IndexError:
+                    _ = fp.write("PEPMASS=unknown\n")
+                
+                for peak in spectrum:
+                    _ = fp.write(
+                        "%s %s\n" % (peak.getMZ(), peak.getIntensity())
+                    )
+                
+                _ = fp.write("END IONS\n")
+            
+            if nr_ms2_spectra == 0:
+                
+                self._log(
+                    'Could not find any MS2 spectra in the input, '
+                    'the output MGF file is empty!',
+                    -1,
+                )
+                
+            else:
+                
+                self._log(
+                    '%u spectra have been written to `%s`.' % self.output_path
+                )
 
 
 class Convert2mgf(session.Logger):

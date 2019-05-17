@@ -614,6 +614,10 @@ _defaults = {
     'aligned_dir': 'aligned',
     # same as above
     'aligned_suffix': '__aligned',
+    # same as above but for MGF format spectra
+    'mgf_export_dir': 'mgf',
+    # by default here we don't add suffix, the format is obvious
+    'mgf_export_suffix': '',
 }
 
 in_basedir = [
