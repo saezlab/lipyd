@@ -14,7 +14,7 @@
 #  See accompanying file LICENSE.txt or copy at
 #      http://www.gnu.org/licenses/gpl-3.0.html
 #
-#  Website: http://denes.omnipathdb.org/
+#  Website: https://saezlab.github.io/lipyd
 #
 
 from future.utils import iteritems
@@ -29,58 +29,6 @@ import pyopenms as oms
 import lipyd.session as session
 import lipyd.common as common
 import lipyd.settings as settings
-
-
-def convert_src_to_dst_file_name(src, dst, suffix_dst_files, ext_dst_files):
-    """
-    Global function to transform source directory to destination directory
-    """
-    
-    file_name = os.path.splitext( os.path.basename(src) )[0] # get file name only;
-    file_name += suffix_dst_files # add suffix;
-    if ext_dst_files:
-        #add dot in front of ext if dot is not present:
-        ext_dst_files = ("."+ext_dst_files) \
-            if ext_dst_files[0] != "." else ext_dst_files
-    else:
-        ext_dst_files = "" #empty ext;
-    dst_file_name = file_name + ext_dst_files
-    
-    return dst_file_name    #dst file name without dst dir name;
-
-
-def get_list_full_names(src):
-    """
-    Global function for getting full names from list
-    """
-    
-    src_full_name_list = []                # list of src full file name;
-    src_dir = os.path.dirname(src)         # get dir name from src file name;
-    src_dir = src_dir if src_dir else os.getcwd() # if src dir name is empty
-                                                  # get current dir name;
-    pattern = os.path.basename(src)        # get file name as pattern;
-    pattern = pattern if pattern != "" else ".*" # if pattern is empty
-                                                 # set any char pattern;
-    
-    for file_name in os.listdir(src_dir): # for all file name in src dir:
-        full_file_name = os.path.join(src_dir, file_name) # to build full
-                                                          # file name;
-        if os.path.isfile( full_file_name ): # only for files,
-                                             # except dir name;
-            match = None    # results re match
-
-            try:            # try to compile patern:
-                rec = re.compile(pattern)
-                match = rec.match(file_name)    # apply pattern to file name
-            except re.error as e:
-                raise RuntimeError("Match pattern error.") # raise exeption
-                                                           # if regex does
-                                                           # not match
-            
-            if match:       # if result of re match is ok
-                src_full_name_list.append(full_file_name)
-
-    return src_full_name_list
 
 
 class MethodParamHandler(session.Logger):
@@ -102,7 +50,9 @@ class MethodParamHandler(session.Logger):
     
     
     _module_param_keys = {
-        oms.PeakPickerHiRes: 'peak_picking_param',
+        oms.PeakPickerHiRes: (
+            'peak_picking_param',
+        ),
         oms.ElutionPeakDetection: (
             'feature_finding_common_param',
             'elution_peak_detection_param',
@@ -115,11 +65,23 @@ class MethodParamHandler(session.Logger):
             'feature_finding_common_param',
             'feature_finding_metabo_param',
         ),
-        oms.MapAlignmentAlgorithmPoseClustering: 'map_alignment_param',
+        oms.MapAlignmentAlgorithmPoseClustering: (
+            'map_alignment_param',
+        ),
     }
     
     
-    def __init__(self, **kwargs):
+    def __init__(
+            self,
+            openms_method,
+            name = 'param_handler',
+            **kwargs
+        ):
+        
+        # most of the times log initialized in the OpenmsMethodWrapper
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger.__init__(self, name = name)
         
         self.openms_method = openms_method
         self._kwargs_param = kwargs
@@ -167,7 +129,7 @@ class MethodParamHandler(session.Logger):
         
         self.param.update(self._openms_defaults)
         self.param.update(_module_param)
-        self.param.update(_kwarg_param)
+        self.param.update(_kwargs_param)
     
     
     def set_param(self):
@@ -184,8 +146,8 @@ class MethodParamHandler(session.Logger):
             
             self._log(
                 'Parameter `{}` of `{}` set to `{}`.'.format(
-                    common.ensure_unicode(name),
-                    self.openms_obj_name,
+                    common.ensure_unicode(key),
+                    self.openms_object_type,
                     common.ensure_unicode(value),
                 ),
                 1,
@@ -225,8 +187,7 @@ class MethodParamHandler(session.Logger):
             return value
     
     
-    @staticmethod
-    def process_param_dict(param):
+    def process_param_dict(self, param):
         """
         Makes sure all keys and values in the dict are byte strings or
         numeric.
@@ -261,16 +222,16 @@ class MethodParamHandler(session.Logger):
         
         if self.openms_method in self._module_param_keys:
             
-            self._log(
-                'Could not find settings key for OpenMS '
-                'object type `%s`.' % self.openms_obj_name
-            )
-            
-        else:
-            
             for key in self._module_param_keys[self.openms_method]:
                 
                 self._module_param.update(settings.get(key))
+            
+        else:
+            
+            self._log(
+                'Could not find settings key for OpenMS '
+                'object type `%s`.' % self.openms_object_type
+            )
 
 
 class MethodPathHandler(session.Logger):
@@ -278,9 +239,27 @@ class MethodPathHandler(session.Logger):
     Parameters
     ----------
     input_path : str
-        The path to the input file must be provided.
+        The path of the input file must be provided, otherwise this class
+        will do nothing. In case of multiple input files you can provide
+        a list of paths or the directory containing the files.
     method_key : str,class
-        Either 
+        Either an OpenMS class or a string label. Used to identify the
+        method and look up the corresponding settings.
+    sample_id_method : callable
+        A method which generates sample identifier(s) from the input path(s).
+        If not provided, the file name without the extension will be used.
+    input_ext : str
+        In case of multiple input files only the files with this extension
+        (type) will be used.
+    input_filter : callable,str
+        A method which decides if an input file should be used. Should return
+        ``True`` if the file is to be used. Alternatively a regex as a string
+        which matches the desired input files.
+    
+    Attributes
+    ----------
+    multi_file_input : bool
+        Tells if the object has single or multiple input paths.
     """
     
     _method_keys = {
@@ -292,19 +271,36 @@ class MethodPathHandler(session.Logger):
         'centroided': 'mzML',
         'feature': 'featureXML',
         'aligned': 'featureXML',
+        'msproc': 'featureXML',
     }
     
     
     def __init__(
             self,
-            input_path,
+            input_path = None,
+            input_obj = None,
             method_key = None,
             output_path = None,
+            sample_id = None,
+            sample_id_method = None,
+            input_ext = None,
+            input_filter = None,
+            name = 'path_handler',
         ):
         
-        self.input_path = input_path
+        # most of the times log initialized in the OpenmsMethodWrapper
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger.__init__(self, name = name)
+        
+        self._input_path = input_path
+        self.input_obj = input_obj
+        self._input_ext = input_ext
+        self._input_filter = input_filter
         self.output_path = output_path
         self.method_key = method_key
+        self._sample_id_method = sample_id_method
+        self.sample_id = sample_id
     
     
     def main(self):
@@ -314,14 +310,78 @@ class MethodPathHandler(session.Logger):
     
     def set_paths(self):
         
-        if not self.output_path:
+        if self._input_path:
             
-            self._set_method_key()
-            self._set_output_dir()
-            self._set_output_path()
+            self._set_input_path()
+            self._set_sample_id()
+            
+            if not self.output_path:
+                
+                self._set_method_key()
+                self._set_output_dir()
+                self._set_output_path()
+            
+            self._create_output_dir()
+            self._tell_paths()
+            self._check_paths()
+    
+    
+    def _set_input_path(self):
         
-        self._tell_paths()
-        self._check_paths()
+        if isinstance(self._input_path, common.basestring):
+            
+            # check if this is a directory
+            if os.path.isdir(self._input_path):
+                
+                # look up all files in the directory
+                self._input_path = [
+                    os.path.join(self._input_path, fname)
+                    for fname in os.listdir(self._input_path)
+                ]
+        
+        # if we have something else than a single existing file path
+        self.multi_file_input = not (
+            isinstance(self._input_path, common.basestring) and
+            os.path.exists(self._input_path)
+        )
+        
+        if self.multi_file_input:
+            
+            self._filter_input_paths()
+            # the `input_path` will be just the first file
+            # just to make it easier for the downstream methods
+            self.input_path = self._input_path[0]
+            
+        else:
+            
+            # the simple case when we have only one file
+            self.input_path = self._input_path
+    
+    
+    def _filter_input_paths(self):
+        
+        if isinstance(self._input_filter, common.basestring):
+            
+            refname = re.compile(self._input_filter)
+            
+            def _input_filter(path):
+                
+                return bool(refname.fullmatch(path))
+            
+            self._input_filter = _input_filter
+        
+        self._input_path = [
+            path
+            for path in self._input_path
+            if (
+                self._input_ext is None or
+                os.path.splitext()[1] == self._input_ext
+            ) and (
+                self._input_filter is None or
+                # this method recieves only the file name
+                self._input_filter(os.path.basename(path))
+            )
+        ]
     
     
     def _set_output_dir(self):
@@ -331,7 +391,7 @@ class MethodPathHandler(session.Logger):
             settings.get('output_path_root') or (
                 # 2: it's set to be in the input dir
                 os.path.dirname(self.input_path)
-                    if settings.get('') else
+                    if settings.get('output_to_input_dir') else
                 # 3: by default in current wd
                 os.getcwd('output_to_input_dir')
             )
@@ -339,7 +399,7 @@ class MethodPathHandler(session.Logger):
         
         lipyd_wd = settings.get('lipyd_wd') or ''
         
-        method_wd = settings.get('%s_dir' % self.method_key)
+        method_wd = settings.get('%s_dir' % self.method_key) or ''
         
         self.output_dir = os.path.join(
             output_root,
@@ -348,18 +408,31 @@ class MethodPathHandler(session.Logger):
         )
     
     
+    def _create_output_dir(self):
+        
+        os.makedirs(self.output_dir, exist_ok = True)
+    
+    
     def _set_output_path(self):
         
         suffix = settings.get('%s_suffix' % self.method_key) or ''
         
-        basename, ext = os.path.splitext(os.path.basename(self.input_path))
+        if isinstance(self.input_path, common.basestring):
+            
+            self._input_basename, ext = (
+                os.path.splitext(os.path.basename(self.input_path))
+            )
+            
+        else:
+            
+            self._input_basename = self.sample_id
         
         outext = (
             self._outexts[self.method_key]
                 if self.method_key in self._outexts else
             'mzML'
         )
-        self.outfile = '%s%s.%s' % (basename, suffix, outext)
+        self.outfile = '%s%s.%s' % (self._input_basename, suffix, outext)
         
         self.output_path = os.path.join(self.output_dir, self.outfile)
     
@@ -397,6 +470,43 @@ class MethodPathHandler(session.Logger):
             )
             
             raise RuntimeError('Identical in/out path, please check the log.')
+    
+    
+    def _set_sample_id(self):
+        
+        if not self.sample_id:
+            
+            if self.multi_file_input:
+                
+                self.sample_id = [
+                    self._get_sample_id(path)
+                    for path in self.input_path
+                ]
+                
+            else:
+                
+                self.sample_id = self._get_sample_id(self.input_path)
+    
+    
+    def _get_sample_id(self, path):
+        
+        if path:
+            
+            name = os.path.splitext(os.path.basename(path))[0]
+        
+        if self._sample_id_method is None:
+            
+            sample_id = name
+            
+        elif callable(self._sample_id_method):
+            
+            sample_id = self._sample_id_method(name)
+            
+        else:
+            
+            sample_id = self._sample_id_method
+        
+        return sample_id
 
 
 class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
@@ -407,15 +517,28 @@ class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
     ----------
     method : class
         The OpenMS class.
+    infile : str
+        The input file must be provided, otherwise no input and output
+        assumed and only the parameters will be set.
+    name : str
+        A name for this method, will appear in the log.
+    outfile : str
+        Output path provided directly. Otherwise will be set according to
+        the current settings.
+    method_key : str
+        
     """
     
     def __init__(
             self,
             method,
-            infile,
+            input_path = None,
+            input_obj = None,
             name = None,
-            outfile = None,
+            output_path = None,
             method_key = None,
+            sample_id = None,
+            sample_id_method = None,
             **kwargs
         ):
         
@@ -423,21 +546,34 @@ class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
         
         self.openms_method = method
         
-        MethodParamHandler.__init__(**kwargs)
+        MethodParamHandler.__init__(
+            self,
+            openms_method = method,
+            **kwargs
+        )
         
         MethodPathHandler.__init__(
-            input_path = infile,
-            method = method_key,
-            output_path = outfile,
+            self,
+            input_path = input_path,
+            input_obj = input_obj,
+            method_key = method_key,
+            output_path = output_path,
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
         )
     
     
     def main(self):
         
+        self.openms_wrapper_setup()
+        self.run()
+    
+    
+    def openms_wrapper_setup(self):
+        
         self.create_instance()
         self.setup()
         self.set_paths()
-        self.run()
     
     
     def create_instance(self):
@@ -446,7 +582,7 @@ class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
         self._log(
             '`%s.%s` instance created.' % (
                 self.openms_method.__module__,
-                self.openms_method.__name__
+                self.openms_method.__name__,
             )
         )
     
@@ -484,36 +620,63 @@ class PeakPickerHiRes(OpenmsMethodWrapper):
         The output file can be set directly this way. Alternatively see
         the built in path handling parameters in `settings`.
     **kwargs
-        Settings passed to OpenMS (`pyopenms.PeakPickerHiRes`).
+        Settings passed directly to ``pyopenms.PeakPickerHiRes``.
     """
     
     
     def __init__(
             self,
-            infile,
-            outfile = None,
+            input_path = None,
+            input_obj = None,
+            output_path = None,
+            sample_id = None,
+            sample_id_method = None,
             **kwargs,
         ):
         
         OpenmsMethodWrapper.__init__(
             self,
-            infile = infile,
-            outfile = outfile,
+            method = oms.PeakPickerHiRes,
+            input_path = input_path,
+            input_obj = input_obj,
+            output_path = output_path,
             name = 'peak_picker',
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
             **kwargs
         )
     
     
     def run(self):
         
-        self.input_map = oms.MSExperiment()
-        oms.MzMLFile().load(self.input_path, self.input_map)
-        self._log('Input map created from `%s`.' % self.input_path)
+        self.read()
+        self.pick()
+        self.write()
+    
+    
+    def read(self):
+        
+        if isinstance(self.input_obj, oms.MSExperiment):
+            
+            self.input_map = self.input_obj
+            self._log('Input map provided as `pyopenms.MSExperiment` object.')
+            
+        else:
+            
+            self.input_map = oms.MSExperiment()
+            oms.MzMLFile().load(self.input_path, self.input_map)
+            self._log('Input map created from `%s`.' % self.input_path)
+    
+    
+    def pick(self):
         
         self._log('Starting peak picking.')
         self.output_map = oms.MSExperiment()
         self.openms_obj.pickExperiment(self.input_map, self.output_map)
         self._log('Peak picking ready.')
+    
+    
+    def write(self):
         
         self.output_map.updateRanges()
         oms.MzMLFile().store(self.output_path, self.output_map)
@@ -522,7 +685,7 @@ class PeakPickerHiRes(OpenmsMethodWrapper):
         )
 
 
-class MassTraceDetection(MethodParamHandler):
+class MassTraceDetection(OpenmsMethodWrapper):
     """
     Wrapper around ``pyopenms.MassTraceDetection``.
     """
@@ -530,395 +693,646 @@ class MassTraceDetection(MethodParamHandler):
     
     def __init__(self, **kwargs):
         
-        MethodParamHandler.__init__(
-            openms_method = oms.MassTraceDetection(),
-            **kwargs,
+        OpenmsMethodWrapper.__init__(
+            self,
+            method = oms.MassTraceDetection,
+            name = 'mass_trace_detection',
         )
-        self.setup()
-        self._log_name = 'mass_trace_detection'
 
 
-class EpdEntity(MethodParamHandler):
+class ElutionPeakDetection(OpenmsMethodWrapper):
     """
-    Wrapper around ``oms.ElutionPeakDetection``.
+    Wrapper around ``pyopenms.ElutionPeakDetection``.
     """
     
     
     def __init__(self, **kwargs):
         
-        super(EpdEntity, self).__init__(
-            oms.ElutionPeakDetection(),
-            **kwargs,
+        OpenmsMethodWrapper.__init__(
+            self,
+            method = oms.ElutionPeakDetection,
+            name = 'elution_peak_detection',
         )
 
 
-class FfmEntity(MethodParamHandler):
+class FeatureFindingMetabo(OpenmsMethodWrapper):
     """
-    Wrapper around ``oms.FeatureFindingMetabo()``.
-    """
+    Wrapper around ``pyopenms.FeatureFindingMetabo()``.
+    Assembles mass traces showing similar isotope- and elution patterns.
     
-    
-    def __init__(self, **kwargs):
-        
-        super(FfmEntity, self).__init__(
-            oms.FeatureFindingMetabo(),
-            **kwargs,
-        )
-
-
-class MAEntity(MethodParamHandler):
-    """
-    Wrapper around ``oms.MapAlignmentAlgorithmPoseClustering``.
-    """
-    
-    
-    def __init__(self, **kwargs):
-        
-        super(MAEntity, self).__init__(
-            oms.MapAlignmentAlgorithmPoseClustering(),
-            **kwargs,
-        )
-
-
-class FeatureFindingMetabo(session.Logger):
-    """
-    Class for feature detection implementation.
-    
-    Method for the assembly of mass traces belonging to the same isotope pattern, i.e.,
-    that are compatible in retention times, mass-to-charge ratios, and isotope abundances.
-
     Parameters
     ----------
-    src : str
-        Source directory consists source file(s)
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    logger:   
-        System variable for tracking
-
-    Attributes
-    ----------
-    src : str
-        Source directory consists source file(s)
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    kw : obj
-        Additional arguments
+    input_file : str
+        Path to an mzML file with centroided data.
+    input_map : pyopenms.PeakMap
+        A``pyopenms.PeakMap`` object. If provided, the data will be used
+        from this instead of reading from ``input_file``. In this case
+        ``input_file`` can be even ``None`` if ``output_file`` provided.
+        Otherwise ``input_file`` will be used to create the ``output_file``
+        path and name.
+    output_file : str
+        The output file where the features will be saved in ``featureXML``
+        format. If not provided it will be set according to the current
+        settings.
+    mass_trace_detection_param : dict
+        Parameters directly for the ``pyopenms.MassTraceDetection`` class.
+    elution_peak_detection_param : dict
+        Parameters directly for the ``pyopenms.ElutionPeakDetection`` class.
+    feature_finding_metabo_param : dict
+        Parameters directly for the ``pyopenms.FeatureFindingMetabo`` class.
+    **kwargs
+        Common parameters will be passed to all of the OpenMS methods above.
     """
     
     
     def __init__(
+        self,
+        input_file = None,
+        input_map = None,
+        output_file = None,
+        sample_id = None,
+        sample_id_method = None,
+        mass_trace_detection_param = None,
+        elution_peak_detection_param = None,
+        feature_finding_metabo_param = None,
+        **kwargs
+    ):
+        
+        self.mass_trace_detection_param = (
+            self._combine_param(kwargs, mass_trace_detection_param)
+        )
+        self.elution_peak_detection_param = (
+            self._combine_param(kwargs, elution_peak_detection_param)
+        )
+        self.feature_finding_metabo_param = (
+            self._combine_param(kwargs, feature_finding_metabo_param)
+        )
+        
+        if isinstance(input_map, oms.PeakMap):
+            
+            self.input_map = input_map
+            self._log(
+                'Centroided data provided as `pyopenms.PeakMap` object.'
+            )
+        
+        OpenmsMethodWrapper.__init__(
             self,
-            src = ".+\.mzML$",
-            dst = None,
-            suffix_dst_files = "_feature",
-            ext_dst_files = "featureXML",
-            **kwargs,
-        ):
-        
-        session.Logger.__init__(self, name = 'feature_finder_metabo')
-        
-        if not src:
-            raise RuntimeError( "You don`t specify all necessary files" )
-
-        self.src = src
-        self.dst = dst
-        self.suffix_dst_files = suffix_dst_files
-        self.ext_dst_files = ext_dst_files
-        self.kw = kwargs
-        # set default value to self.param_*
-        # if user will not call set_param_*
-        self.param_mtd = self.kw
-        self.param_epd = self.kw
-        self.param_ffm = self.kw
-        
-        self.init_entity(**self.kw)
-    
-
-    def init_entity(self, **kwargs):
-        self.mtd = MtdEntity(**kwargs)
-        self.epd = EpdEntity(**kwargs)
-        self.ffm = FfmEntity(**kwargs)
-        self.output_mt = []
-        self.splitted_mt = []
-        self.filtered_mt = []
-        self.chromatograms = [[]]   
-
-    def set_param_mtd(self, **kwargs):
-        self.param_mtd = kwargs
-
-    def set_param_epd(self, **kwargs):
-        self.param_epd = kwargs
-    
-    def set_param_ffm(self, **kwargs):
-        self.param_ffm = kwargs   
+            method = oms.FeatureFindingMetabo,
+            infile = input_file,
+            outfile = output_file,
+            name = 'feature_finding_metabo',
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
+            **self.feature_finding_metabo_param,
+        )
     
     
-    def main(self):
-        #after path_parsing method we have self.src_full_name_list
-        print("FeatureFindingMetabo implementation")
+    def run(self):
         
-        for f in get_list_full_names(self.src):
-
-            print("Source file:", f)
-            # to prepare(init) empty list and entity;
-            self.init_entity(**self.kw)
+        self.read()
+        self.find_features()
+        self.write()
+    
+    
+    def read(self):
+        """
+        Reads the centroided data.
+        """
+        
+        if not hasattr(self, 'input_map'):
             
-            input_map = oms.PeakMap() # the 1st step: load map;
-            fm = oms.FeatureMap()
-            oms.MzMLFile().load(f, input_map)
+            self.input_map = oms.PeakMap()
+            oms.MzMLFile().load(self.input_path, self.input_map)
+            self._log('Reading centroided data from `%s`.' % self.input_path)
+    
+    
+    def find_features(self):
+        
+        self.do_mass_trace_detection()
+        self.do_elution_peak_detection()
+        self.do_feature_finding()
+        self._log('Feature finding ready.')
+    
+    
+    def do_mass_trace_detection(self):
+        
+        self._log('Performing mass trace detection.')
+        self.mass_traces = []
+        self.mass_trace_detection = MassTraceDetection(
+            **self.mass_trace_detection_param
+        )
+        self.mass_trace_detection.run(self.input_map, self.mass_traces)
+    
+    
+    def do_elution_peak_detection(self):
+        
+        self._log('Performing elution peak detection.')
+        self.mass_traces_split = []
+        self.elution_peak_detection = ElutionPeakDetection(
+            **self.elution_peak_detection_param
+        )
+        self.elution_peak_detection.detectPeaks(
+            self.mass_traces,
+            self.mass_traces_split,
+        )
+    
+    
+    def do_feature_finding(self):
+        
+        self._log('Creating features by `FeatureFinderMetabo`.')
+        self.feature_map = oms.FeatureMap()
+        self.mass_traces_filtered = []
+        self.feature_finder_metabo = self.openms_obj
+        self.feature_finder_metabo.run(
+            self.mass_traces_split,
+            self.feature_map,
+            self.mass_traces_filtered,
+        )
+    
+    
+    def write(self):
+        """
+        Writes the feature map into a ``featureXML`` file.
+        """
+        
+        oms.FeatureXMLFile().store(self.output_path, self.feature_map)
+        self._log('Features have been written to `%s`.' % self.output_path)
+    
+    
+    @staticmethod
+    def _combine_param(common_param, param):
+        
+        combined_param = copy.deepcopy(kwargs) or {}
+        combined_param.update(param or {})
+        
+        return combined_param
 
-            self.mtd.set_parameters( **self.param_mtd )
-            self.epd.set_parameters( **self.param_epd )
-            self.ffm.set_parameters( **self.param_ffm )
 
-            # the 2nd step: apply_ffm;
-            self.mtd.entity.run(input_map, self.output_mt)
-            self.epd.entity.detectPeaks(self.output_mt, self.splitted_mt)
-            self.ffm.entity.run(self.splitted_mt, fm, self.filtered_mt)
-            # the 3d step: is store result into file;
-            dst_full_file_name = os.path.join(self.dst,\
-                convert_src_to_dst_file_name(f,
-                                            self.dst,
-                                            self.suffix_dst_files,
-                                            self.ext_dst_files) )
-           
-            oms.FeatureXMLFile().store(dst_full_file_name, fm)
-            
-            print("Centroided data stored into:", dst_full_file_name)
-
-
-class MapAlignment(session.Logger):
+class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     """
-    Class for map alignment process.
-
+    Applies a transformation on a feature map along its RT and m/z dimensions
+    in order to remove noise and align traces from identical metabolites.
+    
+    Wrapper around ``pyopenms.MapAlignmentAlgorithmPoseClustering``.
+    
     A map alignment algorithm based on pose clustering.
 
     Pose clustering analyzes pair distances to find the most probable
     transformation of retention times.
-    The algorithm chooses the x most intensity peaks/features per map.
-    This is modeled via the parameter 'max_num_peaks_considered',
+    The algorithm chooses the x most intensive peaks/features per map.
+    This is modeled via the parameter ``max_num_peaks_considered``,
     which in turn influences the runtime and stability of the results.
     Bigger values prolong computation, smaller values might lead to no or
     unstable trafos. Set to -1 to use all features (might take very long for
     large maps).
-
-    Parameters
-    ----------
-    src : str
-        Source directory consists source file(s)
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    reference_file: obj
-        The file by which other files will be aligned
-
-
-    Attributes
-    ----------
-    src : str
-        Source directory consists source file(s)  
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    kw : obj
-        Additional arguments
-    reference_file: obj
-        The file by which other files will be aligned
-    """
-
-    def __init__(self,
-                src = ".+\.featureXML$",               #"/path/to/src/.+\.mzML"
-                dst = None,                     #/path/to/dst
-                suffix_dst_files = "_aligned",          
-                ext_dst_files = "featureXML",
-                reference_file = None,
-                dst_full_file_name = None,
-                reference_map = None,
-                toAlign_map = None,
-                **kwargs
-                ):
-        
-        session.Logger.__init__(self, name = 'map_alignment')
-
-        if not (src and reference_file):
-            
-            raise RuntimeError( "You don`t specify all necessary files" )
-        
-        self.src = src
-        self.dst = dst
-        self.suffix_dst_files = suffix_dst_files
-        self.ext_dst_files = ext_dst_files
-        self.dst_full_file_name = dst_full_file_name
-        self.kw = kwargs
-
-        self.reference_map = reference_map
-        self.toAlign_map = toAlign_map
-        self.reference_file = reference_file
-        self.init_entity(**self.kw)
-        
-
-    def init_entity(self, **kwargs):
-
-        self.ma = MAEntity(**kwargs)
-
-
-    def main(self): 
-        #after path_parsing method we have self.src_full_name_list
-        
-        for f in get_list_full_names(self.src):
-            print("Map Alignment implementation")
-            print("Source file:", f)
-            # to prepare(init) empty list and entity;
-            self.init_entity(**self.kw)
-
-            self.reference_map = oms.FeatureMap()
-            self.toAlign_map = oms.FeatureMap()
-            
-            oms.FeatureXMLFile().load(self.reference_file, self.reference_map)
-            oms.FeatureXMLFile().load(f, self.toAlign_map)
-            
-            #Set reference_map file
-            self.ma.entity.setReference(self.reference_map)
-            
-            #3rd step create object for the computed transformation
-            transformation = oms.TransformationDescription()
-
-            # the 4rd step:
-            self.ma.entity.align(self.toAlign_map, transformation)
-            # the 5th step: is store result into file;
-            self.dst_full_file_name = os.path.join(self.dst,\
-                convert_src_to_dst_file_name(f,
-                                            self.dst,
-                                            self.suffix_dst_files,
-                                            self.ext_dst_files) )
-            
-            #print("dst=",dst_full_file_name)
-            oms.FeatureXMLFile().store(self.dst_full_file_name, self.toAlign_map)
-            oms.FeatureXMLFile().store(self.dst_full_file_name, self.reference_map)
-
-            print("Aligned data stored into:", self.dst_full_file_name)
-        
-
-    
-
-class Convert2mgf(session.Logger):
-    """
-    Class for convertation mzml data to MGF format (MS2 data)
     
     Parameters
     ----------
-    mzml_file : obj
-        File with mzml extension
-    mgf_file : obj
-        File with mgf extension
-    
-    Attributes
-    ----------
-    mzml_file : obj
-        File with mzml extension
-    mgf_file : obj
-        File with mgf extension
+    input_file : str
+        Path to a featureXML file.
+    input_map : pyopenms.FeatureMap
+        A``pyopenms.FeatureMap`` object. If provided, the data will be used
+        from this instead of reading from ``input_file``. In this case
+        ``input_file`` can be even ``None`` if ``output_file`` provided.
+        Otherwise ``input_file`` will be used to create the ``output_file``
+        path and name.
+    output_file : str
+        The output featureCML file where the aligned features will be saved
+        If not provided it will be set according to the current settings.
+    reference_file : str
+        Path to the reference featureXML. The features will be aligned to
+        this map.
+    reference_map : pyopenms.FeatureMap
+        A ``FeatureMap`` object instead of the file above. This way the
+        reference features do not need to be read again.
+    **kwargs
+        Passed directly to ``pyopenms.MapAlignmentAlgorithmPoseClustering``.
     """
     
     
     def __init__(
             self,
-            mzml_file = None,
-            mgf_file = None,
+            input_file = None,
+            input_map = None,
+            output_file = None,
+            reference_file = None,
+            reference_map = None,
+            sample_id = None,
+            sample_id_method = None,
+            **kwargs
         ):
         
-        session.Logger.__init__(self, name = 'mgf_export')
+        OpenmsMethodWrapper.__init__(
+            self,
+            input_file = input_file,
+            output_file = output_file,
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
+            name = 'map_aligner',
+            **kwargs,
+        )
         
-        self.mzml_file = mzml_file
-        self.mgf_file = mgf_file
+        self.input_map = input_map
+        self.reference_map = reference_map
     
     
-    def convert(self):
-        """
-        Generates MGF format MS2 spectra and writes them into the output file.
-        """
+    def run(self):
         
-        file = oms.MzMLFile()
-        msdata = oms.MSExperiment()
-        file.load(self.mzml_file, msdata)
+        self.read_input()
+        self.read_reference()
+        self.align()
+        self.write()
+    
+    
+    def read_input(self):
         
-        outfile = open(self.mgf_file, "w")
+        self._log('Obtaining input feature map.')
         
-        # Create header
-        outfile.write("COM=Testfile\n")
-        outfile.write("ITOL=1\n")
-        outfile.write("ITOLU=Da\n")
-        outfile.write("CLE=Trypsin\n")
-        outfile.write("CHARGE=1,2,3\n")
+        self.input_map = self.read(
+            path = self.input_path,
+            mapobject = self.input_map,
+        )
+    
+    
+    def read_reference(self):
         
-        # Iterate through all spectra,
-        # skip all MS1 spectra and then write mgf format
-        nr_ms2_spectra = 0
+        self._log('Obtaining reference feature map.')
         
-        for spectrum in msdata:
+        self.reference_map = self.read(
+            path = self.reference_path,
+            mapobject = self.reference_map,
+        )
+    
+    
+    def read(self, path, mapobject):
+        
+        if not isinstance(mapobject, oms.FeatureMap):
             
-            if spectrum.getMSLevel() == 1:
-                continue
+            mapobject = oms.FeatureMap()
+            oms.FeatureXMLFile().load(path, mapobject)
+            self._log('Feature map has been read from `%s`.' % path)
             
-            nr_ms2_spectra += 1
-            outfile.write("\nBEGIN IONS\n")
-            outfile.write("TITLE=%s\n" % spectrum.getNativeID())
-            outfile.write("RTINSECONDS=%s\n" % spectrum.getRT())
+        else:
             
-            try:
-                outfile.write("PEPMASS=%s\n" % spectrum.getPrecursors()[0].getMZ())
-                ch = spectrum.getPrecursors()[0].getCharge()
-                
-                if ch > 0:
-                    outfile.write("CHARGE=%s\n" % ch)
-                
-            except IndexError:
-                outfile.write("PEPMASS=unknown\n")
-            
-            for peak in spectrum:
-                outfile.write("%s %s\n" % (peak.getMZ(), peak.getIntensity() ))
-            
-            outfile.write("END IONS\n")
+            self._log('Using the provided `pyopenms.FeatureMap` object.')
         
-        if nr_ms2_spectra == 0:
-            
-            self._log(
-                'Could not find any MS2 spectra in the input, '
-                'thus the output MGF file is empty!',
-                -1,
-            )
+        return mapobject
+    
+    
+    def align(self):
         
-        outfile.close()
+        self._log('Aligning the input map to the reference map.')
+        # set reference_map file
+        self.openms_obj.setReference(self.reference_map)
+        # create object for the computed transformation
+        self.transformation = oms.TransformationDescription()
+        # do the alignment
+        self.openms_obj.align(self.input_map, self.transformation)
+    
+    
+    def write(self):
+        
+        oms.FeatureXMLFile().store(self.output_path, self.output_map)
+        self._log(
+            'Aligned features have been written to `%s`.' % self.output_path
+        )
 
 
-class Preprocessing(session.Logger):
+class MgfExport(MethodPathHandler):
+    """
+    Exports the MS2 spectra in mascot generic format (MGF).
+    
+    Parameters
+    ----------
+    input_file : str
+        Path to the mz
     """
     
-    Constructor class for all preprocessing stages implementation
+    def __init__(
+        self,
+        input_file = None,
+        input_data = None,
+        output_file = None,
+        sample_id = None,
+        sample_id_method = None,
+    ):
+        
+        MethodPathHandler.__init__(
+            input_file = input_file,
+            output_file = output_file,
+            name = 'mgf_export',
+            method_key = 'mgf_export',
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
+        )
+        
+        self.data = input_data
+    
+    
+    def main(self):
+        
+        self.set_paths()
+        self.read()
+        self.write()
+    
+    
+    def read(self):
+        
+        if not isinstance(self.data, oms.MSExperiment):
+            
+            mzml_file = oms.MzMLFile()
+            self.data = oms.MSExperiment()
+            mzml_file.load(self.input_path, self.data)
+            self._log('Reading MS2 spectra from `%s`.' % self.input_path)
+            
+        else:
+            
+            self._log(
+                'Using MS2 spectra from `pyopenms.MSExperiment` object.'
+            )
+    
+    
+    def write(self):
+        
+        with open(self.output_path, 'w') as fp:
+            
+            self._log('Exporting MS2 spectra to `%s`.' % self.output_path)
+            # I commented this out at the moment,
+            # I am not sure we need it:
+            # Create header
+            #outfile.write("COM=Testfile\n")
+            #outfile.write("ITOL=1\n")
+            #outfile.write("ITOLU=Da\n")
+            #outfile.write("CLE=Trypsin\n")
+            #outfile.write("CHARGE=1,2,3\n")
+            
+            # Iterate through all spectra,
+            # skip all MS1 spectra and then write mgf format
+            nr_ms2_spectra = 0
+            
+            for spectrum in self.data:
+                
+                if spectrum.getMSLevel() == 1:
+                    continue
+                
+                nr_ms2_spectra += 1
+                _ = fp.write("BEGIN IONS\n")
+                _ = fp.write("TITLE=%s\n" % spectrum.getNativeID())
+                _ = fp.write("RTINSECONDS=%.09f\n" % spectrum.getRT())
+                
+                try:
+                    _ = fp.write(
+                        "PEPMASS=%.018f %.09f\n" % (
+                            spectrum.getPrecursors()[0].getMZ(),
+                            spectrum.getPrecursors()[0].getIntensity(),
+                        )
+                    )
+                    ch = spectrum.getPrecursors()[0].getCharge()
+                    
+                    if ch > 0:
+                        _ = fp.write("CHARGE=%u%s\n" % (
+                                abs(ch),
+                                '-' if ch < 0 else ''
+                            )
+                        )
+                    
+                except IndexError:
+                    _ = fp.write("PEPMASS=unknown\n")
+                
+                for peak in spectrum:
+                    _ = fp.write(
+                        "%s %s\n" % (peak.getMZ(), peak.getIntensity())
+                    )
+                
+                _ = fp.write("END IONS\n")
+            
+            if nr_ms2_spectra == 0:
+                
+                self._log(
+                    'Could not find any MS2 spectra in the input, '
+                    'the output MGF file is empty!',
+                    -1,
+                )
+                
+            else:
+                
+                self._log(
+                    '%u spectra have been written to `%s`.' % self.output_path
+                )
+
+
+class FeatureGroupingAlgorithmKD(OpenmsMethodWrapper):
+    """
+    Wrapper around ``pyopenms.FeatureGroupingAlgorithmKD``.
+    """
+    
+    
+    def __init__(self):
+        
+        pass
+
+
+class MSPreprocess(MethodPathHandler):
+    """
+    
+    Workflow covering all MS preprocessing steps: peak picking, feature
+    construction, map alignment and feature grouping. Also exports MS2
+    spectra in MGF format.
+    
+    Parameters
+    ----------
+    force : set
+        A set of steps which must be done no matter if the output of a later
+        stage is available. E.g. ``{'peak_picking'}``.
+    stop : str
+        A step where the workflow has to stop. E.g. if it's
+        ``feature_finding``, the last step executed will be
+        ``feature_finding``.
+    """
+    
+    _steps = (
+        ('profile', 'centroided', 'peak_picking'),
+        ('centroided', 'features', 'feature_finding'),
+        ('features', 'features_aligned', 'map_alignment'),
+        ('features_aligned', 'features_grouped', 'feature_grouping'),
+    )
+    _step_data = dict(
+        (
+            method,
+            (source, target)
+        )
+        for source, target, method in _steps
+    )
+    _classes = {
+        'peak_picking': PeakPickerHiRes,
+        'feature_finding': FeatureFindingMetabo,
+        'map_alignment': MapAlignmentAlgorithmPoseClustering,
+        'feature_grouping': FeatureGroupingAlgorithmKD,
+    }
+    
+    
+    def __init__(
+        self,
+        # stages
+        profile = None,
+        centroided = None,
+        features = None,
+        features_aligned = None,
+        features_grouped = None,
+        # further parameters for input/output
+        output_path = None,
+        sample_ids = None,
+        sample_id_method = None,
+        input_ext = None,
+        input_filter = None,
+        # parameters for each step
+        peak_picking_param = None,
+        mass_trace_detection_param = None,
+        elution_peak_detection_param = None,
+        feature_finding_metabo_param = None,
+        feature_finding_common_param = None,
+        map_alignment_param = None,
+        feature_grouping_param = None,
+        # workflow parameters
+        force = None,
+        stop = None,
+        # nothing
+        **kwargs
+    ):
+        
+        session.Logger.__init__(self, name = 'msproc')
+        
+        self.peak_picking_param = peak_picking_param or {}
+        self.mass_trace_detection_param = mass_trace_detection_param or {}
+        self.elution_peak_detection_param = elution_peak_detection_param or {}
+        self.feature_finding_metabo_param = feature_finding_metabo_param or {}
+        self.feature_finding_common_param = feature_finding_common_param or {}
+        self.feature_finding_
+        self.map_alignment_param = map_alignment_param or {}
+        self.feature_grouping_param = feature_grouping_param or {}
+        
+        self.sample_ids = sample_ids
+        self.force = force or set()
+        self.profile = profile
+        self.centroided = centroided
+        self.features = features
+        self.features_aligned = features_aligned
+        self.features_grouped = features_grouped
+        
+        self.MethodPathHandler.__init__(
+            self,
+            input_path = input_path,
+            input_obj = input_obj,
+            output_path = output_path,
+            sample_id_method = sample_id_method,
+            input_ext = input_ext,
+            input_filter = input_filter,
+        )
+        
+        self._input = (
+            self.input_obj if self.input_obj is not None else self.input_path
+        )
+        self._input = (
+            self._input
+                if isinstance(self._input, (tuple, list, np.ndarray)) else
+            (self._input,)
+        )
+        self._input_arg = (
+            'input_obj' if self.input_obj is not None else 'input_path'
+        )
+    
+    
+    def main(self):
+        
+        self.workflow()
+    
+    
+    def workflow(self):
+        
+        for source, result, method in self._steps:
+            
+            if not getattr(self, result) or method in self.force:
+                
+                self._log('Next step in workflow: `%s`.' % method)
+                getattr(self, method)()
+            
+            if method == self.stop:
+                
+                self._log('Stopping after step `%s`.' % method)
+                break
+    
+    
+    def _step_base(self, method):
+        
+        source_name, target_name = self._step_data[method]
+        source = getattr(self, source_name)
+        target = []
+        _class = self._classes[method]
+        param = getattr(self, '%s_param' % method)
+        
+        sample_ids_in = self.sample_ids or [None] * len(source)
+        sample_ids_out = []
+        
+        for resource, sample_id in zip(source, sample_ids_in):
+            
+            param = copy.deepcopy(param)
+            param[self._input_arg] = resource
+            param['sample_id'] = sample_id
+            
+            worker = _class(**param)
+            worker.main()
+            target.append(worker.output_map)
+            sample_ids_out.append(worker.sample_id)
+        
+        self.result = target
+        setattr(self, target_name, target)
+        # if we already had sample IDs in the previous step
+        # they will just pass through
+        self.sample_ids = sample_ids_out
+    
+    
+    def peak_picking(self):
+        
+        self._step_base(method = 'peak_picking')
+    
+    
+    def feature_finding(self):
+        
+        self._step_base(method = 'feature_finding')
+    
+    
+    def map_alignment(self):
+        
+        self._step_base(method = 'map_alignment')
+    
+    
+    def feature_grouping(self):
+        
+        self._step_base(method = 'feature_grouping')
+    
+    
+    def get_sampleset(self):
+        
+        return {}
+
+
+class MSPreprocess(session.Logger):
+    """
+    
+    Workflow covering all MS preprocessing steps: peak picking, feature
+    construction, map alignment and feature grouping. Also exports MS2
+    spectra in MGF format.
     
     Usage:
-
+    
     Firstly, you need to define variable as preproc = Preprocessing()
     Secondly, you have to specify desirable parameters according to pyopenms
-    library. All parameters you can see on https://abibuilder.informatik.uni-tuebingen.de/
-    /archive/openms/Documentation/release/2.4.0/html/index.html or TOPP application
-    in vocabulary view, e.g param_pp = {"signal_to_noise": 1.0}
-    Note: Boolean value should be in quoted, e.g. param_epd = {"enabled": "true"}
+    library. You can see all parameters at
+    https://abibuilder.informatik.uni-tuebingen.de/
+    /archive/openms/Documentation/release/2.4.0/html/index.html or in the
+    TOPP application in vocabulary view, e.g ``param_pp = {"signal_to_noise": 1.0}``.
+    Note: Boolean values should be strings, e.g.
+    ``param_epd = {"enabled": "true"}``.
     
     param_pp - variable for Peak Picking parameters
     param_ff_com - variable for common Feature Finding Metabo parameters

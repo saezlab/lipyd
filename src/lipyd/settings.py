@@ -564,6 +564,7 @@ _defaults = {
     # lipyd specific defaults for OpenMS methods
     'peak_picking_param': {
         'signal_to_noise': 1.0,
+        'ms_levels': [1, 2],
     },
     'feature_finding_common_param': {
         'noise_threshold_int': 9.0,
@@ -614,6 +615,10 @@ _defaults = {
     'aligned_dir': 'aligned',
     # same as above
     'aligned_suffix': '__aligned',
+    # same as above but for MGF format spectra
+    'mgf_export_dir': 'mgf',
+    # by default here we don't add suffix, the format is obvious
+    'mgf_export_suffix': '',
 }
 
 in_basedir = [
