@@ -1164,7 +1164,7 @@ class MgfExport(MethodPathHandler):
                 )
 
 
-class FeatureGroupingAlgorithmKD(OpenmsMethodWrapper):
+class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
     """
     Wrapper around ``pyopenms.FeatureGroupingAlgorithmKD``.
     """

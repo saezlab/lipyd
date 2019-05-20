@@ -39,8 +39,11 @@ FAMILIES = {
     },
 }
 PRE_SUBCLASS = {'Hex', 'Hex2', 'SHex', 'SHex2', 'Lyso', 'Monolyso'}
+POST_SUBCLASS = {'1P', 'PE', 'PC'}
 PRE_CHAIN_ETHER = {'O', 'P'}
 PRE_CHAIN_SPHINGO = {'d', 't', 'k', 'DH'}
+
+CLASSES = set.union(*FAMILIES.values())
 
 
 ChainAttr = collections.namedtuple(
@@ -469,7 +472,19 @@ def str2hg(hgstr):
     
     pieces = hgstr.split('-')
     
-    return Headgroup(main = pieces[-1], sub = tuple(pieces[:-1]))
+    main = None
+    
+    for pc in pieces:
+        
+        if pc in CLASSES:
+            
+            main = pc
+            
+            break
+    
+    sub = tuple(pc for pc in pieces if pc != main)
+    
+    return Headgroup(main = main, sub = sub)
 
 
 def str2chain(chainstr, iso = False):
