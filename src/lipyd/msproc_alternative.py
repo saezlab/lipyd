@@ -282,6 +282,7 @@ class MethodPathHandler(session.Logger):
             input_obj = None,
             method_key = None,
             output_path = None,
+            output_dir = None,
             sample_id = None,
             sample_id_method = None,
             input_ext = None,
@@ -302,7 +303,7 @@ class MethodPathHandler(session.Logger):
         self.method_key = method_key
         self._sample_id_method = sample_id_method
         self.sample_id = sample_id
-    
+        self.output_dir = output_dir
     
     def main(self):
         
