@@ -26,6 +26,7 @@ import functools
 
 
 FAMILIES = {
+    'FA':  {'FA', 'FAL'},
     'SL':  {'Sph', 'Cer', 'SM'},
     'GL':  {'MAG', 'DAG', 'TAG'},
     'GPL': {
