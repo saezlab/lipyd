@@ -55,7 +55,7 @@ except:
 import urllib
 
 try:
-    import urllib2
+    import urllib.request
 except ImportError:
     # this works seemless in Py3:
     urllib2 = urllib.request

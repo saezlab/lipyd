@@ -282,6 +282,7 @@ class MethodPathHandler(session.Logger):
             input_obj = None,
             method_key = None,
             output_path = None,
+            output_dir = None,
             sample_id = None,
             sample_id_method = None,
             input_ext = None,
@@ -302,7 +303,7 @@ class MethodPathHandler(session.Logger):
         self.method_key = method_key
         self._sample_id_method = sample_id_method
         self.sample_id = sample_id
-    
+        self.output_dir = output_dir
     
     def main(self):
         
@@ -1166,13 +1167,176 @@ class MgfExport(MethodPathHandler):
 
 class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
     """
-    Wrapper around ``pyopenms.FeatureGroupingAlgorithmKD``.
+    Wrapper around ``pyopenms.FeatureGroupingAlgorithmQT``.
     """
     
     
-    def __init__(self):
+    def __init__(
+            self,
+            input_path = None,
+            input_obj = None,
+            output_path = None,
+            sample_id = None,
+            sample_id_method = None,
+            **kwargs,
+        ):
         
-        pass
+        OpenmsMethodWrapper.__init__(
+            self,
+            method = oms.PeakPickerHiRes,
+            input_path = input_path,
+            input_obj = input_obj,
+            output_path = output_path,
+            name = 'peak_picker',
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
+            **kwargs
+        )
+
+
+    def main(self, input_path = None, output_path = None, keep_subelements = True, **params):
+        #------------------------------------------
+        #   service utils;
+        #------------------------------------------
+        def addDataProcessing(obj, params, action):
+            if isinstance(obj, oms.MSExperiment):
+                result = oms.MSExperiment()
+                for spec in obj:
+                    spec = _addDataProcessing(spec, params, action)
+                    result.addSpectrum(spec)
+            else:
+                result = _addDataProcessing(obj, params, action)
+            return result
+
+        def _addDataProcessing(item, params, action):
+            dp = item.getDataProcessing()
+            p = oms.DataProcessing()
+            p.setProcessingActions(set([action]))
+            sw = p.getSoftware()
+            sw.setName(os.path.basename(sys.argv[0]))
+            sw.setVersion(oms.VersionInfo.getVersion())
+            p.setSoftware(sw)
+            p.setCompletionTime(oms.DateTime.now())
+
+            for k, v in params.items():
+                p.setMetaValue("parameter: "+k, v)
+
+            dp.append(p)
+            item.setDataProcessing(dp)
+            return item
+
+        def writeParamsIfRequested(args, params):
+            if args.write_dict_ini or args.write_ini:
+                if args.write_dict_ini:
+                    with open(args.write_dict_ini, "w") as fp:
+                        pprint.pprint(params.asDict(), stream=fp)
+                if args.write_ini:
+                    fh = oms.ParamXMLFile()
+                    fh.store(args.write_ini, params)
+                return True
+            return False
+
+        def updateDefaults(args, defaults):
+            if args.ini:
+                param = oms.Param()
+                fh = oms.ParamXMLFile()
+                fh.load(args.ini, param)
+                defaults.update(param)
+            elif args.dict_ini:
+                with open(args.dict_ini, "r") as fp:
+                    try:
+                        dd = eval(fp.read())
+                    except:
+                        raise Exception("could not parse %s" % args.dict_ini)
+                defaults.update(dd)
+
+        def link(input_path = None, output_path = None, keep_subelements = True, **params):
+            if not (input_path and output_path) :
+                raise Exception("source file pattern have not be empty!")
+            
+            from  collections import Counter
+
+            in_files = get_list_full_names( input_path )
+            out_file = output_path
+            
+            in_types = set(oms.FileHandler.getType(in_) for in_ in in_files)
+            
+            link_features = True
+            """
+            if in_types == set((oms.Type.CONSENSUSXML,)):
+                link_features = False
+            elif in_types == set((oms.Type.FEATUREXML,)):
+                link_features = True
+            else:
+                raise Exception("different kinds of input files")
+            """
+            #algorithm_parameters = params.copy("algorithm:", True)
+            #algorithm_parameters = {  : }
+            algorithm = oms.FeatureGroupingAlgorithmQT()
+            p = algorithm.getDefaults()
+            p.setValue("algorithm", True)
+            #algorithm.setParameters(algorithm_parameters)
+            algorithm.setParameters( p )
+
+            out_map = oms.ConsensusMap()
+            fds = out_map.getColumnHeaders()
+            if link_features:
+                f = oms.FeatureXMLFile()
+                maps = []
+                for i, in_file in enumerate(in_files):
+                    map_ = oms.FeatureMap()
+                    f.load(in_file, map_)
+
+                    # set filedescriptions
+                    fd = fds.get(i, oms.ColumnHeader())
+                    fd.filename = in_file
+                    fd.size = map_.size()
+                    fd.unique_id = map_.getUniqueId()
+                    fds[i] = fd
+                    maps.append(map_)
+                out_map.setColumnHeaders(fds)
+                algorithm.group(maps, out_map)
+            else:
+                f = oms.ConsensusXMLFile()
+                maps = []
+                for i, in_file in enumerate(in_files):
+                    map_ = oms.ConsensusMap()
+                    f.load(in_file, map_)
+                    maps.append(map_)
+                algorithm.group(maps, out_map)
+
+                if not keep_subelements:
+                    for i in range(len(in_files)):
+                        # set filedescriptions
+                        fd = fds.get(i, oms.ColumnHeader())
+                        fd.filename = in_files[i]
+                        fd.size = maps[i].size()
+                        fd.unique_id = maps[i].getUniqueId()
+                        fds[i] = fd
+                    out_map.setColumnHeaders(fds)
+                else:
+                    algorithm.transferSubelements(maps, out_map)
+
+            out_map.setUniqueIds()
+            addDataProcessing(out_map, params, oms.ProcessingAction.FEATURE_GROUPING)
+
+            oms.ConsensusXMLFile().store(out_file, out_map)
+            """
+            sizes = []
+            for feat in out_map:
+                sizes.append(feat.size())
+
+            c = Counter(sizes)
+            print "Number of consensus features:"
+            for size, count in c.most_common():
+                print "   of size %2d : %6d" % (size, count)
+            print "        total : %6d" % out_map.size()
+        #   service utils;
+            """
+        # --- end of link ---
+        
+        link(input_path = input_path, output_path = output_path, keep_subelements = keep_subelements, **params)
+    # --- end of main2 ---
 
 
 class MSPreprocess(MethodPathHandler):
@@ -1210,7 +1374,7 @@ class MSPreprocess(MethodPathHandler):
         'peak_picking': PeakPickerHiRes,
         'feature_finding': FeatureFindingMetabo,
         'map_alignment': MapAlignmentAlgorithmPoseClustering,
-        'feature_grouping': FeatureGroupingAlgorithmKD,
+        'feature_grouping': FeatureGroupingAlgorithmQT,
     }
     
     
@@ -1223,9 +1387,12 @@ class MSPreprocess(MethodPathHandler):
         features_aligned = None,
         features_grouped = None,
         # further parameters for input/output
+        output_dir = None,
         output_path = None,
         sample_ids = None,
         sample_id_method = None,
+        input_path = None,
+        input_obj = None,
         input_ext = None,
         input_filter = None,
         # parameters for each step
@@ -1250,7 +1417,7 @@ class MSPreprocess(MethodPathHandler):
         self.elution_peak_detection_param = elution_peak_detection_param or {}
         self.feature_finding_metabo_param = feature_finding_metabo_param or {}
         self.feature_finding_common_param = feature_finding_common_param or {}
-        self.feature_finding_
+        #self.feature_finding_
         self.map_alignment_param = map_alignment_param or {}
         self.feature_grouping_param = feature_grouping_param or {}
         
@@ -1262,15 +1429,18 @@ class MSPreprocess(MethodPathHandler):
         self.features_aligned = features_aligned
         self.features_grouped = features_grouped
         
-        self.MethodPathHandler.__init__(
+        MethodPathHandler.__init__(
             self,
             input_path = input_path,
             input_obj = input_obj,
             output_path = output_path,
+            output_dir = output_dir,
             sample_id_method = sample_id_method,
             input_ext = input_ext,
             input_filter = input_filter,
         )
+
+        super().main()
         
         self._input = (
             self.input_obj if self.input_obj is not None else self.input_path
@@ -1359,238 +1529,10 @@ class MSPreprocess(MethodPathHandler):
         return {}
 
 
-class MSPreprocess(session.Logger):
-    """
+if __name__ == "__main__":
+
+    a = MSPreprocess(input_path = '/home/igor/Documents/Scripts/Data/Raw_data_STARD10/',
+                    output_path = '/home/igor/Documents/Scripts/Data/Picked_STARD10/',
+                    stop = 'peak_picking')
     
-    Workflow covering all MS preprocessing steps: peak picking, feature
-    construction, map alignment and feature grouping. Also exports MS2
-    spectra in MGF format.
-    
-    Usage:
-    
-    Firstly, you need to define variable as preproc = Preprocessing()
-    Secondly, you have to specify desirable parameters according to pyopenms
-    library. You can see all parameters at
-    https://abibuilder.informatik.uni-tuebingen.de/
-    /archive/openms/Documentation/release/2.4.0/html/index.html or in the
-    TOPP application in vocabulary view, e.g ``param_pp = {"signal_to_noise": 1.0}``.
-    Note: Boolean values should be strings, e.g.
-    ``param_epd = {"enabled": "true"}``.
-    
-    param_pp - variable for Peak Picking parameters
-    param_ff_com - variable for common Feature Finding Metabo parameters
-    param_mtd - variable for Mass Trace Detection (1st step of FFM) parameters
-    param_epd - variable for Elution Peak Detection (2nd step) parameters
-    param_ffm - variable for Feature Finder (3rd step) parameters
-    param_ma - variable for Map Alignment process
-    Thirdly you have to call next methods consistently:
-    preproc.peak_picking(src = "/your source directory/",
-                          dst = "/destination directory",
-                          suffix_dst_files = "",
-                          ext_dst_files = "mzML" or "featureXML")
-    prerpoc.feature_finding_metabo (the same arguments)
-    preproc.map_alignment (the same srguments)
-    preproc.run()
-    
-    Parameters
-    ----------
-    src : str
-        Source directory consists source file(s)
-    dst :  str, optional
-        Destination directory
-    suffix_dst_files : str, optional
-        Additional part of result file name
-    ext_dst_files: str, optional
-        Extension of resulting files
-    
-    """
-
-    def __init__(
-            self,
-            src = None,
-            dst = None,
-            mzs = None,
-            intensities = None,
-            rts = None
-        ):
-
-        session.Logger.__init__(self, name = 'Preprocessing')
-
-        self.pp = None
-        self.ff = None
-        self.ma = None
-
-        self.src = src
-        self.dst = dst
-
-        self.mzs = mzs
-        self.intensities = intensities
-        self.rts = rts
-        
-    def peak_picking(self,
-                src = None,
-                dst = None,
-                suffix_dst_files = "_picked",
-                ext_dst_files = "mzML",
-                **param):
-        
-        self.pp = PeakPicking(
-                src = src,
-                dst = dst,
-                suffix_dst_files = "_picked",          #for example : "_feature"
-                ext_dst_files = "mzML",           #the string may begin with a dot
-                **param)
-
-    def feature_finding_metabo(self,
-                src = None,
-                dst = None,
-                suffix_dst_files = "_feature",
-                ext_dst_files = "featureXML",
-                **param):
-        
-        self.ff = FeatureFindingMetabo(
-                src = src,
-                dst = dst,
-                suffix_dst_files = suffix_dst_files, #for example : "_feature"
-                ext_dst_files = ext_dst_files,       #the string may begin with a dot
-                **param)
-
-    def map_alignment(self,
-                src = None,
-                dst = None,
-                suffix_dst_files = "",
-                ext_dst_files = "featureXML",
-                reference_file = None,
-                **param):
-        
-        self.ma = MapAlignment(
-                src = src,
-                dst = dst,
-                reference_file = reference_file,
-                suffix_dst_files = suffix_dst_files, #for example : "_feature"
-                ext_dst_files = ext_dst_files,       #the string may begin with a dot
-                **param)
-
-
-    def setup_pp_params(self, **param):
-        self.pp.pp.set_parameters(**param)
-
-
-    def setup_ff_mtd_params(self, **param):
-        self.ff.set_param_mtd(**param)
-
-    def setup_ff_epd_params(self, **param):
-        self.ff.set_param_epd(**param)
-
-    def setup_ff_ffm_params(self, **param):
-        self.ff.set_param_ffm(**param)
-
-    def setup_ma_params(self, **param ):
-        self.ma.ma.set_parameters(**param)
-
-    def run(self):
-        
-        self.pp.main()
-        self.ff.main()
-        self.ma.main()
-
-
-    def get_sampleset(self, src):
-        """
-        Methods for extracting mzs, rts, intensities from all files
-        as 2 dimensional arrays
-
-        """
-
-        if not(src or self.src):
-            raise RuntimeError("you have to point src pattern.")
-        
-        src_pattern = src if src else self.src
-        
-        self.mzs = []
-        self.intensities = []
-        self.rts = []
-        
-        for f in get_list_full_names(src_pattern):
-            
-            xml_file = oms.FeatureXMLFile()
-            fmap = oms.FeatureMap()
-            xml_file.load(f, fmap)
-            
-            print("get_xml_data f=", f)
-            
-            rts_tmp = []
-            mzs_tmp = []
-            intensities_tmp = []
-            
-            for n in fmap:
-                _rt = n.getRT()
-                _mz = n.getMZ()
-                _intensities = n.getIntensity()
-                rts_tmp.append(_rt)
-                mzs_tmp.append(_mz)
-                intensities_tmp.append(_intensities)
-            
-            self.mzs.append(mzs_tmp)
-            self.intensities.append(intensities_tmp)
-            self.rts.append(rts_tmp)
-
-        #print(rts. mzs. intensities)
-
-        return {
-            'mzs': self.mzs,
-            'rts': self.rts,
-            'intensities': self.intensities
-        }  
-
-    def get_sampleset_2(self, src):  
-        """Another methods for extracting data"""  
-        
-        if not (src or self.src):
-            raise RuntimeError("you have to point src pattern.")
-        
-        #override path pattern name to src;
-        src_pattern = src if src else self.src
-
-        self.mzs = []
-        self.intensities = []
-        self.rts = []
-        
-        for f in get_list_full_names(src_pattern):
-            
-            #print("get_data.f = ", f)
-            mzml_file = oms.MzMLFile()
-            exp = oms.MSExperiment()
-            mzml_file.load(f, exp)  # f is current file name from list of names;
-            
-            rt_for_file = []        # rt list for this file;
-            mzs_for_rt = []         # mz list of list for this rt;
-            intensities_for_rt = []        # ints list of list for this rt;
-            
-            for spec in exp:        # spec is MSSpectrum type object;
-                
-                mzs_tmp = []
-                intensities_tmp = []
-                
-                _rt = spec.getRT()
-                rt_for_file.append(_rt)
-                
-                for p in spec:
-                    _mz = p.getMZ()
-                    _ints = p.getIntensity()
-                    mzs_tmp.append(_mz)
-                    intensities_tmp.append(_ints)
-                    #print("get_data: _rt={}, _mz={}, _ints={} ".format(_rt, _mz, _ints) )
-
-                mzs_for_rt.append(mzs_tmp)
-                ints_for_rt.append(intensities_tmp)
-            
-            self.rts.append(rt_for_file) # add rt list for current file to global rt list;
-            self.mzs.append(mzs_for_rt)  # same for mz;
-            self.ints.append(ints_for_rt)# same for ints;
-        
-        return  {
-            'mzs': self.mzs,
-            'rt_means': self.rts,
-            'intensities': self.intensities
-        }
+    a.peak_picking()
