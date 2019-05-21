@@ -22,6 +22,7 @@ from future.utils import iteritems
 import os
 import imp
 import re
+import copy
 
 import numpy as np
 import pyopenms as oms
@@ -691,13 +692,33 @@ class MassTraceDetection(OpenmsMethodWrapper):
     """
     
     
-    def __init__(self, **kwargs):
+    def __init__(
+            self,
+            input_map,
+            mass_traces = None,
+            **kwargs
+        ):
+        
+        self.input_map = input_map
+        self.mass_traces = mass_traces or []
         
         OpenmsMethodWrapper.__init__(
             self,
             method = oms.MassTraceDetection,
             name = 'mass_trace_detection',
+            **kwargs
         )
+    
+    
+    def main(self):
+        
+        self.create_instance()
+        self.run()
+    
+    
+    def run(self):
+        
+        self.openms_obj.run(self.input_map, self.mass_traces)
 
 
 class ElutionPeakDetection(OpenmsMethodWrapper):
@@ -706,13 +727,33 @@ class ElutionPeakDetection(OpenmsMethodWrapper):
     """
     
     
-    def __init__(self, **kwargs):
+    def __init__(
+            self,
+            mass_traces,
+            mass_traces_split = [],
+            **kwargs
+        ):
+        
+        self.mass_traces = mass_traces
+        self.mass_traces_split = mass_traces_split
         
         OpenmsMethodWrapper.__init__(
             self,
             method = oms.ElutionPeakDetection,
             name = 'elution_peak_detection',
+            **kwargs
         )
+    
+    
+    def main(self):
+        
+        self.create_instance()
+        self.run()
+    
+    
+    def run(self):
+        
+        self.openms_obj.detectPeaks(self.mass_traces, self.mass_traces_split)
 
 
 class FeatureFindingMetabo(OpenmsMethodWrapper):
@@ -747,9 +788,9 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
     
     def __init__(
         self,
-        input_file = None,
-        input_map = None,
-        output_file = None,
+        input_path = None,
+        input_obj = None,
+        output_path = None,
         sample_id = None,
         sample_id_method = None,
         mass_trace_detection_param = None,
@@ -768,18 +809,12 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
             self._combine_param(kwargs, feature_finding_metabo_param)
         )
         
-        if isinstance(input_map, oms.PeakMap):
-            
-            self.input_map = input_map
-            self._log(
-                'Centroided data provided as `pyopenms.PeakMap` object.'
-            )
-        
         OpenmsMethodWrapper.__init__(
             self,
             method = oms.FeatureFindingMetabo,
-            infile = input_file,
-            outfile = output_file,
+            input_path = input_path,
+            input_obj = input_obj,
+            output_path = output_path,
             name = 'feature_finding_metabo',
             sample_id = sample_id,
             sample_id_method = sample_id_method,
@@ -799,7 +834,14 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         Reads the centroided data.
         """
         
-        if not hasattr(self, 'input_map'):
+        if isinstance(self.input_obj, oms.PeakMap):
+            
+            self.input_map = self.input_obj
+            self._log(
+                'Centroided data provided as `pyopenms.PeakMap` object.'
+            )
+            
+        else:
             
             self.input_map = oms.PeakMap()
             oms.MzMLFile().load(self.input_path, self.input_map)
@@ -819,9 +861,11 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         self._log('Performing mass trace detection.')
         self.mass_traces = []
         self.mass_trace_detection = MassTraceDetection(
+            input_map = self.input_map,
+            mass_traces = self.mass_traces,
             **self.mass_trace_detection_param
         )
-        self.mass_trace_detection.run(self.input_map, self.mass_traces)
+        self.mass_trace_detection.main()
     
     
     def do_elution_peak_detection(self):
@@ -829,21 +873,20 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         self._log('Performing elution peak detection.')
         self.mass_traces_split = []
         self.elution_peak_detection = ElutionPeakDetection(
+            mass_traces = self.mass_traces,
+            mass_traces_split = self.mass_traces_split,
             **self.elution_peak_detection_param
         )
-        self.elution_peak_detection.detectPeaks(
-            self.mass_traces,
-            self.mass_traces_split,
-        )
+        self.elution_peak_detection.main()
     
     
     def do_feature_finding(self):
         
-        self._log('Creating features by `FeatureFinderMetabo`.')
+        self._log('Creating features by `FeatureFindingMetabo`.')
         self.feature_map = oms.FeatureMap()
         self.mass_traces_filtered = []
-        self.feature_finder_metabo = self.openms_obj
-        self.feature_finder_metabo.run(
+        self.feature_finding_metabo = self.openms_obj
+        self.feature_finding_metabo.run(
             self.mass_traces_split,
             self.feature_map,
             self.mass_traces_filtered,
@@ -862,7 +905,7 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
     @staticmethod
     def _combine_param(common_param, param):
         
-        combined_param = copy.deepcopy(kwargs) or {}
+        combined_param = copy.deepcopy(common_param) or {}
         combined_param.update(param or {})
         
         return combined_param
@@ -1121,7 +1164,7 @@ class MgfExport(MethodPathHandler):
                 )
 
 
-class FeatureGroupingAlgorithmKD(OpenmsMethodWrapper):
+class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
     """
     Wrapper around ``pyopenms.FeatureGroupingAlgorithmKD``.
     """
