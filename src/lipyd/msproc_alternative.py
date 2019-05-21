@@ -1166,13 +1166,176 @@ class MgfExport(MethodPathHandler):
 
 class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
     """
-    Wrapper around ``pyopenms.FeatureGroupingAlgorithmKD``.
+    Wrapper around ``pyopenms.FeatureGroupingAlgorithmQT``.
     """
     
     
-    def __init__(self):
+    def __init__(
+            self,
+            input_path = None,
+            input_obj = None,
+            output_path = None,
+            sample_id = None,
+            sample_id_method = None,
+            **kwargs,
+        ):
         
-        pass
+        OpenmsMethodWrapper.__init__(
+            self,
+            method = oms.PeakPickerHiRes,
+            input_path = input_path,
+            input_obj = input_obj,
+            output_path = output_path,
+            name = 'peak_picker',
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
+            **kwargs
+        )
+
+
+    def main(self, input_path = None, output_path = None, keep_subelements = True, **params):
+        #------------------------------------------
+        #   service utils;
+        #------------------------------------------
+        def addDataProcessing(obj, params, action):
+            if isinstance(obj, oms.MSExperiment):
+                result = oms.MSExperiment()
+                for spec in obj:
+                    spec = _addDataProcessing(spec, params, action)
+                    result.addSpectrum(spec)
+            else:
+                result = _addDataProcessing(obj, params, action)
+            return result
+
+        def _addDataProcessing(item, params, action):
+            dp = item.getDataProcessing()
+            p = oms.DataProcessing()
+            p.setProcessingActions(set([action]))
+            sw = p.getSoftware()
+            sw.setName(os.path.basename(sys.argv[0]))
+            sw.setVersion(oms.VersionInfo.getVersion())
+            p.setSoftware(sw)
+            p.setCompletionTime(oms.DateTime.now())
+
+            for k, v in params.items():
+                p.setMetaValue("parameter: "+k, v)
+
+            dp.append(p)
+            item.setDataProcessing(dp)
+            return item
+
+        def writeParamsIfRequested(args, params):
+            if args.write_dict_ini or args.write_ini:
+                if args.write_dict_ini:
+                    with open(args.write_dict_ini, "w") as fp:
+                        pprint.pprint(params.asDict(), stream=fp)
+                if args.write_ini:
+                    fh = oms.ParamXMLFile()
+                    fh.store(args.write_ini, params)
+                return True
+            return False
+
+        def updateDefaults(args, defaults):
+            if args.ini:
+                param = oms.Param()
+                fh = oms.ParamXMLFile()
+                fh.load(args.ini, param)
+                defaults.update(param)
+            elif args.dict_ini:
+                with open(args.dict_ini, "r") as fp:
+                    try:
+                        dd = eval(fp.read())
+                    except:
+                        raise Exception("could not parse %s" % args.dict_ini)
+                defaults.update(dd)
+
+        def link(input_path = None, output_path = None, keep_subelements = True, **params):
+            if not (input_path and output_path) :
+                raise Exception("source file pattern have not be empty!")
+            
+            from  collections import Counter
+
+            in_files = get_list_full_names( input_path )
+            out_file = output_path
+            
+            in_types = set(oms.FileHandler.getType(in_) for in_ in in_files)
+            
+            link_features = True
+            """
+            if in_types == set((oms.Type.CONSENSUSXML,)):
+                link_features = False
+            elif in_types == set((oms.Type.FEATUREXML,)):
+                link_features = True
+            else:
+                raise Exception("different kinds of input files")
+            """
+            #algorithm_parameters = params.copy("algorithm:", True)
+            #algorithm_parameters = {  : }
+            algorithm = oms.FeatureGroupingAlgorithmQT()
+            p = algorithm.getDefaults()
+            p.setValue("algorithm", True)
+            #algorithm.setParameters(algorithm_parameters)
+            algorithm.setParameters( p )
+
+            out_map = oms.ConsensusMap()
+            fds = out_map.getColumnHeaders()
+            if link_features:
+                f = oms.FeatureXMLFile()
+                maps = []
+                for i, in_file in enumerate(in_files):
+                    map_ = oms.FeatureMap()
+                    f.load(in_file, map_)
+
+                    # set filedescriptions
+                    fd = fds.get(i, oms.ColumnHeader())
+                    fd.filename = in_file
+                    fd.size = map_.size()
+                    fd.unique_id = map_.getUniqueId()
+                    fds[i] = fd
+                    maps.append(map_)
+                out_map.setColumnHeaders(fds)
+                algorithm.group(maps, out_map)
+            else:
+                f = oms.ConsensusXMLFile()
+                maps = []
+                for i, in_file in enumerate(in_files):
+                    map_ = oms.ConsensusMap()
+                    f.load(in_file, map_)
+                    maps.append(map_)
+                algorithm.group(maps, out_map)
+
+                if not keep_subelements:
+                    for i in range(len(in_files)):
+                        # set filedescriptions
+                        fd = fds.get(i, oms.ColumnHeader())
+                        fd.filename = in_files[i]
+                        fd.size = maps[i].size()
+                        fd.unique_id = maps[i].getUniqueId()
+                        fds[i] = fd
+                    out_map.setColumnHeaders(fds)
+                else:
+                    algorithm.transferSubelements(maps, out_map)
+
+            out_map.setUniqueIds()
+            addDataProcessing(out_map, params, oms.ProcessingAction.FEATURE_GROUPING)
+
+            oms.ConsensusXMLFile().store(out_file, out_map)
+            """
+            sizes = []
+            for feat in out_map:
+                sizes.append(feat.size())
+
+            c = Counter(sizes)
+            print "Number of consensus features:"
+            for size, count in c.most_common():
+                print "   of size %2d : %6d" % (size, count)
+            print "        total : %6d" % out_map.size()
+        #   service utils;
+            """
+        # --- end of link ---
+        
+        link(input_path = input_path, output_path = output_path, keep_subelements = keep_subelements, **params)
+    # --- end of main2 ---
 
 
 class MSPreprocess(MethodPathHandler):
@@ -1594,3 +1757,11 @@ class MSPreprocess(session.Logger):
             'rt_means': self.rts,
             'intensities': self.intensities
         }
+
+if __name__ == "__main__":
+
+    a = MSPreprocess(profile = '/home/igor/Documents/Scripts/Data/Raw_data_STARD10/',
+                    centroided = '/home/igor/Documents/Scripts/Data/Picked_STARD10/',
+                    stop = 'peak_picking')
+    
+    a.peak_picking()
