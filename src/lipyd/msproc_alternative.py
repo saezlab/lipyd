@@ -305,6 +305,7 @@ class MethodPathHandler(session.Logger):
         self.sample_id = sample_id
         self.output_dir = output_dir
     
+    
     def main(self):
         
         self.set_paths()
@@ -889,11 +890,19 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         self.feature_map = oms.FeatureMap()
         self.mass_traces_filtered = []
         self.feature_finding_metabo = self.openms_obj
+        self.adjust_featurefindermetabo_param()
         self.feature_finding_metabo.run(
             self.mass_traces_split,
             self.feature_map,
             self.mass_traces_filtered,
         )
+    
+    
+    def adjust_featurefindermetabo_param(self):
+        
+        self.param.pop(b'noise_threshold_int')
+        self.param.pop(b'chrom_peak_snr')
+        self.set_param()
     
     
     def write(self):
@@ -958,10 +967,10 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     
     def __init__(
             self,
-            input_file = None,
+            input_path = None,
             input_map = None,
-            output_file = None,
-            reference_file = None,
+            output_path = None,
+            reference_path = None,
             reference_map = None,
             sample_id = None,
             sample_id_method = None,
@@ -970,8 +979,9 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
         
         OpenmsMethodWrapper.__init__(
             self,
-            input_file = input_file,
-            output_file = output_file,
+            method = oms.MapAlignmentAlgorithmPoseClustering,
+            input_path = input_path,
+            output_path = output_path,
             sample_id = sample_id,
             sample_id_method = sample_id_method,
             name = 'map_aligner',
@@ -979,6 +989,7 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
         )
         
         self.input_map = input_map
+        self.reference_path = reference_path
         self.reference_map = reference_map
     
     
@@ -1002,12 +1013,14 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     
     def read_reference(self):
         
-        self._log('Obtaining reference feature map.')
-        
-        self.reference_map = self.read(
-            path = self.reference_path,
-            mapobject = self.reference_map,
-        )
+        if self.reference_map is None:
+            
+            self._log('Obtaining reference feature map.')
+            
+            self.reference_map = self.read(
+                path = self.reference_path,
+                mapobject = self.reference_map,
+            )
     
     
     def read(self, path, mapobject):
@@ -1038,6 +1051,7 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     
     def write(self):
         
+        self.output_map = oms.FeatureMap()
         oms.FeatureXMLFile().store(self.output_path, self.output_map)
         self._log(
             'Aligned features have been written to `%s`.' % self.output_path
@@ -1196,7 +1210,14 @@ class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
         )
 
 
-    def main(self, input_path = None, output_path = None, keep_subelements = True, **params):
+    def main(
+            self,
+            input_path = None,
+            output_path = None,
+            keep_subelements = True,
+            **params
+        ):
+        
         #------------------------------------------
         #   service utils;
         #------------------------------------------
@@ -1209,7 +1230,8 @@ class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
             else:
                 result = _addDataProcessing(obj, params, action)
             return result
-
+        
+        
         def _addDataProcessing(item, params, action):
             dp = item.getDataProcessing()
             p = oms.DataProcessing()
@@ -1226,7 +1248,8 @@ class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
             dp.append(p)
             item.setDataProcessing(dp)
             return item
-
+        
+        
         def writeParamsIfRequested(args, params):
             if args.write_dict_ini or args.write_ini:
                 if args.write_dict_ini:
@@ -1237,7 +1260,8 @@ class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
                     fh.store(args.write_ini, params)
                 return True
             return False
-
+        
+        
         def updateDefaults(args, defaults):
             if args.ini:
                 param = oms.Param()
@@ -1251,7 +1275,8 @@ class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
                     except:
                         raise Exception("could not parse %s" % args.dict_ini)
                 defaults.update(dd)
-
+        
+        
         def link(input_path = None, output_path = None, keep_subelements = True, **params):
             if not (input_path and output_path) :
                 raise Exception("source file pattern have not be empty!")

@@ -584,7 +584,7 @@ _defaults = {
         'report_convex_hulls': 'true',
         'remove_single_traces': 'true',
     },
-    'map_alignement_param': {
+    'map_alignment_param': {
         'max_num_peaks_considered': 990,
     },
     # where to save intermediary and result files:

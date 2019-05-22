@@ -46,3 +46,10 @@ ff = msproc.FeatureFindingMetabo(
     sample_id = pp.sample_id,
 )
 ff.main()
+
+ma = msproc.MapAlignmentAlgorithmPoseClustering(
+    input_path = ff.output_path,
+    reference_path = ff.output_path,
+    sample_id = ff.sample_id,
+)
+ma.main()
