@@ -701,7 +701,7 @@ class MassTraceDetection(OpenmsMethodWrapper):
         ):
         
         self.input_map = input_map
-        self.mass_traces = mass_traces or []
+        self.mass_traces = mass_traces if mass_traces is not None else []
         
         OpenmsMethodWrapper.__init__(
             self,
@@ -731,12 +731,14 @@ class ElutionPeakDetection(OpenmsMethodWrapper):
     def __init__(
             self,
             mass_traces,
-            mass_traces_split = [],
+            mass_traces_split = None,
             **kwargs
         ):
         
         self.mass_traces = mass_traces
-        self.mass_traces_split = mass_traces_split
+        self.mass_traces_split = (
+            mass_traces_split if mass_traces_split is not None else []
+        )
         
         OpenmsMethodWrapper.__init__(
             self,
