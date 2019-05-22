@@ -273,8 +273,12 @@ class MethodPathHandler(session.Logger):
         'feature': 'featureXML',
         'aligned': 'featureXML',
         'msproc': 'featureXML',
+        'mgf_export': 'mgf',
     }
-    
+    _subdirs = {
+        settings.get('%s_dir' % key)
+        for key in ('centroided', 'feature', 'aligned', 'mgf_export')
+    }
     
     def __init__(
             self,
@@ -400,15 +404,25 @@ class MethodPathHandler(session.Logger):
             )
         )
         
+        path = os.path.split(output_root)
+        
         lipyd_wd = settings.get('lipyd_wd') or ''
+        
+        if path and path[-1] in self._subdirs:
+            
+            path = path[:-1]
+            path = os.path.split(path[0])
+        
+        if path and path[-1] == lipyd_wd:
+            
+            path = path[:-1]
+            path = os.path.split(path[0])
         
         method_wd = settings.get('%s_dir' % self.method_key) or ''
         
-        self.output_dir = os.path.join(
-            output_root,
-            lipyd_wd,
-            method_wd,
-        )
+        path = path + (lipyd_wd, method_wd)
+        
+        self.output_dir = os.path.join(*path)
     
     
     def _create_output_dir(self):
@@ -1072,16 +1086,17 @@ class MgfExport(MethodPathHandler):
     
     def __init__(
         self,
-        input_file = None,
+        input_path = None,
         input_data = None,
-        output_file = None,
+        output_path = None,
         sample_id = None,
         sample_id_method = None,
     ):
         
         MethodPathHandler.__init__(
-            input_file = input_file,
-            output_file = output_file,
+            self,
+            input_path = input_path,
+            output_path = output_path,
             name = 'mgf_export',
             method_key = 'mgf_export',
             sample_id = sample_id,
@@ -1139,8 +1154,9 @@ class MgfExport(MethodPathHandler):
                 
                 nr_ms2_spectra += 1
                 _ = fp.write("BEGIN IONS\n")
-                _ = fp.write("TITLE=%s\n" % spectrum.getNativeID())
+                _ = fp.write("TITLE=%s\n" % spectrum.getNativeID().decode())
                 _ = fp.write("RTINSECONDS=%.09f\n" % spectrum.getRT())
+                self.spectrum = spectrum
                 
                 try:
                     _ = fp.write(
@@ -1179,7 +1195,10 @@ class MgfExport(MethodPathHandler):
             else:
                 
                 self._log(
-                    '%u spectra have been written to `%s`.' % self.output_path
+                    '%u spectra have been written to `%s`.' % (
+                        nr_ms2_spectra,
+                        self.output_path,
+                    )
                 )
 
 

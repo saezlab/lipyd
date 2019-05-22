@@ -34,22 +34,33 @@ def sample_id_method(name):
     name = os.path.basename(name)
     return resampleid.match(name).groups()[0]
 
-
+# single instance test: peak picking
 pp = msproc.PeakPickerHiRes(
     input_path = example_data_0,
     sample_id_method = sample_id_method,
 )
 pp.main()
 
+# single instance test: feature finding
 ff = msproc.FeatureFindingMetabo(
     input_path = pp.output_path,
     sample_id = pp.sample_id,
 )
 ff.main()
 
+# single instance test: map alignment
+# ok, this does not make sense,
+# the transformation should result identical map
 ma = msproc.MapAlignmentAlgorithmPoseClustering(
     input_path = ff.output_path,
     reference_path = ff.output_path,
     sample_id = ff.sample_id,
 )
 ma.main()
+
+# single instance test: MGF export
+mgfe = msproc.MgfExport(
+    input_path = pp.output_path,
+    sample_id = pp.sample_id,
+)
+mgfe.main()
