@@ -1052,7 +1052,9 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     def write(self):
         
         self.output_map = oms.FeatureMap()
-        oms.FeatureXMLFile().store(self.output_path, self.output_map)
+        # here we store the input_map as the transformation has been
+        # applied to this map, the output_map is empty
+        oms.FeatureXMLFile().store(self.output_path, self.input_map)
         self._log(
             'Aligned features have been written to `%s`.' % self.output_path
         )
