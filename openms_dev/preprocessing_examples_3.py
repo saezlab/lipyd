@@ -64,3 +64,9 @@ mgfe = msproc.MgfExport(
     sample_id = pp.sample_id,
 )
 mgfe.main()
+
+# pipeline test
+wf = msproc.MSPreprocess(
+    input_path = example_data_dir,
+    stop = 'features_aligned',
+)

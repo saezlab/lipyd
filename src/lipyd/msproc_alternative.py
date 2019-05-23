@@ -456,7 +456,11 @@ class MethodPathHandler(session.Logger):
     
     def _set_method_key(self):
         
-        if not self.method_key and self.openms_method in self._method_keys:
+        if (
+            not self.method_key and
+            hasattr(self, 'openms_method') and
+            self.openms_method in self._method_keys
+        ):
             
             self.method_key = self._method_keys[self.openms_method]
     
@@ -852,6 +856,7 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         Reads the centroided data.
         """
         
+        # first try if OpenMS object provided, a PeakMap:
         if isinstance(self.input_obj, oms.PeakMap):
             
             self.input_map = self.input_obj
@@ -862,8 +867,31 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         else:
             
             self.input_map = oms.PeakMap()
-            oms.MzMLFile().load(self.input_path, self.input_map)
-            self._log('Reading centroided data from `%s`.' % self.input_path)
+            
+            # or an MSExperiment object:
+            if isinstance(self.input_obj, oms.MSExperiment):
+                
+                for chromatogram in self.input_obj.getChromatograms():
+                    
+                    self.input_map.addChromatogram(chromatogram)
+                
+                for spectrum in self.input_obj.getSpectra():
+                    
+                    self.input_map.addSpectrum(spectrum)
+                
+                self._log(
+                    'Centroided data provided as '
+                    '`pyopenms.MSExperiment` object, converted to '
+                    '`pyopenms.PeakMap` object.'
+                )
+                
+            # here we already assume the path provided
+            else:
+                
+                oms.MzMLFile().load(self.input_path, self.input_map)
+                self._log(
+                    'Reading centroided data from `%s`.' % self.input_path
+                )
     
     
     def find_features(self):
@@ -1175,6 +1203,7 @@ class MgfExport(MethodPathHandler):
                         )
                     
                 except IndexError:
+                    
                     _ = fp.write("PEPMASS=unknown\n")
                 
                 for peak in spectrum:
@@ -1405,6 +1434,13 @@ class MSPreprocess(MethodPathHandler):
         ``feature_finding``.
     """
     
+    _stages = (
+        'profile',
+        'centroided',
+        'features',
+        'features_aligned',
+        'features_grouped',
+    )
     _steps = (
         ('profile', 'centroided', 'peak_picking'),
         ('centroided', 'features', 'feature_finding'),
@@ -1424,7 +1460,11 @@ class MSPreprocess(MethodPathHandler):
         'map_alignment': MapAlignmentAlgorithmPoseClustering,
         'feature_grouping': FeatureGroupingAlgorithmQT,
     }
-    
+    _maps = {
+        oms.PeakMap,
+        oms.FeatureMap,
+        oms.MSExperiment,
+    }
     
     def __init__(
         self,
@@ -1460,6 +1500,7 @@ class MSPreprocess(MethodPathHandler):
         
         session.Logger.__init__(self, name = 'msproc')
         
+        self.method_key = 'ms_preprocess'
         self.peak_picking_param = peak_picking_param or {}
         self.mass_trace_detection_param = mass_trace_detection_param or {}
         self.elution_peak_detection_param = elution_peak_detection_param or {}
@@ -1477,6 +1518,8 @@ class MSPreprocess(MethodPathHandler):
         self.features_aligned = features_aligned
         self.features_grouped = features_grouped
         
+        self._set_input()
+        
         MethodPathHandler.__init__(
             self,
             input_path = input_path,
@@ -1487,8 +1530,8 @@ class MSPreprocess(MethodPathHandler):
             input_ext = input_ext,
             input_filter = input_filter,
         )
-
-        super().main()
+        
+        MethodPathHandler.main(self)
         
         self._input = (
             self.input_obj if self.input_obj is not None else self.input_path
@@ -1523,9 +1566,45 @@ class MSPreprocess(MethodPathHandler):
                 break
     
     
+    def _set_input(self):
+        
+        # if we force to re-do from the first possible step we iterate
+        # from the beginning, else we go backwards to find the last
+        # available stage
+        stages = self._stages if self.force else reversed(self._stages)
+        
+        for stage in stages:
+            
+            this_stage = getattr(self, 'stage')
+            
+            if this_stage:
+                
+                # looks like a single path provided
+                if isinstance(this_stage, common.basestring):
+                    
+                    this_stage = (this_stage,)
+                
+                # we have the input provided in this argument
+                if isinstance(this_stage, (tuple, list, np.ndarray)):
+                    
+                    _inputs = this_stage
+                    
+                # it's a boolean True, meaning that we start from this
+                # stage and get the inputs from `input_path` or `input_obj`
+                # arguments
+                elif this_stage == True:
+                    
+                    if isins
+                    
+                    for _input in this_stage:
+                        
+                        if isinstance(_input, common.basestring):
+    
+    
     def _step_base(self, method):
         
         source_name, target_name = self._step_data[method]
+        print(source_name)
         source = getattr(self, source_name)
         target = []
         _class = self._classes[method]
