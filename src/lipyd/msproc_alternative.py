@@ -35,6 +35,7 @@ OPENMS_OBJ_TYPES = (
     oms.PeakMap,
     oms.FeatureMap,
     oms.MSExperiment,
+    oms.ConsensusMap,
 )
 
 
@@ -241,49 +242,12 @@ class MethodParamHandler(session.Logger):
             )
 
 
-class MethodPathHandler(session.Logger):
-    """
-    Parameters
-    ----------
-    input_path : str
-        The path of the input file must be provided, otherwise this class
-        will do nothing. In case of multiple input files you can provide
-        a list of paths or the directory containing the files.
-    method_key : str,class
-        Either an OpenMS class or a string label. Used to identify the
-        method and look up the corresponding settings.
-    sample_id_method : callable
-        A method which generates sample identifier(s) from the input path(s).
-        If not provided, the file name without the extension will be used.
-    input_ext : str
-        In case of multiple input files only the files with this extension
-        (type) will be used.
-    input_filter : callable,str
-        A method which decides if an input file should be used. Should return
-        ``True`` if the file is to be used. Alternatively a regex as a string
-        which matches the desired input files.
-    
-    Attributes
-    ----------
-    multi_file_input : bool
-        Tells if the object has single or multiple input paths.
-    """
+class PathHandlerBase(session.Logger):
     
     _method_keys = {
         oms.PeakPickerHiRes: 'centroided',
         oms.FeatureFindingMetabo: 'feature',
         oms.MapAlignmentAlgorithmPoseClustering: 'aligned',
-    }
-    _outexts = {
-        'centroided': 'mzML',
-        'feature': 'featureXML',
-        'aligned': 'featureXML',
-        'msproc': 'featureXML',
-        'mgf_export': 'mgf',
-    }
-    _subdirs = {
-        settings.get('%s_dir' % key)
-        for key in ('centroided', 'feature', 'aligned', 'mgf_export')
     }
     
     def __init__(
@@ -291,8 +255,6 @@ class MethodPathHandler(session.Logger):
             input_path = None,
             input_obj = None,
             method_key = None,
-            output_path = None,
-            output_dir = None,
             sample_id = None,
             sample_id_method = None,
             input_ext = None,
@@ -300,6 +262,7 @@ class MethodPathHandler(session.Logger):
             name = 'path_handler',
             n_experiment = None,
             n_sample = None,
+            multi_file_input = False,
         ):
         
         # most of the times log initialized in the OpenmsMethodWrapper
@@ -307,15 +270,14 @@ class MethodPathHandler(session.Logger):
             
             session.Logger.__init__(self, name = name)
         
+        self.multi_file_input = multi_file_input
         self._input_path = input_path
         self.input_obj = input_obj
+        self.method_key = method_key
         self._input_ext = input_ext
         self._input_filter = input_filter
-        self.output_path = output_path
-        self.method_key = method_key
         self._sample_id_method = sample_id_method
         self.sample_id = sample_id
-        self.output_dir = output_dir
         self.n_experiment = n_experiment
         self.n_sample = n_sample
     
@@ -327,21 +289,11 @@ class MethodPathHandler(session.Logger):
     
     def set_paths(self):
         
-        if self._input_path:
+        if self._input_path is not None:
             
             self._set_input_path()
-            self._set_input()
-            self._set_sample_id()
-            
-            if not self.output_path:
-                
-                self._set_method_key()
-                self._set_output_dir()
-                self._set_output_path()
-            
-            self._create_output_dir()
-            self._tell_paths()
-            self._check_paths()
+        
+        self._set_input()
     
     
     def _set_input_path(self):
@@ -358,9 +310,8 @@ class MethodPathHandler(session.Logger):
                 ]
         
         # if we have something else than a single existing file path
-        self.multi_file_input = not (
-            isinstance(self._input_path, common.basestring) and
-            os.path.exists(self._input_path)
+        self.multi_file_input = (
+            isinstance(self._input_path, (tuple, list, np.ndarray))
         )
         
         if self.multi_file_input:
@@ -393,7 +344,7 @@ class MethodPathHandler(session.Logger):
             for path in self._input_path
             if (
                 self._input_ext is None or
-                os.path.splitext()[1] == self._input_ext
+                os.path.splitext(path)[1][1:] == self._input_ext
             ) and (
                 self._input_filter is None or
                 # this method recieves only the file name
@@ -429,6 +380,207 @@ class MethodPathHandler(session.Logger):
         ):
             
             self._input = self.input_path
+    
+    
+    def _set_sample_id(self):
+        
+        if not self.sample_id:
+            
+            if self.multi_file_input:
+                
+                self.sample_id = [
+                    self._get_sample_id(path)
+                    for path in self._input_path
+                ]
+                
+            else:
+                
+                self.sample_id = self._get_sample_id(self._input_path)
+    
+    
+    def _get_sample_id(self, _input):
+        """
+        Parameters
+        ----------
+        _input : str,object
+            Either the path to the input file or an OpenMS object.
+        """
+        
+        name = None
+        sample_id = None
+        
+        # first we try to get a string which carries information
+        # regarding the identity of the sample
+        if isinstance(self._sample_id_method, common.basestring):
+            
+            sample_id = self._sample_id_method
+            
+        else:
+            
+            if isinstance(_input, OPENMS_OBJ_TYPES):
+                
+                if hasattr(_input, 'getSourceFiles'):
+                    
+                    files = _input.getSourceFiles()
+                    
+                    if files:
+                        
+                        name = files[0].getNameOfFile().decode()
+                
+                if not name and hasattr(_input, 'getSample'):
+                    
+                    sample = _input.getSample()
+                    name = '%s__%s' % (
+                        sample.getName().decode(),
+                        sample.getNumber().decode(),
+                    )
+                
+            elif (
+                isinstance(_input, common.basestring) and
+                os.path.exists(_input)
+            ):
+                
+                name = os.path.splitext(os.path.basename(_input))[0]
+            
+            # once we have a string call the sample_id_method on it
+            if isinstance(name, common.basestring):
+                
+                sample_id = (
+                    self._sample_id_method(name)
+                        if callable(self._sample_id_method) else
+                    name
+                )
+                
+            elif isinstance(self._sample_id_method, common.basestring):
+                
+                sample_id = self._sample_id_method
+        
+        if not sample_id and hasattr(self, '_set_output_dir'):
+            
+            experiment = 1
+            sample = 1
+            if not hasattr(self, 'method_key'):
+                self._set_method_key()
+            suffix = settings.get('%s_suffix' % self.method_key) or ''
+            rename = re.compile(
+                r'experiment(\d+)_sample(\d+)' + suffix + r'\.\w+'
+            )
+            if not hasattr(self, 'output_dir'):
+                self._set_output_dir()
+            all_files = os.listdir(self.output_dir)
+            files = sorted([f for f in all_files if rename.match(f)])
+            
+            if files:
+                
+                last_file = files[-1]
+                m = rename.match(last_file).groups()
+                experiment = int(m[0])
+                sample = int(m[1])
+            
+            sample_id = 'experiment%03u_sample%03u' % (experiment, sample)
+        
+        return sample_id
+
+
+class MethodPathHandler(PathHandlerBase):
+    """
+    Parameters
+    ----------
+    input_path : str
+        The path of the input file must be provided, otherwise this class
+        will do nothing. In case of multiple input files you can provide
+        a list of paths or the directory containing the files.
+    method_key : str,class
+        Either an OpenMS class or a string label. Used to identify the
+        method and look up the corresponding settings.
+    sample_id_method : callable
+        A method which generates sample identifier(s) from the input path(s).
+        If not provided, the file name without the extension will be used.
+    input_ext : str
+        In case of multiple input files only the files with this extension
+        (type) will be used.
+    input_filter : callable,str
+        A method which decides if an input file should be used. Should return
+        ``True`` if the file is to be used. Alternatively a regex as a string
+        which matches the desired input files.
+    
+    Attributes
+    ----------
+    multi_file_input : bool
+        Tells if the object has single or multiple input paths.
+    """
+    
+    _outexts = {
+        'centroided': 'mzML',
+        'feature': 'featureXML',
+        'aligned': 'featureXML',
+        'msproc': 'featureXML',
+        'mgf_export': 'mgf',
+    }
+    _subdirs = {
+        settings.get('%s_dir' % key)
+        for key in ('centroided', 'feature', 'aligned', 'mgf_export')
+    }
+    
+    def __init__(
+            self,
+            input_path = None,
+            input_obj = None,
+            method_key = None,
+            output_path = None,
+            output_dir = None,
+            sample_id = None,
+            sample_id_method = None,
+            input_ext = None,
+            input_filter = None,
+            name = 'path_handler',
+            n_experiment = None,
+            n_sample = None,
+        ):
+        
+        # most of the times log initialized in the OpenmsMethodWrapper
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger.__init__(self, name = name)
+        
+        PathHandlerBase.__init__(
+            self,
+            input_path = input_path,
+            input_obj = input_obj,
+            method_key = method_key,
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
+            input_ext = input_ext,
+            input_filter = input_filter,
+            name = name,
+            n_experiment = n_experiment,
+            n_sample = n_sample,
+        )
+        
+        self.output_path = output_path
+        self.method_key = method_key
+        self.output_dir = output_dir
+    
+    
+    def main(self):
+        
+        self.set_paths()
+    
+    
+    def set_paths(self):
+        
+        PathHandlerBase.set_paths(self)
+        self._set_sample_id()
+        
+        if not self.output_path:
+            
+            self._set_method_key()
+            self._set_output_dir()
+            self._set_output_path()
+        
+        self._create_output_dir()
+        self._tell_paths()
+        self._check_paths()
     
     
     def _set_output_dir(self):
@@ -514,7 +666,7 @@ class MethodPathHandler(session.Logger):
         """
         
         self._log('Reading input from `%s`.' % self.input_path)
-        self._log('Writing output to `%s`.' % self.output_path)
+        self._log('Will write output to `%s`.' % self.output_path)
     
     
     def _check_paths(self):
@@ -534,106 +686,6 @@ class MethodPathHandler(session.Logger):
             )
             
             raise RuntimeError('Identical in/out path, please check the log.')
-    
-    
-    def _set_sample_id(self):
-        
-        if not self.sample_id:
-            
-            if self.multi_file_input:
-                
-                self.sample_id = [
-                    self._get_sample_id(path)
-                    for path in self._input
-                ]
-                
-            else:
-                
-                self.sample_id = self._get_sample_id(self._input)
-    
-    
-    def _get_sample_id(self, _input):
-        """
-        Parameters
-        ----------
-        _input : str,object
-            Either the path to the input file or an OpenMS object.
-        """
-        
-        name = None
-        sample_id = None
-        
-        # first we try to get a string which carries information
-        # regarding the identity of the sample
-        if isinstance(self._sample_id_method, common.basestring):
-            
-            sample_id = self._sample_id_method
-            
-        else:
-            
-            if isinstance(_input, OPENMS_OBJ_TYPES):
-                
-                if hasattr(_input, 'getSourceFiles'):
-                    
-                    files = _input.getSourceFiles()
-                    
-                    if files:
-                        
-                        name = files[0].getNameOfFile().decode()
-                
-                if not name and hasattr(_input, 'getSample'):
-                    
-                    sample = _input.getSample()
-                    name = '%s__%s' % (
-                        sample.getName().decode(),
-                        sample.getNumber().decode(),
-                    )
-                
-            elif (
-                isinstance(_input, common.basestring) and
-                os.path.exists(_input)
-            ):
-                
-                name = os.path.splitext(os.path.basename(_input))[0]
-            
-            # once we have a string call the sample_id_method on it
-            if isinstance(name, common.basestring):
-                
-                sample_id = (
-                    self._sample_id_method(name)
-                        if callable(self._sample_id_method) else
-                    name
-                )
-                
-            elif isinstance(self._sample_id_method, common.basestring):
-                
-                sample_id = self._sample_id_method
-        
-        if not sample_id:
-            
-            experiment = 1
-            sample = 1
-            if not hasattr(self, 'method_key'):
-                self._set_method_key()
-            suffix = settings.get('%s_suffix' % self.method_key) or ''
-            rename = re.compile(
-                r'experiment(\d+)_sample(\d+)' + suffix + r'\.\w+'
-            )
-            if not hasattr(self, 'output_dir'):
-                self._set_output_dir()
-            all_files = os.listdir(self.output_dir)
-            files = sorted([f for f in all_files if rename.match(f)])
-            
-            if files:
-                
-                last_file = files[-1]
-                m = rename.match(last_file).groups()
-                experiment = int(m[0])
-                sample = int(m[1])
-            
-            sample_id = 'experiment%03u_sample%03u' % (experiment, sample)
-        
-        return sample_id
 
 
 class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
@@ -1037,13 +1089,13 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
     def do_feature_finding(self):
         
         self._log('Creating features by `FeatureFindingMetabo`.')
-        self.feature_map = oms.FeatureMap()
+        self.output_map = oms.FeatureMap()
         self.mass_traces_filtered = []
         self.feature_finding_metabo = self.openms_obj
         self.adjust_featurefindermetabo_param()
         self.feature_finding_metabo.run(
             self.mass_traces_split,
-            self.feature_map,
+            self.output_map,
             self.mass_traces_filtered,
         )
     
@@ -1060,7 +1112,7 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
         Writes the feature map into a ``featureXML`` file.
         """
         
-        oms.FeatureXMLFile().store(self.output_path, self.feature_map)
+        oms.FeatureXMLFile().store(self.output_path, self.output_map)
         self._log('Features have been written to `%s`.' % self.output_path)
     
     
@@ -1223,7 +1275,7 @@ class MgfExport(MethodPathHandler):
     def __init__(
         self,
         input_path = None,
-        input_data = None,
+        input_obj = None,
         output_path = None,
         sample_id = None,
         sample_id_method = None,
@@ -1232,14 +1284,13 @@ class MgfExport(MethodPathHandler):
         MethodPathHandler.__init__(
             self,
             input_path = input_path,
+            input_obj = input_obj,
             output_path = output_path,
             name = 'mgf_export',
             method_key = 'mgf_export',
             sample_id = sample_id,
             sample_id_method = sample_id_method,
         )
-        
-        self.data = input_data
     
     
     def main(self):
@@ -1251,11 +1302,11 @@ class MgfExport(MethodPathHandler):
     
     def read(self):
         
-        if not isinstance(self.data, oms.MSExperiment):
+        if not isinstance(self.input_obj, oms.MSExperiment):
             
             mzml_file = oms.MzMLFile()
-            self.data = oms.MSExperiment()
-            mzml_file.load(self.input_path, self.data)
+            self.input_obj = oms.MSExperiment()
+            mzml_file.load(self.input_path, self.input_obj)
             self._log('Reading MS2 spectra from `%s`.' % self.input_path)
             
         else:
@@ -1283,7 +1334,7 @@ class MgfExport(MethodPathHandler):
             # skip all MS1 spectra and then write mgf format
             nr_ms2_spectra = 0
             
-            for spectrum in self.data:
+            for spectrum in self.input_obj:
                 
                 if spectrum.getMSLevel() == 1:
                     continue
@@ -1524,7 +1575,7 @@ class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
     # --- end of main2 ---
 
 
-class MSPreprocess(session.Logger):
+class MSPreprocess(PathHandlerBase):
     """
     
     Workflow covering all MS preprocessing steps: peak picking, feature
@@ -1562,6 +1613,14 @@ class MSPreprocess(session.Logger):
         )
         for source, target, method in _steps
     )
+    _stages_by_source = dict(
+        (
+            source,
+            method
+        )
+        for source, target, method in _steps
+    )
+    _stages_by_source['features_grouped'] = None
     _classes = {
         'peak_picking': PeakPickerHiRes,
         'feature_finding': FeatureFindingMetabo,
@@ -1569,10 +1628,11 @@ class MSPreprocess(session.Logger):
         'feature_grouping': FeatureGroupingAlgorithmQT,
     }
     _input_extensions = {
-        'peak_picking': 'mzML',
-        'feature_finding': 'mzML',
-        'map_alignment': 'featureXML',
-        'feature_grouping': 'featureXML',
+        'profile': 'mzML',
+        'centroided': 'mzML',
+        'features': 'featureXML',
+        'features_aligned': 'featureXML',
+        'features_grouped': 'consensusXML',
     }
     
     def __init__(
@@ -1598,10 +1658,12 @@ class MSPreprocess(session.Logger):
         feature_finding_metabo_param = None,
         feature_finding_common_param = None,
         map_alignment_param = None,
+        reference_sample = None,
         feature_grouping_param = None,
         # workflow parameters
         force = None,
         stop = None,
+        mgf_export = True,
         # nothing
         **kwargs
     ):
@@ -1614,7 +1676,6 @@ class MSPreprocess(session.Logger):
         self.elution_peak_detection_param = elution_peak_detection_param or {}
         self.feature_finding_metabo_param = feature_finding_metabo_param or {}
         self.feature_finding_common_param = feature_finding_common_param or {}
-        #self.feature_finding_
         self.map_alignment_param = map_alignment_param or {}
         self.feature_grouping_param = feature_grouping_param or {}
         
@@ -1626,12 +1687,43 @@ class MSPreprocess(session.Logger):
         self.features_aligned = features_aligned
         self.features_grouped = features_grouped
         
-        self._set_inputs()
-        
-        self.input_path = input_path
-        self.input_obj = input_obj
+        self._input_path = input_path
+        self._input_obj = input_obj
         self.input_filter = input_filter
         self.sample_id_method = sample_id_method
+        self.start_from = 'profile'
+        
+        self._set_inputs()
+        
+        PathHandlerBase.__init__(
+            self,
+            input_path = self._input_path,
+            input_obj = self._input_obj,
+            input_filter = self.input_filter,
+            input_ext = self._input_extensions[self.start_from],
+            sample_id_method = self.sample_id_method,
+            sample_id = self.sample_ids,
+            method_key = self.start_from,
+        )
+        PathHandlerBase.set_paths(self)
+        
+        _ = self._ensure_tuple('_input_path', common.basestring)
+        _ = self._ensure_tuple('_input_obj', OPENMS_OBJ_TYPES)
+        
+        self.multi_file_input = True
+        self._set_sample_id()
+        
+        self._set_first_input()
+        self.mgf_export = mgf_export
+        self.reference_sample = reference_sample
+    
+    
+    def reload(self):
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
     
     
     def main(self):
@@ -1641,7 +1733,7 @@ class MSPreprocess(session.Logger):
     
     def workflow(self):
         
-        self._set_input()
+        PathHandlerBase.set_paths(self)
         self._set_sample_ids()
         
         for source, result, method in self._steps:
@@ -1672,6 +1764,17 @@ class MSPreprocess(session.Logger):
         return isinstance(getattr(self, attr), (tuple, list, np.ndarray))
     
     
+    @staticmethod
+    def _check_type(obj, types):
+        
+        return (
+            isinstance(obj, types) or (
+                isinstance(obj, (tuple, list, np.ndarray)) and
+                all(isinstance(o, types) for o in obj)
+            )
+        )
+    
+    
     def _set_inputs(self):
         
         _input_types = (common.basestring,) + OPENMS_OBJ_TYPES
@@ -1684,43 +1787,61 @@ class MSPreprocess(session.Logger):
             
             setattr(self, self._stages[0], True)
         
-        stages = self._stages if self.force else reversed(self._stages)
+        stages = reversed(self._stages)
+        stages_covered = set()
         
         self._inputs = ()
         
         for stage in stages:
             
-            if getattr(self, stage):
-                
-                # looks like a single path or object provided
-                if self._ensure_tuple(stage, _input_types):
-                    
-                    self._inputs = getattr(self, stage)
+            stages_covered.add(self._stages_by_source[stage])
+            
+            # this will be the first stage if...
+            if (
+                # we have this stage set to True or input data provided
+                getattr(self, stage) and
+                # and executing all steps not forced
+                self.force != True and
+                # and all forced steps already covered
+                not self.force - stages_covered
+            ):
                 
                 # it's a boolean True, meaning that we start from this
                 # stage and get the inputs from `input_path` or `input_obj`
                 # arguments
-                if not self._inputs:
+                if getattr(self, stage) == True:
                     
-                    if self._ensure_tuple(
-                        'input_obj',
-                        OPENMS_OBJ_TYPES
-                    ):
+                    if self._input_obj is not None:
                         
-                        self._inputs = self.input_obj
+                        setattr(self, stage, self._input_obj)
                         
-                    elif self._ensure_tuple(
-                        'input_path',
-                        common.basestring,
-                    ):
+                    elif self._input_path is not None:
                         
-                        self._inputs = self.input_path
+                        setattr(self, stage, self._input_path)
                 
-                # this is what we start the processing from
-                # it is available both in the `_inputs` attribute
-                # and in the attribute with the name of the stage
-                setattr(self, stage, self._inputs)
+                self.start_from = stage
+                first_stage = getattr(self, stage)
+                
+                # looks like a single path or object provided
+                if self._check_type(stage, OPENMS_OBJ_TYPES):
+                    
+                    self._input_obj = first_stage
+                
+                elif self._check_type(stage, common.basestring):
+                    
+                    self._input_path = first_stage
+                
                 break
+    
+    
+    def _set_first_input(self):
+        
+        _input = (
+            self._input_obj
+                if self._input_obj is not None else
+            self._input_path
+        )
+        setattr(self, self.start_from, _input)
     
     
     def _set_sample_ids(self):
@@ -1733,28 +1854,57 @@ class MSPreprocess(session.Logger):
     def _step_base(self, method):
         
         source_name, target_name = self._step_data[method]
-        print(source_name)
         source = getattr(self, source_name)
+        source_path_attrs = '%s_paths' % source_name
+        source_paths = (
+            getattr(self, source_path_attrs)
+                if hasattr(self, source_path_attrs) else
+            [None] * len(source)
+        )
         target = []
+        target_paths = []
         _class = self._classes[method]
         param = getattr(self, '%s_param' % method)
         
-        sample_ids_in = self.sample_ids or [None] * len(source)
+        sample_ids_in = self.sample_id or [None] * len(source)
         sample_ids_out = []
         
-        for resource, sample_id in zip(source, sample_ids_in):
+        for resource, source_path, sample_id in zip(
+                source,
+                source_paths,
+                sample_ids_in,
+            ):
             
+            input_arg = (
+                'input_obj'
+                    if isinstance(resource, OPENMS_OBJ_TYPES) else
+                'input_path'
+            )
             param = copy.deepcopy(param)
-            param[self._input_arg] = resource
+            param[input_arg] = resource
             param['sample_id'] = sample_id
+            
+            if input_arg != 'input_path':
+                
+                param['input_path'] = source_path
             
             worker = _class(**param)
             worker.main()
             target.append(worker.output_map)
+            target_paths.append(worker.output_path)
             sample_ids_out.append(worker.sample_id)
+            
+            if self.mgf_export and method == 'peak_picking':
+                
+                self.export_mgf(
+                    input_obj = worker.output_map,
+                    input_path = worker.output_path,
+                )
         
         self.result = target
+        self.result_paths = target_paths
         setattr(self, target_name, target)
+        setattr(self, '%s_paths' % target_name, target_paths)
         # if we already had sample IDs in the previous step
         # they will just pass through
         self.sample_ids = sample_ids_out
@@ -1765,12 +1915,51 @@ class MSPreprocess(session.Logger):
         self._step_base(method = 'peak_picking')
     
     
+    def export_mgf(self, **kwargs):
+        
+        mgf_exporter = MgfExport(**kwargs)
+        mgf_exporter.main()
+    
+    
     def feature_finding(self):
+        
+        self._setup_feature_finding_param()
         
         self._step_base(method = 'feature_finding')
     
     
+    def _setup_feature_finding_param(self):
+        
+        self.feature_finding_param = copy.deepcopy(
+            self.feature_finding_common_param
+        )
+        self.feature_finding_param['mass_trace_detection_param'] = (
+            self.mass_trace_detection_param
+        )
+        self.feature_finding_param['elution_peak_detection_param'] = (
+            self.elution_peak_detection_param
+        )
+        self.feature_finding_param['feature_finding_metabo_param'] = (
+            self.feature_finding_metabo_param
+        )
+    
+    
     def map_alignment(self):
+        
+        if (
+            self.reference_sample and
+            'reference_map' not in self.map_alignment_param and
+            'reference_path' not in self.map_alignment_param
+        ):
+            
+            self._log(
+                'Using `%s` as reference sample.' % self.reference_sample
+            )
+            idx = self.sample_id.index(self.reference_sample)
+            self.map_alignment_param['reference_map'] = self.result[idx]
+            self.map_alignment_param['reference_path'] = (
+                self.result_paths[idx]
+            )
         
         self._step_base(method = 'map_alignment')
     

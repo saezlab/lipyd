@@ -30,9 +30,12 @@ def reload():
 
 
 def sample_id_method(name):
-    resampleid = re.compile(r'\d+_\w+_([A-Z]\d{2})_(?:pos|neg).*')
+    resampleid = re.compile(r'\d+_Popeye_MLH_AC_(\w+)_(?:pos|neg).*')
     name = os.path.basename(name)
     return resampleid.match(name).groups()[0]
+
+def sample_filter_method(name):
+    return 'MeOH' not in name and 'buffer_extracted' not in name
 
 # single instance test: peak picking
 pp = msproc.PeakPickerHiRes(
@@ -69,4 +72,9 @@ mgfe.main()
 wf = msproc.MSPreprocess(
     input_path = example_data_dir,
     stop = 'features_aligned',
+    sample_id_method = sample_id_method,
+    reference_sample = 'STARD10_A10',
 )
+wf.peak_picking()
+wf.feature_finding()
+wf.map_alignment()
