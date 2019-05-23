@@ -31,6 +31,12 @@ import lipyd.session as session
 import lipyd.common as common
 import lipyd.settings as settings
 
+OPENMS_OBJ_TYPES = (
+    oms.PeakMap,
+    oms.FeatureMap,
+    oms.MSExperiment,
+)
+
 
 class MethodParamHandler(session.Logger):
     """
@@ -279,11 +285,6 @@ class MethodPathHandler(session.Logger):
         settings.get('%s_dir' % key)
         for key in ('centroided', 'feature', 'aligned', 'mgf_export')
     }
-    _oms_obj_types = {
-        oms.PeakMap,
-        oms.FeatureMap,
-        oms.MSExperiment,
-    }
     
     def __init__(
             self,
@@ -329,6 +330,7 @@ class MethodPathHandler(session.Logger):
         if self._input_path:
             
             self._set_input_path()
+            self._set_input()
             self._set_sample_id()
             
             if not self.output_path:
@@ -398,6 +400,35 @@ class MethodPathHandler(session.Logger):
                 self._input_filter(os.path.basename(path))
             )
         ]
+    
+    
+    def _set_input(self):
+        
+        if (
+            isinstance(self.input_obj, OPENMS_OBJ_TYPES) or
+            (
+                isinstance(self.input_obj, (tuple, list, np.ndarray)) and
+                all(
+                    isinstance(obj, OPENMS_OBJ_TYPES)
+                    for obj in self.input_obj
+                )
+            )
+        ):
+            
+            self._input = self.input_obj
+            
+        elif (
+            isinstance(self.input_path, common.basestring) or
+            (
+                isinstance(self.input_path, (tuple, list, np.ndarray)) and
+                all(
+                    isinstance(obj, common.basestring)
+                    for path in self.input_path
+                )
+            )
+        ):
+            
+            self._input = self.input_path
     
     
     def _set_output_dir(self):
@@ -540,7 +571,7 @@ class MethodPathHandler(session.Logger):
             
         else:
             
-            if isinstance(_input, self._oms_obj_types):
+            if isinstance(_input, OPENMS_OBJ_TYPES):
                 
                 if hasattr(_input, 'getSourceFiles'):
                     
@@ -603,21 +634,6 @@ class MethodPathHandler(session.Logger):
             sample_id = 'experiment%03u_sample%03u' % (experiment, sample)
         
         return sample_id
-    
-    
-    def _ensure_tuple(attr, types):
-        """
-        Makes sure an attribute is tuple (or list or array) even if a
-        single element one.
-        Returns a boolean value which confirms if the attribute is indeed
-        is a tuple like object.
-        """
-        
-        if isinstance(getattr(self, attr), types):
-            
-            setattr(self, attr, (getattr(self, attr),))
-        
-        return isinstance(getattr(self, attr), (tuple, list, np.ndarray))
 
 
 class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
@@ -1508,7 +1524,7 @@ class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
     # --- end of main2 ---
 
 
-class MSPreprocess(MethodPathHandler):
+class MSPreprocess(session.Logger):
     """
     
     Workflow covering all MS preprocessing steps: peak picking, feature
@@ -1552,6 +1568,12 @@ class MSPreprocess(MethodPathHandler):
         'map_alignment': MapAlignmentAlgorithmPoseClustering,
         'feature_grouping': FeatureGroupingAlgorithmQT,
     }
+    _input_extensions = {
+        'peak_picking': 'mzML',
+        'feature_finding': 'mzML',
+        'map_alignment': 'featureXML',
+        'feature_grouping': 'featureXML',
+    }
     
     def __init__(
         self,
@@ -1568,7 +1590,6 @@ class MSPreprocess(MethodPathHandler):
         sample_id_method = None,
         input_path = None,
         input_obj = None,
-        input_ext = None,
         input_filter = None,
         # parameters for each step
         peak_picking_param = None,
@@ -1605,32 +1626,12 @@ class MSPreprocess(MethodPathHandler):
         self.features_aligned = features_aligned
         self.features_grouped = features_grouped
         
-        self._set_input()
+        self._set_inputs()
         
-        MethodPathHandler.__init__(
-            self,
-            input_path = input_path,
-            input_obj = input_obj,
-            output_path = output_path,
-            output_dir = output_dir,
-            sample_id_method = sample_id_method,
-            input_ext = input_ext,
-            input_filter = input_filter,
-        )
-        
-        MethodPathHandler.main(self)
-        
-        self._input = (
-            self.input_obj if self.input_obj is not None else self.input_path
-        )
-        self._input = (
-            self._input
-                if isinstance(self._input, (tuple, list, np.ndarray)) else
-            (self._input,)
-        )
-        self._input_arg = (
-            'input_obj' if self.input_obj is not None else 'input_path'
-        )
+        self.input_path = input_path
+        self.input_obj = input_obj
+        self.input_filter = input_filter
+        self.sample_id_method = sample_id_method
     
     
     def main(self):
@@ -1656,13 +1657,33 @@ class MSPreprocess(MethodPathHandler):
                 break
     
     
-    def _set_input(self):
+    def _ensure_tuple(self, attr, types):
+        """
+        Makes sure an attribute is tuple (or list or array) even if a
+        single element one.
+        Returns a boolean value which confirms if the attribute is indeed
+        is a tuple like object.
+        """
         
-        _input_types = {common.basestring} | self._oms_obj_types
+        if isinstance(getattr(self, attr), types):
+            
+            setattr(self, attr, (getattr(self, attr),))
+        
+        return isinstance(getattr(self, attr), (tuple, list, np.ndarray))
+    
+    
+    def _set_inputs(self):
+        
+        _input_types = (common.basestring,) + OPENMS_OBJ_TYPES
         
         # if we force to re-do from the first possible step we iterate
         # from the beginning, else we go backwards to find the last
         # available stage
+        
+        if all(getattr(self, stage) is None for stage in self._stages):
+            
+            setattr(self, self._stages[0], True)
+        
         stages = self._stages if self.force else reversed(self._stages)
         
         self._inputs = ()
@@ -1682,18 +1703,18 @@ class MSPreprocess(MethodPathHandler):
                 if not self._inputs:
                     
                     if self._ensure_tuple(
-                        self.input_obj,
-                        self._oms_obj_types
+                        'input_obj',
+                        OPENMS_OBJ_TYPES
                     ):
                         
                         self._inputs = self.input_obj
                         
                     elif self._ensure_tuple(
-                        self.input_path,
+                        'input_path',
                         common.basestring,
                     ):
                         
-                        self._inputs = self.input_obj
+                        self._inputs = self.input_path
                 
                 # this is what we start the processing from
                 # it is available both in the `_inputs` attribute
@@ -1762,12 +1783,3 @@ class MSPreprocess(MethodPathHandler):
     def get_sampleset(self):
         
         return {}
-
-
-if __name__ == "__main__":
-
-    a = MSPreprocess(input_path = '/home/igor/Documents/Scripts/Data/Raw_data_STARD10/',
-                    output_path = '/home/igor/Documents/Scripts/Data/Picked_STARD10/',
-                    stop = 'peak_picking')
-    
-    a.peak_picking()
