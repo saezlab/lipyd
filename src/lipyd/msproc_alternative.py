@@ -603,6 +603,21 @@ class MethodPathHandler(session.Logger):
             sample_id = 'experiment%03u_sample%03u' % (experiment, sample)
         
         return sample_id
+    
+    
+    def _ensure_tuple(attr, types):
+        """
+        Makes sure an attribute is tuple (or list or array) even if a
+        single element one.
+        Returns a boolean value which confirms if the attribute is indeed
+        is a tuple like object.
+        """
+        
+        if isinstance(getattr(self, attr), types):
+            
+            setattr(self, attr, (getattr(self, attr),))
+        
+        return isinstance(getattr(self, attr), (tuple, list, np.ndarray))
 
 
 class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
@@ -1625,6 +1640,9 @@ class MSPreprocess(MethodPathHandler):
     
     def workflow(self):
         
+        self._set_input()
+        self._set_sample_ids()
+        
         for source, result, method in self._steps:
             
             if not getattr(self, result) or method in self.force:
@@ -1638,24 +1656,9 @@ class MSPreprocess(MethodPathHandler):
                 break
     
     
-    def _ensure_tuple(attr, types):
-        """
-        Makes sure an attribute is tuple (or list or array) even if a
-        single element one.
-        Returns a boolean value which confirms if the attribute is indeed
-        is a tuple like object.
-        """
-        
-        if isinstance(getattr(self, attr), types):
-            
-            setattr(self, attr, (getattr(self, attr),))
-        
-        return isinstance(getattr(self, attr), (tuple, list, np.ndarray))
-    
-    
     def _set_input(self):
         
-        _input_types = (common.basestring,) + self._oms_obj_types
+        _input_types = {common.basestring} | self._oms_obj_types
         
         # if we force to re-do from the first possible step we iterate
         # from the beginning, else we go backwards to find the last
