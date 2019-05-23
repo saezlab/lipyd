@@ -407,7 +407,10 @@ class MethodPathHandler(session.Logger):
             settings.get('output_path_root') or (
                 # 2: it's set to be in the input dir
                 os.path.dirname(self.input_path)
-                    if settings.get('output_to_input_dir') else
+                    if (
+                        settings.get('output_to_input_dir') or
+                        not hasattr(self, 'input_path')
+                    ) else
                 # 3: by default in current wd
                 os.getcwd('output_to_input_dir')
             )
@@ -510,12 +513,12 @@ class MethodPathHandler(session.Logger):
                 
                 self.sample_id = [
                     self._get_sample_id(path)
-                    for path in self.input_path
+                    for path in self._input
                 ]
                 
             else:
                 
-                self.sample_id = self._get_sample_id(self.input_path)
+                self.sample_id = self._get_sample_id(self._input)
     
     
     def _get_sample_id(self, _input):
@@ -579,10 +582,14 @@ class MethodPathHandler(session.Logger):
             
             experiment = 1
             sample = 1
+            if not hasattr(self, 'method_key'):
+                self._set_method_key()
             suffix = settings.get('%s_suffix' % self.method_key) or ''
             rename = re.compile(
                 r'experiment(\d+)_sample(\d+)' + suffix + r'\.\w+'
             )
+            if not hasattr(self, 'output_dir'):
+                self._set_output_dir()
             all_files = os.listdir(self.output_dir)
             files = sorted([f for f in all_files if rename.match(f)])
             
