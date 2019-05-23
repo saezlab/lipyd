@@ -279,6 +279,11 @@ class MethodPathHandler(session.Logger):
         settings.get('%s_dir' % key)
         for key in ('centroided', 'feature', 'aligned', 'mgf_export')
     }
+    _oms_obj_types = {
+        oms.PeakMap,
+        oms.FeatureMap,
+        oms.MSExperiment,
+    }
     
     def __init__(
             self,
@@ -292,6 +297,8 @@ class MethodPathHandler(session.Logger):
             input_ext = None,
             input_filter = None,
             name = 'path_handler',
+            n_experiment = None,
+            n_sample = None,
         ):
         
         # most of the times log initialized in the OpenmsMethodWrapper
@@ -308,6 +315,8 @@ class MethodPathHandler(session.Logger):
         self._sample_id_method = sample_id_method
         self.sample_id = sample_id
         self.output_dir = output_dir
+        self.n_experiment = n_experiment
+        self.n_sample = n_sample
     
     
     def main(self):
@@ -509,25 +518,123 @@ class MethodPathHandler(session.Logger):
                 self.sample_id = self._get_sample_id(self.input_path)
     
     
-    def _get_sample_id(self, path):
+    def _get_sample_id(self, _input):
+        """
+        Parameters
+        ----------
+        _input : str,object
+            Either the path to the input file or an OpenMS object.
+        """
         
-        if path:
-            
-            name = os.path.splitext(os.path.basename(path))[0]
+        name = None
+        sample_id = None
         
-        if self._sample_id_method is None:
+        # first we try to get a string which carries information
+        # regarding the identity of the sample
+        if isinstance(self._sample_id_method, common.basestring):
             
-            sample_id = name
-            
-        elif callable(self._sample_id_method):
-            
-            sample_id = self._sample_id_method(name)
+            sample_id = self._sample_id_method
             
         else:
             
-            sample_id = self._sample_id_method
+            if isinstance(_input, self._oms_obj_types):
+                
+                if hasattr(_input, 'getSourceFiles'):
+                    
+                    files = _input.getSourceFiles()
+                    
+                    if files:
+                        
+                        name = files[0].getNameOfFile().decode()
+                
+                if not name and hasattr(_input, 'getSample'):
+                    
+                    sample = _input.getSample()
+                    name = '%s__%s' % (
+                        sample.getName().decode(),
+                        sample.getNumber().decode(),
+                    )
+                
+            elif (
+                isinstance(_input, common.basestring) and
+                os.path.exists(_input)
+            ):
+                
+                name = os.path.splitext(os.path.basename(_input))[0]
+            
+            # once we have a string call the sample_id_method on it
+            if isinstance(name, common.basestring):
+                
+                sample_id = (
+                    self._sample_id_method(name)
+                        if callable(self._sample_id_method) else
+                    name
+                )
+                
+            elif isinstance(self._sample_id_method, common.basestring):
+                
+                sample_id = self._sample_id_method
+        
+        if not sample_id:
+            
+            experiment = 1
+            sample = 1
+            suffix = settings.get('%s_suffix' % self.method_key) or ''
+            rename = re.compile(
+                r'experiment(\d+)_sample(\d+)' + suffix + r'\.\w+'
+            )
+            all_files = os.listdir(self.output_dir)
+            files = sorted([f for f in all_files if rename.match(f)])
+            
+            if files:
+                
+                last_file = files[-1]
+                m = rename.match(last_file).groups()
+                experiment = int(m[0])
+                sample = int(m[1])
+            
+            sample_id = 'experiment%03u_sample%03u' % (experiment, sample)
         
         return sample_id
+    
+    
+    #name = None
+        
+        # first we try to get a string which carries information
+        # regarding the identity of the sample
+        if isinstance(resource, self._oms_obj_types):
+            
+            if hasattr(resource, 'getSourceFiles'):
+                
+                files = resource.getSourceFiles()
+                
+                if files:
+                    
+                    name = files[0].getNameOfFile().decode()
+            
+            if not name and hasattr(resource, 'getSample'):
+                
+                sample = resource.getSample()
+                name = '%s__%s' % (
+                    sample.getName().decode(),
+                    sample.getNumber().decode(),
+                )
+            
+        elif (
+            isinstance(resource, common.basestring) and
+            os.path.exists(resource)
+        ):
+            
+            name = os.path.splitext(os.path.basename(resource))[0]
+        
+        # once we have a string call the sample_id_method on it
+        if isinstance(name, common.basestring):
+            
+            sample_id = (
+                self._sample_id_method(name)
+                    if callable(self._sample_id_method) else
+                name
+            )
 
 
 class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
@@ -878,6 +985,8 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
                 for spectrum in self.input_obj.getSpectra():
                     
                     self.input_map.addSpectrum(spectrum)
+                
+                self.input_map.updateRanges()
                 
                 self._log(
                     'Centroided data provided as '
@@ -1460,11 +1569,6 @@ class MSPreprocess(MethodPathHandler):
         'map_alignment': MapAlignmentAlgorithmPoseClustering,
         'feature_grouping': FeatureGroupingAlgorithmQT,
     }
-    _maps = {
-        oms.PeakMap,
-        oms.FeatureMap,
-        oms.MSExperiment,
-    }
     
     def __init__(
         self,
@@ -1566,39 +1670,120 @@ class MSPreprocess(MethodPathHandler):
                 break
     
     
+    def _ensure_tuple(attr, types):
+        """
+        Makes sure an attribute is tuple (or list or array) even if a
+        single element one.
+        Returns a boolean value which confirms if the attribute is indeed
+        is a tuple like object.
+        """
+        
+        if isinstance(getattr(self, attr), types):
+            
+            setattr(self, attr, (getattr(self, attr),))
+        
+        return isinstance(getattr(self, attr), (tuple, list, np.ndarray))
+    
+    
     def _set_input(self):
+        
+        _input_types = (common.basestring,) + self._oms_obj_types
         
         # if we force to re-do from the first possible step we iterate
         # from the beginning, else we go backwards to find the last
         # available stage
         stages = self._stages if self.force else reversed(self._stages)
         
+        self._inputs = ()
+        
         for stage in stages:
             
-            this_stage = getattr(self, 'stage')
-            
-            if this_stage:
+            if getattr(self, stage):
                 
-                # looks like a single path provided
-                if isinstance(this_stage, common.basestring):
+                # looks like a single path or object provided
+                if self._ensure_tuple(stage, _input_types):
                     
-                    this_stage = (this_stage,)
+                    self._inputs = getattr(self, stage)
                 
-                # we have the input provided in this argument
-                if isinstance(this_stage, (tuple, list, np.ndarray)):
-                    
-                    _inputs = this_stage
-                    
                 # it's a boolean True, meaning that we start from this
                 # stage and get the inputs from `input_path` or `input_obj`
                 # arguments
-                elif this_stage == True:
+                if not self._inputs:
                     
-                    if isins
-                    
-                    for _input in this_stage:
+                    if self._ensure_tuple(
+                        self.input_obj,
+                        self._oms_obj_types
+                    ):
                         
-                        if isinstance(_input, common.basestring):
+                        self._inputs = self.input_obj
+                        
+                    elif self._ensure_tuple(
+                        self.input_path,
+                        common.basestring,
+                    ):
+                        
+                        self._inputs = self.input_obj
+                
+                # this is what we start the processing from
+                # it is available both in the `_inputs` attribute
+                # and in the attribute with the name of the stage
+                setattr(self, stage, self._inputs)
+                break
+    
+    
+    def _set_sample_ids(self):
+        
+        if not self.sample_ids:
+            
+            self.sample_ids = [None] * len(self._inputs)
+    
+    
+    def _get_sample_id(self, resource, experiment = None, sample = None):
+        
+        sample_id = None
+        name = None
+        
+        # first we try to get a string which carries information
+        # regarding the identity of the sample
+        if isinstance(resource, self._oms_obj_types):
+            
+            if hasattr(resource, 'getSourceFiles'):
+                
+                files = resource.getSourceFiles()
+                
+                if files:
+                    
+                    name = files[0].getNameOfFile().decode()
+            
+            if not name and hasattr(resource, 'getSample'):
+                
+                sample = resource.getSample()
+                name = '%s__%s' % (
+                    sample.getName().decode(),
+                    sample.getNumber().decode(),
+                )
+            
+        elif (
+            isinstance(resource, common.basestring) and
+            os.path.exists(resource)
+        ):
+            
+            name = os.path.splitext(os.path.split(resource)[-1])[0]
+        
+        # once we have a string call the sample_id_method on it
+        if isinstance(name, common.basestring):
+            
+            sample_id = (
+                self._sample_id_method(name)
+                    if callable(self._sample_id_method) else
+                name
+            )
+        
+        # if still no sample id, generate one
+        if not sample_id:
+            
+        
+        return sample_id, experiment, sample
     
     
     def _step_base(self, method):
