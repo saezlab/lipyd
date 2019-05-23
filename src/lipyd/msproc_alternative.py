@@ -1706,54 +1706,6 @@ class MSPreprocess(MethodPathHandler):
             self.sample_ids = [None] * len(self._inputs)
     
     
-    def _get_sample_id(self, resource, experiment = None, sample = None):
-        
-        sample_id = None
-        name = None
-        
-        # first we try to get a string which carries information
-        # regarding the identity of the sample
-        if isinstance(resource, self._oms_obj_types):
-            
-            if hasattr(resource, 'getSourceFiles'):
-                
-                files = resource.getSourceFiles()
-                
-                if files:
-                    
-                    name = files[0].getNameOfFile().decode()
-            
-            if not name and hasattr(resource, 'getSample'):
-                
-                sample = resource.getSample()
-                name = '%s__%s' % (
-                    sample.getName().decode(),
-                    sample.getNumber().decode(),
-                )
-            
-        elif (
-            isinstance(resource, common.basestring) and
-            os.path.exists(resource)
-        ):
-            
-            name = os.path.splitext(os.path.split(resource)[-1])[0]
-        
-        # once we have a string call the sample_id_method on it
-        if isinstance(name, common.basestring):
-            
-            sample_id = (
-                self._sample_id_method(name)
-                    if callable(self._sample_id_method) else
-                name
-            )
-        
-        # if still no sample id, generate one
-        if not sample_id:
-            
-        
-        return sample_id, experiment, sample
-    
-    
     def _step_base(self, method):
         
         source_name, target_name = self._step_data[method]
