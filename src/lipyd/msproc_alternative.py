@@ -596,45 +596,6 @@ class MethodPathHandler(session.Logger):
             sample_id = 'experiment%03u_sample%03u' % (experiment, sample)
         
         return sample_id
-    
-    
-    #name = None
-        
-        # first we try to get a string which carries information
-        # regarding the identity of the sample
-        if isinstance(resource, self._oms_obj_types):
-            
-            if hasattr(resource, 'getSourceFiles'):
-                
-                files = resource.getSourceFiles()
-                
-                if files:
-                    
-                    name = files[0].getNameOfFile().decode()
-            
-            if not name and hasattr(resource, 'getSample'):
-                
-                sample = resource.getSample()
-                name = '%s__%s' % (
-                    sample.getName().decode(),
-                    sample.getNumber().decode(),
-                )
-            
-        elif (
-            isinstance(resource, common.basestring) and
-            os.path.exists(resource)
-        ):
-            
-            name = os.path.splitext(os.path.basename(resource))[0]
-        
-        # once we have a string call the sample_id_method on it
-        if isinstance(name, common.basestring):
-            
-            sample_id = (
-                self._sample_id_method(name)
-                    if callable(self._sample_id_method) else
-                name
-            )
 
 
 class OpenmsMethodWrapper(MethodParamHandler, MethodPathHandler):
