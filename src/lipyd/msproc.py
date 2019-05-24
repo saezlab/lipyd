@@ -2208,7 +2208,7 @@ class ConsensusMapExtractor(session.Logger):
     
     def main(self):
         
-        self.consensus_map.sortByIntensity()
+        #self.consensus_map.sortByIntensity()
         self._set_sample_ids()
         self._set_fields()
         self.define_record()
