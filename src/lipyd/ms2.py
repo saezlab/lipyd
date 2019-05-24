@@ -7533,7 +7533,11 @@ class MS2Feature(object):
             i.score_pct,
             i.scan_details.deltart,
             i.scan_details.sample_id[0],
-            i.scan_details.sample_id[1],
+            (
+                i.scan_details.sample_id[1]
+                    if len(i.scan_details.sample_id) > 1 else
+                0
+            ),
             i.scan_details.scan_id,
             adduct,
             error,

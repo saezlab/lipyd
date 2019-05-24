@@ -2096,7 +2096,7 @@ class MSPreprocess(PathHandlerBase):
                 
                 sizes.append(femap.size())
         
-        iref = self.sample_id[sizes.index(max(sizes))]
+        iref = sizes.index(max(sizes))
         refmap = self.features[iref]
         
         self._log(

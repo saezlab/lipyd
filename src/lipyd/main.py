@@ -33,15 +33,19 @@ class Main(session.Logger):
         ionmode = None,
         sample_id_method = None,
         preprocess_args = None,
+        ms2_param = None,
         **kwargs
     ):
         
-        session.Logger(self, 'main')
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger.__init__(self, name = 'main')
         
         self.input_path = input_path
         self.ionmode = ionmode
         self.sample_id_method = None
         self.preprocess_args = preprocess_args or {}
+        self.ms2_param = ms2_param
     
     
     def reload(self):
@@ -84,6 +88,9 @@ class Main(session.Logger):
         feature_attrs = self.preproc.extractor.get_attributes()
         feattrs = sample.FeatureAttributes(**feature_attrs)
         sampleset_args['feature_attrs'] = feattrs
+        sampleset_args['sorter'] = feattrs.sorter
+        sampleset_args['ms2_param'] = self.ms2_param
+        sampleset_args['ionmode'] = self.ionmode
         self.samples = sample.SampleSet(**sampleset_args)
         
         self._log(
@@ -96,4 +103,7 @@ class Main(session.Logger):
     
     def identification(self):
         
-        pass
+        self.samples.database_lookup()
+        self.samples.set_ms2_param()
+        self.samples.set_ms2_sources()
+        self.samples.ms2_analysis()

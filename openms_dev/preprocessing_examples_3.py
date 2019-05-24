@@ -31,7 +31,7 @@ def reload():
 
 
 def sample_id_method(name):
-    resampleid = re.compile(r'\d+_Popeye_MLH_AC_(\w+)_(?:pos|neg).*')
+    resampleid = re.compile(r'\d+_Popeye_MLH_AC_(\w+_(?:pos|neg)).*')
     name = os.path.basename(name)
     return resampleid.match(name).groups()[0]
 

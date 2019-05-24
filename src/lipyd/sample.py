@@ -1750,38 +1750,23 @@ class Sample(FeatureBase):
         for i in xrange(len(self)):
             
             ms2_id = self.feattrs.ms2_identities[i]
-            ms2_max_score = (
-                max(
-                    (
-                        ms2i.score_pct
-                        for ms2iii in ms2_id
-                        for ms2ii in ms2iii.values()
-                        for ms2i in ms2ii
-                    ),
-                    default = 0
-                )
-            )
-            ms2_best = ';'.join(
-                ms2i.full_str()
-                for ms2iii in ms2_id
-                for ms2ii in ms2iii.values()
-                for ms2i in ms2ii
-                if ms2i.score_pct == ms2_max_score
-            )
-            ms2_all = ';'.join(
-                ms2i.full_str()
-                for ms2iii in ms2_id
-                for ms2ii in ms2iii.values()
-                for ms2i in ms2ii
-                if ms2i.score_pct > 0.0
-            )
+            ms2_best = ms2_id.identities_str_best()
+            ms2_all = ms2_id.identities_str_all()
             
             line = [
                 '%08f' % self.mzs[i],
                 '%u' % self.feattrs.total_intensities[i],
-                '%.02f - %.02f' % tuple(self.feattrs.rt_ranges[i]),
+                (
+                    '%.02f - %.02f' % tuple(self.feattrs.rt_ranges[i])
+                        if hasattr(self.feattrs, 'rt_ranges') else
+                    ''
+                ),
                 '%.02f' % self.feattrs.quality[i],
-                '%.02f' % self.feattrs.significance[i],
+                (
+                    '%.02f' % self.feattrs.significance[i]
+                        if hasattr(self.feattrs, 'significance') else
+                    ''
+                ),
                 moldb.records_string(
                     records = self.feattrs.records[i],
                     show_ppm = True,
@@ -2372,7 +2357,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         
         ms2_source = {}
         
-        attrs = attrs or self.attrs.attrs
+        attrs = attrs if attrs is not None else self.attrs.attrs
         
         for i, sample_attrs in enumerate(attrs):
             
