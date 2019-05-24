@@ -1119,8 +1119,8 @@ class FeatureFindingMetabo(OpenmsMethodWrapper):
     
     def adjust_featurefindermetabo_param(self):
         
-        self.param.pop(b'noise_threshold_int')
-        self.param.pop(b'chrom_peak_snr')
+        self.param.pop(b'noise_threshold_int', None)
+        self.param.pop(b'chrom_peak_snr', None)
         self.set_param()
     
     
@@ -1969,6 +1969,10 @@ class MSPreprocess(PathHandlerBase):
                 
                 param['input_path'] = source_paths
             
+            if method == 'data_extraction':
+                
+                param['ionmode'] = self.ionmode
+            
             worker = _class(**param)
             worker.main()
             target = (
@@ -2147,6 +2151,10 @@ class MSPreprocess(PathHandlerBase):
     def export(self):
         
         self._step_base(method = 'data_extraction')
+        
+        if hasattr(self, 'results_table') and self.results_table:
+            
+            self.extractor = self.results_table[0].extractor
     
     
     def get_sampleset(self):
@@ -2492,11 +2500,12 @@ class ConsensusMapExtractor(session.Logger):
     
     def get_sampleset(self):
         
-        {
+        return {
             'mzs': self.sample_mzs_array(),
             'intensities': self.sample_intensities_array(),
             'rts': self.sample_rts_minutes_array(),
-            'width': self.sample_widths_array(),
             'sample_ids': self.sample_ids,
-            'feattrs': self.get_attributes(),
+            #'sample_data': {
+                #'width': self.sample_widths_array(),
+            #}
         }

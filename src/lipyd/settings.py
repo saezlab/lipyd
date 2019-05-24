@@ -567,6 +567,7 @@ _defaults = {
         'ms_levels': [1, 2],
     },
     'feature_finding_common_param': {
+        'noise_threshold_int': 9.0,
         'chrom_peak_snr': 2.0,
         'chrom_fwhm': 4.0,
     },

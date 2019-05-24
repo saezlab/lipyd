@@ -10,9 +10,10 @@ import re
 
 import pyopenms as oms
 
-import lipyd.msproc_alternative as msproc
+import lipyd.msproc as msproc
 import lipyd.settings as settings
 import lipyd.common as common
+import lipyd.sample as sample
 
 example_data_dir = os.path.join(
     '/', 'home', 'denes', 'archive', 'ltp',
@@ -88,5 +89,14 @@ wf = msproc.MSPreprocess(
     stop = 'features_aligned',
     sample_id_method = sample_id_method,
     reference_sample = 'STARD10_A10',
+    ionmode = 'pos',
 )
 wf.main()
+
+# getting SampleSet arguments
+sampleset_args = wf.extractor.get_sampleset()
+feature_attrs = wf.extractor.get_attributes()
+feattrs = sample.FeatureAttributes(**feature_attrs)
+sampleset_args['feature_attrs'] = feattrs
+# creating SampleSet
+samples = sample.SampleSet(**sampleset_args)
