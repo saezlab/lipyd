@@ -587,6 +587,7 @@ _defaults = {
     'map_alignment_param': {
         'max_num_peaks_considered': 990,
     },
+    'feature_grouping_param': {},
     # where to save intermediary and result files:
     # the root directory for all the output
     'output_path_root': None,
@@ -619,6 +620,8 @@ _defaults = {
     'mgf_export_dir': 'mgf',
     # by default here we don't add suffix, the format is obvious
     'mgf_export_suffix': '',
+    'consensus_dir': 'consensus',
+    'consensus_suffix': '__consensus',
 }
 
 in_basedir = [
