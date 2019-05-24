@@ -119,8 +119,8 @@ class SampleReader(object):
 
         Returns
         -------
-		
-		FeatureAttributes(**attrs)
+        
+        FeatureAttributes(**attrs)
         """
         
         attrs = self.reader.get_attributes()

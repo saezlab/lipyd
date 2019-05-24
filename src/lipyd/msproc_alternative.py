@@ -525,6 +525,7 @@ class MethodPathHandler(PathHandlerBase):
         'consensus': 'consensusXML',
         'msproc': 'featureXML',
         'mgf_export': 'mgf',
+        'export': 'tsv',
     }
     _subdirs = {
         settings.get('%s_dir' % key)
@@ -534,6 +535,7 @@ class MethodPathHandler(PathHandlerBase):
             'aligned',
             'mgf_export',
             'consensus',
+            'export',
         )
     }
     
@@ -1551,6 +1553,84 @@ class FeatureGroupingAlgorithmQT(OpenmsMethodWrapper):
         self._log('Total: %6d' % self.output_map.size())
 
 
+class Export(MethodPathHandler):
+    
+    
+    def __init__(
+            self,
+            input_path = None,
+            input_obj = None,
+            output_path = None,
+            sample_id = None,
+            sample_id_method = None,
+            ionmode = None,
+        ):
+        
+        MethodPathHandler.__init__(
+            self,
+            input_path = input_path,
+            input_obj = input_obj,
+            output_path = output_path,
+            sample_id = sample_id,
+            sample_id_method = sample_id_method,
+            method_key = 'export',
+            name = 'export',
+        )
+        
+        self.set_paths()
+        self.ionmode = ionmode
+    
+    
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+    
+    
+    def main(self):
+        
+        self.read()
+        self.init_extractor()
+        self.export()
+    
+    
+    def read(self):
+        
+        if not isinstance(self.input_obj, oms.ConsensusMap):
+            
+            self.input_map = oms.ConsensusMap()
+            consensusxml = oms.ConsensusXMLFile()
+            consensusxml.load(self.input_path, self.input_map)
+            self._log('Reading consensus map from `%s`.' % self.input_path)
+            
+        else:
+            
+            self.input_map = self.input_obj
+            self._log(
+                'Using the `%s` object provided.' % (
+                    self.input_map.__class__.__name__,
+                )
+            )
+    
+    
+    def init_extractor(self):
+        
+        self.extractor = ConsensusMapExtractor(
+            consensus_map = self.input_map,
+            output_path = self.output_path,
+            sample_ids = self.sample_id,
+            ionmode = self.ionmode,
+        )
+    
+    
+    def export(self):
+        
+        self.extractor.main()
+
+
 class MSPreprocess(PathHandlerBase):
     """
     
@@ -1575,12 +1655,14 @@ class MSPreprocess(PathHandlerBase):
         'features',
         'features_aligned',
         'features_grouped',
+        'data_extraction',
     )
     _steps = (
         ('profile', 'centroided', 'peak_picking'),
         ('centroided', 'features', 'feature_finding'),
         ('features', 'features_aligned', 'map_alignment'),
         ('features_aligned', 'features_grouped', 'feature_grouping'),
+        ('features_grouped', 'results_table', 'data_extraction'),
     )
     _step_data = dict(
         (
@@ -1596,12 +1678,13 @@ class MSPreprocess(PathHandlerBase):
         )
         for source, target, method in _steps
     )
-    _stages_by_source['features_grouped'] = None
+    _stages_by_source['data_extraction'] = None
     _classes = {
         'peak_picking': PeakPickerHiRes,
         'feature_finding': FeatureFindingMetabo,
         'map_alignment': MapAlignmentAlgorithmPoseClustering,
         'feature_grouping': FeatureGroupingAlgorithmQT,
+        'data_extraction': Export,
     }
     _input_extensions = {
         'profile': 'mzML',
@@ -1609,9 +1692,11 @@ class MSPreprocess(PathHandlerBase):
         'features': 'featureXML',
         'features_aligned': 'featureXML',
         'features_grouped': 'consensusXML',
+        'data_extraction': 'tsv',
     }
     _multi_input_methods = {
         'feature_grouping',
+        'data_extraction',
     }
     
     def __init__(
@@ -1622,6 +1707,7 @@ class MSPreprocess(PathHandlerBase):
         features = None,
         features_aligned = None,
         features_grouped = None,
+        data_extraction = None,
         # further parameters for input/output
         output_dir = None,
         output_path = None,
@@ -1639,10 +1725,13 @@ class MSPreprocess(PathHandlerBase):
         map_alignment_param = None,
         reference_sample = None,
         feature_grouping_param = None,
+        data_extraction_param = None,
         # workflow parameters
         force = None,
         stop = None,
         mgf_export = True,
+        # attributes
+        ionmode = None,
         # nothing
         **kwargs
     ):
@@ -1657,6 +1746,7 @@ class MSPreprocess(PathHandlerBase):
         self.feature_finding_common_param = feature_finding_common_param or {}
         self.map_alignment_param = map_alignment_param or {}
         self.feature_grouping_param = feature_grouping_param or {}
+        self.data_extraction_param = data_extraction_param or {}
         
         self.sample_ids = sample_ids
         self.force = force or set()
@@ -1665,6 +1755,7 @@ class MSPreprocess(PathHandlerBase):
         self.features = features
         self.features_aligned = features_aligned
         self.features_grouped = features_grouped
+        self.data_extraction = data_extraction
         
         self._input_path = input_path
         self._input_obj = input_obj
@@ -1695,6 +1786,7 @@ class MSPreprocess(PathHandlerBase):
         self._set_first_input()
         self.mgf_export = mgf_export
         self.reference_sample = reference_sample
+        self.ionmode = ionmode
     
     
     def reload(self):
@@ -1708,7 +1800,16 @@ class MSPreprocess(PathHandlerBase):
     
     def main(self):
         
-        self.workflow()
+        self.workflow_simple()
+    
+    
+    def workflow_simple(self):
+        
+        self.peak_picking()
+        self.feature_finding()
+        self.map_alignment()
+        self.feature_grouping()
+        self.export()
     
     
     def workflow(self):
@@ -1870,7 +1971,11 @@ class MSPreprocess(PathHandlerBase):
             
             worker = _class(**param)
             worker.main()
-            target = [worker.output_map,]
+            target = (
+                [worker.output_map,]
+                    if hasattr(worker, 'output_map') else
+                [worker,]
+            )
             target_paths = [worker.output_path,]
             sample_ids_out = worker.sample_id
             
@@ -1897,7 +2002,11 @@ class MSPreprocess(PathHandlerBase):
                 
                 worker = _class(**param)
                 worker.main()
-                target.append(worker.output_map)
+                target.append(
+                    worker.output_map
+                        if hasattr(worker, 'output_map') else
+                    worker
+                )
                 target_paths.append(worker.output_path)
                 sample_ids_out.append(worker.sample_id)
                 
@@ -2035,6 +2144,11 @@ class MSPreprocess(PathHandlerBase):
         self._step_base(method = 'feature_grouping')
     
     
+    def export(self):
+        
+        self._step_base(method = 'data_extraction')
+    
+    
     def get_sampleset(self):
         
         return {}
@@ -2063,6 +2177,7 @@ class ConsensusMapExtractor(session.Logger):
             self,
             consensus_map,
             sample_ids = None,
+            ionmode = None,
             output_path = None,
         ):
         
@@ -2070,6 +2185,7 @@ class ConsensusMapExtractor(session.Logger):
         
         self.consensus_map = consensus_map
         self.sample_ids = sample_ids
+        self.ionmode = ionmode
         self.output_path = output_path
     
     
@@ -2084,6 +2200,7 @@ class ConsensusMapExtractor(session.Logger):
     
     def main(self):
         
+        self.consensus_map.sortByIntensity()
         self._set_sample_ids()
         self._set_fields()
         self.define_record()
@@ -2093,7 +2210,7 @@ class ConsensusMapExtractor(session.Logger):
     
     def __iter__(self):
         
-        for i, cfeature feature in self.iter_features():
+        for i, cfeature, features in self.iter_features():
             
             yield self.record(
                 index = i,
@@ -2103,14 +2220,14 @@ class ConsensusMapExtractor(session.Logger):
                 rt = cfeature.getRT(),
                 intensity = cfeature.getIntensity(),
                 charge = cfeature.getCharge(),
-                *zip(
+                **dict(zip(
                     self._sample_fields,
                     (
                         value
                         for j in xrange(len(self.sample_ids))
                         for value in self.get_sample_fields(features, j)
                     )
-                )
+                ))
             )
     
     
@@ -2126,7 +2243,7 @@ class ConsensusMapExtractor(session.Logger):
                 for feature in cfeature.getFeatureList()
             )
             
-            yield i, cfeature, feature
+            yield i, cfeature, features
     
     
     @staticmethod
@@ -2169,7 +2286,7 @@ class ConsensusMapExtractor(session.Logger):
                 ]
             )
         
-        self._fields = self._common_fields + self._saple_fields
+        self._fields = self._common_fields + self._sample_fields
     
     
     def define_record(self):
@@ -2196,7 +2313,7 @@ class ConsensusMapExtractor(session.Logger):
         
         if output_path:
             
-            self.dataframe.to_csv(output_path, sep = '\t')
+            self.dataframe.to_csv(output_path, sep = '\t', index = False)
             self._log(
                 'Consensus features exported to tab delimited file `%s`.' % (
                     self.output_path,
@@ -2233,6 +2350,16 @@ class ConsensusMapExtractor(session.Logger):
         
         return self._iter_consensus_coordinates('getWidth')
     
+    
+    def iter_quality(self):
+        
+        return self._iter_consensus_coordinates('getQuality')
+    
+    
+    def iter_charge(self):
+        
+        return self._iter_consensus_coordinates('getCharge')
+    
     #
     # Methods for retrieving one dimensional arrays of
     # consensus feature coordinates
@@ -2258,9 +2385,24 @@ class ConsensusMapExtractor(session.Logger):
         return self._to_array('getRT')
     
     
+    def rt_minutes_array(self):
+        
+        return self.rt_array() / 60.
+    
+    
     def width_array(self):
         
         return self._to_array('getWidth')
+    
+    
+    def quality_array(self):
+        
+        return self._to_array('getQuality')
+    
+    
+    def charge_array(self):
+        
+        return self._to_array('getCharge')
     
     #
     # Methods for iterating over coordinates of features in each sample
@@ -2268,7 +2410,7 @@ class ConsensusMapExtractor(session.Logger):
     
     def _iter_sample_coordinates(self, method):
         
-        for i, cfeature feature in self.iter_features():
+        for i, cfeature, feature in self.iter_features():
             
             yield np.array([
                 getattr(feature[j], method)() if j in feature else np.nan
@@ -2295,7 +2437,6 @@ class ConsensusMapExtractor(session.Logger):
         
         return self._iter_sample_coordinates('getRT')
     
-    
     #
     # Methods for retrieving feature x sample arrays
     #
@@ -2307,33 +2448,55 @@ class ConsensusMapExtractor(session.Logger):
     
     def sample_mzs_array(self):
         
-        self._get_samples_array('getMZ')
+        return self._get_samples_array('getMZ')
     
     
     def sample_intensities_array(self):
         
-        self._get_samples_array('getIntensity')
+        return self._get_samples_array('getIntensity')
     
     
     def sample_rts_array(self):
         
-        self._get_samples_array('getRT')
+        return self._get_samples_array('getRT')
+    
+    
+    def sample_rts_minutes_array(self):
+        
+        return self.sample_rts_array() / 60.
     
     
     def sample_widths_array(self):
         
-        self._get_samples_array('getWidth')
+        return self._get_samples_array('getWidth')
     
     #
     # Constructing arguments for sample.SampleSet
     #
     
+    def get_attributes(self):
+        
+        attrs = {
+            'quality': self.quality_array(),
+            'charge': self.charge_array(),
+            'rt_means': self.rt_minutes_array(),
+            'centr_mzs': self.mz_array(),
+            'total_intensities': self.intensity_array(),
+            'widths': self.width_array(),
+        }
+        
+        attrs['ionmode'] = self.ionmode
+        
+        return attrs
+    
+    
     def get_sampleset(self):
         
         {
-            'mzs': self.mzs,
-            'intensities': self.intensities,
-            'rts': self.rt_means,
-            'attrs': self.samples,
+            'mzs': self.sample_mzs_array(),
+            'intensities': self.sample_intensities_array(),
+            'rts': self.sample_rts_minutes_array(),
+            'width': self.sample_widths_array(),
             'sample_ids': self.sample_ids,
+            'feattrs': self.get_attributes(),
         }

@@ -75,6 +75,18 @@ wf = msproc.MSPreprocess(
     sample_id_method = sample_id_method,
     reference_sample = 'STARD10_A10',
 )
+# step by step
 wf.peak_picking()
 wf.feature_finding()
 wf.map_alignment()
+wf.feature_grouping()
+wf.export()
+
+# single call
+wf = msproc.MSPreprocess(
+    input_path = example_data_dir,
+    stop = 'features_aligned',
+    sample_id_method = sample_id_method,
+    reference_sample = 'STARD10_A10',
+)
+wf.main()
