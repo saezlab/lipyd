@@ -20,6 +20,7 @@
 from future.utils import iteritems
 
 import os
+import sys
 import imp
 import re
 import copy
@@ -1215,13 +1216,26 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
     
     def read_reference(self):
         
-        if self.reference_map is None:
+        if self.reference_path:
+            
+            self._log(
+                'Reference feature map is from `%s`.' % self.reference_path
+            )
+        
+        if not isinstance(self.reference_map, oms.FeatureMap):
             
             self._log('Obtaining reference feature map.')
             
             self.reference_map = self.read(
                 path = self.reference_path,
                 mapobject = self.reference_map,
+            )
+            
+        else:
+            
+            self._log(
+                'Reference map: using the provided '
+                '`pyopenms.FeatureMap` object.'
             )
     
     
@@ -1246,17 +1260,30 @@ class MapAlignmentAlgorithmPoseClustering(OpenmsMethodWrapper):
         # set reference_map file
         self.openms_obj.setReference(self.reference_map)
         # create object for the computed transformation
-        self.transformation = oms.TransformationDescription()
+        self.trafo = oms.TransformationDescription()
         # do the alignment
-        self.openms_obj.align(self.input_map, self.transformation)
+        self.openms_obj.align(self.input_map, self.trafo)
+        mat = oms.MapAlignmentTransformer()
+        mat.transformRetentionTimes(self.input_map, self.trafo, False)
+        dataproc = self.input_map.getDataProcessing()
+        proc = oms.DataProcessing()
+        proc.setProcessingActions({oms.ProcessingAction.ALIGNMENT})
+        sw = proc.getSoftware()
+        sw.setName('OpenMS')
+        sw.setVersion(oms.VersionInfo.getVersion())
+        proc.setSoftware(sw)
+        proc.setCompletionTime(oms.DateTime.now())
+        dataproc.append(proc)
+        self.input_map.setDataProcessing(dataproc)
     
     
     def write(self):
         
-        self.output_map = oms.FeatureMap()
+        self.output_map = self.input_map
         # here we store the input_map as the transformation has been
         # applied to this map, the output_map is empty
-        oms.FeatureXMLFile().store(self.output_path, self.input_map)
+        output_featurexml = oms.FeatureXMLFile()
+        output_featurexml.store(self.output_path, self.input_map)
         self._log(
             'Aligned features have been written to `%s`.' % self.output_path
         )
