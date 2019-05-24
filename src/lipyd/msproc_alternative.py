@@ -18,6 +18,7 @@
 #
 
 from future.utils import iteritems
+from past.builtins import xrange, range
 
 import os
 import sys
@@ -27,6 +28,7 @@ import copy
 import collections
 
 import numpy as np
+import pandas as pd
 import pyopenms as oms
 
 import lipyd.session as session
@@ -1696,6 +1698,7 @@ class MSPreprocess(PathHandlerBase):
     
     
     def reload(self):
+        
         modname = self.__class__.__module__
         mod = __import__(modname, fromlist = [modname.split('.')[0]])
         imp.reload(mod)
@@ -2035,3 +2038,158 @@ class MSPreprocess(PathHandlerBase):
     def get_sampleset(self):
         
         return {}
+
+
+class ConsensusMapExtractor(session.Logger):
+    
+    _common_fields = [
+        'index',
+        'quality',
+        'width',
+        'mz',
+        'rt',
+        'intensity',
+        'charge',
+    ]
+    
+    _sample_fields_template = [
+        'mz__%s',
+        'rt__%s',
+        'intensity__%s',
+    ]
+    
+    def __init__(
+            self,
+            consensus_map,
+            sample_ids = None,
+            output_path = None,
+        ):
+        
+        session.Logger.__init__(self, name = 'export')
+        
+        self.consensus_map = consensus_map
+        self.sample_ids = sample_ids
+        self.output_path = output_path
+    
+    
+    def reload(self):
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
+    
+    
+    def main(self):
+        
+        self._set_sample_ids()
+        self._set_fields()
+        self.define_record()
+        self.make_dataframe()
+        self.export()
+    
+    
+    def __iter__(self):
+        
+        for i, cfeature in enumerate(self.consensus_map):
+            
+            features = dict(
+                (
+                    feature.getMapIndex(),
+                    feature
+                )
+                for feature in cfeature.getFeatureList()
+            )
+            
+            yield self.record(
+                index = i,
+                quality = cfeature.getQuality(),
+                width = cfeature.getWidth(),
+                mz = cfeature.getMZ(),
+                rt = cfeature.getRT(),
+                intensity = cfeature.getIntensity(),
+                charge = cfeature.getCharge(),
+                *zip(
+                    self._sample_fields,
+                    (
+                        value
+                        for j in xrange(len(self.sample_ids))
+                        for value in self.get_sample_fields(features, j)
+                    )
+                )
+            )
+    
+    
+    @staticmethod
+    def get_sample_fields(features, j):
+        
+        if j in features:
+            
+            return (
+                features[j].getMZ(),
+                features[j].getRT(),
+                features[j].getIntensity(),
+            )
+            
+        else:
+            
+            return (np.nan,) * 3
+    
+    
+    def _set_sample_ids(self):
+        
+        if not self.sample_ids:
+            
+            self.sample_ids = [
+                '%03u' % i
+                for i in xrange(self.consensus_map.getColumnHeaders())
+            ]
+    
+    
+    def _set_fields(self):
+        
+        self._sample_fields = []
+        
+        for sample_id in self.sample_ids:
+            
+            self._sample_fields.extend(
+                [
+                    label % sample_id
+                    for label in self._sample_fields_template
+                ]
+            )
+        
+        self._fields = self._common_fields + self._saple_fields
+    
+    
+    def define_record(self):
+        
+        self.record = collections.namedtuple(
+            'ConsensusFeature',
+            self._fields,
+        )
+    
+    
+    def make_dataframe(self):
+        
+        hdr = self.record._fields
+        
+        self.dataframe = pd.DataFrame(
+            list(self.__iter__()),
+            columns = hdr,
+        )
+    
+    
+    def export(self, output_path = None):
+        
+        output_path = output_path or self.output_path
+        
+        if output_path:
+            
+            self.dataframe.to_csv(output_path, sep = '\t')
+            self._log(
+                'Consensus features exported to tab delimited file `%s`.' % (
+                    self.output_path,
+                )
+            )
