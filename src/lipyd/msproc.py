@@ -2505,6 +2505,7 @@ class ConsensusMapExtractor(session.Logger):
             'intensities': self.sample_intensities_array(),
             'rts': self.sample_rts_minutes_array(),
             'sample_ids': self.sample_ids,
+            # TODO: find out how to add this:
             #'sample_data': {
                 #'width': self.sample_widths_array(),
             #}
