@@ -1973,22 +1973,81 @@ class MSPreprocess(PathHandlerBase):
     
     def map_alignment(self):
         
+        # attempting to select if any sample requested
+        if self.reference_sample is not None:
+            
+            self._map_alignment_manually_select_reference()
+        
+        # falling back to selecting the largest map
         if (
-            self.reference_sample and
             'reference_map' not in self.map_alignment_param and
             'reference_path' not in self.map_alignment_param
         ):
-            
-            self._log(
-                'Using `%s` as reference sample.' % self.reference_sample
-            )
-            idx = self.sample_id.index(self.reference_sample)
-            self.map_alignment_param['reference_map'] = self.result[idx]
-            self.map_alignment_param['reference_path'] = (
-                self.result_paths[idx]
-            )
+            self._map_alignment_largest_map_as_reference()
         
         self._step_base(method = 'map_alignment')
+    
+    
+    def _map_alignment_largest_map_as_reference(self):
+        
+        sizes = []
+        
+        for i, femap in enumerate(self.features):
+            
+            if isinstance(femap, common.basestring) and os.path.exists(femap):
+                
+                fh = oms.FeatureXMLFile()
+                sizes.append(fh.loadSize(femap))
+                
+            else:
+                
+                sizes.append(femap.size())
+        
+        iref = self.sample_id[sizes.index(max(sizes))]
+        refmap = self.features[iref]
+        
+        self._log(
+            'Selected the largest sample as reference for the alignment: '
+            'sample `%s` with %u features.' % (
+                str(self.sample_id[iref]),
+                sizes[iref],
+            )
+        )
+        
+        if isinstance(refmap, oms.FeatureMap):
+            
+            self.map_alignment_param['reference_map'] = refmap
+            
+        else:
+            
+            self.map_alignment_param['reference_path'] = refmap
+    
+    
+    def _map_alignment_manually_select_reference(self, sample_id = None):
+        
+        reference_sample = sample_id or self.reference_sample
+        
+        if reference_sample:
+            
+            if reference_sample not in self.sample_id:
+                
+                self._log(
+                    'Could not select reference sample `%s`. '
+                    'Sample ID does not exist.' % str(reference_sample)
+                )
+                
+            else:
+                
+                self._log(
+                    'Manually selected reference sample: `%s`.' % (
+                        self.reference_sample
+                    )
+                )
+                idx = self.sample_id.index(self.reference_sample)
+                self.map_alignment_param['reference_map'] = self.result[idx]
+                self.map_alignment_param['reference_path'] = (
+                    self.result_paths[idx]
+                )
     
     
     def feature_grouping(self):
