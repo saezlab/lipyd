@@ -2056,6 +2056,7 @@ class ConsensusMapExtractor(session.Logger):
         'mz__%s',
         'rt__%s',
         'intensity__%s',
+        'width__%s',
     ]
     
     def __init__(
@@ -2092,15 +2093,7 @@ class ConsensusMapExtractor(session.Logger):
     
     def __iter__(self):
         
-        for i, cfeature in enumerate(self.consensus_map):
-            
-            features = dict(
-                (
-                    feature.getMapIndex(),
-                    feature
-                )
-                for feature in cfeature.getFeatureList()
-            )
+        for i, cfeature feature in self.iter_features():
             
             yield self.record(
                 index = i,
@@ -2121,6 +2114,21 @@ class ConsensusMapExtractor(session.Logger):
             )
     
     
+    def iter_features(self):
+        
+        for i, cfeature in enumerate(self.consensus_map):
+            
+            features = dict(
+                (
+                    feature.getMapIndex(),
+                    feature
+                )
+                for feature in cfeature.getFeatureList()
+            )
+            
+            yield i, cfeature, feature
+    
+    
     @staticmethod
     def get_sample_fields(features, j):
         
@@ -2130,11 +2138,12 @@ class ConsensusMapExtractor(session.Logger):
                 features[j].getMZ(),
                 features[j].getRT(),
                 features[j].getIntensity(),
+                features[j].getWidth(),
             )
             
         else:
             
-            return (np.nan,) * 3
+            return (np.nan,) * 4
     
     
     def _set_sample_ids(self):
@@ -2193,3 +2202,138 @@ class ConsensusMapExtractor(session.Logger):
                     self.output_path,
                 )
             )
+    
+    #
+    # Methods for iterating over coordinates of consensus features
+    #
+    
+    def _iter_consensus_coordinates(self, method):
+        
+        for cfeature in self.consensus_map:
+            
+            yield getattr(cfeature, method)()
+    
+    
+    def iter_mz(self):
+        
+        return self._iter_consensus_coordinates('getMZ')
+    
+    
+    def iter_intensity(self):
+        
+        return self._iter_consensus_coordinates('getIntensity')
+    
+    
+    def iter_rt(self):
+        
+        return self._iter_consensus_coordinates('getRT')
+    
+    
+    def iter_width(self):
+        
+        return self._iter_consensus_coordinates('getWidth')
+    
+    #
+    # Methods for retrieving one dimensional arrays of
+    # consensus feature coordinates
+    #
+    
+    def _to_array(self, method):
+        
+        return np.array(list(self._iter_consensus_coordinates(method)))
+    
+    
+    def mz_array(self):
+        
+        return self._to_array('getMZ')
+    
+    
+    def intensity_array(self):
+        
+        return self._to_array('getIntensity')
+    
+    
+    def rt_array(self):
+        
+        return self._to_array('getRT')
+    
+    
+    def width_array(self):
+        
+        return self._to_array('getWidth')
+    
+    #
+    # Methods for iterating over coordinates of features in each sample
+    #
+    
+    def _iter_sample_coordinates(self, method):
+        
+        for i, cfeature feature in self.iter_features():
+            
+            yield np.array([
+                getattr(feature[j], method)() if j in feature else np.nan
+                for j in xrange(len(self.sample_ids))
+            ])
+    
+    
+    def iter_sample_intensities(self):
+        
+        return self._iter_sample_coordinates('getIntensity')
+    
+    
+    def iter_sample_mzs(self):
+        
+        return self._iter_sample_coordinates('getMZ')
+    
+    
+    def iter_sample_widths(self):
+        
+        return self._iter_sample_coordinates('getWidth')
+    
+    
+    def iter_sample_rts(self):
+        
+        return self._iter_sample_coordinates('getRT')
+    
+    
+    #
+    # Methods for retrieving feature x sample arrays
+    #
+    
+    def _get_samples_array(self, method):
+        
+        return np.vstack(list(self._iter_sample_coordinates(method)))
+    
+    
+    def sample_mzs_array(self):
+        
+        self._get_samples_array('getMZ')
+    
+    
+    def sample_intensities_array(self):
+        
+        self._get_samples_array('getIntensity')
+    
+    
+    def sample_rts_array(self):
+        
+        self._get_samples_array('getRT')
+    
+    
+    def sample_widths_array(self):
+        
+        self._get_samples_array('getWidth')
+    
+    #
+    # Constructing arguments for sample.SampleSet
+    #
+    
+    def get_sampleset(self):
+        
+        {
+            'mzs': self.mzs,
+            'intensities': self.intensities,
+            'rts': self.rt_means,
+            'attrs': self.samples,
+            'sample_ids': self.sample_ids,
+        }

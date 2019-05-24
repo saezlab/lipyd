@@ -501,7 +501,8 @@ class PeaksReader(object):
             }
     
     def get_sampleset(self):
-        """Returns a ``dict`` which can serve as arguments for
+        """
+        Returns a ``dict`` which can serve as arguments for
         ``lipyd.sample.SampleSet`` and  ``lipyd.sample.FeatureAttributes`
         objects.
         
