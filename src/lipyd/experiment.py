@@ -24,7 +24,7 @@ import lipyd.msproc as msproc
 import lipyd.sample as sample
 
 
-class Main(session.Logger):
+class Experiment(session.Logger):
     
     
     def __init__(
