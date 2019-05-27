@@ -39,7 +39,7 @@ class Experiment(session.Logger):
         
         if not hasattr(self, '_log_name'):
             
-            session.Logger.__init__(self, name = 'main')
+            session.Logger.__init__(self, name = 'experiment')
         
         self.input_path = input_path
         self.ionmode = ionmode
@@ -104,6 +104,10 @@ class Experiment(session.Logger):
     def identification(self):
         
         self.samples.database_lookup()
-        self.samples.set_ms2_param()
         self.samples.set_ms2_sources()
         self.samples.ms2_analysis()
+    
+    
+    def export(self, fname = None):
+        
+        self.samples.export_table(fname = fname)
