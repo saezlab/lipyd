@@ -2,6 +2,14 @@ Release History
 ------------------
 This is a summary of the changelog.
 
+0.9.1
++++++
+
+- OpenMS LC MS/MS preprocessing module ``msproc`` in testing phase
+- New submodule and class ``experiment.Experiment`` connects the OpenMS
+preprocessing and the identification pipelines
+- In addition improved name and lipid record processing methods
+
 0.7.25
 ++++++
 
