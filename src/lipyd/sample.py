@@ -90,7 +90,7 @@ class SampleReader(object):
         self.ionmode = ionmode
         self.reader_class = self.reader_classes[input_type]
         self.reader_args  = kwargs
-        
+        set_ms2_param
         self.read()
     
     def reload(self):
