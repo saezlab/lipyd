@@ -16,7 +16,9 @@
 #
 #  Website: http://denes.omnipathdb.org/
 
-
+import imp
+import pandas as pd
+import numpy as np
 import lipyd.recalibration as recalibration
 import lipyd.experiment as experiment
 import lipyd.lookup as lookup
@@ -25,59 +27,80 @@ import collections
 
 
 StandardCompoundsBase = collections.namedtuple(
-	'StandardCompoundsBase',
-	['name', 'mass', 'formula', 'ionmode', 'adducts'] 
-	)
+    'StandardCompoundsBase',
+    ['name', 'mass', 'formula', 'ionmode', 'adducts'] 
+    )
 
-class StandardCompounds(collections.namedtuple(
-	'StandardCompoundsBase',
-	[
-		'name', 
-		'mass', 
-		'formula', 
-		'ionmode', 
-		'adducts'
-	] 
-	)):
+class StandardCompounds(object):
 
     def __init__(self,
             input_path = None,
             standards = None,
             ionmode = None,
-            output_filename = None
+            output_filename = None,
+            mgfdir = None,
+            input_ext = 'mzML'
         ):
 
         self.output_filename = output_filename
         self.input_path = input_path
-        self.standards = standards or {}
+        self.standards = standards or [] # [786.113, 810.025]
         self.ionmode = ionmode
+        self.mgfdir = mgfdir
+        self.input_ext = input_ext
 
-    def preprocess(self, ionmode):
+    def mgf_match_method(path, attrs):
+        
+        return attrs.sample_id.sample_id in path
 
-        m = experiment.Experiment(
-        input_path = (
-            self.input_path
-        ),
-        preprocess_args = {
-            'input_filter': lambda n: self.ionmode in n,
-            'input_ext': 'mzML',
-        },
-        ionmode = self.ionmode,
+    def preproc(self):
+
+        self.m = experiment.Experiment(
+        
+            input_path = self.input_path,
+            
+            preprocess_args = {
+                'input_filter': lambda n: self.ionmode in n,
+                'input_ext': self.input_ext,
+            },
+            
+            ionmode = self.ionmode,
+            
+            ms2_param = {
+            'mgfdir': self.mgfdir,
+            'mgf_match_method': self.mgf_match_method,
+            'check_rt': True,
+            }
         )
 
-        m.preprocess()
-
-        m.export(self.output_filename)
+        self.m.preprocess()
 
     def lookup_standards(self):
 
-        pairs = set()
+        mztheo = []
 
-        df = csv.read(self.output_filename)
+        dfo = self.m.preproc.extractor.dataframe
+        mzo = np.array(dfo['mz'])  
 
-        for k,v in self.standards:
-            a = lookup.find(k, mz, t = 50)
-            pairs.add((k,a))
+        for i in self.standards:
+            a = lookup.find(mzo, i, t = 50)
+            mztheo.append(a)
+         
+    def calc_ppm(self):
 
-    
+        ppms = ((mzo / mztheo) - 1) * 10e6  
 
+    def run(self):
+
+        self.preproc()
+        self.lookup_standards()
+        self.calc_ppm()
+
+    def reload(self):
+        """ """
+        
+        modname = self.__class__.__module__
+        mod = __import__(modname, fromlist = [modname.split('.')[0]])
+        imp.reload(mod)
+        new = getattr(mod, self.__class__.__name__)
+        setattr(self, '__class__', new)
