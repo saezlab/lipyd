@@ -59,6 +59,7 @@ class StandardCompounds(object):
         return attrs.sample_id.sample_id in path
 
     def preproc(self):
+
         self.m = experiment.Experiment(
             nput_path = self.input_path,
             preprocess_args = {
@@ -72,20 +73,21 @@ class StandardCompounds(object):
                 'check_rt': True,
             }
         )
+        
         self.m.preprocess()
 
     def lookup_standards(self):
 
         mztheo = []
 
-        dfo = m.preproc.extractor.dataframe
+        dfo = self.m.preproc.extractor.dataframe
            
         dfo.sort_values(by = 'mz', inplace = True)
         dfo.reset_index(drop = True, inplace = True)
 
         mzo = np.array(dfo['mz'])  
 
-        for i in standards:
+        for i in self.standards:
             a = lookup.find(mzo, i, t = 50)
             mztheo.append(a)
 
