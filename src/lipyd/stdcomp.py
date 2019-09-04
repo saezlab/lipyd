@@ -31,16 +31,21 @@ StandardCompoundsBase = collections.namedtuple(
     ['name', 'mass', 'formula', 'ionmode', 'adducts'] 
     )
 
+filename = '/home/igor/Documents/Data/Alb_Lar/csv_neg/CERT_neg.csv'
+mgfdir = '/home/igor/Documents/Data/Alb_Lar/mgf/190715_Olive_LvEk_AFO_CERT_infected_neg.mgf'
+
+
 class StandardCompounds(object):
 
-    def __init__(self,
-            input_path = None,
-            standards = None,
-            ionmode = None,
-            output_filename = None,
-            mgfdir = None,
-            input_ext = 'mzML'
-        ):
+    def __init__(
+        self,
+        input_path = None,
+        standards = None,
+        ionmode = None,
+        output_filename = None,
+        mgfdir = None,
+        input_ext = 'mzML'
+    ):
 
         self.output_filename = output_filename
         self.input_path = input_path
@@ -54,38 +59,36 @@ class StandardCompounds(object):
         return attrs.sample_id.sample_id in path
 
     def preproc(self):
-
         self.m = experiment.Experiment(
-        
-            input_path = self.input_path,
-            
+            nput_path = self.input_path,
             preprocess_args = {
                 'input_filter': lambda n: self.ionmode in n,
                 'input_ext': self.input_ext,
             },
-            
             ionmode = self.ionmode,
-            
             ms2_param = {
-            'mgfdir': self.mgfdir,
-            'mgf_match_method': self.mgf_match_method,
-            'check_rt': True,
+                'mgfdir': self.mgfdir,
+                'mgf_match_method': self.mgf_match_method,
+                'check_rt': True,
             }
         )
-
         self.m.preprocess()
 
     def lookup_standards(self):
 
         mztheo = []
 
-        dfo = self.m.preproc.extractor.dataframe
+        dfo = m.preproc.extractor.dataframe
+           
+        dfo.sort_values(by = 'mz', inplace = True)
+        dfo.reset_index(drop = True, inplace = True)
+
         mzo = np.array(dfo['mz'])  
 
-        for i in self.standards:
+        for i in standards:
             a = lookup.find(mzo, i, t = 50)
             mztheo.append(a)
-         
+
     def calc_ppm(self):
 
         ppms = ((mzo / mztheo) - 1) * 10e6  
