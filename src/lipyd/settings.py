@@ -537,6 +537,7 @@ _defaults = {
         'neg': {
         }
     },
+    'figures_dir': 'figures',
     'font_family': ['Helvetica Neue LT Std', 'sans'],
     'font_variant': None,
     'font_style': None,
@@ -729,7 +730,7 @@ def get(param):
     The current value of the parameter.
     """
     
-    if hasattr(settings, param):
+    if isinstance(param, common.basestring) and hasattr(settings, param):
         
         value = getattr(settings, param)
         
