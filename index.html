@@ -181,7 +181,7 @@ font-style:normal;
     e.g. only for database lookup. <em>lipyd</em> does not intend to be a one
     click solution but a software library anyone can use to build their own
     pipelines. In each module and class we try to set reasonable defaults and
-    we provide tutorials to show how a workflow builds up. As of November 2018
+    we provide tutorials to show how a workflow builds up. As of December 2019
     certain key elements are not yet complete, but we are in active
     development as we are planning to publish a paper in the next few months
     and we want to provide complete workflow at that point. See details below.
@@ -219,13 +219,22 @@ font-style:normal;
   </div>-->
   
   <h2 id="status">Status</h2>
-  <em>Last updated: 9 Nov 2018</em>
+  <em>Last updated: 9 Jan 2020</em>
   <h3>Input and preprocessing</h3>
   <p>
     At reading raw mass spec data from mzML files, peak picking and feature
     detection we rely on the <a href="http://openms.de/" target="_blank">
     OpenMS</a> library. This ensures computationally efficient processing by
-    well established methods. As our OpenMS integration is not yet complete
+    well established methods. In 2019 we completed our OpenMS metabolomics
+    preprocessing pipeline. However the parametrization of the processing
+    algorithms still needs a thorough benchmark and quality control. Hence
+    we can not recommend to use it for data analysis. Over the next half
+    year we will test it on a wide variety of data and compare the results
+    to free and commercial software. Once the testing period is completed
+    this will be the recommended method for MS data preprocessing and
+    <em>lipyd</em> will be able to do everything from raw MS data until
+    lipid identification. In addition we are investigating the possibility
+    to process Thermo RAW files directly.
     we provide a temporary solution to read already preprocessed features
     from CSV files exported by the
     <a href="http://www.bioinfor.com/peaks-studio/" target="_blank">PEAKS</a>
@@ -385,8 +394,8 @@ font-style:normal;
   </div>
   <br/>
   <p>
-   <a href="http://www.ebi.ac.uk/~denes">
-    Dénes Türei, 2018.
+   <a href="http://denes.omnipathdb.org/">
+    Dénes Türei, 2018-2020.
    </a>
   </p>
   <p>
