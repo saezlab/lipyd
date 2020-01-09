@@ -537,6 +537,7 @@ _defaults = {
         'neg': {
         }
     },
+    'figures_dir': 'figures',
     'font_family': ['Helvetica Neue LT Std', 'sans'],
     'font_variant': None,
     'font_style': None,
@@ -563,16 +564,16 @@ _defaults = {
     'database_preference': ('lipyd.lipid', 'SwissLipids', 'LipidMaps'),
     # lipyd specific defaults for OpenMS methods
     'peak_picking_param': {
-        'signal_to_noise': 1.0,
+        'signal_to_noise': 0.0,
         'ms_levels': [1, 2],
     },
     'feature_finding_common_param': {
-        'noise_threshold_int': 9.0,
-        'chrom_peak_snr': 2.0,
-        'chrom_fwhm': 4.0,
+        'noise_threshold_int': 10.0,
+        'chrom_peak_snr': 3.0,
+        'chrom_fwhm': 5.0,
     },
     'mass_trace_detection_param': {
-        'mass_error_ppm' : 19.0,
+        'mass_error_ppm' : 20.0,
         'reestimate_mt_sd': 'true',
         'quant_method': 'area',
     },
@@ -585,7 +586,7 @@ _defaults = {
         'remove_single_traces': 'true',
     },
     'map_alignment_param': {
-        'max_num_peaks_considered': 990,
+        'max_num_peaks_considered': 1000,
     },
     'feature_grouping_param': {},
     # where to save intermediary and result files:
@@ -729,7 +730,7 @@ def get(param):
     The current value of the parameter.
     """
     
-    if hasattr(settings, param):
+    if isinstance(param, common.basestring) and hasattr(settings, param):
         
         value = getattr(settings, param)
         

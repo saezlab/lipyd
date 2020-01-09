@@ -186,7 +186,7 @@ class Recalibration(object):
                 )
             )
         
-        if self.by_sample is not None:
+        if self.by_sample:
             
             self.ppms = []
             

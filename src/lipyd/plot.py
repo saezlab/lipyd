@@ -25,12 +25,14 @@
 from future.utils import iteritems
 from past.builtins import xrange, range
 
+import os
 import imp
 import copy
 import itertools
 import pandas as pd
 import numpy as np
 import math as mt
+import time
 
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
@@ -75,17 +77,29 @@ def is_opentype_cff_font(filename):
 mpl.font_manager.is_opentype_cff_font = is_opentype_cff_font
 
 
-class PlotBase(object):
+class PlotBase(session.Logger):
     
     text_elements = (
-        'axis_label', 'ticklabel', 'xticklabel',
-        'title', 'legend_title', 'legend_label',
+        'axis_label',
+        'ticklabel',
+        'xticklabel',
+        'title',
+        'legend_title',
+        'legend_label',
         'annotation',
     )
+    timestamp = time.strftime('%Y%m%d')
+    
     
     def __init__(
             self,
             fname = None,
+            fname_param = (),
+            fname_timestamp = True,
+            timestamp_override = None,
+            filetype = 'pdf',
+            figures_dir = None,
+            dir_timestamp = True,
             xlab = None,
             ylab = None,
             width = 7,
@@ -118,13 +132,14 @@ class PlotBase(object):
             palette = None,
             lab_size = (9, 9),
             axis_label_size = 10.0,
-            lab_angle = 0,
+            xticklab_angle = 0,
             rc = None,
             title = None,
             maketitle = False,
             title_halign = None,
             usetex = False,
             do_plot = True,
+            log_label = 'plot',
             **kwargs,
         ):
         """
@@ -138,11 +153,32 @@ class PlotBase(object):
         itself and applies the additional options like typeface, labels,
         sizes, etc. Then ``post_plot`` applies ``tight_layout`` and closes
         the file.
+        This class is designed to be very much typography aware. You have
+        easy control over the typefaces of all text elements of the figure.
         
         Parameters
         ----------
         fname : str
-            File name for the graphics, e.g. `boxplot01.pdf`.
+            File name for the graphics. Either a key for settings or a string
+            provided directly e.g. `boxplot01`. The extension and optionally
+            a timestamp will be added automatically. It might contain fields
+            for formatting, the values for this can be provided in
+            `fname_param`.
+        fname_param : tuple
+            Values to be inserted into the file name.
+        fname_timestamp : bool
+            Include timestamp in the file name. The timestamp will be the
+            date of module load day in format of *YYYYMMDD*. It will be added
+            before the file type extension, separated by double underscores.
+            You can use different timestamp by providing it to the
+            ``timestamp_override`` parameter.
+        timestamp_override : str
+            If provided overrides the default timestamp.
+        filetype : str
+            The graphics format to use. Default is *pdf*, alternatives are
+            *png* or *svg*. Should correspond to the file name extension.
+        figures_dir : str
+            A path to the output directory for graphics files.
         xlab : str
             Label for the x axis.
         ylab : str
@@ -219,7 +255,7 @@ class PlotBase(object):
             axes, respectively.
         axis_label_size : float
             Font size of the axis labels.
-        lab_angle : float
+        xticklab_angle : float
             Angle of the x axis labels.
         rc : dict
             Matplotlib rc params.
@@ -238,6 +274,10 @@ class PlotBase(object):
             afterwards.
         """
         
+        if not hasattr(self, '_logger'):
+            
+            session.Logger.__init__(self, name = log_label or 'plot')
+        
         for k, v in itertools.chain(iteritems(locals()), iteritems(kwargs)):
             
             # we check this because derived classes might have set
@@ -250,6 +290,7 @@ class PlotBase(object):
             
             self.main()
     
+    
     def reload(self):
         """
         Reloads the module and updates the class instance.
@@ -260,7 +301,8 @@ class PlotBase(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
-
+    
+    
     def plot(self):
         """
         The total workflow of this class.
@@ -274,18 +316,92 @@ class PlotBase(object):
     # a synonym
     main = plot
     
+    
     def pre_plot(self):
         """
         Executes all necessary tasks before plotting in the correct order.
         Derived classes should override this if necessary.
         """
         
+        self.set_timestamp()
+        self.set_directory()
+        self.set_format()
+        self.set_path()
         self.set_fonts()
         self.set_bar_args()
         self.set_figsize()
-        self.init_fig()
+        self.init_figure()
         self.set_grid()
-
+    
+    
+    def set_timestamp(self, timestamp = None, strftime = ''):
+        
+        self.timestamp = (
+            timestamp
+                or
+            time.strftime(strftime)
+                or
+            self.timestamp_override
+                or
+            self.timestamp
+        )
+    
+    
+    def set_directory(self, figures_dir = None):
+        
+        self.figures_dir = (
+            figures_dir
+                or
+            self.figures_dir
+                or
+            settings.get('figures_dir')
+        )
+        
+        if self.dir_timestamp:
+            
+            self.figures_dir = os.path.join(
+                self.figures_dir,
+                self.timestamp,
+            )
+        
+        os.makedirs(self.figures_dir, exist_ok = True)
+    
+    
+    def set_format(self, filetype = None):
+        
+        self.filetype = (
+            filetype
+                if filetype else
+            self.filetype
+                if hasattr(self, 'filetype') else
+            'pdf'
+        )
+    
+    
+    def set_path(self, fname = None):
+        
+        self.fname = (
+            fname
+                or
+            settings.get(self.fname)
+                or
+            self.fname
+        )
+        
+        if not self.fname:
+            
+            self._log('No output file name provided.')
+            return
+        
+        self.fname = self.fname % self.fname_param
+        self.fname = '%s%s.%s' % (
+            self.fname,
+            '__%s' % self.timestamp if self.fname_timestamp else '',
+            self.filetype,
+        )
+        self.path = os.path.join(self.figures_dir, self.fname)
+    
+    
     def make_plot(self):
         """
         Calls the plotting methods in the correct order.
@@ -293,6 +409,7 @@ class PlotBase(object):
         
         self.make_plots() # this should call post_subplot_hook
                           # after each subplot
+    
     
     def post_subplot_hook(self):
         """
@@ -305,7 +422,8 @@ class PlotBase(object):
         self.set_ticklabels()
         self.make_legend()
         self.set_legend_font()
-
+    
+    
     def post_plot(self):
         """
         Saves the plot into file, and closes the figure.
@@ -313,9 +431,11 @@ class PlotBase(object):
         
         self.finish()
     
+    
     def set_bar_args(self):
         
         self.bar_args = self.bar_args or {}
+    
     
     def set_fonts(self):
         """
@@ -333,6 +453,7 @@ class PlotBase(object):
         self.fonts_set_rc()
         # create font properties objects from all parameters dicts
         self.fonts_create_fontproperties()
+    
     
     def fonts_init_dicts(self):
         """
@@ -359,6 +480,7 @@ class PlotBase(object):
             
             setattr(self, attr, this_font)
     
+    
     def fonts_set_rc(self):
         """
         Sets up font related settings in matplotlib rc dict.
@@ -382,6 +504,7 @@ class PlotBase(object):
         self.rc['font.stretch'] = self.font_stretch
         self.rc['text.usetex'] = self.usetex
     
+    
     def fonts_defaults_from_settings(self):
         """
         Sets default font options from ``settings`` unless they are
@@ -393,6 +516,7 @@ class PlotBase(object):
         self.font_variant = self.font_variant or settings.get('font_variant')
         self.font_stretch = self.font_stretch or settings.get('font_stretch')
         self.font_size = self.font_size or settings.get('font_size')
+    
     
     def fonts_default_dict(self):
         """
@@ -407,7 +531,9 @@ class PlotBase(object):
             'variant': self.font_variant,
             'stretch': self.font_stretch,
             'size': self.font_size,
+            'weight': self.font_weight,
         }
+    
     
     def fonts_create_fontproperties(self):
         """
@@ -430,18 +556,31 @@ class PlotBase(object):
             )
         )
         
-        for text in self.text_elements:
+        
+        for elem in self.text_elements:
             
-            dictattr = '%s_font' % text
-            fpattr   = 'fp_%s' % text
+            dictattr = '%s_font' % elem
+            fpattr   = 'fp_%s' % elem
             
-            setattr(
-                self,
-                fpattr,
-                mpl.font_manager.FontProperties(
-                    **copy.deepcopy(getattr(self, dictattr))
+            fp = mpl.font_manager.FontProperties(
+                **copy.deepcopy(getattr(self, dictattr))
+            )
+            
+            setattr(self, fpattr, fp)
+            
+            self._log(
+                'Font properties for `%s`: %s' % (
+                    elem,
+                    fp.get_fontconfig_pattern(),
                 )
             )
+            self._log(
+                'Font file for `%s`: %s' % (
+                    elem,
+                    mpl.font_manager.fontManager.findfont(fp),
+                )
+            )
+    
     
     def set_figsize(self):
         """
@@ -459,24 +598,29 @@ class PlotBase(object):
         else:
             
             self.figsize = settings.get('figsize')
-
-    def init_fig(self):
+    
+    
+    def init_figure(self):
         """
         Creates a figure using the object oriented matplotlib interface.
         """
         
-        if self.format == 'pdf':
+        if not hasattr(self, 'fig') or self.fig is None:
             
-            self.pdf = mpl.backends.backend_pdf.PdfPages(self.fname)
-            self.fig = mpl.figure.Figure(figsize = self.figsize)
-            self.cvs = mpl.backends.backend_pdf.FigureCanvasPdf(self.fig)
-        
-        elif self.format == 'png':
+            if self.filetype == 'pdf':
+                
+                self.pdf = mpl.backends.backend_pdf.PdfPages(self.path)
+                self.fig = mpl.figure.Figure(figsize = self.figsize)
+                self.cvs = mpl.backends.backend_pdf.FigureCanvasPdf(self.fig)
             
-            self.fig = mpl.figure.Figure(figsize = self.figsize)
-            self.cvs = mpl.backends.backend_cairo.FigureCanvasCairo(self.fig)
-
-
+            elif self.filetype in {'png', 'svg'}:
+                
+                self.fig = mpl.figure.Figure(figsize = self.figsize)
+                self.cvs = (
+                    mpl.backends.backend_cairo.FigureCanvasCairo(self.fig)
+                )
+    
+    
     def set_grid(self):
         """
         Sets up a grid according to the number of subplots,
@@ -493,13 +637,18 @@ class PlotBase(object):
             height_ratios = self.grid_hratios,
             width_ratios = self.grid_wratios,
         )
+        
         self.axes = [[None] * self.grid_cols] * self.grid_rows
-
+    
+    
     def get_subplot(self, i, j = 0):
         
         if self.axes[j][i] is None:
+            
             self.axes[j][i] = self.fig.add_subplot(self.gs[j, i])
+        
         self.ax = self.axes[j][i]
+    
     
     def iter_subplots(self):
         
@@ -510,6 +659,7 @@ class PlotBase(object):
                 self.get_subplot(i, j)
                 
                 yield self.ax
+    
     
     def make_plots(self):
         """
@@ -523,6 +673,7 @@ class PlotBase(object):
         
         self.post_subplot_hook()
     
+    
     def set_ylims(self):
         
         if self.uniform_ylim:
@@ -533,7 +684,8 @@ class PlotBase(object):
             )
             
             _ = [None for _ in ax.set_ylim([0, maxy]) for ax in self.axes[0]]
-
+    
+    
     def set_title(self):
         """
         Sets the main title.
@@ -544,6 +696,7 @@ class PlotBase(object):
             self.title_text = self.fig.suptitle(self.title)
             self.title_text.set_fontproperties(self.fp_title)
             self.title_text.set_horizontalalignment(self.title_halign)
+    
     
     def labels(self):
         """
@@ -558,9 +711,9 @@ class PlotBase(object):
         
         _ = [
             tick.label.set_fontproperties(self.fp_xticklabel) or (
-                self.lab_angle == 0 or self.lab_angle == 90
+                self.xticklab_angle == 0 or self.xticklab_angle == 90
             ) and (
-                tick.label.set_rotation(self.lab_angle) or
+                tick.label.set_rotation(self.xticklab_angle) or
                 tick.label.set_horizontalalignment('center')
             )
             for tick in self.ax.xaxis.get_major_ticks()
@@ -574,6 +727,7 @@ class PlotBase(object):
         self.ax.set_ylabel(self.ylab, fontproperties = self.fp_axis_label)
         self.ax.set_xlabel(self.xlab, fontproperties = self.fp_axis_label)
         # self.ax.yaxis.label.set_fontproperties(self)
+    
     
     def set_ticklabels(self):
         
@@ -592,6 +746,7 @@ class PlotBase(object):
             
             self.ax.set_xticks(self.xticks)
     
+    
     def make_legend(self):
         
         if self.legend:
@@ -600,6 +755,7 @@ class PlotBase(object):
                 loc = self.legend_loc,
                 title = self.legend_title,
             )
+    
     
     def set_legend_font(self):
         
@@ -612,6 +768,7 @@ class PlotBase(object):
             
             self.leg.get_title().set_fontproperties(self.fp_legend_title)
     
+    
     def finish(self):
         """
         Applies tight layout, draws the figure, writes the file and closes.
@@ -622,19 +779,20 @@ class PlotBase(object):
         self.fig.subplots_adjust(top = .92)
         self.cvs.draw()
         
-        if self.format == 'pdf':
+        if self.filetype == 'pdf':
             
             self.cvs.print_figure(self.pdf)
             self.pdf.close()
             
-        elif self.format == 'png':
+        elif self.filetype == 'png':
             
-            with open(self.fname, 'wb') as fp:
+            if self.path:
                 
-                self.cvs.print_png(fp)
+                with open(self.path, 'wb') as fp:
+                    
+                    self.cvs.print_png(fp)
         
         #self.fig.clf()
-
 
 
 class _TestPlot(PlotBase):
@@ -644,16 +802,23 @@ class _TestPlot(PlotBase):
     on top of PlotBase.
     """
     
+    
     def __init__(self, **kwargs):
         
+        defaults = {
+            'fname': 'test_figure',
+        }
+        kwargs.update(defaults)
+        
         PlotBase.__init__(self, **kwargs)
+    
     
     def make_plots(self):
         
         self.get_subplot(0, 0)
         
         x = np.linspace(0, 10, 1000)
-        #self.ax.plot(x, np.sin(x))
+        self.ax.plot(x, np.sin(x))
         self.post_subplot_hook()
 
 
