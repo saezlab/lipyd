@@ -260,24 +260,24 @@ font-style:normal;
     The <em>lipyd.ms2</em> module contains generic classes to support the
     analysis and identification of MS2 spectra. Based on around 50 standards
     run by our group and reviewing many spectra from publications and
-    databases we created bult in rules for identification of more than 80
+    databases we created built in rules for identification of more than 80
     lipid classes. You can modify the methods or create new ones by writing
     Python methods. However we are working on
     <a href="https://wiki.mpi-cbg.de/lipidx/LipidXplorer_MFQL"
-        target="_blank">MFQL</a> integration to provide a more standard way
-    of defining rules. Also we will introduce similarity search against
-    spectrum databases.
+        target="_blank">MFQL</a> or LDA format integration to provide a more
+    standard way of defining rules. Also we will introduce similarity search
+    against spectrum databases.
   </p>
   <h3>Feature filtering, post-processing</h3>
   <p>
     The <em>lipyd.sample</em> and <em>lipyd.feature</em> modules provide
     classes for analysis of features optionally in relation to other variables
-    and filter them. Analysis and filtering of the features can be done
-    before or after the lipid identification. Doing it before reduces the
-    number of MS2 spectra to be analyzed this way saving time. In the future
-    we will add more utilities to build arrays of features and also MS2
-    fragments across arbitrary number of experiments to provide opportunities
-    for higher level analysis.
+    and filter them according to custom rules. Analysis and filtering of the
+    features can be done before or after the lipid identification. Doing it
+    before reduces the number of MS2 spectra to be analyzed this way saving
+    time. In the future we will add more utilities to build arrays of features
+    and also MS2 fragments across arbitrary number of experiments to provide
+    opportunities for higher level analysis.
   </p>
   <h2 id="code">Code</h2>
     Lipyd is available under GPLv3 license. You can access the code in the
