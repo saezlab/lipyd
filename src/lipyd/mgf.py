@@ -97,6 +97,7 @@ class MgfReader(object):
         features = []
         offset = 0
         cap_next = False
+        rtime = None
         
         with open(self.fname, 'rb', 8192) as fp:
             
