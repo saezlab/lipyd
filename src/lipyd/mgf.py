@@ -32,14 +32,19 @@ class MgfReader(object):
     """ """
     
     stRrtinseconds = 'RTINSECONDS'
+    stRrtinminutes = 'RTINMINUTES'
     stRtitle = 'TITLE'
+    stRscan = 'SCANS'
+    stRpolarity = 'POLARITY'
+    stRion = 'ION'
     stRbe = 'BE'
     stRen = 'EN'
     stRch = 'CH'
     stRpepmass = 'PEPMASS'
     stRempty = ''
     stRcharge = 'CHARGE'
-    reln = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
+    reln0 = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
+    reln1 = re.compile(r'^([A-Z]+).*=(.*)$')
     
     def __init__(
             self,
@@ -116,26 +121,48 @@ class MgfReader(object):
                         
                         try:
                             
-                            m = self.reln.match(l.strip()).groups()
+                            m = self.reln0.match(l.strip()).groups()
                             
                         except:
                             
-                            sys.stdout.write(
-                                'Line in MGF file `%s`'
-                                'could not be processed: '
-                                '\n\t`%s`\n' % (self.fname, l)
-                            )
-                            continue
+                            try:
+                                
+                                m = self.reln1.match(l.strip()).groups()
+                                
+                            except:
+                                
+                                self.log.console(
+                                    'Line in MGF file `%s`'
+                                    'could not be processed: '
+                                    '`%s`' % (self.fname, l)
+                                )
+                                continue
                         
                         if m[0] == self.stRtitle:
                             
                             scan = float(m[1])
-                        
-                        if m[0] == self.stRrtinseconds:
+                            
+                        elif m[0] == self.stRscan:
+                            
+                            scan = float(m[1])
+                            
+                        elif m[0] == self.stRrtinseconds:
                             
                             rtime = float(m[1]) / 60.0
-                        
-                        if m[0] == self.stRpepmass:
+                            
+                        elif m[0] == self.stRrtinminutes:
+                            
+                            rtime = float(m[1])
+                            
+                        elif m[0] == self.stRion:
+                            
+                            adduct = m[1]
+                            
+                        elif m[1] == self.stRpolarity:
+                            
+                            ionmode = m[2].lower()
+                            
+                        elif m[0] == self.stRpepmass:
                             
                             pepmass = float(m[1])
                             intensity = (
