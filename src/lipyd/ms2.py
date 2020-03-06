@@ -7163,10 +7163,6 @@ class MS2Feature(object):
         
         for resource, idx, rtdiff in self.iterscanidx_all():
             
-            if not len(idx):
-                
-                continue
-            
             scans_rts = self.rt - np.abs(rtdiff)
             
             if np.any(

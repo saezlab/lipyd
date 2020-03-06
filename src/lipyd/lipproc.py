@@ -763,7 +763,7 @@ def subclass_str(hg, chainsum = None):
     )
 
 
-def class_str(hg):
+def class_str(hg, chainsum = None):
     """
     From Headgroup returns the main class as string.
 
@@ -771,6 +771,8 @@ def class_str(hg):
     ----------
     hg : Headgroup
         ``Headgroup`` object.
+    chainsum : NoneType
+        Ignored.
 
     Returns
     -------
