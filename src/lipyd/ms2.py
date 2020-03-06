@@ -7031,11 +7031,13 @@ class MS2Feature(object):
             yield i, rtd
     
     
-    def mgf_iterscanidx_all(self):
+    def iterscanidx_all(self):
         
         for resource, res_type, sample_id in self.iterresources():
             
-            for i, rtd in self.mgf_iterscanidx(resource):
+            itermethod = getattr(self, '%s_iterscanidx' % res_type)
+            
+            for i, rtd in itermethod(resource):
                 
                 yield resource, i, rtd
     
@@ -7154,10 +7156,12 @@ class MS2Feature(object):
     
     
     def has_scan_within_rt_range(self):
+        """
+        Tells if any MS2 scan is available within the RT range according to
+        the current settings.
+        """
         
-        itermethod = getattr(self, '%s_iterscanidx_all' % res_type)
-        
-        for resource, idx, rtdiff in itermethod():
+        for resource, idx, rtdiff in self.iterscanidx_all():
             
             if not len(idx):
                 

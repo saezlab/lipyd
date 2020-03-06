@@ -22,7 +22,7 @@ import sys
 import re
 
 try:
-    import pybel
+    import openbabel.pybel as pybel
     if 'ipykernel' not in sys.modules and pybel.tk is None:
         try:
             import tkinter

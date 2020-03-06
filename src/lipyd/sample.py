@@ -90,7 +90,6 @@ class SampleReader(object):
         self.ionmode = ionmode
         self.reader_class = self.reader_classes[input_type]
         self.reader_args  = kwargs
-        set_ms2_param
         self.read()
     
     def reload(self):
@@ -400,7 +399,7 @@ class FeatureBase(object):
                 
                 raise RuntimeError(
                     'Can not sort object of length %u by '
-                    'index array of length %u.' (len(self), len(by))
+                    'index array of length %u.' % (len(self), len(by))
                 )
             
             isort = by
@@ -1425,6 +1424,7 @@ class Sample(FeatureBase):
             
             self.ms2_source = ms2_source[self.sample_id]
     
+    
     def collect_ms2(self, sample_id = None, attrs = None):
         """Collects the MS2 scans belonging to this sample.
         
@@ -1544,6 +1544,10 @@ class Sample(FeatureBase):
         
         # dict with one key and list of files probably only one element:
         # do like this to be able to directly pass to ms2.MS2Feature
+        if sample_id in mgf_files:
+            
+            mgf_files = mgf_files[sample_id]
+        
         return  {
             sample_id: [
                 mgf.MgfReader(fname, charge = mgf_charge)

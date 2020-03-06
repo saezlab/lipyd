@@ -36,7 +36,7 @@ import numpy as np
 import pandas as pd
 
 try:
-    import pybel
+    import openbabel.pybel as pybel
     if 'ipykernel' not in sys.modules and pybel.tk is None:
         try:
             import tkinter

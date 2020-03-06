@@ -84,7 +84,7 @@ class FeatureAnalyzer(object):
         ``SampleData`` variables can be provided as keyword arguments.
         ``SampleSet`` object must be provided as well as the analysis method.
         
-        name : str
+        names : str
             A name for the feature variable created by this analysis object.
         samples : sample.SampleSet
             A ``lipyd.sample.SampleSet`` object.
