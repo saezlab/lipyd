@@ -44,13 +44,14 @@ import lipyd.feature as feature
 import lipyd.recalibration as recalibration
 import lipyd.lookup as lookup
 import lipyd.common as common
+import lipyd.session as session
 
 
 remgf  = re.compile(r'(\w+)_(pos|neg)_([A-Z])([0-9]{1,2})\.mgf')
 remgf2 = re.compile(r'(\w+)_([A-Z])([0-9]{1,2})_(pos|neg)\.mgf')
 
 
-class SampleReader(object):
+class SampleReader(session.Logger):
     
     
     reader_classes = {
@@ -83,6 +84,8 @@ class SampleReader(object):
             refer to classes in ``lipyd.reader`` modules.
         """
         
+        session.Logger.__init__(self, name = 'sample_reader')
+        
         if input_type not in self.reader_classes:
             
             raise RuntimeError('Unknown input type: %s' % input_type)
@@ -91,6 +94,7 @@ class SampleReader(object):
         self.reader_class = self.reader_classes[input_type]
         self.reader_args  = kwargs
         self.read()
+    
     
     def reload(self):
         """ """
@@ -101,12 +105,13 @@ class SampleReader(object):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
+    
     def read(self):
         """ """
         
         self.reader = self.reader_class(**self.reader_args)
     
-
+    
     def get_attributes(self):
         """Returns ``lipyd.sample.FeatureAttributes`` object.
         This object contains variables describing series of features
@@ -126,6 +131,7 @@ class SampleReader(object):
         attrs['ionmode'] = self.ionmode
         
         return FeatureAttributes(**attrs)
+    
     
     def get_samples(self, bind = True, sample_args = None):
         """Yields ``lipyd.sample.Sample`` objects for each sample read.
@@ -173,7 +179,7 @@ class SampleReader(object):
             
             yield Sample(**_sample_args)
     
-
+    
     def get_sampleset(self, sampleset_args = None):
         """Returns a ``SampleSet`` and a ``FeatureAttributes`` object.
 
@@ -212,7 +218,8 @@ class SampleReader(object):
         return SampleSet(**_sampleset_args)
 
 
-class FeatureBase(object):
+class FeatureBase(session.Logger):
+    
     
     def __init__(self, sorter = None, **kwargs):
         """
@@ -229,6 +236,10 @@ class FeatureBase(object):
         -------
 
         """
+        
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger.__init__(self, name = 'feature_base')
         
         self.var = self.var if hasattr(self, 'var') else set()
         self.sorted_by = None
@@ -251,6 +262,7 @@ class FeatureBase(object):
             
             self.sorter.register(self)
     
+    
     def reload(self):
         """ """
         
@@ -259,6 +271,7 @@ class FeatureBase(object):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
     
     def _add_var(self, data, attr):
         """Registers a variable (array of data). If an array added this way
@@ -288,6 +301,7 @@ class FeatureBase(object):
         else:
             
             self.var.add(attr)
+    
     
     def sort_all(
             self,
@@ -416,6 +430,7 @@ class FeatureBase(object):
                 
                 self.sorter.sort_all(by = isort, origin = id(self))
     
+    
     def __len__(self):
         
         return (
@@ -423,6 +438,7 @@ class FeatureBase(object):
             if self.var else
             0
         )
+    
     
     def __getitem__(self, key):
         
@@ -433,6 +449,7 @@ class FeatureBase(object):
             result[var] = getattr(self, var)[key]
         
         return feature.Feature(ionmode = self.ionmode, **result)
+    
     
     def filter(self, idx, negative = False, propagate = True):
         """
@@ -467,6 +484,7 @@ class FeatureBase(object):
         
         self._filter(selection, propagate = propagate)
     
+    
     def _idx_to_selection(self, idx, negative = False):
         """
 
@@ -494,6 +512,7 @@ class FeatureBase(object):
         
         return selection
     
+    
     def _filter(self, selection, propagate = True):
         """
 
@@ -517,8 +536,10 @@ class FeatureBase(object):
             
             self.sorter._filter(selection = selection, origin = id(self))
     
+    
     def filter_selection(self, selection, negative = False):
-        """Takes a ``FeatureSelection`` object and applies it as a filter i.e.
+        """
+        Takes a ``FeatureSelection`` object and applies it as a filter i.e.
         removes features where it is ``False``.
 
         Parameters
@@ -541,8 +562,10 @@ class FeatureBase(object):
             
             self._filter(selection.selection)
     
+    
     def threshold_filter(self, var, threshold, op = operator.gt):
-        """Filters the features by any numeric attribute by simply applying
+        """
+        Filters the features by any numeric attribute by simply applying
         a threshold. If the attribute does not exist silently does nothing.
 
         Parameters
@@ -574,8 +597,10 @@ class FeatureBase(object):
         
         self._filter(selection)
     
+    
     def threshold_select(self, var, threshold, op = operator.gt):
-        """Returns boolean vector by applying an operator on a variable and
+        """
+        Returns boolean vector by applying an operator on a variable and
         a threshold.
 
         Parameters
@@ -602,6 +627,7 @@ class FeatureBase(object):
             op = op,
         )
     
+    
     @staticmethod
     def _threshold_select(var, threshold, op = operator.gt):
         """
@@ -621,6 +647,7 @@ class FeatureBase(object):
         """
         
         return op(var, threshold)
+    
     
     def feature_data(self, i, variables = None):
         """For a feature returns the requested attributes.
@@ -650,7 +677,10 @@ class FeatureBase(object):
 
 
 class FeatureAttributes(FeatureBase):
-    """ """
+    """
+    Carries feature level attributes as numpy arrays with the length of their
+    first dimension being the number of features.
+    """
     
     def __init__(
             self,
@@ -665,6 +695,8 @@ class FeatureAttributes(FeatureBase):
         ``FeatureAttributes`` handles the attributes for either a ``Sample``
         or a ``SampleSet``.
         """
+        
+        session.Logger.__init__(self, name = 'feature_attrs')
         
         FeatureBase.__init__(self, **kwargs)
         
@@ -742,6 +774,10 @@ class Sample(FeatureBase):
             times later.
         """
         
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger(self, name = 'sample')
+        
         self.var     = set()
         self.missing = set()
         
@@ -781,6 +817,7 @@ class Sample(FeatureBase):
         
         self._set_attrs(**attr_args)
     
+    
     def reload(self):
         """ """
         
@@ -789,6 +826,7 @@ class Sample(FeatureBase):
         imp.reload(mod)
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
+    
     
     def _set_attrs(self, **kwargs):
         """
@@ -804,6 +842,7 @@ class Sample(FeatureBase):
         """
         
         self.attrs = sampleattrs.SampleAttrs(**kwargs)
+    
     
     def _set_feature_attrs(self, feature_attrs = None):
         """
@@ -823,6 +862,7 @@ class Sample(FeatureBase):
             feature_attrs = FeatureAttributes(sorter = self.sorter)
         
         self.feattrs = feature_attrs
+    
     
     def _add_var(self, data, attr):
         """
@@ -852,6 +892,7 @@ class Sample(FeatureBase):
             )
         
         FeatureBase._add_var(self, data, attr)
+    
     
     def sort_all(
             self,
@@ -915,6 +956,7 @@ class Sample(FeatureBase):
             
             return isort
     
+    
     def __len__(self):
         """
         Returns number of MS1 ions (m/z's) detected in the sample.
@@ -922,10 +964,12 @@ class Sample(FeatureBase):
         
         return len(self.mzs)
     
+    
     def index_by_mz(self, mz, tolerance = 10):
         
         self.sort_all('mzs')
         return lookup.find(self.mzs, mz, t = tolerance)
+    
     
     def __getitem__(self, key):
         
@@ -944,6 +988,7 @@ class Sample(FeatureBase):
         
         return result
     
+    
     @property
     def numof_samples(self):
         """
@@ -951,6 +996,7 @@ class Sample(FeatureBase):
         """
         
         return 1
+    
     
     def apply(
             self,
@@ -1002,6 +1048,7 @@ class Sample(FeatureBase):
         
         self.feattrs._add_var(new, name)
     
+    
     def _apply(
             self,
             method,
@@ -1042,6 +1089,7 @@ class Sample(FeatureBase):
             result.append(result_i)
         
         np.vstack()
+    
     
     def select(
             self,
@@ -1130,6 +1178,7 @@ class Sample(FeatureBase):
         
         return FeatureSelection(self, selections)
     
+    
     def feature_data(self, i, variables = None, feature_attrs = None):
         """For a feature returns the requested attributes.
 
@@ -1202,6 +1251,7 @@ class Sample(FeatureBase):
         
         recalibrator.recalibrate(self)
     
+    
     def process(
             self,
             basic_filters = True,
@@ -1245,6 +1295,7 @@ class Sample(FeatureBase):
         if ms2_analysis:
             self.ms2_analysis(**(ms2_analysis_args or {}))
     
+    
     def quality_filter(self, threshold = .2):
         """If the features has an attribute named `quality` it removes the
         ones with quality below the threshold.
@@ -1261,6 +1312,7 @@ class Sample(FeatureBase):
         
         self.feattrs.threshold_filter('quality', threshold = threshold)
     
+    
     def rt_filter(self, threshold = 1.):
         """Removes the features with mean retention time below the threshold.
         Works only if the features has an attribute named `rt_means`.
@@ -1276,6 +1328,7 @@ class Sample(FeatureBase):
         """
         
         self.feattrs.threshold_filter('rt_means', threshold = threshold)
+    
     
     def charge_filter(self, charge = 1):
         """Keeps only the features with the preferred charge.
@@ -1297,8 +1350,10 @@ class Sample(FeatureBase):
             op = lambda vc, c: np.abs(vc) == c,
         )
     
+    
     def intensity_filter(self, threshold = 10000.):
-        """Removes the features with total intensities across samples lower than
+        """
+        Removes the features with total intensities across samples lower than
         the threshold.
         
         Works by the ``total_intensities`` attribute.
@@ -1318,6 +1373,7 @@ class Sample(FeatureBase):
             threshold = threshold,
         )
     
+    
     def basic_filters(
             self,
             quality_min = .2,
@@ -1325,7 +1381,8 @@ class Sample(FeatureBase):
             rt_min = 1.,
             intensity_min = 10000.
         ):
-        """Performs 4 trivial filtering steps which discard a large number of
+        """
+        Performs 4 trivial filtering steps which discard a large number of
         features at the beginning of the analysis. It removes the features
         with quality lower than 0.2, non single charge, retention time lower
         than 1 minute or total intensity lower than 10,000.
@@ -1351,6 +1408,7 @@ class Sample(FeatureBase):
         self.charge_filter(charge = charge)
         self.intensity_filter(threshold = intensity_min)
         self.rt_filter(threshold = rt_min)
+    
     
     def database_lookup(
             self,
@@ -1401,6 +1459,7 @@ class Sample(FeatureBase):
             'records',
         )
     
+    
     def set_ms2_sources(self, attrs = None):
         """Collects the MS2 scans belonging to this sample.
         
@@ -1426,7 +1485,8 @@ class Sample(FeatureBase):
     
     
     def collect_ms2(self, sample_id = None, attrs = None):
-        """Collects the MS2 scans belonging to this sample.
+        """
+        Collects the MS2 scans belonging to this sample.
         
         The collected resources returned as ``dict`` which can be passed
         to ``ms2.MS2Feature``.
@@ -1460,6 +1520,7 @@ class Sample(FeatureBase):
                 sample_id = sample_id,
                 attrs = attrs,
             )
+    
     
     def collect_mgf(self, sample_id = None, attrs = None):
         """Collects MGF files containing the MS2 spectra.
@@ -1544,20 +1605,40 @@ class Sample(FeatureBase):
         
         # dict with one key and list of files probably only one element:
         # do like this to be able to directly pass to ms2.MS2Feature
-        if sample_id in mgf_files:
+        if isinstance(mgf_files, dict):
             
-            mgf_files = mgf_files[sample_id]
+            if sample_id in mgf_files:
+                
+                mgf_files = mgf_files[sample_id]
+                
+            else:
+                
+                mgf_files = []
         
-        return  {
+        result = {
             sample_id: [
                 mgf.MgfReader(fname, charge = mgf_charge)
                 for fname in mgf_files
             ]
         }
+        
+        self._log(
+            'MGF resources for sample `%s`: %s' % (
+                str(sample_id),
+                ', '.join(
+                    mgfobj.__repr__()
+                    for mgfobj in result[sample_id]
+                )
+            )
+        )
+        
+        return result
+    
     
     @staticmethod
     def _default_mgf_match_method(path, attrs):
-        """The default method for matching names of MGF files against attributes.
+        """
+        The default method for matching names of MGF files against attributes.
 
         Parameters
         ----------
@@ -1589,6 +1670,7 @@ class Sample(FeatureBase):
             ionmode == attrs['label']['ionmode']
         )
     
+    
     def collect_mzml(self, attrs = None):
         """
 
@@ -1604,8 +1686,10 @@ class Sample(FeatureBase):
         
         raise NotImplementedError
     
+    
     def ms2_analysis(self, resources = None):
-        """Runs MS2 identification methods on all features.
+        """
+        Runs MS2 identification methods on all features.
 
         Parameters
         ----------
@@ -1634,6 +1718,8 @@ class Sample(FeatureBase):
                 )
         
         ms2_identities = []
+        
+        self._log('Analysing MS2 spectra.')
         
         if not self.silent:
             
@@ -1667,6 +1753,7 @@ class Sample(FeatureBase):
         
         self.feattrs._add_var(ms2_identities, 'ms2_identities')
     
+    
     def ms2_identify(self):
         """ """
         
@@ -1678,7 +1765,8 @@ class Sample(FeatureBase):
     #
     
     def get_database_records(self, i, database = None, adduct = None):
-        """Yields database records for one feature, optionally only records
+        """
+        Yields database records for one feature, optionally only records
         of certain adduct or database.
 
         Parameters
@@ -1711,12 +1799,14 @@ class Sample(FeatureBase):
                 
                 yield rec
     
+    
     def table(
             self,
             variables = None,
             headers = None,
         ):
-        """Returns results as a header and a table as list of lists.
+        """
+        Returns results as a header and a table as list of lists.
 
         Parameters
         ----------
@@ -1789,6 +1879,7 @@ class Sample(FeatureBase):
             
             yield line
     
+    
     def export_table(self, fname, **kwargs):
         """
 
@@ -1820,9 +1911,11 @@ class Sample(FeatureBase):
 
 class FeatureIdx(FeatureBase):
     
+    
     def __init__(self, length):
-        """Helps the sorting of features across multiple samples
-            with keeping track of feature IDs.
+        """
+        Helps the sorting of features across multiple samples with keeping
+        track of feature IDs.
 
         Parameters
         ----------
@@ -1832,6 +1925,10 @@ class FeatureIdx(FeatureBase):
 
         """
         
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger.__init__(self, name = 'feature_idx')
+        
         FeatureBase.__init__(self)
         
         self.var = {'_original', '_current'}
@@ -1840,6 +1937,7 @@ class FeatureIdx(FeatureBase):
         self._current  = np.arange(length)
         
         self.clients = {}
+    
     
     def _sort(self, argsort):
         """
@@ -1861,6 +1959,7 @@ class FeatureIdx(FeatureBase):
         self._current  = self._current[argsort]
         self._original = self._current.argsort()
     
+    
     def current(self, o):
         """Tells the current index for the original index ``o``.
 
@@ -1878,6 +1977,7 @@ class FeatureIdx(FeatureBase):
         """
         
         return self._original[o]
+    
     
     def original(self, c):
         """
@@ -1898,12 +1998,15 @@ class FeatureIdx(FeatureBase):
         
         return self._current[c]
     
+    
     def __len__(self):
         
         return len(self._original)
     
+    
     def acurrent(self, ao):
-        """For a vector of original indices ``ao`` returns a vector of
+        """
+        For a vector of original indices ``ao`` returns a vector of
         corresponding current indices.
 
         Parameters
@@ -1921,8 +2024,10 @@ class FeatureIdx(FeatureBase):
         
         return self._original[ao]
     
+    
     def aoriginal(self, co):
-        """For a vector of current indices ``co`` returns a vector of
+        """
+        For a vector of current indices ``co`` returns a vector of
         corresponding original indices.
 
         Parameters
@@ -1940,8 +2045,10 @@ class FeatureIdx(FeatureBase):
         
         return self._current[ac]
     
+    
     def convert(self, other):
-        """Converts from the ordering of an other ``FeatureIdx`` instance
+        """
+        Converts from the ordering of an other ``FeatureIdx`` instance
         to the ordering of this one.
 
         Parameters
@@ -1955,6 +2062,7 @@ class FeatureIdx(FeatureBase):
         """
         
         raise NotImplementedError
+    
     
     def register(self, sortable):
         """Binds a sortable object of the same length to this one hence all
@@ -1979,6 +2087,7 @@ class FeatureIdx(FeatureBase):
             )
         
         self.clients[id(sortable)] = sortable
+    
     
     def unregister(self, id_sortable):
         """Removes an object from the list of clients and also makes it forget
@@ -2006,6 +2115,7 @@ class FeatureIdx(FeatureBase):
             
             self.clients[id_sortable].sorter = None
             del self.clients[id_sortable]
+    
     
     def sort_all(self,
             by = None,
@@ -2049,6 +2159,7 @@ class FeatureIdx(FeatureBase):
             if id_ != origin:
                 
                 client.sort_all(by = by, propagate = False)
+    
     
     def _filter(self, selection, origin = None):
         """Applies filtering to all registered clients.
@@ -2120,6 +2231,10 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             should be co-sorted with this object.
         """
         
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger.__init__(self, name = 'sample_set')
+        
         mzs = common.ensure_array(mzs)
         intensities  = common.ensure_array(intensities)
         rts = common.ensure_array(rts)
@@ -2176,6 +2291,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         
         self.normalize_intensities()
     
+    
     @classmethod
     def combine_samples(cls, attrs, samples, **kwargs):
         """Initializes the object by combining a series of ``Sample`` objects.
@@ -2231,6 +2347,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             **kwargs,
         )
     
+    
     @property
     def numof_samples(self):
         """ """
@@ -2239,6 +2356,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             self.attrs,
             (getattr(self, var) for var in self.var),
         )
+    
     
     def _guess_numof_samples(self, attrs = None, variables = None):
         """
@@ -2274,6 +2392,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
     
     _set_attrs = sampleattrs.SampleSorter._set_attrs
     
+    
     def get_sample_attrs(self, i):
         """
         Returns the sample attributes (dict of metadata) of the ``i``th
@@ -2291,8 +2410,10 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         
         return self.attrs[i]
     
+    
     def get_sample(self, i):
-        """Returns the ``i``th sample as a ``Sample`` object.
+        """
+        Returns the ``i``th sample as a ``Sample`` object.
 
         Parameters
         ----------
@@ -2320,6 +2441,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             **var,
         )
     
+    
     def _get_sample_id(self, i):
         """
         Parameters
@@ -2344,6 +2466,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             sample_id = sample_id,
             attrs = self.attrs[i],
         )
+    
     
     def collect_ms2(self, attrs = None):
         """
@@ -2389,6 +2512,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         
         return ms2_source
     
+    
     def set_ms2_sources(self, attrs = None):
         """
         Collects the MS2 scans for all samples.
@@ -2402,6 +2526,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         """
         
         self.ms2_source = self.collect_ms2(attrs = attrs)
+    
     
     def peak_max_filter(self, backg, peak, threshold = 2):
         """
@@ -2476,6 +2601,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
         
         self.feattrs.threshold_filter('peaksize', threshold = threshold)
     
+    
     def get_selection(self, selection):
         """Returns a ``SampleSelection`` object which is a binary selection
         of some of the samples in the set.
@@ -2498,6 +2624,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             selection = selection,
             samples = self,
         )
+    
     
     def get_sample_data(self, **kwargs):
         """Returns a ``SampleData`` object which stores any data about the
@@ -2522,6 +2649,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
             **kwargs,
         )
     
+    
     def normalize_intensities(self):
         """
         Creates an array with intensity values divided by the maximum
@@ -2540,6 +2668,7 @@ class SampleSet(Sample, sampleattrs.SampleSorter):
 
 class FeatureSelection(FeatureBase):
     
+    
     def __init__(self, samples, selection):
         """
         Represents a binary selection over all features in a ``SampleSet``.
@@ -2550,6 +2679,10 @@ class FeatureSelection(FeatureBase):
             A boolean array.
         """
         
+        if not hasattr(self, '_log_name'):
+            
+            session.Logger.__init__(self, name = 'feature_selection')
+        
         self.samples = samples
         
         FeatureBase.__init__(
@@ -2557,6 +2690,7 @@ class FeatureSelection(FeatureBase):
             sorter = self.samples.sorter,
             selection = selection,
         )
+    
     
     @property
     def negative(self):

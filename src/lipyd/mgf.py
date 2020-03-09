@@ -28,7 +28,7 @@ import lipyd.session as session
 import lipyd.settings as settings
 
 
-class MgfReader(object):
+class MgfReader(session.Logger):
     """ """
     
     stRrtinseconds = 'RTINSECONDS'
@@ -46,12 +46,13 @@ class MgfReader(object):
     reln0 = re.compile(r'^([A-Z]+).*=([\d\.]+)[\s]?([\d\.]*)["]?$')
     reln1 = re.compile(r'^([A-Z]+).*=(.*)$')
     
+    
     def __init__(
             self,
             fname,
             label = None,
             charge = 1,
-            rt_tolerance = 1.0,
+            rt_tolerance = None,
             drift = 1.0,
             tolerance = None
         ):
@@ -59,17 +60,31 @@ class MgfReader(object):
         Provides methods for looking up MS2 scans from an MGF file.
         """
         
+        session.Logger.__init__(self, name = 'mgf')
+        
         self.fname  = fname
         self.label  = label
         self.charge = charge
-        self.rt_tolerance = rt_tolerance
+        self.rt_tolerance = rt_tolerance or settings.get('deltart_threshold')
         self.drift  = drift
         self.index()
-        self.log = session.get_log()
-        self.ms2_within_range = settings.get('ms2_within_range')
+        self.ms2_rt_within_range = settings.get('ms2_rt_within_range')
         self.tolerance = (
             tolerance or settings.get('precursor_match_tolerance')
         )
+        
+        self._log(
+            'MGF reader initialized for file `%s`, '
+            'looking up MS2 spectra for precursor features %s, '
+            'with a mass tolerance of %.01f ppm.' % (
+                self.fname,
+                (' in RT range +/-%.02f' % self.rt_tolerance)
+                    if self.ms2_rt_within_range else
+                'with ignoring RT',
+                self.tolerance,
+            )
+        )
+    
     
     def reload(self):
         """ """
@@ -80,8 +95,10 @@ class MgfReader(object):
         new = getattr(mod, self.__class__.__name__)
         setattr(self, '__class__', new)
     
+    
     def index(self):
-        """Indexing offsets in one MS2 MGF file.
+        """
+        Indexing offsets in one MS2 MGF file.
         
         Columns:
             -- pepmass
@@ -210,9 +227,18 @@ class MgfReader(object):
             self.mgfindex[:,3].astype(int), # scan indices
             range(len(self)) # row numbers
         ))
+        
+        self._log(
+            'MGF file `%s` has been indexed, found %u spectra.' % (
+                self.fname,
+                len(self),
+            )
+        )
+    
     
     def lookup(self, mz, rt = None, tolerance = None):
-        """Looks up an MS1 m/z and returns the indices of MS2 scans in the
+        """
+        Looks up an MS1 m/z and returns the indices of MS2 scans in the
         MGF file.
         
         Returns 2 numpy arrays of the same length: first one with the indices,
@@ -232,9 +258,9 @@ class MgfReader(object):
 
         """
         
-        if self.log.verbosity > 4:
+        if self._log_verbosity > 4:
             
-            self.log.msg(
+            self._log.msg(
                 'Recalibrated m/z: %.08f; drift = %.08f; '
                 'measured m/z: %.08f' % (mz, self.drift, mz / self.drift)
             )
@@ -248,9 +274,9 @@ class MgfReader(object):
         ))
         rtdiff = np.array([self.mgfindex[i,2] - rt for i in idx])
         
-        if self.log.verbosity > 4:
+        if self._log_verbosity > 4:
             
-            self.log.msg(
+            self._log(
                 'Looking up MS1 m/z %.08f. '
                 'MS2 scans with matching precursor mass: %u' % (
                     mz_uncorr,
@@ -258,11 +284,11 @@ class MgfReader(object):
                 )
             )
         
-        if self.ms2_within_range:
+        if self.ms2_rt_within_range:
             
             if np.isnan(rt):
                 
-                self.log.msg(
+                self._log(
                     'No MS1 RT provided, could not check RT '
                     'difference of MS2 scans.'
                 )
@@ -274,9 +300,9 @@ class MgfReader(object):
                 )
             ]
             
-            if self.log.verbosity > 4:
+            if self._log_verbosity > 4:
                 
-                self.log.msg(
+                self._log(
                 'RT range: %.03f--%.03f; '
                 'Matching MS2 scans within this range: %u' % (
                     rtlower,
@@ -285,14 +311,16 @@ class MgfReader(object):
                 )
             )
             
-        elif self.log.verbosity > 4:
+        elif self._log_verbosity > 4:
             
-            self.log.msg('Not checking RT.')
+            self._log('Not checking RT.')
         
         return idx, rtdiff
     
+    
     def lookup_scan_ids(self, mz, rt = None, tolerance = None):
-        """Same as `lookup` but returns scan ids instead of indices.
+        """
+        Same as `lookup` but returns scan ids instead of indices.
 
         Parameters
         ----------
@@ -314,8 +342,10 @@ class MgfReader(object):
         
         return ids, rtdiff
     
+    
     def get_scan(self, i):
-        """Reads MS2 fragment peaks from one scan.
+        """
+        Reads MS2 fragment peaks from one scan.
         
         Returns m/z's and intensities in 2 columns array.
 
@@ -363,9 +393,9 @@ class MgfReader(object):
                         intensity     # intensity
                     ])
         
-        if self.log.verbosity > 4:
+        if self._log_verbosity > 4:
             
-            self.log.msg(
+            self._log(
                 'Read scan #%u from file `%s`;'
                 '%u peaks retrieved.' % (
                     self.mgfindex[i, 3],
@@ -376,8 +406,10 @@ class MgfReader(object):
         
         return np.array(scan)
     
+    
     def get_scans(self, mz, rt = None):
-        """Looks up all scans for one precursor mass and RT, yields 2 column
+        """
+        Looks up all scans for one precursor mass and RT, yields 2 column
         arrays of MS2 m/z's and intensities and delta RTs.
         
         Calls `get_scan` for all indices returned by `lookup`.
@@ -401,7 +433,8 @@ class MgfReader(object):
             yield self.get_scan(i), r
     
     def i_by_id(self, scan_id):
-        """Returns the row number for one scan ID.
+        """
+        Returns the row number for one scan ID.
 
         Parameters
         ----------
@@ -433,7 +466,8 @@ class MgfReader(object):
         return self.mgfindex[i,0] if i is not None else None
     
     def scan_by_id(self, scan_id):
-        """Retrieves a scan by its ID as used in the MGF file.
+        """
+        Retrieves a scan by its ID as used in the MGF file.
         Scan ID is an integer number, the number of the scan in the sequence
         of the whole experiment.
         
@@ -454,19 +488,30 @@ class MgfReader(object):
         
         return self.get_scan(i) if i is not None else None
     
+    
     def get_file(self):
         """Returns the file pointer, opens the file if necessary."""
         
         if not hasattr(self, 'fp') or self.fp.closed:
             
             self.fp = open(self.fname, 'r')
-        
+    
+    
     def __len__(self):
         
         return self.mgfindex.shape[0]
+    
     
     def __del__(self):
         
         if hasattr(self, 'fp') and not self.fp.closed:
             
             self.fp.close()
+    
+    
+    def __repr__(self):
+        
+        return '<MGF file %s, %u spectra>' % (
+            self.fname,
+            len(self),
+        )

@@ -83,6 +83,12 @@ class Logger(object):
         """
         
         self._logger.console(msg = msg, label = self._log_name)
+    
+    
+    @property
+    def _log_verbosity(self):
+        
+        return self._logger.verbosity
 
 
 def get_session():

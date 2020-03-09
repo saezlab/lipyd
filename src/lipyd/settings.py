@@ -334,7 +334,7 @@ _defaults = {
     # Above this threshold we consider the MS2 spectrum to not
     # belong to the protein and highlight with red in the
     # output tables.
-    'deltart_threshold': 0.5,
+    'deltart_threshold': 1.0,
     # Don't know what it is for
     'uniprots': None,
     # example files
