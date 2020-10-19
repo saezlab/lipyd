@@ -105,11 +105,13 @@ _defaults = {
     'swisslipids_url': 'http://www.swisslipids.org/php/'\
         'export.php?action=get&file=lipids.csv',
     # Experimentally verified masses of few tens of thousands lipids.
-    'lipidmaps_url': 'http://www.lipidmaps.org/resources/downloads/'\
+    'lipidmaps_url_old': 'http://www.lipidmaps.org/resources/downloads/'\
         'LMSDFDownload12Dec17.tar.gz',
+    'lipidmaps_url': 'https://www.lipidmaps.org/files/?file=LMSD&ext=sdf.zip',
     # The filename to use after extracting the archice above.
-    'lipidmaps_fname': 'LMSDFDownload12Dec17/'\
+    'lipidmaps_fname_old': 'LMSDFDownload12Dec17/'\
         'LMSDFDownload12Dec17FinalAll.sdf',
+    'lipidmaps_fname': 'structures.sdf',
     # ComPPI: protein subcellular localization data.
     'comppi_url': 'http://comppi.linkgroup.hu/downloads',
     # Gene Ontology.

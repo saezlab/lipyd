@@ -117,7 +117,12 @@ class LipidMaps(sdf.SdfReader):
         
         self.url   = settings.get('lipidmaps_url')
         self.fname = settings.get('lipidmaps_fname')
-        self.curl  = _curl.Curl(self.url, large = True, silent = False)
+        self.curl  = _curl.Curl(
+            self.url,
+            large = True,
+            silent = False,
+            compr = 'zip' if self.url.endswith('zip') else None,
+        )
         
         if extract_file:
             
@@ -323,7 +328,7 @@ class SwissLipids(Reader):
                 if not self.silent:
                     self.prg.step(len(l))
                 
-                ll = l.decode('utf-8').split('\t')
+                ll = l.decode('latin-1').split('\t')
                 
                 if ll[1] in self.levels:
                     
@@ -367,7 +372,7 @@ class SwissLipids(Reader):
             self.prg.terminate()
         
         self.index = dict(self.index)
-        self._plainfile = open(self._plainfilename, 'r')
+        self._plainfile = open(self._plainfilename, 'r', encoding = 'latin-1')
     
     def get_hg(self, hg, sub = ()):
         """
