@@ -108,6 +108,7 @@ setup(
         'xmltodict',
         'bs4',
         'regex',
+        'timeloop',
     ],
     extras_require = {
         'tests': [
