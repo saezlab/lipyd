@@ -124,8 +124,8 @@ class MassDatabase(object):
         self.setup_isotopes()
     
     
-    @staticmethod
-    def load_masses(url):
+    @classmethod
+    def load_masses(cls, url):
         """
         Downloads an HTML table from CIAAW webpage
         and extracts the atomic mass or weight information.
@@ -140,7 +140,7 @@ class MassDatabase(object):
         Dict of masses or weights.
         """
         
-        c = _curl.Curl(url, silent = False)
+        c = _curl.Curl(cls._archive_url(url), silent = False)
         req_masses = c.result
         
         with warnings.catch_warnings():
@@ -195,7 +195,7 @@ class MassDatabase(object):
         Stores the result in :py:attr:`.freqIso` attribute of the module.
         """
         
-        c = _curl.Curl(self.url_abundances, silent = False)
+        c = _curl.Curl(self._archive_url(self.url_abundances), silent = False)
         req_abundances = c.result.split('\n')
         
         # fixing erroneous HTML from CIAAW:
@@ -245,6 +245,12 @@ class MassDatabase(object):
                 continue
         
         self.freq_iso = freq_iso
+
+
+    @staticmethod
+    def _archive_url(url):
+
+        return 'https://web.archive.org/web/20171003133929/%s' % url
 
 
     def setup_mass_first_iso(self):
