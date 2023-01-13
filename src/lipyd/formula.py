@@ -211,12 +211,12 @@ class Formula(mass.MassBase, mz.Mz):
             
             return self
         
-        for elem, cnt in iteritems(self.atoms):
+        for elem, cnt in iteritems(self._atoms):
             
             self.counts[elem] = cnt * other
         
         self.calc_mass()
-        self.formula_from_dict(self.atoms)
+        self.formula_from_dict(self._atoms)
         self.isotope = self.isotope * other
     
     def __mul__(self, other):
@@ -227,7 +227,7 @@ class Formula(mass.MassBase, mz.Mz):
         
         new_atoms = defaultdict(int)
         
-        for elem, cnt in iteritems(self.atoms):
+        for elem, cnt in iteritems(self._atoms):
             
             new_atoms[elem] = cnt * other
         
@@ -254,7 +254,7 @@ class Formula(mass.MassBase, mz.Mz):
         Returns this ``Formula`` instance as ``mass.MassBase`` object.
         """
         
-        return MassBase(self.formula, self.charge, self.isotope)
+        return mass.MassBase(self.formula, self.charge, self.isotope)
     
     
     def add(self, formula):
@@ -268,7 +268,7 @@ class Formula(mass.MassBase, mz.Mz):
         """
         
         for elem, cnt in mass._re_form.findall(formula):
-            self.atoms[elem] += int(cnt or '1')
+            self._atoms[elem] += int(cnt or '1')
         
         self.update()
     
@@ -284,9 +284,9 @@ class Formula(mass.MassBase, mz.Mz):
         """
         
         for elem, cnt in mass._re_form.findall(formula):
-            self.atoms[elem] -= int(cnt or '1')
+            self._atoms[elem] -= int(cnt or '1')
             
-            if self.atoms[elem] < 0:
+            if self._atoms[elem] < 0:
                 
                 raise ValueError('Can not remove %s from %s: '
                     'too few %s atoms!' % (formula, self.formula, elem))
@@ -300,10 +300,10 @@ class Formula(mass.MassBase, mz.Mz):
         re-calculates the mass.
         """
         
-        if len(self.atoms):
+        if len(self._atoms):
             
-            self.formula = ''.join('%s%u' % (elem, self.atoms[elem])
-                                    for elem in sorted(self.atoms.keys()))
+            self.formula = ''.join('%s%u' % (elem, self._atoms[elem])
+                                    for elem in sorted(self._atoms.keys()))
             self.calc_mass()
     
     
