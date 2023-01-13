@@ -179,7 +179,7 @@ class Formula(mass.MassBase, mz.Mz):
     
     def __sub__(self, other):
         
-        new = copy.copy(self)
+        new = copy.deepcopy(self)
         new.__isub__(other)
         return new
     
