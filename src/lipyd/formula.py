@@ -203,6 +203,9 @@ class Formula(mass.MassBase, mz.Mz):
         self.charge -= (other.charge if hasattr(other, 'charge') else 0)
         self.isotope -= (other.isotope if hasattr(other, 'isotope') else 0)
         
+        self.calc_mass()
+        self.update_mz()
+        
         return self
     
     def __imul__(self, other):
