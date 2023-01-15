@@ -572,7 +572,7 @@ class MassBase(object):
                 )
                 m = 0.0
                 for element, count in atoms:
-                    count = int(count or '1')
+                    count = int('1' if count == '' else count)
                     m += self.exmass[element] * count
                 
                 if self.isotope:
