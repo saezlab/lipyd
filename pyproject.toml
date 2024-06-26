@@ -4,14 +4,14 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "lipyd"
-version = "0.0.1"
+version = "0.9.2"
 description = "Python module for lipidomics LC MS/MS data processing"
 license = "GNU General Public License Version 3"
 authors = [
     "Saez Lab <omnipathdb@gmail.com>"
 ]
 packages = [
-    { include = "lipyd" }
+    { include = "src/lipyd" }
 ]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",

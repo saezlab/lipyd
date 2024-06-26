@@ -1,25 +1,28 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 #
-#  This file is part of the `lipyd` python module
+# This file is part of the `lipyd` Python module
 #
-#  Copyright (c) 2015-2019 - EMBL
+# Copyright 2024
+# Heidelberg University Hospital
 #
-#  File author(s):
-#  Dénes Türei (turei.denes@gmail.com)
-#  Igor Bulanov
+# File author(s): Saez Lab (omnipathdb@gmail.com)
 #
-#  Distributed under the GNU GPLv3 License.
-#  See accompanying file LICENSE.txt or copy at
-#      http://www.gnu.org/licenses/gpl-3.0.html
-#
-#  Website: http://denes.omnipathdb.org/
+# Distributed under the GPLv3 license
+# See the file `LICENSE` or read a copy at
+# https://www.gnu.org/licenses/gpl-3.0.txt
 #
 
+"""
+Python module for lipidomics LC MS/MS data processing.
+"""
 
-import lipyd._version as _version
-__version__ = _version.__version__
+__all__ = [
+    '__version__',
+    '__author__',
+]
+
+from ._metadata import __author__, __version__
 
 import pprint
 import lipyd.session as session
