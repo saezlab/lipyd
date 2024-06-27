@@ -164,8 +164,9 @@ omit = [
 
 [tool.pytest.ini_options]
 testpaths = [
-  "tests",
+  "src/test",
 ]
+pythonpath = "src"
 xfail_strict = true
 addopts = [
     # "-Werror",  # if 3rd party libs raise DeprecationWarnings, just use filterwarnings below
