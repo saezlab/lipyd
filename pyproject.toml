@@ -34,7 +34,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 toml = "*"
-numpy = "^2.0.0"
+numpy = "^1"
 scipy = "^1.14.0"
 matplotlib = "^3.9.0"
 fastcluster = "^1.2.6"
@@ -52,6 +52,7 @@ xmltodict = "^0.13.0"
 bs4 = "^0.0.2"
 regex = "^2024.5.15"
 timeloop = "^1.0.2"
+cairocffi = "^1.7.1"
 
 [tool.poetry.dev-dependencies]
 pytest = ">=6.0"
